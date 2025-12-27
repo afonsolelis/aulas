@@ -2129,6 +2129,17 @@ public class PedidoService {
             </div>
             <div class="slide-content">
               <p>Utilizando a biblioteca <code>Confluent.Kafka</code>.</p>
+
+              <div style="margin: 20px 0; padding: 15px 20px; background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border-left: 5px solid #1976d2; border-radius: 8px;">
+                <h3 style="margin: 0 0 10px 0; color: #1565c0;">📍 Caminho do Evento: ComentarioCriado</h3>
+                <div style="font-size: 1.3rem; line-height: 1.6;">
+                  <strong>Origem:</strong> API de Blog (ASP.NET Core) - Controller de Comentários<br>
+                  <strong>Gatilho:</strong> Usuário submete comentário via POST /api/posts/{postId}/comments<br>
+                  <strong>Destino:</strong> Topic Kafka "blog-comentarios-events"<br>
+                  <strong>Consumidores:</strong> Serviço de Analytics, Serviço de Moderação, Dashboard em tempo real
+                </div>
+              </div>
+
               <div class="code-container">
                 <div class="code-content">
                   <pre><code>using Confluent.Kafka;
@@ -2137,13 +2148,13 @@ var config = new ProducerConfig { BootstrapServers = "localhost:9092" };
 
 using var producer = new ProducerBuilder&lt;Null, string&gt;(config).Build();
 
-var mensagem = "{ 'id': 123, 'status': 'APROVADO' }";
+var mensagem = "{ 'postId': 456, 'comentarioId': 789, 'autor': 'João', 'texto': 'Ótimo post!', 'timestamp': '2024-01-15T10:30:00Z' }";
 
 // Fire and Forget (Assíncrono)
-await producer.ProduceAsync("pedidos-topic",
+await producer.ProduceAsync("blog-comentarios-events",
     new Message&lt;Null, string&gt; { Value = mensagem });
 
-Console.WriteLine("Evento emitido! O Holon 'Pedido' notificou o sistema.");</code></pre>
+Console.WriteLine("Evento emitido! Comentário publicado no sistema de eventos.");</code></pre>
                 </div>
                 <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
               </div>
@@ -2157,25 +2168,38 @@ Console.WriteLine("Evento emitido! O Holon 'Pedido' notificou o sistema.");</cod
               <div style="font-size: 1.5rem; opacity: 0.9;">Reagindo Autonomamente</div>
             </div>
             <div class="slide-content">
-              <p>O Holon 'Estoque' fica escutando...</p>
+              <p>O Serviço de Analytics fica escutando os eventos de comentários...</p>
+
+              <div style="margin: 20px 0; padding: 15px 20px; background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border-left: 5px solid #2e7d32; border-radius: 8px;">
+                <h3 style="margin: 0 0 10px 0; color: #1b5e20;">📊 Caminho do Evento: ComentarioCriado → Analytics</h3>
+                <div style="font-size: 1.3rem; line-height: 1.6;">
+                  <strong>Origem:</strong> Topic Kafka "blog-comentarios-events" (publicado pela API de Blog)<br>
+                  <strong>Consumidor:</strong> Serviço de Analytics (BackgroundService .NET)<br>
+                  <strong>Processamento:</strong> Calcula métricas (total de comentários, sentimento, engagement)<br>
+                  <strong>Próximo destino:</strong> Banco de dados de Analytics + SignalR para Dashboard
+                </div>
+              </div>
+
               <div class="code-container">
                 <div class="code-content">
                   <pre><code>var config = new ConsumerConfig {
-    GroupId = "estoque-group", // Importante para load balancing
+    GroupId = "analytics-group", // Importante para load balancing
     BootstrapServers = "localhost:9092",
     AutoOffsetReset = AutoOffsetReset.Earliest
 };
 
 using var consumer = new ConsumerBuilder&lt;Null, string&gt;(config).Build();
-consumer.Subscribe("pedidos-topic");
+consumer.Subscribe("blog-comentarios-events");
 
 while (true) {
     try {
         var cr = consumer.Consume(CancellationToken.None);
-        Console.WriteLine($"Recebi evento: {cr.Message.Value}");
+        Console.WriteLine($"Recebi evento de comentário: {cr.Message.Value}");
 
-        // Lógica Autônoma:
-        // if (Message == Aprovado) BaixarEstoque();
+        // Lógica Autônoma de Analytics:
+        // AtualizarContagemComentarios(postId);
+        // CalcularSentimento(texto);
+        // NotificarDashboard(metricas);
     }
     catch (Exception e) { Console.WriteLine($"Erro: {e.Message}"); }
 }</code></pre>
@@ -2192,19 +2216,32 @@ while (true) {
               <div style="font-size: 1.5rem; opacity: 0.9;">Updates em Tempo Real</div>
             </div>
             <div class="slide-content">
-              <h2>Como o Dashboard atualiza sozinho?</h2>
+              <h2>Como o Dashboard de Analytics atualiza sozinho?</h2>
               <p>O Backend (ASP.NET Core) consome o Kafka e avisa o Blazor via <strong>SignalR</strong>.</p>
+
+              <div style="margin: 20px 0; padding: 15px 20px; background: linear-gradient(135deg, #ede7f6 0%, #d1c4e9 100%); border-left: 5px solid #5e35b1; border-radius: 8px;">
+                <h3 style="margin: 0 0 10px 0; color: #4527a0;">🖥️ Caminho do Evento: Kafka → SignalR → Dashboard Blazor</h3>
+                <div style="font-size: 1.3rem; line-height: 1.6;">
+                  <strong>Origem:</strong> Serviço de Analytics (após processar evento do Kafka)<br>
+                  <strong>Ponte:</strong> SignalR Hub (ASP.NET Core) conectado ao Blazor Server<br>
+                  <strong>Destino final:</strong> Componente Blazor do Dashboard (atualização em tempo real)<br>
+                  <strong>Resultado:</strong> Métricas de comentários aparecem instantaneamente na tela
+                </div>
+              </div>
 
               <div class="code-container">
                 <div class="code-content">
-                  <pre><code>// Componente Blazor (.razor)
+                  <pre><code>// Componente Blazor Dashboard de Analytics (.razor)
 @code {
-    private List&lt;string&gt; _notificações = new();
+    private List&lt;string&gt; _metricasComentarios = new();
+    private int totalComentarios = 0;
+    private double sentimentoMedio = 0;
 
     protected override async Task OnInitializedAsync() {
         // Conecta ao Hub SignalR que está "bridged" com o Kafka
-        hubConnection.On&lt;string&gt;("ReceberEventoKafka", (msg) => {
-            _notificacoes.Add(msg);
+        hubConnection.On&lt;string&gt;("ReceberMetricaComentario", (metrica) => {
+            _metricasComentarios.Add(metrica);
+            totalComentarios++;
             // Mágica do Blazor: "Renderize de novo, algo mudou!"
             StateHasChanged();
         });
@@ -2213,7 +2250,7 @@ while (true) {
                 </div>
                 <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
               </div>
-              <p style="margin-top: 10px;">Sem <code>StateHasChanged()</code>, o usuário não vê a mudança!</p>
+              <p style="margin-top: 10px;">Sem <code>StateHasChanged()</code>, o dashboard não atualiza! Cada novo comentário dispara uma atualização visual instantânea.</p>
             </div>
           </div>
 
