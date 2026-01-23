@@ -724,6 +724,6 @@ open http://localhost:8000
 
 ---
 
-**Versão:** 1.0
-**Última atualização:** 2025-12-25
+**Versão:** 1.1
+**Última atualização:** 2026-01-23
 **Autor:** Sistema de documentação Inteli

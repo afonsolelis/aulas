@@ -1,20 +1,21 @@
 # Índice Completo do Sistema - Inteli Educational Platform
 
-**Data de indexação:** 2025-12-25
-**Total de arquivos HTML:** 25
-**Total de linhas de código:** ~5,657
+**Data de indexação:** 2026-01-23
+**Total de arquivos HTML:** 27
+**Total de arquivos (HTML+CSS+JSON):** 32
 
 ---
 
 ## ESTRUTURA COMPLETA DE DIRETÓRIOS
 
 ```
-/home/afonsolelis/repositorios/inteli/aulas/
+/home/afonsolelis/Documentos/inteli/aulas/
 ├── .git/                                           # Controle de versão
 ├── .claude/                                        # Configurações Claude Code
 │   ├── frontend-best-practices.md                 # Skill de melhores práticas
+│   ├── settings.local.json                        # Permissões locais
 │   └── system-index.md                            # Este arquivo
-├── 20251/                                         # Pasta de ano (.gitkeep)
+├── 20251/                                         # Pasta de ano letivo
 ├── config/                                        # Configurações JSON
 │   ├── module-5-adm-tech.json                    # Config Módulo 5
 │   ├── module-9-sistemas-informacao.json         # Config Módulo 9
@@ -23,17 +24,17 @@
 ├── css/                                           # Estilos globais
 │   └── inteli-styles.css                         # Design system principal
 ├── pages/                                         # Todas as páginas HTML
-│   ├── autoestudos/                              # Portal de autoestudos
-│   │   └── exemplo.html                          # Exemplo de artigo
+│   ├── autoestudos/                              # Artigos de autoestudo
+│   │   └── engenharia-nao-trabalha-sozinha.html  # Artigo sobre engenharia
 │   ├── module-5-adm-tech/                        # Aulas Módulo 5
-│   │   ├── lesson-1.html                         # Aula 1: Introdução
+│   │   ├── lesson-1.html                         # Aula 1
 │   │   ├── lesson-2.html                         # Aula 2
 │   │   ├── lesson-3.html                         # Aula 3
 │   │   ├── lesson-4.html                         # Aula 4
 │   │   ├── lesson-5.html                         # Aula 5
 │   │   └── lesson-6.html                         # Aula 6
 │   ├── module-9-sistemas-informacao/             # Aulas Módulo 9
-│   │   ├── lesson-1.html                         # Aula 1: Introdução
+│   │   ├── lesson-1.html                         # Aula 1
 │   │   ├── lesson-2.html                         # Aula 2
 │   │   ├── lesson-3.html                         # Aula 3
 │   │   ├── lesson-4.html                         # Aula 4
@@ -49,10 +50,11 @@
 │   ├── autoestudos.html                          # Portal de autoestudos
 │   ├── module-5-adm-tech.html                    # Página Módulo 5
 │   ├── module-9-sistemas-informacao.html         # Página Módulo 9
-│   └── professor.html                            # Perfil do professor
+│   ├── professor.html                            # Perfil do professor
+│   └── tutorial-gitlab.html                      # Tutorial GitLab
 └── index.html                                     # Página inicial
 
-Total: 6 diretórios, 30 arquivos
+Total: 7 diretórios, 32 arquivos
 ```
 
 ---
@@ -365,51 +367,21 @@ Total: 6 diretórios, 30 arquivos
 
 ---
 
-## GIT STATUS (Snapshot Inicial)
-
-### Arquivos Modificados no Início da Sessão
-
-```
-M  config/template_aula.json
-M  css/inteli-styles.css
-M  index.html
-M  pages/autoestudos.html
-M  pages/autoestudos/exemplo.html
-MM pages/module-5-adm-tech.html
-M  pages/module-5-adm-tech/lesson-1.html
-M  pages/module-5-adm-tech/lesson-2.html
-M  pages/module-5-adm-tech/lesson-3.html
-M  pages/module-5-adm-tech/lesson-4.html
-M  pages/module-5-adm-tech/lesson-5.html
-M  pages/module-5-adm-tech/lesson-6.html
-MM pages/module-9-sistemas-informacao.html
-M  pages/module-9-sistemas-informacao/lesson-1.html
-M  pages/module-9-sistemas-informacao/lesson-10.html
-M  pages/module-9-sistemas-informacao/lesson-11.html
-M  pages/module-9-sistemas-informacao/lesson-12.html
-M  pages/module-9-sistemas-informacao/lesson-13.html
-M  pages/module-9-sistemas-informacao/lesson-2.html
-M  pages/module-9-sistemas-informacao/lesson-3.html
-M  pages/module-9-sistemas-informacao/lesson-4.html
-M  pages/module-9-sistemas-informacao/lesson-5.html
-M  pages/module-9-sistemas-informacao/lesson-6.html
-M  pages/module-9-sistemas-informacao/lesson-7.html
-M  pages/module-9-sistemas-informacao/lesson-8.html
-M  pages/module-9-sistemas-informacao/lesson-9.html
-M  pages/professor.html
-```
-
-### Commits Recentes
-
-```
-fdfd71f - fix(design): Increase spacing in autoestudos card
-6d2be9f - feat: Implement global footer and autoestudos portal
-acb8bbc - style: apply polished glass design to autoestudos card
-46d493e - fix: set autoestudos card-body background to transparent
-b6fb4ae - fix: move autoestudos styles inline to fix background
-```
+## GIT INFO
 
 **Branch principal:** `main`
+
+### Commits Recentes (2026-01-23)
+
+```
+d917898 - Ok
+7fd5220 - Explicar siglas em SDK e runtime
+4d3b43f - ok
+cbf0d82 - Expandir aula 1 com setup e Docker
+69e8931 - Feat: Add GitLab tutorial page and link in index
+```
+
+*Status atual: limpo (working tree clean)*
 
 ---
 
@@ -446,18 +418,17 @@ b6fb4ae - fix: move autoestudos styles inline to fix background
 ## MÉTRICAS DO PROJETO
 
 **Complexidade:**
-- Arquivos HTML: 25
+- Arquivos HTML: 27
+- Arquivos totais (HTML+CSS+JSON): 32
 - Módulos: 2
 - Aulas totais: 19
-- Slides totais estimados: ~311
-- Linhas de código: ~6,500+
 - Componentes reutilizáveis: 10+
 
 **Cobertura:**
-- Páginas principais: 4
+- Páginas principais: 5 (index, professor, autoestudos, tutorial-gitlab)
 - Páginas de módulos: 2
 - Páginas de aulas: 19
-- Portal de autoestudos: 1 + exemplos
+- Portal de autoestudos: 1 + artigos
 
 **Tecnologias:**
 - HTML5: 100%
@@ -499,4 +470,5 @@ b6fb4ae - fix: move autoestudos styles inline to fix background
 
 **Fim do Índice**
 
-*Este documento é gerado automaticamente e deve ser atualizado quando houver mudanças significativas na estrutura do projeto.*
+*Última atualização: 2026-01-23*
+*Este documento deve ser atualizado quando houver mudanças significativas na estrutura do projeto.*
