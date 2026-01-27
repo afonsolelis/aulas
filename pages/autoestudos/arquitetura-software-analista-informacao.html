@@ -1253,110 +1253,857 @@ Cliente    ServicoAluno    RepositorioAluno    SGBD
         <section id="casos-estudo">
           <h2 class="border-bottom pb-2 mb-4">12. Casos de Estudo</h2>
 
-          <h4>Caso de Estudo 1: Sistema de Gestão Acadêmica</h4>
-          <p>Um sistema de gestão acadêmica precisa integrar informações de alunos, professores, disciplinas, turmas e avaliações. Do ponto de vista do analista de informação:</p>
+          <p>Os casos de estudo a seguir demonstram a aplicação prática dos conceitos apresentados neste artigo. Cada caso explora um domínio diferente, destacando como o analista de informação contribui para decisões arquiteturais críticas.</p>
 
-          <div class="deep-section">
-            <h5>Modelagem de Dados</h5>
-            <p>Entidades principais e relacionamentos:</p>
-            <ul>
-              <li><strong>Aluno:</strong> CPF, nome, email, telefone, endereço</li>
-              <li><strong>Professor:</strong> CPF, nome, departamento, titulação</li>
-              <li><strong>Disciplina:</strong> código, nome, créditos, pré-requisitos</li>
-              <li><strong>Turma:</strong> ano, semestre, vagas, professor</li>
-              <li><strong>Matrícula:</strong> aluno, turma, situação, nota</li>
-            </ul>
+          <!-- CASO 1: SISTEMA ACADÊMICO -->
+          <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+              <h4 class="mb-0">Caso de Estudo 1: Sistema de Gestão Acadêmica</h4>
+            </div>
+            <div class="card-body">
 
-            <h5>Requisitos de Qualidade da Informação</h5>
-            <ul>
-              <li><strong>Acurácia:</strong> CPF e email válidos</li>
-              <li><strong>Completeness:</strong> Campos obrigatórios preenchidos</li>
-              <li><strong>Consistência:</strong> Relacionamentos válidos</li>
-              <li><strong>Timeliness:</strong> Atualização em tempo real</li>
-            </ul>
+              <h5>Contexto e Problema</h5>
+              <p>Uma instituição de ensino superior com 15.000 alunos, 500 professores e 200 disciplinas precisa modernizar seu sistema acadêmico legado (desenvolvido em COBOL nos anos 90). O sistema atual apresenta problemas críticos:</p>
+              <ul>
+                <li>Dados duplicados entre departamentos (mesmo aluno cadastrado 3x em sistemas diferentes)</li>
+                <li>Impossibilidade de gerar relatórios em tempo real para o MEC</li>
+                <li>Processo de matrícula leva 3 dias e causa filas presenciais</li>
+                <li>Notas lançadas manualmente em planilhas Excel e depois digitadas no sistema</li>
+              </ul>
 
-            <h5>Integração de Dados</h5>
-            <ul>
-              <li>Integração com sistema financeiro (mensalidades)</li>
-              <li>Integração com sistema de recursos humanos</li>
-              <li>Integração com sistema de biblioteca</li>
-              <li>Integração com portal do aluno</li>
-            </ul>
+              <div class="deep-section">
+                <h5>Análise sob a Perspectiva RM-ODP</h5>
 
-            <h5>Arquitetura Proposta</h5>
-            <p>Arquitetura hexagonal com microsserviços:</p>
-            <ul>
-              <li><strong>Aluno Service:</strong> Gerenciamento de alunos</li>
-              <li><strong>Disciplina Service:</strong> Gerenciamento de disciplinas</li>
-              <li><strong>Matrícula Service:</strong> Processo de matrícula</li>
-              <li><strong>Notas Service:</strong> Gerenciamento de notas</li>
-            </ul>
+                <h6>1. Enterprise Viewpoint (Visão de Negócio)</h6>
+                <p>Objetivos estratégicos identificados:</p>
+                <ul>
+                  <li><strong>Reduzir tempo de matrícula</strong> de 3 dias para 10 minutos (online)</li>
+                  <li><strong>Eliminar duplicidade de dados</strong> criando cadastro único de alunos</li>
+                  <li><strong>Automatizar relatórios</strong> para INEP/MEC com dados em tempo real</li>
+                  <li><strong>Permitir lançamento de notas</strong> diretamente pelos professores via app móvel</li>
+                </ul>
+
+                <h6>2. Information Viewpoint (Visão da Informação)</h6>
+                <p>Modelo conceitual de dados:</p>
+
+                <div class="code-block">
+// Modelo Conceitual - Entidades e Relacionamentos
+
+PESSOA (superclasse)
+├── id: UUID [PK]
+├── cpf: String(11) [UNIQUE, NOT NULL]
+├── nome: String(200) [NOT NULL]
+├── email: String(100) [UNIQUE, NOT NULL]
+├── data_nascimento: Date [NOT NULL]
+└── telefones: List&lt;Telefone&gt;
+
+ALUNO extends PESSOA
+├── ra: String(10) [UNIQUE, NOT NULL] // Registro Acadêmico
+├── data_ingresso: Date [NOT NULL]
+├── curso_id: UUID [FK → CURSO]
+├── situacao: Enum(ATIVO, TRANCADO, FORMADO, DESISTENTE)
+└── coeficiente_rendimento: Decimal(4,2)
+
+PROFESSOR extends PESSOA
+├── matricula_funcional: String(10) [UNIQUE]
+├── departamento_id: UUID [FK → DEPARTAMENTO]
+├── titulacao: Enum(GRADUADO, ESPECIALISTA, MESTRE, DOUTOR)
+├── regime: Enum(HORISTA, PARCIAL, INTEGRAL)
+└── areas_atuacao: List&lt;AreaConhecimento&gt;
+
+DISCIPLINA
+├── id: UUID [PK]
+├── codigo: String(10) [UNIQUE, NOT NULL] // Ex: "CC1234"
+├── nome: String(200) [NOT NULL]
+├── ementa: Text
+├── carga_horaria: Integer [NOT NULL]
+├── creditos: Integer [NOT NULL]
+├── departamento_id: UUID [FK → DEPARTAMENTO]
+└── pre_requisitos: List&lt;Disciplina&gt; // Auto-relacionamento
+
+TURMA
+├── id: UUID [PK]
+├── disciplina_id: UUID [FK → DISCIPLINA]
+├── professor_id: UUID [FK → PROFESSOR]
+├── ano: Integer [NOT NULL]
+├── semestre: Integer [NOT NULL] // 1 ou 2
+├── vagas: Integer [NOT NULL]
+├── horarios: List&lt;Horario&gt;
+└── sala: String(20)
+
+MATRICULA (entidade associativa)
+├── id: UUID [PK]
+├── aluno_id: UUID [FK → ALUNO]
+├── turma_id: UUID [FK → TURMA]
+├── data_matricula: DateTime [NOT NULL]
+├── situacao: Enum(CURSANDO, APROVADO, REPROVADO, TRANCADO)
+├── nota_final: Decimal(4,2) [NULL até lançamento]
+├── frequencia: Decimal(5,2) // Percentual
+└── UNIQUE(aluno_id, turma_id)
+
+// Regras de Negócio (Constraints)
+// RN01: Aluno não pode se matricular sem cumprir pré-requisitos
+// RN02: Turma não pode exceder número de vagas
+// RN03: Aluno não pode ter conflito de horário entre turmas
+// RN04: Nota final deve estar entre 0.00 e 10.00
+// RN05: Frequência mínima de 75% para aprovação
+                </div>
+
+                <h6>3. Computational Viewpoint (Visão Funcional)</h6>
+                <p>Decomposição em serviços:</p>
+
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="card mb-2">
+                      <div class="card-body">
+                        <h6 class="card-title">Cadastro Service</h6>
+                        <p class="card-text small">Gerencia dados de alunos, professores e funcionários. Fonte única da verdade para dados pessoais.</p>
+                        <code>POST /alunos, GET /alunos/{ra}, PUT /alunos/{ra}</code>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="card mb-2">
+                      <div class="card-body">
+                        <h6 class="card-title">Acadêmico Service</h6>
+                        <p class="card-text small">Gerencia disciplinas, turmas, grade curricular e pré-requisitos.</p>
+                        <code>GET /disciplinas, GET /turmas?semestre=2026.1</code>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="card mb-2">
+                      <div class="card-body">
+                        <h6 class="card-title">Matrícula Service</h6>
+                        <p class="card-text small">Processa matrículas com validação de pré-requisitos, vagas e conflitos.</p>
+                        <code>POST /matriculas, DELETE /matriculas/{id}</code>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="card mb-2">
+                      <div class="card-body">
+                        <h6 class="card-title">Avaliação Service</h6>
+                        <p class="card-text small">Gerencia notas, frequência e cálculo de coeficiente de rendimento.</p>
+                        <code>POST /notas, GET /boletim/{aluno_id}</code>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <h6>4. Engineering Viewpoint (Visão de Infraestrutura)</h6>
+                <ul>
+                  <li><strong>Banco de Dados:</strong> PostgreSQL com replicação (primary + 2 replicas de leitura)</li>
+                  <li><strong>Cache:</strong> Redis para sessões e dados frequentes (grade horária)</li>
+                  <li><strong>Mensageria:</strong> RabbitMQ para comunicação assíncrona entre serviços</li>
+                  <li><strong>API Gateway:</strong> Kong para rate limiting e autenticação JWT</li>
+                </ul>
+
+                <h6>5. Technology Viewpoint (Visão Tecnológica)</h6>
+                <ul>
+                  <li><strong>Backend:</strong> Java 21 + Spring Boot 3.2</li>
+                  <li><strong>Frontend:</strong> React 18 + TypeScript</li>
+                  <li><strong>Mobile:</strong> Flutter (app para professores lançarem notas)</li>
+                  <li><strong>Infraestrutura:</strong> Kubernetes no Azure AKS</li>
+                  <li><strong>Observabilidade:</strong> Prometheus + Grafana + Jaeger</li>
+                </ul>
+              </div>
+
+              <div class="deep-section mt-3">
+                <h5>Análise ATAM - Trade-offs Identificados</h5>
+
+                <table class="attribute-table">
+                  <thead>
+                    <tr>
+                      <th>Decisão Arquitetural</th>
+                      <th>Atributo Beneficiado</th>
+                      <th>Atributo Prejudicado</th>
+                      <th>Justificativa</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Microsserviços em vez de monolito</td>
+                      <td>Escalabilidade, Manutenibilidade</td>
+                      <td>Complexidade operacional</td>
+                      <td>Permite escalar Matrícula Service independentemente no período de matrículas</td>
+                    </tr>
+                    <tr>
+                      <td>Cache Redis para grade horária</td>
+                      <td>Performance (latência &lt;50ms)</td>
+                      <td>Consistência (eventual)</td>
+                      <td>Grade muda raramente; invalidação a cada 5 minutos é aceitável</td>
+                    </tr>
+                    <tr>
+                      <td>Validação síncrona de pré-requisitos</td>
+                      <td>Consistência imediata</td>
+                      <td>Performance (mais lento)</td>
+                      <td>Crítico garantir que aluno não se matricule sem pré-requisitos</td>
+                    </tr>
+                    <tr>
+                      <td>Comunicação assíncrona para relatórios</td>
+                      <td>Disponibilidade do sistema principal</td>
+                      <td>Latência de relatórios</td>
+                      <td>Relatórios MEC podem ter delay de até 1 hora</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <h5 class="mt-4">Métricas de Qualidade da Informação</h5>
+                <div class="code-block">
+// Métricas monitoradas em dashboard Grafana
+
+COMPLETUDE:
+- % de alunos com email válido: meta &gt; 99%
+- % de disciplinas com ementa preenchida: meta &gt; 95%
+- % de turmas com horário definido: meta = 100%
+
+ACURÁCIA:
+- % de CPFs válidos (dígito verificador): meta = 100%
+- % de emails com domínio institucional: meta &gt; 90%
+- % de notas dentro do range [0, 10]: meta = 100%
+
+CONSISTÊNCIA:
+- % de matrículas com pré-requisitos cumpridos: meta = 100%
+- % de turmas sem conflito de sala/horário: meta = 100%
+- Divergência entre réplicas de BD: meta &lt; 1 segundo
+
+TEMPESTIVIDADE:
+- Tempo médio para nota aparecer no boletim: meta &lt; 5 minutos
+- Latência de matrícula (request → confirmação): meta &lt; 3 segundos
+- Atualização de relatórios MEC: meta &lt; 1 hora
+                </div>
+              </div>
+
+              <div class="deep-section mt-3">
+                <h5>Integrações Externas</h5>
+                <div class="row">
+                  <div class="col-md-6">
+                    <ul>
+                      <li><strong>Sistema Financeiro:</strong> Verificar se aluno está quite antes de permitir matrícula (API REST síncrona)</li>
+                      <li><strong>Biblioteca:</strong> Bloquear emissão de diploma se houver pendência (evento assíncrono)</li>
+                    </ul>
+                  </div>
+                  <div class="col-md-6">
+                    <ul>
+                      <li><strong>RH:</strong> Sincronizar dados de professores (batch noturno)</li>
+                      <li><strong>MEC/INEP:</strong> Exportar dados no formato e-MEC (job agendado)</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+            </div>
           </div>
 
-          <h4>Caso de Estudo 2: Plataforma de E-commerce</h4>
-          <p>Uma plataforma de e-commerce envolve múltiplas fontes de dados e sistemas integrados:</p>
+          <!-- CASO 2: E-COMMERCE -->
+          <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+              <h4 class="mb-0">Caso de Estudo 2: Plataforma de E-commerce</h4>
+            </div>
+            <div class="card-body">
 
-          <div class="deep-section">
-            <h5>Modelagem de Dados</h5>
-            <p>Entidades principais e relacionamentos:</p>
-            <ul>
-              <li><strong>Cliente:</strong> dados pessoais, endereços, histórico de compras</li>
-              <li><strong>Produto:</strong> informações do produto, estoque, preços</li>
-              <li><strong>Pedido:</strong> itens, status, pagamento, entrega</li>
-              <li><strong>Estoque:</strong> quantidades, localização, movimentações</li>
-              <li><strong>Revendedor:</strong> informações comerciais e logística</li>
-            </ul>
+              <h5>Contexto e Problema</h5>
+              <p>Uma startup de marketplace precisa construir uma plataforma que conecta vendedores (sellers) a compradores. O sistema deve suportar:</p>
+              <ul>
+                <li>100.000 produtos de 500 vendedores diferentes</li>
+                <li>Picos de 50.000 usuários simultâneos na Black Friday</li>
+                <li>Múltiplos meios de pagamento (cartão, PIX, boleto)</li>
+                <li>Logística com múltiplas transportadoras</li>
+                <li>Sistema de avaliações e reputação de vendedores</li>
+              </ul>
+              <p>Desafio principal: <strong>garantir consistência de estoque</strong> quando múltiplos compradores tentam adquirir o mesmo produto simultaneamente (race condition).</p>
 
-            <h5>Fluxo de Informação</h5>
-            <ol>
-              <li>Cliente acessa produto (catálogo)</li>
-              <li>Cliente adiciona ao carrinho (sessão)</li>
-              <li>Cliente finaliza compra (pedido)</li>
-              <li>Sistema verifica estoque (estoque)</li>
-              <li>Sistema processa pagamento (financeiro)</li>
-              <li>Sistema agenda entrega (logística)</li>
-            </ol>
+              <div class="deep-section">
+                <h5>Modelagem de Dados - Modelo Dimensional (Data Warehouse)</h5>
+                <p>Além do modelo operacional (OLTP), o analista de informação deve projetar o modelo analítico (OLAP) para Business Intelligence:</p>
 
-            <h5>Arquitetura Orientada a Eventos</h5>
-            <p>Exemplo de eventos no sistema:</p>
-            <ul>
-              <li><code>PRODUTO_DISPONIVEL</code>: Emitido quando produto volta ao estoque</li>
-              <li><code>PEDIDO_REALIZADO</code>: Emitido quando pedido é confirmado</li>
-              <li><code>PAGAMENTO_APROVADO</code>: Emitido quando pagamento é confirmado</li>
-              <li><code>ENTREGA_AGENDADA</code>: Emitido quando entrega é agendada</li>
-            </ul>
+                <div class="row">
+                  <div class="col-md-6">
+                    <h6>Tabelas Fato</h6>
+                    <div class="code-block">
+FATO_VENDAS
+├── id_venda: BIGINT [PK]
+├── id_tempo: INT [FK → DIM_TEMPO]
+├── id_produto: INT [FK → DIM_PRODUTO]
+├── id_cliente: INT [FK → DIM_CLIENTE]
+├── id_vendedor: INT [FK → DIM_VENDEDOR]
+├── id_geografia: INT [FK → DIM_GEOGRAFIA]
+├── id_pagamento: INT [FK → DIM_PAGAMENTO]
+│
+├── quantidade: INT
+├── valor_bruto: DECIMAL(12,2)
+├── valor_desconto: DECIMAL(12,2)
+├── valor_frete: DECIMAL(12,2)
+├── valor_liquido: DECIMAL(12,2)
+├── custo_produto: DECIMAL(12,2)
+├── margem: DECIMAL(12,2)
+└── comissao_marketplace: DECIMAL(12,2)
+
+FATO_CARRINHO_ABANDONADO
+├── id_abandono: BIGINT [PK]
+├── id_tempo: INT [FK]
+├── id_cliente: INT [FK]
+├── id_produto: INT [FK]
+├── valor_potencial: DECIMAL(12,2)
+├── etapa_abandono: VARCHAR(50)
+└── tempo_sessao_segundos: INT
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <h6>Tabelas Dimensão</h6>
+                    <div class="code-block">
+DIM_TEMPO
+├── id_tempo: INT [PK]
+├── data: DATE
+├── dia: INT
+├── mes: INT
+├── ano: INT
+├── trimestre: INT
+├── dia_semana: VARCHAR(15)
+├── feriado: BOOLEAN
+├── black_friday: BOOLEAN
+└── cyber_monday: BOOLEAN
+
+DIM_PRODUTO
+├── id_produto: INT [PK]
+├── sku: VARCHAR(50)
+├── nome: VARCHAR(200)
+├── categoria_l1: VARCHAR(100)
+├── categoria_l2: VARCHAR(100)
+├── categoria_l3: VARCHAR(100)
+├── marca: VARCHAR(100)
+├── peso_kg: DECIMAL(8,3)
+└── dimensoes_cm: VARCHAR(50)
+
+DIM_CLIENTE
+├── id_cliente: INT [PK]
+├── tipo: ENUM(PF, PJ)
+├── faixa_etaria: VARCHAR(20)
+├── genero: VARCHAR(20)
+├── primeira_compra: DATE
+├── segmento: VARCHAR(50)
+└── lifetime_value: DECIMAL(12,2)
+                    </div>
+                  </div>
+                </div>
+
+                <h5 class="mt-4">Arquitetura Orientada a Eventos (Event-Driven)</h5>
+                <p>O sistema utiliza Apache Kafka como backbone de eventos. Cada mudança de estado gera um evento imutável:</p>
+
+                <div class="code-block">
+// Eventos do Domínio de Pedidos (Order Domain Events)
+
+{
+  "event_type": "OrderCreated",
+  "event_id": "evt_abc123",
+  "timestamp": "2026-01-27T14:30:00Z",
+  "aggregate_id": "order_789",
+  "version": 1,
+  "payload": {
+    "customer_id": "cust_456",
+    "items": [
+      {"sku": "PROD-001", "quantity": 2, "unit_price": 99.90},
+      {"sku": "PROD-002", "quantity": 1, "unit_price": 149.90}
+    ],
+    "total": 349.70,
+    "shipping_address": {...}
+  }
+}
+
+// Fluxo de eventos para um pedido completo:
+
+1. OrderCreated          → Pedido criado, aguardando pagamento
+2. PaymentInitiated      → Cliente escolheu forma de pagamento
+3. PaymentApproved       → Gateway confirmou pagamento
+   OU PaymentRejected    → Pagamento recusado (cartão sem limite, etc)
+4. StockReserved         → Estoque reservado para o pedido
+   OU StockUnavailable   → Produto esgotou durante checkout
+5. OrderConfirmed        → Pedido confirmado para fulfillment
+6. ShipmentCreated       → Etiqueta gerada, aguardando coleta
+7. ShipmentCollected     → Transportadora coletou o pacote
+8. ShipmentInTransit     → Pacote em trânsito
+9. ShipmentDelivered     → Entrega confirmada
+10. OrderCompleted       → Pedido finalizado com sucesso
+                </div>
+
+                <h5 class="mt-4">Solução para Race Condition de Estoque</h5>
+                <p>O problema clássico: 2 clientes tentam comprar o último item ao mesmo tempo. Solução usando <strong>Reserva Otimista com Saga Pattern</strong>:</p>
+
+                <div class="code-block">
+// Saga: Processo de Checkout
+
+SAGA CheckoutSaga {
+
+  // Passo 1: Reservar estoque (com lock otimista)
+  Step ReserveStock {
+    action: POST /inventory/reserve
+    body: { "sku": "PROD-001", "quantity": 2, "order_id": "order_789" }
+
+    // Implementação usa versioning para evitar race condition
+    SQL: UPDATE inventory
+         SET quantity = quantity - 2, version = version + 1
+         WHERE sku = 'PROD-001'
+           AND quantity &gt;= 2
+           AND version = @current_version
+
+    // Se affected_rows = 0, outro cliente reservou antes → ROLLBACK
+
+    compensation: POST /inventory/release  // Em caso de falha posterior
+  }
+
+  // Passo 2: Processar pagamento
+  Step ProcessPayment {
+    action: POST /payments/charge
+    body: { "order_id": "order_789", "amount": 349.70, "method": "credit_card" }
+
+    compensation: POST /payments/refund
+  }
+
+  // Passo 3: Confirmar pedido
+  Step ConfirmOrder {
+    action: POST /orders/confirm
+    body: { "order_id": "order_789" }
+
+    // Sem compensation - ponto de não retorno
+  }
+}
+
+// Se pagamento falhar após estoque reservado:
+// 1. Saga executa compensation de ReserveStock
+// 2. Estoque é liberado automaticamente
+// 3. Cliente recebe mensagem de erro
+                </div>
+
+                <h5 class="mt-4">Diagrama de Sequência UML - Checkout</h5>
+                <div class="uml-diagram">
+                  <pre>
+Cliente      API Gateway    Order Service    Inventory    Payment     Notification
+   │              │              │              │            │              │
+   │─POST /checkout─────────────&gt;│              │            │              │
+   │              │              │              │            │              │
+   │              │              │──ReserveStock─&gt;│            │              │
+   │              │              │              │            │              │
+   │              │              │&lt;─StockReserved─│            │              │
+   │              │              │              │            │              │
+   │              │              │───────────ProcessPayment──&gt;│              │
+   │              │              │              │            │              │
+   │              │              │&lt;─────────PaymentApproved───│              │
+   │              │              │              │            │              │
+   │              │              │─────────────────────────SendConfirmation─&gt;│
+   │              │              │              │            │              │
+   │&lt;───────OrderConfirmed───────│              │            │              │
+   │              │              │              │            │              │
+   │              │              │              │            │    &lt;email&gt;   │
+   │&lt;─────────────────────────────────────────────────────────────────────────│
+                  </pre>
+                </div>
+              </div>
+
+              <div class="deep-section mt-3">
+                <h5>Trade-offs ATAM</h5>
+                <table class="attribute-table">
+                  <thead>
+                    <tr>
+                      <th>Decisão</th>
+                      <th>Benefício</th>
+                      <th>Custo</th>
+                      <th>Mitigação</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Event Sourcing para pedidos</td>
+                      <td>Auditoria completa, replay de eventos</td>
+                      <td>Complexidade, storage maior</td>
+                      <td>Snapshots a cada 100 eventos</td>
+                    </tr>
+                    <tr>
+                      <td>Reserva otimista de estoque</td>
+                      <td>Melhor throughput, sem locks longos</td>
+                      <td>Possível falha no checkout</td>
+                      <td>UX clara de "produto esgotou"</td>
+                    </tr>
+                    <tr>
+                      <td>CQRS (separar leitura/escrita)</td>
+                      <td>Escala leitura independente</td>
+                      <td>Consistência eventual</td>
+                      <td>Delay máximo de 500ms aceitável</td>
+                    </tr>
+                    <tr>
+                      <td>Kafka como backbone</td>
+                      <td>Desacoplamento, resiliência</td>
+                      <td>Custo operacional</td>
+                      <td>Managed Kafka (Confluent Cloud)</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <h5 class="mt-4">KPIs de Informação Monitorados</h5>
+                <ul>
+                  <li><strong>Taxa de conversão:</strong> % visitantes que completam compra (meta: &gt;3%)</li>
+                  <li><strong>Taxa de abandono de carrinho:</strong> % carrinhos não finalizados (meta: &lt;70%)</li>
+                  <li><strong>Latência de checkout:</strong> tempo do clique até confirmação (meta: &lt;3s)</li>
+                  <li><strong>Acurácia de estoque:</strong> % de pedidos sem ruptura (meta: &gt;99.5%)</li>
+                  <li><strong>Data freshness:</strong> delay entre venda e dashboard BI (meta: &lt;5min)</li>
+                </ul>
+              </div>
+
+            </div>
           </div>
 
-          <h4>Caso de Estudo 3: Sistema de Saúde</h4>
-          <p>Sistemas de saúde exigem alta qualidade e segurança da informação:</p>
+          <!-- CASO 3: SISTEMA DE SAÚDE -->
+          <div class="card mb-4">
+            <div class="card-header bg-danger text-white">
+              <h4 class="mb-0">Caso de Estudo 3: Sistema de Saúde (Prontuário Eletrônico)</h4>
+            </div>
+            <div class="card-body">
 
-          <div class="deep-section">
-            <h5>Modelagem de Dados</h5>
-            <p>Entidades principais e relacionamentos:</p>
-            <ul>
-              <li><strong>Paciente:</strong> dados pessoais, histórico médico, alergias</li>
-              <li><strong>Médico:</strong> CRM, especialidades, agenda</li>
-              <li><strong>Consulta:</strong> paciente, médico, data, diagnóstico</li>
-              <li><strong>Exame:</strong> tipo, resultado, data, médico solicitante</li>
-              <li><strong>Prescrição:</strong> medicamentos, dosagem, instruções</li>
-            </ul>
+              <h5>Contexto e Problema</h5>
+              <p>Uma rede hospitalar com 5 unidades precisa implementar um Prontuário Eletrônico do Paciente (PEP) que atenda aos requisitos da ANS e seja interoperável com o padrão FHIR (Fast Healthcare Interoperability Resources). Requisitos críticos:</p>
+              <ul>
+                <li><strong>Disponibilidade 99.99%</strong> - sistema não pode ficar fora do ar (vidas em risco)</li>
+                <li><strong>Conformidade LGPD</strong> - dados de saúde são sensíveis (Art. 11)</li>
+                <li><strong>Rastreabilidade total</strong> - quem acessou qual prontuário, quando e por quê</li>
+                <li><strong>Interoperabilidade</strong> - trocar dados com SUS, laboratórios e outros hospitais</li>
+                <li><strong>Tempo de resposta &lt;2s</strong> - médico não pode esperar em emergência</li>
+              </ul>
 
-            <h5>Requisitos de Segurança</h5>
-            <ul>
-              <li>Criptografia de dados sensíveis</li>
-              <li>Controle de acesso baseado em papéis</li>
-              <li>Log de auditoria completo</li>
-              <li>Conformidade com LGPD e HIPAA</li>
-            </ul>
+              <div class="alert alert-warning">
+                <strong>Atenção:</strong> Dados de saúde são classificados como "dados sensíveis" pela LGPD (Lei 13.709/2018). O tratamento requer consentimento específico ou base legal adequada, e exige medidas técnicas de segurança reforçadas.
+              </div>
 
-            <h5>Arquitetura de Malha de Dados</h5>
-            <p>Implementação de data mesh para governança descentralizada:</p>
-            <ul>
-              <li><strong>Paciente Data Product:</strong> Gerenciado pelo departamento de cadastro</li>
-              <li><strong>Consulta Data Product:</strong> Gerenciado pelo departamento clínico</li>
-              <li><strong>Exame Data Product:</strong> Gerenciado pelo departamento de diagnóstico</li>
-              <li><strong>Prescrição Data Product:</strong> Gerenciado pelo departamento farmacêutico</li>
-            </ul>
+              <div class="deep-section">
+                <h5>Modelagem de Dados - Padrão HL7 FHIR</h5>
+                <p>O FHIR (Fast Healthcare Interoperability Resources) define recursos padronizados para dados de saúde. O analista de informação deve mapear o modelo interno para FHIR:</p>
+
+                <div class="code-block">
+// Recursos FHIR principais mapeados
+
+PATIENT (Paciente)
+├── identifier: CPF, CNS (Cartão Nacional de Saúde)
+├── name: nome completo
+├── telecom: telefone, email
+├── gender: male | female | other | unknown
+├── birthDate: data de nascimento
+├── address: endereço completo
+├── contact: contato de emergência
+└── communication: idiomas que o paciente fala
+
+PRACTITIONER (Profissional de Saúde)
+├── identifier: CRM, COREN, CRO (conforme profissão)
+├── name: nome completo
+├── qualification: especialidades médicas
+└── practitionerRole: papel na instituição
+
+ENCOUNTER (Atendimento/Consulta)
+├── identifier: número do atendimento
+├── status: planned | arrived | in-progress | finished | cancelled
+├── class: emergency | inpatient | outpatient
+├── type: tipo de atendimento
+├── subject: referência ao Patient
+├── participant: referência ao Practitioner
+├── period: data/hora início e fim
+├── reasonCode: motivo do atendimento (CID-10)
+└── diagnosis: diagnósticos do atendimento
+
+CONDITION (Diagnóstico/Problema)
+├── identifier: ID interno
+├── clinicalStatus: active | recurrence | relapse | inactive | resolved
+├── verificationStatus: confirmed | provisional | differential
+├── code: código CID-10 + descrição
+├── subject: referência ao Patient
+├── encounter: referência ao Encounter
+├── recordedDate: quando foi registrado
+└── recorder: quem registrou (Practitioner)
+
+MEDICATION_REQUEST (Prescrição)
+├── identifier: número da prescrição
+├── status: active | completed | cancelled
+├── intent: order | proposal
+├── medicationCodeableConcept: código ANVISA do medicamento
+├── subject: referência ao Patient
+├── encounter: referência ao Encounter
+├── authoredOn: data/hora da prescrição
+├── requester: médico que prescreveu
+├── dosageInstruction: posologia detalhada
+│   ├── text: "Tomar 1 comprimido de 8 em 8 horas"
+│   ├── timing: frequência
+│   ├── route: via de administração (oral, IV, etc.)
+│   └── doseAndRate: dose e unidade
+└── dispenseRequest: quantidade e duração
+
+ALLERGY_INTOLERANCE (Alergias)
+├── clinicalStatus: active | inactive | resolved
+├── verificationStatus: confirmed | unconfirmed
+├── type: allergy | intolerance
+├── category: food | medication | environment | biologic
+├── criticality: low | high | unable-to-assess
+├── code: substância (ex: "Penicilina")
+├── patient: referência ao Patient
+├── reaction: reações conhecidas
+│   ├── manifestation: sintomas
+│   └── severity: mild | moderate | severe
+└── recordedDate: quando foi registrado
+                </div>
+
+                <h5 class="mt-4">Arquitetura Data Mesh para Saúde</h5>
+                <p>Cada domínio clínico é responsável por seus próprios dados como "produtos de dados":</p>
+
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="card mb-3 border-primary">
+                      <div class="card-header bg-light"><strong>Domínio: Cadastro de Pacientes</strong></div>
+                      <div class="card-body">
+                        <p><strong>Owner:</strong> Equipe de Admissão</p>
+                        <p><strong>Data Products:</strong></p>
+                        <ul class="small">
+                          <li>Patient Master (dados demográficos)</li>
+                          <li>Patient Consent (termos de consentimento LGPD)</li>
+                          <li>Patient Merge (deduplicação de cadastros)</li>
+                        </ul>
+                        <p><strong>SLA:</strong> 99.99% disponibilidade, &lt;100ms latência</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="card mb-3 border-success">
+                      <div class="card-header bg-light"><strong>Domínio: Atendimento Clínico</strong></div>
+                      <div class="card-body">
+                        <p><strong>Owner:</strong> Equipe Médica</p>
+                        <p><strong>Data Products:</strong></p>
+                        <ul class="small">
+                          <li>Encounters (consultas e internações)</li>
+                          <li>Clinical Notes (evolução médica)</li>
+                          <li>Diagnoses (CID-10)</li>
+                        </ul>
+                        <p><strong>SLA:</strong> 99.9% disponibilidade, &lt;500ms latência</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="card mb-3 border-warning">
+                      <div class="card-header bg-light"><strong>Domínio: Farmácia</strong></div>
+                      <div class="card-body">
+                        <p><strong>Owner:</strong> Equipe Farmacêutica</p>
+                        <p><strong>Data Products:</strong></p>
+                        <ul class="small">
+                          <li>Prescriptions (prescrições ativas)</li>
+                          <li>Drug Interactions (interações medicamentosas)</li>
+                          <li>Dispensation (medicamentos dispensados)</li>
+                        </ul>
+                        <p><strong>SLA:</strong> 99.95% disponibilidade, alertas em &lt;1s</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="card mb-3 border-info">
+                      <div class="card-header bg-light"><strong>Domínio: Diagnóstico por Imagem</strong></div>
+                      <div class="card-body">
+                        <p><strong>Owner:</strong> Equipe de Radiologia</p>
+                        <p><strong>Data Products:</strong></p>
+                        <ul class="small">
+                          <li>Imaging Studies (DICOM metadata)</li>
+                          <li>Radiology Reports (laudos)</li>
+                          <li>AI Findings (achados de IA)</li>
+                        </ul>
+                        <p><strong>SLA:</strong> 99.9% disponibilidade, imagens em &lt;3s</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="deep-section mt-3">
+                <h5>Segurança e Conformidade LGPD</h5>
+
+                <h6>Classificação de Dados</h6>
+                <table class="attribute-table">
+                  <thead>
+                    <tr>
+                      <th>Dado</th>
+                      <th>Classificação LGPD</th>
+                      <th>Criptografia</th>
+                      <th>Retenção</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Nome, CPF, Endereço</td>
+                      <td>Dado Pessoal</td>
+                      <td>AES-256 em repouso</td>
+                      <td>20 anos (CFM 1821/07)</td>
+                    </tr>
+                    <tr>
+                      <td>Diagnósticos (CID-10)</td>
+                      <td>Dado Sensível</td>
+                      <td>AES-256 + campo criptografado</td>
+                      <td>20 anos</td>
+                    </tr>
+                    <tr>
+                      <td>HIV, Psiquiatria</td>
+                      <td>Dado Sensível (especial)</td>
+                      <td>Envelope encryption + HSM</td>
+                      <td>20 anos, acesso restrito</td>
+                    </tr>
+                    <tr>
+                      <td>Imagens médicas (DICOM)</td>
+                      <td>Dado Sensível</td>
+                      <td>Criptografia de storage</td>
+                      <td>20 anos</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <h6 class="mt-3">Controle de Acesso (RBAC + ABAC)</h6>
+                <div class="code-block">
+// Modelo de Controle de Acesso Híbrido
+
+ROLES (Papéis - RBAC)
+├── MEDICO_ASSISTENTE    → Acesso total ao prontuário de seus pacientes
+├── MEDICO_PLANTONISTA   → Acesso a pacientes em atendimento na unidade
+├── ENFERMEIRO           → Acesso a sinais vitais e prescrições
+├── FARMACEUTICO         → Acesso a prescrições e dispensação
+├── RECEPCIONISTA        → Acesso apenas a dados demográficos
+├── FATURAMENTO          → Acesso a procedimentos (sem diagnósticos)
+└── AUDITOR              → Acesso somente-leitura com justificativa
+
+ATTRIBUTES (Atributos - ABAC)
+├── patient.unit == user.unit              → Mesma unidade
+├── encounter.status == 'in-progress'      → Atendimento ativo
+├── user.hasRelationship(patient)          → Vínculo médico-paciente
+├── request.purpose IN ['treatment', 'emergency']  → Finalidade legítima
+└── time.isWithinShift(user)               → Dentro do horário de trabalho
+
+// Política de acesso para prontuário
+POLICY AccessProntuario {
+  ALLOW IF:
+    (role == MEDICO_ASSISTENTE AND user.hasRelationship(patient))
+    OR
+    (role == MEDICO_PLANTONISTA AND encounter.status == 'in-progress'
+      AND patient.unit == user.unit)
+    OR
+    (role == MEDICO AND request.purpose == 'emergency'
+      AND LOG_JUSTIFICATIVA_OBRIGATORIA)
+
+  DENY IF:
+    patient.hasRestriction('VIP')
+    AND NOT user.hasSpecialAuthorization()
+
+  ALWAYS:
+    LOG(user, patient, action, timestamp, purpose, ip_address)
+}
+                </div>
+
+                <h6 class="mt-3">Log de Auditoria (Immutable Audit Trail)</h6>
+                <div class="code-block">
+// Estrutura do log de auditoria (append-only, imutável)
+
+AUDIT_LOG {
+  "log_id": "audit_20260127_143052_abc123",
+  "timestamp": "2026-01-27T14:30:52.123Z",
+  "user": {
+    "id": "user_789",
+    "name": "Dr. João Silva",
+    "role": "MEDICO_ASSISTENTE",
+    "crm": "CRM-SP 123456"
+  },
+  "patient": {
+    "id": "patient_456",
+    "name_hash": "sha256:abc...",  // Nome hasheado por privacidade no log
+    "cpf_masked": "***.***.789-00"
+  },
+  "action": "VIEW_PRONTUARIO",
+  "resource": "Encounter/enc_123",
+  "details": {
+    "fields_accessed": ["diagnosis", "prescription", "notes"],
+    "purpose": "treatment",
+    "justification": null  // Obrigatório apenas para acesso emergencial
+  },
+  "context": {
+    "ip_address": "10.0.1.50",
+    "device": "Workstation-UTI-03",
+    "location": "UTI Adulto",
+    "session_id": "sess_xyz"
+  },
+  "integrity": {
+    "previous_hash": "sha256:previous_log_hash",
+    "current_hash": "sha256:current_log_hash"
+  }
+}
+
+// Logs são armazenados em blockchain privada (Hyperledger)
+// para garantir imutabilidade e não-repúdio
+                </div>
+              </div>
+
+              <div class="deep-section mt-3">
+                <h5>Análise ATAM - Trade-offs Críticos</h5>
+
+                <table class="attribute-table">
+                  <thead>
+                    <tr>
+                      <th>Decisão</th>
+                      <th>Atributo Priorizado</th>
+                      <th>Atributo Sacrificado</th>
+                      <th>Justificativa Clínica</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Banco replicado multi-região</td>
+                      <td>Disponibilidade (99.99%)</td>
+                      <td>Custo (3x mais caro)</td>
+                      <td>Sistema crítico para vida; downtime pode matar</td>
+                    </tr>
+                    <tr>
+                      <td>Criptografia em todos os campos sensíveis</td>
+                      <td>Segurança, Conformidade LGPD</td>
+                      <td>Performance (-15% em queries)</td>
+                      <td>Obrigação legal; multas de até 2% do faturamento</td>
+                    </tr>
+                    <tr>
+                      <td>Break-glass para emergências</td>
+                      <td>Disponibilidade clínica</td>
+                      <td>Segurança (acesso excepcional)</td>
+                      <td>Médico DEVE acessar prontuário em emergência, mesmo sem vínculo prévio</td>
+                    </tr>
+                    <tr>
+                      <td>Audit log em blockchain</td>
+                      <td>Integridade, Não-repúdio</td>
+                      <td>Complexidade, Latência de escrita</td>
+                      <td>Exigência da ANS para acreditação hospitalar</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <h5 class="mt-4">Interoperabilidade - Integrações Externas</h5>
+                <div class="row">
+                  <div class="col-md-6">
+                    <ul>
+                      <li><strong>RNDS (Rede Nacional de Dados em Saúde):</strong> Envio de resultados de exames e vacinas ao Ministério da Saúde via FHIR</li>
+                      <li><strong>Laboratórios externos:</strong> Recebimento de resultados via HL7 v2.5 (legado) com conversão para FHIR</li>
+                    </ul>
+                  </div>
+                  <div class="col-md-6">
+                    <ul>
+                      <li><strong>Operadoras de saúde:</strong> TISS (Troca de Informação em Saúde Suplementar) para faturamento</li>
+                      <li><strong>Outros hospitais:</strong> IHE XDS.b para compartilhamento de prontuário com consentimento do paciente</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <h5 class="mt-4">Métricas de Qualidade da Informação</h5>
+                <ul>
+                  <li><strong>Completude do prontuário:</strong> % de campos obrigatórios preenchidos (meta: &gt;98%)</li>
+                  <li><strong>Acurácia de CID-10:</strong> % de diagnósticos validados por auditor (meta: &gt;95%)</li>
+                  <li><strong>Tempestividade de laudos:</strong> tempo entre exame e laudo disponível (meta: &lt;2h)</li>
+                  <li><strong>Taxa de acessos com break-glass:</strong> % de acessos emergenciais (meta: &lt;0.1%)</li>
+                  <li><strong>Disponibilidade:</strong> uptime do sistema (meta: 99.99% = &lt;52min downtime/ano)</li>
+                </ul>
+              </div>
+
+            </div>
           </div>
 
           <div class="book-reference">
