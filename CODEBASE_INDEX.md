@@ -1,7 +1,7 @@
 # Inteli Educational Platform - Codebase Index
 
-**Date of Indexing:** 2026-01-27  
-**Total Files:** 32+  
+**Date of Indexing:** 2026-01-29  
+**Total Files:** 35+  
 **Project Type:** Educational Platform (HTML/CSS/JS)
 
 ## Overview
@@ -11,7 +11,7 @@ The Inteli Educational Platform is a comprehensive educational website created b
 ## Directory Structure
 
 ```
-/home/afonsolelis/Documentos/inteli/aulas/
+/
 ├── .claude/                    # Claude Code configuration
 │   ├── CLAUDE.md               # Project instructions for Claude
 │   ├── frontend-best-practices.md # Frontend development guidelines
@@ -28,7 +28,8 @@ The Inteli Educational Platform is a comprehensive educational website created b
 │   └── inteli-styles.css       # Main stylesheet
 ├── pages/                      # HTML pages
 │   ├── autoestudos/            # Self-study materials
-│   │   └── engenharia-nao-trabalha-sozinha.html
+│   │   ├── arquitetura-software-analista-informacao.html # Software Architecture Article
+│   │   └── engenharia-nao-trabalha-sozinha.html          # Engineering Article
 │   ├── module-5-adm-tech/      # Module 5 lessons
 │   │   ├── lesson-1.html       # Lesson 1
 │   │   ├── lesson-2.html       # Lesson 2
@@ -114,6 +115,7 @@ The Inteli Educational Platform is a comprehensive educational website created b
 - **pages/autoestudos.html:** Self-study materials portal
 - **pages/tutorial-gitlab.html:** GitLab tutorial page
 - **pages/autoestudos/engenharia-nao-trabalha-sozinha.html:** Detailed case study article
+- **pages/autoestudos/arquitetura-software-analista-informacao.html:** Detailed software architecture article
 
 ## Technical Stack
 

@@ -2,8 +2,8 @@
 
 **Plataforma Educacional Inteli** - Material de aulas do professor Afonso Brandão
 
-**Atualizado em:** 2026-01-23
-**Total de arquivos:** 32
+**Atualizado em:** 2026-01-29
+**Total de arquivos:** 35
 
 ---
 
@@ -12,7 +12,7 @@
 ```
 /
 ├── .claude/                    # Configuração Claude Code
-├── 20251/                      # Pasta do ano letivo
+├── assets/                     # Imagens e assets
 ├── config/                     # Arquivos de configuração JSON
 ├── css/                        # Estilos globais
 ├── pages/                      # Páginas HTML
@@ -45,6 +45,7 @@
 - `pages/tutorial-gitlab.html` - Tutorial GitLab
 - `pages/autoestudos.html` - Portal de autoestudos
 - `pages/autoestudos/engenharia-nao-trabalha-sozinha.html` - Artigo de autoestudo
+- `pages/autoestudos/arquitetura-software-analista-informacao.html` - Artigo de autoestudo
 
 ## Módulo 5 - Administração e Tecnologia
 
