@@ -59,7 +59,7 @@ Plataforma educacional do Inteli contendo material de aulas do professor Afonso 
 
 - `frontend-best-practices.md` - Padrões de desenvolvimento
 - `system-index.md` - Índice completo do sistema
-- `/INDEX.md` - Índice simplificado na raiz
+- `/CODEBASE_INDEX.md` - Índice detalhado do codebase
 
 ## Regras Importantes
 
