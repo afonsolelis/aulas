@@ -1082,6 +1082,402 @@
       </div>
     </div>
 
+    <!-- Slide 25: Modelagem NoSQL Orientada a Agregados -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">🌳 Modelagem NoSQL Orientada a Agregados</div>
+        <div class="slide-subtitle">Do modelo lógico ao esquema físico executável</div>
+      </div>
+      <div class="slide-content">
+        <p>NoSQL não precisa ser "modelagem no improviso". Podemos trazer a <strong>disciplina do mundo relacional</strong> para o NoSQL usando <strong>agregados</strong>.</p>
+
+        <h2 style="margin-top: 20px;">Modelo Lógico como Árvore</h2>
+        <svg viewBox="0 0 800 320" style="width:100%;max-width:800px;margin:10px auto;display:block;">
+          <!-- Root -->
+          <rect x="330" y="10" width="140" height="40" rx="8" fill="var(--inteli-purple)" />
+          <text x="400" y="36" text-anchor="middle" fill="white" font-size="14" font-weight="bold">Aggregate Root</text>
+
+          <!-- Coleção -->
+          <line x1="400" y1="50" x2="200" y2="100" stroke="#666" stroke-width="2" />
+          <line x1="400" y1="50" x2="400" y2="100" stroke="#666" stroke-width="2" />
+          <line x1="400" y1="50" x2="600" y2="100" stroke="#666" stroke-width="2" />
+
+          <rect x="120" y="100" width="160" height="36" rx="6" fill="var(--inteli-blue)" />
+          <text x="200" y="124" text-anchor="middle" fill="var(--inteli-purple)" font-size="13" font-weight="bold">Coleção (top-level)</text>
+
+          <rect x="320" y="100" width="160" height="36" rx="6" fill="#e8d5f5" />
+          <text x="400" y="124" text-anchor="middle" fill="var(--inteli-purple)" font-size="13" font-weight="bold">Bloco (aninhado)</text>
+
+          <rect x="520" y="100" width="160" height="36" rx="6" fill="#f0f0f0" stroke="#999"/>
+          <text x="600" y="124" text-anchor="middle" fill="#333" font-size="13" font-weight="bold">Atributo (folha)</text>
+
+          <!-- Subnodes -->
+          <line x1="200" y1="136" x2="130" y2="180" stroke="#666" stroke-width="1.5" />
+          <line x1="200" y1="136" x2="270" y2="180" stroke="#666" stroke-width="1.5" />
+          <ellipse cx="130" cy="196" rx="50" ry="18" fill="#f0f0f0" stroke="#999"/>
+          <text x="130" y="200" text-anchor="middle" font-size="11">_id (objectId)</text>
+          <ellipse cx="270" cy="196" rx="50" ry="18" fill="#f0f0f0" stroke="#999"/>
+          <text x="270" y="200" text-anchor="middle" font-size="11">name (string)</text>
+
+          <line x1="400" y1="136" x2="360" y2="180" stroke="#666" stroke-width="1.5" />
+          <line x1="400" y1="136" x2="440" y2="180" stroke="#666" stroke-width="1.5" />
+          <ellipse cx="360" cy="196" rx="45" ry="18" fill="#f0f0f0" stroke="#999"/>
+          <text x="360" y="200" text-anchor="middle" font-size="11">street</text>
+          <ellipse cx="440" cy="196" rx="45" ry="18" fill="#f0f0f0" stroke="#999"/>
+          <text x="440" y="200" text-anchor="middle" font-size="11">zip</text>
+
+          <!-- Legend -->
+          <rect x="100" y="250" width="600" height="55" rx="8" fill="#f8f8f8" stroke="#ddd"/>
+          <text x="130" y="275" font-size="12" fill="#555">Baseado em: <tspan font-weight="bold">GODINHO, N.R.</tspan> - Mapeamento de Modelagem Lógica de Dados Orientado a Agregados (UFSC, 2018)</text>
+          <text x="130" y="293" font-size="12" fill="#555">Entidade raiz = visível externamente | Entidade local = contida na raiz, sem referência externa</text>
+        </svg>
+
+        <p style="margin-top:10px;">Essa árvore vira um <strong>contrato estrutural</strong> que melhora manutenção, integração e qualidade dos dados.</p>
+      </div>
+    </div>
+
+    <!-- Slide 26: $jsonSchema no MongoDB -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">🛡️ $jsonSchema: Contrato Executável no MongoDB</div>
+        <div class="slide-subtitle">De "schemaless" para "schema opcional, mas executável"</div>
+      </div>
+      <div class="slide-content">
+        <p>O MongoDB materializa o contrato com o validador nativo <code>$jsonSchema</code>, aplicado na criação/modificação de coleções.</p>
+
+        <div class="code-block" style="margin-top:15px;">
+          <button class="copy-btn" onclick="navigator.clipboard.writeText(this.parentElement.querySelector('pre').textContent)">Copiar</button>
+<pre>db.createCollection("author", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["_id", "name", "address"],
+      properties: {
+        _id:     { bsonType: "objectId" },
+        name:    { bsonType: "string" },
+        email:   { bsonType: "string" },
+        address: {
+          bsonType: "object",
+          required: ["street"],
+          properties: {
+            street: { bsonType: "string" },
+            number: { bsonType: "string" },
+            zip:    { bsonType: "string" }
+          }
+        },
+        books: {
+          bsonType: "array",
+          items: { bsonType: "objectId" }
+        }
+      }
+    }
+  },
+  validationAction: "error",
+  validationLevel: "moderate"
+});</pre>
+        </div>
+
+        <div class="two-columns" style="margin-top:15px;">
+          <div class="column">
+            <h3>Recursos do $jsonSchema</h3>
+            <ul>
+              <li><code>bsonType</code> — tipagem (string, objectId, array, object...)</li>
+              <li><code>required</code> — campos obrigatórios</li>
+              <li><code>properties</code> — objetos aninhados</li>
+              <li><code>oneOf</code> — disjunções (composição lógica)</li>
+            </ul>
+          </div>
+          <div class="column">
+            <h3>Comportamento</h3>
+            <ul>
+              <li>Todo <code>insert</code>/<code>update</code> precisa satisfazer o schema</li>
+              <li><code>validationAction</code>: <strong>error</strong> (rejeita) ou <strong>warn</strong> (loga)</li>
+              <li><code>validationLevel</code>: <strong>strict</strong> ou <strong>moderate</strong></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 27: Cardinalidade → $jsonSchema -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">🔢 Cardinalidade → $jsonSchema</div>
+        <div class="slide-subtitle">A cardinalidade não é só documentação: vira restrição ativa no MongoDB</div>
+      </div>
+      <div class="slide-content">
+        <table style="width:100%;border-collapse:collapse;font-size:1.15rem;margin-top:10px;">
+          <thead>
+            <tr style="background:var(--inteli-purple);color:white;">
+              <th style="padding:12px;text-align:left;border-radius:8px 0 0 0;">Cardinalidade</th>
+              <th style="padding:12px;text-align:left;">bsonType</th>
+              <th style="padding:12px;text-align:left;">required?</th>
+              <th style="padding:12px;text-align:left;border-radius:0 8px 0 0;">Extras</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="background:#f8f8f8;">
+              <td style="padding:10px;font-weight:bold;">0–1</td>
+              <td style="padding:10px;"><code>"object"</code> ou tipo simples</td>
+              <td style="padding:10px;">Nao</td>
+              <td style="padding:10px;">Campo opcional</td>
+            </tr>
+            <tr>
+              <td style="padding:10px;font-weight:bold;">1–1</td>
+              <td style="padding:10px;"><code>"object"</code> ou tipo simples</td>
+              <td style="padding:10px;"><strong>Sim</strong></td>
+              <td style="padding:10px;">Entra em <code>required</code></td>
+            </tr>
+            <tr style="background:#f8f8f8;">
+              <td style="padding:10px;font-weight:bold;">0–N</td>
+              <td style="padding:10px;"><code>"array"</code> + <code>items</code></td>
+              <td style="padding:10px;">Nao</td>
+              <td style="padding:10px;">Sem <code>minItems</code></td>
+            </tr>
+            <tr>
+              <td style="padding:10px;font-weight:bold;">1–N</td>
+              <td style="padding:10px;"><code>"array"</code> + <code>items</code></td>
+              <td style="padding:10px;"><strong>Sim</strong></td>
+              <td style="padding:10px;"><code>minItems: 1</code></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3 style="margin-top:20px;">Referências entre Agregados</h3>
+        <div class="two-columns">
+          <div class="column">
+            <ul>
+              <li><strong>0–1 / 1–1:</strong> campo <code>objectId</code> isolado</li>
+              <li><strong>0–N / 1–N:</strong> array de <code>objectId</code></li>
+            </ul>
+          </div>
+          <div class="column">
+            <ul>
+              <li><strong>Identificadores:</strong> tipados como <code>objectId</code>, normalmente <code>required</code></li>
+              <li>Referência ≠ embedding: o agregado referenciado vive em outra coleção</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 28: Exemplo Visual — Cardinalidades em JSON Schema -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">📐 Exemplo: Cardinalidades em $jsonSchema</div>
+        <div class="slide-subtitle">Author (raiz) → Address (1–1) e Books (0–N)</div>
+      </div>
+      <div class="slide-content">
+        <div class="two-columns">
+          <div class="column">
+            <h3>Modelo Lógico</h3>
+            <svg viewBox="0 0 280 260" style="width:100%;max-width:280px;">
+              <rect x="40" y="10" width="200" height="35" rx="6" fill="var(--inteli-purple)"/>
+              <text x="140" y="33" text-anchor="middle" fill="white" font-size="14" font-weight="bold">Author (raiz)</text>
+
+              <line x1="90" y1="45" x2="90" y2="80" stroke="#666" stroke-width="1.5"/>
+              <rect x="20" y="80" width="140" height="30" rx="5" fill="var(--inteli-blue)"/>
+              <text x="90" y="100" text-anchor="middle" fill="var(--inteli-purple)" font-size="12" font-weight="bold">Address (1–1)</text>
+
+              <line x1="190" y1="45" x2="190" y2="80" stroke="#666" stroke-width="1.5"/>
+              <rect x="130" y="80" width="140" height="30" rx="5" fill="#e8d5f5"/>
+              <text x="200" y="100" text-anchor="middle" fill="var(--inteli-purple)" font-size="12" font-weight="bold">Books (0–N)</text>
+
+              <text x="90" y="130" text-anchor="middle" font-size="11" fill="#555">street, number, zip</text>
+              <text x="200" y="130" text-anchor="middle" font-size="11" fill="#555">array of objectId</text>
+
+              <rect x="20" y="155" width="240" height="90" rx="6" fill="#f8f8f8" stroke="#ddd"/>
+              <text x="140" y="175" text-anchor="middle" font-size="12" font-weight="bold" fill="#333">Regras aplicadas:</text>
+              <text x="30" y="195" font-size="11" fill="#555">Address → required + bsonType: "object"</text>
+              <text x="30" y="215" font-size="11" fill="#555">Books → bsonType: "array", sem minItems</text>
+              <text x="30" y="235" font-size="11" fill="#555">_id → required + bsonType: "objectId"</text>
+            </svg>
+          </div>
+          <div class="column">
+            <h3>$jsonSchema gerado</h3>
+            <div class="code-block">
+              <button class="copy-btn" onclick="navigator.clipboard.writeText(this.parentElement.querySelector('pre').textContent)">Copiar</button>
+<pre>{
+  bsonType: "object",
+  required: ["_id", "name", "address"],
+  properties: {
+    _id:  { bsonType: "objectId" },
+    name: { bsonType: "string" },
+    address: {
+      bsonType: "object",          // 1-1
+      required: ["street"],
+      properties: {
+        street: { bsonType: "string" },
+        number: { bsonType: "string" },
+        zip:    { bsonType: "string" }
+      }
+    },
+    books: {
+      bsonType: "array",           // 0-N
+      items: { bsonType: "objectId" }
+    }
+  }
+}</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 29: Adaptação para .NET -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">⚙️ Adaptação para .NET com MongoDB.Driver</div>
+        <div class="slide-subtitle">Classes C# como Aggregate Root + validator no startup</div>
+      </div>
+      <div class="slide-content">
+        <p>O mesmo conceito se aplica em aplicações C# com o driver oficial <code>MongoDB.Driver</code>:</p>
+
+        <div class="two-columns" style="margin-top:15px;">
+          <div class="column">
+            <h3>1. Classes de Dominio</h3>
+            <div class="code-block">
+              <button class="copy-btn" onclick="navigator.clipboard.writeText(this.parentElement.querySelector('pre').textContent)">Copiar</button>
+<pre>public class Author  // Aggregate Root
+{
+    [BsonId]
+    public ObjectId Id { get; set; }
+
+    [BsonElement("name")]
+    public string Name { get; set; } = "";
+
+    [BsonElement("email")]
+    public string? Email { get; set; }  // 0-1
+
+    [BsonElement("address")]
+    public Address Address { get; set; } // 1-1
+        = new();
+
+    [BsonElement("books")]
+    public List&lt;ObjectId&gt; Books { get; set; }
+        = new();                         // 0-N
+}
+
+public class Address  // Entidade local
+{
+    [BsonElement("street")]
+    public string Street { get; set; } = "";
+
+    [BsonElement("number")]
+    public string? Number { get; set; }
+
+    [BsonElement("zip")]
+    public string? Zip { get; set; }
+}</pre>
+            </div>
+          </div>
+          <div class="column">
+            <h3>2. Mapeamento C# → MongoDB</h3>
+            <table style="width:100%;border-collapse:collapse;font-size:1rem;">
+              <tr style="background:var(--inteli-purple);color:white;">
+                <th style="padding:8px;">C#</th>
+                <th style="padding:8px;">MongoDB</th>
+              </tr>
+              <tr style="background:#f8f8f8;">
+                <td style="padding:8px;"><code>string Name</code></td>
+                <td style="padding:8px;">required + string</td>
+              </tr>
+              <tr>
+                <td style="padding:8px;"><code>string? Email</code></td>
+                <td style="padding:8px;">opcional (0–1)</td>
+              </tr>
+              <tr style="background:#f8f8f8;">
+                <td style="padding:8px;"><code>Address Address</code></td>
+                <td style="padding:8px;">required + object (1–1)</td>
+              </tr>
+              <tr>
+                <td style="padding:8px;"><code>List&lt;ObjectId&gt;</code></td>
+                <td style="padding:8px;">array (0–N)</td>
+              </tr>
+            </table>
+
+            <h3 style="margin-top:18px;">Fluxo</h3>
+            <ul>
+              <li><strong>Modelagem:</strong> classes C# representam o dominio</li>
+              <li><strong>Contrato:</strong> $jsonSchema reforça regras no banco</li>
+              <li><strong>Execução:</strong> driver serializa/deserializa documentos</li>
+            </ul>
+            <p style="margin-top:10px;font-style:italic;">A aplicação modela com classes; o schema valida no banco; o driver garante persistência consistente.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 30: Aplicando o Validator via C# -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">🚀 Aplicando o Validator via C#</div>
+        <div class="slide-subtitle">Migração inicial no startup da aplicação</div>
+      </div>
+      <div class="slide-content">
+        <div class="code-block">
+          <button class="copy-btn" onclick="navigator.clipboard.writeText(this.parentElement.querySelector('pre').textContent)">Copiar</button>
+<pre>var client = new MongoClient("mongodb://localhost:27017");
+var db = client.GetDatabase("meuApp");
+
+// Define o $jsonSchema como BsonDocument
+var schema = new BsonDocument {
+  { "bsonType", "object" },
+  { "required", new BsonArray { "_id", "name", "address" } },
+  { "properties", new BsonDocument {
+    { "_id",     new BsonDocument("bsonType", "objectId") },
+    { "name",    new BsonDocument("bsonType", "string") },
+    { "email",   new BsonDocument("bsonType", "string") },
+    { "address", new BsonDocument {
+      { "bsonType", "object" },
+      { "required", new BsonArray { "street" } },
+      { "properties", new BsonDocument {
+        { "street", new BsonDocument("bsonType", "string") },
+        { "number", new BsonDocument("bsonType", "string") },
+        { "zip",    new BsonDocument("bsonType", "string") }
+      }}
+    }},
+    { "books", new BsonDocument {
+      { "bsonType", "array" },
+      { "items",    new BsonDocument("bsonType", "objectId") }
+    }}
+  }}
+};
+
+// Cria coleção com validator
+await db.CreateCollectionAsync("authors",
+  new CreateCollectionOptions {
+    Validator = new BsonDocument("$jsonSchema", schema),
+    ValidationAction = DocumentValidationAction.Error,
+    ValidationLevel  = DocumentValidationLevel.Moderate
+  });</pre>
+        </div>
+
+        <div class="two-columns" style="margin-top:15px;">
+          <div class="column">
+            <h3>O que acontece?</h3>
+            <ul>
+              <li><code>InsertOneAsync(author)</code> <strong>falha</strong> se <code>Address</code> ausente (1–1)</li>
+              <li><code>InsertOneAsync(author)</code> <strong>aceita</strong> sem <code>Books</code> (0–N)</li>
+              <li>Validação estrutural <strong>no banco</strong>, sem duplicar lógica na app</li>
+            </ul>
+          </div>
+          <div class="column">
+            <h3>Alternativa: collMod</h3>
+            <p>Para alterar o validator de uma coleção existente, use o comando <code>collMod</code>:</p>
+            <div class="code-block">
+<pre>db.RunCommand(new BsonDocument {
+  { "collMod", "authors" },
+  { "validator", new BsonDocument(
+    "$jsonSchema", schema
+  )}
+});</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Slide Final: Entrega da Sprint -->
     <div class="slide">
       <div class="slide-header">
