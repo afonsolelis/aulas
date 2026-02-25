@@ -531,3 +531,58 @@ Como conduzir: orientar modelagem macro do dado em SQL ou NoSQL e finalizar em s
 Notas do professor:
 - Reforce que há Postgres disponível para quem escolher SQL.
 - Cada grupo deve apresentar sua modelagem macro (entidades e relações principais).
+
+## Aula 6 - Classes, Instâncias e Herança (MVC)
+
+### Slide 1 - Capa (Classes, Instâncias e Herança)
+Objetivo: introduzir os conceitos fundamentais de POO aplicados à arquitetura Blazor.
+Como conduzir: alinhe que POO aqui não é acadêmico, mas sim a ferramenta para organizar sistemas complexos (ERP).
+Notas do professor: reforce que classes bem estruturadas salvam a manutenção do futuro.
+
+### Slide 2 - Agenda da Aula
+Objetivo: mostrar a jornada da aula, do conceito de classe à organização física da solução.
+Como conduzir: destaque que veremos como instâncias são gerenciadas automaticamente pelo framework.
+
+### Slide 3 - Classes e Instâncias na Arquitetura
+Objetivo: diferenciar o "molde" (classe) do "objeto vivo" (instância) no contexto de serviços e entidades.
+Como conduzir: explique que o desenvolvedor define a classe, mas quem cria a instância no Blazor é a Injeção de Dependência.
+Notas do professor: use o exemplo da forma de bolo (classe) e o bolo (instância).
+
+### Slide 4 - DTOs vs Entidades de Domínio
+Objetivo: explicar a necessidade de separar a forma dos dados que transitam na rede vs. o que está no banco.
+Como conduzir: mostre que expor a entidade diretamente na View gera acoplamento e riscos de segurança.
+Notas do professor: mencione que DTOs são "contratos de entrega".
+
+### Slide 5 - Injeção de Dependência (DI)
+Objetivo: explicar como o Blazor gerencia as instâncias das classes.
+Como conduzir: explique os tempos de vida (Scoped é o mais comum no Blazor Server/Interactive).
+Notas do professor: conecte com o `@inject` que eles usam nos componentes.
+
+### Slide 6 - Diagrama de Classes: O Padrão MVC
+Objetivo: visualizar as relações de herança e associação.
+Como conduzir: aponte a herança de `ComponentBase` e a realização da interface do serviço.
+Notas do professor: destaque que o triângulo vazio no UML significa "É UM" (herança).
+
+### Slide 7 - O Fluxo de uma Requisição
+Objetivo: mostrar a dinâmica entre as classes em tempo de execução.
+Como conduzir: siga o caminho do clique do usuário até a persistência no banco.
+Notas do professor: reforce que uma camada nunca deve pular a outra.
+
+### Slide 8 - Herança na Arquitetura ERP
+Objetivo: demonstrar o reuso de código através de classes base.
+Como conduzir: mostre o exemplo da `EntityBase` e como ela padroniza todas as tabelas do sistema.
+Notas do professor: explique que herança deve ser usada para "especialização", não apenas para economizar linhas.
+
+### Slide 9 - Estrutura de Projetos (Solution)
+Objetivo: mostrar como as classes são distribuídas em múltiplos projetos .NET.
+Como conduzir: explique o porquê de ter projetos separados (Domain não conhece nada de Web).
+Notas do professor: alinhe que essa organização facilita a substituição de tecnologias no futuro.
+
+### Slide 10 - Atividade de Sala
+Objetivo: aplicar os conceitos de POO em um cenário real do projeto.
+Como conduzir: peça para desenharem no quadro ou papel a relação Fornecedor -> EntityBase e a injeção do serviço.
+Notas do professor: circule pelos grupos para garantir que entenderam onde entra a herança.
+
+### Slide 11 - Fim / Dúvidas
+Objetivo: fechar o tópico e preparar para a implementação.
+Como conduzir: abra para perguntas sobre o projeto e valide se a modelagem está caminhando.
