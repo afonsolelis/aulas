@@ -432,6 +432,104 @@
       color: #1f2937;
     }
 
+    .flowchart {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .flow-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 14px;
+      background: #f8fafc;
+      border: 1px solid #dce5ee;
+      border-radius: 14px;
+    }
+
+    .flow-node {
+      background: #ffffff;
+      border: 1px solid #d2dbe6;
+      border-left: 5px solid var(--inteli-purple);
+      color: #1f2937;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-weight: 600;
+      box-shadow: 0 6px 16px rgba(46, 38, 64, 0.08);
+      font-size: 0.9rem;
+    }
+
+    .flow-node.obs {
+      border-left-color: var(--inteli-blue);
+    }
+
+    .flow-arrow {
+      color: #556579;
+      font-weight: 700;
+      font-size: 1.1rem;
+      line-height: 1;
+    }
+
+    .flow-svg-wrap {
+      background: linear-gradient(135deg, #f8fafc, #eef3f8);
+      border: 1px solid #dce5ee;
+      border-radius: 14px;
+      padding: 10px;
+      overflow-x: auto;
+    }
+
+    .flow-svg {
+      width: 100%;
+      min-width: 1120px;
+      height: auto;
+      display: block;
+    }
+
+    .flow-svg .node {
+      fill: #ffffff;
+      stroke: #cfd9e4;
+      stroke-width: 2;
+    }
+
+    .flow-svg .node-main {
+      stroke: #2e2640;
+    }
+
+    .flow-svg .node-obs {
+      stroke: #89cea5;
+    }
+
+    .flow-svg .conn {
+      stroke: #5a6b81;
+      stroke-width: 2.4;
+      fill: none;
+      marker-end: url(#arrow);
+    }
+
+    .flow-svg text {
+      fill: #1f2937;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: "Manrope", sans-serif;
+    }
+
+    .activity-panel {
+      background: linear-gradient(135deg, #f8fafc, #edf3fb);
+      border: 1px solid #d8e3ef;
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 10px 24px rgba(46, 38, 64, 0.08);
+    }
+
+    .activity-title {
+      margin: 0 0 12px 0;
+      color: var(--inteli-purple);
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
     @media (max-width: 1100px) {
       .cards-grid,
       .pipeline {
@@ -614,6 +712,160 @@
 
     <div class="slide">
       <div class="slide-header">
+        <div class="slide-title">REST vs gRPC em .NET: caso CriarPedido</div>
+      </div>
+      <div class="slide-content">
+        <div class="highlight-box">
+          <strong>Perfeito. Vamos usar o mesmo caso nos dois: CriarPedido.</strong>
+        </div>
+        <div class="content-card" style="margin-top: 14px;">
+          <h3>1. REST no backend .NET</h3>
+          <p><strong>Como você define</strong></p>
+          <div class="code-block"><pre><code>// DTO (objeto do body JSON)
+public record CriarPedidoRequest(string ClienteId, List&lt;ItemDto&gt; Itens);
+public record ItemDto(string ProdutoId, int Quantidade);</code></pre></div>
+          <div class="code-block" style="margin-top: 10px;"><pre><code>// Controller REST
+[ApiController]
+[Route("api/pedidos")]
+public class PedidosController : ControllerBase
+{
+    [HttpPost]
+    public IActionResult Criar([FromBody] CriarPedidoRequest req)
+    {
+        // regra de negocio...
+        return Ok(new { pedidoId = "P123", status = "CRIADO" });
+    }
+}</code></pre></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">Payload REST (body JSON)</div>
+      </div>
+      <div class="slide-content">
+        <div class="content-card">
+          <p><strong>Payload REST (o que vai no body)</strong></p>
+          <div class="code-block"><pre><code>POST /api/pedidos
+Content-Type: application/json</code></pre></div>
+          <div class="code-block" style="margin-top: 10px;"><pre><code>{
+  "clienteId": "C1",
+  "itens": [
+    { "produtoId": "P10", "quantidade": 2 },
+    { "produtoId": "P20", "quantidade": 1 }
+  ]
+}</code></pre></div>
+          <p style="margin-top: 12px;"><strong>Resposta:</strong></p>
+          <div class="code-block"><pre><code>{
+  "pedidoId": "P123",
+  "status": "CRIADO"
+}</code></pre></div>
+          <p style="margin-top: 12px;">Aqui o payload é <strong>JSON legível</strong>.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">gRPC no backend .NET</div>
+      </div>
+      <div class="slide-content">
+        <div class="content-card">
+          <p><strong>2. gRPC no backend .NET</strong></p>
+          <p><strong>Como você define (contrato .proto)</strong></p>
+          <div class="code-block"><pre><code>syntax = "proto3";
+
+service PedidoService {
+  rpc CriarPedido (CriarPedidoRequest) returns (CriarPedidoResponse);
+}
+
+message CriarPedidoRequest {
+  string cliente_id = 1;
+  repeated Item itens = 2;
+}
+
+message Item {
+  string produto_id = 1;
+  int32 quantidade = 2;
+}
+
+message CriarPedidoResponse {
+  string pedido_id = 1;
+  string status = 2;
+}</code></pre></div>
+          <p style="margin-top: 12px;">O .NET gera classes C# automaticamente desse .proto.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">Servidor e cliente gRPC</div>
+      </div>
+      <div class="slide-content">
+        <div class="split-grid">
+          <div class="content-card">
+            <p><strong>Implementação do servidor</strong></p>
+            <div class="code-block"><pre><code>public class PedidoGrpcService : PedidoService.PedidoServiceBase
+{
+    public override Task&lt;CriarPedidoResponse&gt; CriarPedido(
+        CriarPedidoRequest request, ServerCallContext context)
+    {
+        // regra de negocio...
+        return Task.FromResult(new CriarPedidoResponse
+        {
+            PedidoId = "P123",
+            Status = "CRIADO"
+        });
+    }
+}</code></pre></div>
+          </div>
+          <div class="content-card">
+            <p><strong>Chamada do cliente gRPC</strong></p>
+            <div class="code-block"><pre><code>var channel = GrpcChannel.ForAddress("https://localhost:5001");
+var client = new PedidoService.PedidoServiceClient(channel);
+
+var resp = await client.CriarPedidoAsync(new CriarPedidoRequest
+{
+    ClienteId = "C1",
+    Itens = { new Item { ProdutoId = "P10", Quantidade = 2 },
+              new Item { ProdutoId = "P20", Quantidade = 1 } }
+});</code></pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">Então qual é o payload no gRPC?</div>
+      </div>
+      <div class="slide-content">
+        <div class="content-card">
+          <p><strong>3. Então qual é o “payload” no gRPC?</strong></p>
+          <p>Logicamente é o <strong>mesmo dado</strong> (cliente, itens, etc).</p>
+          <p>A diferença é o formato na rede:</p>
+          <ol>
+            <li>REST envia texto JSON.</li>
+            <li>gRPC envia bytes em Protocol Buffers (binário).</li>
+          </ol>
+          <p>Ou seja:</p>
+          <ol>
+            <li>No REST você “enxerga” o payload fácil no Postman.</li>
+            <li>No gRPC o payload real não é amigável para leitura humana, mas é menor e mais rápido.</li>
+          </ol>
+        </div>
+        <div class="highlight-box" style="margin-top: 14px;">
+          <strong>4. Resumo mental simples</strong><br>
+          1. REST: “envio uma carta em texto (JSON) para uma URL”.<br>
+          2. gRPC: “faço uma chamada de método (CriarPedido) com objeto tipado, e a rede leva isso em binário”.
+        </div>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
         <div class="slide-title">GraphQL e WebSocket</div>
       </div>
       <div class="slide-content">
@@ -648,34 +900,362 @@
 
     <div class="slide">
       <div class="slide-header">
-        <div class="slide-title">TCP, UDP e WebTransport</div>
+        <div class="slide-title">GraphQL no backend .NET</div>
+      </div>
+      <div class="slide-content">
+        <div class="content-card">
+          <p><strong>Exemplo com HotChocolate</strong></p>
+          <div class="code-block"><pre><code>// Program.cs
+builder.Services
+    .AddGraphQLServer()
+    .AddQueryType&lt;Query&gt;()
+    .AddMutationType&lt;Mutation&gt;();
+
+var app = builder.Build();
+app.MapGraphQL("/graphql");
+app.Run();</code></pre></div>
+          <div class="code-block" style="margin-top: 10px;"><pre><code>// Tipos de entrada/saida
+public record ItemDto(string ProdutoId, int Quantidade);
+public record PedidoDto(string PedidoId, string ClienteId, List&lt;ItemDto&gt; Itens, string Status);
+public record CriarPedidoInput(string ClienteId, List&lt;ItemDto&gt; Itens);
+
+public class Query
+{
+    public PedidoDto PedidoPorId(string id) =&gt;
+        new("P123", "C1", new List&lt;ItemDto&gt; { new("P10", 2), new("P20", 1) }, "CRIADO");
+}
+
+public class Mutation
+{
+    public PedidoDto CriarPedido(CriarPedidoInput input) =&gt;
+        new("P123", input.ClienteId, input.Itens, "CRIADO");
+}</code></pre></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">Payload GraphQL (query)</div>
+      </div>
+      <div class="slide-content">
+        <div class="content-card">
+          <p><strong>Request HTTP para GraphQL</strong></p>
+          <div class="code-block"><pre><code>POST /graphql
+Content-Type: application/json</code></pre></div>
+          <div class="code-block" style="margin-top: 10px;"><pre><code>{
+  "query": "query Pedido($id: String!) { pedidoPorId(id: $id) { pedidoId clienteId status itens { produtoId quantidade } } }",
+  "variables": {
+    "id": "P123"
+  }
+}</code></pre></div>
+          <p style="margin-top: 12px;"><strong>Resposta:</strong></p>
+          <div class="code-block"><pre><code>{
+  "data": {
+    "pedidoPorId": {
+      "pedidoId": "P123",
+      "clienteId": "C1",
+      "status": "CRIADO",
+      "itens": [
+        { "produtoId": "P10", "quantidade": 2 },
+        { "produtoId": "P20", "quantidade": 1 }
+      ]
+    }
+  }
+}</code></pre></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">Payload GraphQL (mutation)</div>
+      </div>
+      <div class="slide-content">
+        <div class="content-card">
+          <p><strong>Criando um pedido (mesmo caso do REST/gRPC)</strong></p>
+          <div class="code-block"><pre><code>POST /graphql
+Content-Type: application/json</code></pre></div>
+          <div class="code-block" style="margin-top: 10px;"><pre><code>{
+  "query": "mutation Criar($input: CriarPedidoInput!) { criarPedido(input: $input) { pedidoId status clienteId } }",
+  "variables": {
+    "input": {
+      "clienteId": "C1",
+      "itens": [
+        { "produtoId": "P10", "quantidade": 2 },
+        { "produtoId": "P20", "quantidade": 1 }
+      ]
+    }
+  }
+}</code></pre></div>
+          <p style="margin-top: 12px;"><strong>Resposta:</strong></p>
+          <div class="code-block"><pre><code>{
+  "data": {
+    "criarPedido": {
+      "pedidoId": "P123",
+      "status": "CRIADO",
+      "clienteId": "C1"
+    }
+  }
+}</code></pre></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">REST vs GraphQL (mesmo payload)</div>
+      </div>
+      <div class="slide-content">
+        <div class="split-grid">
+          <div class="content-card">
+            <h3>REST</h3>
+            <ul>
+              <li>Voce chama endpoints diferentes.</li>
+              <li>Ex.: <code>/api/pedidos/{id}</code>, <code>/api/clientes/{id}</code>.</li>
+              <li>Resposta vem no formato definido pelo backend.</li>
+            </ul>
+          </div>
+          <div class="content-card">
+            <h3>GraphQL</h3>
+            <ul>
+              <li>Voce chama um endpoint so: <code>/graphql</code>.</li>
+              <li>Escolhe os campos no corpo da query.</li>
+              <li>Resposta vem no formato pedido pelo cliente.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="highlight-box" style="margin-top: 14px;">
+          <strong>Resumo mental simples:</strong> GraphQL e "me devolva exatamente isso". REST e "me devolva o que esse endpoint foi desenhado para devolver".
+        </div>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">Estrategias de testing por tecnologia</div>
+      </div>
+      <div class="slide-content">
+        <table class="matrix">
+          <thead>
+            <tr>
+              <th>Tecnologia</th>
+              <th>O que validar primeiro</th>
+              <th>Testes principais</th>
+              <th>Risco comum</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>REST</td>
+              <td>Contrato HTTP, status code e validacao</td>
+              <td>Unit + Integration + Contract</td>
+              <td>Quebrar clientes por mudanca de payload</td>
+            </tr>
+            <tr>
+              <td>GraphQL</td>
+              <td>Schema, resolvers e autorizacao por campo</td>
+              <td>Schema snapshot + Integration + E2E de query</td>
+              <td>N+1 e exposicao indevida de dados</td>
+            </tr>
+            <tr>
+              <td>gRPC</td>
+              <td>Compatibilidade .proto e codigos de erro</td>
+              <td>Contract + Integration + teste de streaming</td>
+              <td>Breaking change de campo/mensagem</td>
+            </tr>
+            <tr>
+              <td>MediatR</td>
+              <td>Comportamento de command/query handler</td>
+              <td>Unit de handler + teste de pipeline behavior</td>
+              <td>Regra dispersa fora do handler</td>
+            </tr>
+            <tr>
+              <td>Filas</td>
+              <td>Idempotencia, retry e DLQ</td>
+              <td>Integration com broker + teste de falha</td>
+              <td>Duplicidade e perda silenciosa de mensagem</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">Exemplos de casos de teste por situacao</div>
+      </div>
+      <div class="slide-content">
+        <table class="matrix">
+          <thead>
+            <tr>
+              <th>Situacao</th>
+              <th>Caso de teste</th>
+              <th>Resultado esperado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>REST - payload invalido</td>
+              <td>POST <code>/api/pedidos</code> sem <code>clienteId</code></td>
+              <td>HTTP 400 com mensagem de validacao</td>
+            </tr>
+            <tr>
+              <td>GraphQL - campo nao autorizado</td>
+              <td>Query pedindo campo sensivel sem permissao</td>
+              <td>Erro GraphQL de autorizacao e campo bloqueado</td>
+            </tr>
+            <tr>
+              <td>gRPC - deadline excedido</td>
+              <td>Chamada com timeout curto em metodo lento</td>
+              <td>Status <code>DeadlineExceeded</code></td>
+            </tr>
+            <tr>
+              <td>MediatR - validacao de command</td>
+              <td>Command com dados inconsistentes no pipeline behavior</td>
+              <td>Falha de validacao sem executar o handler</td>
+            </tr>
+            <tr>
+              <td>Fila - processamento duplicado</td>
+              <td>Reentrega da mesma mensagem para o consumidor</td>
+              <td>Nenhuma duplicidade no banco (idempotencia)</td>
+            </tr>
+            <tr>
+              <td>Fila - falha persistente</td>
+              <td>Consumidor falha ate esgotar retries</td>
+              <td>Mensagem enviada para DLQ + metrica incrementada</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">Testing de REST e GraphQL no .NET</div>
+      </div>
+      <div class="slide-content">
+        <div class="split-grid">
+          <div class="content-card">
+            <h3>REST (WebApplicationFactory)</h3>
+            <ul>
+              <li>Teste endpoint, status code, headers e payload.</li>
+              <li>Valide cenarios de erro (400/404/409).</li>
+              <li>Inclua contrato com OpenAPI em CI.</li>
+            </ul>
+            <div class="code-block"><pre><code>var res = await client.PostAsJsonAsync("/api/pedidos", req);
+res.StatusCode.Should().Be(HttpStatusCode.OK);
+var body = await res.Content.ReadFromJsonAsync&lt;PedidoResponse&gt;();
+body!.Status.Should().Be("CRIADO");</code></pre></div>
+          </div>
+          <div class="content-card">
+            <h3>GraphQL (query + mutation)</h3>
+            <ul>
+              <li>Teste schema e autorizacao por campo sensivel.</li>
+              <li>Valide query permitida e query bloqueada.</li>
+              <li>Meça performance para evitar N+1.</li>
+            </ul>
+            <div class="code-block"><pre><code>var payload = new {
+  query = "query { pedidoPorId(id:\"P123\"){ pedidoId status } }"
+};
+var res = await client.PostAsJsonAsync("/graphql", payload);
+res.EnsureSuccessStatusCode();</code></pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">Caso: GraphQL com campo nao autorizado</div>
+      </div>
+      <div class="slide-content">
+        <div class="highlight-box">
+          <strong>Situacao:</strong> Query pedindo campo sensivel sem permissao.<br>
+          <strong>Esperado:</strong> Erro GraphQL de autorizacao e campo bloqueado.
+        </div>
+        <div class="split-grid" style="margin-top: 14px;">
+          <div class="content-card">
+            <h3>Request (simplificado)</h3>
+            <div class="code-block"><pre><code>POST /graphql
+Content-Type: application/json
+
+{
+  "query": "query { usuario(id:\"U1\") { id nome salario } }"
+}</code></pre></div>
+            <p style="margin-top: 10px;"><strong>Observacao:</strong> <code>salario</code> e um campo sensivel.</p>
+          </div>
+          <div class="content-card">
+            <h3>Resposta esperada</h3>
+            <div class="code-block"><pre><code>{
+  "errors": [
+    {
+      "message": "Nao autorizado para acessar o campo 'salario'.",
+      "path": ["usuario", "salario"]
+    }
+  ],
+  "data": {
+    "usuario": {
+      "id": "U1",
+      "nome": "Ana",
+      "salario": null
+    }
+  }
+}</code></pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">Testing de gRPC, MediatR e Filas</div>
       </div>
       <div class="slide-content">
         <div class="cards-grid">
           <div class="content-card">
-            <h3>TCP</h3>
+            <h3>gRPC</h3>
             <ul>
-              <li>Confiavel e ordenado.</li>
-              <li>Base para HTTP/1.1 e HTTP/2.</li>
-              <li>Maior overhead em cenarios de perda.</li>
+              <li><strong>Teste unary:</strong> 1 requisicao -&gt; 1 resposta (como um endpoint REST simples).</li>
+              <li><strong>Teste streaming:</strong> cliente e/ou servidor trocam varias mensagens no mesmo canal.</li>
+              <li>Valide deadlines/cancellation.</li>
+              <li>Fixe regras de versao no .proto (sem break).</li>
             </ul>
+            <div class="chip-row">
+              <span class="chip">Contract-first</span>
+              <span class="chip">StatusCode</span>
+              <span class="chip">Streaming</span>
+            </div>
           </div>
           <div class="content-card">
-            <h3>UDP</h3>
+            <h3>MediatR</h3>
             <ul>
-              <li>Baixa latencia e sem garantia de entrega.</li>
-              <li>Usado em audio/video/jogos/telemetria especializada.</li>
-              <li>Confiabilidade deve ser tratada na aplicacao.</li>
+              <li>Unit test de handler com dependencias mockadas.</li>
+              <li>Teste pipeline behaviors (validacao/log).</li>
+              <li>Separe testes de command e query.</li>
             </ul>
+            <div class="chip-row">
+              <span class="chip">Handler unitario</span>
+              <span class="chip">Behavior test</span>
+              <span class="chip">Sem transporte</span>
+            </div>
           </div>
           <div class="content-card">
-            <h3>WebTransport (QUIC)</h3>
+            <h3>Filas</h3>
             <ul>
-              <li>Streams + datagrams no browser moderno.</li>
-              <li>Menos head-of-line blocking que TCP.</li>
-              <li>Opcao avancada para realtime web de nova geracao.</li>
+              <li>Teste consumidor idempotente (reprocessar sem duplicar).</li>
+              <li>Force falha para validar retry e DLQ.</li>
+              <li>Verifique ordenacao/chaves quando aplicavel.</li>
             </ul>
+            <div class="chip-row">
+              <span class="chip">Retry</span>
+              <span class="chip">DLQ</span>
+              <span class="chip">Idempotencia</span>
+            </div>
           </div>
+        </div>
+        <div class="highlight-box" style="margin-top: 14px;">
+          Regra pratica: manter ~70% unitarios, ~20% integracao e ~10% E2E para equilibrio entre velocidade e confiabilidade.
         </div>
       </div>
     </div>
@@ -853,21 +1433,124 @@ public async Task&lt;IActionResult&gt; Create([FromBody] CreateReportDto dto)
         <div class="slide-title">Arquitetura final (end-to-end)</div>
       </div>
       <div class="slide-content">
-        <div class="highlight-box">
-          <strong>Fluxo recomendado:</strong>
-          Cliente -> REST/gRPC -> MediatR (Command) -> Outbox -> Broker (Kafka/RabbitMQ) -> Worker -> Banco/Read Model -> WebSocket para atualizacao live no dashboard.
-        </div>
-        <div class="highlight-box" style="margin-top: 14px;">
-          <strong>Observabilidade:</strong>
-          OpenTelemetry em API + Worker + Broker headers -> Prometheus coleta metricas -> Alertas por SLO (latencia, erro, lag, DLQ).
+        <div class="flow-svg-wrap">
+          <svg class="flow-svg" viewBox="0 0 1160 440" role="img" aria-label="Fluxograma da arquitetura end-to-end">
+            <defs>
+              <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+                <path d="M0,0 L10,4 L0,8 Z" fill="#5a6b81"></path>
+              </marker>
+            </defs>
+
+            <rect x="16" y="18" width="1128" height="182" rx="12" fill="#f8fbff" stroke="#dbe5ef"></rect>
+            <rect x="16" y="222" width="1128" height="196" rx="12" fill="#f4fbf7" stroke="#d6eadf"></rect>
+
+            <text x="28" y="42">Fluxo principal</text>
+            <text x="28" y="246">Observabilidade</text>
+
+            <rect class="node node-main" x="24" y="74" width="124" height="58" rx="29"></rect>
+            <text x="86" y="108" text-anchor="middle">Cliente</text>
+
+            <rect class="node node-main" x="170" y="74" width="124" height="58" rx="10"></rect>
+            <text x="232" y="108" text-anchor="middle">REST/gRPC</text>
+
+            <rect class="node node-main" x="316" y="74" width="142" height="58" rx="10"></rect>
+            <text x="387" y="100" text-anchor="middle">MediatR</text>
+            <text x="387" y="117" text-anchor="middle">(Command)</text>
+
+            <rect class="node node-main" x="480" y="74" width="112" height="58" rx="10"></rect>
+            <text x="536" y="108" text-anchor="middle">Outbox</text>
+
+            <rect class="node node-main" x="614" y="74" width="166" height="58" rx="10"></rect>
+            <text x="697" y="100" text-anchor="middle">Broker</text>
+            <text x="697" y="117" text-anchor="middle">(Kafka/RabbitMQ)</text>
+
+            <rect class="node node-main" x="802" y="74" width="114" height="58" rx="10"></rect>
+            <text x="859" y="108" text-anchor="middle">Worker</text>
+
+            <rect class="node node-main" x="938" y="74" width="154" height="58" rx="10"></rect>
+            <text x="1015" y="100" text-anchor="middle">Banco /</text>
+            <text x="1015" y="117" text-anchor="middle">Read Model</text>
+
+            <path class="conn" d="M148 103 L170 103"></path>
+            <path class="conn" d="M294 103 L316 103"></path>
+            <path class="conn" d="M458 103 L480 103"></path>
+            <path class="conn" d="M592 103 L614 103"></path>
+            <path class="conn" d="M780 103 L802 103"></path>
+            <path class="conn" d="M916 103 L938 103"></path>
+
+            <rect class="node node-main" x="402" y="150" width="356" height="34" rx="17"></rect>
+            <text x="580" y="172" text-anchor="middle">Atualizacao live via WebSocket para dashboard</text>
+            <path class="conn" d="M1015 132 L1015 167 L758 167"></path>
+
+            <rect class="node node-obs" x="58" y="280" width="330" height="64" rx="10"></rect>
+            <text x="223" y="306" text-anchor="middle">OpenTelemetry</text>
+            <text x="223" y="324" text-anchor="middle">(API + Worker + headers de correlacao)</text>
+
+            <rect class="node node-obs" x="438" y="280" width="240" height="64" rx="10"></rect>
+            <text x="558" y="316" text-anchor="middle">Prometheus (/metrics)</text>
+
+            <rect class="node node-obs" x="728" y="280" width="374" height="64" rx="10"></rect>
+            <text x="915" y="306" text-anchor="middle">Alertas por SLO</text>
+            <text x="915" y="324" text-anchor="middle">(latencia, erro, lag, DLQ)</text>
+
+            <path class="conn" d="M388 312 L438 312"></path>
+            <path class="conn" d="M678 312 L728 312"></path>
+            <path class="conn" d="M223 280 L223 214 L580 214 L580 184"></path>
+            <path class="conn" d="M558 280 L558 230 L697 230 L697 132"></path>
+          </svg>
         </div>
       </div>
     </div>
 
     <div class="slide">
-      <div class="slide-header" style="text-align: center; flex: 1; display: flex; flex-direction: column; justify-content: center; background: linear-gradient(135deg, firebrick, var(--inteli-dark-purple));">
-        <div class="slide-title" style="font-size: 2.8rem;">Atividade de sala</div>
-        <p style="font-size: 1.2rem; margin-top: 10px;">Definir protocolo por caso de uso do Projeto 9 e desenhar um fluxo CQRS com MediatR + fila + metricas Prometheus.</p>
+      <div class="slide-header">
+        <div class="slide-title">Atividade de sala</div>
+        <div class="slide-subtitle">Entrega em formato end-to-end com validacao black box</div>
+      </div>
+      <div class="slide-content">
+        <div class="activity-panel">
+          <div class="highlight-box" style="margin-bottom: 14px;">
+            <strong>Instrucao:</strong> implementar um fluxo end-to-end em uma rota ja existente do Projeto 9 e preparar a demonstracao.<br>
+            <strong>Tempo:</strong> 40 minutos para desenvolvimento + 20 minutos para apresentacao.
+          </div>
+          <p class="activity-title">Requisitos da entrega</p>
+          <table class="matrix">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Descricao</th>
+                <th>Criterio de aceite</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Fluxo principal</td>
+                <td>Codigo end-to-end funcional passando por rota ja existente do Projeto 9.</td>
+                <td>Execucao completa sem quebra do fluxo.</td>
+              </tr>
+              <tr>
+                <td>Modelo de teste</td>
+                <td>Validacao black box (entrada e saida), sem acoplamento ao internals.</td>
+                <td>Evidencia de request, resposta e comportamento esperado.</td>
+              </tr>
+              <tr>
+                <td>Protocolo</td>
+                <td>Escolha livre do grupo: REST, gRPC ou GraphQL.</td>
+                <td>Justificar a escolha para o caso de uso implementado.</td>
+              </tr>
+              <tr>
+                <td>Camadas obrigatorias</td>
+                <td>Rota -&gt; MediatR (command/query) -&gt; fila (quando aplicavel) -&gt; persistencia/read model.</td>
+                <td>Demonstrar passagem por cada etapa prevista.</td>
+              </tr>
+              <tr>
+                <td>Observabilidade</td>
+                <td>Metricas Prometheus minimas para o fluxo implementado.</td>
+                <td>Exibir metricas coletadas (latencia, erro, lag ou equivalente).</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
