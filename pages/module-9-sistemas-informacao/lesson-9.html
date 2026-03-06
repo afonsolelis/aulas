@@ -6,11 +6,347 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <title>Aula 9 - Segurança e autorização em API - Inteli</title>
   <link rel="icon"
     href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
   <style>
+    :root {
+      --inteli-purple: #2e2640;
+      --inteli-blue: #89cea5;
+      --inteli-dark: #111827;
+      --inteli-ice: #edf6f2;
+      --inteli-sand: #f8f5ef;
+      --inteli-red: #9f1239;
+      --inteli-gold: #d4a017;
+      --inteli-border: #d7dde3;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: "Manrope", sans-serif;
+      background: #f3f4f6;
+      color: var(--inteli-dark);
+    }
+
+    .slide-container {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at top left, rgba(137, 206, 165, 0.18), transparent 26%),
+        radial-gradient(circle at bottom right, rgba(46, 38, 64, 0.12), transparent 30%),
+        #f7f9fb;
+    }
+
+    .slide {
+      width: 100%;
+      height: 100%;
+      display: none;
+      padding: 42px 54px 96px;
+      position: absolute;
+      inset: 0;
+    }
+
+    .slide.active {
+      display: flex;
+      flex-direction: column;
+      animation: slideIn 0.4s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(32px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .slide-header {
+      background: linear-gradient(135deg, var(--inteli-purple), #44506a);
+      color: white;
+      border-radius: 22px;
+      padding: 22px 28px;
+      margin-bottom: 22px;
+      box-shadow: 0 18px 40px rgba(46, 38, 64, 0.14);
+    }
+
+    .slide-title {
+      font-size: 2.35rem;
+      font-weight: 800;
+      margin: 0 0 8px;
+      line-height: 1.08;
+    }
+
+    .slide-subtitle {
+      font-size: 1.02rem;
+      opacity: 0.92;
+      margin: 0;
+    }
+
+    .slide-content {
+      flex: 1;
+      overflow-y: auto;
+      padding-right: 8px;
+    }
+
+    .slide-content::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    .slide-content::-webkit-scrollbar-thumb {
+      background: #c7d1db;
+      border-radius: 999px;
+    }
+
+    .cover-slide {
+      padding: 0;
+      align-items: center;
+      justify-content: center;
+      background:
+        linear-gradient(135deg, rgba(17, 24, 39, 0.65), rgba(46, 38, 64, 0.78)),
+        url("https://www.inteli.edu.br/wp-content/uploads/2025/08/Graduacao.jpg") center/cover no-repeat;
+    }
+
+    .cover-card {
+      width: min(960px, 90vw);
+      background: rgba(255, 255, 255, 0.93);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      border-radius: 28px;
+      padding: 52px;
+      box-shadow: 0 30px 80px rgba(17, 24, 39, 0.35);
+      backdrop-filter: blur(10px);
+    }
+
+    .cover-logo {
+      height: 52px;
+      margin-bottom: 24px;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      font-size: 0.85rem;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--inteli-blue);
+      margin-bottom: 14px;
+    }
+
+    .cover-title {
+      font-size: 3.4rem;
+      line-height: 1;
+      margin: 0 0 14px;
+      color: var(--inteli-purple);
+    }
+
+    .cover-lead {
+      margin: 0;
+      font-size: 1.2rem;
+      line-height: 1.6;
+      max-width: 760px;
+      color: #374151;
+    }
+
+    .topics-grid,
+    .cards-grid,
+    .comparison-grid,
+    .three-grid,
+    .two-grid {
+      display: grid;
+      gap: 18px;
+    }
+
+    .topics-grid {
+      grid-template-columns: repeat(4, 1fr);
+      margin-top: 30px;
+    }
+
+    .two-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .three-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .cards-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    .comparison-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .topic-tag,
+    .pill {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-size: 0.92rem;
+      font-weight: 700;
+    }
+
+    .topic-tag {
+      text-align: center;
+      color: white;
+      background: linear-gradient(135deg, var(--inteli-purple), #4f6b6b);
+    }
+
+    .meta-info {
+      margin-top: 28px;
+      color: #4b5563;
+      font-size: 1.05rem;
+    }
+
+    .panel,
+    .story-box,
+    .mini-box,
+    .code-block,
+    .timeline-step {
+      background: white;
+      border: 1px solid var(--inteli-border);
+      border-radius: 20px;
+      padding: 20px 22px;
+      box-shadow: 0 14px 28px rgba(15, 23, 42, 0.06);
+    }
+
+    .story-box {
+      background: linear-gradient(180deg, #fff8f1, #ffffff);
+      border-left: 8px solid var(--inteli-red);
+      margin-bottom: 18px;
+    }
+
+    .story-box h3,
+    .panel h3,
+    .mini-box h3,
+    .timeline-step h3 {
+      margin: 0 0 12px;
+      font-size: 1.3rem;
+      color: var(--inteli-purple);
+    }
+
+    .panel h4,
+    .mini-box h4 {
+      margin: 0 0 10px;
+      font-size: 1.05rem;
+      color: var(--inteli-purple);
+    }
+
+    p,
+    li {
+      font-size: 1rem;
+      line-height: 1.55;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .big-statement {
+      font-size: 2rem;
+      line-height: 1.2;
+      font-weight: 800;
+      color: var(--inteli-purple);
+      margin: 0 0 18px;
+    }
+
+    .highlight {
+      color: var(--inteli-red);
+      font-weight: 800;
+    }
+
+    .soft-highlight {
+      color: #0f766e;
+      font-weight: 800;
+    }
+
+    .code-block {
+      background: #0f172a;
+      border-color: #0f172a;
+      color: #e5eefc;
+      font-family: "Space Mono", monospace;
+      font-size: 0.83rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    .code-caption {
+      font-size: 0.88rem;
+      margin-top: 8px;
+      color: #475569;
+    }
+
+    .step-number {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--inteli-purple), var(--inteli-blue));
+      color: white;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+
+    .stage-box {
+      background: linear-gradient(180deg, #ffffff, var(--inteli-sand));
+      border: 1px solid #eadfcc;
+      border-radius: 20px;
+      padding: 20px;
+    }
+
+    .stage-box h3 {
+      margin: 0 0 10px;
+      color: var(--inteli-purple);
+      font-size: 1.2rem;
+    }
+
+    .matrix {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 14px 28px rgba(15, 23, 42, 0.06);
+    }
+
+    .matrix th,
+    .matrix td {
+      border: 1px solid #e5e7eb;
+      padding: 14px 16px;
+      text-align: left;
+      vertical-align: top;
+      font-size: 0.96rem;
+      line-height: 1.5;
+    }
+
+    .matrix th {
+      background: var(--inteli-purple);
+      color: white;
+      font-size: 0.92rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .footer-note {
+      margin-top: 14px;
+      color: #475569;
+      font-size: 0.95rem;
+    }
 
     .slide-footer {
       position: fixed;
@@ -30,7 +366,7 @@
     .back-home {
       color: var(--inteli-purple);
       text-decoration: none;
-      font-weight: 600;
+      font-weight: 700;
       transition: 0.2s;
       display: flex;
       align-items: center;
@@ -60,7 +396,7 @@
       border: none;
       padding: 8px 20px;
       border-radius: 8px;
-      font-weight: 500;
+      font-weight: 600;
       cursor: pointer;
       transition: all 0.2s;
     }
@@ -68,229 +404,22 @@
     .nav-buttons button:hover:not(:disabled) {
       background: var(--inteli-blue);
       transform: translateY(-1px);
+      color: var(--inteli-dark);
     }
 
     .nav-buttons button:disabled {
       background: #caced6;
       cursor: not-allowed;
+      color: #6b7280;
     }
 
     .slide-counter {
-      font-weight: 600;
+      font-weight: 700;
       color: var(--inteli-purple);
       min-width: 80px;
       text-align: center;
     }
-    :root {
-      --inteli-purple: #2e2640;
-      --inteli-blue: #89cea5;
-      --inteli-dark-purple: #2E2640;
-      --inteli-light-purple: #caced6;
-    }
 
-    body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      font-family: "Azurio", "Manrope", sans-serif;
-    }
-
-    .slide-container {
-      width: 100vw;
-      height: 100vh;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .slide {
-      width: 100%;
-      height: 100%;
-      display: none;
-      padding: 60px;
-      box-sizing: border-box;
-      position: absolute;
-    }
-
-    .slide.active {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      animation: slideIn 0.5s ease-in-out;
-    }
-
-    @keyframes slideIn {
-      from {
-        opacity: 0;
-        transform: translateX(50px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateX(0);
-      }
-    }
-
-    .slide-header {
-      background: linear-gradient(135deg, var(--inteli-purple), var(--inteli-blue));
-      color: white;
-      padding: 20px;
-      border-radius: 10px;
-      margin-bottom: 30px;
-    }
-
-    .slide-title {
-      font-size: 2.5rem;
-      font-weight: bold;
-      margin-bottom: 10px;
-    }
-
-    .slide-subtitle {
-      font-size: 1.2rem;
-      opacity: 0.9;
-    }
-
-    .slide-content {
-      flex: 1;
-      overflow-y: auto;
-    }
-
-    .slide-content h2 {
-      color: var(--inteli-purple);
-      margin-bottom: 20px;
-    }
-
-    .cover-slide {
-      background-image: url('https://www.inteli.edu.br/wp-content/uploads/2025/08/Graduacao.jpg');
-      background-size: cover;
-      background-position: center;
-      position: relative;
-    }
-
-    .cover-slide::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: rgba(46, 38, 64, 0.4);
-    }
-
-    .cover-slide .slide-header {
-      position: relative;
-      z-index: 1;
-      background: rgba(30, 30, 30, 0.85);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      padding: 60px;
-      border-radius: 24px;
-      max-width: 800px;
-      width: 90%;
-      margin: 0 auto;
-      margin-bottom: 60px;
-      box-shadow: 0 8px 32px 0 rgba(46, 38, 64, 0.5);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-
-
-    .cover-logo {
-      height: 50px;
-      margin-bottom: 25px;
-    }
-
-    .footer-logo {
-      height: 30px;
-      width: auto;
-    }
-  
-/* Cover Slide */
-    .cover-slide {
-      padding: 0;
-      background-image: url('https://www.inteli.edu.br/wp-content/uploads/2025/08/Graduacao.jpg');
-      background-size: cover;
-      background-position: center;
-      justify-content: center;
-      align-items: center;
-      display: none;
-    }
-
-    .cover-slide.active {
-      display: flex;
-    }
-
-    .cover-slide::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(135deg, rgba(46, 38, 64, 0.9), rgba(137, 206, 165, 0.9));
-      z-index: 1;
-    }
-
-    .glass-card {
-      position: relative;
-      z-index: 2;
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(16px);
-      padding: 60px;
-      border-radius: 24px;
-      text-align: center;
-      max-width: 900px;
-      width: 90%;
-      box-shadow: 0 25px 50px rgba(46, 38, 64, 0.25);
-    }
-
-    .cover-logo {
-      height: 50px;
-      margin-bottom: 25px;
-    }
-
-    .glass-card .slide-title {
-      color: var(--inteli-purple);
-      font-size: 2.8rem;
-      margin-bottom: 15px;
-    }
-
-    .glass-card .slide-subtitle {
-      color: var(--inteli-blue);
-      font-size: 1.3rem;
-      font-weight: 600;
-      margin-bottom: 10px;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-    }
-
-    .glass-card .meta-info {
-      color: #666;
-      font-size: 1.1rem;
-      margin-top: 30px;
-    }
-
-    .topics-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 15px;
-      margin-top: 30px;
-    }
-
-    .topic-tag {
-      background: linear-gradient(135deg, var(--inteli-purple), var(--inteli-blue));
-      color: white;
-      padding: 10px 15px;
-      border-radius: 25px;
-      font-size: 0.85rem;
-      font-weight: 500;
-    }
-
-    .footer-logo {
-      height: 30px;
-      width: auto;
-    }
-
-    
     .fullscreen-btn {
       background: #f3f4f6;
       border: none;
@@ -310,9 +439,43 @@
     .fullscreen-btn:hover {
       background: var(--inteli-purple);
       color: white;
-      transform: scale(1.1);
+      transform: scale(1.06);
     }
 
+    .resource-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 18px;
+      padding: 12px 18px;
+      border-radius: 999px;
+      text-decoration: none;
+      font-weight: 800;
+      color: white;
+      background: linear-gradient(135deg, var(--inteli-purple), #0f766e);
+      box-shadow: 0 12px 24px rgba(46, 38, 64, 0.18);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .resource-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 16px 30px rgba(46, 38, 64, 0.24);
+      color: white;
+    }
+
+    @media (max-width: 1100px) {
+      .topics-grid,
+      .cards-grid,
+      .comparison-grid,
+      .three-grid,
+      .two-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .cover-title {
+        font-size: 2.6rem;
+      }
+    }
   </style>
 </head>
 
@@ -320,34 +483,563 @@
   <div class="slide-container">
 
     <div class="slide active cover-slide">
-      <div class="glass-card">
+      <div class="cover-card">
         <img src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png"
           alt="Inteli Logo" class="cover-logo">
-        <div class="slide-subtitle">Aula 9 • Projeto 9 • Sistemas de Informação</div>
-        <div class="slide-title">Aula</div>
-        <p style="color: #666; font-size: 1.2rem; margin: 20px 0;">
-          Base para desenvolvimento, descoberta de dados e setup do ambiente.
+        <div class="eyebrow">Aula 9 • Projeto 9 • Sistemas de Informação</div>
+        <h1 class="cover-title">Segurança e autorização em API</h1>
+        <p class="cover-lead">
+          Segurança como requisito não funcional: de storytelling de risco a autenticação moderna,
+          MFA, JWT e decisão arquitetural para o projeto.
         </p>
         <div class="topics-grid">
-          <span class="topic-tag">🧰 Setup</span>
-          <span class="topic-tag">🤖 Discovery</span>
-          <span class="topic-tag">🧩 Blazor</span>
-          <span class="topic-tag">🗄️ Dados</span>
+          <span class="topic-tag">Storytelling</span>
+          <span class="topic-tag">SWEBOK + NFR</span>
+          <span class="topic-tag">MFA + JWT</span>
+          <span class="topic-tag">Keycloak/Auth0</span>
         </div>
         <div class="meta-info">
-          <strong>Prof. Afonso Brandão</strong> • 2 horas • Fevereiro 2025
+          <strong>Prof. Afonso Brandão</strong> • 2 horas • Semana 06
         </div>
       </div>
     </div>
 
-    
     <div class="slide">
-      <div class="slide-header" style="text-align: center; flex: 1; display: flex; flex-direction: column; justify-content: center; background: linear-gradient(135deg, firebrick, var(--inteli-dark-purple));">
-        <div class="slide-title" style="font-size: 3.5rem;">Atividade de sala</div>
+      <div class="slide-header">
+        <h2 class="slide-title">Storytelling: o dashboard que vazou sem “hack sofisticado”</h2>
+        <p class="slide-subtitle">Segurança não começa com criptografia. Começa com contexto de negócio.</p>
+      </div>
+      <div class="slide-content">
+        <div class="story-box">
+          <h3>Cenário</h3>
+          <p>
+            Uma empresa cria um dashboard gerencial com dados de desempenho, salários variáveis, turnover e projeção de metas.
+            A API funciona, o deploy está no ar e o time comemora a entrega.
+          </p>
+        </div>
+        <div class="three-grid">
+          <div class="panel">
+            <h3>O incidente</h3>
+            <p>Um colaborador recebe um link falso, entrega a senha em uma página clonada e um atacante entra com credenciais válidas.</p>
+          </div>
+          <div class="panel">
+            <h3>O dano real</h3>
+            <p>O problema não é só “logar”. O invasor exporta indicadores internos, acessa relatórios de RH e compromete decisões estratégicas.</p>
+          </div>
+          <div class="panel">
+            <h3>A lição</h3>
+            <p>Sem autenticação forte, autorização adequada, logs e trilha de auditoria, o sistema estava funcional, mas não estava pronto.</p>
+          </div>
+        </div>
+        <p class="footer-note">
+          Segurança aparece quando o software encontra pessoas, processos, fraude, erro humano e impacto organizacional.
+        </p>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <h2 class="slide-title">O que é o SWEBOK e onde segurança aparece</h2>
+        <p class="slide-subtitle">SWEBOK = Guide to the Software Engineering Body of Knowledge.</p>
+      </div>
+      <div class="slide-content">
+        <p class="big-statement">
+          O SWEBOK organiza o conhecimento essencial de engenharia de software.
+        </p>
+        <div class="two-grid">
+          <div class="panel">
+            <h3>Como ler isso para segurança</h3>
+            <ul>
+              <li>Não trate segurança como um tema isolado ou “do time de infraestrutura”.</li>
+              <li>No SWEBOK, segurança atravessa requisitos, design, construção, testes, qualidade e manutenção.</li>
+              <li>Ela é detalhada com mais força quando falamos de qualidade do software e de requisitos de qualidade.</li>
+            </ul>
+          </div>
+          <div class="panel">
+            <h3>Leitura prática para a aula</h3>
+            <ul>
+              <li><strong>Software Requirements:</strong> define requisitos de segurança e restrições.</li>
+              <li><strong>Software Design:</strong> transforma risco em arquitetura, controles e separação de responsabilidades.</li>
+              <li><strong>Software Testing / Quality:</strong> valida se o controle realmente funciona.</li>
+            </ul>
+          </div>
+        </div>
+        <p class="footer-note">
+          Em outras palavras: segurança é um atributo de qualidade e uma decisão de engenharia, não um adendo tardio.
+        </p>
+        <a class="resource-btn" href="https://www.computer.org/education/bodies-of-knowledge/software-engineering#about" target="_blank" rel="noopener noreferrer">
+          Ler SWEBOK
+        </a>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <h2 class="slide-title">Segurança como requisito não funcional</h2>
+        <p class="slide-subtitle">Ela não descreve “o que o sistema faz”, e sim “como o sistema deve se comportar sob risco”.</p>
+      </div>
+      <div class="slide-content">
+        <table class="matrix">
+          <thead>
+            <tr>
+              <th>Pergunta</th>
+              <th>Exemplo funcional</th>
+              <th>Exemplo não funcional de segurança</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>O que o sistema entrega?</td>
+              <td>“Gerar relatório de indicadores do RH.”</td>
+              <td>“Somente gestores autorizados podem acessar relatórios agregados do RH.”</td>
+            </tr>
+            <tr>
+              <td>Como a API responde?</td>
+              <td>“Disponibilizar endpoint de exportação.”</td>
+              <td>“Exigir token válido, MFA no login e registrar trilha de auditoria.”</td>
+            </tr>
+            <tr>
+              <td>Que evidência esperamos?</td>
+              <td>“O endpoint retorna um arquivo CSV.”</td>
+              <td>“Tentativas inválidas geram `401`, acessos sem permissão geram `403` e eventos ficam rastreáveis.”</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="footer-note">
+          Segurança como NFR precisa ser mensurável: política de acesso, tempo de expiração, logs, rotação de segredo, MFA obrigatório, taxa de bloqueio, auditoria.
+        </p>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <h2 class="slide-title">Autenticação x autorização</h2>
+        <p class="slide-subtitle">Confundir esses conceitos gera bugs de negócio e falhas graves de acesso.</p>
+      </div>
+      <div class="slide-content">
+        <div class="comparison-grid">
+          <div class="panel">
+            <h3>Autenticação</h3>
+            <p class="soft-highlight">“Quem é você?”</p>
+            <ul>
+              <li>Valida identidade.</li>
+              <li>Ex.: senha, biometria, TOTP, login social, certificado.</li>
+              <li>Se falhar, o usuário nem entra no sistema.</li>
+              <li>Na API, costuma resultar em <code>401 Unauthorized</code>.</li>
+            </ul>
+          </div>
+          <div class="panel">
+            <h3>Autorização</h3>
+            <p class="highlight">“O que você pode fazer?”</p>
+            <ul>
+              <li>Valida permissões e escopo de ação.</li>
+              <li>Ex.: role <code>admin</code>, claim <code>department=finance</code>, policy <code>CanExportReports</code>.</li>
+              <li>O usuário pode estar autenticado e ainda assim ser barrado.</li>
+              <li>Na API, costuma resultar em <code>403 Forbidden</code>.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="panel" style="margin-top: 18px;">
+          <h3>Resumo para projeto</h3>
+          <p>Login sem política de acesso é perigoso. Política sem identidade forte também. Você precisa das duas camadas.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <h2 class="slide-title">Os três estágios da segurança</h2>
+        <p class="slide-subtitle">Uma defesa madura não só bloqueia. Ela também enxerga e explica.</p>
+      </div>
+      <div class="slide-content">
+        <div class="three-grid">
+          <div class="stage-box">
+            <div class="step-number">1</div>
+            <h3>Conter</h3>
+            <ul>
+              <li>Impedir o acesso indevido.</li>
+              <li>MFA, rate limit, senha forte, expiração de token, política por papel.</li>
+              <li>É a camada de barreira.</li>
+            </ul>
+          </div>
+          <div class="stage-box">
+            <div class="step-number">2</div>
+            <h3>Observar comportamento</h3>
+            <ul>
+              <li>Perceber anomalias e abuso.</li>
+              <li>Logins de local estranho, excesso de tentativas, exportações fora do padrão.</li>
+              <li>É a camada de monitoramento.</li>
+            </ul>
+          </div>
+          <div class="stage-box">
+            <div class="step-number">3</div>
+            <h3>Rastrear</h3>
+            <ul>
+              <li>Reconstruir o incidente com evidências.</li>
+              <li>Quem acessou, quando, com qual token, em qual endpoint, com qual resultado.</li>
+              <li>É a camada de auditoria e resposta.</li>
+            </ul>
+          </div>
+        </div>
+        <p class="footer-note">
+          Time júnior costuma parar em “bloquear”. Time maduro consegue bloquear, observar e provar.
+        </p>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <h2 class="slide-title">Por que a senha está ficando obsoleta</h2>
+        <p class="slide-subtitle">Não porque criptografia falhou, mas porque o elo fraco continua sendo humano.</p>
+      </div>
+      <div class="slide-content">
+        <div class="two-grid">
+          <div class="panel">
+            <h3>O problema das senhas</h3>
+            <ul>
+              <li>Reuso entre sistemas.</li>
+              <li>Phishing e páginas falsas.</li>
+              <li>Vazamentos em terceiros.</li>
+              <li>Senhas previsíveis ou compartilhadas.</li>
+              <li>Engenharia social contorna a “força” da senha.</li>
+            </ul>
+          </div>
+          <div class="panel">
+            <h3>O que vem no lugar</h3>
+            <ul>
+              <li>MFA baseado em posse: app autenticador, push, token físico.</li>
+              <li>Biometria e passkeys.</li>
+              <li>SSO com provedores corporativos.</li>
+              <li>Credenciais curtas de vida curta: tokens com expiração.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="story-box" style="margin-top: 18px;">
+          <h3>Ponto-chave</h3>
+          <p>
+            A senha sozinha prova pouco. O invasor pode roubá-la sem “quebrá-la”. Por isso MFA e login resistente a phishing
+            reduzem o impacto da engenharia social.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <h2 class="slide-title">MFA: o que é e por que funciona</h2>
+        <p class="slide-subtitle">Misturar fatores reduz o risco de um único vazamento comprometer tudo.</p>
+      </div>
+      <div class="slide-content">
+        <div class="cards-grid">
+          <div class="mini-box">
+            <h4>Algo que eu sei</h4>
+            <p>Senha, PIN, resposta secreta.</p>
+          </div>
+          <div class="mini-box">
+            <h4>Algo que eu tenho</h4>
+            <p>Celular com Google Authenticator, token físico, app autenticador.</p>
+          </div>
+          <div class="mini-box">
+            <h4>Algo que eu sou</h4>
+            <p>Biometria: digital, face, voiceprint.</p>
+          </div>
+          <div class="mini-box">
+            <h4>Algo que eu faço / onde estou</h4>
+            <p>Padrão de comportamento, dispositivo confiável, contexto geográfico.</p>
+          </div>
+        </div>
+        <div class="panel" style="margin-top: 18px;">
+          <h3>Decisão pragmática</h3>
+          <p>
+            Para um projeto acadêmico com API e dashboard, o melhor custo-benefício costuma ser:
+            senha + TOTP via app autenticador + expiração curta de token + trilha de auditoria.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <h2 class="slide-title">Como funciona TOTP com Google Authenticator no .NET</h2>
+        <p class="slide-subtitle">O app e o servidor compartilham um segredo e geram códigos temporários sincronizados.</p>
+      </div>
+      <div class="slide-content">
+        <div class="three-grid">
+          <div class="timeline-step">
+            <div class="step-number">1</div>
+            <h3>Provisionamento</h3>
+            <p>O sistema gera um segredo por usuário e exibe QR Code no formato <code>otpauth://</code>.</p>
+          </div>
+          <div class="timeline-step">
+            <div class="step-number">2</div>
+            <h3>Cadastro no app</h3>
+            <p>O usuário lê o QR Code no Google Authenticator e passa a gerar códigos de 30 em 30 segundos.</p>
+          </div>
+          <div class="timeline-step">
+            <div class="step-number">3</div>
+            <h3>Validação</h3>
+            <p>No login, servidor valida e só então emite a sessão ou o JWT.</p>
+          </div>
+        </div>
+        <div class="code-block" style="margin-top: 18px;">// Exemplo conceitual com Otp.NET
+var secret = KeyGeneration.GenerateRandomKey(20);
+var base32Secret = Base32Encoding.ToString(secret);
+
+var otpUri =
+  $"otpauth://totp/Projeto9:{email}?secret={base32Secret}&issuer=Projeto9";
+
+var totp = new Totp(Base32Encoding.ToBytes(base32Secret));
+var isValid = totp.VerifyTotp(codigoDigitado, out _, VerificationWindow.RfcSpecifiedNetworkDelay);
+
+if (!isValid)
+{
+    return Unauthorized("Codigo MFA invalido.");
+}</div>
+        <p class="code-caption">
+          Em produção, o segredo precisa ficar protegido em banco e nunca exposto novamente após o onboarding.
+        </p>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <h2 class="slide-title">Fluxo recomendado no backend .NET</h2>
+        <p class="slide-subtitle">Primeiro valida identidade. Depois segundo fator. Só então entrega credencial de acesso.</p>
+      </div>
+      <div class="slide-content">
+        <div class="two-grid">
+          <div class="panel">
+            <h3>Fluxo</h3>
+            <ol style="margin: 0; padding-left: 20px;">
+              <li>Usuário envia login e senha.</li>
+              <li>Servidor valida credenciais primárias.</li>
+              <li>Se MFA estiver habilitado, retorna desafio.</li>
+              <li>Usuário envia código TOTP.</li>
+              <li>Servidor valida o código.</li>
+              <li>Somente depois emite JWT ou cookie de sessão.</li>
+            </ol>
+          </div>
+          <div class="panel">
+            <h3>Regras mínimas</h3>
+            <ul>
+              <li>Segredo MFA por usuário.</li>
+              <li>Códigos de recuperação.</li>
+              <li>Bloqueio após muitas tentativas.</li>
+              <li>Logs de ativação, falha e uso do MFA.</li>
+              <li>Revogação de sessões suspeitas.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <h2 class="slide-title">JWT: como funciona</h2>
+        <p class="slide-subtitle">JWT não é “segurança mágica”. É um formato de token assinado com regras claras de uso.</p>
+      </div>
+      <div class="slide-content">
+        <div class="panel">
+          <h3>Estrutura</h3>
+          <p><code>header.payload.signature</code></p>
+          <ul>
+            <li><strong>Header:</strong> algoritmo e tipo do token.</li>
+            <li><strong>Payload:</strong> claims como usuário, papel, escopo, expiração.</li>
+            <li><strong>Signature:</strong> prova de integridade e emissor confiável.</li>
+          </ul>
+        </div>
+        <div class="two-grid" style="margin-top: 18px;">
+          <div class="panel">
+            <h3>Vantagens</h3>
+            <ul>
+              <li>Bom para APIs stateless.</li>
+              <li>Transporta claims de autorização.</li>
+              <li>Integra bem com gateway e SSO.</li>
+            </ul>
+          </div>
+          <div class="panel">
+            <h3>Cuidados</h3>
+            <ul>
+              <li>Não guardar dado sensível no payload.</li>
+              <li>Expiração curta.</li>
+              <li>Validar issuer, audience, assinatura e clock skew.</li>
+              <li>Separar access token de refresh token.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <h2 class="slide-title">Exemplo de JWT e autorização por claims</h2>
+        <p class="slide-subtitle">O token carrega identidade e contexto. A API decide o acesso com base nisso.</p>
+      </div>
+      <div class="slide-content">
+        <div class="code-block">{
+  "sub": "user-123",
+  "email": "gestor@empresa.com",
+  "role": "manager",
+  "department": "rh",
+  "scope": "reports:read reports:export",
+  "iss": "https://auth.projeto9.local",
+  "aud": "projeto9-api",
+  "exp": 1772804400
+}</div>
+        <div class="two-grid" style="margin-top: 18px;">
+          <div class="panel">
+            <h3>Exemplo de política</h3>
+            <p>Permitir exportação somente para usuários com <code>scope=reports:export</code> e <code>department=rh</code>.</p>
+          </div>
+          <div class="panel">
+            <h3>Erro comum</h3>
+            <p>Usar apenas role genérica e esquecer contexto de domínio, como área, filial, sensibilidade do relatório ou tenant.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <h2 class="slide-title">Keycloak, Auth0 e o valor de um provedor de identidade</h2>
+        <p class="slide-subtitle">Nem todo time precisa implementar autenticação do zero dentro da API.</p>
+      </div>
+      <div class="slide-content">
+        <div class="comparison-grid">
+          <div class="panel">
+            <h3>Keycloak</h3>
+            <ul>
+              <li>Open source.</li>
+              <li>Centraliza login, emissão de tokens, usuários, realms, roles e integração OIDC/OAuth2.</li>
+              <li>Bom para aprender identidade e ter controle maior da infraestrutura.</li>
+              <li>Exige operação, configuração e manutenção.</li>
+            </ul>
+          </div>
+          <div class="panel">
+            <h3>Auth0</h3>
+            <ul>
+              <li>Solução gerenciada e paga.</li>
+              <li>Entrega login, MFA, social login, regras e observabilidade com menor esforço operacional.</li>
+              <li>Acelera projeto quando o foco não é operar IAM.</li>
+              <li>Em troca, há custo e dependência de fornecedor.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="panel" style="margin-top: 18px;">
+          <h3>Leitura correta</h3>
+          <p>
+            Auth0 não é “implementação paga do Keycloak” no sentido técnico estrito. Mas, para fins didáticos,
+            ambos cumprem papel semelhante: externalizar autenticação, emissão de token e parte da governança de acesso.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <h2 class="slide-title">Duas rotas viáveis para o Projeto 9</h2>
+        <p class="slide-subtitle">Escolham uma abordagem simples, defensável e implementável no tempo do módulo.</p>
+      </div>
+      <div class="slide-content">
+        <div class="comparison-grid">
+          <div class="panel">
+            <h3>Opção 1: Google Authenticator via Firebase</h3>
+            <ul>
+              <li>Usar Firebase Authentication como camada de identidade.</li>
+              <li>Ativar MFA/TOTP no provedor e consumir tokens na aplicação.</li>
+              <li>Prós: onboarding rápido, menor esforço backend.</li>
+              <li>Contras: menos controle fino sobre a infraestrutura de identidade.</li>
+            </ul>
+          </div>
+          <div class="panel">
+            <h3>Opção 2: Auth0</h3>
+            <ul>
+              <li>Delegar autenticação, MFA e emissão de JWT ao Auth0.</li>
+              <li>API valida tokens e aplica autorização por claims/policies.</li>
+              <li>Prós: arquitetura profissional e limpa para API.</li>
+              <li>Contras: curva de configuração e custo fora do plano gratuito.</li>
+            </ul>
+          </div>
+        </div>
+        <p class="footer-note">
+          Se o objetivo for demonstrar domínio de arquitetura de API, Auth0 tende a ficar mais próximo da discussão de tokens, claims e gateway.
+        </p>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <h2 class="slide-title">Checklist de segurança mínima para a aplicação</h2>
+        <p class="slide-subtitle">O que deve existir ao final da sprint para a solução ser defensável.</p>
+      </div>
+      <div class="slide-content">
+        <div class="three-grid">
+          <div class="panel">
+            <h3>Identidade</h3>
+            <ul>
+              <li>Login centralizado.</li>
+              <li>MFA ativo para perfis críticos.</li>
+              <li>Expiração e renovação controlada.</li>
+            </ul>
+          </div>
+          <div class="panel">
+            <h3>Acesso</h3>
+            <ul>
+              <li>Policies por papel e claims.</li>
+              <li>Endpoints sensíveis protegidos.</li>
+              <li>Distinção correta entre <code>401</code> e <code>403</code>.</li>
+            </ul>
+          </div>
+          <div class="panel">
+            <h3>Rastro</h3>
+            <ul>
+              <li>Logs de login e falha.</li>
+              <li>Registro de exportações e acessos críticos.</li>
+              <li>Auditoria mínima para incidentes.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header" style="background: linear-gradient(135deg, #7f1d1d, var(--inteli-purple));">
+        <h2 class="slide-title">Atividade de pesquisa e decisão do grupo</h2>
+        <p class="slide-subtitle">Vocês vão pesquisar, argumentar e decidir qual abordagem de autenticação entra no projeto.</p>
+      </div>
+      <div class="slide-content">
+        <div class="panel">
+          <h3>Entrega</h3>
+          <ul>
+            <li>Pesquisar as duas abordagens sugeridas pela aula.</li>
+            <li>Escolher uma para a aplicação do grupo.</li>
+            <li>Justificar a escolha em termos de segurança, esforço técnico e aderência ao escopo.</li>
+            <li>Desenhar o fluxo de login, MFA, emissão de token e autorização da API.</li>
+          </ul>
+        </div>
+        <div class="two-grid" style="margin-top: 18px;">
+          <div class="panel">
+            <h3>Sugestão A</h3>
+            <p><strong>Google Authenticator via Firebase</strong></p>
+            <p>Investigar como o provedor cuida da identidade e como a API consome o token com confiança.</p>
+          </div>
+          <div class="panel">
+            <h3>Sugestão B</h3>
+            <p><strong>Auth0</strong></p>
+            <p>Investigar como delegar autenticação, MFA, roles/claims e validação de JWT no backend .NET.</p>
+          </div>
+        </div>
+        <div class="story-box" style="margin-top: 18px;">
+          <h3>Pergunta final</h3>
+          <p>
+            Se alguém roubar apenas a senha de um usuário hoje, o que exatamente ainda impediria esse atacante de exportar
+            os relatórios sensíveis do seu sistema?
+          </p>
+        </div>
       </div>
     </div>
   </div>
-  <!-- Footer Navigation -->
+
   <div class="slide-footer">
     <a href="../module-9-sistemas-informacao.html" class="back-home">← Voltar</a>
 
@@ -362,40 +1054,59 @@
         <button id="next-btn" onclick="nextSlide()">Próximo →</button>
       </div>
     </div>
-  
-<button id="fullscreen-btn" onclick="toggleFullScreen()" class="fullscreen-btn" title="Tela Cheia">⛶</button>
+
+    <button id="fullscreen-btn" onclick="toggleFullScreen()" class="fullscreen-btn" title="Tela Cheia">⛶</button>
   </div>
 
   <script>
     let currentSlide = 0;
-    const slides = document.querySelectorAll('.slide');
+    const slides = document.querySelectorAll(".slide");
     const totalSlides = slides.length;
-    document.getElementById('total-slides').textContent = totalSlides;
-    
+    document.getElementById("total-slides").textContent = totalSlides;
+
     function toggleFullScreen() {
       if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen();
-      } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        }
+      } else if (document.exitFullscreen) {
+        document.exitFullscreen();
       }
     }
 
     function showSlide(index) {
-      slides.forEach((slide, i) => { slide.classList.remove('active'); if (i === index) slide.classList.add('active'); });
+      slides.forEach((slide, i) => {
+        slide.classList.remove("active");
+        if (i === index) {
+          slide.classList.add("active");
+        }
+      });
       currentSlide = index;
-      document.getElementById('current-slide').textContent = index + 1;
-      document.getElementById('prev-btn').disabled = index === 0;
-      document.getElementById('next-btn').disabled = index === totalSlides - 1;
+      document.getElementById("current-slide").textContent = index + 1;
+      document.getElementById("prev-btn").disabled = index === 0;
+      document.getElementById("next-btn").disabled = index === totalSlides - 1;
     }
-    function nextSlide() { if (currentSlide < totalSlides - 1) showSlide(currentSlide + 1); }
-    function previousSlide() { if (currentSlide > 0) showSlide(currentSlide - 1); }
-    document.addEventListener('keydown', (e) => { 
-      if (e.key === 'ArrowRight' || e.key === ' ') nextSlide(); 
-      else if (e.key === 'ArrowLeft') previousSlide();
-      else if (e.key === 'f' || e.key === 'F') toggleFullScreen();
+
+    function nextSlide() {
+      if (currentSlide < totalSlides - 1) {
+        showSlide(currentSlide + 1);
+      }
+    }
+
+    function previousSlide() {
+      if (currentSlide > 0) {
+        showSlide(currentSlide - 1);
+      }
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowRight" || e.key === " ") {
+        nextSlide();
+      } else if (e.key === "ArrowLeft") {
+        previousSlide();
+      } else if (e.key === "f" || e.key === "F") {
+        toggleFullScreen();
+      }
     });
+
     showSlide(0);
   </script>
 </body>

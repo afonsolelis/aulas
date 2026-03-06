@@ -10,8 +10,11 @@
   <style>
     body { background:#f7f9fb; color:#1f2933; font-family:"Manrope",sans-serif; }
     .page-header { background:linear-gradient(135deg,#2e2640,#1b1530); color:#fff; padding:28px 0; margin-bottom:24px; }
-    .cardx { background:#fff; border:1px solid #e3e7ea; border-radius:14px; padding:22px; margin-bottom:14px; }
+    .cardx { background:#fff; border:1px solid #e3e7ea; border-radius:14px; padding:22px; margin-bottom:14px; box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05); }
     .title { color:#2e2640; font-weight:700; margin-bottom:10px; }
+    code, pre { font-family:"Space Mono",monospace; }
+    pre { background:#0f172a; color:#e5eefc; padding:16px; border-radius:12px; overflow:auto; font-size:0.85rem; line-height:1.6; }
+    .callout { border-left: 6px solid #9f1239; background:#fff7f7; }
   </style>
 </head>
 <body>
@@ -30,29 +33,234 @@
   </header>
 
   <main class="container pb-4">
+    <section class="cardx callout">
+      <h2 class="title h5">Leitura central da aula</h2>
+      <p class="mb-0">
+        Segurança é requisito não funcional. O sistema pode estar “funcionando”, mas ainda ser inseguro, auditavelmente frágil
+        e vulnerável a erro humano, engenharia social e abuso de privilégios.
+      </p>
+    </section>
+
     <section class="cardx">
       <h2 class="title h5">Objetivo da Aula</h2>
-      <p class="mb-0">Aplicar autenticação e autorização robustas para proteger endpoints e dados sensíveis.</p>
+      <p class="mb-0">
+        Entender segurança como atributo de qualidade do software e traduzir esse atributo em decisões concretas de autenticação,
+        autorização, emissão de tokens, MFA e rastreabilidade para a API do projeto.
+      </p>
     </section>
 
     <section class="cardx">
-      <h2 class="title h5">Tópicos Principais</h2>
-      <ul class="mb-0">
-        <li>Autenticação com tokens (JWT) e fluxo de login seguro.</li>
-        <li>Autorização por papéis e claims.</li>
-        <li>Proteção contra ataques comuns em APIs.</li>
-        <li>Boas práticas de segredo, rotação de chaves e auditoria.</li>
-      </ul>
+      <h2 class="title h5">1. Storytelling: por que segurança entra no projeto agora</h2>
+      <p>
+        Imagine um dashboard gerencial com dados de RH e desempenho. O endpoint de exportação funciona, o relatório é bonito
+        e o deploy está no ar. Um colaborador cai em phishing, entrega a senha e o atacante entra com credenciais legítimas.
+        Não houve “exploit cinematográfico”; houve falha de desenho de segurança.
+      </p>
+      <p class="mb-0">
+        A partir desse ponto, o problema deixa de ser técnico apenas. A organização perde confidencialidade, confiança e capacidade
+        de provar o que aconteceu. Por isso a pergunta correta não é “tem login?”, e sim “o que impede, detecta e rastreia abuso?”.
+      </p>
     </section>
 
     <section class="cardx">
-      <h2 class="title h5">Aplicação no Projeto 9</h2>
+      <h2 class="title h5">2. O que é SWEBOK e onde segurança se encaixa</h2>
+      <p>
+        SWEBOK significa <em>Guide to the Software Engineering Body of Knowledge</em>. Ele organiza o corpo de conhecimento
+        essencial de engenharia de software. Em segurança, a leitura mais útil para esta disciplina é:
+      </p>
       <ul>
-        <li>Conectar o conteúdo da aula com decisões de arquitetura e implementação do dashboard.</li>
-        <li>Definir critérios de qualidade para validar o que foi implementado.</li>
-        <li>Documentar decisões técnicas e próximos passos no repositório.</li>
+        <li><strong>Software Requirements:</strong> segurança aparece como requisito de qualidade e restrição do sistema.</li>
+        <li><strong>Software Design:</strong> arquitetura traduz risco em mecanismos de controle.</li>
+        <li><strong>Software Construction:</strong> implementação correta de autenticação, sessões, segredos e validações.</li>
+        <li><strong>Software Testing / Software Quality:</strong> verificação de comportamentos esperados e proteção contra abuso.</li>
       </ul>
-      <p class="mb-0"><strong>Entrega esperada:</strong> evidências práticas do tema aplicado ao projeto do grupo.</p>
+      <p class="mb-0">
+        A mensagem principal é que segurança não mora em um único capítulo. Ela atravessa o ciclo inteiro.
+      </p>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">3. Segurança como requisito não funcional</h2>
+      <p>
+        Requisitos funcionais descrevem serviços e comportamentos de negócio: cadastrar usuário, exportar relatório, filtrar dados.
+        Requisitos não funcionais descrevem qualidades e restrições: desempenho, disponibilidade, confiabilidade e segurança.
+      </p>
+      <ul>
+        <li>“Gerar relatório trimestral” é funcional.</li>
+        <li>“Somente gestor autenticado com MFA pode exportar relatório sensível” é segurança como NFR.</li>
+        <li>“Registrar toda exportação com usuário, horário e resultado” também é segurança como NFR.</li>
+      </ul>
+      <p class="mb-0">
+        Se não for mensurável, auditável ou testável, ainda está vago demais para ser requisito de segurança.
+      </p>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">4. Autenticação x autorização</h2>
+      <ul>
+        <li><strong>Autenticação:</strong> prova identidade. Responde “quem é você?”.</li>
+        <li><strong>Autorização:</strong> prova permissão. Responde “o que você pode fazer?”.</li>
+      </ul>
+      <p>
+        Em APIs, é comum modelar essa diferença também nas respostas:
+      </p>
+      <ul class="mb-0">
+        <li><code>401</code>: sem identidade válida, token inválido ou sessão ausente.</li>
+        <li><code>403</code>: identidade válida, mas sem permissão para aquele recurso.</li>
+      </ul>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">5. Os três estágios da segurança</h2>
+      <ul>
+        <li><strong>Conter:</strong> impedir acesso indevido com login forte, MFA, rate limit, política e segmentação.</li>
+        <li><strong>Observar comportamento:</strong> detectar padrões estranhos, tentativas excessivas, acessos incomuns e abuso.</li>
+        <li><strong>Rastrear:</strong> preservar logs e trilhas de auditoria para reconstruir incidentes e responsabilizar ações.</li>
+      </ul>
+      <p class="mb-0">
+        Segurança madura não é só barreira. É também visibilidade e explicabilidade.
+      </p>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">6. Por que a senha está ficando obsoleta</h2>
+      <p>
+        A senha não está ficando irrelevante por fraqueza matemática, mas por vulnerabilidade operacional. O problema real é que:
+      </p>
+      <ul>
+        <li>usuários reutilizam senha;</li>
+        <li>phishing continua muito eficiente;</li>
+        <li>vazamentos em terceiros expõem credenciais;</li>
+        <li>engenharia social rouba segredo sem quebrar o sistema.</li>
+      </ul>
+      <p class="mb-0">
+        Por isso a indústria migra para MFA, passkeys, biometria e tokens de vida curta.
+      </p>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">7. Técnicas de segurança discutidas na aula</h2>
+      <ul class="mb-0">
+        <li>MFA com aplicativo autenticador.</li>
+        <li>JWT para autenticação stateless em APIs.</li>
+        <li>Autorização por roles, claims e policies.</li>
+        <li>Logs de auditoria e rastreabilidade.</li>
+        <li>Provedor de identidade externo, como Keycloak ou Auth0.</li>
+      </ul>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">8. MFA com Google Authenticator no .NET</h2>
+      <p>
+        O padrão mais simples para o projeto é TOTP: o servidor gera um segredo, o usuário cadastra esse segredo no app
+        Google Authenticator e, a cada login, informa um código temporário. O backend só emite a credencial final após
+        validar esse segundo fator.
+      </p>
+      <pre>// Exemplo conceitual com Otp.NET
+var secret = KeyGeneration.GenerateRandomKey(20);
+var base32Secret = Base32Encoding.ToString(secret);
+
+var otpUri =
+  $"otpauth://totp/Projeto9:{email}?secret={base32Secret}&issuer=Projeto9";
+
+var totp = new Totp(Base32Encoding.ToBytes(base32Secret));
+var isValid = totp.VerifyTotp(
+    codigoDigitado,
+    out _,
+    VerificationWindow.RfcSpecifiedNetworkDelay
+);
+
+if (!isValid)
+{
+    return Unauthorized("Codigo MFA invalido.");
+}</pre>
+      <p class="mb-0">
+        Em produção, o segredo precisa ficar protegido, e o sistema deve oferecer códigos de recuperação, limite de tentativas
+        e logs de ativação/falha.
+      </p>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">9. Como funciona o JWT</h2>
+      <p>
+        JWT é um formato de token composto por <code>header.payload.signature</code>. Em geral, o provedor de identidade
+        autentica o usuário e emite um token assinado. A API recebe esse token e valida:
+      </p>
+      <ul>
+        <li>assinatura;</li>
+        <li>emissor (<code>iss</code>);</li>
+        <li>audiência (<code>aud</code>);</li>
+        <li>expiração (<code>exp</code>);</li>
+        <li>claims usadas para autorização.</li>
+      </ul>
+      <pre>{
+  "sub": "user-123",
+  "role": "manager",
+  "department": "rh",
+  "scope": "reports:read reports:export",
+  "iss": "https://auth.projeto9.local",
+  "aud": "projeto9-api",
+  "exp": 1772804400
+}</pre>
+      <p class="mb-0">
+        JWT não deve carregar segredo nem dado sensível desnecessário. Ele é útil porque transporta identidade e contexto,
+        não porque substitui boas decisões de segurança.
+      </p>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">10. Keycloak como técnica de segurança de token</h2>
+      <p>
+        Keycloak é uma solução open source de gerenciamento de identidade e acesso. Em vez de sua API implementar tudo
+        manualmente, o sistema delega autenticação, emissão de token, gestão de usuários e integração com OAuth2/OIDC
+        a um provedor especializado.
+      </p>
+      <ul>
+        <li>O usuário autentica no provedor.</li>
+        <li>O provedor emite o JWT.</li>
+        <li>A API valida o token e aplica autorização localmente.</li>
+        <li>O time ganha centralização de identidade e consistência de políticas.</li>
+      </ul>
+      <p class="mb-0">
+        Isso reduz a chance de o time reinventar uma camada crítica com falhas conceituais.
+      </p>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">11. Auth0 para o projeto</h2>
+      <p>
+        Auth0 é uma plataforma gerenciada de identidade. Para fins práticos da disciplina, ele pode ser encarado como uma
+        alternativa comercial para delegar autenticação, MFA e emissão de tokens sem operar um servidor de IAM por conta própria.
+      </p>
+      <ul class="mb-0">
+        <li><strong>Prós:</strong> rapidez, boa documentação, MFA pronto, menor esforço operacional.</li>
+        <li><strong>Contras:</strong> custo, dependência de fornecedor e limites do plano gratuito.</li>
+      </ul>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">12. Atividade de pesquisa do grupo</h2>
+      <p>Escolham uma abordagem para aplicar no projeto e entreguem:</p>
+      <ul>
+        <li>fluxo desenhado de login, MFA, emissão de token e autorização da API;</li>
+        <li>justificativa técnica da escolha;</li>
+        <li>endpoints que exigirão proteção diferenciada;</li>
+        <li>lista mínima de logs e eventos auditáveis;</li>
+        <li>critérios de aceitação para validar a segurança proposta.</li>
+      </ul>
+      <p>As duas sugestões da aula são:</p>
+      <ul class="mb-0">
+        <li><strong>Google Authenticator via Firebase:</strong> foco em rapidez de adoção e MFA gerenciado.</li>
+        <li><strong>Auth0:</strong> foco em arquitetura de identidade, tokens e autorização por claims.</li>
+      </ul>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">Pergunta final para orientar o projeto</h2>
+      <p class="mb-0">
+        Se um atacante roubar apenas a senha de um usuário hoje, o que exatamente ainda impede esse atacante de acessar,
+        exportar ou manipular os dados mais sensíveis da sua aplicação?
+      </p>
     </section>
   </main>
 </body>
