@@ -167,19 +167,20 @@ docker logs &lt;id&gt;</div>
       <div class="slide-content">
         <div class="two-columns">
           <div>
-            <h3>Python Example</h3>
-            <div class="code-block">FROM python:3.12-slim
+            <h3>TypeScript Example</h3>
+            <div class="code-block">FROM node:20-alpine
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+COPY package*.json ./
+RUN npm ci
 
 COPY . .
+RUN npm run build
 
-EXPOSE 8000
+EXPOSE 3000
 
-CMD ["python", "main.py"]</div>
+CMD ["node", "dist/main.js"]</div>
           </div>
           <div>
             <h3>Best Practices</h3>
@@ -233,26 +234,26 @@ docker pull mongo/mongodb-community-server:latest</div>
       <div class="slide-content">
         <h3>Development Dockerfile</h3>
         <div class="code-block" style="font-size: 0.95rem;"># Dockerfile.dev
-FROM python:3.12-slim
+FROM node:20-alpine
 
 WORKDIR /app
 
 # Install dev dependencies
-COPY requirements-dev.txt .
-RUN pip install -r requirements-dev.txt
+COPY package*.json ./
+RUN npm ci
 
 # Copy source for live editing
 COPY . .
 
 # Enable hot reload
-ENV FLASK_ENV=development
-ENV DEBUG=True
+ENV NODE_ENV=development
+ENV DEBUG=true
 
-EXPOSE 5000
+EXPOSE 3000
 
-CMD ["flask", "run", "--host=0.0.0.0"]</div>
+CMD ["npm", "run", "dev"]</div>
         <div class="highlight" style="margin-top: 15px; font-size: 1.1rem;">
-          🎯 Dev: Debug tools, hot reload, verbose logging, test dependencies
+          🎯 Dev: Debug tools, hot reload (ts-node/nodemon), verbose logging, test dependencies
         </div>
       </div>
     </div>
@@ -265,25 +266,25 @@ CMD ["flask", "run", "--host=0.0.0.0"]</div>
       <div class="slide-content">
         <h3>Staging Dockerfile</h3>
         <div class="code-block" style="font-size: 0.95rem;"># Dockerfile.staging
-FROM python:3.12-slim
+FROM node:20-alpine
 
 WORKDIR /app
 
 # Production dependencies only
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY package*.json ./
+RUN npm ci --only=production
 
-# Copy application
-COPY . .
+# Copy pre-built application
+COPY dist ./dist
 
 # Staging-specific settings
-ENV FLASK_ENV=staging
-ENV LOG_LEVEL=INFO
-ENV ENABLE_PROFILING=True
+ENV NODE_ENV=staging
+ENV LOG_LEVEL=info
+ENV ENABLE_PROFILING=true
 
-EXPOSE 5000
+EXPOSE 3000
 
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]</div>
+CMD ["node", "dist/main.js"]</div>
         <div class="highlight" style="margin-top: 15px; font-size: 1.1rem;">
           🎯 Staging: Production-like, profiling enabled, integration tests ready
         </div>
@@ -299,32 +300,40 @@ CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]</div>
         <h3>Multi-Stage Production Build</h3>
         <div class="code-block" style="font-size: 0.9rem;"># Dockerfile.prod
 # Stage 1: Build
-FROM python:3.12-slim AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
-COPY requirements.txt .
-RUN pip install --user --no-cache-dir -r requirements.txt
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build
 
 # Stage 2: Runtime
-FROM python:3.12-slim
+FROM node:20-alpine
 
 # Non-root user for security
-RUN useradd -m -u 1000 appuser
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
 
 WORKDIR /app
-COPY --from=builder /root/.local /home/appuser/.local
-COPY . .
-RUN chown -R appuser:appuser /app
 
-USER appuser
+# Copy only production dependencies and build
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+COPY --from=builder /app/dist ./dist
+
+RUN chown -R nodejs:nodejs /app
+
+USER nodejs
 
 # Production settings
-ENV FLASK_ENV=production
-ENV LOG_LEVEL=WARN
+ENV NODE_ENV=production
+ENV LOG_LEVEL=warn
 
-EXPOSE 5000
+EXPOSE 3000
 
-CMD ["gunicorn", "--workers", "4", "--bind", "0.0.0.0:5000", "app:app"]</div>
+CMD ["node", "dist/main.js"]</div>
         <div class="highlight" style="margin-top: 15px; font-size: 1.1rem;">
           🎯 Production: Multi-stage, non-root user, minimal image, optimized workers
         </div>
@@ -343,9 +352,12 @@ docker build -f Dockerfile.dev -t myapp:dev .
 
 # Check image layers and size
 docker history myapp:dev
-docker images myapp:dev</div>
+docker images myapp:dev
+
+# Verify TypeScript compilation
+docker run --rm myapp:dev npm run build</div>
         <div class="box" style="margin-top: 12px;">
-          <strong>✅ Verify:</strong> Build succeeds, no errors in logs, expected image size
+          <strong>✅ Verify:</strong> Build succeeds, no TypeScript errors, expected image size
         </div>
       </div>
     </div>
@@ -358,8 +370,8 @@ docker images myapp:dev</div>
       <div class="slide-content">
         <div class="code-block" style="font-size: 0.95rem;"># Run with health check
 docker run -d --name myapp-test \
-  -p 5000:5000 \
-  --health-cmd="curl -f http://localhost:5000/health || exit 1" \
+  -p 3000:3000 \
+  --health-cmd="curl -f http://localhost:3000/health || exit 1" \
   --health-interval=10s \
   --health-retries=3 \
   myapp:dev
@@ -369,7 +381,7 @@ docker ps
 docker logs myapp-test
 
 # Test health endpoint
-curl http://localhost:5000/health</div>
+curl http://localhost:3000/health</div>
         <div class="box" style="margin-top: 12px;">
           <strong>✅ Verify:</strong> Container starts, health check passes, no crash loops
         </div>
@@ -382,7 +394,7 @@ curl http://localhost:5000/health</div>
         <div class="slide-subtitle">Infrastructure requirements as business constraints</div>
       </div>
       <div class="slide-content">
-        <h3>JPA / ORM Infrastructure Checks</h3>
+        <h3>TypeORM / Prisma Infrastructure Checks</h3>
         <div class="code-block" style="font-size: 0.9rem;"># Database connectivity test
 docker run -d --name postgres-db \
   -e POSTGRES_DB=myapp \
@@ -391,16 +403,21 @@ docker run -d --name postgres-db \
   -p 5432:5432 \
   postgres:16
 
-# Run migration verification
+# Run migration verification (TypeORM)
 docker run --rm \
   --link postgres-db:db \
   -e DATABASE_URL=postgresql://admin:secret@db:5432/myapp \
-  myapp:dev python manage.py db check
+  myapp:dev npm run typeorm migration:run
 
-# Verify JPA entity mappings
+# Verify entity mappings (Prisma)
 docker run --rm \
   -e DATABASE_URL=postgresql://admin:secret@db:5432/myapp \
-  myapp:dev python manage.py db inspect</div>
+  myapp:dev npx prisma db pull
+
+# Validate schema sync
+docker run --rm \
+  -e DATABASE_URL=postgresql://admin:secret@db:5432/myapp \
+  myapp:dev npm run schema:validate</div>
         <div class="highlight" style="margin-top: 15px;">
           🎯 Verify: Database connection, migrations, entity mappings, relationship constraints
         </div>
@@ -437,7 +454,7 @@ docker run --rm \
 docker run --rm \
   --link postgres-db:db \
   -e DATABASE_URL=postgresql://admin:secret@db:5432/myapp \
-  myapp:dev pytest tests/integration/</div>
+  myapp:dev npm run test:integration</div>
       </div>
     </div>
 
@@ -457,13 +474,17 @@ services:
       POSTGRES_DB: myapp
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: secret
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin"]
+      interval: 10s
+      retries: 5
   
   app:
     build:
       context: .
       dockerfile: Dockerfile.dev
     ports:
-      - "5000:5000"
+      - "3000:3000"
     environment:
       DATABASE_URL: postgresql://admin:secret@db:5432/myapp
     depends_on:
@@ -474,7 +495,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    command: pytest tests/
+    command: npm run test:e2e
     environment:
       DATABASE_URL: postgresql://admin:secret@db:5432/myapp
     depends_on:
