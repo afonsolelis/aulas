@@ -16,6 +16,13 @@
     .badge-accent { background: #ff4545; color: white; border-radius: 6px; padding: 2px 10px; font-size: 0.8rem; font-weight: 600; }
     .compare-table { font-size: 0.9rem; }
     .compare-table thead { background: #2e2640; color: white; }
+    .requirements-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 16px; }
+    .requirement-card { background: #f8f9fa; border-left: 4px solid #ff4545; padding: 16px; border-radius: 8px; }
+    .requirement-card h6 { color: #2e2640; margin-bottom: 8px; }
+    .stage-flow { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 16px 0; }
+    .stage-box { background: linear-gradient(135deg, #2e2640, #ff4545); color: white; padding: 12px 18px; border-radius: 8px; font-weight: 600; }
+    .stage-arrow { color: #ff4545; font-size: 1.5rem; }
+    code.inline { background: #f0f0f0; color: #ff4545; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
   </style>
 </head>
 <body>
@@ -37,6 +44,7 @@
       <h2 class="title h5">Lesson Goal</h2>
       <p class="mb-0">Understand the role of operating systems, compare virtual machines and containers, and apply Docker fundamentals to package and run applications consistently.</p>
     </section>
+
     <section class="cardx">
       <h2 class="title h5">1) Operating System Fundamentals</h2>
       <p>The operating system is the software layer that mediates between hardware resources and applications. It manages execution, memory, storage, devices, and security boundaries.</p>
@@ -47,48 +55,439 @@
         <li><strong>Scheduling:</strong> deciding which process or thread receives CPU time.</li>
       </ul>
     </section>
+
     <section class="cardx">
       <h2 class="title h5">2) Virtual Machines vs Containers</h2>
       <table class="table table-bordered compare-table mt-2">
         <thead><tr><th>Criterion</th><th>Virtual Machine</th><th>Container</th></tr></thead>
         <tbody>
           <tr><td>Isolation</td><td>Full guest operating system</td><td>Shared kernel, isolated processes</td></tr>
-          <tr><td>Weight</td><td>Heavier</td><td>Lighter</td></tr>
-          <tr><td>Startup</td><td>Slower</td><td>Faster</td></tr>
+          <tr><td>Weight</td><td>Heavier (GBs)</td><td>Lighter (MBs)</td></tr>
+          <tr><td>Startup</td><td>Slower (minutes)</td><td>Faster (seconds)</td></tr>
           <tr><td>Use Case</td><td>Strong environment separation</td><td>Application packaging and portability</td></tr>
         </tbody>
       </table>
       <p class="mb-0">Containers are ideal when the goal is to package an application consistently. Virtual machines remain useful when full operating system separation is required.</p>
     </section>
+
     <section class="cardx">
-      <h2 class="title h5">3) Docker Concepts</h2>
-      <ul>
-        <li><strong>Image:</strong> immutable template used to create containers.</li>
-        <li><strong>Container:</strong> running instance of an image.</li>
-        <li><strong>Registry:</strong> repository for storing and distributing images.</li>
-        <li><strong>Volume:</strong> persistent storage that lives outside the container lifecycle.</li>
-        <li><strong>Network:</strong> communication channel between containers or hosts.</li>
-      </ul>
-      <div class="code"><pre>docker build -t myapp:1.0 .
-docker run -p 8080:80 myapp:1.0
-docker ps
-docker logs &lt;id&gt;</pre></div>
+      <h2 class="title h5">3) Docker Hub: Image Types and Trust Levels</h2>
+      <p>Understanding image sources is critical for security and maintainability. Docker Hub provides three tiers of images:</p>
+      
+      <div class="requirements-grid">
+        <div class="requirement-card" style="border-left-color: #28a745;">
+          <h6>✅ Official Images</h6>
+          <p class="mb-0 small">Maintained by Docker and verified publishers. Highest trust level with regular security patches and documentation.</p>
+          <div class="code mt-2"><pre>docker pull node:20-alpine
+docker pull postgres:16
+docker pull redis:7</pre></div>
+        </div>
+        
+        <div class="requirement-card" style="border-left-color: #17a2b8;">
+          <h6>✓ Verified Publisher Images</h6>
+          <p class="mb-0 small">From verified organizations on Docker Hub. Maintained by the software vendors themselves.</p>
+          <div class="code mt-2"><pre>docker pull mysql/mysql-server:8.0
+docker pull mongo/mongodb-community-server:latest</pre></div>
+        </div>
+        
+        <div class="requirement-card" style="border-left-color: #ffc107;">
+          <h6>⚠️ Community Images</h6>
+          <p class="mb-0 small">Created by users. Use with caution — always review Dockerfile, check stars/downloads, and verify security before production use.</p>
+          <div class="code mt-2"><pre>docker pull someuser/custom-app:1.0</pre></div>
+        </div>
+      </div>
     </section>
+
     <section class="cardx">
-      <h2 class="title h5">4) Dockerfile Example</h2>
-      <div class="code"><pre>FROM python:3.12-slim
+      <h2 class="title h5">4) Multi-Environment Dockerization Strategy</h2>
+      <p>Different environments require different configurations. Using separate Dockerfiles ensures each environment is optimized for its purpose while maintaining consistency.</p>
+      
+      <h5 class="mt-4 mb-3">Environment Comparison</h5>
+      <table class="table table-bordered compare-table">
+        <thead>
+          <tr>
+            <th>Aspect</th>
+            <th>Development</th>
+            <th>Staging</th>
+            <th>Production</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Base Image</strong></td>
+            <td>node:20-alpine</td>
+            <td>node:20-alpine</td>
+            <td>node:20-alpine (multi-stage)</td>
+          </tr>
+          <tr>
+            <td><strong>Dependencies</strong></td>
+            <td>All (dev + prod)</td>
+            <td>Production only</td>
+            <td>Production only</td>
+          </tr>
+          <tr>
+            <td><strong>Source Code</strong></td>
+            <td>Live editing enabled</td>
+            <td>Pre-built (dist/)</td>
+            <td>Pre-built (dist/)</td>
+          </tr>
+          <tr>
+            <td><strong>Debug Tools</strong></td>
+            <td>Enabled</td>
+            <td>Profiling only</td>
+            <td>Disabled</td>
+          </tr>
+          <tr>
+            <td><strong>Security</strong></td>
+            <td>Standard</td>
+            <td>Standard</td>
+            <td>Non-root user</td>
+          </tr>
+          <tr>
+            <td><strong>Image Size</strong></td>
+            <td>Larger</td>
+            <td>Medium</td>
+            <td>Minimal</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">5) Development Dockerfile</h2>
+      <p>Optimized for developer productivity with hot reload, debug tools, and verbose logging.</p>
+      <div class="code"><pre># Dockerfile.dev
+FROM node:20-alpine
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+# Install all dependencies (dev + production)
+COPY package*.json ./
+RUN npm ci
 
+# Copy source for live editing
 COPY . .
 
-EXPOSE 8000
+# Development settings
+ENV NODE_ENV=development
+ENV DEBUG=true
 
-CMD ["python", "main.py"]</pre></div>
-      <p class="mb-0"><strong>Best practices:</strong> keep images small, leverage layer caching, avoid embedding secrets, and control the build context with <code>.dockerignore</code>.</p>
+EXPOSE 3000
+
+# Hot reload with ts-node/nodemon
+CMD ["npm", "run", "dev"]</pre></div>
+      <p class="mt-3 mb-0"><strong>Key features:</strong> Fast iteration, source code mounted as volume, debug breakpoints enabled, test runners available.</p>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">6) Staging Dockerfile</h2>
+      <p>Pre-production validation with realistic constraints. Mirrors production while enabling profiling and integration tests.</p>
+      <div class="code"><pre># Dockerfile.staging
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Production dependencies only
+COPY package*.json ./
+RUN npm ci --only=production
+
+# Copy pre-built application
+COPY dist ./dist
+
+# Staging-specific settings
+ENV NODE_ENV=staging
+ENV LOG_LEVEL=info
+ENV ENABLE_PROFILING=true
+
+EXPOSE 3000
+
+CMD ["node", "dist/main.js"]</pre></div>
+      <p class="mt-3 mb-0"><strong>Key features:</strong> Production-like behavior, profiling enabled for performance analysis, integration test ready.</p>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">7) Production Dockerfile (Multi-Stage)</h2>
+      <p>Optimized for security, minimal size, and performance. Uses multi-stage builds to separate build-time and runtime dependencies.</p>
+      <div class="code"><pre># Dockerfile.prod
+# Stage 1: Build
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build
+
+# Stage 2: Runtime
+FROM node:20-alpine
+
+# Non-root user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+WORKDIR /app
+
+# Copy only production dependencies and build
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+COPY --from=builder /app/dist ./dist
+
+RUN chown -R nodejs:nodejs /app
+
+USER nodejs
+
+# Production settings
+ENV NODE_ENV=production
+ENV LOG_LEVEL=warn
+
+EXPOSE 3000
+
+CMD ["node", "dist/main.js"]</pre></div>
+      
+      <h5 class="mt-4 mb-3">Multi-Stage Benefits</h5>
+      <ul>
+        <li><strong>Smaller image:</strong> Build tools (TypeScript compiler, dev dependencies) are not included in the final image</li>
+        <li><strong>Security:</strong> Non-root user prevents container escape attacks</li>
+        <li><strong>Cache efficiency:</strong> Layer caching for dependencies speeds up builds</li>
+        <li><strong>Minimal attack surface:</strong> Only runtime dependencies included</li>
+      </ul>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">8) Staged Docker Up Workflow</h2>
+      <p>Docker containerization should be treated as a verification process, not just deployment. Each stage validates specific requirements.</p>
+      
+      <div class="stage-flow">
+        <div class="stage-box">Stage 1: Build</div>
+        <div class="stage-arrow">→</div>
+        <div class="stage-box">Stage 2: Startup</div>
+        <div class="stage-arrow">→</div>
+        <div class="stage-box">Stage 3: Business Rules</div>
+        <div class="stage-arrow">→</div>
+        <div class="stage-box">Stage 4: Full Stack</div>
+      </div>
+
+      <h5 class="mt-4 mb-3">Stage 1: Load & Build Verification</h5>
+      <div class="code"><pre># Build and verify image creation
+docker build -f Dockerfile.dev -t myapp:dev .
+
+# Check image layers and size
+docker history myapp:dev
+docker images myapp:dev
+
+# Verify TypeScript compilation
+docker run --rm myapp:dev npm run build</pre></div>
+      <p><strong>✅ Verify:</strong> Build succeeds, no TypeScript errors, expected image size, all layers cached properly.</p>
+
+      <h5 class="mt-4 mb-3">Stage 2: Container Startup Tests</h5>
+      <div class="code"><pre># Run with health check
+docker run -d --name myapp-test \
+  -p 3000:3000 \
+  --health-cmd="curl -f http://localhost:3000/health || exit 1" \
+  --health-interval=10s \
+  --health-retries=3 \
+  myapp:dev
+
+# Check container status
+docker ps
+docker logs myapp-test
+
+# Test health endpoint
+curl http://localhost:3000/health</pre></div>
+      <p><strong>✅ Verify:</strong> Container starts, health check passes, no crash loops, environment variables loaded correctly.</p>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">9) Stage 3: Business Rules & ORM Verification</h2>
+      <p>Infrastructure requirements are business constraints. Database schemas, migrations, and entity mappings must be validated before deployment.</p>
+      
+      <div class="requirements-grid">
+        <div class="requirement-card">
+          <h6>Data Integrity</h6>
+          <ul class="small mb-0">
+            <li>Unique constraints (emails, usernames)</li>
+            <li>Foreign keys (referential integrity)</li>
+            <li>Not null (required fields)</li>
+            <li>Data types (correct column types)</li>
+          </ul>
+        </div>
+        <div class="requirement-card">
+          <h6>Transaction Management</h6>
+          <ul class="small mb-0">
+            <li>ACID compliance</li>
+            <li>Rollback on failure</li>
+            <li>Isolation levels</li>
+            <li>Locking strategies</li>
+          </ul>
+        </div>
+      </div>
+
+      <h5 class="mt-4 mb-3">TypeORM / Prisma Infrastructure Checks</h5>
+      <div class="code"><pre># Database connectivity test
+docker run -d --name postgres-db \
+  -e POSTGRES_DB=myapp \
+  -e POSTGRES_USER=admin \
+  -e POSTGRES_PASSWORD=secret \
+  -p 5432:5432 \
+  postgres:16
+
+# Run migration verification (TypeORM)
+docker run --rm \
+  --link postgres-db:db \
+  -e DATABASE_URL=postgresql://admin:secret@db:5432/myapp \
+  myapp:dev npm run typeorm migration:run
+
+# Verify entity mappings (Prisma)
+docker run --rm \
+  -e DATABASE_URL=postgresql://admin:secret@db:5432/myapp \
+  myapp:dev npx prisma db pull
+
+# Validate schema sync
+docker run --rm \
+  -e DATABASE_URL=postgresql://admin:secret@db:5432/myapp \
+  myapp:dev npm run schema:validate
+
+# Run integration tests
+docker run --rm \
+  --link postgres-db:db \
+  -e DATABASE_URL=postgresql://admin:secret@db:5432/myapp \
+  myapp:dev npm run test:integration</pre></div>
+      <p class="mt-3 mb-0"><strong>✅ Verify:</strong> Database connection, migrations execute successfully, entity mappings correct, relationship constraints enforced, integration tests pass.</p>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">10) Stage 4: Full Stack Verification</h2>
+      <p>End-to-end testing in a fully containerized environment that mirrors production architecture.</p>
+      
+      <div class="code"><pre># docker-compose.test.yml
+version: '3.8'
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: myapp
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: secret
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin"]
+      interval: 10s
+      retries: 5
+  
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://admin:secret@db:5432/myapp
+    depends_on:
+      db:
+        condition: service_healthy
+  
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: npm run test:e2e
+    environment:
+      DATABASE_URL: postgresql://admin:secret@db:5432/myapp
+    depends_on:
+      - db</pre></div>
+      
+      <p class="mt-3"><strong>Run command:</strong></p>
+      <div class="code"><pre>docker-compose -f docker-compose.test.yml up --abort-on-container-exit</pre></div>
+      <p><strong>✅ Verify:</strong> All services start correctly, database health checks pass, application connects to database, end-to-end tests execute successfully.</p>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">11) Docker as Executable Documentation</h2>
+      <p>Docker is not just a deployment tool — it's living documentation of infrastructure requirements and business constraints.</p>
+      
+      <div class="requirements-grid">
+        <div class="requirement-card" style="border-left-color: #28a745;">
+          <h6>Requirement Validation</h6>
+          <p class="small mb-0">Dockerfile exposes dependencies early, forcing teams to document and validate infrastructure needs before coding begins.</p>
+        </div>
+        <div class="requirement-card" style="border-left-color: #17a2b8;">
+          <h6>Environment Consistency</h6>
+          <p class="small mb-0">dev = staging = production. Eliminates "works on my machine" problems and reduces environment-specific bugs.</p>
+        </div>
+        <div class="requirement-card" style="border-left-color: #ffc107;">
+          <h6>Onboarding</h6>
+          <p class="small mb-0">New developers run <code class="inline">docker-compose up</code> and have a working environment in minutes, not days.</p>
+        </div>
+        <div class="requirement-card" style="border-left-color: #ff4545;">
+          <h6>CI/CD Readiness</h6>
+          <p class="small mb-0">Same containers used in development run in CI/CD pipelines, ensuring test validity.</p>
+        </div>
+      </div>
+
+      <div class="alert alert-info mt-4 mb-0">
+        <strong>💡 Key Insight:</strong> Dockerizing early in the development process forces teams to think about infrastructure requirements, dependencies, and business constraints before writing code. This upfront investment pays dividends throughout the project lifecycle.
+      </div>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">12) Requirements Traceability Matrix</h2>
+      <p>How Docker stages map to business and technical requirements:</p>
+      
+      <table class="table table-bordered compare-table mt-3">
+        <thead>
+          <tr>
+            <th>Requirement Type</th>
+            <th>Docker Stage</th>
+            <th>Verification Method</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Build Requirements</strong></td>
+            <td>Stage 1</td>
+            <td>TypeScript compilation, dependency installation</td>
+          </tr>
+          <tr>
+            <td><strong>Runtime Requirements</strong></td>
+            <td>Stage 2</td>
+            <td>Health checks, container stability</td>
+          </tr>
+          <tr>
+            <td><strong>Data Integrity</strong></td>
+            <td>Stage 3</td>
+            <td>Migration execution, schema validation</td>
+          </tr>
+          <tr>
+            <td><strong>Business Rules</strong></td>
+            <td>Stage 3</td>
+            <td>ORM entity mappings, constraint enforcement</td>
+          </tr>
+          <tr>
+            <td><strong>Integration</strong></td>
+            <td>Stage 4</td>
+            <td>End-to-end tests, service communication</td>
+          </tr>
+          <tr>
+            <td><strong>Security</strong></td>
+            <td>All Stages</td>
+            <td>Non-root user, minimal dependencies, secrets management</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">13) Best Practices Summary</h2>
+      <ul>
+        <li><strong>Use official images:</strong> Start with <code class="inline">node:20-alpine</code> or other verified base images</li>
+        <li><strong>Multi-stage builds:</strong> Separate build and runtime environments for production</li>
+        <li><strong>Non-root users:</strong> Always run production containers as non-root</li>
+        <li><strong>.dockerignore:</strong> Exclude <code class="inline">node_modules</code>, <code class="inline">.git</code>, <code class="inline">.env</code>, and build artifacts</li>
+        <li><strong>Layer caching:</strong> Copy <code class="inline">package*.json</code> before source code</li>
+        <li><strong>Health checks:</strong> Define health endpoints and monitor container health</li>
+        <li><strong>Environment variables:</strong> Never hardcode secrets; use environment variables or secrets managers</li>
+        <li><strong>Staged verification:</strong> Build → Startup → Business Rules → Full Stack</li>
+      </ul>
     </section>
   </main>
 </body>
