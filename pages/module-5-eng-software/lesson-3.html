@@ -60,8 +60,12 @@
         <div class="topics-grid">
           <div class="topic-tag">Processes & Threads</div>
           <div class="topic-tag">Memory Management</div>
-          <div class="topic-tag">Containers</div>
-          <div class="topic-tag">Docker</div>
+          <div class="topic-tag">Docker Hub Images</div>
+          <div class="topic-tag">Multi-Env Dockerfiles</div>
+          <div class="topic-tag">Staged Docker Up</div>
+          <div class="topic-tag">JPA Verification</div>
+          <div class="topic-tag">Docker Compose</div>
+          <div class="topic-tag">Infra as Docs</div>
         </div>
       </div>
     </div>
@@ -187,6 +191,317 @@ CMD ["python", "main.py"]</div>
               <li>Use <code>.dockerignore</code> to reduce build context</li>
             </ul>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">Docker Hub: Image Types</div>
+        <div class="slide-subtitle">Understanding image sources and trust levels</div>
+      </div>
+      <div class="slide-content">
+        <div class="box" style="margin-bottom: 20px;">
+          <h3>1. Official Images</h3>
+          <p style="margin: 10px 0;">Maintained by Docker and verified publishers. Highest trust level.</p>
+          <div class="code-block" style="font-size: 0.95rem;">docker pull python:3.12-slim
+docker pull node:20-alpine
+docker pull postgres:16</div>
+          <small>✅ Security patches, updated regularly, documented</small>
+        </div>
+        <div class="box" style="margin-bottom: 20px;">
+          <h3>2. Verified Publisher Images</h3>
+          <p style="margin: 10px 0;">From verified organizations on Docker Hub.</p>
+          <div class="code-block" style="font-size: 0.95rem;">docker pull mysql/mysql-server:8.0
+docker pull mongo/mongodb-community-server:latest</div>
+          <small>✓ Verified source, organization-maintained</small>
+        </div>
+        <div class="box">
+          <h3>3. Community Images</h3>
+          <p style="margin: 10px 0;">Created by users. Use with caution — verify before production.</p>
+          <div class="code-block" style="font-size: 0.95rem;">docker pull someuser/custom-app:1.0</div>
+          <small>⚠️ Review Dockerfile, check stars/downloads, verify security</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">Multi-Environment Dockerfiles</div>
+        <div class="slide-subtitle">Separate configurations for dev, staging, and production</div>
+      </div>
+      <div class="slide-content">
+        <h3>Development Dockerfile</h3>
+        <div class="code-block" style="font-size: 0.95rem;"># Dockerfile.dev
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install dev dependencies
+COPY requirements-dev.txt .
+RUN pip install -r requirements-dev.txt
+
+# Copy source for live editing
+COPY . .
+
+# Enable hot reload
+ENV FLASK_ENV=development
+ENV DEBUG=True
+
+EXPOSE 5000
+
+CMD ["flask", "run", "--host=0.0.0.0"]</div>
+        <div class="highlight" style="margin-top: 15px; font-size: 1.1rem;">
+          🎯 Dev: Debug tools, hot reload, verbose logging, test dependencies
+        </div>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">Staging Environment</div>
+        <div class="slide-subtitle">Pre-production validation with realistic constraints</div>
+      </div>
+      <div class="slide-content">
+        <h3>Staging Dockerfile</h3>
+        <div class="code-block" style="font-size: 0.95rem;"># Dockerfile.staging
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Production dependencies only
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application
+COPY . .
+
+# Staging-specific settings
+ENV FLASK_ENV=staging
+ENV LOG_LEVEL=INFO
+ENV ENABLE_PROFILING=True
+
+EXPOSE 5000
+
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]</div>
+        <div class="highlight" style="margin-top: 15px; font-size: 1.1rem;">
+          🎯 Staging: Production-like, profiling enabled, integration tests ready
+        </div>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">Production Dockerfile</div>
+        <div class="slide-subtitle">Optimized, secure, and minimal footprint</div>
+      </div>
+      <div class="slide-content">
+        <h3>Multi-Stage Production Build</h3>
+        <div class="code-block" style="font-size: 0.9rem;"># Dockerfile.prod
+# Stage 1: Build
+FROM python:3.12-slim AS builder
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --user --no-cache-dir -r requirements.txt
+
+# Stage 2: Runtime
+FROM python:3.12-slim
+
+# Non-root user for security
+RUN useradd -m -u 1000 appuser
+
+WORKDIR /app
+COPY --from=builder /root/.local /home/appuser/.local
+COPY . .
+RUN chown -R appuser:appuser /app
+
+USER appuser
+
+# Production settings
+ENV FLASK_ENV=production
+ENV LOG_LEVEL=WARN
+
+EXPOSE 5000
+
+CMD ["gunicorn", "--workers", "4", "--bind", "0.0.0.0:5000", "app:app"]</div>
+        <div class="highlight" style="margin-top: 15px; font-size: 1.1rem;">
+          🎯 Production: Multi-stage, non-root user, minimal image, optimized workers
+        </div>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">Docker Up: Staged Workflow</div>
+        <div class="slide-subtitle">Step-by-step verification before full deployment</div>
+      </div>
+      <div class="slide-content">
+        <h3>Stage 1: Load & Build Verification</h3>
+        <div class="code-block" style="font-size: 0.95rem;"># Build and verify image creation
+docker build -f Dockerfile.dev -t myapp:dev .
+
+# Check image layers and size
+docker history myapp:dev
+docker images myapp:dev</div>
+        <div class="box" style="margin-top: 12px;">
+          <strong>✅ Verify:</strong> Build succeeds, no errors in logs, expected image size
+        </div>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">Stage 2: Container Startup Tests</div>
+        <div class="slide-subtitle">Validate container initialization and health</div>
+      </div>
+      <div class="slide-content">
+        <div class="code-block" style="font-size: 0.95rem;"># Run with health check
+docker run -d --name myapp-test \
+  -p 5000:5000 \
+  --health-cmd="curl -f http://localhost:5000/health || exit 1" \
+  --health-interval=10s \
+  --health-retries=3 \
+  myapp:dev
+
+# Check container status
+docker ps
+docker logs myapp-test
+
+# Test health endpoint
+curl http://localhost:5000/health</div>
+        <div class="box" style="margin-top: 12px;">
+          <strong>✅ Verify:</strong> Container starts, health check passes, no crash loops
+        </div>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">Stage 3: Business Rules & JPA Verification</div>
+        <div class="slide-subtitle">Infrastructure requirements as business constraints</div>
+      </div>
+      <div class="slide-content">
+        <h3>JPA / ORM Infrastructure Checks</h3>
+        <div class="code-block" style="font-size: 0.9rem;"># Database connectivity test
+docker run -d --name postgres-db \
+  -e POSTGRES_DB=myapp \
+  -e POSTGRES_USER=admin \
+  -e POSTGRES_PASSWORD=secret \
+  -p 5432:5432 \
+  postgres:16
+
+# Run migration verification
+docker run --rm \
+  --link postgres-db:db \
+  -e DATABASE_URL=postgresql://admin:secret@db:5432/myapp \
+  myapp:dev python manage.py db check
+
+# Verify JPA entity mappings
+docker run --rm \
+  -e DATABASE_URL=postgresql://admin:secret@db:5432/myapp \
+  myapp:dev python manage.py db inspect</div>
+        <div class="highlight" style="margin-top: 15px;">
+          🎯 Verify: Database connection, migrations, entity mappings, relationship constraints
+        </div>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">Business Rules Checklist</div>
+        <div class="slide-subtitle">Infrastructure requirements tied to domain logic</div>
+      </div>
+      <div class="slide-content">
+        <div class="two-columns">
+          <div>
+            <h3>Data Integrity</h3>
+            <ul>
+              <li><strong>Unique constraints</strong> — emails, usernames</li>
+              <li><strong>Foreign keys</strong> — referential integrity</li>
+              <li><strong>Not null</strong> — required fields validation</li>
+              <li><strong>Data types</strong> — correct column types</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Transaction Management</h3>
+            <ul>
+              <li><strong>ACID compliance</strong> — atomic operations</li>
+              <li><strong>Rollback on failure</strong> — error handling</li>
+              <li><strong>Isolation levels</strong> — concurrency control</li>
+              <li><strong>Locking strategies</strong> — optimistic/pessimistic</li>
+            </ul>
+          </div>
+        </div>
+        <div class="code-block" style="font-size: 0.9rem; margin-top: 15px;"># Run integration tests
+docker run --rm \
+  --link postgres-db:db \
+  -e DATABASE_URL=postgresql://admin:secret@db:5432/myapp \
+  myapp:dev pytest tests/integration/</div>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">Stage 4: Full Stack Verification</div>
+        <div class="slide-subtitle">End-to-end testing in containerized environment</div>
+      </div>
+      <div class="slide-content">
+        <h3>Docker Compose for Complete Stack</h3>
+        <div class="code-block" style="font-size: 0.85rem;"># docker-compose.test.yml
+version: '3.8'
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: myapp
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: secret
+  
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5000:5000"
+    environment:
+      DATABASE_URL: postgresql://admin:secret@db:5432/myapp
+    depends_on:
+      db:
+        condition: service_healthy
+  
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: pytest tests/
+    environment:
+      DATABASE_URL: postgresql://admin:secret@db:5432/myapp
+    depends_on:
+      - db</div>
+        <div class="highlight" style="margin-top: 15px;">
+          🎯 Run: <code>docker-compose -f docker-compose.test.yml up --abort-on-container-exit</code>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">Docker as Documentation</div>
+        <div class="slide-subtitle">Infrastructure requirements as living documentation</div>
+      </div>
+      <div class="slide-content">
+        <div class="box" style="margin-bottom: 15px;">
+          <h3>Why Dockerize Early?</h3>
+          <ul>
+            <li><strong>Requirement validation</strong> — Dockerfile exposes dependencies early</li>
+            <li><strong>Environment consistency</strong> — dev = staging = production</li>
+            <li><strong>Onboarding</strong> — new developers run <code>docker-compose up</code></li>
+            <li><strong>CI/CD readiness</strong> — same containers in pipelines</li>
+          </ul>
+        </div>
+        <div class="highlight">
+          💡 Docker is not just deployment — it's executable documentation of your infrastructure requirements and business constraints.
         </div>
       </div>
     </div>
