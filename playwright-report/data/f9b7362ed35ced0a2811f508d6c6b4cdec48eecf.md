@@ -1,0 +1,84 @@
+# Page snapshot
+
+```yaml
+- application [ref=e2]:
+  - generic:
+    - generic [ref=e5]:
+      - img "Inteli Logo" [ref=e6]
+      - generic [ref=e7]: Projeto 9 • Sistemas de Informação
+      - heading "Princípios SOLID" [level=1] [ref=e8]
+      - paragraph [ref=e9]: "A História da Pizzaria da Ana: Construindo sistemas robustos que escalam de verdade."
+      - generic [ref=e10]:
+        - generic [ref=e11]: 🧱 SRP
+        - generic [ref=e12]: 🔓 OCP
+        - generic [ref=e13]: 🐦 LSP
+        - generic [ref=e14]: 🔌 ISP
+        - generic [ref=e15]: 💉 DIP
+      - strong [ref=e17]: Prof. Afonso Brandão
+    - generic:
+      - generic:
+        - generic:
+          - generic: 🍕 A Crise na Pizzaria da Ana
+          - generic: Por que aplicar boas engenharias?
+        - generic:
+          - paragraph:
+            - text: "A Pizzaria da Ana começou simples: era pequena, um homem só e rápida. Mas o negócio cresceu e o"
+            - strong: "\"código espaguete\""
+            - text: "dominou a cozinha inteira:"
+          - generic:
+            - generic:
+              - heading [level=3]: Sintomas Clássicos do Caos
+              - list:
+                - listitem:
+                  - strong: "Rigidez:"
+                  - text: Adicionar borda recheada quebra o caixa da empresa.
+                - listitem:
+                  - strong: "Fragilidade:"
+                  - text: Mudar o sabor do mês derruba o app do motoboy.
+                - listitem:
+                  - strong: "Imobilidade:"
+                  - text: Impossível reaproveitar a receita no trailer de rua.
+                - listitem:
+                  - strong: "Viscosidade:"
+                  - text: Fazer uma "Gambiarra" de papel carbono dá muito menos trabalho.
+            - generic:
+              - paragraph:
+                - text: O
+                - strong: SOLID
+                - text: ajuda a reduzir o
+                - strong: acoplamento
+                - text: explosivo e alinhar a
+                - strong: coesão
+                - text: ", definindo o que cada um faz na cozinha!"
+              - generic: "\"Código limpo parece que foi escrito por alguém que se importa.\" — Robert C. Martin (Uncle Bob)"
+    - generic:
+      - generic:
+        - generic:
+          - generic: SRP - Single Responsibility Principle
+          - generic: A Síndrome do Faz-Tudo da Pizzaria
+        - generic:
+          - generic:
+            - generic: S
+            - paragraph:
+              - emphasis: "\"Uma classe deve ter um, e apenas um, motivo para mudar... Ou o Mário bate seu ponto e queima a pizza pra atender o telefone!\""
+          - generic:
+            - generic:
+              - generic: ❌ O Faz-Tudo da Cozinha (Multifuncional)
+              - generic: "public class PizzariaSystem { public void AnotarPedidoTelefone() { /* .. */ } public void AmassarPizza() { /* .. */ } public void LigarMotoEntregar() { /* .. */ } }"
+              - paragraph: Se a moto quebrar (bug de delivery), toda a classe para. Ninguém assa mais nada.
+            - generic:
+              - generic: ✅ Funcionários Especialistas (Coeso)
+              - generic: "public class AtendenteCaixa { ... } public class PizzaioloMaster { ... } public class DeliveryMotoboy { ... }"
+              - paragraph: Se precisarmos trocar de iFood pra telefone de novo, o Pizzaiolo continua assando sem nem saber do reboliço.
+  - generic [ref=e18]:
+    - link "← Voltar" [ref=e19] [cursor=pointer]:
+      - /url: javascript:history.back()
+    - link "Material" [ref=e20] [cursor=pointer]:
+      - /url: ../module-9-sistemas-informacao.html
+  - link "1" [ref=e25] [cursor=pointer]:
+    - /url: "#/"
+  - complementary:
+    - button "next slide" [ref=e26] [cursor=pointer]
+  - text: Speaker notes
+  - generic [ref=e29]: "Projeto 9 • Sistemas de Informação Princípios SOLID A História da Pizzaria da Ana: Construindo sistemas robustos que escalam de verdade. 🧱 SRP 🔓 OCP 🐦 LSP 🔌 ISP 💉 DIP Prof. Afonso Brandão"
+```

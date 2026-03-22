@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aula 5 - Material Escrito | Projeto 5</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="../../css/inteli-styles.css" rel="stylesheet">
+  <style>
+    body { background: #f7f9fb; color: #1f2933; font-family: "Manrope", sans-serif; }
+    .page-header { background: linear-gradient(135deg, #2e2640, #1b1530); color: #fff; padding: 28px 0; margin-bottom: 24px; }
+    .module-badge { font-size: 0.85rem; opacity: 0.75; margin-bottom: 6px; }
+    .cardx { background: #fff; border: 1px solid #e3e7ea; border-radius: 14px; padding: 22px; margin-bottom: 14px; }
+    .title { color: #2e2640; font-weight: 700; margin-bottom: 10px; }
+    .code { background: #1f1d2b; color: #d9f7e6; border-radius: 10px; padding: 14px; overflow-x: auto; font-size: .88rem; }
+    .code pre { margin: 0; white-space: pre-wrap; }
+    .formula-box { background: #f8fafc; border-left: 5px solid #89cea5; padding: 12px 18px; border-radius: 0 10px 10px 0; font-family: monospace; margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <header class="page-header">
+    <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div>
+        <div class="module-badge">Projeto 5 • Administracao + Tech</div>
+        <h1 class="h3 mb-1">Aula 5 - Material Escrito</h1>
+        <div>Gradio: do Simples ao Top — Arquitetura, Validação, UX e Deploy</div>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <a href="../slides/slide_lesson-5.html" class="btn btn-light">🎞️ Ver Slides</a>
+        <a href="../../home_module-5-adm-tech.html" class="btn btn-outline-light">← Voltar ao Módulo</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container pb-4">
+
+    <section class="cardx">
+      <h2 class="title h5">Objetivo prático da aula</h2>
+      <ul class="mb-0">
+        <li>Entender quando usar gr.Interface vs gr.Blocks.</li>
+        <li>Estruturar o app em 3 camadas (io / domínio / ui).</li>
+        <li>Implementar upload de CSV/XLSX com validação robusta.</li>
+        <li>Criar saídas ricas: métricas + tabela + gráfico.</li>
+        <li>Publicar o app no Colab ou Hugging Face Spaces.</li>
+      </ul>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">Setup mínimo no Colab</h2>
+      <div class="code"><pre>!pip install gradio pandas numpy plotly openpyxl -q
+
+import pandas as pd
+import numpy as np
+import plotly.express as px
+import gradio as gr</pre></div>
+      <p>Boa prática: versão de dependências no topo da primeira célula e imports agrupados.</p>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">App mínimo: gr.Interface</h2>
+      <div class="code"><pre>def calcular_simples(investimento, taxa, fluxo_anual, anos):
+    fcls = [fluxo_anual] * int(anos)
+    vpl = -investimento + sum(fc / ((1 + taxa) ** (i + 1))
+                              for i, fc in enumerate(fcls))
+    return f"VPL: R$ {vpl:,.2f}"
+
+app = gr.Interface(
+    fn=calcular_simples,
+    inputs=[
+        gr.Number(label="Investimento inicial"),
+        gr.Slider(0.01, 0.5, value=0.14, step=0.01, label="Taxa de desconto"),
+        gr.Number(label="Fluxo anual"),
+        gr.Slider(1, 10, value=5, step=1, label="Anos")
+    ],
+    outputs=gr.Textbox(label="Resultado")
+)
+app.launch()</pre></div>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">Arquitetura em 3 camadas</h2>
+      <div class="formula-box">
+        <strong>io_data.py</strong> — leitura de CSV/XLSX e limpeza de dados<br>
+        <strong>service_finance.py</strong> — regras de negócio: VPL, TIR, Payback<br>
+        <strong>ui_gradio.py</strong> — layout Gradio: inputs, eventos, outputs
+      </div>
+      <p>Regra: a função de negócio não importa Gradio. Ela recebe dados Python e retorna dados Python.</p>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">Upload de arquivos com tratamento de erros</h2>
+      <div class="code"><pre>def carregar_arquivo(file_obj):
+    if file_obj is None:
+        raise ValueError("Envie um arquivo CSV ou XLSX.")
+
+    nome = file_obj.name.lower()
+    if nome.endswith(".csv"):
+        df = pd.read_csv(file_obj.name)
+    elif nome.endswith(".xlsx"):
+        df = pd.read_excel(file_obj.name)
+    else:
+        raise ValueError("Formato invalido. Use CSV ou XLSX.")
+
+    # Padronizar nomes de colunas
+    df.columns = [c.strip().lower() for c in df.columns]
+
+    # Validar colunas obrigatórias
+    obrigatorias = ["ano", "receita", "custos", "investimento"]
+    faltantes = [c for c in obrigatorias if c not in df.columns]
+    if faltantes:
+        raise ValueError(f"Colunas ausentes: {faltantes}")
+
+    return df</pre></div>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">App completo com gr.Blocks</h2>
+      <div class="code"><pre>def processar(file_obj, taxa_pct):
+    df = carregar_arquivo(file_obj)
+    taxa = float(taxa_pct) / 100
+    # ... calcular VPL, TIR, montar tabela e gráfico ...
+    fig = px.bar(df, x="ano", y="vp_fcl", title="Valor presente por ano")
+    return mensagem, df_resultado, fig
+
+with gr.Blocks(theme=gr.themes.Soft()) as demo:
+    gr.Markdown("# Analise de Investimento — Projeto 5")
+    with gr.Row():
+        arquivo_input = gr.File(label="Envie CSV ou XLSX", file_types=[".csv", ".xlsx"])
+        taxa_input = gr.Number(label="Taxa de Desconto (%)", value=14)
+    with gr.Row():
+        botao_calcular = gr.Button("Calcular", variant="primary")
+        botao_limpar = gr.Button("Limpar")
+    mensagem_out = gr.Textbox(label="Resultado")
+    tabela_out = gr.Dataframe(label="Detalhamento")
+    grafico_out = gr.Plot(label="Visualizacao")
+
+    botao_calcular.click(
+        fn=processar,
+        inputs=[arquivo_input, taxa_input],
+        outputs=[mensagem_out, tabela_out, grafico_out]
+    )
+    botao_limpar.click(
+        fn=lambda: ("", None, None),
+        inputs=[],
+        outputs=[mensagem_out, tabela_out, grafico_out]
+    )
+
+demo.queue(max_size=20)
+demo.launch(share=True)</pre></div>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">5 ajustes de alto impacto no UX</h2>
+      <ol>
+        <li>Títulos de campos orientados a negócio, não a código ("Taxa de Desconto (%)" em vez de "taxa").</li>
+        <li>Valores padrão realistas para reduzir erro de input.</li>
+        <li>Textos curtos explicando cada output.</li>
+        <li>Botão "Limpar" com estado inicial previsível.</li>
+        <li>Limite de tamanho de arquivo aceito para evitar travamentos.</li>
+      </ol>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">Checklist de entrega</h2>
+      <ul class="mb-0">
+        <li>App funcional com upload de arquivo CSV ou XLSX.</li>
+        <li>Validação de colunas obrigatórias com mensagens de erro claras.</li>
+        <li>Saída com pelo menos: VPL formatado, TIR e gráfico.</li>
+        <li>Código organizado em funções separadas por responsabilidade.</li>
+        <li>Link de deploy gerado (Colab share=True ou Hugging Face).</li>
+      </ul>
+    </section>
+
+  </main>
+</body>
+</html>

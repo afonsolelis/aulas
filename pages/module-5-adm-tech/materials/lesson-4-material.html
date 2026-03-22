@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aula 4 - Material Escrito | Projeto 5</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="../../css/inteli-styles.css" rel="stylesheet">
+  <style>
+    body { background: #f7f9fb; color: #1f2933; font-family: "Manrope", sans-serif; }
+    .page-header { background: linear-gradient(135deg, #2e2640, #1b1530); color: #fff; padding: 28px 0; margin-bottom: 24px; }
+    .module-badge { font-size: 0.85rem; opacity: 0.75; margin-bottom: 6px; }
+    .cardx { background: #fff; border: 1px solid #e3e7ea; border-radius: 14px; padding: 22px; margin-bottom: 14px; }
+    .title { color: #2e2640; font-weight: 700; margin-bottom: 10px; }
+    .code { background: #1f1d2b; color: #d9f7e6; border-radius: 10px; padding: 14px; overflow-x: auto; font-size: .88rem; }
+    .code pre { margin: 0; white-space: pre-wrap; }
+    .formula-box { background: #f8fafc; border-left: 5px solid #89cea5; padding: 12px 18px; border-radius: 0 10px 10px 0; font-family: monospace; margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <header class="page-header">
+    <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div>
+        <div class="module-badge">Projeto 5 • Administracao + Tech</div>
+        <h1 class="h3 mb-1">Aula 4 - Material Escrito</h1>
+        <div>Funções Financeiras em Python: VPL, TIR, Payback, Plotly e Gradio</div>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <a href="../slides/slide_lesson-4.html" class="btn btn-light">🎞️ Ver Slides</a>
+        <a href="../../home_module-5-adm-tech.html" class="btn btn-outline-light">← Voltar ao Módulo</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container pb-4">
+
+    <section class="cardx">
+      <h2 class="title h5">Objetivo prático da aula</h2>
+      <ul class="mb-0">
+        <li>Implementar VPL, TIR (Newton-Raphson) e Payback do zero em Python.</li>
+        <li>Visualizar fluxos de caixa e sensibilidade com Plotly.</li>
+        <li>Construir app interativo com Gradio para cálculo financeiro.</li>
+        <li>Comparar resultados Python com planilha do parceiro.</li>
+      </ul>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">Função VPL manual</h2>
+      <div class="code"><pre>def calcular_vpl(fluxos_caixa: list[float], taxa_desconto: float) -> float:
+    """
+    VPL = Soma de Ft / (1+r)^t para t = 0, 1, ..., n
+    O fluxo t=0 é o investimento inicial (negativo).
+    """
+    vpl = 0
+    for t, fluxo in enumerate(fluxos_caixa):
+        vpl += fluxo / ((1 + taxa_desconto) ** t)
+    return vpl
+
+# Exemplo
+fluxos = [-500000, 130000, 150000, 175000, 200000, 215000]
+vpl = calcular_vpl(fluxos, 0.14)
+print(f"VPL: R$ {vpl:,.2f}")</pre></div>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">TIR via Newton-Raphson</h2>
+      <p>A TIR é a taxa que zera o VPL. O método de Newton-Raphson converge iterativamente usando a derivada da função VPL.</p>
+      <div class="code"><pre>def calcular_tir(fluxos_caixa: list[float],
+                 chute_inicial: float = 0.1,
+                 tolerancia: float = 1e-6,
+                 max_iter: int = 100) -> float:
+    taxa = chute_inicial
+    for _ in range(max_iter):
+        vpl = sum(f / ((1 + taxa) ** t) for t, f in enumerate(fluxos_caixa))
+        derivada = sum(-t * f / ((1 + taxa) ** (t + 1))
+                      for t, f in enumerate(fluxos_caixa) if t > 0)
+        if abs(derivada) < 1e-10:
+            break
+        nova_taxa = taxa - vpl / derivada
+        if abs(nova_taxa - taxa) < tolerancia:
+            return nova_taxa
+        taxa = nova_taxa
+    return taxa
+
+tir = calcular_tir(fluxos)
+print(f"TIR: {tir*100:.2f}% a.a.")</pre></div>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">Payback Simples e Descontado</h2>
+      <div class="code"><pre>def calcular_payback_simples(fluxos_caixa: list[float]) -> float:
+    investimento = -fluxos_caixa[0]
+    acumulado = 0
+    for t in range(1, len(fluxos_caixa)):
+        acumulado += fluxos_caixa[t]
+        if acumulado >= investimento:
+            retorno_parcial = investimento - (acumulado - fluxos_caixa[t])
+            fracao = retorno_parcial / fluxos_caixa[t]
+            return (t - 1) + fracao
+    return float('inf')
+
+def calcular_payback_descontado(fluxos_caixa: list[float], taxa: float) -> float:
+    investimento = -fluxos_caixa[0]
+    acumulado = 0
+    for t in range(1, len(fluxos_caixa)):
+        fd = fluxos_caixa[t] / ((1 + taxa) ** t)
+        acumulado += fd
+        if acumulado >= investimento:
+            fracao = (investimento - (acumulado - fd)) / fd
+            return (t - 1) + fracao
+    return float('inf')
+
+pb_s = calcular_payback_simples(fluxos)
+pb_d = calcular_payback_descontado(fluxos, 0.14)
+print(f"Payback Simples: {pb_s:.2f} anos")
+print(f"Payback Descontado: {pb_d:.2f} anos")</pre></div>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">Visualização com Plotly</h2>
+      <div class="code"><pre>import plotly.graph_objects as go
+
+def plotar_sensibilidade_vpl(fluxos, taxa_min=0, taxa_max=0.30):
+    taxas = [i/100 for i in range(int(taxa_min*100), int(taxa_max*100)+1)]
+    vpls = [calcular_vpl(fluxos, t) for t in taxas]
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=[t*100 for t in taxas], y=vpls,
+                             mode='lines', line=dict(color='#2e2640', width=3)))
+    fig.add_hline(y=0, line_dash="dash", line_color="red",
+                  annotation_text="TIR (VPL=0)")
+    fig.update_layout(
+        title='Sensibilidade do VPL a Taxa de Desconto',
+        xaxis_title='Taxa de Desconto (%)',
+        yaxis_title='VPL (R$)',
+        hovermode='x unified'
+    )
+    return fig
+
+fig = plotar_sensibilidade_vpl(fluxos)
+fig.show()</pre></div>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">App Gradio para análise de investimento</h2>
+      <div class="code"><pre>!pip install gradio plotly -q
+import gradio as gr
+import plotly.graph_objects as go
+
+def analisar_investimento(fluxos_texto, taxa_pct):
+    try:
+        fluxos = [float(x.strip()) for x in fluxos_texto.split(',')]
+        if len(fluxos) < 2:
+            return "Erro: mínimo 2 fluxos necessários", "", None
+        taxa = float(taxa_pct) / 100
+        vpl = calcular_vpl(fluxos, taxa)
+        tir = calcular_tir(fluxos)
+        pb = calcular_payback_simples(fluxos)
+        resultado = (f"VPL: R$ {vpl:,.2f}\n"
+                     f"TIR: {tir*100:.2f}% a.a.\n"
+                     f"Payback Simples: {pb:.2f} anos")
+        decisao = "VIAVEL" if vpl > 0 and tir > taxa else "INVIAVEL"
+        fig = plotar_sensibilidade_vpl(fluxos)
+        return resultado, decisao, fig
+    except Exception as e:
+        return f"Erro: {e}", "", None
+
+demo = gr.Interface(
+    fn=analisar_investimento,
+    inputs=[
+        gr.Textbox(label="Fluxos de Caixa (separados por virgula)",
+                   value="-500000, 130000, 150000, 175000, 200000, 215000"),
+        gr.Number(label="Taxa de Desconto (%)", value=14)
+    ],
+    outputs=[
+        gr.Textbox(label="Resultados"),
+        gr.Textbox(label="Decisao"),
+        gr.Plot(label="Sensibilidade do VPL")
+    ],
+    title="Analise de Investimento — VPL/TIR"
+)
+demo.launch(share=True)</pre></div>
+    </section>
+
+    <section class="cardx">
+      <h2 class="title h5">Checklist da atividade ponderada</h2>
+      <ul class="mb-0">
+        <li>Repositório no GitLab criado com pasta <code>ponderadas/seu_nome/</code>.</li>
+        <li>Arquivo <code>.ipynb</code> com funções VPL, TIR e Payback implementadas.</li>
+        <li>Dados reais do parceiro utilizados (pelo menos uma BU).</li>
+        <li>Resultados comparados com planilha original.</li>
+        <li>Interpretação executiva dos indicadores no próprio notebook.</li>
+        <li>Notebook executado do início ao fim sem erros.</li>
+      </ul>
+    </section>
+
+  </main>
+</body>
+</html>
