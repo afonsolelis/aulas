@@ -36,6 +36,9 @@ Plataforma educacional do Inteli contendo material de aulas do professor Afonso 
 - Usar CSS Variables definidas em `/css/inteli-styles.css`
 - Classes seguem padrão: `.module-header`, `.slide-container`, etc.
 - Efeitos glassmorphism para cards
+- Para novas apresentações, usar Reveal.js como engine de slides
+- Slides devem preencher corretamente o viewport: evitar tanto overflow vertical quanto sobra excessiva de espaço vazio
+- Antes de finalizar slides, verificar visualmente os slides mais densos e ajustar tipografia, grid, padding e altura dos cards até o conteúdo ficar bem distribuído
 
 ### JavaScript
 - Sistema de navegação de slides com teclado (Arrow keys, Space)
@@ -66,6 +69,7 @@ Plataforma educacional do Inteli contendo material de aulas do professor Afonso 
 1. Toda página deve ter o footer global do Inteli
 2. Usar CSS Variables para cores (nunca hardcode)
 3. Testar navegação por teclado em slides
-4. Manter JSONs de configuração atualizados
-5. Links devem ser relativos
-6. Alt text obrigatório em imagens
+4. Verificar se os slides com mais conteúdo estão bem preenchidos visualmente no viewport
+5. Manter JSONs de configuração atualizados
+6. Links devem ser relativos
+7. Alt text obrigatório em imagens
