@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
+import { resolveHtmlPath, toFileUrl } from './test-helpers';
 
 const pagesDir = path.join(__dirname, '../pages');
 const moduleFiles = fs.readdirSync(pagesDir).filter(file => file.startsWith('home_module-') && file.endsWith('.html'));
@@ -13,7 +14,7 @@ test.describe('Páginas de Módulos (home_module-*.html) - Validação Estrutura
     test.describe(`Página: ${fileName}`, () => {
       
       test.beforeEach(async ({ page }) => {
-        await page.goto(`/${pagePath}`);
+        await page.goto(toFileUrl(pagePath));
       });
 
       test('Cores devem ser consistentes (Header, Badge, Lesson Numbers, Buttons)', async ({ page }) => {
@@ -94,8 +95,7 @@ test.describe('Páginas de Módulos (home_module-*.html) - Validação Estrutura
         await expect(backLink).toBeVisible();
         const href = await backLink.getAttribute('href');
         expect(href).toMatch(/index\.html|^\.\.\/$/);
-        const response = await page.request.head(href!);
-        expect(response.status()).toBe(200);
+        expect(fs.existsSync(resolveHtmlPath(pagePath, href!))).toBe(true);
       });
     });
   }

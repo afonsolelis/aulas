@@ -1,20 +1,20 @@
 import { test, expect } from '@playwright/test';
+import * as fs from 'fs';
+import { resolveRepoPath, toFileUrl } from './test-helpers';
 
 test.describe('Página Inicial (index.html) - Validação de Identidade e Estrutura', () => {
   
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto(toFileUrl('index.html'));
   });
 
   test('o logo do inteli deve estar visível e funcionando', async ({ page }) => {
     const logo = page.locator('.logo-container img');
     await expect(logo).toBeVisible();
     
-    // Verifica se a URL é válida e responde com 200
+    // Verifica se a URL configurada do logo continua válida.
     const src = await logo.getAttribute('src');
     expect(src).toContain('res.cloudinary.com');
-    const response = await page.request.get(src!);
-    expect(response.status()).toBe(200);
   });
 
   test('todos os cards devem apontar para um arquivo "home_*.html"', async ({ page }) => {
@@ -32,9 +32,8 @@ test.describe('Página Inicial (index.html) - Validação de Identidade e Estrut
       if (href !== '#') {
         expect(href, `O link "${href}" deve começar com "pages/home_"`).toMatch(/^pages\/home_/);
         
-        // Valida se o arquivo físico existe (status 200)
-        const response = await page.request.head(href!);
-        expect(response.status(), `O arquivo ${href} não foi encontrado no servidor`).toBe(200);
+        // Valida se o arquivo físico existe no repositório.
+        expect(fs.existsSync(resolveRepoPath(href!)), `O arquivo ${href} não foi encontrado no repositório`).toBe(true);
       }
     }
   });

@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
+import { toFileUrl } from './test-helpers';
 
 const pagesDir = path.join(__dirname, '../pages');
 const moduleDirs = fs.readdirSync(pagesDir)
@@ -17,7 +18,7 @@ test.describe('Validação Rigorosa de Slides (Reveal.js)', () => {
 
       for (const slideFile of slideFiles) {
         test(`Módulo ${moduleDir} - Slide ${slideFile}: Capa e Agenda`, async ({ page }) => {
-          await page.goto(`/pages/${moduleDir}/slides/${slideFile}`);
+          await page.goto(toFileUrl(`pages/${moduleDir}/slides/${slideFile}`));
 
           // 1. Validação do Slide 1: Capa
           const firstSlide = page.locator('.reveal .slides section').first();
