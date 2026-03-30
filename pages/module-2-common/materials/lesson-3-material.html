@@ -38,288 +38,111 @@
   <main class="container py-5">
     <div class="card shadow-sm border-0">
       <div class="card-body p-4 p-lg-5 study-content">
-        <p class="text-muted mb-4">Conteúdo importado de <code>Autoestudo: Modelagem Relacional — Do ER ao Modelo Físico</code>.</p>
+        <p class="text-muted mb-4">Conteúdo importado de <code>Autoestudo: CRUD em SQL, DDL, DML e Integridade</code>.</p>
         <h3 id="sumario">Sumário</h3>
 <ol>
 <li><a href="#contexto-e-objetivo">Contexto e Objetivo</a></li>
-<li><a href="#perspectiva-dos-corpos-de-conhecimento">Perspectiva dos Corpos de Conhecimento</a></li>
-<li><a href="#algebra-relacional-e-as-formas-normais">Álgebra Relacional e as Formas Normais</a></li>
-<li><a href="#pipeline-er-der-modelo-fisico">Pipeline ER → DER → Modelo Físico</a></li>
-<li><a href="#rastreabilidade-rn-entidade-tabela">Rastreabilidade RN → Entidade → Tabela</a></li>
-<li><a href="#migrations-ddl-com-postgresql">Migrations DDL com PostgreSQL</a></li>
-<li><a href="#checklist-de-validacao">Checklist de Validação</a></li>
+<li><a href="#ddl-e-dml">DDL e DML</a></li>
+<li><a href="#operacoes-crud">Operações CRUD</a></li>
+<li><a href="#constraints-e-integridade">Constraints e Integridade</a></li>
+<li><a href="#casos-de-erro-que-precisam-ser-testados">Casos de Erro que Precisam ser Testados</a></li>
+<li><a href="#checklist-de-estudo">Checklist de Estudo</a></li>
 <li><a href="#referencias">Referências</a></li>
-<li><a href="#glossario">Glossário</a></li>
 </ol>
 <hr>
 <h3 id="contexto-e-objetivo">Contexto e Objetivo</h3>
-<p>A Aula 3 consolida a visão <strong>Information</strong> do RM-ODP: o mapa conceitual (Minimundo + RNs) deve ser traduzido mecanicamente em tabelas físicas, índices e constraints. O artefato da <strong>Sprint 2</strong> exige rastreabilidade bidirecional entre regra de negócio e entidade/tabela, o que torna o rigor formal desta etapa crítico.</p>
+<p>Depois de modelar as entidades, o próximo passo é operar sobre elas. O foco desta aula é transformar o DER em tabelas reais e exercitar criação, leitura, atualização e remoção de registros com SQL.</p>
 <hr>
-<h3 id="perspectiva-dos-corpos-de-conhecimento">Perspectiva dos Corpos de Conhecimento</h3>
-<h4 id="swebok-v3-capitulo-de-software-design-data-design">SWEBOK v3 — Capítulo de Software Design (Data Design)</h4>
-<p>O SWEBOK define <em>Data Design</em> como a atividade de transformar modelos de domínio em estruturas de armazenamento eficientes. As preocupações centrais são:</p>
+<h3 id="ddl-e-dml">DDL e DML</h3>
 
     <div class="table-responsive my-4">
       <table class="table table-bordered table-striped align-middle markdown-table">
-        <thead><tr><th>Preocupação</th><th>Descrição</th><th>RNF Associado</th></tr></thead>
-        <tbody><tr><td><strong>Integridade</strong></td><td>Chaves, constraints e transações ACID</td><td>Confiabilidade</td></tr>
-<tr><td><strong>Desempenho</strong></td><td>Índices, normalização vs. desnormalização estratégica</td><td>Eficiência de Desempenho</td></tr>
-<tr><td><strong>Segurança</strong></td><td>Campos sensíveis, separação de schemas</td><td>Segurança</td></tr></tbody>
+        <thead><tr><th>Grupo</th><th>Função</th><th>Comandos comuns</th></tr></thead>
+        <tbody><tr><td>DDL</td><td>Define estrutura</td><td><code>CREATE</code>, <code>ALTER</code>, <code>DROP</code></td></tr>
+<tr><td>DML</td><td>Manipula dados</td><td><code>INSERT</code>, <code>SELECT</code>, <code>UPDATE</code>, <code>DELETE</code></td></tr></tbody>
       </table>
     </div>
   
-<h4 id="dmbok-data-management-body-of-knowledge">DMBOK (<em>Data Management Body of Knowledge</em>)</h4>
-<p>O DMBOK v2 trata modelagem de dados como disciplina formal, dividida em:</p>
-<ul>
-<li><strong>Modelo Conceitual:</strong> Entidades e relacionamentos (independente de tecnologia)</li>
-<li><strong>Modelo Lógico:</strong> Atributos, chaves, cardinalidades</li>
-<li><strong>Modelo Físico:</strong> Tabelas, tipos de dados nativos do SGBD, índices, partições</li>
-</ul>
-<hr>
-<h3 id="algebra-relacional-e-as-formas-normais">Álgebra Relacional e as Formas Normais</h3>
-<h4 id="fundamentos-da-algebra-relacional-codd-1970">Fundamentos da Álgebra Relacional (Codd, 1970)</h4>
-<p>E. F. Codd provou que qualquer consulta sobre dados relacionais pode ser expressa como composição de <strong>seis operações primitivas</strong>:</p>
-
-    <div class="table-responsive my-4">
-      <table class="table table-bordered table-striped align-middle markdown-table">
-        <thead><tr><th>Operação</th><th>Símbolo</th><th>SQL Equivalente</th><th>Descrição</th></tr></thead>
-        <tbody><tr><td><strong>Seleção</strong></td><td>σ</td><td><code>WHERE</code></td><td>Filtra tuplas por predicado</td></tr>
-<tr><td><strong>Projeção</strong></td><td>π</td><td><code>SELECT col1, col2</code></td><td>Seleciona atributos (colunas)</td></tr>
-<tr><td><strong>Produto Cartesiano</strong></td><td>×</td><td><code>CROSS JOIN</code></td><td>Combina todas as tuplas</td></tr>
-<tr><td><strong>União</strong></td><td>∪</td><td><code>UNION</code></td><td>Merge de relações compatíveis</td></tr>
-<tr><td><strong>Diferença</strong></td><td>−</td><td><code>EXCEPT</code></td><td>Tuplas em R mas não em S</td></tr>
-<tr><td><strong>Renomeação</strong></td><td>ρ</td><td><code>AS</code></td><td>Renomeia relação ou atributo</td></tr></tbody>
-      </table>
-    </div>
-  
-<p><strong>Implicação prática:</strong> Uma query que não pode ser expressa em álgebra relacional é computacionalmente indecidível neste modelo — argumento central para manter integridade nos JOINs.</p>
-<hr>
-<h4 id="formas-normais">Formas Normais</h4>
-<p>A normalização elimina <strong>anomalias de inserção, atualização e remoção</strong> através de dependências funcionais formais.</p>
-<h5 id="1fn-primeira-forma-normal">1FN — Primeira Forma Normal</h5>
-<p><strong>Regra:</strong> Todo atributo deve conter apenas <strong>valores atômicos</strong> (indivisíveis); sem grupos repetitivos.</p>
-<pre class="code-block"><code class="language-sql">-- VIOLAÇÃO: campo &quot;telefones&quot; contém lista
-CREATE TABLE cliente (
-  id SERIAL,
-  telefones TEXT  -- &quot;11999, 11888&quot; ← VIOLA 1FN
-);
-
--- CONFORMANTE
-CREATE TABLE cliente_telefone (
-  cliente_id INT REFERENCES cliente(id),
-  telefone   VARCHAR(15) NOT NULL
-);</code></pre>
-<h5 id="2fn-segunda-forma-normal">2FN — Segunda Forma Normal</h5>
-<p><strong>Regra:</strong> Estar em 1FN <strong>e</strong> todo atributo não-chave depender funcionalmente da <strong>chave primária inteira</strong> (elimina dependências parciais em PKs compostas).</p>
-
-    <div class="table-responsive my-4">
-      <table class="table table-bordered table-striped align-middle markdown-table">
-        <thead><tr><th>Tabela com Violação</th><th>Dependência Parcial</th></tr></thead>
-        <tbody><tr><td><code>pedido_item(pedido_id, produto_id, nome_produto)</code></td><td><code>nome_produto</code> depende só de <code>produto_id</code></td></tr></tbody>
-      </table>
-    </div>
-  
-<h5 id="3fn-terceira-forma-normal">3FN — Terceira Forma Normal</h5>
-<p><strong>Regra:</strong> Estar em 2FN <strong>e</strong> nenhum atributo não-chave depender transitivamente de outro atributo não-chave.</p>
-<pre class="code-block"><code class="language-">cep → cidade → estado</code></pre>
-<p>Se <code>estado</code> depende de <code>cidade</code> e <code>cidade</code> depende de <code>cep</code>, extrair em tabela própria:</p>
-<pre class="code-block"><code class="language-sql">CREATE TABLE cep_endereco (
-  cep    CHAR(8) PRIMARY KEY,
-  cidade VARCHAR(100),
-  estado CHAR(2)
-);</code></pre>
-<h5 id="bcnf-forma-normal-de-boyce-codd">BCNF — Forma Normal de Boyce-Codd</h5>
-<p><strong>Regra:</strong> Para toda dependência funcional X → Y, X deve ser superchave. Resolve ambiguidades que 3FN não detecta com múltiplas chaves candidatas sobrepostas.</p>
-<hr>
-<h3 id="pipeline-er-der-modelo-fisico">Pipeline ER → DER → Modelo Físico</h3>
-<h4 id="estagio-1-diagrama-er-conceitual">Estágio 1: Diagrama ER (Conceitual)</h4>
-<p>O ER captura <strong>o quê existe</strong> no domínio, sem comprometimento com tecnologia.</p>
-<pre class="code-block"><code class="language-">[Cliente] ──(realiza)──&lt; [Pedido] &gt;──(contém)──&lt; [ItemPedido] &gt;──(referencia)── [Produto]</code></pre>
-<p><strong>Elementos obrigatórios:</strong></p>
-<ul>
-<li>Entidades (retângulos)</li>
-<li>Relacionamentos (losangos)</li>
-<li>Atributos (elipses) — identificadores sublinhados</li>
-<li>Cardinalidade mínima/máxima</li>
-</ul>
-<h4 id="estagio-2-der-logico">Estágio 2: DER (Lógico)</h4>
-<p>O DER traduz cardinalidades em <strong>chaves estrangeiras</strong> e resolve associações N:M com tabelas de junção.</p>
-
-    <div class="table-responsive my-4">
-      <table class="table table-bordered table-striped align-middle markdown-table">
-        <thead><tr><th>Cardinalidade ER</th><th>Implementação DER</th></tr></thead>
-        <tbody><tr><td>1:1</td><td>FK em qualquer lado (ou tabela única)</td></tr>
-<tr><td>1:N</td><td>FK no lado N</td></tr>
-<tr><td>N:M</td><td>Tabela associativa com FKs para ambos</td></tr></tbody>
-      </table>
-    </div>
-  
-<p><strong>Exemplo — N:M resolvido:</strong></p>
-<pre class="code-block"><code class="language-">Pedido (1) ─── (N) ItemPedido (N) ─── (1) Produto
-         pedido_id ↑           ↑ produto_id</code></pre>
-<h4 id="estagio-3-modelo-fisico-postgresql">Estágio 3: Modelo Físico (PostgreSQL)</h4>
+<h4 id="exemplo-de-ddl">Exemplo de DDL</h4>
 <pre class="code-block"><code class="language-sql">CREATE TABLE produto (
-  id          SERIAL        PRIMARY KEY,
-  sku         VARCHAR(50)   NOT NULL UNIQUE,
-  nome        VARCHAR(200)  NOT NULL,
-  preco_cents INTEGER       NOT NULL CHECK (preco_cents &gt; 0),
-  estoque     INTEGER       NOT NULL DEFAULT 0,
-  criado_em   TIMESTAMPTZ   NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE pedido (
-  id          SERIAL        PRIMARY KEY,
-  cliente_id  INTEGER       NOT NULL REFERENCES cliente(id),
-  status      VARCHAR(20)   NOT NULL DEFAULT 'pendente'
-                            CHECK (status IN ('pendente','pago','cancelado')),
-  total_cents INTEGER       NOT NULL CHECK (total_cents &gt;= 0),
-  criado_em   TIMESTAMPTZ   NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE item_pedido (
-  pedido_id   INTEGER  NOT NULL REFERENCES pedido(id)  ON DELETE CASCADE,
-  produto_id  INTEGER  NOT NULL REFERENCES produto(id),
-  quantidade  INTEGER  NOT NULL CHECK (quantidade &gt; 0),
-  preco_cents INTEGER  NOT NULL CHECK (preco_cents &gt; 0),
-  PRIMARY KEY (pedido_id, produto_id)
+  id SERIAL PRIMARY KEY,
+  nome VARCHAR(120) NOT NULL,
+  sku VARCHAR(40) NOT NULL UNIQUE,
+  preco_cents INT NOT NULL CHECK (preco_cents &gt; 0)
 );</code></pre>
-<p><strong>Decisões técnicas documentadas:</strong></p>
-<ul>
-<li><code>preco_cents INTEGER</code> em vez de <code>DECIMAL</code> — elimina erros de arredondamento de ponto flutuante</li>
-<li><code>CHECK (status IN (...))</code> — impõe regra de negócio no banco, não só na aplicação</li>
-<li><code>ON DELETE CASCADE</code> — itens órfãos são deletados com o pedido (decisão de domínio)</li>
-</ul>
 <hr>
-<h3 id="rastreabilidade-rn-entidade-tabela">Rastreabilidade RN → Entidade → Tabela</h3>
-<p>O artefato da Sprint 2 exige rastreabilidade explícita. Use tabela de mapeamento:</p>
+<h3 id="operacoes-crud">Operações CRUD</h3>
+<h4 id="create">Create</h4>
+<pre class="code-block"><code class="language-sql">INSERT INTO produto (nome, sku, preco_cents)
+VALUES ('Camiseta', 'CAM-001', 4990);</code></pre>
+<h4 id="read">Read</h4>
+<pre class="code-block"><code class="language-sql">SELECT id, nome, preco_cents
+FROM produto
+WHERE sku = 'CAM-001';</code></pre>
+<h4 id="update">Update</h4>
+<pre class="code-block"><code class="language-sql">UPDATE produto
+SET preco_cents = 5490
+WHERE id = 1;</code></pre>
+<h4 id="delete">Delete</h4>
+<pre class="code-block"><code class="language-sql">DELETE FROM produto
+WHERE id = 1;</code></pre>
+<hr>
+<h3 id="constraints-e-integridade">Constraints e Integridade</h3>
+<p>Constraints protegem o banco contra inconsistências.</p>
 
     <div class="table-responsive my-4">
       <table class="table table-bordered table-striped align-middle markdown-table">
-        <thead><tr><th>Regra de Negócio</th><th>Entidade Lógica</th><th>Tabela Física</th><th>Constraint/Índice</th></tr></thead>
-        <tbody><tr><td>RN01 — SKU único por produto</td><td>Produto</td><td><code>produto</code></td><td><code>UNIQUE (sku)</code></td></tr>
-<tr><td>RN02 — Preço sempre positivo</td><td>Produto</td><td><code>produto</code></td><td><code>CHECK (preco_cents &gt; 0)</code></td></tr>
-<tr><td>RN03 — Pedido vinculado a cliente existente</td><td>Pedido</td><td><code>pedido</code></td><td><code>FK pedido.cliente_id → cliente.id</code></td></tr>
-<tr><td>RN04 — Status limitado a valores válidos</td><td>Pedido</td><td><code>pedido</code></td><td><code>CHECK (status IN (...))</code></td></tr>
-<tr><td>RN05 — Quantidade de item &gt; 0</td><td>ItemPedido</td><td><code>item_pedido</code></td><td><code>CHECK (quantidade &gt; 0)</code></td></tr></tbody>
+        <thead><tr><th>Constraint</th><th>O que evita</th></tr></thead>
+        <tbody><tr><td><code>PRIMARY KEY</code></td><td>IDs repetidos</td></tr>
+<tr><td><code>NOT NULL</code></td><td>Campos obrigatórios vazios</td></tr>
+<tr><td><code>UNIQUE</code></td><td>Duplicidade em campos únicos</td></tr>
+<tr><td><code>CHECK</code></td><td>Valores fora da regra</td></tr>
+<tr><td><code>FOREIGN KEY</code></td><td>Referências para registros inexistentes</td></tr></tbody>
       </table>
     </div>
   
+<h4 id="exemplo">Exemplo</h4>
+<pre class="code-block"><code class="language-sql">CREATE TABLE pedido (
+  id SERIAL PRIMARY KEY,
+  cliente_id INT NOT NULL REFERENCES cliente(id),
+  status VARCHAR(20) NOT NULL CHECK (status IN ('pendente', 'pago', 'cancelado'))
+);</code></pre>
 <hr>
-<h3 id="migrations-ddl-com-postgresql">Migrations DDL com PostgreSQL</h3>
-<h4 id="principios-de-migrations-seguras">Princípios de Migrations Seguras</h4>
-<ol>
-<li><strong>Idempotência:</strong> <code>CREATE TABLE IF NOT EXISTS</code>, <code>CREATE INDEX CONCURRENTLY IF NOT EXISTS</code></li>
-<li><strong>Ordem de dependência:</strong> Tabelas pai antes de filhas</li>
-<li><strong>Rollback planejado:</strong> Todo <code>migration_up</code> tem <code>migration_down</code> correspondente</li>
-<li><strong>Sem dados alterados em DDL:</strong> Separar <code>ALTER TABLE</code> de migrações de dados</li>
-</ol>
-<h4 id="estrutura-de-arquivo-de-migration">Estrutura de Arquivo de Migration</h4>
-<pre class="code-block"><code class="language-sql">-- migration: 0003_create_pedido_tables.sql
--- up
-BEGIN;
-
-CREATE TABLE IF NOT EXISTS pedido (
-  id          SERIAL        PRIMARY KEY,
-  cliente_id  INTEGER       NOT NULL REFERENCES cliente(id),
-  status      VARCHAR(20)   NOT NULL DEFAULT 'pendente',
-  total_cents INTEGER       NOT NULL CHECK (total_cents &gt;= 0),
-  criado_em   TIMESTAMPTZ   NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_pedido_cliente_id ON pedido(cliente_id);
-CREATE INDEX IF NOT EXISTS idx_pedido_status     ON pedido(status);
-
-COMMIT;
-
--- down
-BEGIN;
-DROP TABLE IF EXISTS pedido CASCADE;
-COMMIT;</code></pre>
-<h4 id="estrategia-de-indexacao">Estratégia de Indexação</h4>
+<h3 id="casos-de-erro-que-precisam-ser-testados">Casos de Erro que Precisam ser Testados</h3>
 
     <div class="table-responsive my-4">
       <table class="table table-bordered table-striped align-middle markdown-table">
-        <thead><tr><th>Tipo de Consulta</th><th>Índice Recomendado</th><th>Exemplo</th></tr></thead>
-        <tbody><tr><td>Igualdade em FK</td><td>B-Tree (padrão)</td><td><code>idx_pedido_cliente_id</code></td></tr>
-<tr><td>Intervalo de datas</td><td>B-Tree em <code>TIMESTAMPTZ</code></td><td><code>idx_pedido_criado_em</code></td></tr>
-<tr><td>Texto livre</td><td>GIN com <code>pg_trgm</code></td><td><code>idx_produto_nome_trgm</code></td></tr>
-<tr><td>Igualdade exata (hash estável)</td><td>Hash</td><td>Apenas PostgreSQL ≥ 10</td></tr></tbody>
+        <thead><tr><th>Situação</th><th>Resultado esperado</th></tr></thead>
+        <tbody><tr><td>Inserir <code>NULL</code> em campo obrigatório</td><td>erro de constraint</td></tr>
+<tr><td>Repetir um <code>sku</code> único</td><td>erro de duplicidade</td></tr>
+<tr><td>Criar pedido com <code>cliente_id</code> inexistente</td><td>erro de chave estrangeira</td></tr>
+<tr><td>Atualizar valor fora do <code>CHECK</code></td><td>erro de validação</td></tr></tbody>
       </table>
     </div>
   
-<hr>
-<h3 id="checklist-de-validacao">Checklist de Validação</h3>
+<h4 id="boa-pratica">Boa prática</h4>
+<p>Para cada operação CRUD importante, o aluno deve registrar:</p>
 <ul>
-<li>[ ] Cada entidade do ER possui correspondência em tabela no modelo físico?</li>
-<li>[ ] Todas as relações N:M foram decompostas em tabela associativa?</li>
-<li>[ ] As constraints do banco refletem as RNs numeradas do artefato?</li>
-<li>[ ] Existe índice em todas as FKs (evitar <em>full table scan</em> em JOINs)?</li>
-<li>[ ] Os tipos de dados escolhidos evitam perda de precisão (ex: <code>INTEGER</code> para moeda)?</li>
-<li>[ ] A tabela de rastreabilidade <code>RN → tabela → constraint</code> está atualizada?</li>
-<li>[ ] As migrations executam em ordem reproduzível sem erros de dependência?</li>
-<li>[ ] Existe <code>migration_down</code> para cada <code>migration_up</code>?</li>
+<li>cenário de sucesso</li>
+<li>cenário de falha</li>
+<li>regra de negócio associada</li>
 </ul>
 <hr>
-<h3 id="exercicio-pratico">Exercício Prático</h3>
-<h4 id="cenario">Cenário</h4>
-<p>Você precisa modelar o domínio de <strong>biblioteca</strong> com os seguintes requisitos:</p>
+<h3 id="checklist-de-estudo">Checklist de Estudo</h3>
 <ul>
-<li>Livros podem ter múltiplos autores</li>
-<li>Um autor pode escrever múltiplos livros</li>
-<li>Empréstimos vinculam um cliente a múltiplos livros com datas de devolução</li>
-<li>Multas são calculadas por dia de atraso</li>
+<li>[ ] Sei distinguir DDL de DML?</li>
+<li>[ ] Consigo montar um <code>CREATE TABLE</code> coerente com o DER?</li>
+<li>[ ] Consigo executar <code>INSERT</code>, <code>SELECT</code>, <code>UPDATE</code> e <code>DELETE</code>?</li>
+<li>[ ] Consigo explicar por que uma constraint é útil?</li>
+<li>[ ] Consigo pensar em ao menos um teste de erro por operação crítica?</li>
 </ul>
-<h4 id="tarefa-1-diagrama-er">Tarefa 1 — Diagrama ER</h4>
-<p>Desenhe o diagrama conceitual com entidades, relacionamentos e cardinalidades.</p>
-<h4 id="tarefa-2-modelo-fisico">Tarefa 2 — Modelo Físico</h4>
-<p>Crie as tabelas em SQL com:</p>
-<ul>
-<li>Chaves primárias compostas onde necessário</li>
-<li>Constraints CHECK para validação de dados</li>
-<li>Índices nas colunas de busca frequente</li>
-</ul>
-<h4 id="tarefa-3-rastreabilidade">Tarefa 3 — Rastreabilidade</h4>
-<p>Crie uma tabela mapeando 3 regras de negócio para constraints/tabelas.</p>
-<hr>
-<h3 id="ver-tambem">Ver Também</h3>
-
-    <div class="table-responsive my-4">
-      <table class="table table-bordered table-striped align-middle markdown-table">
-        <thead><tr><th>Conceito</th><th>Documento Relacionado</th></tr></thead>
-        <tbody><tr><td>RNFs de integridade e segurança</td><td><a href="./aula_01_rnf_8_eixos.md" target="_blank" rel="noopener noreferrer">Aula 01 — RNFs</a></td></tr>
-<tr><td>Repository Pattern (acesso a dados)</td><td><a href="./aula_04_uml_tdd.md" target="_blank" rel="noopener noreferrer">Aula 04 — UML/TDD</a></td></tr>
-<tr><td>Migrations em testes</td><td><a href="./aula_10_refatoracao_testes.md" target="_blank" rel="noopener noreferrer">Aula 10 — Refatoração</a></td></tr></tbody>
-      </table>
-    </div>
-  
 <hr>
 <h3 id="referencias">Referências</h3>
 <ul>
-<li><strong>Codd, E.F.</strong> (1970) — <em>A Relational Model of Data for Large Shared Data Banks</em> — ACM CACM</li>
-<li><strong>SWEBOK v3</strong> — <em>Software Design: Data Design</em> — IEEE Computer Society</li>
-<li><strong>DMBOK v2</strong> — <em>Data Management Body of Knowledge</em> — DAMA International</li>
-<li><strong>PostgreSQL 16 Documentation</strong> — <em>Data Types, Indexes, Constraints</em></li>
-<li><strong>Chen, P.P.</strong> (1976) — <em>The Entity-Relationship Model</em> — ACM Transactions on Database Systems</li>
+<li>PostgreSQL Documentation — CREATE TABLE</li>
+<li>PostgreSQL Documentation — INSERT / UPDATE / DELETE</li>
+<li>SWEBOK v3 — Software Construction and Data Design</li>
 </ul>
-<hr>
-<h3 id="glossario">Glossário</h3>
-
-    <div class="table-responsive my-4">
-      <table class="table table-bordered table-striped align-middle markdown-table">
-        <thead><tr><th>Termo</th><th>Definição</th></tr></thead>
-        <tbody><tr><td><strong>Dependência Funcional</strong></td><td>X → Y: dado X, Y é determinado unicamente</td></tr>
-<tr><td><strong>Chave Candidata</strong></td><td>Conjunto mínimo de atributos que identifica unicamente uma tupla</td></tr>
-<tr><td><strong>Superchave</strong></td><td>Qualquer superconjunto de chave candidata</td></tr>
-<tr><td><strong>BCNF</strong></td><td>Boyce-Codd Normal Form — versão refinada da 3FN</td></tr>
-<tr><td><strong>DDL</strong></td><td>Data Definition Language — <code>CREATE</code>, <code>ALTER</code>, <code>DROP</code></td></tr>
-<tr><td><strong>DML</strong></td><td>Data Manipulation Language — <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code>, <code>SELECT</code></td></tr>
-<tr><td><strong>Anomalia de Atualização</strong></td><td>Inconsistência gerada por redundância ao atualizar um valor</td></tr>
-<tr><td><strong>Migration</strong></td><td>Script versionado que evolui o schema do banco de forma controlada</td></tr>
-<tr><td><strong>Full Table Scan</strong></td><td>Varredura completa da tabela — evitada com índices adequados</td></tr>
-<tr><td><strong>ON DELETE CASCADE</strong></td><td>Deleção automática de registros filhos ao deletar o registro pai</td></tr></tbody>
-      </table>
-    </div>
-  
       </div>
     </div>
   </main>

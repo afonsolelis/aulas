@@ -7,52 +7,52 @@ const lessons = [
   {
     lesson: 1,
     lessonTitle: 'Introdução aos Sistemas Web',
-    markdownFile: 'module_guidelines/in_02/autoestudos/aula_01_rnf_8_eixos.md'
+    markdownFile: 'module_guidelines/in_02/autoestudos/aula_01_fundamentos_sistemas_web.md'
   },
   {
     lesson: 2,
     lessonTitle: 'Banco de Dados I - Conceitos, Modelos e SQL Básico',
-    markdownFile: 'module_guidelines/in_02/autoestudos/aula_02_rnf_metricas_sre.md'
+    markdownFile: 'module_guidelines/in_02/autoestudos/aula_02_modelagem_er_sql_basico.md'
   },
   {
     lesson: 3,
     lessonTitle: 'Banco de Dados II - Create, Read, Update, Delete',
-    markdownFile: 'module_guidelines/in_02/autoestudos/aula_03_modelagem_relacional.md'
+    markdownFile: 'module_guidelines/in_02/autoestudos/aula_03_crud_integridade_sql.md'
   },
   {
     lesson: 4,
     lessonTitle: 'Banco de Dados III - Joins',
-    markdownFile: 'module_guidelines/in_02/autoestudos/aula_04_uml_tdd.md'
+    markdownFile: 'module_guidelines/in_02/autoestudos/aula_04_joins_consultas_relacionais.md'
   },
   {
     lesson: 5,
     lessonTitle: 'Back-End I - Node.js, Models e Controllers',
-    markdownFile: 'module_guidelines/in_02/autoestudos/aula_05_rest_endpoints.md'
+    markdownFile: 'module_guidelines/in_02/autoestudos/aula_05_node_models_controllers.md'
   },
   {
     lesson: 6,
     lessonTitle: 'Back-End II - Endpoints de Leitura e Escrita com Documentação Própria',
-    markdownFile: 'module_guidelines/in_02/autoestudos/aula_06_rtm_design_patterns.md'
+    markdownFile: 'module_guidelines/in_02/autoestudos/aula_06_endpoints_http_documentacao.md'
   },
   {
     lesson: 7,
     lessonTitle: 'Front-End 1 - HTML, DOM e JavaScript',
-    markdownFile: 'module_guidelines/in_02/autoestudos/aula_07_frontend_personas_contratos.md'
+    markdownFile: 'module_guidelines/in_02/autoestudos/aula_07_html_dom_javascript.md'
   },
   {
     lesson: 8,
     lessonTitle: 'Front-End 2 - JavaScript, Chamadas Assíncronas e Redes',
-    markdownFile: 'module_guidelines/in_02/autoestudos/aula_08_async_integracao.md'
+    markdownFile: 'module_guidelines/in_02/autoestudos/aula_08_async_integracao_redes.md'
   },
   {
     lesson: 9,
     lessonTitle: 'Front-End 3 - CSS e JavaScript',
-    markdownFile: 'module_guidelines/in_02/autoestudos/aula_09_estado_global_heuristicas.md'
+    markdownFile: 'module_guidelines/in_02/autoestudos/aula_09_css_heuristicas_interface.md'
   },
   {
     lesson: 10,
     lessonTitle: 'Testes e Automação',
-    markdownFile: 'module_guidelines/in_02/autoestudos/aula_10_refatoracao_testes.md'
+    markdownFile: 'module_guidelines/in_02/autoestudos/aula_10_testes_automacao_web.md'
   },
   {
     lesson: 11,

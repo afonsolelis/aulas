@@ -8,16 +8,16 @@ Coleção de documentos de autoestudo para apoio aos artefatos das sprints. Mate
 
 | Aula | Documento | Sprint | Pré-requisitos | Conteúdo Principal |
 |------|-----------|--------|----------------|-------------------|
-| 01 | [RNFs e 8 Eixos de Qualidade](./aula_01_rnf_8_eixos.md) | Sprint 1 | Nenhum | Classificação de RNFs por eixo |
-| 02 | [Métricas SRE (SLI, SLO, SLA)](./aula_02_rnf_metricas_sre.md) | Sprint 1 | Aula 01 | Percentis, SLO, SLA, Error Budget |
-| 03 | [Modelagem Relacional](./aula_03_modelagem_relacional.md) | Sprint 2 | Aula 01 | Classes do domínio, ER→DER→SQL, Forms Normais, Migrations |
-| 04 | [UML Comportamental e TDD](./aula_04_uml_tdd.md) | Sprint 3 | Aula 03 | **Jest setup, TDD, RN→Teste, Proteção contra refatoração** |
-| 05 | [APIs REST e Endpoints](./aula_05_rest_endpoints.md) | Sprint 3 | Aula 04 | **Testes de integração, Matriz RF×RN** |
-| 06 | [RTM e Design Patterns](./aula_06_rtm_design_patterns.md) | Sprint 3 | Aulas 04, 05 | **RTM completa, Cobertura, Evidências** |
-| 07 | [Front-end I: Personas e Contratos](./aula_07_frontend_personas_contratos.md) | Sprint 4 | Aula 05 | Personas, Gherkin, Contratos |
-| 08 | [Integração Assíncrona](./aula_08_async_integracao.md) | Sprint 4 | Aulas 04, 07 | Event Loop, Timeout, Retry |
-| 09 | [Estado Global e Heurísticas](./aula_09_estado_global_heuristicas.md) | Sprint 4 | Aulas 07, 08 | Context, React Query, Nielsen |
-| 10 | [Refatoração de Testes](./aula_10_refatoracao_testes.md) | Sprint 5 | Aulas 04, 06 | Mocks, Code Smells, Débito Técnico |
+| 01 | [Fundamentos de Sistemas Web, Requisitos e Minimundo](./aula_01_fundamentos_sistemas_web.md) | Sprint 1 | Nenhum | Cliente-servidor, HTTP, RF/RN/RNF, escopo |
+| 02 | [Modelagem ER e SQL Básico](./aula_02_modelagem_er_sql_basico.md) | Sprint 1 | Aula 01 | Entidades, atributos, chaves, SELECT inicial |
+| 03 | [CRUD em SQL e Integridade](./aula_03_crud_integridade_sql.md) | Sprint 2 | Aula 02 | DDL, DML, constraints, cenários de erro |
+| 04 | [JOINS e Consultas Relacionais](./aula_04_joins_consultas_relacionais.md) | Sprint 2 | Aula 03 | INNER/LEFT JOIN, agregação e leitura de dados |
+| 05 | [Node.js, Models e Controllers](./aula_05_node_models_controllers.md) | Sprint 3 | Aula 04 | Estrutura do backend, camadas e fluxo HTTP |
+| 06 | [Endpoints HTTP e Documentação de API](./aula_06_endpoints_http_documentacao.md) | Sprint 3 | Aula 05 | payloads, status codes, validação e documentação |
+| 07 | [HTML, DOM e JavaScript](./aula_07_html_dom_javascript.md) | Sprint 4 | Aula 06 | HTML semântico, eventos, DOM e validação simples |
+| 08 | [Integração Assíncrona](./aula_08_async_integracao_redes.md) | Sprint 4 | Aulas 06, 07 | Event Loop, timeout, retry e estados de tela |
+| 09 | [CSS e Heurísticas de Interface](./aula_09_css_heuristicas_interface.md) | Sprint 4 | Aulas 07, 08 | layout, feedback visual, usabilidade |
+| 10 | [Testes em Aplicações Web e Automação](./aula_10_testes_automacao_web.md) | Sprint 5 | Aulas 05, 06, 09 | tipos de teste, priorização, evidências |
 | 11 | [Redes e Resiliência](./aula_11_redes_resiliencia.md) | Sprint 5 | Aulas 02, 08 | TCP/IP, Circuit Breaker, Idempotência |
 | — | **[Guia Completo das Ponderadas](./ponderadas_guia_completo.md)** | **Todas** | **Aulas 1-6** | **RNFs, Testes Black-Box, RTM** |
 
