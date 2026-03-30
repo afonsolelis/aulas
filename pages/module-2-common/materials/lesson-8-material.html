@@ -3,17 +3,31 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aula 8 — Material - Inteli</title>
+  <title>Aula 8 — Front-End 2 - JavaScript, Chamadas Assíncronas e Redes — Material - Inteli</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="../../../css/inteli-styles.css" rel="stylesheet">
+  <style>
+    .page-header { background: #b2b6bf; color: white; }
+    .study-content { font-size: 1rem; line-height: 1.7; }
+    .study-content h2, .study-content h3, .study-content h4, .study-content h5, .study-content h6 { margin-top: 2rem; margin-bottom: 1rem; color: var(--inteli-dark-gray); }
+    .study-content h2:first-child { margin-top: 0; }
+    .study-content p, .study-content ul, .study-content ol, .study-content blockquote, .study-content .table-responsive, .study-content pre { margin-bottom: 1.25rem; }
+    .study-content ul, .study-content ol { padding-left: 1.5rem; }
+    .study-content code { background: #f1f3f5; color: #5c2d91; padding: 0.1rem 0.35rem; border-radius: 0.35rem; }
+    .study-content pre.code-block { background: #1f2430; color: #f6f7f9; padding: 1rem; border-radius: 0.75rem; overflow-x: auto; }
+    .study-content pre.code-block code { background: transparent; color: inherit; padding: 0; }
+    .study-content hr { margin: 2rem 0; border-color: #d7dce2; opacity: 1; }
+    .custom-blockquote { border-left: 4px solid #b2b6bf; background: #f8f9fb; padding: 1rem 1.25rem; border-radius: 0.5rem; }
+    .markdown-table th { white-space: nowrap; }
+  </style>
 </head>
 <body>
-  <header class="page-header py-4" style="background: #b2b6bf; color: white;">
+  <header class="page-header py-4">
     <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2">
       <div>
         <div><span class="module-badge bg-common">Módulo 2 • Ciclo Comum</span></div>
         <h1 class="h3 mb-1 mt-2">Aula 8 — Material</h1>
-        <div>Front-End Ii</div>
+        <div>Front-End 2 - JavaScript, Chamadas Assíncronas e Redes</div>
       </div>
       <div class="d-flex gap-2 flex-wrap">
         <a href="../slides/slide_lesson-8.html" class="btn btn-light">Slides</a>
@@ -23,11 +37,337 @@
   </header>
   <main class="container py-5">
     <div class="card shadow-sm border-0">
-      <div class="card-body p-4">
-        <h2 class="h4 mb-3">Resumo</h2>
-        <p>Exposição pragmática da dimensionalidade assíncrona da máquina virtual Javascript (V8), lidando com Event Loops contínuos na resolução temporal de chamadas assíncronas e controle estrito da latência algorítmica de rede.</p>
-        <h2 class="h4 mt-4 mb-3">Status do Material</h2>
-        <p>Este material é um placeholder inicial criado a partir do repositório de referência <code>afonsolelis/inteli_refactor/in02</code>. Ele garante navegação consistente enquanto o conteúdo completo é refinado para este portal.</p>
+      <div class="card-body p-4 p-lg-5 study-content">
+        <p class="text-muted mb-4">Conteúdo importado de <code>Autoestudo: Integração Assíncrona — Event Loop, Promises e Resiliência de Rede</code>.</p>
+        <h3 id="sumario">Sumário</h3>
+<ol>
+<li><a href="#contexto-e-objetivo">Contexto e Objetivo</a></li>
+<li><a href="#perspectiva-dos-corpos-de-conhecimento">Perspectiva dos Corpos de Conhecimento</a></li>
+<li><a href="#o-event-loop-do-javascript-v8">O Event Loop do JavaScript (V8)</a></li>
+<li><a href="#promises-asyncawait-e-cancelamento">Promises, Async/Await e Cancelamento</a></li>
+<li><a href="#maquina-de-estados-de-chamadas-http">Máquina de Estados de Chamadas HTTP</a></li>
+<li><a href="#resiliencia-timeout-retry-e-fallback">Resiliência: Timeout, Retry e Fallback</a></li>
+<li><a href="#integracao-com-axios-padroes-tecnicos">Integração com Axios — Padrões Técnicos</a></li>
+<li><a href="#checklist-de-validacao">Checklist de Validação</a></li>
+<li><a href="#referencias">Referências</a></li>
+<li><a href="#glossario">Glossário</a></li>
+</ol>
+<hr>
+<h3 id="contexto-e-objetivo">Contexto e Objetivo</h3>
+<p>A Aula 8 aprofunda a visão <strong>Engineering</strong> do RM-ODP com foco nas transparências de comunicação: o front-end precisa lidar com a natureza assíncrona e não-confiável da rede. O artefato da <strong>Sprint 4</strong> exige chamadas assíncronas implementadas com os estados carregamento/sucesso/erro, tratamento de falha de rede (timeout, retry) e a RTM com evidências de integração.</p>
+<hr>
+<h3 id="perspectiva-dos-corpos-de-conhecimento">Perspectiva dos Corpos de Conhecimento</h3>
+<h4 id="swebok-v3-software-design-concurrency-design">SWEBOK v3 — Software Design: Concurrency Design</h4>
+<p>O SWEBOK identifica <strong>concorrência</strong> como uma das propriedades de design mais difíceis de raciocinar formalmente. Para sistemas web assíncronos:</p>
+
+    <div class="table-responsive my-4">
+      <table class="table table-bordered table-striped align-middle markdown-table">
+        <thead><tr><th>Propriedade</th><th>Descrição</th><th>Impacto no Front-end</th></tr></thead>
+        <tbody><tr><td><strong>Non-determinism</strong></td><td>Ordem de conclusão de operações assíncronas é imprevisível</td><td>Race condition entre duas chamadas paralelas</td></tr>
+<tr><td><strong>Deadlock</strong></td><td>Duas tarefas aguardando indefinidamente uma à outra</td><td>Menos comum em JS single-threaded, mas possível com Promises encadeadas erradas</td></tr>
+<tr><td><strong>Liveness</strong></td><td>Garantia de que uma operação eventualmente completa</td><td>Necessidade de timeout explícito</td></tr></tbody>
+      </table>
+    </div>
+  
+<h4 id="lamport-1978-time-clocks-and-ordering-of-events">Lamport (1978) — Time, Clocks, and Ordering of Events</h4>
+<p>Leslie Lamport provou formalmente que em sistemas distribuídos <strong>não existe um relógio global confiável</strong>. Implicação direta: ao fazer duas chamadas HTTP paralelas, não há garantia de qual resposta chega primeiro — a ordem de chegada não reflete a ordem de envio.</p>
+<pre class="code-block"><code class="language-">Envio:      ─────── req1 ──────── req2 ───────────
+Resposta:   ─────────────── res2 ─────── res1 ────</code></pre>
+<p><strong>Consequência no código:</strong> Uma chamada mais antiga pode sobrescrever uma resposta mais recente se não houver controle de versão/cancelamento.</p>
+<hr>
+<h3 id="o-event-loop-do-javascript-v8">O Event Loop do JavaScript (V8)</h3>
+<h4 id="arquitetura-do-runtime">Arquitetura do Runtime</h4>
+<pre class="code-block"><code class="language-">┌───────────────────────────────────────────────────┐
+│  JavaScript Engine (V8)                           │
+│                                                   │
+│  ┌────────────┐    ┌────────────┐                 │
+│  │ Call Stack │    │  Heap      │                 │
+│  │ (síncrono) │    │ (objetos)  │                 │
+│  └─────┬──────┘    └────────────┘                 │
+│        │                                          │
+│  ┌─────▼──────────────────────────────────────┐   │
+│  │              Event Loop                    │   │
+│  └─────┬──────────────────────────────────────┘   │
+│        │                                          │
+│  ┌─────▼──────┐    ┌─────────────┐               │
+│  │ Microtask  │    │  Task Queue │               │
+│  │ Queue      │    │ (Macrotask) │               │
+│  │ (Promises) │    │ (setTimeout)│               │
+│  └────────────┘    └─────────────┘               │
+└───────────────────────────────────────────────────┘
+         ↕ Web APIs (fetch, setTimeout, DOM events)</code></pre>
+<h4 id="prioridade-de-execucao">Prioridade de Execução</h4>
+<pre class="code-block"><code class="language-">1. Call Stack (síncrono — bloqueia tudo enquanto executa)
+2. Microtask Queue (Promises .then/.catch, queueMicrotask)
+3. Task Queue / Macrotask (setTimeout, setInterval, I/O callbacks)</code></pre>
+<p><strong>Exemplo crítico:</strong></p>
+<pre class="code-block"><code class="language-javascript">console.log('1');
+setTimeout(() =&gt; console.log('2'), 0);    // macrotask
+Promise.resolve().then(() =&gt; console.log('3')); // microtask
+console.log('4');
+
+// Saída: 1, 4, 3, 2
+// Microtask (Promise) sempre antes de macrotask (setTimeout)</code></pre>
+<h4 id="por-que-isso-importa-no-front-end">Por que isso importa no front-end?</h4>
+<p><code>async/await</code> é açúcar sintático sobre Promises (Microtask Queue). Isso garante que atualizações de estado via <code>setState</code> em callbacks assíncronos não bloqueiam a thread principal — a UI continua responsiva enquanto aguarda a rede.</p>
+<hr>
+<h3 id="promises-async-await-e-cancelamento">Promises, Async/Await e Cancelamento</h3>
+<h4 id="cadeia-de-promises-vs-async-await">Cadeia de Promises vs. Async/Await</h4>
+<pre class="code-block"><code class="language-typescript">// Estilo Promise chain (mais verboso, mais explícito)
+fetch('/api/produtos')
+  .then(res =&gt; {
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  })
+  .then(dados =&gt; setProdutos(dados))
+  .catch(err =&gt; setError(err.message))
+  .finally(() =&gt; setLoading(false));
+
+// Estilo Async/Await (mais legível, mesma semântica)
+async function carregarProdutos() {
+  try {
+    setLoading(true);
+    const res = await fetch('/api/produtos');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const dados = await res.json();
+    setProdutos(dados);
+  } catch (err) {
+    setError(err instanceof Error ? err.message : 'Erro desconhecido');
+  } finally {
+    setLoading(false);
+  }
+}</code></pre>
+<h4 id="cancelamento-com-abortcontroller">Cancelamento com AbortController</h4>
+<p>Problema: componente desmontado antes da resposta chegar → <code>setState</code> em componente desmontado → memory leak.</p>
+<pre class="code-block"><code class="language-typescript">useEffect(() =&gt; {
+  const controller = new AbortController();
+
+  async function carregar() {
+    try {
+      const res = await fetch('/api/produtos', {
+        signal: controller.signal  // vincula ao AbortController
+      });
+      const dados = await res.json();
+      setProdutos(dados); // só executa se não foi cancelado
+    } catch (err) {
+      if (err instanceof DOMException &amp;&amp; err.name === 'AbortError') {
+        return; // cancelamento esperado — não é erro
+      }
+      setError('Falha ao carregar produtos');
+    }
+  }
+
+  carregar();
+
+  return () =&gt; controller.abort(); // cleanup: cancela ao desmontar
+}, []);</code></pre>
+<hr>
+<h3 id="maquina-de-estados-de-chamadas-http">Máquina de Estados de Chamadas HTTP</h3>
+<h4 id="modelagem-formal-dos-estados">Modelagem Formal dos Estados</h4>
+<pre class="code-block"><code class="language-">        início
+           │
+           ▼
+       ┌───────┐
+       │ IDLE  │ ── usuário submete formulário ──►
+       └───────┘
+                                                 ▼
+                                          ┌──────────┐
+                              ◄── erro ── │ LOADING  │ ── sucesso ──►
+                              │           └──────────┘               │
+                              ▼                                       ▼
+                        ┌─────────┐                            ┌─────────┐
+                        │  ERROR  │                            │ SUCCESS │
+                        └─────────┘                            └─────────┘
+                              │                                       │
+                     usuário tenta novamente            nova ação do usuário
+                              │                                       │
+                              └──────────────────────────────────────┘
+                                                  │
+                                                  ▼
+                                              ┌───────┐
+                                              │ IDLE  │
+                                              └───────┘</code></pre>
+<h4 id="implementacao-com-usereducer-react">Implementação com <code>useReducer</code> (React)</h4>
+<pre class="code-block"><code class="language-typescript">type Estado =
+  | { tipo: 'IDLE' }
+  | { tipo: 'LOADING' }
+  | { tipo: 'SUCCESS'; dados: Produto[] }
+  | { tipo: 'ERROR'; mensagem: string };
+
+type Acao =
+  | { tipo: 'INICIAR' }
+  | { tipo: 'SUCESSO'; dados: Produto[] }
+  | { tipo: 'FALHA'; mensagem: string }
+  | { tipo: 'RESETAR' };
+
+function reducer(estado: Estado, acao: Acao): Estado {
+  switch (acao.tipo) {
+    case 'INICIAR':  return { tipo: 'LOADING' };
+    case 'SUCESSO':  return { tipo: 'SUCCESS', dados: acao.dados };
+    case 'FALHA':    return { tipo: 'ERROR', mensagem: acao.mensagem };
+    case 'RESETAR':  return { tipo: 'IDLE' };
+    default:         return estado;
+  }
+}</code></pre>
+<hr>
+<h3 id="resiliencia-timeout-retry-e-fallback">Resiliência: Timeout, Retry e Fallback</h3>
+<h4 id="timeout-explicito-com-abortcontroller">Timeout Explícito com AbortController</h4>
+<pre class="code-block"><code class="language-typescript">async function fetchComTimeout(url: string, timeoutMs = 5000): Promise&lt;Response&gt; {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() =&gt; controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err instanceof DOMException &amp;&amp; err.name === 'AbortError') {
+      throw new Error(`Timeout após ${timeoutMs}ms`);
+    }
+    throw err;
+  }
+}</code></pre>
+<h4 id="retry-com-exponential-backoff">Retry com Exponential Backoff</h4>
+<pre class="code-block"><code class="language-typescript">async function fetchComRetry&lt;T&gt;(
+  fn: () =&gt; Promise&lt;T&gt;,
+  maxTentativas = 3,
+  delayBaseMs = 500
+): Promise&lt;T&gt; {
+  let ultimoErro: Error;
+
+  for (let tentativa = 1; tentativa &lt;= maxTentativas; tentativa++) {
+    try {
+      return await fn();
+    } catch (err) {
+      ultimoErro = err instanceof Error ? err : new Error(String(err));
+
+      if (tentativa &lt; maxTentativas) {
+        const delay = delayBaseMs * Math.pow(2, tentativa - 1); // 500, 1000, 2000ms
+        await new Promise(resolve =&gt; setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  throw ultimoErro!;
+}
+
+// Uso
+const produtos = await fetchComRetry(
+  () =&gt; api.get&lt;Produto[]&gt;('/produtos').then(r =&gt; r.data),
+  3,       // 3 tentativas
+  500      // delay inicial: 500ms, depois 1000ms, depois 2000ms
+);</code></pre>
+<hr>
+<h3 id="integracao-com-axios-padroes-tecnicos">Integração com Axios — Padrões Técnicos</h3>
+<h4 id="instancia-configurada">Instância Configurada</h4>
+<pre class="code-block"><code class="language-typescript">// src/lib/api.ts
+import axios from 'axios';
+
+export const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL,
+  timeout: 10_000,                    // 10 segundos
+  headers: { 'Content-Type': 'application/json' }
+});
+
+// Interceptor: adiciona token de autenticação
+api.interceptors.request.use(config =&gt; {
+  const token = localStorage.getItem('token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+// Interceptor: trata erros globalmente
+api.interceptors.response.use(
+  response =&gt; response,
+  error =&gt; {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);</code></pre>
+<hr>
+<h3 id="checklist-de-validacao">Checklist de Validação</h3>
+<ul>
+<li>[ ] Toda chamada HTTP exibe estado de carregamento (spinner, skeleton ou disabled button)?</li>
+<li>[ ] Estados de sucesso, erro 4xx e erro 5xx têm representação visual distinta?</li>
+<li>[ ] Existe timeout configurado em todas as chamadas (não aguardar indefinidamente)?</li>
+<li>[ ] Chamadas em <code>useEffect</code> têm cleanup com <code>AbortController</code>?</li>
+<li>[ ] Erros de rede (sem resposta do servidor) são tratados separadamente de erros HTTP?</li>
+<li>[ ] A RTM contém evidências de integração (screenshot, log, teste de integração)?</li>
+<li>[ ] Retries são implementados com backoff exponencial (não loop fixo)?</li>
+<li>[ ] O tratamento de erro 401 redireciona para login?</li>
+</ul>
+<hr>
+<h3 id="exercicio-pratico">Exercício Prático</h3>
+<h4 id="cenario">Cenário</h4>
+<p>Você precisa implementar uma busca de produtos com as seguintes características:</p>
+<ul>
+<li>Busca com debounce de 300ms (usuário digita nome do produto)</li>
+<li>Timeout de 5 segundos</li>
+<li>Retry automático em falhas 503 (máximo 3 tentativas)</li>
+<li>Cancelamento da requisição se usuário digitar novo termo antes da resposta chegar</li>
+</ul>
+<h4 id="tarefa-1-hook-com-abortcontroller">Tarefa 1 — Hook com AbortController</h4>
+<p>Implemente <code>useBuscaProdutos(termo: string)</code> que:</p>
+<ul>
+<li>Cancela requisição anterior quando <code>termo</code> muda</li>
+<li>Gerencia estados: idle, loading, success, error</li>
+</ul>
+<h4 id="tarefa-2-retry-com-backoff">Tarefa 2 — Retry com Backoff</h4>
+<p>Implemente a função <code>fetchComRetry</code> respeitando apenas erros 502, 503, 504 como retentáveis.</p>
+<h4 id="tarefa-3-maquina-de-estados">Tarefa 3 — Máquina de Estados</h4>
+<p>Desenhe o diagrama de estados da busca (incluindo transições de cancelamento).</p>
+<hr>
+<h3 id="evolucao-do-conceito-resiliencia-de-rede">Evolução do Conceito: Resiliência de Rede</h3>
+<p>Os padrões de resiliência são detalhados em profundidade na <a href="./aula_11_redes_resiliencia.md" target="_blank" rel="noopener noreferrer">Aula 11</a>, que cobre:</p>
+<ul>
+<li>Circuit Breaker (não abordado nesta aula)</li>
+<li>Idempotência em operações de escrita</li>
+<li>Fundamentos TCP/IP e HTTP</li>
+<li>Quando NÃO fazer retry (400, 401, 403, 404, 422)</li>
+</ul>
+<hr>
+<h3 id="ver-tambem">Ver Também</h3>
+
+    <div class="table-responsive my-4">
+      <table class="table table-bordered table-striped align-middle markdown-table">
+        <thead><tr><th>Conceito</th><th>Documento Relacionado</th></tr></thead>
+        <tbody><tr><td>Estados de UI e heurísticas</td><td><a href="./aula_09_estado_global_heuristicas.md" target="_blank" rel="noopener noreferrer">Aula 09 — Estado Global</a></td></tr>
+<tr><td>Timeout e retry (backend)</td><td><a href="./aula_11_redes_resiliencia.md" target="_blank" rel="noopener noreferrer">Aula 11 — Redes</a></td></tr>
+<tr><td>Contratos de API</td><td><a href="./aula_07_frontend_personas_contratos.md" target="_blank" rel="noopener noreferrer">Aula 07 — Front-end I</a></td></tr></tbody>
+      </table>
+    </div>
+  
+<hr>
+<h3 id="referencias">Referências</h3>
+<ul>
+<li><strong>Lamport, L.</strong> (1978) — <em>Time, Clocks, and the Ordering of Events in a Distributed System</em> — ACM CACM</li>
+<li><strong>SWEBOK v3</strong> — <em>Software Design: Concurrency Design</em> — IEEE Computer Society</li>
+<li><strong>ECMA-262</strong> — <em>ECMAScript Language Specification: Async Functions and Promises</em></li>
+<li><strong>MDN Web Docs</strong> — <em>AbortController API, Fetch API, Event Loop</em></li>
+<li><strong>Axios Documentation</strong> — <em>Interceptors, Timeout, CancelToken</em></li>
+</ul>
+<hr>
+<h3 id="glossario">Glossário</h3>
+
+    <div class="table-responsive my-4">
+      <table class="table table-bordered table-striped align-middle markdown-table">
+        <thead><tr><th>Termo</th><th>Definição</th></tr></thead>
+        <tbody><tr><td><strong>Event Loop</strong></td><td>Mecanismo que controla a execução de código síncrono e callbacks assíncronos</td></tr>
+<tr><td><strong>Microtask</strong></td><td>Tarefa de alta prioridade executada antes do próximo ciclo do Event Loop (Promises)</td></tr>
+<tr><td><strong>Macrotask</strong></td><td>Tarefa de baixa prioridade (setTimeout, setInterval, I/O)</td></tr>
+<tr><td><strong>AbortController</strong></td><td>API Web para cancelar requisições fetch/axios em andamento</td></tr>
+<tr><td><strong>Exponential Backoff</strong></td><td>Estratégia de retry com intervalos crescentes exponencialmente</td></tr>
+<tr><td><strong>Race Condition</strong></td><td>Bug causado por dois processos assíncronos competindo pelo mesmo estado</td></tr>
+<tr><td><strong>Timeout</strong></td><td>Limite de tempo após o qual uma operação é considerada falha</td></tr>
+<tr><td><strong>Interceptor</strong></td><td>Função que intercepta requisições/respostas para aplicar lógica transversal</td></tr>
+<tr><td><strong>Non-blocking I/O</strong></td><td>Operações de I/O que não bloqueiam a thread principal enquanto aguardam</td></tr></tbody>
+      </table>
+    </div>
+  
       </div>
     </div>
   </main>
@@ -37,7 +377,7 @@
   <footer class="inteli-footer mt-auto py-4 bg-light border-top">
     <div class="container text-center">
       <p class="mb-1">Material criado pelo professor <strong>Afonso Brandão</strong> para o <strong>Inteli</strong>.</p>
-      <small class="text-muted">🔓 Licença de leitura aberta</small>
+      <small class="text-muted">Licença de leitura aberta</small>
     </div>
   </footer>
 </body>
