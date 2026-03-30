@@ -82,6 +82,105 @@ Antes de programar, é preciso diferenciar tipos de requisito:
 | RN | Usuário precisa estar ativo |
 | RNF | Login deve ter resposta rápida e proteger a senha |
 
+### RNF não é opinião; é critério observável
+
+Um erro comum de aluno iniciante é falar:
+
+> "O sistema é bom."
+
+Essa frase não serve para engenharia porque não define eixo de qualidade, métrica, carga, ambiente nem evidência. O discurso técnico esperado é outro:
+
+> "O sistema atende o RF de cadastro por meio da suíte E2E `cadastro-produto.spec.ts` e atende o RNF de eficiência sob carga de 100 requisições simultâneas, com `p99 < 300ms` no endpoint `POST /produtos`."
+
+O ponto central é este:
+
+- RF costuma ser evidenciado por fluxo funcional e teste de comportamento
+- RN traduz restrição de negócio que limita o comportamento aceito
+- RNF precisa ser expresso como atributo de qualidade com critério verificável
+
+### Os 8 eixos de RNF que orientam a disciplina
+
+Ao falar de requisitos não funcionais neste módulo, a referência é a decomposição de qualidade em 8 eixos adotada no curso com base em SWEBOK e ISO/IEC 25010. O aluno não deve dizer apenas que "o software tem qualidade"; ele deve dizer em qual eixo, com qual métrica e com qual evidência.
+
+| Eixo | Pergunta de engenharia | Exemplo de formulação aceitável |
+|------|------------------------|---------------------------------|
+| Adequação funcional | O comportamento entregue cobre a necessidade prevista? | "Os fluxos RF01 e RF02 estão cobertos pela suíte de integração `produtos.api.spec.ts`." |
+| Eficiência de desempenho | Quão rápido e econômico o sistema opera sob carga definida? | "`GET /produtos` mantém `p99 < 300ms` com 100 usuários simultâneos." |
+| Compatibilidade | O sistema convive e integra corretamente com outros componentes? | "A API responde JSON compatível com o contrato consumido pelo front-end e validado por testes de contrato." |
+| Usabilidade | O usuário entende o sistema e consegue operar sem fricção excessiva? | "95% dos usuários concluem o cadastro sem ajuda em até 2 minutos no teste moderado." |
+| Confiabilidade | O sistema mantém operação correta mesmo com falhas previstas? | "A busca de produtos possui retry controlado e taxa de sucesso de 99,5% nas chamadas em rede degradada simulada." |
+| Segurança | O sistema protege dados, acesso e operações sensíveis? | "Senhas são persistidas com hash e endpoints administrativos exigem sessão válida." |
+| Manutenibilidade | O software pode ser alterado com segurança e baixo acoplamento? | "Controllers, services e repositórios estão separados e a suíte unitária cobre regras críticas do domínio." |
+| Portabilidade | O sistema pode ser executado ou implantado em ambientes distintos com baixo atrito? | "A aplicação sobe em ambiente local e de homologação via variáveis de ambiente sem alterar código-fonte." |
+
+### Exemplos de linguagem fraca versus linguagem de engenharia
+
+| Formulação fraca | Problema | Formulação esperada |
+|------------------|----------|---------------------|
+| "O sistema é rápido." | não informa carga, métrica nem percentil | "O endpoint `GET /produtos` atende 100 requisições simultâneas com `p95 < 200ms` e `p99 < 300ms`." |
+| "O sistema é seguro." | não indica ameaça, controle nem escopo | "As senhas são armazenadas com hash e rotas protegidas retornam `401` sem sessão válida." |
+| "O sistema é confiável." | não informa cenário de falha nem taxa de sucesso | "Chamadas ao catálogo tratam timeout de 5s e usam retry apenas para 502, 503 e 504." |
+| "O sistema é fácil de manter." | não mostra evidência estrutural | "As regras de negócio estão concentradas em services e cobertas por testes unitários." |
+
+### Como transformar qualidade em requisito mensurável
+
+Uma escrita de RNF mais madura normalmente explicita:
+
+1. eixo de qualidade
+2. cenário ou operação observada
+3. carga ou condição de uso
+4. métrica
+5. limiar aceitável
+6. forma de evidência
+
+### Template prático
+
+```text
+No eixo [qualidade], o sistema deve [comportamento observável]
+sob [condição/carga], medido por [métrica], com limite [valor],
+validado por [teste, ferramenta ou evidência].
+```
+
+### Exemplos melhores para aula 1
+
+```text
+Eficiência de desempenho:
+O sistema deve responder à consulta de produtos com p99 abaixo de 300ms
+sob 100 requisições simultâneas, validado por teste de carga.
+```
+
+```text
+Confiabilidade:
+O sistema deve manter o fluxo de listagem funcional mesmo sob timeout
+de serviço externo, com tratamento explícito de erro e retry controlado,
+validado por teste de integração com falha simulada.
+```
+
+```text
+Usabilidade:
+O formulário de cadastro deve permitir conclusão sem erro em até 2 minutos
+por usuários novatos em teste moderado com roteiro definido.
+```
+
+### Relação entre RF, RN e RNF em linguagem madura
+
+Um discurso mais técnico sobre uma funcionalidade pode ficar assim:
+
+| Tipo | Exemplo com linguagem de engenharia |
+|------|-------------------------------------|
+| RF | "O sistema deve permitir cadastrar produtos com nome, SKU e preço." |
+| RN | "O SKU deve ser único e o preço deve ser maior que zero." |
+| RNF | "O cadastro deve responder com `201` em `p99 < 300ms` para 100 requisições simultâneas e estar coberto pelos testes `produto.service.spec.ts` e `produtos.api.spec.ts`." |
+
+### O que o aluno deve evitar a partir de agora
+
+- elogio genérico sem métrica
+- qualidade sem eixo
+- desempenho sem carga definida
+- confiabilidade sem cenário de falha
+- segurança sem mecanismo de controle
+- frase bonita sem evidência técnica
+
 ---
 
 ## Minimundo e Escopo Inicial
@@ -141,6 +240,16 @@ Mesmo sem implementar nada, o aluno já pode montar uma tabela inicial:
 | Atendente | registrar pedido | cadastrar pedido | pedido precisa ter item | resposta rápida |
 | Gerente | acompanhar estoque | listar produtos | estoque não pode ser negativo | disponibilidade |
 
+### 2.1 Evoluindo o RNF para linguagem verificável
+
+A coluna de RNF da tabela acima ainda está em nível inicial. O passo seguinte é refinar:
+
+| Formulação inicial | Formulação madura |
+|--------------------|-------------------|
+| resposta rápida | `GET /produtos` com `p99 < 300ms` sob 100 requisições simultâneas |
+| disponibilidade | fluxo de consulta com taxa de sucesso acima de 99% no período observado |
+| segurança | autenticação obrigatória em rotas de escrita e senha armazenada com hash |
+
 ### 3. Erro frequente a evitar
 
 Não misturar solução prematura com descrição de problema.
@@ -175,6 +284,16 @@ Uma loja de campus vende camisetas, cadernos e canecas. Dois atendentes registra
 
 Antes de pensar em tela ou tecnologia, o time deveria transformar o caso em minimundo e rastrear quais partes do problema exigem banco, quais exigem interface e quais dependem de comunicação entre cliente e servidor.
 
+### Refinando o RNF do caso para "engenheirês"
+
+Em vez de dizer:
+
+> "A busca precisa ser rápida."
+
+O aluno deveria evoluir para algo como:
+
+> "No eixo eficiência de desempenho, a consulta de produtos deve responder com `p99 < 300ms` sob 100 requisições simultâneas no horário de pico, validado por teste de carga; no eixo adequação funcional, o fluxo de consulta está coberto pela suíte `catalogo.e2e.spec.ts`."
+
 ### Perguntas para discutir
 
 1. Quais entidades aparecem naturalmente nesse cenário?
@@ -188,6 +307,9 @@ Antes de pensar em tela ou tecnologia, o time deveria transformar o caso em mini
 - [ ] Consigo explicar a diferença entre cliente, servidor, banco e rede?
 - [ ] Consigo descrever o fluxo de uma requisição HTTP simples?
 - [ ] Consigo distinguir RF, RN e RNF?
+- [ ] Consigo nomear os 8 eixos de RNF usados na disciplina?
+- [ ] Consigo transformar "o sistema é bom" em uma frase com métrica, carga e evidência?
+- [ ] Consigo diferenciar um RNF vago de um RNF mensurável?
 - [ ] Consigo redigir um minimundo curto sem misturar solução e problema?
 - [ ] Consigo apontar o que está fora do escopo do projeto?
 
