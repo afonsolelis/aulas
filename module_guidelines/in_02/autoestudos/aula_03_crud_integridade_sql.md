@@ -209,6 +209,6 @@ Esse caso mostra que CRUD não é apenas "fazer funcionar". A operação precisa
 
 ## Referências
 
-- PostgreSQL Documentation — CREATE TABLE
-- PostgreSQL Documentation — INSERT / UPDATE / DELETE
-- SWEBOK v3 — Software Construction and Data Design
+- [PostgreSQL Documentation — CREATE TABLE](https://www.postgresql.org/docs/current/sql-createtable.html)
+- [PostgreSQL Documentation — INSERT / UPDATE / DELETE](https://www.postgresql.org/docs/current/dml.html)
+- [SWEBOK — Software Engineering Body of Knowledge](https://www.computer.org/education/bodies-of-knowledge/software-engineering/v4)

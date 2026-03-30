@@ -196,6 +196,6 @@ Esse cenário ajuda a mostrar que automação existe para detectar regressão em
 
 ## Referências
 
-- SWEBOK v3 — Software Testing
-- Martin Fowler — Test Pyramid
-- Playwright Documentation
+- [SWEBOK — Software Engineering Body of Knowledge](https://www.computer.org/education/bodies-of-knowledge/software-engineering/v4)
+- [Martin Fowler — Test Pyramid](https://martinfowler.com/bliki/TestPyramid.html)
+- [Playwright Documentation](https://playwright.dev/)

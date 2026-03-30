@@ -479,11 +479,11 @@ Esta aula consolida todos os conceitos de resiliência vistos anteriormente:
 
 ## Referências
 
-- **Saltzer, J.; Reed, D.; Clark, D.** (1984) — *End-To-End Arguments in System Design* — ACM TOCS
-- **SEBoK Wiki** — *System Integration, Part 3* — sebokwiki.org
-- **RFC 7230–7235** — *HTTP/1.1 Protocol* — IETF
-- **Nygard, M.T.** (2018) — *Release It! Design and Deploy Production-Ready Software* — Pragmatic Programmers
-- **Newman, S.** (2015) — *Building Microservices* — O'Reilly
+- [Saltzer, Reed e Clark (1984) — End-To-End Arguments in System Design](https://doi.org/10.1145/357401.357402)
+- [SEBoK Wiki — System Integration](https://sebokwiki.org/wiki/System_Integration)
+- [RFC 7230 — Hypertext Transfer Protocol (HTTP/1.1): Message Syntax and Routing](https://datatracker.ietf.org/doc/html/rfc7230)
+- [Michael T. Nygard — Release It!](https://pragprog.com/titles/mnee2/release-it-second-edition/)
+- [Sam Newman — Building Microservices](https://samnewman.io/books/building_microservices_2nd_edition/)
 
 ---
 

@@ -213,6 +213,6 @@ Se o modelo não suporta essas perguntas sem gambiarra, ele ainda não está mad
 
 ## Referências
 
-- Elmasri & Navathe — Sistemas de Banco de Dados
-- PostgreSQL Documentation — SELECT
-- SWEBOK v3 — Data Design
+- [Elmasri & Navathe — Fundamentals of Database Systems](https://eu.pearson.com/fundamentals-of-database-systems-global-edition/9781292097626)
+- [PostgreSQL Documentation — SELECT](https://www.postgresql.org/docs/current/sql-select.html)
+- [SWEBOK — Software Engineering Body of Knowledge](https://www.computer.org/education/bodies-of-knowledge/software-engineering/v4)

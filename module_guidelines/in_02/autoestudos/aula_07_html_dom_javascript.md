@@ -208,6 +208,6 @@ O aluno percebe que front-end não começa com consumo de API. Primeiro a tela p
 
 ## Referências
 
-- MDN Web Docs — HTML
-- MDN Web Docs — DOM
-- JavaScript.info — Browser Document
+- [MDN Web Docs — HTML](https://developer.mozilla.org/en-US/docs/Web/HTML)
+- [MDN Web Docs — DOM](https://developer.mozilla.org/en-US/docs/Web/API/Document_Object_Model)
+- [JavaScript.info — DOM Nodes](https://javascript.info/dom-nodes)

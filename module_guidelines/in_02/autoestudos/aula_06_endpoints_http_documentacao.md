@@ -217,6 +217,6 @@ Esse cenário mostra que documentação não é artefato burocrático. Ela reduz
 
 ## Referências
 
-- RFC 7231
-- MDN Web Docs — HTTP Methods
-- Fielding — Architectural Styles and the Design of Network-based Software Architectures
+- [RFC 7231 — Hypertext Transfer Protocol (HTTP/1.1): Semantics and Content](https://datatracker.ietf.org/doc/html/rfc7231)
+- [MDN Web Docs — HTTP Request Methods](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Methods)
+- [Roy Fielding — Architectural Styles and the Design of Network-based Software Architectures](https://ics.uci.edu/~fielding/pubs/dissertation/top.htm)

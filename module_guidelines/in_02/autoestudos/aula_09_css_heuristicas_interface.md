@@ -195,6 +195,6 @@ O aluno consegue ligar CSS e heurísticas a um problema real de uso. A aula deix
 
 ## Referências
 
-- MDN Web Docs — CSS
-- CSS Tricks — Complete Guide to Flexbox
-- Nielsen Norman Group — Usability Heuristics
+- [MDN Web Docs — CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+- [CSS-Tricks — A Complete Guide to Flexbox](https://css-tricks.com/snippets/css/a-guide-to-flexbox/)
+- [Nielsen Norman Group — 10 Usability Heuristics for User Interface Design](https://www.nngroup.com/articles/ten-usability-heuristics/)

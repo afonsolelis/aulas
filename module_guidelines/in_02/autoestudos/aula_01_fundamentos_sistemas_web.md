@@ -317,6 +317,6 @@ O aluno deveria evoluir para algo como:
 
 ## Referências
 
-- MDN Web Docs — HTTP Overview
-- SWEBOK v3 — Software Requirements
-- SEBoK — System Life Cycle and Stakeholder Needs
+- [MDN Web Docs — Overview of HTTP](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Overview)
+- [SWEBOK — Software Engineering Body of Knowledge](https://www.computer.org/education/bodies-of-knowledge/software-engineering/v4)
+- [SEBoK — Stakeholder Needs Definition](https://sebokwiki.org/wiki/Stakeholder_Needs_Definition)

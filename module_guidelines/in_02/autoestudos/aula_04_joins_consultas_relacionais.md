@@ -202,6 +202,6 @@ Esse caso ajuda o aluno a perceber que a pergunta de negócio vem antes da query
 
 ## Referências
 
-- PostgreSQL Documentation — Table Expressions
-- SQLBolt — Joins
-- SWEBOK v3 — Data Design
+- [PostgreSQL Documentation — Table Expressions](https://www.postgresql.org/docs/current/queries-table-expressions.html)
+- [SQLBolt — SQL Lesson 7: OUTER JOINs](https://sqlbolt.com/lesson/select_queries_with_outer_joins)
+- [SWEBOK — Software Engineering Body of Knowledge](https://www.computer.org/education/bodies-of-knowledge/software-engineering/v4)

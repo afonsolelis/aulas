@@ -195,6 +195,6 @@ O aluno enxerga aqui por que separar camadas não é formalidade. A estrutura re
 
 ## Referências
 
-- Node.js Documentation
-- Express Documentation
-- SWEBOK v3 — Software Construction
+- [Node.js Documentation](https://nodejs.org/docs/latest/api/)
+- [Express Documentation](https://expressjs.com/)
+- [SWEBOK — Software Engineering Body of Knowledge](https://www.computer.org/education/bodies-of-knowledge/software-engineering/v4)

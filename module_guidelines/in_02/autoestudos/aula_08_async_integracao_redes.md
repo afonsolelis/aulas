@@ -396,11 +396,11 @@ Os padrões de resiliência são detalhados em profundidade na [Aula 11](./aula_
 
 ## Referências
 
-- **Lamport, L.** (1978) — *Time, Clocks, and the Ordering of Events in a Distributed System* — ACM CACM
-- **SWEBOK v3** — *Software Design: Concurrency Design* — IEEE Computer Society
-- **ECMA-262** — *ECMAScript Language Specification: Async Functions and Promises*
-- **MDN Web Docs** — *AbortController API, Fetch API, Event Loop*
-- **Axios Documentation** — *Interceptors, Timeout, CancelToken*
+- [Lamport, L. (1978) — Time, Clocks, and the Ordering of Events in a Distributed System](https://doi.org/10.1145/359545.359563)
+- [SWEBOK — Software Engineering Body of Knowledge](https://www.computer.org/education/bodies-of-knowledge/software-engineering/v4)
+- [ECMA-262 — ECMAScript Language Specification](https://tc39.es/ecma262/)
+- [MDN Web Docs — AbortController, Fetch API e Event Loop](https://developer.mozilla.org/en-US/docs/Web/API/AbortController)
+- [Axios Documentation](https://axios-http.com/docs/intro)
 
 ---
 
