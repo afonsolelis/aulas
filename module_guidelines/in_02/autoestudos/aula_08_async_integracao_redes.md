@@ -8,9 +8,10 @@
 5. [Máquina de Estados de Chamadas HTTP](#máquina-de-estados-de-chamadas-http)
 6. [Resiliência: Timeout, Retry e Fallback](#resiliência-timeout-retry-e-fallback)
 7. [Integração com Axios — Padrões Técnicos](#integração-com-axios--padrões-técnicos)
-8. [Checklist de Validação](#checklist-de-validação)
-9. [Referências](#referências)
-10. [Glossário](#glossário)
+8. [Miniestudo de Caso](#miniestudo-de-caso)
+9. [Checklist de Validação](#checklist-de-validação)
+10. [Referências](#referências)
+11. [Glossário](#glossário)
 
 ---
 
@@ -308,6 +309,33 @@ api.interceptors.response.use(
   }
 );
 ```
+
+---
+
+## Miniestudo de Caso
+
+### Busca de produtos com estados de tela e falha intermitente
+
+Uma tela de catálogo consulta `/api/produtos` ao carregar. Em rede estável, funciona. Em rede lenta, o usuário muda rapidamente o termo de busca e a resposta antiga chega depois, sobrescrevendo o estado mais novo. Em outra tentativa, a chamada excede o tempo aceitável.
+
+### Decisões aplicadas
+
+| Problema | Resposta técnica |
+|----------|------------------|
+| resposta antiga chega depois | cancelamento ou controle de versão da requisição |
+| chamada demora demais | timeout explícito |
+| erro transitório de infraestrutura | retry limitado com critério |
+| usuário sem feedback | estados `loading`, `success` e `error` claros |
+
+### Valor do caso
+
+Esse caso aproxima os conceitos do projeto real: a integração assíncrona não é só "usar `await`", mas modelar comportamento de interface diante de latência, cancelamento e erro.
+
+### Perguntas para discutir
+
+1. Quando retry ajuda e quando piora a situação?
+2. Em que momento cancelar a requisição é melhor do que ignorar a resposta antiga?
+3. Que evidência de teste mostraria que a tela distingue timeout de erro de validação?
 
 ---
 

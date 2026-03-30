@@ -6,8 +6,11 @@
 3. [DOM e Seleção de Elementos](#dom-e-seleção-de-elementos)
 4. [Eventos e Manipulação com JavaScript](#eventos-e-manipulação-com-javascript)
 5. [Validação Simples no Cliente](#validação-simples-no-cliente)
-6. [Checklist de Estudo](#checklist-de-estudo)
-7. [Referências](#referências)
+6. [Conexão com API e Fluxo de Tela](#conexão-com-api-e-fluxo-de-tela)
+7. [Aprofundamento Orientado](#aprofundamento-orientado)
+8. [Miniestudo de Caso](#miniestudo-de-caso)
+9. [Checklist de Estudo](#checklist-de-estudo)
+10. [Referências](#referências)
 
 ---
 
@@ -109,6 +112,87 @@ if (!campoNome.value.trim()) {
 - formato básico
 - feedback visual imediato
 - mensagens simples de erro
+
+---
+
+## Conexão com API e Fluxo de Tela
+
+O HTML e o DOM não existem isolados. Eles preparam a interface para a integração das próximas aulas.
+
+| Elemento da tela | Ligação futura |
+|------------------|----------------|
+| formulário | envio para endpoint |
+| lista ou tabela | renderização de resposta da API |
+| botão | evento que dispara ação |
+| mensagem de erro | feedback após validação ou falha |
+
+### Exemplo de encadeamento
+
+```text
+usuário preenche formulário
+→ submit é interceptado
+→ JavaScript lê os campos
+→ validação básica acontece
+→ requisição poderá ser enviada
+→ resposta futura atualizará o DOM
+```
+
+---
+
+## Aprofundamento Orientado
+
+### 1. Pensar a tela como estrutura + comportamento
+
+Uma boa prática é desenhar cada tela em duas camadas mentais:
+
+- estrutura semântica: o que existe na página
+- comportamento: o que muda quando o usuário interage
+
+### 2. Seletores estáveis
+
+Evite depender de texto visual quando um `id` ou `data-*` pode deixar a lógica mais estável.
+
+| Estratégia | Vantagem |
+|-----------|----------|
+| `#id` | seleção direta |
+| `.classe` | útil para grupos |
+| `data-testid` ou `data-role` | ajuda automação e scripts |
+
+### 3. Ponte para a aula 8
+
+Antes de falar em chamada assíncrona, a tela precisa já saber:
+
+- onde o usuário aciona a operação
+- que dados serão lidos
+- onde o resultado será exibido
+- onde erros e estados de carregamento aparecerão
+
+---
+
+## Miniestudo de Caso
+
+### Formulário de cadastro de produto no navegador
+
+O grupo precisa montar uma tela com três campos: nome, SKU e preço. O usuário deve preencher, clicar em salvar e receber feedback imediato se algum campo obrigatório estiver vazio.
+
+### Decisões de implementação
+
+| Necessidade | Solução provável |
+|-------------|------------------|
+| organizar a tela | HTML semântico com `form`, `label` e `input` |
+| capturar envio | evento `submit` |
+| ler dados | `querySelector` e `.value` |
+| mostrar erro visual | classe CSS em campos inválidos |
+
+### Valor do caso
+
+O aluno percebe que front-end não começa com consumo de API. Primeiro a tela precisa ter estrutura, pontos de interação e estados locais claros.
+
+### Perguntas para discutir
+
+1. Que elementos precisam de `id` estável para facilitar script e teste?
+2. O que deve acontecer visualmente quando o formulário está inválido?
+3. Que parte já pode ser preparada agora para a futura chamada assíncrona da aula 8?
 
 ---
 

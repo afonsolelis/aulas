@@ -303,12 +303,18 @@ test.describe('placeholders.md - Placeholders e Conteúdo em Construção', () =
 
   test('placeholders de slides e materiais devem indicar caráter temporário', () => {
     [
-      'pages/module-2-common/slides/slide_lesson-1.html',
-      'pages/module-2-common/materials/lesson-1-material.html',
       'pages/module-6-eng-software/slides/slide_lesson-10.html',
       'pages/module-6-eng-software/materials/lesson-10-material.html',
     ].forEach((file) => {
       expect(read(file)).toMatch(/Placeholder|em organização|em desenvolvimento|em breve/i);
+    });
+  });
+
+  test('conteúdos publicados não devem mais ser tratados como placeholder no módulo 2', () => {
+    [
+      'pages/module-2-common/materials/lesson-1-material.html',
+    ].forEach((file) => {
+      expect(read(file)).not.toMatch(/Placeholder|em organização|em desenvolvimento|em breve/i);
     });
   });
 });

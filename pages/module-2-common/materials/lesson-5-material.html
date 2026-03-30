@@ -46,6 +46,9 @@
 <li><a href="#separacao-por-camadas">Separação por Camadas</a></li>
 <li><a href="#fluxo-de-uma-requisicao-no-backend">Fluxo de uma Requisição no Backend</a></li>
 <li><a href="#exemplo-estrutural">Exemplo Estrutural</a></li>
+<li><a href="#conexao-com-banco-e-api">Conexão com Banco e API</a></li>
+<li><a href="#aprofundamento-orientado">Aprofundamento Orientado</a></li>
+<li><a href="#miniestudo-de-caso">Miniestudo de Caso</a></li>
 <li><a href="#checklist-de-estudo">Checklist de Estudo</a></li>
 <li><a href="#referencias">Referências</a></li>
 </ol>
@@ -125,6 +128,79 @@ export async function criar(dto: CriarProdutoDTO) {
   }
   return produtoRepository.save(dto);
 }</code></pre>
+<hr>
+<h3 id="conexao-com-banco-e-api">Conexão com Banco e API</h3>
+<p>Esta aula faz a ponte entre o que foi modelado no banco e o que será exposto em HTTP.</p>
+
+    <div class="table-responsive my-4">
+      <table class="table table-bordered table-striped align-middle markdown-table">
+        <thead><tr><th>Origem</th><th>Camada que usa</th></tr></thead>
+        <tbody><tr><td>tabelas e constraints</td><td>model/repositório</td></tr>
+<tr><td>regras do domínio</td><td>service</td></tr>
+<tr><td>método e rota</td><td>controller/roteador</td></tr>
+<tr><td>payload e resposta</td><td>controller</td></tr></tbody>
+      </table>
+    </div>
+  
+<h4 id="rastreabilidade-util">Rastreabilidade útil</h4>
+<pre class="code-block"><code class="language-text">consulta SQL pronta
+→ função no repositório
+→ service decide quando usar
+→ controller chama o service
+→ rota publica a operação</code></pre>
+<hr>
+<h3 id="aprofundamento-orientado">Aprofundamento Orientado</h3>
+<h4 id="1-onde-colocar-cada-tipo-de-decisao">1. Onde colocar cada tipo de decisão</h4>
+
+    <div class="table-responsive my-4">
+      <table class="table table-bordered table-striped align-middle markdown-table">
+        <thead><tr><th>Decisão</th><th>Lugar preferencial</th></tr></thead>
+        <tbody><tr><td>parse de parâmetro HTTP</td><td>controller</td></tr>
+<tr><td>regra de negócio</td><td>service</td></tr>
+<tr><td>query SQL</td><td>repositório/model</td></tr>
+<tr><td>status code da resposta</td><td>controller</td></tr></tbody>
+      </table>
+    </div>
+  
+<h4 id="2-acoplamentos-perigosos">2. Acoplamentos perigosos</h4>
+<p>Alguns sintomas mostram que a estrutura está degradando:</p>
+<ul>
+<li>controller conhece detalhes de tabela</li>
+<li>service depende de objeto <code>req</code> ou <code>res</code></li>
+<li>rota contém regra de negócio relevante</li>
+<li>model toma decisão de autorização ou fluxo</li>
+</ul>
+<h4 id="3-ponte-para-a-aula-6">3. Ponte para a aula 6</h4>
+<p>Na próxima aula, essa estrutura vira contrato público. Então, ao terminar este autoestudo, o aluno já deveria conseguir responder:</p>
+<ul>
+<li>qual rota chamará cada operação</li>
+<li>que dados entram e saem do controller</li>
+<li>que erros podem subir do service</li>
+</ul>
+<hr>
+<h3 id="miniestudo-de-caso">Miniestudo de Caso</h3>
+<h4 id="endpoint-de-produtos-cresceu-sem-organizacao">Endpoint de produtos cresceu sem organização</h4>
+<p>Em um protótipo inicial, toda a lógica de criação de produto ficou em um único arquivo de rota: leitura do corpo da requisição, validação de preço, acesso ao banco e montagem da resposta HTTP. O código funciona, mas cada ajuste quebra algo diferente.</p>
+<h4 id="reorganizacao-sugerida">Reorganização sugerida</h4>
+
+    <div class="table-responsive my-4">
+      <table class="table table-bordered table-striped align-middle markdown-table">
+        <thead><tr><th>Responsabilidade</th><th>Destino</th></tr></thead>
+        <tbody><tr><td>definir <code>POST /produtos</code></td><td>rota</td></tr>
+<tr><td>validar payload básico e responder <code>201</code></td><td>controller</td></tr>
+<tr><td>impedir preço inválido e SKU duplicado</td><td>service</td></tr>
+<tr><td>salvar no banco</td><td>repositório/model</td></tr></tbody>
+      </table>
+    </div>
+  
+<h4 id="valor-do-caso">Valor do caso</h4>
+<p>O aluno enxerga aqui por que separar camadas não é formalidade. A estrutura reduz acoplamento, facilita teste e prepara o sistema para a documentação de contrato da aula seguinte.</p>
+<h4 id="perguntas-para-discutir">Perguntas para discutir</h4>
+<ol>
+<li>Que parte desse fluxo deve conhecer <code>req</code> e <code>res</code>?</li>
+<li>Se amanhã o cadastro vier por fila ou script interno, que parte do código ainda pode ser reaproveitada?</li>
+<li>Onde mapear um erro técnico de duplicidade para uma resposta compreensível da API?</li>
+</ol>
 <hr>
 <h3 id="checklist-de-estudo">Checklist de Estudo</h3>
 <ul>

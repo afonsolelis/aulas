@@ -6,8 +6,11 @@
 3. [Fluxo Requisição-Resposta](#fluxo-requisição-resposta)
 4. [RF, RN e RNF](#rf-rn-e-rnf)
 5. [Minimundo e Escopo Inicial](#minimundo-e-escopo-inicial)
-6. [Checklist de Estudo](#checklist-de-estudo)
-7. [Referências](#referências)
+6. [Como Isso se Conecta às Próximas Aulas](#como-isso-se-conecta-às-próximas-aulas)
+7. [Aprofundamento Orientado](#aprofundamento-orientado)
+8. [Miniestudo de Caso](#miniestudo-de-caso)
+9. [Checklist de Estudo](#checklist-de-estudo)
+10. [Referências](#referências)
 
 ---
 
@@ -95,6 +98,88 @@ O minimundo é a descrição textual do domínio do problema. Ele ajuda a evitar
 ### Exemplo curto
 
 > O sistema apoia uma pequena operação de vendas. Atendentes precisam consultar produtos, registrar pedidos e acompanhar estoque. O gerente acompanha relatórios simples de vendas e reposição. O sistema não cobre faturamento fiscal nem integração bancária nesta etapa.
+
+---
+
+## Como Isso se Conecta às Próximas Aulas
+
+Esta aula sustenta todo o restante do módulo:
+
+| Conceito aprendido aqui | Onde reaparece depois |
+|-------------------------|-----------------------|
+| Minimundo | Aula 2, ao identificar entidades e relacionamentos |
+| RF, RN e RNF | Aula 6, ao documentar endpoints e erros |
+| Cliente, servidor e banco | Aula 5, ao estruturar backend |
+| Fluxo de requisição-resposta | Aula 8, ao tratar chamadas assíncronas |
+| Papel da rede | Aula 11, ao discutir HTTP, timeout e resiliência |
+
+### Perguntas de transição
+
+- Quais entidades do minimundo precisariam virar tabelas?
+- Quais ações do usuário claramente exigem persistência?
+- Quais RNFs já aparecem mesmo antes de haver código?
+
+---
+
+## Aprofundamento Orientado
+
+### 1. Transformando problema em backlog técnico
+
+Um erro comum em projetos iniciais é sair do workshop com ideias vagas e já começar a programar. O movimento correto é:
+
+1. registrar o problema de negócio em linguagem do domínio
+2. identificar atores e objetivos
+3. separar o que é requisito funcional do que é regra de negócio
+4. transformar qualidades desejadas em RNFs observáveis
+
+### 2. Mapa inicial de rastreabilidade
+
+Mesmo sem implementar nada, o aluno já pode montar uma tabela inicial:
+
+| Persona/Atores | Objetivo | RF inicial | RN associada | RNF associado |
+|----------------|----------|-----------|--------------|---------------|
+| Atendente | registrar pedido | cadastrar pedido | pedido precisa ter item | resposta rápida |
+| Gerente | acompanhar estoque | listar produtos | estoque não pode ser negativo | disponibilidade |
+
+### 3. Erro frequente a evitar
+
+Não misturar solução prematura com descrição de problema.
+
+Exemplo ruim:
+
+> "O sistema terá React, PostgreSQL e autenticação JWT."
+
+Exemplo melhor:
+
+> "O usuário precisa consultar produtos, registrar pedidos e distinguir itens com estoque crítico."
+
+---
+
+## Miniestudo de Caso
+
+### Loja universitária com operação enxuta
+
+Uma loja de campus vende camisetas, cadernos e canecas. Dois atendentes registram pedidos manualmente em planilhas, e o gerente reclama de três problemas: estoque divergente, demora para localizar produtos e dificuldade para saber o que vende mais.
+
+### Leitura aplicada do cenário
+
+| Elemento | Exemplo no caso |
+|----------|-----------------|
+| Atores | atendente, gerente |
+| RF inicial | cadastrar pedido, consultar produto, listar estoque |
+| RN inicial | produto não pode ter estoque negativo |
+| RNF inicial | consulta de produto precisa ser rápida no balcão |
+| Fora de escopo | emissão fiscal e pagamento online |
+
+### Decisão de análise
+
+Antes de pensar em tela ou tecnologia, o time deveria transformar o caso em minimundo e rastrear quais partes do problema exigem banco, quais exigem interface e quais dependem de comunicação entre cliente e servidor.
+
+### Perguntas para discutir
+
+1. Quais entidades aparecem naturalmente nesse cenário?
+2. Que ação do atendente claramente dispara uma requisição ao servidor?
+3. Qual RNF já impacta decisões futuras de API e banco?
 
 ---
 

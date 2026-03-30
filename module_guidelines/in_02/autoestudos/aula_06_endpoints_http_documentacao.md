@@ -6,8 +6,11 @@
 3. [Entradas, Saídas e Status Codes](#entradas-saídas-e-status-codes)
 4. [Validação e Tratamento de Erros](#validação-e-tratamento-de-erros)
 5. [Documentação Própria de API](#documentação-própria-de-api)
-6. [Checklist de Estudo](#checklist-de-estudo)
-7. [Referências](#referências)
+6. [Conexão com Front-end e Testes](#conexão-com-front-end-e-testes)
+7. [Aprofundamento Orientado](#aprofundamento-orientado)
+8. [Miniestudo de Caso](#miniestudo-de-caso)
+9. [Checklist de Estudo](#checklist-de-estudo)
+10. [Referências](#referências)
 
 ---
 
@@ -128,6 +131,77 @@ Mesmo sem Swagger, a equipe consegue documentar uma API de forma útil.
   - 400 se payload estiver inválido
   - 409 se sku já existir
 ```
+
+---
+
+## Conexão com Front-end e Testes
+
+Um endpoint bem definido facilita tanto a interface quanto a validação.
+
+| Elemento do contrato | Impacto no front-end | Impacto no teste |
+|----------------------|----------------------|------------------|
+| payload esperado | formulário envia dados corretos | teste monta request válido |
+| status code | decide fluxo da tela | asserção objetiva |
+| resposta de erro | mensagem ao usuário | cenário negativo reproduzível |
+| exemplo documentado | integra mais rápido | vira fixture inicial |
+
+### Perguntas úteis
+
+- a interface consegue distinguir erro de validação de erro interno?
+- a documentação permite testar o endpoint sem ler o código-fonte?
+- os exemplos já cobrem sucesso e falha?
+
+---
+
+## Aprofundamento Orientado
+
+### 1. Contrato estável vale mais que implementação bonita
+
+Se o backend muda resposta sem combinar contrato, o front-end quebra mesmo que a lógica interna esteja correta. Por isso, documentação e consistência são parte do design.
+
+### 2. Pensar em casos alternativos
+
+Para cada endpoint importante, descreva:
+
+1. cenário de sucesso
+2. cenário de payload inválido
+3. cenário de recurso inexistente
+4. cenário de regra de negócio violada
+
+### 3. Ponte para a aula 7
+
+A interface vai consumir diretamente o que é definido aqui. Então um bom exercício final é pegar um endpoint e responder:
+
+- que tela o consome
+- que campos serão mostrados
+- que mensagem de erro faz sentido para o usuário
+
+---
+
+## Miniestudo de Caso
+
+### Contrato confuso entre front-end e back-end
+
+O front-end espera cadastrar produto com `nome`, `sku` e `preco_cents`. O backend, porém, responde erro genérico em texto livre e às vezes devolve `200`, às vezes `201`, sem padrão. A equipe começa a gastar tempo alinhando manualmente cada integração.
+
+### Como estabilizar o endpoint
+
+| Elemento | Definição desejada |
+|----------|--------------------|
+| rota | `POST /produtos` |
+| sucesso | `201 Created` com JSON do recurso criado |
+| erro de payload | `400` com mensagem legível |
+| erro de duplicidade | `409` com código de negócio |
+
+### Valor do caso
+
+Esse cenário mostra que documentação não é artefato burocrático. Ela reduz retrabalho, evita interpretações diferentes entre times e facilita teste automatizado.
+
+### Perguntas para discutir
+
+1. Qual parte do contrato é mais crítica para o front-end: payload, status ou mensagem de erro?
+2. Em que situações vale usar `409` em vez de `422`?
+3. Que exemplo mínimo precisa estar na documentação para outra pessoa testar esse endpoint sem ler o código?
 
 ---
 

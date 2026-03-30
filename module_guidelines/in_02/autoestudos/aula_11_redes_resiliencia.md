@@ -8,9 +8,10 @@
 5. [Padrões de Resiliência](#padrões-de-resiliência)
 6. [RNF de Comunicação — Nível 1º Ano](#rnf-de-comunicação--nível-1º-ano)
 7. [Documentação Final da Sprint](#documentação-final-da-sprint)
-8. [Checklist de Validação](#checklist-de-validação)
-9. [Referências](#referências)
-10. [Glossário](#glossário)
+8. [Miniestudo de Caso](#miniestudo-de-caso)
+9. [Checklist de Validação](#checklist-de-validação)
+10. [Referências](#referências)
+11. [Glossário](#glossário)
 
 ---
 
@@ -382,6 +383,33 @@ npm test              # testes unitários + integração
 npm test -- --coverage  # com relatório de cobertura
 ```
 ```
+
+---
+
+## Miniestudo de Caso
+
+### Criação de pedido sob instabilidade de rede
+
+Durante uma demonstração, o usuário envia `POST /pedidos`. O servidor grava o pedido, mas a conexão cai antes da resposta chegar. O front-end não sabe se a operação concluiu e o usuário tenta novamente, gerando duplicidade.
+
+### Leitura do problema
+
+| Camada | Risco observado | Contramedida |
+|--------|------------------|--------------|
+| HTTP | resposta não chega ao cliente | timeout e tratamento explícito |
+| aplicação | operação duplicada | chave de idempotência |
+| experiência do usuário | incerteza sobre o resultado | mensagem clara e rastreável |
+| observabilidade | difícil investigar incidente | `X-Request-ID` e logs correlacionados |
+
+### Valor do caso
+
+Aqui o aluno percebe por que resiliência não é só assunto de infraestrutura. O problema atinge regra de negócio, duplicidade de dados e confiança do usuário no sistema.
+
+### Perguntas para discutir
+
+1. Em que cenários retry é seguro para `GET` e perigoso para `POST`?
+2. Como a idempotência reduz o impacto de falhas silenciosas?
+3. Que evidência mínima a documentação final deveria trazer para mostrar que esse risco foi tratado?
 
 ---
 

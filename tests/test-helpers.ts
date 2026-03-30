@@ -23,17 +23,26 @@ export function readRepoFile(relativePath: string): string {
 
 export function listHtmlFiles(relativeDir: string): string[] {
   const baseDir = resolveRepoPath(relativeDir);
-  const entries = fs.readdirSync(baseDir, { recursive: true, withFileTypes: true });
+  const htmlFiles: string[] = [];
 
-  return entries
-    .filter((entry) => entry.isFile() && entry.name.endsWith('.html'))
-    .map((entry) => {
-      const relative = 'path' in entry && typeof entry.path === 'string'
-        ? path.relative(repoRoot, path.join(entry.path, entry.name))
-        : path.relative(repoRoot, path.join(baseDir, entry.name));
-      return relative.replace(/\\/g, '/');
-    })
-    .sort();
+  function walk(currentDir: string) {
+    const entries = fs.readdirSync(currentDir, { withFileTypes: true });
+
+    entries.forEach((entry) => {
+      const fullPath = path.join(currentDir, entry.name);
+      if (entry.isDirectory()) {
+        walk(fullPath);
+        return;
+      }
+
+      if (entry.isFile() && entry.name.endsWith('.html')) {
+        htmlFiles.push(path.relative(repoRoot, fullPath).replace(/\\/g, '/'));
+      }
+    });
+  }
+
+  walk(baseDir);
+  return htmlFiles.sort();
 }
 
 export function extractAnchorHrefs(html: string): string[] {

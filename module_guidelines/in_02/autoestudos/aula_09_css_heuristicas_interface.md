@@ -6,8 +6,11 @@
 3. [Layout com Flexbox](#layout-com-flexbox)
 4. [Estados Visuais com JavaScript](#estados-visuais-com-javascript)
 5. [Heurísticas de Usabilidade](#heurísticas-de-usabilidade)
-6. [Checklist de Estudo](#checklist-de-estudo)
-7. [Referências](#referências)
+6. [Conexão com Front-end 1 e 2](#conexão-com-front-end-1-e-2)
+7. [Aprofundamento Orientado](#aprofundamento-orientado)
+8. [Miniestudo de Caso](#miniestudo-de-caso)
+9. [Checklist de Estudo](#checklist-de-estudo)
+10. [Referências](#referências)
 
 ---
 
@@ -100,6 +103,83 @@ Algumas perguntas simples ajudam a revisar a interface:
 | Consistência | mesmo estilo para botões iguais |
 | Prevenção de erro | desabilitar envio inválido |
 | Clareza visual | hierarquia tipográfica e espaçamento |
+
+---
+
+## Conexão com Front-end 1 e 2
+
+Esta aula não substitui HTML, DOM e integração assíncrona; ela organiza e torna utilizável o que já foi construído.
+
+| Aula anterior | O que ela entrega | O que esta aula melhora |
+|---------------|-------------------|--------------------------|
+| Aula 7 | estrutura e eventos | clareza visual e consistência |
+| Aula 8 | integração e estados | representação visual desses estados |
+
+### Exemplo de continuidade
+
+```text
+formulário funcional
+→ recebe estilos coerentes
+→ ganha feedback visual de erro
+→ mostra loading, sucesso e falha com hierarquia clara
+```
+
+---
+
+## Aprofundamento Orientado
+
+### 1. Nem todo problema de UX é visual
+
+Muitas vezes a interface está "bonita", mas continua ruim porque:
+
+- a ordem das ações está confusa
+- o feedback demora
+- o usuário não entende a consequência do clique
+
+### 2. Revisão heurística rápida de uma tela
+
+Use este roteiro:
+
+1. o usuário sabe onde começar?
+2. a ação principal está visualmente destacada?
+3. o sistema responde quando algo é salvo ou falha?
+4. os erros aparecem perto do ponto de interação?
+5. o layout continua legível em diferentes larguras?
+
+### 3. Ponte para a aula 10
+
+Uma interface mais estável e consistente também fica mais testável. Portanto, ao finalizar este estudo, o aluno deveria enxergar:
+
+- que estados precisam ser cobertos por teste
+- que mensagens críticas merecem validação
+- que seletores visuais podem ajudar automação
+
+---
+
+## Miniestudo de Caso
+
+### Tela funcional, mas difícil de usar
+
+O formulário de cadastro já envia dados, porém o botão principal não se destaca, os erros aparecem longe dos campos e o usuário não percebe quando o salvamento terminou. A funcionalidade existe, mas a experiência continua ruim.
+
+### Melhorias guiadas por heurística
+
+| Problema observado | Ajuste de interface |
+|--------------------|---------------------|
+| ação principal pouco visível | reforçar hierarquia visual do botão |
+| erro distante do campo | feedback próximo ao ponto de interação |
+| ausência de retorno do sistema | estado visual de carregando e sucesso |
+| layout confuso | espaçamento, agrupamento e alinhamento coerentes |
+
+### Valor do caso
+
+O aluno consegue ligar CSS e heurísticas a um problema real de uso. A aula deixa de ser apenas estilização e passa a tratar qualidade de interação.
+
+### Perguntas para discutir
+
+1. O que deve mudar visualmente entre os estados normal, carregando e erro?
+2. Como destacar a ação principal sem poluir a tela?
+3. Que escolhas de CSS ajudam depois na automação de testes da interface?
 
 ---
 
