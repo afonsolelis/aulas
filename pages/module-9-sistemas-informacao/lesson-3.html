@@ -1,0 +1,1848 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
+    rel="stylesheet">
+  <title>Aula 3 - SQL Avançado e Dapper - Inteli</title>
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
+  <style>
+    :root {
+      --inteli-purple: #2e2640;
+      --inteli-blue: #89cea5;
+      --inteli-dark-purple: #2E2640;
+      --inteli-light-purple: #caced6;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: "Manrope", sans-serif;
+    }
+
+    .slide-container {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .slide {
+      width: 100%;
+      height: 100%;
+      display: none;
+      padding: 60px;
+      box-sizing: border-box;
+      position: absolute;
+    }
+
+    .slide.active {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      animation: slideIn 0.5s ease-in-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(50px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .slide-header {
+      background: linear-gradient(135deg, var(--inteli-purple), var(--inteli-blue));
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 30px;
+    }
+
+    .slide-title {
+      font-size: 2.5rem;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .slide-subtitle {
+      font-size: 1.2rem;
+      opacity: 0.9;
+    }
+
+    .slide-content {
+      flex: 1;
+      overflow-y: auto;
+      max-width: 1100px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .slide-content h2 {
+      color: var(--inteli-purple);
+      margin-bottom: 20px;
+    }
+
+    .slide-content p,
+    .slide-content li {
+      font-size: 1.35rem;
+      line-height: 1.8;
+    }
+
+    .two-columns {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+    }
+
+    .column {
+      background: #f7f8fa;
+      border: 1px solid #e6eaeb;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 6px 18px rgba(46, 38, 64, 0.06);
+    }
+
+    .code-block {
+      background: #f3f4f6;
+      border-left: 5px solid var(--inteli-purple);
+      padding: 18px;
+      border-radius: 10px;
+      font-family: 'Space Mono', monospace;
+      font-size: 1rem;
+      box-shadow: 0 4px 12px rgba(46, 38, 64, 0.06);
+      white-space: pre-wrap;
+      overflow-x: auto;
+      /* Ensure code blocks don't overflow */
+      max-width: 100%;
+    }
+
+    .slide-footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      border-top: 1px solid #e6eaeb;
+      padding: 12px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 -2px 10px rgba(46, 38, 64, 0.05);
+      z-index: 100;
+    }
+
+    .back-home {
+      color: var(--inteli-purple);
+      text-decoration: none;
+      font-weight: 600;
+      transition: 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      background: #f3f4f6;
+    }
+
+    .back-home:hover {
+      background: var(--inteli-purple);
+      color: white;
+    }
+
+    .nav-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      background: #f3f4f6;
+      padding: 8px 20px;
+      border-radius: 30px;
+    }
+
+    .nav-buttons button {
+      background: var(--inteli-purple);
+      color: white;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 8px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .nav-buttons button:hover:not(:disabled) {
+      background: var(--inteli-blue);
+      transform: translateY(-1px);
+    }
+
+    .nav-buttons button:disabled {
+      background: #caced6;
+      cursor: not-allowed;
+    }
+
+    .slide-counter {
+      font-weight: 600;
+      color: var(--inteli-purple);
+      min-width: 80px;
+      text-align: center;
+    }
+
+    .fullscreen-btn {
+      background: #f3f4f6;
+      border: none;
+      color: var(--inteli-purple);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.2rem;
+      transition: all 0.2s;
+      margin-left: 10px;
+    }
+
+    .fullscreen-btn:hover {
+      background: var(--inteli-purple);
+      color: white;
+      transform: scale(1.1);
+    }
+
+    /* Cover Slide Specifics */
+    .cover-slide {
+      background-image: url('https://www.inteli.edu.br/wp-content/uploads/2025/08/Graduacao.jpg');
+      background-size: cover;
+      background-position: center;
+      position: relative;
+      align-items: center;
+      /* Override default flex-start */
+    }
+
+    .cover-slide::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(46, 38, 64, 0.9), rgba(137, 206, 165, 0.9));
+      z-index: 1;
+    }
+
+    .glass-card {
+      position: relative;
+      z-index: 2;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(16px);
+      padding: 60px;
+      border-radius: 24px;
+      text-align: center;
+      max-width: 900px;
+      width: 90%;
+      box-shadow: 0 25px 50px rgba(46, 38, 64, 0.25);
+    }
+
+    .cover-logo {
+      height: 50px;
+      margin-bottom: 25px;
+    }
+
+    .glass-card .slide-title {
+      color: var(--inteli-purple);
+      font-size: 2.8rem;
+      margin-bottom: 15px;
+    }
+
+    .glass-card .slide-subtitle {
+      color: var(--inteli-blue);
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .glass-card .meta-info {
+      color: #666;
+      font-size: 1.1rem;
+      margin-top: 30px;
+    }
+
+    .topics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin-top: 30px;
+    }
+
+    .topic-tag {
+      background: linear-gradient(135deg, var(--inteli-purple), var(--inteli-blue));
+      color: white;
+      padding: 10px 15px;
+      border-radius: 25px;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    /* SVG Diagram Styles */
+    .svg-diagram {
+      width: 100%;
+      max-width: 900px;
+      margin: 20px auto 0 auto;
+      display: block;
+      background: #ffffff;
+      border: 1px solid #e6eaeb;
+      border-radius: 16px;
+      box-shadow: 0 6px 18px rgba(46, 38, 64, 0.06);
+    }
+
+    .svg-box {
+      fill: #ffffff;
+      stroke: #2e2640;
+      stroke-width: 2;
+      rx: 10;
+    }
+
+    .svg-accent {
+      fill: #89cea5;
+    }
+
+    /* Changed to match .svg-accent style rules if needed */
+    .svg-label {
+      font-family: 'Manrope', sans-serif;
+      fill: #2e2640;
+      font-weight: 600;
+    }
+
+    .svg-subtle {
+      fill: #6b7280;
+      font-size: 12px;
+      font-family: 'Manrope', sans-serif;
+    }
+
+    .svg-line {
+      stroke: #2e2640;
+      stroke-width: 2;
+    }
+
+    .svg-dash {
+      stroke-dasharray: 6 4;
+    }
+
+    /* Warnings */
+    .warning-box {
+      background: #fff3f3;
+      border-left: 5px solid #ef4444;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      color: #7f1d1d;
+    }
+
+    .warning-title {
+      font-weight: bold;
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .success-box {
+      background: #f0fdf4;
+      border-left: 5px solid #22c55e;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      color: #14532d;
+    }
+
+    .success-title {
+      font-weight: bold;
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .info-box {
+      background: #eef6ff;
+      border-left: 5px solid #3b82f6;
+      padding: 18px;
+      border-radius: 8px;
+      margin-top: 16px;
+      color: #1e3a8a;
+    }
+
+    .info-title {
+      font-weight: bold;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .autoestudos-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .autoestudos-card {
+      background: linear-gradient(180deg, #ffffff 0%, #f7f8fa 100%);
+      border: 1px solid #e6eaeb;
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 10px 22px rgba(46, 38, 64, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 190px;
+      text-decoration: none;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      cursor: pointer;
+    }
+
+    .autoestudos-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 22px rgba(46, 38, 64, 0.16);
+      border-color: var(--inteli-blue);
+    }
+
+    .autoestudos-card::after {
+      content: "Acessar →";
+      margin-top: auto;
+      align-self: flex-start;
+      font-weight: 600;
+      color: var(--inteli-purple);
+      background: rgba(46, 38, 64, 0.06);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.95rem;
+    }
+
+    .autoestudos-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--inteli-purple);
+      margin: 0;
+    }
+
+    .autoestudos-meta {
+      font-size: 1rem;
+      color: #6b7280;
+      margin: 0;
+    }
+
+    @media (max-width: 980px) {
+      .autoestudos-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
+      .autoestudos-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  
+    .slide-footer { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.97); border-top: 1px solid #dfe5ec; padding: 10px 24px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 -2px 10px rgba(46,38,64,0.06); z-index: 100; gap: 12px; }
+    .footer-links { display: flex; gap: 10px; }
+    .back-home { color: var(--inteli-purple); text-decoration: none; font-weight: 700; display: inline-flex; align-items: center; gap: 5px; padding: 8px 14px; border-radius: 10px; background: #f1f4f8; }
+    .back-home.material { background: #2f8f78 !important; color: white !important; }
+    .back-home.material:hover { background: #267562 !important; color: white !important; }
+    .back-home:hover { filter: brightness(0.97); color: inherit; }
+    .nav-wrapper { display: flex; align-items: center; gap: 14px; background: #f1f4f8; padding: 7px 18px; border-radius: 30px; }
+    .nav-buttons button { font-weight: 700; }
+    .fullscreen-btn { background: #f1f4f8; border: none; font-size: 1.1rem; cursor: pointer; padding: 8px 12px; border-radius: 8px; }
+
+  </style>
+</head>
+
+<body>
+  <div class="slide-container">
+
+    <!-- Cover Slide -->
+    <div class="slide active cover-slide">
+      <div class="glass-card">
+        <img
+          src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png"
+          alt="Inteli Logo" class="cover-logo">
+        <div class="slide-subtitle">Aula 3 • Projeto 9 • Sistemas de Informação</div>
+        <div class="slide-title">SQL Avançado e Segurança</div>
+        <p style="color: #666; font-size: 1.2rem; margin: 20px 0;">
+          Estrutura SQL, Transações ACID, Performance e Segurança com Dapper.
+        </p>
+        <div class="topics-grid">
+          <span class="topic-tag">💾 SQL DDL/DML</span>
+          <span class="topic-tag">⚡ Performance</span>
+          <span class="topic-tag">🔒 Segurança</span>
+          <span class="topic-tag">🔌 Dapper (.NET)</span>
+        </div>
+        <div class="meta-info">
+          <strong>Prof. Afonso Brandão</strong> • 2 horas • Fevereiro 2025
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 1b: Autoestudos -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">Autoestudos</div>
+        <div class="slide-subtitle">Materiais rápidos para fixar o conteúdo</div>
+      </div>
+      <div class="slide-content">
+        <div class="autoestudos-grid">
+          <a class="autoestudos-card" href="https://www.youtube.com/watch?v=dexYwp7OpiI" target="_blank" rel="noopener">
+            <h3 class="autoestudos-title">DevMedia</h3>
+            <p class="autoestudos-meta">5 minutos • Como conectar ao PostgreSQL no Entity Framework</p>
+          </a>
+          <a class="autoestudos-card"
+            href="https://medium.com/aspnetrun/build-catalog-microservice-using-asp-net-core-mongodb-and-docker-container-88b8fd4d5040"
+            target="_blank" rel="noopener">
+            <h3 class="autoestudos-title">Microservices Using ASP.NET Core</h3>
+            <p class="autoestudos-meta">MongoDB e Docker Container</p>
+          </a>
+          <a class="autoestudos-card" href="https://rsdjournal.org/rsd/article/download/17776/15626/221575"
+            target="_blank" rel="noopener">
+            <h3 class="autoestudos-title">Diagrama Entidade Relacionamento</h3>
+            <p class="autoestudos-meta">Aprofundamento com PDF acadêmico</p>
+          </a>
+          <a class="autoestudos-card"
+            href="https://repositorio.ufsc.br/bitstream/handle/123456789/192161/TCC%20Documento%20Final.pdf?sequence=1&isAllowed=y"
+            target="_blank" rel="noopener">
+            <h3 class="autoestudos-title">Modelagem Lógica Orientada a Agregados</h3>
+            <p class="autoestudos-meta">TCC: Mapeamento para SGBDs NoSQL</p>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 1: Agenda -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">📋 Agenda da Aula</div>
+      </div>
+      <div class="slide-content">
+        <ul style="font-size: 1.35rem; line-height: 1.8;">
+          <li>Fundamentos de SQL: DDL, DML, DCL, TCL</li>
+          <li>Performance: Índices e Planos de Execução</li>
+          <li>Objetos de Banco: Views e Triggers</li>
+          <li>Transações ACID</li>
+          <li>Segurança: SQL Injection vs Parameterized Queries</li>
+          <li>Integração .NET com Dapper e melhores práticas</li>
+          <li>Mapeamento lógico orientado a agregados para NoSQL</li>
+          <li>Exercício prático e Desafio Final</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Slide 2: Como o SQL funciona -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">🧪 Como o SQL funciona?</div>
+      </div>
+      <div class="slide-content">
+        <svg class="svg-diagram" viewBox="0 0 1100 280" role="img" aria-label="Fluxo de execução SQL com otimização">
+          <rect class="svg-box" x="40" y="70" width="160" height="70"></rect>
+          <text class="svg-label" x="120" y="113" text-anchor="middle">Cliente</text>
+
+          <rect class="svg-box" x="240" y="70" width="160" height="70"></rect>
+          <text class="svg-label" x="320" y="113" text-anchor="middle">Parser</text>
+          <text class="svg-subtle" x="320" y="132" text-anchor="middle">Árvore lógica</text>
+
+          <rect class="svg-box" x="440" y="55" width="200" height="100"></rect>
+          <rect class="svg-accent" x="440" y="55" width="200" height="34"></rect>
+          <text class="svg-label" x="540" y="79" text-anchor="middle" fill="#ffffff">Optimizer</text>
+          <text class="svg-subtle" x="540" y="108" text-anchor="middle">Estatísticas</text>
+          <text class="svg-subtle" x="540" y="126" text-anchor="middle">Custo / Plano</text>
+
+          <rect class="svg-box" x="680" y="70" width="160" height="70"></rect>
+          <text class="svg-label" x="760" y="113" text-anchor="middle">Executor</text>
+          <text class="svg-subtle" x="760" y="132" text-anchor="middle">I/O + CPU</text>
+
+          <rect class="svg-box" x="880" y="70" width="180" height="70"></rect>
+          <text class="svg-label" x="970" y="113" text-anchor="middle">Resultado</text>
+
+          <line class="svg-line" x1="200" y1="105" x2="240" y2="105"></line>
+          <line class="svg-line" x1="400" y1="105" x2="440" y2="105"></line>
+          <line class="svg-line" x1="640" y1="105" x2="680" y2="105"></line>
+          <line class="svg-line" x1="840" y1="105" x2="880" y2="105"></line>
+
+          <rect x="440" y="175" width="200" height="60" rx="10" fill="#f3f4f6" stroke="#d1d5db"></rect>
+          <text class="svg-subtle" x="540" y="200" text-anchor="middle">Plano físico:</text>
+          <text class="svg-subtle" x="540" y="218" text-anchor="middle">Index Scan • Hash Join</text>
+        </svg>
+        <p style="margin-top: 18px;">
+          O <strong>Optimizer</strong> decide o <strong>plano de execução</strong>. A <strong>engine</strong> (executor)
+          apenas executa o plano escolhido.
+        </p>
+        <div class="info-box">
+          <div class="info-title">🧠 O que é o Optimizer?</div>
+          <ul style="margin: 10px 0 0 18px;">
+            <li>Analisa a query e usa estatísticas do banco.</li>
+            <li>Compara alternativas (índices, ordem de joins, métodos de acesso).</li>
+            <li>Gera o plano físico mais barato (custo estimado).</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 5: Fluxograma do Optimizer -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">🧭 Optimizer passo a passo</div>
+        <div class="slide-subtitle">Fluxograma do processo de otimização</div>
+      </div>
+      <div class="slide-content">
+        <svg class="svg-diagram" viewBox="0 0 1100 195" role="img" aria-label="Fluxograma horizontal do optimizer">
+          <!-- 1. Início -->
+          <circle cx="35" cy="50" r="20" fill="#ffffff" stroke="#2e2640" stroke-width="2"></circle>
+          <text class="svg-label" x="35" y="55" text-anchor="middle" font-size="13">Início</text>
+
+          <!-- 2. Query (input) -->
+          <polygon points="78,25 188,25 183,75 73,75" fill="#ffffff" stroke="#2e2640" stroke-width="2"></polygon>
+          <text class="svg-label" x="130" y="55" text-anchor="middle" font-size="13">Query (input)</text>
+
+          <!-- 3. Normaliza query -->
+          <rect class="svg-box" x="205" y="25" width="120" height="50"></rect>
+          <text class="svg-label" x="265" y="55" text-anchor="middle" font-size="13">Normaliza query</text>
+
+          <!-- 4. Plano lógico -->
+          <rect class="svg-box" x="345" y="25" width="115" height="50"></rect>
+          <text class="svg-label" x="402" y="55" text-anchor="middle" font-size="13">Plano lógico</text>
+
+          <!-- 5. Estatísticas + alternativas -->
+          <rect class="svg-box" x="480" y="20" width="160" height="60"></rect>
+          <text class="svg-label" x="560" y="45" text-anchor="middle" font-size="12">Estatísticas</text>
+          <text class="svg-label" x="560" y="62" text-anchor="middle" font-size="12">+ alternativas</text>
+
+          <!-- 6. Estimativa de custos -->
+          <rect class="svg-box" x="660" y="25" width="145" height="50"></rect>
+          <text class="svg-label" x="732" y="45" text-anchor="middle" font-size="12">Estimativa</text>
+          <text class="svg-label" x="732" y="62" text-anchor="middle" font-size="12">de custos</text>
+
+          <!-- 7. Menor custo? (decisão) -->
+          <polygon points="830,50 870,15 910,50 870,85" fill="#ffffff" stroke="#2e2640" stroke-width="2"></polygon>
+          <text class="svg-label" x="870" y="47" text-anchor="middle" font-size="11">Menor</text>
+          <text class="svg-label" x="870" y="60" text-anchor="middle" font-size="11">custo?</text>
+
+          <!-- 8. Executa (engine) -->
+          <rect class="svg-box" x="940" y="25" width="140" height="50"></rect>
+          <text class="svg-label" x="1010" y="55" text-anchor="middle" font-size="13">Executa (engine)</text>
+
+          <!-- 9. Refina alternativas (loop) -->
+          <rect class="svg-box" x="625" y="130" width="175" height="40"></rect>
+          <text class="svg-label" x="712" y="156" text-anchor="middle" font-size="13">Refina alternativas</text>
+
+          <!-- Linhas do fluxo principal (esquerda → direita) -->
+          <line class="svg-line" x1="55" y1="50" x2="76" y2="50"></line>
+          <line class="svg-line" x1="186" y1="50" x2="205" y2="50"></line>
+          <line class="svg-line" x1="325" y1="50" x2="345" y2="50"></line>
+          <line class="svg-line" x1="460" y1="50" x2="480" y2="50"></line>
+          <line class="svg-line" x1="640" y1="50" x2="660" y2="50"></line>
+          <line class="svg-line" x1="805" y1="50" x2="830" y2="50"></line>
+          <line class="svg-line" x1="910" y1="50" x2="940" y2="50"></line>
+
+          <!-- Linhas do loop "Não" -->
+          <line class="svg-line" x1="870" y1="85" x2="870" y2="150"></line>
+          <line class="svg-line" x1="870" y1="150" x2="800" y2="150"></line>
+          <line class="svg-line" x1="625" y1="150" x2="560" y2="150"></line>
+          <line class="svg-line" x1="560" y1="150" x2="560" y2="80"></line>
+
+          <!-- Labels Sim / Não -->
+          <text class="svg-subtle" x="918" y="42">Sim</text>
+          <text class="svg-subtle" x="880" y="108">Não</text>
+
+          <!-- Setas do fluxo principal -->
+          <polygon points="70,48 76,50 70,52" fill="#2e2640"></polygon>
+          <polygon points="199,48 205,50 199,52" fill="#2e2640"></polygon>
+          <polygon points="339,48 345,50 339,52" fill="#2e2640"></polygon>
+          <polygon points="474,48 480,50 474,52" fill="#2e2640"></polygon>
+          <polygon points="654,48 660,50 654,52" fill="#2e2640"></polygon>
+          <polygon points="824,48 830,50 824,52" fill="#2e2640"></polygon>
+          <polygon points="934,48 940,50 934,52" fill="#2e2640"></polygon>
+
+          <!-- Setas do loop -->
+          <polygon points="806,148 800,150 806,152" fill="#2e2640"></polygon>
+          <polygon points="558,86 560,80 562,86" fill="#2e2640"></polygon>
+        </svg>
+        <p style="margin-top: 16px;">
+          O optimizer testa caminhos possíveis e escolhe o plano com menor custo estimado. A engine só executa.
+        </p>
+      </div>
+    </div>
+
+    <!-- Slide 3: SQL Categories -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">🧠 Categorias do SQL</div>
+      </div>
+      <div class="slide-content">
+        <svg class="svg-diagram" viewBox="0 0 900 260" role="img" aria-label="Mapa das categorias do SQL">
+          <rect class="svg-box" x="60" y="40" width="350" height="90"></rect>
+          <rect class="svg-accent" x="60" y="40" width="350" height="36" style="fill: #89cea5;"></rect>
+          <text class="svg-label" x="235" y="66" text-anchor="middle" fill="#ffffff">DDL (Definição)</text>
+          <text class="svg-subtle" x="90" y="105">CREATE · ALTER · DROP</text>
+
+          <rect class="svg-box" x="490" y="40" width="350" height="90"></rect>
+          <rect class="svg-accent" x="490" y="40" width="350" height="36" style="fill: #89cea5;"></rect>
+          <text class="svg-label" x="665" y="66" text-anchor="middle" fill="#ffffff">DML (Manipulação)</text>
+          <text class="svg-subtle" x="520" y="105">SELECT · INSERT · UPDATE · DELETE</text>
+
+          <rect class="svg-box" x="60" y="150" width="350" height="90"></rect>
+          <rect class="svg-accent" x="60" y="150" width="350" height="36" style="fill: #89cea5;"></rect>
+          <text class="svg-label" x="235" y="176" text-anchor="middle" fill="#ffffff">DCL (Controle)</text>
+          <text class="svg-subtle" x="90" y="215">GRANT · REVOKE</text>
+
+          <rect class="svg-box" x="490" y="150" width="350" height="90"></rect>
+          <rect class="svg-accent" x="490" y="150" width="350" height="36" style="fill: #89cea5;"></rect>
+          <text class="svg-label" x="665" y="176" text-anchor="middle" fill="#ffffff">TCL (Transação)</text>
+          <text class="svg-subtle" x="520" y="215">COMMIT · ROLLBACK</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Slide 4: DDL - Estrutura -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">🏗️ DDL (Data Definition Language)</div>
+      </div>
+      <div class="slide-content">
+        <div class="code-block">
+          /* Criar Tabela */
+          CREATE TABLE Medico (
+          Id INT PRIMARY KEY,
+          Nome VARCHAR(100) NOT NULL,
+          CRM VARCHAR(20) UNIQUE
+          );
+
+          /* Alterar Estrutura */
+          ALTER TABLE Medico ADD Especialidade VARCHAR(50);
+
+          /* Adicionar Constraint (Integridade Referencial) */
+          ALTER TABLE Consulta
+          ADD CONSTRAINT FK_Marcar
+          FOREIGN KEY (Id_Medico) REFERENCES Medico(Id);
+
+          /* Remover Tabela */
+          DROP TABLE Log_Temp;
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 5: DML - Manipulação -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">📝 DML (Data Manipulation Language)</div>
+      </div>
+      <div class="slide-content">
+        <div class="two-columns">
+          <div class="column">
+            <h3>Básico</h3>
+            <div class="code-block" style="font-size: 0.9rem;">
+              INSERT INTO Medico (Id, Nome, CRM)
+              VALUES (1, 'House', 'CRM-SP-123');
+
+              UPDATE Medico
+              SET Especialidade = 'Diagnóstico'
+              WHERE Id = 1;
+
+              DELETE FROM Medico
+              WHERE Id = 1;
+            </div>
+          </div>
+          <div class="column">
+            <h3>Consulta</h3>
+            <div class="code-block" style="font-size: 0.9rem;">
+              SELECT M.Nome, COUNT(C.Id) as Total
+              FROM Medico M
+              JOIN Consulta C ON M.Id = C.Id_Medico
+              GROUP BY M.Nome
+              HAVING COUNT(C.Id) > 10
+              ORDER BY Total DESC;
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 6: Performance - Índices -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">⚡ Performance: Índices e Planos</div>
+      </div>
+      <div class="slide-content">
+        <div class="two-columns">
+          <div class="column">
+            <h3>Índices</h3>
+            <p>Estruturas (B-Tree, Hash) que aceleram a busca, mas custam na escrita.</p>
+            <div class="code-block">
+              CREATE INDEX idx_medico_crm
+              ON Medico (CRM);
+            </div>
+          </div>
+          <div class="column">
+            <h3>Execution Plan</h3>
+            <p>Como o banco decide executar a query (Table Scan vs Index Seek).</p>
+            <div class="code-block">
+              EXPLAIN ANALYZE
+              SELECT * FROM Medico
+              WHERE CRM = '12345';
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 7: Views e Triggers -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">👁️ Objetos: Views e Triggers</div>
+      </div>
+      <div class="slide-content">
+        <div class="two-columns">
+          <div class="column">
+            <h3>Views (Tabelas Virtuais)</h3>
+            <p>Simplificam queries complexas e controle de acesso.</p>
+            <div class="code-block" style="font-size: 0.85rem;">
+              CREATE VIEW vw_ResumoMedico AS
+              SELECT M.Nome, E.Nome as Especialidade
+              FROM Medico M
+              JOIN Especialidade E ON ...
+            </div>
+          </div>
+          <div class="column">
+            <h3>Triggers (Gatilhos)</h3>
+            <p>Executam lógica automática em eventos (INSERT/UPDATE).</p>
+            <div class="code-block" style="font-size: 0.85rem;">
+              CREATE TRIGGER trg_Audit
+              AFTER UPDATE ON Medico
+              FOR EACH ROW
+              INSERT INTO Log...
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 8: Transações ACID -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">🔒 DCL e TCL: Controle e Transações</div>
+      </div>
+      <div class="slide-content">
+        <h2>ACID</h2>
+        <ul style="font-size: 1.2rem;">
+          <li><strong>Atomicidade:</strong> todas as operações da transação acontecem juntas; se uma falhar, nada é
+            persistido.</li>
+          <li><strong>Consistência:</strong> regras do negócio e do banco (constraints) são respeitadas antes e depois
+            da transação.</li>
+          <li><strong>Isolamento:</strong> transações simultâneas não “vazam” estado intermediário entre si.</li>
+          <li><strong>Durabilidade:</strong> após o <code>COMMIT</code>, os dados permanecem mesmo com queda de energia
+            ou crash.</li>
+        </ul>
+        <p style="margin-top: 10px;">Em bancos tradicionais, ACID é o que garante confiança em operações críticas
+          (pagamentos, estoque, transferência).</p>
+        <div class="code-block">
+          BEGIN TRANSACTION;
+          UPDATE Conta SET Saldo = Saldo - 100 WHERE Id = 1;
+          UPDATE Conta SET Saldo = Saldo + 100 WHERE Id = 2;
+          COMMIT; -- Ou ROLLBACK se der erro
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 9: Intro .NET Dapper -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">🔌 .NET + Dapper</div>
+      </div>
+      <div class="slide-content">
+        <h2>O que é Dapper?</h2>
+        <p>Um "Micro-ORM" (Object-Relational Mapper) leve para .NET.</p>
+        <ul>
+          <li>Extremamente rápido (quase igual ADO.NET puro).</li>
+          <li>Use SQL puro (você tem controle total).</li>
+          <li>Mapeia resultados do banco diretamente para objetos C#.</li>
+        </ul>
+        <div class="info-box">
+          <div class="info-title">📦 Projeto de Exemplo</div>
+          <p>Acesse o código-fonte: <a href="https://github.com/afonsolelis/aula_dotnet_cars" target="_blank"
+              style="font-weight: bold;">github.com/afonsolelis/aula_dotnet_cars</a></p>
+        </div>
+        <div class="code-block">
+          dotnet add package Dapper
+          dotnet add package Npgsql (para PostgreSQL)
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 10: SQL Injection (O PERIGO) -->
+    <div class="slide">
+      <div class="slide-header" style="background: linear-gradient(135deg, #ef4444, #7f1d1d);">
+        <div class="slide-title">☠️ PERIGO: SQL Injection</div>
+      </div>
+      <div class="slide-content">
+        <div class="warning-box">
+          <div class="warning-title">⚠️ NÃO FAÇA ISSO!</div>
+          <p>Concatenar strings diretamente na query permite que atacantes executem comandos maliciosos.</p>
+        </div>
+        <div class="code-block">
+          // CÓDIGO VULNERÁVEL
+          string sql = "SELECT * FROM Users WHERE Name = '" + userInput + "'";
+          var user = connection.Query(sql);
+
+          // Se userInput for: "'; DROP TABLE Users; --"
+          // O banco executa: SELECT * FROM Users WHERE Name = ''; DROP TABLE Users; --'
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 11: Parameterized Queries (A SOLUÇÃO) -->
+    <div class="slide">
+      <div class="slide-header" style="background: linear-gradient(135deg, #22c55e, #14532d);">
+        <div class="slide-title">🛡️ SOLUÇÃO: Parameterized Queries</div>
+      </div>
+      <div class="slide-content">
+        <div class="success-box">
+          <div class="success-title">✅ USE SEMPRE PARÂMETROS!</div>
+          <p>O banco trata o input como <strong>dado</strong> literal, nunca como comando executável.</p>
+        </div>
+        <div class="code-block">
+          // CÓDIGO SEGURO COM DAPPER
+          string sql = "SELECT * FROM Users WHERE Name = @Name";
+
+          // O Dapper envia o valor de forma segura
+          var user = connection.Query(sql, new { Name = userInput });
+        </div>
+        <h3>Como funciona?</h3>
+        <ul style="font-size: 1.2rem;">
+          <li>O Dapper envia o SQL (com <code>@Name</code>) e os dados <strong>separadamente</strong> para o banco.</li>
+          <li>O banco compila o plano de execução com o placeholder.</li>
+          <li>Os dados são inseridos apenas na execução, tratados estritamente como texto/número.</li>
+          <li>Mesmo que o usuário digite <code>'; DROP TABLE...</code>, isso será buscado como um nome de usuário
+            bizarro, e não executado.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Slide 12: Dapper CRUD -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">🛠️ Dapper: CRUD Exemplo</div>
+      </div>
+      <div class="slide-content">
+        <div class="code-block" style="font-size: 0.9rem;">
+          using var conn = new NpgsqlConnection(connectionString);
+
+          // SELECT (Query)
+          var medico = await conn.QueryFirstOrDefaultAsync<Medico>(
+            "SELECT * FROM Medico WHERE Id = @Id", new { Id = 1 });
+
+            // INSERT (Execute)
+            var sqlInsert = "INSERT INTO Medico (Nome, CRM) VALUES (@Nome, @Crm)";
+            var rows = await conn.ExecuteAsync(sqlInsert, new { Nome = "Ana", Crm = "123" });
+
+            // UPDATE
+            var sqlUpdate = "UPDATE Medico SET Nome = @Nome WHERE Id = @Id";
+            await conn.ExecuteAsync(sqlUpdate, new { Nome = "Ana Silva", Id = 1 });
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 13: Advanced Dapper -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">🚀 Dapper Avançado</div>
+      </div>
+      <div class="slide-content">
+        <div class="two-columns">
+          <div class="column">
+            <h3>Transações</h3>
+            <div class="code-block" style="font-size: 0.8rem;">using var transaction = conn.BeginTransaction();
+              try {
+              conn.Execute(sql1, params, transaction);
+              conn.Execute(sql2, params, transaction);
+              transaction.Commit();
+              } catch {
+              transaction.Rollback();
+              }</div>
+          </div>
+          <div class="column">
+            <h3>Multi-Mapping (Joins)</h3>
+            <div class="code-block" style="font-size: 0.8rem;">var sql = @"SELECT * FROM Medico M
+              JOIN Hospital H ON M.HospitalId = H.Id";
+
+              var list = conn.Query&lt;Medico, Hospital, Medico&gt;(
+              sql,
+              (medico, hospital) =&gt; {
+              medico.Hospital = hospital;
+              return medico;
+              },
+              splitOn: "Id" // Onde divide as tabelas
+              );</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 14: Além do ER -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">🏢 Além do ER: O Modelo Corporativo</div>
+      </div>
+      <div class="slide-content">
+        <h2>O Mapa Estratégico</h2>
+        <p>Modelagem Corporativa não é sobre criar tabelas; é sobre mapear os <strong>ativos de informação</strong> da
+          empresa.</p>
+        <div class="two-columns">
+          <div class="column">
+            <h3>Camadas (Zachman)</h3>
+            <ul>
+              <li><strong>Contextual (Why):</strong> Objetivos de negócio.</li>
+              <li><strong>Conceitual (What):</strong> Entidades de negócio (ex: "Cliente" vs "Lead").</li>
+              <li><strong>Lógico (How):</strong> Atributos e chaves.</li>
+              <li><strong>Físico (Where):</strong> DDL, PKs, Tipos.</li>
+            </ul>
+          </div>
+          <div class="column">
+            <h3>O Erro Comum</h3>
+            <div class="warning-box">
+              <p>Focar direto no físico e criar "silos de dados" que não conversam entre áreas.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 15: Monolito vs DDD -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">🧩 O Dilema: Monolito vs Bounded Contexts</div>
+      </div>
+      <div class="slide-content">
+        <h2>"Um Modelo Único para Todos"? 🚫</h2>
+        <p>A tentativa de criar um único modelo canônico global geralmente falha.</p>
+        <div class="two-columns">
+          <div class="column">
+            <h3>Bounded Contexts (DDD)</h3>
+            <p>O conceito de <strong>"Produto"</strong> muda de contexto:</p>
+            <ul>
+              <li><strong>Vendas:</strong> Preço, Promoção, SKU.</li>
+              <li><strong>Logística:</strong> Peso, Dimensões, Lote.</li>
+            </ul>
+            <p>Não force uma unificação prematura. Modele contextos explícitos.</p>
+          </div>
+          <div class="column">
+            <h3>Integration Patterns</h3>
+            <ul>
+              <li><strong>ACL (Anti-Corruption Layer):</strong> Traduz modelos entre sistemas.</li>
+              <li><strong>Canonical Model:</strong> Útil apenas para mensageria entre sistemas díspares.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 16: DDD -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">🧭 O que é DDD (Domain-Driven Design)</div>
+      </div>
+      <div class="slide-content">
+        <div class="two-columns">
+          <div class="column">
+            <h3>Conceito</h3>
+            <ul>
+              <li>DDD é uma abordagem para modelar software a partir do <strong>domínio de negócio</strong>.</li>
+              <li>Usa uma <strong>linguagem comum</strong> entre time técnico e negócio.</li>
+              <li>Organiza o sistema por <strong>contextos</strong> claros, evitando confusão.</li>
+            </ul>
+          </div>
+          <div class="column">
+            <h3>Importância para o negócio</h3>
+            <ul>
+              <li>Reduz retrabalho: modelo reflete o que o negócio realmente faz.</li>
+              <li>Facilita evolução: mudanças em uma área não quebram as outras.</li>
+              <li>Melhora velocidade de entrega com menos risco.</li>
+            </ul>
+          </div>
+        </div>
+        <p style="margin-top: 16px;">Resumo: DDD alinha produto, times e dados — e diminui “traduções” erradas entre
+          áreas.</p>
+      </div>
+    </div>
+
+    <!-- Slide 17: Governança -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">⚖️ Governança e Stewardship</div>
+      </div>
+      <div class="slide-content">
+        <h2>Quem é o dono do dado?</h2>
+        <div class="cards-grid">
+          <div class="info-card">
+            <h4>Data Steward</h4>
+            <p>Responsável pelo <strong>significado</strong> e qualidade do dado em um domínio.</p>
+          </div>
+          <div class="info-card">
+            <h4>Data Dictionary</h4>
+            <p>Glossário vivo. "O que significa 'Churn' para o Marketing?"</p>
+          </div>
+          <div class="info-card">
+            <h4>Lineage</h4>
+            <p>Rastreabilidade. De onde veio esse dado e quem o consome?</p>
+          </div>
+        </div>
+        <p style="margin-top: 20px;">Governança moderna não é bloqueio, é <strong>enabler</strong> para Self-Service
+          Analytics.</p>
+      </div>
+    </div>
+
+    <!-- Slide 18: Modern Patterns -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">🚀 Padrões Modernos: Mesh & Vault</div>
+      </div>
+      <div class="slide-content">
+        <div class="two-columns">
+          <div class="column">
+            <h3>🌐 Data Mesh</h3>
+            <p>Descentralização total.</p>
+            <ul>
+              <li><strong>Data as a Product:</strong> Cada time expõe seus dados como APIs/datasets bem documentados.
+              </li>
+              <li><strong>Federated Governance:</strong> Regras globais, execução local.</li>
+            </ul>
+          </div>
+          <div class="column">
+            <h3>🏦 Data Vault 2.0</h3>
+            <p>Modelagem para Data Warehouses ágeis.</p>
+            <ul>
+              <li><strong>Hubs:</strong> Chaves de negócio (imutáveis).</li>
+              <li><strong>Links:</strong> Relacionamentos (flexíveis).</li>
+              <li><strong>Satellites:</strong> Atributos descritivos e histórico (auditável).</li>
+            </ul>
+          </div>
+        </div>
+        <p style="margin-top: 16px;"><strong>Churn:</strong> percentual de clientes que deixam de usar o produto em um
+          período (ex: mês). É um dos indicadores mais críticos para o negócio.</p>
+      </div>
+    </div>
+
+    <!-- Slide 19: Dicas de Arquiteto -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">🧠 Dicas de Arquiteto (Pro Tips)</div>
+      </div>
+      <div class="slide-content">
+        <ul style="font-size: 1.3rem;">
+          <li>✅ <strong>Modele Capacidades, não Telas:</strong> Telas mudam toda semana, o Core Business dura anos.</li>
+          <li>✅ <strong>Reverse Engineering:</strong> Use ferramentas (PowerDesigner, erwin, DBeaver) para documentar
+            legados. Nunca confie na documentação antiga.</li>
+          <li>✅ <strong>Schema as Code:</strong> Versionamento de banco (Liquibase/Flyway) é obrigatório. O modelo
+            evolui com o código.</li>
+          <li>✅ <strong>Não normalizar demais em Analytics:</strong> Star Schema (Kimball) ainda é rei para leitura
+            rápida em BI.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Slide 19: Por que Agregados no NoSQL -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">🧱 NoSQL Orientado a Agregados: O Porquê</div>
+      </div>
+      <div class="slide-content">
+        <h2>Foco no negócio, não no diagrama físico</h2>
+        <div class="two-columns">
+          <div class="column">
+            <h3>Problema que o NoSQL resolve</h3>
+            <ul>
+              <li>Escala de leitura/escrita sem dor operacional.</li>
+              <li>Times independentes entregando mais rápido.</li>
+              <li>Dados modelados por <strong>fluxos de negócio</strong> (ex: Compra, Entrega, Suporte).</li>
+            </ul>
+          </div>
+          <div class="column">
+            <h3>Agregado (DDD)</h3>
+            <p>Conjunto de entidades tratadas como uma unidade de consistência.</p>
+            <ul>
+              <li><strong>Regra:</strong> tudo que muda junto, fica junto.</li>
+              <li><strong>Boundary:</strong> um agregado por transação.</li>
+              <li><strong>Owner:</strong> um time/dono de domínio.</li>
+            </ul>
+          </div>
+        </div>
+        <p style="margin-top: 18px;">NoSQL não é “anti-relacional”. É <strong>pró-fluxo de negócio</strong> e
+          <strong>pró-escala</strong>.</p>
+      </div>
+    </div>
+
+    <!-- Slide 20: Passos de Mapeamento -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">🗺️ Mapeamento Lógico → NoSQL (Passo a Passo)</div>
+      </div>
+      <div class="slide-content">
+        <div class="two-columns">
+          <div class="column">
+            <h3>1. Parta do negócio</h3>
+            <ul>
+              <li>Capacidades: <strong>Compra</strong>, <strong>Entrega</strong>, <strong>Faturamento</strong>.</li>
+              <li>Eventos-chave: pedido criado, pago, entregue.</li>
+              <li>KPIs: conversão, SLA, churn.</li>
+            </ul>
+          </div>
+          <div class="column">
+            <h3>2. Modele agregados</h3>
+            <ul>
+              <li>Escolha a raiz (ex: <strong>Pedido</strong>).</li>
+              <li>Inclua o que precisa de consistência local.</li>
+              <li>Separe o que é “referência” (ex: Cliente, Produto).</li>
+            </ul>
+          </div>
+          <div class="column">
+            <h3>3. Pense por acesso</h3>
+            <ul>
+              <li>Consultas mais comuns definem a forma do dado.</li>
+              <li>Evite joins distribuídos.</li>
+              <li>Duplicação controlada é aceitável.</li>
+            </ul>
+          </div>
+          <div class="column">
+            <h3>4. Defina contrato</h3>
+            <ul>
+              <li>Schema lógico + versionamento.</li>
+              <li>Ownership por domínio.</li>
+              <li>Integração via eventos.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 21: Exemplo de Agregado -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">🧩 Exemplo: Agregado "Pedido"</div>
+      </div>
+      <div class="slide-content">
+        <div class="two-columns">
+          <div class="column">
+            <h3>Visão de negócio</h3>
+            <ul>
+              <li>Um pedido é <strong>uma unidade de compra</strong>.</li>
+              <li>Status muda em etapas (criado → pago → enviado).</li>
+              <li>Precisa de leitura rápida no atendimento.</li>
+            </ul>
+            <div class="warning-box">
+              <p>Evite quebrar o pedido em 6 tabelas e depender de joins em tempo real.</p>
+            </div>
+          </div>
+          <div class="column">
+            <h3>Documento NoSQL</h3>
+            <div class="code-block" style="font-size: 0.85rem;">
+              Pedido {
+              id: "P-12093",
+              cliente: { id: "C-77", nome: "Ana" },
+              itens: [
+              { sku: "A12", nome: "Teclado", qtd: 1, preco: 220 }
+              ],
+              total: 220,
+              status: "pago",
+              atualizadoEm: "2026-02-09T10:30:00Z"
+              }
+            </div>
+          </div>
+        </div>
+        <p style="margin-top: 12px;">Benefício: atendimento responde em <strong>uma leitura</strong>, sem depender de
+          múltiplos serviços.</p>
+      </div>
+    </div>
+
+    <!-- Slide 22: Tradeoffs e Regras de Ouro -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">⚖️ Tradeoffs & Regras de Ouro</div>
+      </div>
+      <div class="slide-content">
+        <div class="two-columns">
+          <div class="column">
+            <h3>Tradeoffs</h3>
+            <ul>
+              <li><strong>Consistência eventual</strong> em integrações.</li>
+              <li>Duplicação de dados com controle.</li>
+              <li>Relatórios complexos vão para <strong>Analytics</strong>.</li>
+            </ul>
+          </div>
+          <div class="column">
+            <h3>Regras de Ouro</h3>
+            <ul>
+              <li>Um agregado = uma transação.</li>
+              <li>Evite joins entre domínios.</li>
+              <li>Modelo é decidido pelos fluxos críticos do negócio.</li>
+              <li>Documente o contrato de dados (schema lógico + eventos).</li>
+            </ul>
+          </div>
+        </div>
+        <p style="margin-top: 14px;">Resultado: <strong>velocidade de entrega</strong> com <strong>governança mínima
+            viável</strong>.</p>
+      </div>
+    </div>
+
+
+
+    <!-- Slide 25: Modelagem NoSQL Orientada a Agregados -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">🌳 Modelagem NoSQL Orientada a Agregados</div>
+        <div class="slide-subtitle">Do modelo lógico ao esquema físico executável</div>
+      </div>
+      <div class="slide-content">
+        <p>NoSQL não precisa ser "modelagem no improviso". Podemos trazer a <strong>disciplina do mundo
+            relacional</strong> para o NoSQL usando <strong>agregados</strong>.</p>
+
+        <h2 style="margin-top: 20px;">Modelo Lógico como Árvore</h2>
+        <svg viewBox="0 0 800 320" style="width:100%;max-width:800px;margin:10px auto;display:block;">
+          <!-- Root -->
+          <rect x="330" y="10" width="140" height="40" rx="8" fill="var(--inteli-purple)" />
+          <text x="400" y="36" text-anchor="middle" fill="white" font-size="14" font-weight="bold">Aggregate Root</text>
+
+          <!-- Coleção -->
+          <line x1="400" y1="50" x2="200" y2="100" stroke="#666" stroke-width="2" />
+          <line x1="400" y1="50" x2="400" y2="100" stroke="#666" stroke-width="2" />
+          <line x1="400" y1="50" x2="600" y2="100" stroke="#666" stroke-width="2" />
+
+          <rect x="120" y="100" width="160" height="36" rx="6" fill="var(--inteli-blue)" />
+          <text x="200" y="124" text-anchor="middle" fill="var(--inteli-purple)" font-size="13"
+            font-weight="bold">Coleção (top-level)</text>
+
+          <rect x="320" y="100" width="160" height="36" rx="6" fill="#e8d5f5" />
+          <text x="400" y="124" text-anchor="middle" fill="var(--inteli-purple)" font-size="13" font-weight="bold">Bloco
+            (aninhado)</text>
+
+          <rect x="520" y="100" width="160" height="36" rx="6" fill="#f0f0f0" stroke="#999" />
+          <text x="600" y="124" text-anchor="middle" fill="#333" font-size="13" font-weight="bold">Atributo
+            (folha)</text>
+
+          <!-- Subnodes -->
+          <line x1="200" y1="136" x2="130" y2="180" stroke="#666" stroke-width="1.5" />
+          <line x1="200" y1="136" x2="270" y2="180" stroke="#666" stroke-width="1.5" />
+          <ellipse cx="130" cy="196" rx="50" ry="18" fill="#f0f0f0" stroke="#999" />
+          <text x="130" y="200" text-anchor="middle" font-size="11">_id (objectId)</text>
+          <ellipse cx="270" cy="196" rx="50" ry="18" fill="#f0f0f0" stroke="#999" />
+          <text x="270" y="200" text-anchor="middle" font-size="11">name (string)</text>
+
+          <line x1="400" y1="136" x2="360" y2="180" stroke="#666" stroke-width="1.5" />
+          <line x1="400" y1="136" x2="440" y2="180" stroke="#666" stroke-width="1.5" />
+          <ellipse cx="360" cy="196" rx="45" ry="18" fill="#f0f0f0" stroke="#999" />
+          <text x="360" y="200" text-anchor="middle" font-size="11">street</text>
+          <ellipse cx="440" cy="196" rx="45" ry="18" fill="#f0f0f0" stroke="#999" />
+          <text x="440" y="200" text-anchor="middle" font-size="11">zip</text>
+
+          <!-- Legend -->
+          <rect x="100" y="250" width="600" height="55" rx="8" fill="#f8f8f8" stroke="#ddd" />
+          <text x="130" y="275" font-size="12" fill="#555">Baseado em: <tspan font-weight="bold">GODINHO, N.R.</tspan> -
+            Mapeamento de Modelagem Lógica de Dados Orientado a Agregados (UFSC, 2018)</text>
+          <text x="130" y="293" font-size="12" fill="#555">Entidade raiz = visível externamente | Entidade local =
+            contida na raiz, sem referência externa</text>
+        </svg>
+
+        <p style="margin-top:10px;">Essa árvore vira um <strong>contrato estrutural</strong> que melhora manutenção,
+          integração e qualidade dos dados.</p>
+      </div>
+    </div>
+
+    <!-- Slide 26: $jsonSchema no MongoDB -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">🛡️ $jsonSchema: Contrato Executável no MongoDB</div>
+        <div class="slide-subtitle">De "schemaless" para "schema opcional, mas executável"</div>
+      </div>
+      <div class="slide-content">
+        <p>O MongoDB materializa o contrato com o validador nativo <code>$jsonSchema</code>, aplicado na
+          criação/modificação de coleções.</p>
+
+        <div class="code-block" style="margin-top:15px;">
+          <button class="copy-btn"
+            onclick="navigator.clipboard.writeText(this.parentElement.querySelector('pre').textContent)">Copiar</button>
+          <pre>db.createCollection("author", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["_id", "name", "address"],
+      properties: {
+        _id:     { bsonType: "objectId" },
+        name:    { bsonType: "string" },
+        email:   { bsonType: "string" },
+        address: {
+          bsonType: "object",
+          required: ["street"],
+          properties: {
+            street: { bsonType: "string" },
+            number: { bsonType: "string" },
+            zip:    { bsonType: "string" }
+          }
+        },
+        books: {
+          bsonType: "array",
+          items: { bsonType: "objectId" }
+        }
+      }
+    }
+  },
+  validationAction: "error",
+  validationLevel: "moderate"
+});</pre>
+        </div>
+
+        <div class="two-columns" style="margin-top:15px;">
+          <div class="column">
+            <h3>Recursos do $jsonSchema</h3>
+            <ul>
+              <li><code>bsonType</code> — tipagem (string, objectId, array, object...)</li>
+              <li><code>required</code> — campos obrigatórios</li>
+              <li><code>properties</code> — objetos aninhados</li>
+              <li><code>oneOf</code> — disjunções (composição lógica)</li>
+            </ul>
+          </div>
+          <div class="column">
+            <h3>Comportamento</h3>
+            <ul>
+              <li>Todo <code>insert</code>/<code>update</code> precisa satisfazer o schema</li>
+              <li><code>validationAction</code>: <strong>error</strong> (rejeita) ou <strong>warn</strong> (loga)</li>
+              <li><code>validationLevel</code>: <strong>strict</strong> ou <strong>moderate</strong></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 27: Cardinalidade → $jsonSchema -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">🔢 Cardinalidade → $jsonSchema</div>
+        <div class="slide-subtitle">A cardinalidade não é só documentação: vira restrição ativa no MongoDB</div>
+      </div>
+      <div class="slide-content">
+        <table style="width:100%;border-collapse:collapse;font-size:1.15rem;margin-top:10px;">
+          <thead>
+            <tr style="background:var(--inteli-purple);color:white;">
+              <th style="padding:12px;text-align:left;border-radius:8px 0 0 0;">Cardinalidade</th>
+              <th style="padding:12px;text-align:left;">bsonType</th>
+              <th style="padding:12px;text-align:left;">required?</th>
+              <th style="padding:12px;text-align:left;border-radius:0 8px 0 0;">Extras</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="background:#f8f8f8;">
+              <td style="padding:10px;font-weight:bold;">0–1</td>
+              <td style="padding:10px;"><code>"object"</code> ou tipo simples</td>
+              <td style="padding:10px;">Nao</td>
+              <td style="padding:10px;">Campo opcional</td>
+            </tr>
+            <tr>
+              <td style="padding:10px;font-weight:bold;">1–1</td>
+              <td style="padding:10px;"><code>"object"</code> ou tipo simples</td>
+              <td style="padding:10px;"><strong>Sim</strong></td>
+              <td style="padding:10px;">Entra em <code>required</code></td>
+            </tr>
+            <tr style="background:#f8f8f8;">
+              <td style="padding:10px;font-weight:bold;">0–N</td>
+              <td style="padding:10px;"><code>"array"</code> + <code>items</code></td>
+              <td style="padding:10px;">Nao</td>
+              <td style="padding:10px;">Sem <code>minItems</code></td>
+            </tr>
+            <tr>
+              <td style="padding:10px;font-weight:bold;">1–N</td>
+              <td style="padding:10px;"><code>"array"</code> + <code>items</code></td>
+              <td style="padding:10px;"><strong>Sim</strong></td>
+              <td style="padding:10px;"><code>minItems: 1</code></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3 style="margin-top:20px;">Referências entre Agregados</h3>
+        <div class="two-columns">
+          <div class="column">
+            <ul>
+              <li><strong>0–1 / 1–1:</strong> campo <code>objectId</code> isolado</li>
+              <li><strong>0–N / 1–N:</strong> array de <code>objectId</code></li>
+            </ul>
+          </div>
+          <div class="column">
+            <ul>
+              <li><strong>Identificadores:</strong> tipados como <code>objectId</code>, normalmente
+                <code>required</code></li>
+              <li>Referência ≠ embedding: o agregado referenciado vive em outra coleção</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 28: Exemplo Visual — Cardinalidades em JSON Schema -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">📐 Exemplo: Cardinalidades em $jsonSchema</div>
+        <div class="slide-subtitle">Author (raiz) → Address (1–1) e Books (0–N)</div>
+      </div>
+      <div class="slide-content">
+        <div class="two-columns">
+          <div class="column">
+            <h3>Modelo Lógico</h3>
+            <svg viewBox="0 0 280 260" style="width:100%;max-width:280px;">
+              <rect x="40" y="10" width="200" height="35" rx="6" fill="var(--inteli-purple)" />
+              <text x="140" y="33" text-anchor="middle" fill="white" font-size="14" font-weight="bold">Author
+                (raiz)</text>
+
+              <line x1="90" y1="45" x2="90" y2="80" stroke="#666" stroke-width="1.5" />
+              <rect x="20" y="80" width="140" height="30" rx="5" fill="var(--inteli-blue)" />
+              <text x="90" y="100" text-anchor="middle" fill="var(--inteli-purple)" font-size="12"
+                font-weight="bold">Address (1–1)</text>
+
+              <line x1="190" y1="45" x2="190" y2="80" stroke="#666" stroke-width="1.5" />
+              <rect x="130" y="80" width="140" height="30" rx="5" fill="#e8d5f5" />
+              <text x="200" y="100" text-anchor="middle" fill="var(--inteli-purple)" font-size="12"
+                font-weight="bold">Books (0–N)</text>
+
+              <text x="90" y="130" text-anchor="middle" font-size="11" fill="#555">street, number, zip</text>
+              <text x="200" y="130" text-anchor="middle" font-size="11" fill="#555">array of objectId</text>
+
+              <rect x="20" y="155" width="240" height="90" rx="6" fill="#f8f8f8" stroke="#ddd" />
+              <text x="140" y="175" text-anchor="middle" font-size="12" font-weight="bold" fill="#333">Regras
+                aplicadas:</text>
+              <text x="30" y="195" font-size="11" fill="#555">Address → required + bsonType: "object"</text>
+              <text x="30" y="215" font-size="11" fill="#555">Books → bsonType: "array", sem minItems</text>
+              <text x="30" y="235" font-size="11" fill="#555">_id → required + bsonType: "objectId"</text>
+            </svg>
+          </div>
+          <div class="column">
+            <h3>$jsonSchema gerado</h3>
+            <div class="code-block">
+              <button class="copy-btn"
+                onclick="navigator.clipboard.writeText(this.parentElement.querySelector('pre').textContent)">Copiar</button>
+              <pre>{
+  bsonType: "object",
+  required: ["_id", "name", "address"],
+  properties: {
+    _id:  { bsonType: "objectId" },
+    name: { bsonType: "string" },
+    address: {
+      bsonType: "object",          // 1-1
+      required: ["street"],
+      properties: {
+        street: { bsonType: "string" },
+        number: { bsonType: "string" },
+        zip:    { bsonType: "string" }
+      }
+    },
+    books: {
+      bsonType: "array",           // 0-N
+      items: { bsonType: "objectId" }
+    }
+  }
+}</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 29: Adaptação para .NET -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">⚙️ Adaptação para .NET com MongoDB.Driver</div>
+        <div class="slide-subtitle">Classes C# como Aggregate Root + validator no startup</div>
+      </div>
+      <div class="slide-content">
+        <p>O mesmo conceito se aplica em aplicações C# com o driver oficial <code>MongoDB.Driver</code>:</p>
+
+        <div class="two-columns" style="margin-top:15px;">
+          <div class="column">
+            <h3>1. Classes de Dominio</h3>
+            <div class="code-block">
+              <button class="copy-btn"
+                onclick="navigator.clipboard.writeText(this.parentElement.querySelector('pre').textContent)">Copiar</button>
+              <pre>public class Author  // Aggregate Root
+{
+    [BsonId]
+    public ObjectId Id { get; set; }
+
+    [BsonElement("name")]
+    public string Name { get; set; } = "";
+
+    [BsonElement("email")]
+    public string? Email { get; set; }  // 0-1
+
+    [BsonElement("address")]
+    public Address Address { get; set; } // 1-1
+        = new();
+
+    [BsonElement("books")]
+    public List&lt;ObjectId&gt; Books { get; set; }
+        = new();                         // 0-N
+}
+
+public class Address  // Entidade local
+{
+    [BsonElement("street")]
+    public string Street { get; set; } = "";
+
+    [BsonElement("number")]
+    public string? Number { get; set; }
+
+    [BsonElement("zip")]
+    public string? Zip { get; set; }
+}</pre>
+            </div>
+          </div>
+          <div class="column">
+            <h3>2. Mapeamento C# → MongoDB</h3>
+            <table style="width:100%;border-collapse:collapse;font-size:1rem;">
+              <tr style="background:var(--inteli-purple);color:white;">
+                <th style="padding:8px;">C#</th>
+                <th style="padding:8px;">MongoDB</th>
+              </tr>
+              <tr style="background:#f8f8f8;">
+                <td style="padding:8px;"><code>string Name</code></td>
+                <td style="padding:8px;">required + string</td>
+              </tr>
+              <tr>
+                <td style="padding:8px;"><code>string? Email</code></td>
+                <td style="padding:8px;">opcional (0–1)</td>
+              </tr>
+              <tr style="background:#f8f8f8;">
+                <td style="padding:8px;"><code>Address Address</code></td>
+                <td style="padding:8px;">required + object (1–1)</td>
+              </tr>
+              <tr>
+                <td style="padding:8px;"><code>List&lt;ObjectId&gt;</code></td>
+                <td style="padding:8px;">array (0–N)</td>
+              </tr>
+            </table>
+
+            <h3 style="margin-top:18px;">Fluxo</h3>
+            <ul>
+              <li><strong>Modelagem:</strong> classes C# representam o dominio</li>
+              <li><strong>Contrato:</strong> $jsonSchema reforça regras no banco</li>
+              <li><strong>Execução:</strong> driver serializa/deserializa documentos</li>
+            </ul>
+            <p style="margin-top:10px;font-style:italic;">A aplicação modela com classes; o schema valida no banco; o
+              driver garante persistência consistente.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 30: Aplicando o Validator via C# -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">🚀 Aplicando o Validator via C#</div>
+        <div class="slide-subtitle">Migração inicial no startup da aplicação</div>
+      </div>
+      <div class="slide-content">
+        <div class="code-block">
+          <button class="copy-btn"
+            onclick="navigator.clipboard.writeText(this.parentElement.querySelector('pre').textContent)">Copiar</button>
+          <pre>var client = new MongoClient("mongodb://localhost:27017");
+var db = client.GetDatabase("meuApp");
+
+// Define o $jsonSchema como BsonDocument
+var schema = new BsonDocument {
+  { "bsonType", "object" },
+  { "required", new BsonArray { "_id", "name", "address" } },
+  { "properties", new BsonDocument {
+    { "_id",     new BsonDocument("bsonType", "objectId") },
+    { "name",    new BsonDocument("bsonType", "string") },
+    { "email",   new BsonDocument("bsonType", "string") },
+    { "address", new BsonDocument {
+      { "bsonType", "object" },
+      { "required", new BsonArray { "street" } },
+      { "properties", new BsonDocument {
+        { "street", new BsonDocument("bsonType", "string") },
+        { "number", new BsonDocument("bsonType", "string") },
+        { "zip",    new BsonDocument("bsonType", "string") }
+      }}
+    }},
+    { "books", new BsonDocument {
+      { "bsonType", "array" },
+      { "items",    new BsonDocument("bsonType", "objectId") }
+    }}
+  }}
+};
+
+// Cria coleção com validator
+await db.CreateCollectionAsync("authors",
+  new CreateCollectionOptions {
+    Validator = new BsonDocument("$jsonSchema", schema),
+    ValidationAction = DocumentValidationAction.Error,
+    ValidationLevel  = DocumentValidationLevel.Moderate
+  });</pre>
+        </div>
+
+        <div class="two-columns" style="margin-top:15px;">
+          <div class="column">
+            <h3>O que acontece?</h3>
+            <ul>
+              <li><code>InsertOneAsync(author)</code> <strong>falha</strong> se <code>Address</code> ausente (1–1)</li>
+              <li><code>InsertOneAsync(author)</code> <strong>aceita</strong> sem <code>Books</code> (0–N)</li>
+              <li>Validação estrutural <strong>no banco</strong>, sem duplicar lógica na app</li>
+            </ul>
+          </div>
+          <div class="column">
+            <h3>Alternativa: collMod</h3>
+            <p>Para alterar o validator de uma coleção existente, use o comando <code>collMod</code>:</p>
+            <div class="code-block">
+              <pre>db.RunCommand(new BsonDocument {
+  { "collMod", "authors" },
+  { "validator", new BsonDocument(
+    "$jsonSchema", schema
+  )}
+});</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide Final: Entrega da Sprint -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">📦 Entrega da Sprint: Avaliação</div>
+        <div class="slide-subtitle">UML + C4 com visão integrada</div>
+      </div>
+      <div class="slide-content">
+        <h2>Objetivo da Avaliação</h2>
+        <p>Avaliar a concepção inicial dos diagramas UML de sequência e classes, além da visualização total com base no
+          diagrama de componentes do modelo C4, considerando possíveis mudanças nas próximas sprints.</p>
+
+        <h2 style="margin-top: 18px;">Critérios de Avaliação</h2>
+        <div class="two-columns">
+          <div class="column">
+            <h3>Diagrama de Classes (30%)</h3>
+            <ul>
+              <li><strong>Estrutura e Organização (15%):</strong> classes bem estruturadas, atributos e métodos claros,
+                relacionamentos bem representados.</li>
+              <li><strong>Coerência e Consistência (15%):</strong> alinhamento com requisitos e contexto do sistema.
+              </li>
+            </ul>
+          </div>
+          <div class="column">
+            <h3>Diagrama de Sequência (30%)</h3>
+            <ul>
+              <li><strong>Clareza e Detalhamento (15%):</strong> interações e mensagens compreensíveis ao longo do
+                tempo.
+              </li>
+              <li><strong>Correção e Precisão (15%):</strong> fluxo de mensagens correto e completo.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="column" style="margin-top: 18px;">
+          <h3>Diagrama de Componentes (C4) (40%)</h3>
+          <ul>
+            <li><strong>Visualização Global (20%):</strong> visão clara do sistema e componentes principais.</li>
+            <li><strong>Integração com UML (20%):</strong> coerência entre níveis de abstração e visão coesa.</li>
+          </ul>
+        </div>
+
+        <div class="two-columns" style="margin-top: 18px;">
+          <div class="column">
+            <h3>Observações</h3>
+            <ul>
+              <li><strong>Flexibilidade:</strong> diagramas são iniciais e devem evoluir nas próximas sprints.</li>
+              <li><strong>Feedback contínuo:</strong> foco em pontos fortes e oportunidades de melhoria.</li>
+            </ul>
+          </div>
+          <div class="column">
+            <h3>Resultados Esperados</h3>
+            <ul>
+              <li>Classes bem estruturadas e coerentes.</li>
+              <li>Sequência clara e detalhada.</li>
+              <li>C4 com visão global e integração com UML.</li>
+              <li>Adaptabilidade dos diagramas ao feedback.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer Navigation -->
+    <!-- Slide Final: Desafio -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">🏁 Desafio Final</div>
+      </div>
+      <div class="slide-content">
+        <h2>Modelagem de Dados (SQL ou NoSQL)</h2>
+        <ul style="font-size: 1.4rem; margin-top: 30px;">
+          <li>1. Foquem em <strong>modelar o dado</strong> conforme o negócio (macro visão).</li>
+          <li>2. Escolham SQL ou NoSQL (vocês já têm um PostgreSQL disponível).</li>
+          <li>3. Finalizem a modelagem em sala.</li>
+          <li>4. Cada grupo apresenta sua modelagem de forma macro.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Footer Navigation -->
+      <div class="slide-footer">
+    <div class="footer-links">
+      <a href="../home-module-9-sistemas-informacao.html" class="back-home">🏠 Home</a>
+      <a href="lesson-3-material.html" class="back-home material">📖 Material</a>
+    </div>
+    <div class="nav-wrapper">
+      <div class="nav-buttons"><button id="prev-btn" onclick="previousSlide()">← Anterior</button></div>
+      <div class="slide-counter"><span id="current-slide">1</span> / <span id="total-slides">1</span></div>
+      <div class="nav-buttons"><button id="next-btn" onclick="nextSlide()">Próximo →</button></div>
+    </div>
+    <button class="fullscreen-btn" onclick="toggleFullScreen()" title="Tela cheia">⛶</button>
+  </div>
+
+<script>
+      let currentSlide = 0;
+      const slides = document.querySelectorAll('.slide');
+      const totalSlides = slides.length;
+      document.getElementById('total-slides').textContent = totalSlides;
+
+      function toggleFullScreen() {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen();
+        } else {
+          if (document.exitFullscreen) {
+            document.exitFullscreen();
+          }
+        }
+      }
+
+      function showSlide(index) {
+        slides.forEach((slide, i) => { slide.classList.remove('active'); if (i === index) slide.classList.add('active'); });
+        currentSlide = index;
+        document.getElementById('current-slide').textContent = index + 1;
+        document.getElementById('prev-btn').disabled = index === 0;
+        document.getElementById('next-btn').disabled = index === totalSlides - 1;
+      }
+      function nextSlide() { if (currentSlide < totalSlides - 1) showSlide(currentSlide + 1); }
+      function previousSlide() { if (currentSlide > 0) showSlide(currentSlide - 1); }
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+        else if (e.key === 'ArrowLeft') previousSlide();
+        else if (e.key === 'f' || e.key === 'F') toggleFullScreen();
+      });
+      showSlide(0);
+    </script>
+</body>
+
+</html>
