@@ -27,12 +27,12 @@ npx playwright show-report
 ### Page Structure
 
 ```
-index.html                          # Entry point; cards link to pages/home_*.html
+index.html                          # Entry point; cards link to pages/home-*.html
 pages/
-  home_module-[N]-[curso].html      # Module home page (sidebar + lesson grid)
-  home_professor.html
-  home_autoestudos.html
-  home_tutorial-gitlab.html
+  home-module-[N]-[curso].html      # Module home page (sidebar + lesson grid)
+  home-professor.html
+  home-autoestudos.html
+  home-tutorial-gitlab.html
   module-[N]-[curso]/
     slides/slide_lesson-[N].html    # Reveal.js slide presentation
     materials/lesson-[N]-material.html  # Reading material (long-form HTML)
@@ -43,7 +43,7 @@ css/
   inteli-styles.css                 # Global CSS variables and component styles
 ```
 
-**Important naming rule:** Module home pages are prefixed `home_` (e.g. `home_module-9-sistemas-informacao.html`), not `module-*.html`. Index card links must point to `pages/home_*.html` — the Playwright test enforces this.
+**Important naming rule:** Module home pages use kebab-case with `home-` prefix (e.g. `home-module-9-sistemas-informacao.html`), not `module-*.html` and never with underscore. Index card links must point to `pages/home-*.html` — the Playwright test enforces this.
 
 ### Slide System (Reveal.js — required for all new slides)
 
@@ -64,7 +64,7 @@ Required Reveal.js setup:
 <!-- Top nav (outside .reveal, before </body>) -->
 <div class="top-nav">
   <a href="javascript:history.back()" class="nav-btn">← Voltar</a>
-  <a href="../home_module-X-curso.html" class="nav-btn">Material</a>
+  <a href="../home-module-X-curso.html" class="nav-btn">Material</a>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.4/reveal.js"></script>
@@ -118,9 +118,8 @@ border: 1px solid rgba(255,255,255,0.18);
 ### Playwright Tests
 
 Tests run against local `file://` URLs (no server needed). They validate:
-- `tests/index.spec.ts` — index card links point to `pages/home_*.html` and files exist on disk; course card header colors match the design system
-- `tests/home_pages.spec.ts` — module home pages load correctly
-- `tests/lesson_structure.spec.ts` — slides/materials have required structure
+- `tests/index.spec.ts` — index card links point to `pages/home-*.html` and files exist on disk; course card header colors match the design system
+- `tests/specs-compliance.spec.ts` — validates all specs including home pages, routes naming, slides, and lesson cards
 
 When adding a new module/lesson, ensure the corresponding file exists on disk before committing or tests will fail.
 
