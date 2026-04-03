@@ -3,246 +3,929 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aula 6 — Back-End II - Endpoints de Leitura e Escrita com Documentação Própria — Material - Inteli</title>
+  <title>Aula 6 — Back-End II — Endpoints CRUD — Material — Inteli</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="../../../css/inteli-styles.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    .page-header { background: #b2b6bf; color: white; }
-    .study-content { font-size: 1rem; line-height: 1.7; }
-    .study-content h2, .study-content h3, .study-content h4, .study-content h5, .study-content h6 { margin-top: 2rem; margin-bottom: 1rem; color: var(--inteli-dark-gray); }
-    .study-content h2:first-child { margin-top: 0; }
-    .study-content p, .study-content ul, .study-content ol, .study-content blockquote, .study-content .table-responsive, .study-content pre { margin-bottom: 1.25rem; }
-    .study-content ul, .study-content ol { padding-left: 1.5rem; }
-    .study-content code { background: #f1f3f5; color: #5c2d91; padding: 0.1rem 0.35rem; border-radius: 0.35rem; }
-    .study-content pre.code-block { background: #1f2430; color: #f6f7f9; padding: 1rem; border-radius: 0.75rem; overflow-x: auto; }
-    .study-content pre.code-block code { background: transparent; color: inherit; padding: 0; }
-    .study-content hr { margin: 2rem 0; border-color: #d7dce2; opacity: 1; }
-    .custom-blockquote { border-left: 4px solid #b2b6bf; background: #f8f9fb; padding: 1rem 1.25rem; border-radius: 0.5rem; }
-    .markdown-table th { white-space: nowrap; }
+    :root {
+      --ac:#1863dc; --hi:#855ede; --dk:#2e2640; --gr:#0d9488; --re:#dc2626; --am:#d97706;
+      --text:#1e293b; --muted:#64748b; --border:#e2e8f0; --bg:#f8fafc; --card:#ffffff;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family:'Manrope',sans-serif; color:var(--text); background:var(--bg); }
+
+    /* ── Progress bar ── */
+    #progress-bar { position:fixed; top:0; left:0; height:3px; background:linear-gradient(90deg,var(--ac),var(--hi)); width:0%; z-index:9999; transition:width .1s; }
+
+    /* ── Floating nav ── */
+    #float-nav { position:fixed; bottom:28px; right:28px; display:flex; flex-direction:column; gap:8px; z-index:9998; opacity:0; pointer-events:none; transform:translateY(12px); transition:opacity .3s,transform .3s; }
+    #float-nav.visible { opacity:1; pointer-events:auto; transform:translateY(0); }
+    .fn-btn { display:flex; align-items:center; gap:6px; padding:10px 16px; border-radius:999px; font-size:.82rem; font-weight:700; text-decoration:none; box-shadow:0 4px 18px rgba(0,0,0,.25); transition:transform .15s,box-shadow .15s; white-space:nowrap; }
+    .fn-btn:hover { transform:translateY(-2px); box-shadow:0 6px 24px rgba(0,0,0,.32); text-decoration:none; }
+    .fn-btn-slides { background:white; color:var(--ac); border:2px solid var(--ac); }
+    .fn-btn-back   { background:var(--dk); color:white; }
+
+    /* ── Header ── */
+    .mat-header { background:linear-gradient(135deg,#12082c 0%,#1863dc 55%,#855ede 100%); color:white; padding:40px 0 32px; }
+    .mat-header h1 { font-size:2.2rem; font-weight:800; margin:0 0 8px; }
+    .mat-header .subtitle { font-size:1rem; opacity:.85; margin:0 0 20px; }
+    .mat-badge { background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.3); color:white; padding:4px 14px; border-radius:999px; font-size:.78rem; font-weight:700; display:inline-block; margin-bottom:12px; }
+
+    /* ── Layout ── */
+    .mat-layout { display:grid; grid-template-columns:260px 1fr; gap:32px; max-width:1200px; margin:0 auto; padding:40px 24px; }
+    @media(max-width:900px){ .mat-layout { grid-template-columns:1fr; } .mat-sidebar { display:none; } }
+
+    /* ── Sidebar ── */
+    .mat-sidebar { position:sticky; top:24px; max-height:calc(100vh - 48px); overflow-y:auto; }
+    .mat-toc { background:var(--card); border-radius:14px; padding:20px; border:1px solid var(--border); box-shadow:0 2px 8px rgba(0,0,0,.05); }
+    .mat-toc h4 { font-size:.8rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:0 0 12px; }
+    .mat-toc a { display:block; color:var(--muted); text-decoration:none; font-size:.82rem; padding:4px 0 4px 12px; border-left:2px solid transparent; transition:all .2s; line-height:1.3; }
+    .mat-toc a:hover, .mat-toc a.active { color:var(--ac); border-left-color:var(--ac); }
+    .mat-toc .toc-h3 { padding-left:22px; font-size:.77rem; }
+
+    /* ── Article ── */
+    .mat-article { min-width:0; }
+    .mat-section { margin-bottom:56px; }
+    .mat-section h2 { font-size:1.75rem; font-weight:800; color:var(--dk); padding-bottom:12px; border-bottom:2px solid var(--border); margin:0 0 24px; scroll-margin-top:80px; }
+    .mat-section h3 { font-size:1.2rem; font-weight:700; color:var(--dk); margin:32px 0 12px; scroll-margin-top:80px; }
+    .mat-section h4 { font-size:1rem; font-weight:700; color:var(--dk); margin:24px 0 10px; }
+    .mat-section p { line-height:1.8; margin-bottom:16px; font-size:.97rem; color:#374151; }
+    .mat-section ul, .mat-section ol { padding-left:1.5rem; margin-bottom:16px; }
+    .mat-section li { line-height:1.75; font-size:.97rem; color:#374151; margin-bottom:4px; }
+    .mat-section strong { color:var(--dk); }
+
+    /* ── Callout boxes ── */
+    .callout { border-radius:12px; padding:16px 20px; margin:20px 0; border-left:4px solid; }
+    .callout-info  { background:#eff6ff; border-color:#3b82f6; }
+    .callout-warn  { background:#fffbeb; border-color:#f59e0b; }
+    .callout-danger{ background:#fef2f2; border-color:#ef4444; }
+    .callout-tip   { background:#f0fdf4; border-color:#22c55e; }
+    .callout-deep  { background:#f5f3ff; border-color:#8b5cf6; }
+    .callout-label { font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; margin-bottom:6px; }
+    .callout-info  .callout-label { color:#3b82f6; }
+    .callout-warn  .callout-label { color:#f59e0b; }
+    .callout-danger .callout-label { color:#ef4444; }
+    .callout-tip   .callout-label { color:#22c55e; }
+    .callout-deep  .callout-label { color:#8b5cf6; }
+    .callout p { margin:0; font-size:.91rem; line-height:1.65; color:#374151; }
+
+    /* ── Code blocks ── */
+    .code-wrap { position:relative; margin:20px 0; border-radius:12px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,.15); }
+    .code-label { background:#313244; color:#6c7086; font-size:.7rem; font-weight:700; padding:6px 14px; font-family:'JetBrains Mono',monospace; display:flex; justify-content:space-between; align-items:center; }
+    .code-copy { background:transparent; border:1px solid #6c7086; color:#cdd6f4; font-size:.65rem; padding:2px 8px; border-radius:5px; cursor:pointer; font-family:'JetBrains Mono',monospace; transition:all .2s; }
+    .code-copy:hover { background:#6c7086; color:white; }
+    pre.code-block { background:#1e1e2e; color:#cdd6f4; padding:18px 20px; margin:0; font-family:'JetBrains Mono',monospace; font-size:.82rem; line-height:1.75; overflow-x:auto; }
+    pre.code-block code { font-family:inherit; background:transparent; color:inherit; padding:0; }
+    .hl-kw  { color:#89b4fa; font-weight:600; }
+    .hl-str { color:#a6e3a1; }
+    .hl-num { color:#fab387; }
+    .hl-cmt { color:#6c7086; font-style:italic; }
+    .hl-typ { color:#cba6f7; }
+    .hl-fn  { color:#f9e2af; }
+    .hl-url { color:#94e2d5; text-decoration:underline; }
+
+    /* ── Tables ── */
+    .mat-table { width:100%; border-collapse:collapse; margin:20px 0; border-radius:10px; overflow:hidden; border:1px solid var(--border); font-size:.88rem; }
+    .mat-table thead th { background:var(--dk); color:white; padding:12px 16px; text-align:left; font-size:.8rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+    .mat-table tbody td { padding:10px 16px; border-bottom:1px solid var(--border); line-height:1.5; }
+    .mat-table tbody tr:last-child td { border-bottom:none; }
+    .mat-table tbody tr:hover { background:#f8fafc; }
+    .tag { display:inline-block; padding:2px 8px; border-radius:5px; font-size:.72rem; font-weight:700; }
+    .tag-blue  { background:#dbeafe; color:#1d4ed8; }
+    .tag-green { background:#dcfce7; color:#15803d; }
+    .tag-red   { background:#fee2e2; color:#b91c1c; }
+    .tag-purple{ background:#ede9fe; color:#7c3aed; }
+    .tag-amber { background:#fef3c7; color:#92400e; }
+
+    /* ── Status codes interactive ── */
+    .status-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:8px; margin:20px 0; }
+    .status-pill { border-radius:10px; padding:10px 12px; cursor:pointer; transition:transform .2s; }
+    .status-pill:hover { transform:scale(1.04); }
+    .status-code { font-family:'JetBrains Mono',monospace; font-size:1.1rem; font-weight:800; display:block; }
+    .status-name { font-size:.72rem; font-weight:700; display:block; margin-top:2px; }
+    .status-pill.s2 { background:#dcfce7; color:#15803d; }
+    .status-pill.s4 { background:#fef3c7; color:#92400e; }
+    .status-pill.s5 { background:#fee2e2; color:#b91c1c; }
+    #status-desc { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px 20px; margin-top:12px; min-height:64px; font-size:.88rem; color:#374151; transition:opacity .2s; line-height:1.65; }
+
+    /* ── Method cards ── */
+    .method-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin:20px 0; }
+    .method-card { border-radius:12px; padding:16px; cursor:pointer; transition:transform .2s,box-shadow .2s; border:2px solid transparent; }
+    .method-card:hover { transform:translateY(-3px); box-shadow:0 8px 24px rgba(0,0,0,.1); }
+    .method-card.POST   { background:#dcfce7; border-color:#22c55e; }
+    .method-card.PUT    { background:#fef3c7; border-color:#f59e0b; }
+    .method-card.PATCH  { background:#fce7f3; border-color:#ec4899; }
+    .method-card.DELETE { background:#fee2e2; border-color:#ef4444; }
+    .method-verb { font-family:'JetBrains Mono',monospace; font-size:1rem; font-weight:800; margin-bottom:4px; }
+    .method-card.POST   .method-verb { color:#15803d; }
+    .method-card.PUT    .method-verb { color:#92400e; }
+    .method-card.PATCH  .method-verb { color:#be185d; }
+    .method-card.DELETE .method-verb { color:#b91c1c; }
+    .method-desc { font-size:.8rem; color:#374151; line-height:1.5; }
+    .method-example { font-family:'JetBrains Mono',monospace; font-size:.72rem; color:#64748b; margin-top:6px; background:rgba(255,255,255,.6); padding:3px 7px; border-radius:5px; }
+    .method-detail { margin-top:8px; font-size:.78rem; color:#374151; display:none; border-top:1px solid rgba(0,0,0,.1); padding-top:8px; }
+    .method-card.open .method-detail { display:block; }
+
+    /* ── CRUD flow diagram ── */
+    .crud-flow { display:flex; flex-direction:column; gap:8px; margin:20px 0; }
+    .crud-step { display:flex; align-items:flex-start; gap:14px; padding:14px 18px; border-radius:10px; opacity:0; transform:translateX(-16px); transition:all .45s ease; }
+    .crud-step.reveal { opacity:1; transform:translateX(0); }
+    .crud-num { width:32px; height:32px; border-radius:50%; color:white; font-size:.8rem; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; }
+    .crud-text { font-size:.88rem; line-height:1.65; }
+    .crud-text strong { display:block; font-size:.92rem; margin-bottom:2px; }
+    .crud-code { display:inline-block; background:#313244; color:#a6e3a1; padding:1px 7px; border-radius:4px; font-family:'JetBrains Mono',monospace; font-size:.78rem; }
+
+    /* ── Route map ── */
+    .route-map { display:grid; grid-template-columns:auto 1fr 1fr; gap:0; margin:20px 0; border:1px solid var(--border); border-radius:12px; overflow:hidden; font-size:.85rem; }
+    .route-map-head { background:var(--dk); color:white; padding:8px 14px; font-size:.75rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+    .route-map-cell { padding:10px 14px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; }
+    .route-map-row:last-child .route-map-cell { border-bottom:none; }
+    .route-map-row { display:contents; }
+    .rm-verb { font-family:'JetBrains Mono',monospace; font-size:.78rem; font-weight:800; padding:2px 8px; border-radius:5px; }
+    .rm-post   { background:#dcfce7; color:#15803d; }
+    .rm-put    { background:#fef3c7; color:#92400e; }
+    .rm-patch  { background:#fce7f3; color:#be185d; }
+    .rm-delete { background:#fee2e2; color:#b91c1c; }
+    .rm-get    { background:#dbeafe; color:#1d4ed8; }
+
+    /* ── RM-ODP layers ── */
+    .odp-stack { display:flex; flex-direction:column; gap:8px; margin:20px 0; }
+    .odp-layer { border-radius:10px; padding:14px 18px; display:flex; align-items:center; gap:14px; opacity:0; transform:translateX(-20px); transition:all .5s cubic-bezier(.34,1.3,.64,1); }
+    .odp-layer.reveal { opacity:1; transform:translateX(0); }
+    .odp-icon { font-size:1.4rem; flex-shrink:0; }
+    .odp-name { font-size:.9rem; font-weight:700; color:var(--dk); }
+    .odp-desc { font-size:.8rem; color:#374151; margin-top:2px; line-height:1.5; }
+    .odp-focus { font-size:.73rem; font-weight:700; padding:2px 8px; border-radius:5px; margin-top:4px; display:inline-block; }
+
+    /* ── Expandable deep-dive ── */
+    .deep-dive { margin:20px 0; border:1px solid #ede9fe; border-radius:12px; overflow:hidden; }
+    .deep-header { background:#f5f3ff; padding:14px 18px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; user-select:none; }
+    .deep-header h4 { margin:0; font-size:.9rem; color:#6d28d9; font-weight:700; }
+    .deep-arrow { font-size:.8rem; color:#8b5cf6; transition:transform .3s; }
+    .deep-header.open .deep-arrow { transform:rotate(180deg); }
+    .deep-body { padding:0 18px; max-height:0; overflow:hidden; transition:max-height .4s ease, padding .3s; }
+    .deep-body.open { max-height:2000px; padding:16px 18px; }
+
+    /* ── Scroll reveal ── */
+    .sr { opacity:0; transform:translateY(24px); transition:opacity .5s ease,transform .5s ease; }
+    .sr.vis { opacity:1; transform:translateY(0); }
+
+    /* ── Checklist ── */
+    .checklist { list-style:none; padding:0; margin:20px 0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:8px 0; border-bottom:1px solid var(--border); font-size:.9rem; color:#374151; cursor:pointer; user-select:none; }
+    .checklist li:last-child { border-bottom:none; }
+    .ck-box { width:20px; height:20px; border:2px solid var(--border); border-radius:5px; flex-shrink:0; display:flex; align-items:center; justify-content:center; transition:all .2s; margin-top:2px; }
+    .checklist li.done .ck-box { background:var(--gr); border-color:var(--gr); color:white; }
+    .checklist li.done .ck-text { text-decoration:line-through; color:var(--muted); }
   </style>
 </head>
 <body>
-  <header class="page-header py-4">
-    <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2">
-      <div>
-        <div><span class="module-badge bg-common">Módulo 2 • Ciclo Comum</span></div>
-        <h1 class="h3 mb-1 mt-2">Aula 6 — Material</h1>
-        <div>Back-End II - Endpoints de Leitura e Escrita com Documentação Própria</div>
-      </div>
+  <div id="progress-bar"></div>
+
+  <!-- Floating nav (appears after scrolling past header) -->
+  <div id="float-nav">
+    <a href="../slides/slide_lesson-6.html" class="fn-btn fn-btn-slides">&#9654; Slides</a>
+    <a href="../../home-module-2-common.html" class="fn-btn fn-btn-back">&#8592; Módulo</a>
+  </div>
+
+  <header class="mat-header">
+    <div class="container">
+      <div class="mat-badge">Módulo 2 · Ciclo Comum · IN02</div>
+      <h1>Back-End II &#8212; Endpoints CRUD</h1>
+      <p class="subtitle">Aula 6 &#8212; Material de Leitura Aprofundado</p>
       <div class="d-flex gap-2 flex-wrap">
-        <a href="../slides/slide_lesson-6.html" class="btn btn-light">Slides</a>
-        <a href="../../home-module-2-common.html" class="btn btn-outline-light">← Voltar ao Módulo</a>
+        <a href="../slides/slide_lesson-6.html" class="btn btn-light btn-sm">&#9654; Slides</a>
+        <a href="../../home-module-2-common.html" class="btn btn-outline-light btn-sm">&#8592; Voltar ao Módulo</a>
       </div>
     </div>
   </header>
-  <main class="container py-5">
-    <div class="card shadow-sm border-0">
-      <div class="card-body p-4 p-lg-5 study-content">
-        <p class="text-muted mb-4">Conteúdo importado de <code>Autoestudo: Endpoints HTTP, Payloads, Erros e Documentação de API</code>.</p>
-        <h3 id="sumario">Sumário</h3>
-<ol>
-<li><a href="#contexto-e-objetivo">Contexto e Objetivo</a></li>
-<li><a href="#metodos-http-e-recursos">Métodos HTTP e Recursos</a></li>
-<li><a href="#entradas-saidas-e-status-codes">Entradas, Saídas e Status Codes</a></li>
-<li><a href="#validacao-e-tratamento-de-erros">Validação e Tratamento de Erros</a></li>
-<li><a href="#documentacao-propria-de-api">Documentação Própria de API</a></li>
-<li><a href="#conexao-com-front-end-e-testes">Conexão com Front-end e Testes</a></li>
-<li><a href="#aprofundamento-orientado">Aprofundamento Orientado</a></li>
-<li><a href="#miniestudo-de-caso">Miniestudo de Caso</a></li>
-<li><a href="#checklist-de-estudo">Checklist de Estudo</a></li>
-<li><a href="#referencias">Referências</a></li>
-</ol>
-<hr>
-<h3 id="contexto-e-objetivo">Contexto e Objetivo</h3>
-<p>Depois de estruturar o backend, esta aula foca em como expor funcionalidades por meio de endpoints claros, previsíveis e bem documentados. O objetivo é que o front-end saiba exatamente como consumir a API.</p>
-<hr>
-<h3 id="metodos-http-e-recursos">Métodos HTTP e Recursos</h3>
 
-    <div class="table-responsive my-4">
-      <table class="table table-bordered table-striped align-middle markdown-table">
-        <thead><tr><th>Método</th><th>Uso mais comum</th></tr></thead>
-        <tbody><tr><td><code>GET</code></td><td>buscar dados</td></tr>
-<tr><td><code>POST</code></td><td>criar recurso</td></tr>
-<tr><td><code>PUT</code></td><td>atualizar completamente</td></tr>
-<tr><td><code>PATCH</code></td><td>atualizar parcialmente</td></tr>
-<tr><td><code>DELETE</code></td><td>remover</td></tr></tbody>
-      </table>
-    </div>
-  
-<h4 id="convencoes-uteis">Convenções úteis</h4>
-<ul>
-<li>usar substantivos na URL: <code>/produtos</code></li>
-<li>usar identificador no caminho: <code>/produtos/42</code></li>
-<li>evitar verbos na rota quando o recurso já é claro</li>
-</ul>
-<hr>
-<h3 id="entradas-saidas-e-status-codes">Entradas, Saídas e Status Codes</h3>
-<h4 id="exemplo-de-criacao">Exemplo de criação</h4>
-<pre class="code-block"><code class="language-http">POST /produtos
-Content-Type: application/json
+  <div class="mat-layout">
 
-{
-  &quot;nome&quot;: &quot;Camiseta&quot;,
-  &quot;sku&quot;: &quot;CAM-001&quot;,
-  &quot;preco_cents&quot;: 4990
-}</code></pre>
-<p>Resposta:</p>
-<pre class="code-block"><code class="language-http">HTTP/1.1 201 Created
-Content-Type: application/json
-
-{
-  &quot;id&quot;: 12,
-  &quot;nome&quot;: &quot;Camiseta&quot;,
-  &quot;sku&quot;: &quot;CAM-001&quot;,
-  &quot;preco_cents&quot;: 4990
-}</code></pre>
-<h4 id="status-que-o-aluno-precisa-dominar">Status que o aluno precisa dominar</h4>
-
-    <div class="table-responsive my-4">
-      <table class="table table-bordered table-striped align-middle markdown-table">
-        <thead><tr><th>Código</th><th>Significado</th></tr></thead>
-        <tbody><tr><td><code>200</code></td><td>sucesso de leitura ou atualização</td></tr>
-<tr><td><code>201</code></td><td>recurso criado</td></tr>
-<tr><td><code>204</code></td><td>remoção sem corpo</td></tr>
-<tr><td><code>400</code></td><td>requisição inválida</td></tr>
-<tr><td><code>404</code></td><td>recurso não encontrado</td></tr>
-<tr><td><code>409</code></td><td>conflito</td></tr>
-<tr><td><code>422</code></td><td>regra de negócio violada</td></tr>
-<tr><td><code>500</code></td><td>erro interno</td></tr></tbody>
-      </table>
-    </div>
-  
-<hr>
-<h3 id="validacao-e-tratamento-de-erros">Validação e Tratamento de Erros</h3>
-<p>Uma API boa não responde só nos cenários felizes.</p>
-<h4 id="exemplo-de-resposta-de-erro">Exemplo de resposta de erro</h4>
-<pre class="code-block"><code class="language-json">{
-  &quot;message&quot;: &quot;SKU já cadastrado&quot;,
-  &quot;code&quot;: &quot;SKU_DUPLICADO&quot;
-}</code></pre>
-<h4 id="o-que-precisa-ser-validado">O que precisa ser validado</h4>
-<ul>
-<li>campos obrigatórios</li>
-<li>tipo de dado</li>
-<li>faixa de valor</li>
-<li>unicidade</li>
-<li>existência de recurso relacionado</li>
-</ul>
-<hr>
-<h3 id="documentacao-propria-de-api">Documentação Própria de API</h3>
-<p>Mesmo sem Swagger, a equipe consegue documentar uma API de forma útil.</p>
-<h4 id="estrutura-minima-por-endpoint">Estrutura mínima por endpoint</h4>
-
-    <div class="table-responsive my-4">
-      <table class="table table-bordered table-striped align-middle markdown-table">
-        <thead><tr><th>Campo</th><th>Exemplo</th></tr></thead>
-        <tbody><tr><td>Rota</td><td><code>POST /produtos</code></td></tr>
-<tr><td>Objetivo</td><td>criar novo produto</td></tr>
-<tr><td>Payload</td><td><code>nome</code>, <code>sku</code>, <code>preco_cents</code></td></tr>
-<tr><td>Sucesso</td><td><code>201 Created</code></td></tr>
-<tr><td>Erros</td><td><code>400</code>, <code>409</code>, <code>422</code></td></tr>
-<tr><td>Exemplo de resposta</td><td>JSON de retorno</td></tr></tbody>
-      </table>
-    </div>
-  
-<h4 id="exemplo-de-registro-simples">Exemplo de registro simples</h4>
-<pre class="code-block"><code class="language-md">### POST /produtos
-- Objetivo: criar um produto
-- Entrada: nome, sku, preco_cents
-- Sucesso: 201 Created
-- Erros:
-  - 400 se payload estiver inválido
-  - 409 se sku já existir</code></pre>
-<hr>
-<h3 id="conexao-com-front-end-e-testes">Conexão com Front-end e Testes</h3>
-<p>Um endpoint bem definido facilita tanto a interface quanto a validação.</p>
-
-    <div class="table-responsive my-4">
-      <table class="table table-bordered table-striped align-middle markdown-table">
-        <thead><tr><th>Elemento do contrato</th><th>Impacto no front-end</th><th>Impacto no teste</th></tr></thead>
-        <tbody><tr><td>payload esperado</td><td>formulário envia dados corretos</td><td>teste monta request válido</td></tr>
-<tr><td>status code</td><td>decide fluxo da tela</td><td>asserção objetiva</td></tr>
-<tr><td>resposta de erro</td><td>mensagem ao usuário</td><td>cenário negativo reproduzível</td></tr>
-<tr><td>exemplo documentado</td><td>integra mais rápido</td><td>vira fixture inicial</td></tr></tbody>
-      </table>
-    </div>
-  
-<h4 id="perguntas-uteis">Perguntas úteis</h4>
-<ul>
-<li>a interface consegue distinguir erro de validação de erro interno?</li>
-<li>a documentação permite testar o endpoint sem ler o código-fonte?</li>
-<li>os exemplos já cobrem sucesso e falha?</li>
-</ul>
-<hr>
-<h3 id="aprofundamento-orientado">Aprofundamento Orientado</h3>
-<h4 id="1-contrato-estavel-vale-mais-que-implementacao-bonita">1. Contrato estável vale mais que implementação bonita</h4>
-<p>Se o backend muda resposta sem combinar contrato, o front-end quebra mesmo que a lógica interna esteja correta. Por isso, documentação e consistência são parte do design.</p>
-<h4 id="2-pensar-em-casos-alternativos">2. Pensar em casos alternativos</h4>
-<p>Para cada endpoint importante, descreva:</p>
-<ol>
-<li>cenário de sucesso</li>
-<li>cenário de payload inválido</li>
-<li>cenário de recurso inexistente</li>
-<li>cenário de regra de negócio violada</li>
-</ol>
-<h4 id="3-ponte-para-a-aula-7">3. Ponte para a aula 7</h4>
-<p>A interface vai consumir diretamente o que é definido aqui. Então um bom exercício final é pegar um endpoint e responder:</p>
-<ul>
-<li>que tela o consome</li>
-<li>que campos serão mostrados</li>
-<li>que mensagem de erro faz sentido para o usuário</li>
-</ul>
-<hr>
-<h3 id="miniestudo-de-caso">Miniestudo de Caso</h3>
-<h4 id="contrato-confuso-entre-front-end-e-back-end">Contrato confuso entre front-end e back-end</h4>
-<p>O front-end espera cadastrar produto com <code>nome</code>, <code>sku</code> e <code>preco_cents</code>. O backend, porém, responde erro genérico em texto livre e às vezes devolve <code>200</code>, às vezes <code>201</code>, sem padrão. A equipe começa a gastar tempo alinhando manualmente cada integração.</p>
-<h4 id="como-estabilizar-o-endpoint">Como estabilizar o endpoint</h4>
-
-    <div class="table-responsive my-4">
-      <table class="table table-bordered table-striped align-middle markdown-table">
-        <thead><tr><th>Elemento</th><th>Definição desejada</th></tr></thead>
-        <tbody><tr><td>rota</td><td><code>POST /produtos</code></td></tr>
-<tr><td>sucesso</td><td><code>201 Created</code> com JSON do recurso criado</td></tr>
-<tr><td>erro de payload</td><td><code>400</code> com mensagem legível</td></tr>
-<tr><td>erro de duplicidade</td><td><code>409</code> com código de negócio</td></tr></tbody>
-      </table>
-    </div>
-  
-<h4 id="valor-do-caso">Valor do caso</h4>
-<p>Esse cenário mostra que documentação não é artefato burocrático. Ela reduz retrabalho, evita interpretações diferentes entre times e facilita teste automatizado.</p>
-<h4 id="perguntas-para-discutir">Perguntas para discutir</h4>
-<ol>
-<li>Qual parte do contrato é mais crítica para o front-end: payload, status ou mensagem de erro?</li>
-<li>Em que situações vale usar <code>409</code> em vez de <code>422</code>?</li>
-<li>Que exemplo mínimo precisa estar na documentação para outra pessoa testar esse endpoint sem ler o código?</li>
-</ol>
-<hr>
-<h3 id="checklist-de-estudo">Checklist de Estudo</h3>
-<ul>
-<li>[ ] Sei associar corretamente método HTTP e operação?</li>
-<li>[ ] Consigo definir payload de entrada e resposta de saída?</li>
-<li>[ ] Consigo escolher status code coerente?</li>
-<li>[ ] Sei descrever erros previsíveis do endpoint?</li>
-<li>[ ] Consigo documentar um endpoint de forma simples e legível?</li>
-</ul>
-<hr>
-<h3 id="referencias">Referências</h3>
-<ul>
-<li><a href="https://datatracker.ietf.org/doc/html/rfc7231" target="_blank" rel="noopener noreferrer">RFC 7231 — Hypertext Transfer Protocol (HTTP/1.1): Semantics and Content</a></li>
-<li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Methods" target="_blank" rel="noopener noreferrer">MDN Web Docs — HTTP Request Methods</a></li>
-<li><a href="https://ics.uci.edu/~fielding/pubs/dissertation/top.htm" target="_blank" rel="noopener noreferrer">Roy Fielding — Architectural Styles and the Design of Network-based Software Architectures</a></li>
-</ul>
+    <!-- ── Sidebar ── -->
+    <aside class="mat-sidebar">
+      <div class="mat-toc">
+        <h4>Neste material</h4>
+        <a href="#sec-crud-completo">1. Completando o CRUD</a>
+        <a href="#sec-post" class="toc-h3">2. POST &#8212; Criando recursos</a>
+        <a href="#sec-put-patch" class="toc-h3">3. PUT e PATCH</a>
+        <a href="#sec-delete" class="toc-h3">4. DELETE</a>
+        <a href="#sec-status">5. Status codes na prática</a>
+        <a href="#sec-validator" class="toc-h3">6. express-validator</a>
+        <a href="#sec-middleware-erro" class="toc-h3">7. Middleware de erro global</a>
+        <a href="#sec-rotas">8. Organização de rotas</a>
+        <a href="#sec-contratos">9. Contratos claros</a>
+        <a href="#sec-rmodp">10. RM-ODP</a>
+        <a href="#sec-req">11. RF, RN e RNF</a>
+        <a href="#sec-checklist">12. Checklist</a>
+        <a href="#sec-refs">Referências</a>
       </div>
-    </div>
-  </main>
-  <div class="logo-container text-center py-4">
-    <img src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli Logo Compact" style="max-width: 150px;">
+    </aside>
+
+    <!-- ── Article ── -->
+    <article class="mat-article">
+
+      <!-- ════════ 1. COMPLETANDO O CRUD ════════ -->
+      <section class="mat-section" id="sec-crud-completo">
+        <h2>1. Completando o CRUD na API</h2>
+
+        <p>Na aula anterior construímos as rotas de leitura: <code>GET /produtos</code> para listar todos os recursos e <code>GET /produtos/:id</code> para buscar um único registro pelo identificador. Essas duas rotas são suficientes para consultar dados, mas uma API de produção precisa muito mais: os usuários e sistemas clientes também precisam <strong>criar, atualizar e remover</strong> registros. É exatamente isso que vamos construir hoje.</p>
+
+        <p>O acrônimo <strong>CRUD</strong> (Create, Read, Update, Delete) define as quatro operações fundamentais sobre qualquer recurso persistido. Em REST, cada operação mapeia diretamente para um método HTTP: <code>POST</code> para criação, <code>GET</code> para leitura, <code>PUT</code> ou <code>PATCH</code> para atualização e <code>DELETE</code> para remoção. Ter um CRUD completo significa que o consumidor da API tem controle total sobre o ciclo de vida de um recurso — sem precisar acessar diretamente o banco de dados ou usar outra ferramenta.</p>
+
+        <p>Antes de detalhar cada operação, vale relembrar o ciclo request/response em detalhe. Quando um cliente envia uma requisição HTTP, ela chega ao servidor com quatro elementos essenciais: o <strong>método</strong> (POST, PUT, DELETE...), a <strong>URL</strong> (qual recurso está sendo manipulado), os <strong>cabeçalhos</strong> (metadados como <code>Content-Type: application/json</code>) e o <strong>body</strong> (corpo com os dados, presente em POST e PUT/PATCH). O servidor processa a requisição e devolve uma resposta com <strong>status code</strong>, cabeçalhos e, opcionalmente, um body JSON. Compreender esse ciclo é essencial para depurar problemas e construir APIs que se comportam de forma previsível.</p>
+
+        <!-- CRUD flow diagram -->
+        <div class="crud-flow" id="crud-flow">
+          <div class="crud-step" style="background:#dcfce7;">
+            <div class="crud-num" style="background:#15803d;">C</div>
+            <div class="crud-text">
+              <strong>Create &#8212; POST /produtos</strong>
+              Cliente envia dados no body. Servidor valida, persiste e responde <span class="crud-code">201 Created</span> com o recurso criado.
+            </div>
+          </div>
+          <div class="crud-step" style="background:#dbeafe;">
+            <div class="crud-num" style="background:#1d4ed8;">R</div>
+            <div class="crud-text">
+              <strong>Read &#8212; GET /produtos e GET /produtos/:id</strong>
+              Leitura sem efeito colateral. Responde <span class="crud-code">200 OK</span> com JSON ou <span class="crud-code">404 Not Found</span>.
+            </div>
+          </div>
+          <div class="crud-step" style="background:#fef3c7;">
+            <div class="crud-num" style="background:#92400e;">U</div>
+            <div class="crud-text">
+              <strong>Update &#8212; PUT /produtos/:id ou PATCH /produtos/:id</strong>
+              Substitui (PUT) ou atualiza parcialmente (PATCH). Confirma existência antes; responde <span class="crud-code">200 OK</span> ou <span class="crud-code">204 No Content</span>.
+            </div>
+          </div>
+          <div class="crud-step" style="background:#fee2e2;">
+            <div class="crud-num" style="background:#b91c1c;">D</div>
+            <div class="crud-text">
+              <strong>Delete &#8212; DELETE /produtos/:id</strong>
+              Remove o recurso após confirmar existência. Responde <span class="crud-code">204 No Content</span>.
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-info sr">
+          <div class="callout-label">Recapitulação</div>
+          <p>As rotas <code>GET /produtos</code> e <code>GET /produtos/:id</code> já foram implementadas na Aula 5. A partir de agora, assumimos que o arquivo <code>routes/produtos.js</code> e o controller já existem e vamos acrescentar as rotas faltantes sobre a mesma estrutura MVC.</p>
+        </div>
+
+        <!-- Mapa de rotas -->
+        <h3>Mapa completo de rotas do recurso</h3>
+
+        <div class="route-map sr">
+          <div class="route-map-head">Método</div>
+          <div class="route-map-head">Rota</div>
+          <div class="route-map-head">Ação / Controller</div>
+
+          <div class="route-map-row">
+            <div class="route-map-cell"><span class="rm-verb rm-get">GET</span></div>
+            <div class="route-map-cell"><code>/produtos</code></div>
+            <div class="route-map-cell">ctrl.listar</div>
+          </div>
+          <div class="route-map-row">
+            <div class="route-map-cell"><span class="rm-verb rm-get">GET</span></div>
+            <div class="route-map-cell"><code>/produtos/:id</code></div>
+            <div class="route-map-cell">ctrl.buscarPorId</div>
+          </div>
+          <div class="route-map-row">
+            <div class="route-map-cell"><span class="rm-verb rm-post">POST</span></div>
+            <div class="route-map-cell"><code>/produtos</code></div>
+            <div class="route-map-cell">ctrl.criar</div>
+          </div>
+          <div class="route-map-row">
+            <div class="route-map-cell"><span class="rm-verb rm-put">PUT</span></div>
+            <div class="route-map-cell"><code>/produtos/:id</code></div>
+            <div class="route-map-cell">ctrl.atualizar</div>
+          </div>
+          <div class="route-map-row">
+            <div class="route-map-cell"><span class="rm-verb rm-delete">DELETE</span></div>
+            <div class="route-map-cell"><code>/produtos/:id</code></div>
+            <div class="route-map-cell">ctrl.remover</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════ 2. POST ════════ -->
+      <section class="mat-section" id="sec-post">
+        <h2>2. POST &#8212; Criando Recursos</h2>
+
+        <p>O método <code>POST</code> é usado para <strong>criar um novo recurso</strong> no servidor. Ao contrário do GET, o POST não é idempotente: chamar <code>POST /produtos</code> duas vezes com o mesmo body cria dois produtos diferentes. É exatamente por isso que criação usa POST e não PUT — o identificador do recurso ainda não existe no momento da chamada, ele é gerado pelo servidor.</p>
+
+        <p>O dado enviado pelo cliente chega no <strong>body da requisição</strong>. No Express, o body só fica disponível em <code>req.body</code> após configurar o middleware <code>express.json()</code> no arquivo principal da aplicação. Sem esse middleware, <code>req.body</code> é <code>undefined</code> e você vai gastar horas debugando sem encontrar o problema. Sempre verifique se <code>app.use(express.json())</code> está declarado antes das rotas.</p>
+
+        <p>Após receber os dados, o controller deve <strong>validar os campos obrigatórios</strong> antes de tentar qualquer operação no banco. Se o campo <code>nome</code> é obrigatório e não foi enviado, a resposta correta é <code>400 Bad Request</code> — não um erro 500 de banco de dados. A validação no controller é mais informativa do que deixar o banco lançar um erro de constraint. Por fim, quando o recurso é criado com sucesso, a resposta deve ter status <code>201 Created</code> (não 200) e deve retornar o recurso recém-criado no body, para que o cliente tenha acesso ao <code>id</code> gerado.</p>
+
+        <div class="method-grid">
+          <div class="method-card POST" onclick="this.classList.toggle('open')">
+            <div class="method-verb">POST</div>
+            <div class="method-desc">Cria um novo recurso</div>
+            <div class="method-example">POST /produtos</div>
+            <div class="method-detail">Body obrigatório com dados do recurso. Retorna 201 Created e o objeto criado com o id gerado pelo banco.</div>
+          </div>
+        </div>
+
+        <div class="code-wrap sr">
+          <div class="code-label">routes/produtos.js<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-kw">const</span> express = <span class="hl-fn">require</span>(<span class="hl-str">'express'</span>);
+<span class="hl-kw">const</span> router = express.<span class="hl-fn">Router</span>();
+<span class="hl-kw">const</span> ctrl = <span class="hl-fn">require</span>(<span class="hl-str">'../controllers/produtoController'</span>);
+
+router.<span class="hl-fn">get</span>(<span class="hl-str">'/'</span>,        ctrl.listar);
+router.<span class="hl-fn">get</span>(<span class="hl-str">'/:id'</span>,     ctrl.buscarPorId);
+router.<span class="hl-fn">post</span>(<span class="hl-str">'/'</span>,       ctrl.criar);
+router.<span class="hl-fn">put</span>(<span class="hl-str">'/:id'</span>,     ctrl.atualizar);
+router.<span class="hl-fn">delete</span>(<span class="hl-str">'/:id'</span>,  ctrl.remover);
+
+module.exports = router;</code></pre>
+        </div>
+
+        <div class="code-wrap sr">
+          <div class="code-label">controllers/produtoController.js &#8212; função criar<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-kw">const</span> model = <span class="hl-fn">require</span>(<span class="hl-str">'../models/produtoModel'</span>);
+
+<span class="hl-kw">async function</span> <span class="hl-fn">criar</span>(req, res, next) {
+  <span class="hl-kw">try</span> {
+    <span class="hl-kw">const</span> { nome, preco, estoque } = req.body;
+
+    <span class="hl-cmt">// Validação mínima: campos obrigatórios</span>
+    <span class="hl-kw">if</span> (!nome || preco == <span class="hl-kw">null</span>) {
+      <span class="hl-kw">return</span> res.<span class="hl-fn">status</span>(<span class="hl-num">400</span>).<span class="hl-fn">json</span>({ erro: <span class="hl-str">'nome e preco são obrigatórios'</span> });
+    }
+
+    <span class="hl-kw">const</span> produto = <span class="hl-kw">await</span> model.<span class="hl-fn">create</span>({ nome, preco, estoque });
+
+    <span class="hl-cmt">// 201 Created — não 200 OK</span>
+    res.<span class="hl-fn">status</span>(<span class="hl-num">201</span>).<span class="hl-fn">json</span>(produto);
+  } <span class="hl-kw">catch</span> (err) { <span class="hl-fn">next</span>(err); }
+}</code></pre>
+        </div>
+
+        <div class="callout callout-tip sr">
+          <div class="callout-label">Por que 201 e não 200?</div>
+          <p>O HTTP define <code>201 Created</code> especificamente para indicar que a requisição resultou na criação de um novo recurso. Usar <code>200 OK</code> para criação é semanticamente impreciso e dificulta clientes que tomam decisões baseadas no status code. APIs bem definidas usam o status code correto para cada operação.</p>
+        </div>
+
+        <h3>O que retornar no body da criação?</h3>
+        <p>A convenção mais adotada é retornar <strong>o objeto completo criado</strong>, incluindo o <code>id</code> gerado pelo banco e campos de auditoria como <code>criado_em</code>. Isso evita que o cliente precise fazer uma segunda requisição GET para obter o recurso recém-criado. Alternativamente, pode-se retornar apenas <code>{ id: 42 }</code>, mas isso obriga um round-trip a mais. Para recursos pequenos, retornar o objeto completo é quase sempre a escolha certa.</p>
+      </section>
+
+      <!-- ════════ 3. PUT E PATCH ════════ -->
+      <section class="mat-section" id="sec-put-patch">
+        <h2>3. PUT e PATCH &#8212; Atualizando Recursos</h2>
+
+        <p>A distinção entre <code>PUT</code> e <code>PATCH</code> é frequentemente mal compreendida, mas é fundamental para construir APIs com semântica correta. <strong>PUT substitui o recurso inteiro</strong>: se você enviar apenas <code>{ preco: 29.90 }</code> via PUT, todos os outros campos do produto — nome, estoque, descrição — serão apagados ou definidos como nulos, porque o body enviado <em>é</em> o novo estado completo do recurso. <strong>PATCH atualiza parcialmente</strong>: apenas os campos presentes no body são modificados; os demais permanecem intactos.</p>
+
+        <p>Na prática, a maioria das APIs REST de uso geral adota <code>PATCH</code> para atualizações porque é mais flexível e menos propenso a perda acidental de dados. O PUT faz mais sentido em contextos onde o cliente sempre tem e envia o estado completo do recurso, como em uploads de arquivos ou substituição de documentos inteiros. Para APIs de gerenciamento de entidades com muitos campos, <code>PATCH</code> é quase sempre a escolha superior — o cliente envia apenas os campos que mudaram.</p>
+
+        <p>Independente de usar PUT ou PATCH, o controller deve <strong>verificar a existência do recurso antes de tentar atualizar</strong>. Se o id informado não existe no banco, a resposta correta é <code>404 Not Found</code> — não um erro 500. Após a atualização bem-sucedida, você pode responder com <code>200 OK</code> e o recurso atualizado no body, ou com <code>204 No Content</code> sem body, se o cliente já conhece o estado final. A maioria das APIs modernas prefere <code>200</code> com o objeto atualizado para facilitar o consumo.</p>
+
+        <div class="method-grid">
+          <div class="method-card PUT" onclick="this.classList.toggle('open')">
+            <div class="method-verb">PUT</div>
+            <div class="method-desc">Substitui o recurso inteiro</div>
+            <div class="method-example">PUT /produtos/:id</div>
+            <div class="method-detail">Todos os campos devem ser enviados. Campos ausentes são zerados. Idempotente.</div>
+          </div>
+          <div class="method-card PATCH" onclick="this.classList.toggle('open')">
+            <div class="method-verb">PATCH</div>
+            <div class="method-desc">Atualiza parcialmente</div>
+            <div class="method-example">PATCH /produtos/:id</div>
+            <div class="method-detail">Apenas campos enviados são alterados. Campos ausentes permanecem. Mais comum em APIs modernas.</div>
+          </div>
+        </div>
+
+        <div class="code-wrap sr">
+          <div class="code-label">controllers/produtoController.js &#8212; função atualizar<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-kw">async function</span> <span class="hl-fn">atualizar</span>(req, res, next) {
+  <span class="hl-kw">try</span> {
+    <span class="hl-cmt">// 1. Verificar existência — 404 se não existe</span>
+    <span class="hl-kw">const</span> produto = <span class="hl-kw">await</span> model.<span class="hl-fn">findById</span>(req.params.id);
+    <span class="hl-kw">if</span> (!produto) {
+      <span class="hl-kw">return</span> res.<span class="hl-fn">status</span>(<span class="hl-num">404</span>).<span class="hl-fn">json</span>({ erro: <span class="hl-str">'Produto não encontrado'</span> });
+    }
+
+    <span class="hl-cmt">// 2. Atualizar e retornar o recurso atualizado</span>
+    <span class="hl-kw">const</span> atualizado = <span class="hl-kw">await</span> model.<span class="hl-fn">update</span>(req.params.id, req.body);
+    res.<span class="hl-fn">json</span>(atualizado); <span class="hl-cmt">// 200 OK implícito</span>
+  } <span class="hl-kw">catch</span> (err) { <span class="hl-fn">next</span>(err); }
+}</code></pre>
+        </div>
+
+        <div class="callout callout-warn sr">
+          <div class="callout-label">Armadilha: PUT sem todos os campos</div>
+          <p>Se o cliente usa PUT mas envia apenas os campos que quer mudar (comportamento de PATCH), e o servidor simplesmente faz <code>UPDATE SET ... WHERE id = ?</code> apenas com os campos recebidos, a API está mentindo sobre a semântica do método. Ou você implementa PUT de verdade (substituição total) ou muda o método para PATCH. Misturar as semânticas confunde consumidores e viola o contrato HTTP.</p>
+        </div>
+      </section>
+
+      <!-- ════════ 4. DELETE ════════ -->
+      <section class="mat-section" id="sec-delete">
+        <h2>4. DELETE &#8212; Removendo Recursos</h2>
+
+        <p>A rota de remoção é estruturalmente a mais simples do CRUD, mas esconde algumas decisões importantes. O fluxo básico é: receber o <code>id</code> via parâmetro de rota, verificar se o recurso existe, removê-lo e responder. A verificação de existência antes da remoção é obrigatória — se o id não existir, o servidor deve retornar <code>404 Not Found</code>. Tentar deletar um registro inexistente e responder com sucesso (<code>204</code>) é enganoso para o cliente.</p>
+
+        <p>Quanto ao status de resposta bem-sucedida, a convenção REST é <code>204 No Content</code> — recurso foi removido e não há mais nada para retornar. Alguns times preferem retornar <code>200 OK</code> com uma mensagem descritiva como <code>{ mensagem: "Produto removido com sucesso" }</code>, o que é igualmente válido mas vai contra a semântica HTTP estrita do 204. O 204 é mais preciso: <em>"processado com sucesso, sem conteúdo de resposta"</em>. Para iniciantes, qualquer dos dois funciona; para APIs públicas, prefira 204.</p>
+
+        <p>Uma alternativa importante à deleção física é o <strong>soft delete</strong>: em vez de remover o registro do banco, você define um campo <code>deleted_at</code> com o timestamp da remoção. O registro continua existindo, mas todas as queries de listagem e busca filtram por <code>WHERE deleted_at IS NULL</code>. Soft delete é valioso quando você precisa de auditoria, recuperação de dados, ou quando registros removidos são referenciados por outros registros (por exemplo, produtos em pedidos antigos). O trade-off é maior complexidade nas queries e crescimento do banco ao longo do tempo.</p>
+
+        <div class="code-wrap sr">
+          <div class="code-label">controllers/produtoController.js &#8212; função remover<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-kw">async function</span> <span class="hl-fn">remover</span>(req, res, next) {
+  <span class="hl-kw">try</span> {
+    <span class="hl-cmt">// Confirmar existência antes de deletar</span>
+    <span class="hl-kw">const</span> produto = <span class="hl-kw">await</span> model.<span class="hl-fn">findById</span>(req.params.id);
+    <span class="hl-kw">if</span> (!produto) {
+      <span class="hl-kw">return</span> res.<span class="hl-fn">status</span>(<span class="hl-num">404</span>).<span class="hl-fn">json</span>({ erro: <span class="hl-str">'Produto não encontrado'</span> });
+    }
+
+    <span class="hl-kw">await</span> model.<span class="hl-fn">remove</span>(req.params.id);
+
+    <span class="hl-cmt">// 204 No Content — sem body</span>
+    res.<span class="hl-fn">status</span>(<span class="hl-num">204</span>).<span class="hl-fn">end</span>();
+  } <span class="hl-kw">catch</span> (err) { <span class="hl-fn">next</span>(err); }
+}</code></pre>
+        </div>
+
+        <div class="deep-dive sr">
+          <div class="deep-header" onclick="toggleDeep(this)">
+            <h4>Aprofundamento: soft delete com campo deleted_at</h4>
+            <span class="deep-arrow">&#9660;</span>
+          </div>
+          <div class="deep-body">
+            <p>Em vez de <code>DELETE FROM produtos WHERE id = ?</code>, o soft delete executa <code>UPDATE produtos SET deleted_at = NOW() WHERE id = ?</code>. Todas as outras queries precisam incluir <code>WHERE deleted_at IS NULL</code> para não retornar registros "deletados".</p>
+            <p>Vantagens: auditoria completa, recuperação de dados, integridade referencial em registros históricos. Desvantagens: crescimento ilimitado da tabela, complexidade nas queries, necessidade de índice parcial (<code>CREATE INDEX ON produtos (id) WHERE deleted_at IS NULL</code>).</p>
+            <p>Use soft delete quando: o domínio exige histórico de exclusões, registros removidos podem ser restaurados, ou há relatórios que precisam incluir registros inativos. Use deleção física quando: dados não têm valor histórico, privacidade exige remoção real (LGPD), ou o volume de dados cresce de forma insustentável.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════ 5. STATUS CODES NA PRÁTICA ════════ -->
+      <section class="mat-section" id="sec-status">
+        <h2>5. Status Codes na Prática</h2>
+
+        <p>Status codes são o idioma que o servidor usa para comunicar o resultado de uma operação. Um erro comum entre iniciantes é usar <code>200 OK</code> para tudo — inclusive para erros — e colocar o status real dentro do body JSON (<code>{ success: false, code: 404 }</code>). Isso quebra qualquer cliente HTTP que lê o status code para tomar decisões, e vai contra toda a especificação REST. O status code deve sempre refletir com precisão o que aconteceu.</p>
+
+        <p>Para operações CRUD, um subconjunto relativamente pequeno de status codes cobre quase todos os casos. O importante é entender <em>por que</em> cada um existe e <em>quando</em> usá-lo, não apenas memorizar os números. Além disso, erros devem sempre incluir um body JSON com uma mensagem legível por humanos — a diferença entre <code>{ erro: "nome é obrigatório" }</code> e um body vazio com status 422 é a diferença entre uma API utilizável e uma API que exige olhar o código-fonte para entender o erro.</p>
+
+        <p>Dois status que causam mais confusão são o <code>422 Unprocessable Entity</code> e o <code>400 Bad Request</code>. O 400 indica que a requisição está malformada — JSON inválido, campo de tipo errado, header obrigatório ausente. O 422 indica que a requisição está bem formada mas o conteúdo viola regras de negócio ou validação — campo obrigatório ausente, valor fora do intervalo permitido, duplicata. Na prática, muitas APIs usam 400 para os dois casos por simplicidade, o que é aceitável enquanto o body de erro for descritivo.</p>
+
+        <div class="status-grid" id="status-grid">
+          <div class="status-pill s2" onclick="showStatus('200 OK','200 OK — Sucesso','Resposta padrão para GET bem-sucedido, PUT/PATCH que retorna o recurso atualizado. Deve sempre ter um body com o resultado.')">
+            <span class="status-code">200</span><span class="status-name">OK</span>
+          </div>
+          <div class="status-pill s2" onclick="showStatus('201 Created','201 Created — Recurso criado','Resposta para POST bem-sucedido. Indica que um novo recurso foi criado. Deve retornar o recurso no body, incluindo o id gerado.')">
+            <span class="status-code">201</span><span class="status-name">Created</span>
+          </div>
+          <div class="status-pill s2" onclick="showStatus('204 No Content','204 No Content — Sucesso sem body','Resposta para DELETE bem-sucedido ou PUT/PATCH quando não há conteúdo a retornar. O body deve estar vazio.')">
+            <span class="status-code">204</span><span class="status-name">No Content</span>
+          </div>
+          <div class="status-pill s4" onclick="showStatus('400 Bad Request','400 Bad Request — Requisição inválida','A requisição está malformada: JSON inválido, tipo de dado errado, header obrigatório ausente. Deve incluir mensagem descritiva.')">
+            <span class="status-code">400</span><span class="status-name">Bad Request</span>
+          </div>
+          <div class="status-pill s4" onclick="showStatus('404 Not Found','404 Not Found — Recurso inexistente','O recurso solicitado não existe. Use em GET, PUT, PATCH e DELETE quando o id não é encontrado no banco.')">
+            <span class="status-code">404</span><span class="status-name">Not Found</span>
+          </div>
+          <div class="status-pill s4" onclick="showStatus('409 Conflict','409 Conflict — Conflito de estado','Tentativa de criar um recurso que já existe (ex: email duplicado). Indica que o estado atual do servidor conflita com a operação solicitada.')">
+            <span class="status-code">409</span><span class="status-name">Conflict</span>
+          </div>
+          <div class="status-pill s4" onclick="showStatus('422 Unprocessable Entity','422 Unprocessable Entity — Erro de validação','A requisição está bem formada mas viola regras de negócio: campo obrigatório ausente, valor inválido, etc. Prefira isso ao 400 quando a estrutura está correta.')">
+            <span class="status-code">422</span><span class="status-name">Unprocessable</span>
+          </div>
+          <div class="status-pill s5" onclick="showStatus('500 Internal Server Error','500 Internal Server Error — Erro do servidor','Erro inesperado no servidor: exception não tratada, falha de banco, bug. O cliente não pode fazer nada. Nunca exponha detalhes internos — apenas uma mensagem genérica.')">
+            <span class="status-code">500</span><span class="status-name">Server Error</span>
+          </div>
+        </div>
+        <div id="status-desc">Clique em um status code para ver detalhes e quando usar.</div>
+
+        <table class="mat-table sr">
+          <thead>
+            <tr><th>Operação</th><th>Sucesso</th><th>Recurso não encontrado</th><th>Dados inválidos</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="tag tag-blue">GET /recurso</span></td>
+              <td><code>200 OK</code> + array</td>
+              <td>&#8212; (lista vazia é 200)</td>
+              <td><code>400</code> (query param inválido)</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-blue">GET /recurso/:id</span></td>
+              <td><code>200 OK</code> + objeto</td>
+              <td><code>404 Not Found</code></td>
+              <td><code>400</code> (id não numérico)</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-green">POST /recurso</span></td>
+              <td><code>201 Created</code> + objeto</td>
+              <td>&#8212;</td>
+              <td><code>400</code> ou <code>422</code></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-amber">PUT /recurso/:id</span></td>
+              <td><code>200 OK</code> + objeto</td>
+              <td><code>404 Not Found</code></td>
+              <td><code>400</code> ou <code>422</code></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-red">DELETE /recurso/:id</span></td>
+              <td><code>204 No Content</code></td>
+              <td><code>404 Not Found</code></td>
+              <td><code>400</code> (id inválido)</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ════════ 6. EXPRESS-VALIDATOR ════════ -->
+      <section class="mat-section" id="sec-validator">
+        <h2>6. Validação com express-validator</h2>
+
+        <p>Validação manual com <code>if (!nome || preco == null)</code> funciona para campos simples, mas rapidamente se torna difícil de manter quando há muitos campos com regras complexas: comprimento mínimo/máximo, formatos (email, URL, CPF), valores dentro de um conjunto permitido. A biblioteca <strong>express-validator</strong> resolve isso declarativamente: você descreve as regras de validação como um array de middlewares e a biblioteca acumula os erros, deixando para o controller apenas verificar se há erros e, em caso positivo, devolvê-los.</p>
+
+        <p>As funções principais são <code>body()</code> para validar campos do body, <code>param()</code> para parâmetros de rota e <code>query()</code> para query strings. Cada uma recebe o nome do campo e pode ser encadeada com validadores como <code>.notEmpty()</code>, <code>.isFloat({ min: 0 })</code>, <code>.isEmail()</code>, <code>.isInt()</code>, entre outros. O resultado de todas as validações fica disponível via <code>validationResult(req)</code>, que retorna um objeto com método <code>.isEmpty()</code> e <code>.array()</code> para listar os erros.</p>
+
+        <p>O padrão recomendado é centralizar a verificação de erros em uma função utilitária que pode ser inserida como middleware entre o array de validações e o controller. Isso evita repetir o bloco <code>if (!result.isEmpty()) return res.status(422).json(...);</code> em cada controller. Ao retornar os erros de validação, inclua sempre o campo (<code>path</code>) e a mensagem para facilitar o trabalho do cliente — e padronize o formato de resposta de erro em toda a API.</p>
+
+        <div class="code-wrap sr">
+          <div class="code-label">validators/produtoValidator.js<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-kw">const</span> { body, param, validationResult } = <span class="hl-fn">require</span>(<span class="hl-str">'express-validator'</span>);
+
+<span class="hl-cmt">// Middleware: verifica erros acumulados e aborta se houver</span>
+<span class="hl-kw">const</span> <span class="hl-fn">validar</span> = (req, res, next) => {
+  <span class="hl-kw">const</span> result = <span class="hl-fn">validationResult</span>(req);
+  <span class="hl-kw">if</span> (!result.<span class="hl-fn">isEmpty</span>()) {
+    <span class="hl-kw">return</span> res.<span class="hl-fn">status</span>(<span class="hl-num">422</span>).<span class="hl-fn">json</span>({ erros: result.<span class="hl-fn">array</span>() });
+  }
+  <span class="hl-fn">next</span>();
+};
+
+<span class="hl-cmt">// Regras de validação para criação de produto</span>
+<span class="hl-kw">const</span> regiasCriar = [
+  <span class="hl-fn">body</span>(<span class="hl-str">'nome'</span>).<span class="hl-fn">notEmpty</span>().<span class="hl-fn">withMessage</span>(<span class="hl-str">'nome é obrigatório'</span>)
+           .<span class="hl-fn">isLength</span>({ max: <span class="hl-num">100</span> }).<span class="hl-fn">withMessage</span>(<span class="hl-str">'nome deve ter até 100 caracteres'</span>),
+  <span class="hl-fn">body</span>(<span class="hl-str">'preco'</span>).<span class="hl-fn">isFloat</span>({ min: <span class="hl-num">0</span> }).<span class="hl-fn">withMessage</span>(<span class="hl-str">'preco deve ser número positivo'</span>),
+  <span class="hl-fn">body</span>(<span class="hl-str">'estoque'</span>).<span class="hl-fn">optional</span>().<span class="hl-fn">isInt</span>({ min: <span class="hl-num">0</span> }).<span class="hl-fn">withMessage</span>(<span class="hl-str">'estoque deve ser inteiro >= 0'</span>),
+  validar
+];
+
+<span class="hl-cmt">// Validação de parâmetro id</span>
+<span class="hl-kw">const</span> regiasId = [
+  <span class="hl-fn">param</span>(<span class="hl-str">'id'</span>).<span class="hl-fn">isInt</span>({ min: <span class="hl-num">1</span> }).<span class="hl-fn">withMessage</span>(<span class="hl-str">'id deve ser inteiro positivo'</span>),
+  validar
+];
+
+module.exports = { regiasCriar, regiasId };</code></pre>
+        </div>
+
+        <div class="code-wrap sr">
+          <div class="code-label">routes/produtos.js &#8212; com validadores<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-kw">const</span> { regiasCriar, regiasId } = <span class="hl-fn">require</span>(<span class="hl-str">'../validators/produtoValidator'</span>);
+
+router.<span class="hl-fn">post</span>(<span class="hl-str">'/'</span>,      ...regiasCriar, ctrl.criar);
+router.<span class="hl-fn">put</span>(<span class="hl-str">'/:id'</span>,    ...regiasId,    ctrl.atualizar);
+router.<span class="hl-fn">delete</span>(<span class="hl-str">'/:id'</span>, ...regiasId,    ctrl.remover);</code></pre>
+        </div>
+      </section>
+
+      <!-- ════════ 7. MIDDLEWARE DE ERRO GLOBAL ════════ -->
+      <section class="mat-section" id="sec-middleware-erro">
+        <h2>7. Middleware de Erro Global</h2>
+
+        <p>Mesmo com validação cuidadosa, erros inesperados acontecem: o banco pode estar indisponível, uma query pode lançar uma exception, uma dependência pode falhar. Sem um mecanismo centralizado de tratamento de erros, esses casos chegam ao Express como exceções não capturadas e retornam uma resposta padrão confusa ao cliente — frequentemente uma página HTML de erro com stack trace exposto, em vez de um JSON padronizado.</p>
+
+        <p>O Express suporta um tipo especial de middleware para tratamento de erros: um middleware com <strong>quatro parâmetros</strong> — <code>(err, req, res, next)</code>. Qualquer middleware ou controller que chame <code>next(err)</code> com um erro vai desviar o fluxo para este handler global. Isso permite que todos os controllers sejam escritos com um simples <code>catch (err) { next(err); }</code> e deixem o tratamento real para um único ponto centralizado, garantindo respostas de erro consistentes em toda a API.</p>
+
+        <p>É importante distinguir dois tipos de erros: <strong>erros operacionais</strong> são condições esperadas que o sistema não controla — banco fora do ar, recurso não encontrado, dado inválido. <strong>Erros de programação</strong> são bugs no código — acesso a propriedade de <code>undefined</code>, variável não declarada, lógica incorreta. Erros operacionais devem ser tratados e comunicados ao cliente com status code adequado. Erros de programação devem ser logados em detalhe e retornar <code>500</code> ao cliente sem expor o stack trace.</p>
+
+        <div class="code-wrap sr">
+          <div class="code-label">app.js &#8212; middleware de erro global (4 parâmetros)<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-cmt">// IMPORTANTE: deve ser o ÚLTIMO middleware registrado no app</span>
+app.<span class="hl-fn">use</span>((err, req, res, next) => {
+  console.<span class="hl-fn">error</span>(err.stack);
+
+  <span class="hl-cmt">// Se o erro tem status definido, use-o; caso contrário, 500</span>
+  <span class="hl-kw">const</span> status = err.status || <span class="hl-num">500</span>;
+  <span class="hl-kw">const</span> mensagem = err.isOperational
+    ? err.message
+    : <span class="hl-str">'Erro interno do servidor'</span>;
+
+  res.<span class="hl-fn">status</span>(status).<span class="hl-fn">json</span>({
+    erro: mensagem,
+    <span class="hl-cmt">// No ambiente local, inclui o stack trace</span>
+    ...(process.env.NODE_ENV === <span class="hl-str">'development'</span> &amp;&amp; { stack: err.stack })
+  });
+});</code></pre>
+        </div>
+
+        <div class="callout callout-danger sr">
+          <div class="callout-label">Nunca exponha stack traces em produção</div>
+          <p>Stack traces contêm caminhos de arquivo, nomes de módulos, versões de dependências e até fragmentos de código — informações valiosas para um atacante. Em produção, retorne sempre uma mensagem genérica como <code>"Erro interno do servidor"</code> e registre o detalhe nos logs internos, nunca no body da resposta.</p>
+        </div>
+
+        <div class="code-wrap sr">
+          <div class="code-label">Exemplo: lançar erros operacionais com status<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-cmt">// Em qualquer controller ou service:</span>
+<span class="hl-kw">const</span> produto = <span class="hl-kw">await</span> model.<span class="hl-fn">findById</span>(id);
+<span class="hl-kw">if</span> (!produto) {
+  <span class="hl-kw">const</span> err = <span class="hl-kw">new</span> <span class="hl-typ">Error</span>(<span class="hl-str">'Produto não encontrado'</span>);
+  err.status = <span class="hl-num">404</span>;
+  err.isOperational = <span class="hl-kw">true</span>;
+  <span class="hl-kw">throw</span> err; <span class="hl-cmt">// capturado pelo catch e passado ao next(err)</span>
+}</code></pre>
+        </div>
+      </section>
+
+      <!-- ════════ 8. ORGANIZAÇÃO DE ROTAS ════════ -->
+      <section class="mat-section" id="sec-rotas">
+        <h2>8. Organização de Rotas</h2>
+
+        <p>Quando a API começa a crescer, definir todas as rotas diretamente no <code>app.js</code> torna o arquivo gigante e difícil de manter. O Express oferece <strong><code>express.Router()</code></strong>, que permite criar mini-aplicações com rotas próprias que depois são montadas no app principal. Cada recurso (produtos, usuários, pedidos) fica em seu próprio arquivo de rotas, e o <code>app.js</code> apenas importa e monta cada Router com um prefixo.</p>
+
+        <p>O arquivo de rotas deve ser <strong>fino</strong>: ele apenas declara quais métodos HTTP e paths existem e delega a execução para os controllers. Nenhuma lógica de negócio, nenhuma query de banco, nenhuma validação complexa deve existir dentro do arquivo de rotas. As validações do express-validator são adicionadas como middlewares na rota, mas são definidas em arquivos separados de validação. Dessa forma, o arquivo de rotas lê como uma tabela de conteúdos da API.</p>
+
+        <p>A montagem no <code>app.js</code> com <code>app.use('/api/produtos', produtosRouter)</code> significa que todas as rotas definidas em <code>produtosRouter</code> herdam o prefixo <code>/api/produtos</code>. Assim, <code>router.get('/')</code> responde a <code>GET /api/produtos</code> e <code>router.get('/:id')</code> responde a <code>GET /api/produtos/:id</code>. Isso permite renomear o prefixo em um único lugar sem tocar nos arquivos de rota.</p>
+
+        <div class="code-wrap sr">
+          <div class="code-label">app.js &#8212; montagem dos Routers<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-kw">const</span> express = <span class="hl-fn">require</span>(<span class="hl-str">'express'</span>);
+<span class="hl-kw">const</span> app = <span class="hl-fn">express</span>();
+
+<span class="hl-cmt">// Middlewares globais</span>
+app.<span class="hl-fn">use</span>(express.<span class="hl-fn">json</span>());
+
+<span class="hl-cmt">// Routers por recurso</span>
+app.<span class="hl-fn">use</span>(<span class="hl-str">'/api/produtos'</span>, <span class="hl-fn">require</span>(<span class="hl-str">'./routes/produtos'</span>));
+app.<span class="hl-fn">use</span>(<span class="hl-str">'/api/usuarios'</span>, <span class="hl-fn">require</span>(<span class="hl-str">'./routes/usuarios'</span>));
+app.<span class="hl-fn">use</span>(<span class="hl-str">'/api/pedidos'</span>,  <span class="hl-fn">require</span>(<span class="hl-str">'./routes/pedidos'</span>));
+
+<span class="hl-cmt">// Middleware de erro global — SEMPRE por último</span>
+app.<span class="hl-fn">use</span>(<span class="hl-fn">require</span>(<span class="hl-str">'./middlewares/errorHandler'</span>));
+
+app.<span class="hl-fn">listen</span>(<span class="hl-num">3000</span>, () => console.<span class="hl-fn">log</span>(<span class="hl-str">'Servidor na porta 3000'</span>));</code></pre>
+        </div>
+
+        <div class="callout callout-tip sr">
+          <div class="callout-label">Estrutura de pastas recomendada</div>
+          <p>
+            <code>routes/</code> — um arquivo por recurso, apenas registra rotas e middlewares<br>
+            <code>controllers/</code> — lógica de request/response, chama services/models<br>
+            <code>models/</code> — acesso ao banco de dados, queries SQL<br>
+            <code>validators/</code> — regras express-validator por recurso<br>
+            <code>middlewares/</code> — error handler global, autenticação, logging
+          </p>
+        </div>
+      </section>
+
+      <!-- ════════ 9. CONTRATOS CLAROS ════════ -->
+      <section class="mat-section" id="sec-contratos">
+        <h2>9. Documentação Implícita &#8212; Contratos Claros</h2>
+
+        <p>Uma API REST bem desenhada é <strong>autodocumentada por convenção</strong>: apenas olhando as rotas, qualquer desenvolvedor experiente já entende o que cada endpoint faz. Isso acontece quando você segue as convenções REST de forma consistente. A regra principal é: <strong>rotas usam substantivos (recursos), não verbos</strong>. O verbo HTTP já indica a ação; a URL deve apenas identificar o recurso.</p>
+
+        <p>Exemplos de rotas ruins versus boas ilustram bem o princípio. <code>GET /buscarUsuarios</code>, <code>POST /criarProduto</code> e <code>DELETE /removerPedido/5</code> são verbos duplicados: o método HTTP já comunica a ação. As versões corretas são <code>GET /usuarios</code>, <code>POST /produtos</code> e <code>DELETE /pedidos/5</code>. A estrutura hierárquica de URLs também comunica relacionamentos: <code>GET /usuarios/3/pedidos</code> busca os pedidos do usuário 3, o que é legível e previsível.</p>
+
+        <p>Um contrato claro de API inclui também o formato do body esperado e o formato da resposta. Mesmo sem uma ferramenta de documentação como Swagger/OpenAPI, o código deve ser escrito de forma que um colega possa ler o arquivo de rotas e os validators e entender o contrato sem precisar executar o código. Comentários JSDoc ou anotações simples acima de cada rota são investimentos baratos com retorno alto em manutenibilidade e onboarding de novos membros.</p>
+
+        <table class="mat-table sr">
+          <thead><tr><th>Errado (verbos na URL)</th><th>Correto (substantivos + método HTTP)</th></tr></thead>
+          <tbody>
+            <tr><td><code>GET /buscarUsuarios</code></td><td><code>GET /usuarios</code></td></tr>
+            <tr><td><code>POST /criarProduto</code></td><td><code>POST /produtos</code></td></tr>
+            <tr><td><code>GET /getProdutoPorId/5</code></td><td><code>GET /produtos/5</code></td></tr>
+            <tr><td><code>PUT /atualizarUsuario/3</code></td><td><code>PUT /usuarios/3</code></td></tr>
+            <tr><td><code>GET /listarPedidosDoUsuario?id=3</code></td><td><code>GET /usuarios/3/pedidos</code></td></tr>
+            <tr><td><code>DELETE /deletarPedido/7</code></td><td><code>DELETE /pedidos/7</code></td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ════════ 10. RM-ODP ════════ -->
+      <section class="mat-section" id="sec-rmodp">
+        <h2>10. RM-ODP &#8212; Visão Computacional e de Engenharia</h2>
+
+        <p>O framework <strong>RM-ODP</strong> (ISO/IEC 10746) organiza a descrição de sistemas distribuídos em cinco visões complementares. Para a Aula 6, as visões mais relevantes são a <strong>Computacional</strong> e a de <strong>Engenharia</strong>, pois descrevem exatamente o que estamos construindo: interfaces formais e infraestrutura de comunicação.</p>
+
+        <p>A <strong>viewpoint Computational</strong> descreve o sistema como uma coleção de objetos com interfaces bem definidas. Cada endpoint da API é precisamente isso: uma interface formal que especifica uma operação (<code>criar</code>, <code>atualizar</code>, <code>remover</code>), os parâmetros de entrada (body, params, query), os parâmetros de saída (status code, body de resposta) e as pré e pós-condições (recurso deve existir para atualizar; campos obrigatórios devem estar presentes para criar). O controller é o objeto; o endpoint é a interface. Pensar em endpoints como contratos formais — e não apenas como rotas — muda a forma como você os projeta.</p>
+
+        <p>A <strong>viewpoint Engineering</strong> descreve como esses objetos computacionais são distribuídos e se comunicam: canais, protocolos, binding. No contexto Express, isso se traduz na infraestrutura de roteamento e middleware: o <code>express.Router()</code> é o canal que distribui requisições para os controllers corretos; o <code>express.json()</code> é o protocolo de deserialização do body; o middleware de erro global é o mecanismo de tratamento de falhas de comunicação. O middleware de 4 parâmetros existe exatamente porque, na visão de engenharia, precisamos de um ponto de interceptação de falhas que funcione independentemente do componente que falhou.</p>
+
+        <div class="odp-stack" id="odp-stack">
+          <div class="odp-layer" style="background:#ede9fe;">
+            <div class="odp-icon">&#9881;</div>
+            <div>
+              <div class="odp-name">Computational (Computacional)</div>
+              <div class="odp-desc">Endpoints como interfaces formais: operação, parâmetros de entrada/saída, pré e pós-condições. <code>POST /produtos</code> é uma interface que recebe <code>{ nome, preco }</code> e produz <code>201 + { id, nome, preco, criado_em }</code>.</div>
+              <span class="odp-focus" style="background:#ede9fe;color:#7c3aed;">Aula 6 &#8212; Controllers como objetos com interfaces</span>
+            </div>
+          </div>
+          <div class="odp-layer" style="background:#fef3c7;">
+            <div class="odp-icon">&#128295;</div>
+            <div>
+              <div class="odp-name">Engineering (Engenharia)</div>
+              <div class="odp-desc">Roteamento, middleware de deserialização, middleware de erro global, binding de rotas a controllers. <code>express.Router()</code> distribui, <code>express.json()</code> decodifica, o error handler intercepta falhas.</div>
+              <span class="odp-focus" style="background:#fef3c7;color:#92400e;">Aula 6 &#8212; Infraestrutura Express e middleware</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════ 11. RF, RN E RNF ════════ -->
+      <section class="mat-section" id="sec-req">
+        <h2>11. RF, RN e RNF &#8212; Requisitos desta Aula</h2>
+
+        <p>Os <strong>Requisitos Funcionais (RF)</strong> descrevem as capacidades que o sistema deve oferecer. Para esta aula, os RFs principais são: o sistema deve disponibilizar endpoints para criação, atualização e remoção de recursos via HTTP; cada endpoint deve retornar o status code correto e o body adequado conforme a operação; operações de criação devem persistir o novo recurso e retornar o id gerado; operações de remoção devem verificar a existência antes de remover.</p>
+
+        <p>As <strong>Regras de Negócio (RN)</strong> definem as restrições e políticas do domínio que os endpoints devem reforçar: campos obrigatórios como nome e preço não podem ser nulos; preço deve ser um número positivo; estoque deve ser um inteiro não-negativo; um produto só pode ser atualizado ou removido se existir. Essas regras devem ser validadas no controller ou validator, antes de qualquer operação no banco de dados.</p>
+
+        <p>Os <strong>Requisitos Não-Funcionais (RNF)</strong> desta aula se concentram em três eixos fundamentais. <strong>Segurança</strong>: toda entrada de usuário deve ser validada antes de ser processada — nunca confie nos dados do cliente. <strong>Confiabilidade</strong>: o middleware de erro global garante que nenhum erro não tratado derrubará o servidor ou exponha informações internas; respostas são sempre consistentes mesmo em caso de falha. <strong>Suportabilidade</strong>: contratos REST claros (substantivos na URL, métodos HTTP como verbos, status codes semânticos) garantem que a API seja compreensível e manutenível por qualquer desenvolvedor que siga as convenções REST.</p>
+
+        <table class="mat-table sr">
+          <thead><tr><th>Tipo</th><th>Código</th><th>Descrição</th><th>Eixo RNF</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="tag tag-blue">RF</span></td>
+              <td><code>RF-06.1</code></td>
+              <td>O sistema deve disponibilizar <code>POST /produtos</code> para criação com retorno 201 e recurso criado</td>
+              <td>&#8212;</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-blue">RF</span></td>
+              <td><code>RF-06.2</code></td>
+              <td>O sistema deve disponibilizar <code>PUT /produtos/:id</code> para atualização, retornando 404 se inexistente</td>
+              <td>&#8212;</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-blue">RF</span></td>
+              <td><code>RF-06.3</code></td>
+              <td>O sistema deve disponibilizar <code>DELETE /produtos/:id</code> com retorno 204 após remoção</td>
+              <td>&#8212;</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-green">RN</span></td>
+              <td><code>RN-06.1</code></td>
+              <td>Campos <code>nome</code> e <code>preco</code> são obrigatórios na criação; <code>preco</code> deve ser número positivo</td>
+              <td>&#8212;</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-purple">RNF</span></td>
+              <td><code>RNF-06.1</code></td>
+              <td>Toda entrada deve ser validada antes do banco (SEG); erros não devem expor detalhes internos em produção</td>
+              <td>Segurança</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-purple">RNF</span></td>
+              <td><code>RNF-06.2</code></td>
+              <td>Middleware de erro global garante resposta JSON consistente em qualquer falha</td>
+              <td>Confiabilidade</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-purple">RNF</span></td>
+              <td><code>RNF-06.3</code></td>
+              <td>Rotas com substantivos e métodos HTTP como verbos; status codes semanticamente corretos</td>
+              <td>Suportabilidade</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ════════ 12. CHECKLIST ════════ -->
+      <section class="mat-section" id="sec-checklist">
+        <h2>12. Checklist de Estudo</h2>
+        <p>Clique nos itens à medida que você dominar cada conceito:</p>
+        <ul class="checklist" id="checklist">
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo explicar a diferença entre POST, PUT, PATCH e DELETE e quando usar cada um.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo implementar a rota <code>POST /produtos</code> com validação de campos e resposta 201.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo explicar a diferença entre PUT (substitui tudo) e PATCH (atualiza parcialmente).</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo implementar DELETE com verificação de existência (404) e resposta 204.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo escolher o status code correto para cada situação: 200, 201, 204, 400, 404, 409, 422, 500.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo configurar express-validator com body(), param() e validationResult() em uma rota.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo implementar o middleware de erro global com 4 parâmetros e registrá-lo no app.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo organizar rotas com express.Router() separando por recurso com prefixo no app.use().</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo explicar por que rotas REST devem usar substantivos (recursos) e não verbos nas URLs.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo descrever o que é soft delete e quando preferi-lo à deleção física.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo mapear endpoints CRUD para as viewpoints Computational e Engineering do RM-ODP.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo identificar RFs, RNs e RNFs associados aos endpoints desta aula.</span></li>
+        </ul>
+      </section>
+
+      <!-- ════════ REFERÊNCIAS ════════ -->
+      <section class="mat-section" id="sec-refs">
+        <h2>Referências</h2>
+        <ul>
+          <li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Methods" target="_blank" rel="noopener noreferrer">MDN &#8212; HTTP request methods</a> &#8212; referência oficial dos métodos HTTP e suas semânticas</li>
+          <li><a href="https://www.rfc-editor.org/rfc/rfc9110" target="_blank" rel="noopener noreferrer">RFC 9110 &#8212; HTTP Semantics</a> &#8212; especificação oficial: seções 9 (métodos) e 15 (status codes)</li>
+          <li><a href="https://expressjs.com/en/guide/routing.html" target="_blank" rel="noopener noreferrer">Express.js &#8212; Guide: Routing</a> &#8212; documentação oficial do express.Router()</li>
+          <li><a href="https://express-validator.github.io/docs/" target="_blank" rel="noopener noreferrer">express-validator &#8212; Documentação oficial</a> &#8212; referência de body(), param(), validationResult()</li>
+          <li><a href="https://expressjs.com/en/guide/error-handling.html" target="_blank" rel="noopener noreferrer">Express.js &#8212; Error handling</a> &#8212; como registrar e usar o middleware de erro de 4 parâmetros</li>
+          <li><a href="https://www.iso.org/standard/20696.html" target="_blank" rel="noopener noreferrer">ISO/IEC 10746 &#8212; RM-ODP</a> &#8212; referência das viewpoints Computational e Engineering</li>
+          <li><a href="https://restfulapi.net/resource-naming/" target="_blank" rel="noopener noreferrer">RESTful API &#8212; Resource Naming Guide</a> &#8212; convenções de nomenclatura de rotas REST</li>
+        </ul>
+      </section>
+
+    </article>
   </div>
-  <footer class="inteli-footer mt-auto py-4 bg-light border-top">
+
+  <div class="text-center py-4">
+    <img src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli Logo" style="max-width:140px;">
+  </div>
+  <footer class="py-4 bg-light border-top">
     <div class="container text-center">
       <p class="mb-1">Material criado pelo professor <strong>Afonso Brandão</strong> para o <strong>Inteli</strong>.</p>
       <small class="text-muted">Licença de leitura aberta</small>
     </div>
   </footer>
+
+  <script>
+    // ── Progress bar + floating nav ───────────────────────────────────────
+    const floatNav = document.getElementById('float-nav');
+    const matHeader = document.querySelector('.mat-header');
+    window.addEventListener('scroll', () => {
+      const h = document.documentElement;
+      const pct = (h.scrollTop / (h.scrollHeight - h.clientHeight)) * 100;
+      document.getElementById('progress-bar').style.width = pct + '%';
+      const headerBottom = matHeader.getBoundingClientRect().bottom;
+      if (headerBottom < 0) { floatNav.classList.add('visible'); }
+      else { floatNav.classList.remove('visible'); }
+    });
+
+    // ── Scroll reveal (IntersectionObserver) ─────────────────────────────
+    const srObserver = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) { e.target.classList.add('vis'); srObserver.unobserve(e.target); }
+      });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.sr').forEach(el => srObserver.observe(el));
+
+    // ── CRUD flow animation ───────────────────────────────────────────────
+    const crudObserver = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        document.querySelectorAll('.crud-step').forEach((el, i) => {
+          setTimeout(() => el.classList.add('reveal'), i * 250);
+        });
+        crudObserver.disconnect();
+      }
+    }, { threshold: 0.2 });
+    crudObserver.observe(document.getElementById('crud-flow'));
+
+    // ── RM-ODP layers animation ───────────────────────────────────────────
+    const odpObserver = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        document.querySelectorAll('.odp-layer').forEach((el, i) => {
+          setTimeout(() => el.classList.add('reveal'), i * 260);
+        });
+        odpObserver.disconnect();
+      }
+    }, { threshold: 0.1 });
+    odpObserver.observe(document.getElementById('odp-stack'));
+
+    // ── Status codes ─────────────────────────────────────────────────────
+    function showStatus(code, title, desc) {
+      const el = document.getElementById('status-desc');
+      el.style.opacity = '0';
+      setTimeout(() => {
+        el.innerHTML = '<strong>' + title + '</strong><br>' + desc;
+        el.style.opacity = '1';
+      }, 150);
+    }
+
+    // ── Deep dive toggle ─────────────────────────────────────────────────
+    function toggleDeep(header) {
+      header.classList.toggle('open');
+      const body = header.nextElementSibling;
+      body.classList.toggle('open');
+    }
+
+    // ── Checklist ────────────────────────────────────────────────────────
+    function toggleCk(li) {
+      li.classList.toggle('done');
+    }
+
+    // ── Copy code ────────────────────────────────────────────────────────
+    function copyCode(btn) {
+      const pre = btn.closest('.code-wrap').querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(() => {
+        btn.textContent = 'copiado \u2713';
+        setTimeout(() => btn.textContent = 'copiar', 2000);
+      });
+    }
+
+    // ── Active TOC on scroll ─────────────────────────────────────────────
+    const sections = document.querySelectorAll('.mat-section[id]');
+    const tocLinks = document.querySelectorAll('.mat-toc a');
+    const tocObserver = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          const id = e.target.id;
+          tocLinks.forEach(a => {
+            a.classList.toggle('active', a.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    sections.forEach(s => tocObserver.observe(s));
+  </script>
 </body>
 </html>

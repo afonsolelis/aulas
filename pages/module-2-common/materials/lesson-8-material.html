@@ -3,407 +3,1010 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aula 8 — Front-End 2 - JavaScript, Chamadas Assíncronas e Redes — Material - Inteli</title>
+  <title>Aula 8 — Front-End II — JavaScript Assíncrono, fetch() e Redes — Material — Inteli</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="../../../css/inteli-styles.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    .page-header { background: #b2b6bf; color: white; }
-    .study-content { font-size: 1rem; line-height: 1.7; }
-    .study-content h2, .study-content h3, .study-content h4, .study-content h5, .study-content h6 { margin-top: 2rem; margin-bottom: 1rem; color: var(--inteli-dark-gray); }
-    .study-content h2:first-child { margin-top: 0; }
-    .study-content p, .study-content ul, .study-content ol, .study-content blockquote, .study-content .table-responsive, .study-content pre { margin-bottom: 1.25rem; }
-    .study-content ul, .study-content ol { padding-left: 1.5rem; }
-    .study-content code { background: #f1f3f5; color: #5c2d91; padding: 0.1rem 0.35rem; border-radius: 0.35rem; }
-    .study-content pre.code-block { background: #1f2430; color: #f6f7f9; padding: 1rem; border-radius: 0.75rem; overflow-x: auto; }
-    .study-content pre.code-block code { background: transparent; color: inherit; padding: 0; }
-    .study-content hr { margin: 2rem 0; border-color: #d7dce2; opacity: 1; }
-    .custom-blockquote { border-left: 4px solid #b2b6bf; background: #f8f9fb; padding: 1rem 1.25rem; border-radius: 0.5rem; }
-    .markdown-table th { white-space: nowrap; }
+    :root {
+      --ac:#1863dc; --hi:#855ede; --dk:#2e2640; --gr:#0d9488; --re:#dc2626; --am:#d97706;
+      --text:#1e293b; --muted:#64748b; --border:#e2e8f0; --bg:#f8fafc; --card:#ffffff;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family:'Manrope',sans-serif; color:var(--text); background:var(--bg); }
+
+    /* ── Progress bar ── */
+    #progress-bar { position:fixed; top:0; left:0; height:3px; background:linear-gradient(90deg,var(--ac),var(--hi)); width:0%; z-index:9999; transition:width .1s; }
+
+    /* ── Floating nav ── */
+    #float-nav { position:fixed; bottom:28px; right:28px; display:flex; flex-direction:column; gap:8px; z-index:9998; opacity:0; pointer-events:none; transform:translateY(12px); transition:opacity .3s,transform .3s; }
+    #float-nav.visible { opacity:1; pointer-events:auto; transform:translateY(0); }
+    .fn-btn { display:flex; align-items:center; gap:6px; padding:10px 16px; border-radius:999px; font-size:.82rem; font-weight:700; text-decoration:none; box-shadow:0 4px 18px rgba(0,0,0,.25); transition:transform .15s,box-shadow .15s; white-space:nowrap; }
+    .fn-btn:hover { transform:translateY(-2px); box-shadow:0 6px 24px rgba(0,0,0,.32); text-decoration:none; }
+    .fn-btn-slides { background:white; color:var(--ac); border:2px solid var(--ac); }
+    .fn-btn-back   { background:var(--dk); color:white; }
+
+    /* ── Header ── */
+    .mat-header { background:linear-gradient(135deg,#12082c 0%,#1863dc 55%,#855ede 100%); color:white; padding:40px 0 32px; }
+    .mat-header h1 { font-size:2.2rem; font-weight:800; margin:0 0 8px; }
+    .mat-header .subtitle { font-size:1rem; opacity:.85; margin:0 0 20px; }
+    .mat-badge { background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.3); color:white; padding:4px 14px; border-radius:999px; font-size:.78rem; font-weight:700; display:inline-block; margin-bottom:12px; }
+
+    /* ── Layout ── */
+    .mat-layout { display:grid; grid-template-columns:260px 1fr; gap:32px; max-width:1200px; margin:0 auto; padding:40px 24px; }
+    @media(max-width:900px){ .mat-layout { grid-template-columns:1fr; } .mat-sidebar { display:none; } }
+
+    /* ── Sidebar ── */
+    .mat-sidebar { position:sticky; top:24px; max-height:calc(100vh - 48px); overflow-y:auto; }
+    .mat-toc { background:var(--card); border-radius:14px; padding:20px; border:1px solid var(--border); box-shadow:0 2px 8px rgba(0,0,0,.05); }
+    .mat-toc h4 { font-size:.8rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:0 0 12px; }
+    .mat-toc a { display:block; color:var(--muted); text-decoration:none; font-size:.82rem; padding:4px 0 4px 12px; border-left:2px solid transparent; transition:all .2s; line-height:1.3; }
+    .mat-toc a:hover, .mat-toc a.active { color:var(--ac); border-left-color:var(--ac); }
+    .mat-toc .toc-h3 { padding-left:22px; font-size:.77rem; }
+
+    /* ── Article ── */
+    .mat-article { min-width:0; }
+    .mat-section { margin-bottom:56px; }
+    .mat-section h2 { font-size:1.75rem; font-weight:800; color:var(--dk); padding-bottom:12px; border-bottom:2px solid var(--border); margin:0 0 24px; scroll-margin-top:80px; }
+    .mat-section h3 { font-size:1.2rem; font-weight:700; color:var(--dk); margin:32px 0 12px; scroll-margin-top:80px; }
+    .mat-section h4 { font-size:1rem; font-weight:700; color:var(--dk); margin:24px 0 10px; }
+    .mat-section p { line-height:1.8; margin-bottom:16px; font-size:.97rem; color:#374151; }
+    .mat-section ul, .mat-section ol { padding-left:1.5rem; margin-bottom:16px; }
+    .mat-section li { line-height:1.75; font-size:.97rem; color:#374151; margin-bottom:4px; }
+    .mat-section strong { color:var(--dk); }
+
+    /* ── Callout boxes ── */
+    .callout { border-radius:12px; padding:16px 20px; margin:20px 0; border-left:4px solid; }
+    .callout-info  { background:#eff6ff; border-color:#3b82f6; }
+    .callout-warn  { background:#fffbeb; border-color:#f59e0b; }
+    .callout-danger{ background:#fef2f2; border-color:#ef4444; }
+    .callout-tip   { background:#f0fdf4; border-color:#22c55e; }
+    .callout-deep  { background:#f5f3ff; border-color:#8b5cf6; }
+    .callout-label { font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; margin-bottom:6px; }
+    .callout-info  .callout-label { color:#3b82f6; }
+    .callout-warn  .callout-label { color:#f59e0b; }
+    .callout-danger .callout-label { color:#ef4444; }
+    .callout-tip   .callout-label { color:#22c55e; }
+    .callout-deep  .callout-label { color:#8b5cf6; }
+    .callout p { margin:0; font-size:.91rem; line-height:1.65; color:#374151; }
+
+    /* ── Code blocks ── */
+    .code-wrap { position:relative; margin:20px 0; border-radius:12px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,.15); }
+    .code-label { background:#313244; color:#6c7086; font-size:.7rem; font-weight:700; padding:6px 14px; font-family:'JetBrains Mono',monospace; display:flex; justify-content:space-between; align-items:center; }
+    .code-copy { background:transparent; border:1px solid #6c7086; color:#cdd6f4; font-size:.65rem; padding:2px 8px; border-radius:5px; cursor:pointer; font-family:'JetBrains Mono',monospace; transition:all .2s; }
+    .code-copy:hover { background:#6c7086; color:white; }
+    pre.code-block { background:#1e1e2e; color:#cdd6f4; padding:18px 20px; margin:0; font-family:'JetBrains Mono',monospace; font-size:.82rem; line-height:1.75; overflow-x:auto; }
+    pre.code-block code { font-family:inherit; background:transparent; color:inherit; padding:0; }
+    .hl-kw  { color:#89b4fa; font-weight:600; }
+    .hl-str { color:#a6e3a1; }
+    .hl-num { color:#fab387; }
+    .hl-cmt { color:#6c7086; font-style:italic; }
+    .hl-typ { color:#cba6f7; }
+    .hl-fn  { color:#f9e2af; }
+    .hl-url { color:#94e2d5; text-decoration:underline; }
+
+    /* ── Tables ── */
+    .mat-table { width:100%; border-collapse:collapse; margin:20px 0; border-radius:10px; overflow:hidden; border:1px solid var(--border); font-size:.88rem; }
+    .mat-table thead th { background:var(--dk); color:white; padding:12px 16px; text-align:left; font-size:.8rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+    .mat-table tbody td { padding:10px 16px; border-bottom:1px solid var(--border); line-height:1.5; }
+    .mat-table tbody tr:last-child td { border-bottom:none; }
+    .mat-table tbody tr:hover { background:#f8fafc; }
+    .tag { display:inline-block; padding:2px 8px; border-radius:5px; font-size:.72rem; font-weight:700; }
+    .tag-blue  { background:#dbeafe; color:#1d4ed8; }
+    .tag-green { background:#dcfce7; color:#15803d; }
+    .tag-red   { background:#fee2e2; color:#b91c1c; }
+    .tag-purple{ background:#ede9fe; color:#7c3aed; }
+    .tag-amber { background:#fef3c7; color:#92400e; }
+
+    /* ── Event loop diagram ── */
+    .evloop-diagram { display:flex; align-items:stretch; justify-content:center; gap:10px; padding:24px 0; flex-wrap:wrap; }
+    .evloop-box { background:white; border:2px solid var(--border); border-radius:12px; padding:14px 16px; text-align:center; min-width:110px; flex:1; max-width:170px; box-shadow:0 4px 12px rgba(0,0,0,.06); opacity:0; transform:translateY(20px); transition:all .5s cubic-bezier(.34,1.3,.64,1); }
+    .evloop-box.reveal { opacity:1; transform:translateY(0); }
+    .evloop-icon { font-size:1.8rem; display:block; margin-bottom:6px; }
+    .evloop-name { font-size:.78rem; font-weight:700; color:var(--dk); }
+    .evloop-sub { font-size:.65rem; color:var(--muted); margin-top:4px; line-height:1.4; }
+    .evloop-arrow { display:flex; align-items:center; justify-content:center; padding:0 2px; opacity:0; transition:opacity .4s ease; font-size:1.1rem; color:var(--ac); font-weight:700; }
+    .evloop-arrow.reveal { opacity:1; }
+
+    /* ── Promise states ── */
+    .promise-states { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin:20px 0; }
+    .pstate { border-radius:12px; padding:16px; text-align:center; opacity:0; transform:scale(.9); transition:all .45s cubic-bezier(.34,1.3,.64,1); }
+    .pstate.reveal { opacity:1; transform:scale(1); }
+    .pstate-icon { font-size:2rem; display:block; margin-bottom:8px; }
+    .pstate-name { font-family:'JetBrains Mono',monospace; font-weight:800; font-size:.9rem; }
+    .pstate-desc { font-size:.75rem; margin-top:6px; line-height:1.4; }
+    .pstate-pending  { background:#fef3c7; color:#92400e; }
+    .pstate-fulfilled{ background:#dcfce7; color:#15803d; }
+    .pstate-rejected { background:#fee2e2; color:#b91c1c; }
+
+    /* ── UI states ── */
+    .ui-states { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; margin:20px 0; }
+    .ui-state-card { border-radius:12px; padding:18px; border:2px solid transparent; }
+    .ui-state-loading  { background:#eff6ff; border-color:#3b82f6; }
+    .ui-state-success  { background:#f0fdf4; border-color:#22c55e; }
+    .ui-state-error    { background:#fef2f2; border-color:#ef4444; }
+    .ui-state-icon { font-size:2rem; display:block; margin-bottom:8px; }
+    .ui-state-title { font-weight:800; font-size:.95rem; }
+    .ui-state-loading .ui-state-title  { color:#1d4ed8; }
+    .ui-state-success .ui-state-title  { color:#15803d; }
+    .ui-state-error   .ui-state-title  { color:#b91c1c; }
+    .ui-state-desc { font-size:.8rem; color:#374151; margin-top:6px; line-height:1.5; }
+
+    /* ── RM-ODP layers ── */
+    .odp-stack { display:flex; flex-direction:column; gap:8px; margin:20px 0; }
+    .odp-layer { border-radius:10px; padding:14px 18px; display:flex; align-items:center; gap:14px; opacity:0; transform:translateX(-20px); transition:all .5s cubic-bezier(.34,1.3,.64,1); }
+    .odp-layer.reveal { opacity:1; transform:translateX(0); }
+    .odp-icon { font-size:1.4rem; flex-shrink:0; }
+    .odp-name { font-size:.9rem; font-weight:700; color:var(--dk); }
+    .odp-desc { font-size:.8rem; color:#374151; margin-top:2px; line-height:1.5; }
+    .odp-focus { font-size:.73rem; font-weight:700; padding:2px 8px; border-radius:5px; margin-top:4px; display:inline-block; }
+
+    /* ── RNF eixos ── */
+    .eixo-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:20px 0; }
+    .eixo-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; border-top:4px solid; opacity:0; transform:translateY(16px); transition:all .5s cubic-bezier(.34,1.3,.64,1); }
+    .eixo-card.reveal { opacity:1; transform:translateY(0); }
+    .eixo-tag { font-family:'JetBrains Mono',monospace; font-size:.72rem; font-weight:800; text-transform:uppercase; margin-bottom:6px; display:block; }
+    .eixo-title { font-size:.9rem; font-weight:700; color:var(--dk); margin-bottom:4px; }
+    .eixo-q { font-size:.78rem; color:var(--muted); line-height:1.5; }
+    .eixo-example { font-size:.75rem; color:#374151; margin-top:6px; background:#f8fafc; padding:5px 8px; border-radius:6px; font-style:italic; line-height:1.5; }
+
+    /* ── Expandable deep-dive ── */
+    .deep-dive { margin:20px 0; border:1px solid #ede9fe; border-radius:12px; overflow:hidden; }
+    .deep-header { background:#f5f3ff; padding:14px 18px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; user-select:none; }
+    .deep-header h4 { margin:0; font-size:.9rem; color:#6d28d9; font-weight:700; }
+    .deep-arrow { font-size:.8rem; color:#8b5cf6; transition:transform .3s; }
+    .deep-header.open .deep-arrow { transform:rotate(180deg); }
+    .deep-body { padding:0 18px; max-height:0; overflow:hidden; transition:max-height .4s ease, padding .3s; }
+    .deep-body.open { max-height:3000px; padding:16px 18px; }
+
+    /* ── Scroll reveal ── */
+    .sr { opacity:0; transform:translateY(24px); transition:opacity .5s ease,transform .5s ease; }
+    .sr.vis { opacity:1; transform:translateY(0); }
+
+    /* ── Checklist ── */
+    .checklist { list-style:none; padding:0; margin:20px 0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:8px 0; border-bottom:1px solid var(--border); font-size:.9rem; color:#374151; cursor:pointer; user-select:none; }
+    .checklist li:last-child { border-bottom:none; }
+    .ck-box { width:20px; height:20px; border:2px solid var(--border); border-radius:5px; flex-shrink:0; display:flex; align-items:center; justify-content:center; transition:all .2s; margin-top:2px; }
+    .checklist li.done .ck-box { background:var(--gr); border-color:var(--gr); color:white; }
+    .checklist li.done .ck-text { text-decoration:line-through; color:var(--muted); }
+
+    /* ── Spinner / skeleton demo ── */
+    .spinner-demo { display:flex; align-items:center; gap:12px; padding:16px; background:var(--card); border:1px solid var(--border); border-radius:12px; margin:16px 0; }
+    .spinner { width:24px; height:24px; border:3px solid var(--border); border-top-color:var(--ac); border-radius:50%; animation:spin 0.8s linear infinite; flex-shrink:0; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .skeleton-line { background:#e2e8f0; border-radius:6px; height:14px; background-image:linear-gradient(90deg,#e2e8f0 25%,#f8fafc 50%,#e2e8f0 75%); background-size:200% 100%; animation:shimmer 1.5s infinite; }
+    @keyframes shimmer { to { background-position:-200% 0; } }
   </style>
 </head>
 <body>
-  <header class="page-header py-4">
-    <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2">
-      <div>
-        <div><span class="module-badge bg-common">Módulo 2 • Ciclo Comum</span></div>
-        <h1 class="h3 mb-1 mt-2">Aula 8 — Material</h1>
-        <div>Front-End 2 - JavaScript, Chamadas Assíncronas e Redes</div>
-      </div>
+  <div id="progress-bar"></div>
+
+  <!-- Floating nav (appears after scrolling past header) -->
+  <div id="float-nav">
+    <a href="../slides/slide_lesson-8.html" class="fn-btn fn-btn-slides">&#9654; Slides</a>
+    <a href="../../home-module-2-common.html" class="fn-btn fn-btn-back">&#8592; Módulo</a>
+  </div>
+
+  <header class="mat-header">
+    <div class="container">
+      <div class="mat-badge">Módulo 2 · Ciclo Comum · IN02</div>
+      <h1>Front-End II — JavaScript Assíncrono</h1>
+      <p class="subtitle">Aula 8 — Material de Leitura Aprofundado</p>
       <div class="d-flex gap-2 flex-wrap">
-        <a href="../slides/slide_lesson-8.html" class="btn btn-light">Slides</a>
-        <a href="../../home-module-2-common.html" class="btn btn-outline-light">← Voltar ao Módulo</a>
+        <a href="../slides/slide_lesson-8.html" class="btn btn-light btn-sm">&#9654; Slides</a>
+        <a href="../../home-module-2-common.html" class="btn btn-outline-light btn-sm">&#8592; Voltar ao Módulo</a>
       </div>
     </div>
   </header>
-  <main class="container py-5">
-    <div class="card shadow-sm border-0">
-      <div class="card-body p-4 p-lg-5 study-content">
-        <p class="text-muted mb-4">Conteúdo importado de <code>Autoestudo: Integração Assíncrona — Event Loop, Promises e Resiliência de Rede</code>.</p>
-        <h3 id="sumario">Sumário</h3>
-<ol>
-<li><a href="#contexto-e-objetivo">Contexto e Objetivo</a></li>
-<li><a href="#perspectiva-dos-corpos-de-conhecimento">Perspectiva dos Corpos de Conhecimento</a></li>
-<li><a href="#o-event-loop-do-javascript-v8">O Event Loop do JavaScript (V8)</a></li>
-<li><a href="#promises-asyncawait-e-cancelamento">Promises, Async/Await e Cancelamento</a></li>
-<li><a href="#maquina-de-estados-de-chamadas-http">Máquina de Estados de Chamadas HTTP</a></li>
-<li><a href="#resiliencia-timeout-retry-e-fallback">Resiliência: Timeout, Retry e Fallback</a></li>
-<li><a href="#integracao-com-axios-padroes-tecnicos">Integração com Axios — Padrões Técnicos</a></li>
-<li><a href="#miniestudo-de-caso">Miniestudo de Caso</a></li>
-<li><a href="#checklist-de-validacao">Checklist de Validação</a></li>
-<li><a href="#referencias">Referências</a></li>
-<li><a href="#glossario">Glossário</a></li>
-</ol>
-<hr>
-<h3 id="contexto-e-objetivo">Contexto e Objetivo</h3>
-<p>A Aula 8 aprofunda a visão <strong>Engineering</strong> do RM-ODP com foco nas transparências de comunicação: o front-end precisa lidar com a natureza assíncrona e não-confiável da rede. O artefato da <strong>Sprint 4</strong> exige chamadas assíncronas implementadas com os estados carregamento/sucesso/erro, tratamento de falha de rede (timeout, retry) e a RTM com evidências de integração.</p>
-<hr>
-<h3 id="perspectiva-dos-corpos-de-conhecimento">Perspectiva dos Corpos de Conhecimento</h3>
-<h4 id="swebok-v3-software-design-concurrency-design">SWEBOK v3 — Software Design: Concurrency Design</h4>
-<p>O SWEBOK identifica <strong>concorrência</strong> como uma das propriedades de design mais difíceis de raciocinar formalmente. Para sistemas web assíncronos:</p>
 
-    <div class="table-responsive my-4">
-      <table class="table table-bordered table-striped align-middle markdown-table">
-        <thead><tr><th>Propriedade</th><th>Descrição</th><th>Impacto no Front-end</th></tr></thead>
-        <tbody><tr><td><strong>Non-determinism</strong></td><td>Ordem de conclusão de operações assíncronas é imprevisível</td><td>Race condition entre duas chamadas paralelas</td></tr>
-<tr><td><strong>Deadlock</strong></td><td>Duas tarefas aguardando indefinidamente uma à outra</td><td>Menos comum em JS single-threaded, mas possível com Promises encadeadas erradas</td></tr>
-<tr><td><strong>Liveness</strong></td><td>Garantia de que uma operação eventualmente completa</td><td>Necessidade de timeout explícito</td></tr></tbody>
-      </table>
-    </div>
-  
-<h4 id="lamport-1978-time-clocks-and-ordering-of-events">Lamport (1978) — Time, Clocks, and Ordering of Events</h4>
-<p>Leslie Lamport provou formalmente que em sistemas distribuídos <strong>não existe um relógio global confiável</strong>. Implicação direta: ao fazer duas chamadas HTTP paralelas, não há garantia de qual resposta chega primeiro — a ordem de chegada não reflete a ordem de envio.</p>
-<pre class="code-block"><code class="language-">Envio:      ─────── req1 ──────── req2 ───────────
-Resposta:   ─────────────── res2 ─────── res1 ────</code></pre>
-<p><strong>Consequência no código:</strong> Uma chamada mais antiga pode sobrescrever uma resposta mais recente se não houver controle de versão/cancelamento.</p>
-<hr>
-<h3 id="o-event-loop-do-javascript-v8">O Event Loop do JavaScript (V8)</h3>
-<h4 id="arquitetura-do-runtime">Arquitetura do Runtime</h4>
-<pre class="code-block"><code class="language-">┌───────────────────────────────────────────────────┐
-│  JavaScript Engine (V8)                           │
-│                                                   │
-│  ┌────────────┐    ┌────────────┐                 │
-│  │ Call Stack │    │  Heap      │                 │
-│  │ (síncrono) │    │ (objetos)  │                 │
-│  └─────┬──────┘    └────────────┘                 │
-│        │                                          │
-│  ┌─────▼──────────────────────────────────────┐   │
-│  │              Event Loop                    │   │
-│  └─────┬──────────────────────────────────────┘   │
-│        │                                          │
-│  ┌─────▼──────┐    ┌─────────────┐               │
-│  │ Microtask  │    │  Task Queue │               │
-│  │ Queue      │    │ (Macrotask) │               │
-│  │ (Promises) │    │ (setTimeout)│               │
-│  └────────────┘    └─────────────┘               │
-└───────────────────────────────────────────────────┘
-         ↕ Web APIs (fetch, setTimeout, DOM events)</code></pre>
-<h4 id="prioridade-de-execucao">Prioridade de Execução</h4>
-<pre class="code-block"><code class="language-">1. Call Stack (síncrono — bloqueia tudo enquanto executa)
-2. Microtask Queue (Promises .then/.catch, queueMicrotask)
-3. Task Queue / Macrotask (setTimeout, setInterval, I/O callbacks)</code></pre>
-<p><strong>Exemplo crítico:</strong></p>
-<pre class="code-block"><code class="language-javascript">console.log('1');
-setTimeout(() =&gt; console.log('2'), 0);    // macrotask
-Promise.resolve().then(() =&gt; console.log('3')); // microtask
-console.log('4');
+  <div class="mat-layout">
 
-// Saída: 1, 4, 3, 2
-// Microtask (Promise) sempre antes de macrotask (setTimeout)</code></pre>
-<h4 id="por-que-isso-importa-no-front-end">Por que isso importa no front-end?</h4>
-<p><code>async/await</code> é açúcar sintático sobre Promises (Microtask Queue). Isso garante que atualizações de estado via <code>setState</code> em callbacks assíncronos não bloqueiam a thread principal — a UI continua responsiva enquanto aguarda a rede.</p>
-<hr>
-<h3 id="promises-async-await-e-cancelamento">Promises, Async/Await e Cancelamento</h3>
-<h4 id="cadeia-de-promises-vs-async-await">Cadeia de Promises vs. Async/Await</h4>
-<pre class="code-block"><code class="language-typescript">// Estilo Promise chain (mais verboso, mais explícito)
-fetch('/api/produtos')
-  .then(res =&gt; {
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
-  })
-  .then(dados =&gt; setProdutos(dados))
-  .catch(err =&gt; setError(err.message))
-  .finally(() =&gt; setLoading(false));
+    <!-- ── Sidebar ── -->
+    <aside class="mat-sidebar">
+      <div class="mat-toc">
+        <h4>Neste material</h4>
+        <a href="#sec-async">1. Por que JS é assíncrono?</a>
+        <a href="#sec-promises" class="toc-h3">2. Callbacks, Promises, async/await</a>
+        <a href="#sec-fetch">3. fetch() API</a>
+        <a href="#sec-estados" class="toc-h3">4. Os 3 estados da UI assíncrona</a>
+        <a href="#sec-erros">5. Tratamento de erros robusto</a>
+        <a href="#sec-headers" class="toc-h3">6. Headers, métodos e corpo</a>
+        <a href="#sec-storage">7. localStorage e sessionStorage</a>
+        <a href="#sec-abort" class="toc-h3">8. AbortController</a>
+        <a href="#sec-ux">9. Estratégias de loading UX</a>
+        <a href="#sec-rmodp">10. RM-ODP</a>
+        <a href="#sec-req">11. RF, RN e RNF</a>
+        <a href="#sec-checklist">12. Checklist</a>
+        <a href="#sec-refs">Referências</a>
+      </div>
+    </aside>
 
-// Estilo Async/Await (mais legível, mesma semântica)
-async function carregarProdutos() {
-  try {
-    setLoading(true);
-    const res = await fetch('/api/produtos');
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const dados = await res.json();
-    setProdutos(dados);
-  } catch (err) {
-    setError(err instanceof Error ? err.message : 'Erro desconhecido');
-  } finally {
-    setLoading(false);
+    <!-- ── Article ── -->
+    <article class="mat-article">
+
+      <!-- ════════ 1. POR QUE JS É ASSÍNCRONO ════════ -->
+      <section class="mat-section" id="sec-async">
+        <h2>1. Por que JavaScript é assíncrono?</h2>
+
+        <p>JavaScript foi criado em 1995 para rodar dentro do navegador — um ambiente com uma restrição crítica: <strong>há apenas uma thread de execução</strong>. Diferente de linguagens de servidor como Java ou Python, onde múltiplas threads podem rodar em paralelo, o JavaScript do navegador opera em um único fio de execução. Isso significa que, se o código travar esperando uma resposta de rede, a tela congela, eventos do usuário não são processados e a experiência se torna inaceitável. A assincronia é, portanto, uma necessidade de sobrevivência do ambiente, não uma escolha de design.</p>
+
+        <p>O mecanismo que torna isso possível é o <strong>event loop</strong>, composto por três estruturas principais. A <em>call stack</em> (pilha de chamadas) é onde funções são empilhadas e executadas, uma de cada vez, de forma síncrona. A <em>task queue</em> (fila de tarefas, também chamada de macrotask queue) armazena callbacks de operações assíncronas como <code>setTimeout</code>, eventos DOM e callbacks de I/O. A <em>microtask queue</em> tem prioridade sobre a task queue e é esvaziada completamente após cada tarefa — é aqui que vivem as Promises resolvidas e callbacks de <code>queueMicrotask</code>. O event loop tem uma função simples: quando a call stack está vazia, ele verifica as filas e empurra a próxima tarefa para execução.</p>
+
+        <p>Uma analogia útil: imagine um restaurante com um único garçom (a thread JS). Ele anota seu pedido e o leva à cozinha — mas não fica parado na janela esperando a comida ficar pronta. Ele volta para as mesas, atende outros clientes, pega mais pedidos. Quando a cozinha sinaliza que um prato está pronto (event), o garçom o pega e serve. A cozinha é a rede, o disco, os timers — operações que acontecem fora da thread principal. O garçom nunca para; é o evento que o chama de volta.</p>
+
+        <!-- Diagrama event loop -->
+        <div class="evloop-diagram" id="evloop-diagram">
+          <div class="evloop-box" id="el0">
+            <span class="evloop-icon">&#128221;</span>
+            <div class="evloop-name">Call Stack</div>
+            <div class="evloop-sub">Funções em execução agora (LIFO)</div>
+          </div>
+          <div class="evloop-arrow" id="ela0">&#8594;</div>
+          <div class="evloop-box" id="el1">
+            <span class="evloop-icon">&#128260;</span>
+            <div class="evloop-name">Event Loop</div>
+            <div class="evloop-sub">Monitora filas quando stack está vazia</div>
+          </div>
+          <div class="evloop-arrow" id="ela1">&#8592;</div>
+          <div class="evloop-box" id="el2">
+            <span class="evloop-icon">&#9889;</span>
+            <div class="evloop-name">Microtask Queue</div>
+            <div class="evloop-sub">Promises resolvidas (alta prioridade)</div>
+          </div>
+          <div class="evloop-arrow" id="ela2">+</div>
+          <div class="evloop-box" id="el3">
+            <span class="evloop-icon">&#128336;</span>
+            <div class="evloop-name">Task Queue</div>
+            <div class="evloop-sub">setTimeout, eventos DOM, I/O</div>
+          </div>
+        </div>
+        <p style="text-align:center;font-size:.78rem;color:var(--muted);margin-top:-8px;">O event loop empurra tarefas para a call stack quando ela está vazia. Microtasks têm prioridade sobre tasks.</p>
+
+        <h3>Por que isso importa na prática?</h3>
+        <p>Quando você chama <code>fetch('/api/dados')</code>, o JavaScript não espera a resposta. Ele registra um callback, continua executando o restante do código e, quando a resposta chega (um evento de rede), empurra o callback para a microtask queue. Isso explica por que <code>console.log(resultado)</code> logo após um <code>fetch</code> sem <code>await</code> imprime <code>undefined</code> — o resultado ainda não chegou quando a linha é executada. Entender o event loop é pré-requisito para não escrever código assíncrono quebrado.</p>
+
+        <p>Uma consequência prática imediata é que operações de longa duração dentro da call stack — um loop <code>for</code> processando um array enorme, por exemplo — bloqueiam o event loop inteiro. Durante esse tempo, nenhum clique, nenhum scroll e nenhuma resposta de rede são processados. A UI trava. Para esse tipo de trabalho pesado de CPU, a solução são Web Workers, que rodam em threads separadas sem bloquear a thread principal. Para operações de I/O (rede, disco), a solução é a assincronia nativa que estudamos aqui.</p>
+
+        <div class="callout callout-info sr">
+          <div class="callout-label">Conceito: Concorrência sem paralelismo</div>
+          <p>JavaScript é <strong>single-threaded mas concorrente</strong>. "Concorrência" aqui significa que múltiplas operações assíncronas podem estar em andamento simultaneamente — esperando respostas de rede, timers etc. — mas <strong>apenas uma</strong> executa código JavaScript por vez. Web Workers permitem paralelismo real, mas são threads isoladas que não compartilham estado com a thread principal e comunicam-se apenas via mensagens.</p>
+        </div>
+      </section>
+
+      <!-- ════════ 2. CALLBACKS → PROMISES → ASYNC/AWAIT ════════ -->
+      <section class="mat-section" id="sec-promises">
+        <h2>2. Callbacks, Promises e async/await</h2>
+
+        <p>A história da assincronia em JavaScript é uma evolução de legibilidade. Nos primórdios do Node.js e das APIs de browser, toda operação assíncrona aceitava um <strong>callback</strong> — uma função passada como argumento que seria chamada quando a operação completasse. Para uma única operação, isso funcionava bem. O problema aparecia quando operações dependiam umas das outras: carregar um usuário, depois carregar seus pedidos, depois carregar os itens de cada pedido resultava em funções aninhadas formando o famoso <em>callback hell</em> (ou "pyramid of doom") — um triângulo de indentação crescente que tornava o código impossível de ler, manter e depurar. O tratamento de erros era ainda pior: cada nível precisava de seu próprio callback de erro.</p>
+
+        <p>As <strong>Promises</strong>, introduzidas nativamente no ES6 (2015), resolveram o aninhamento com encadeamento. Uma Promise é um objeto que representa um valor que pode estar disponível agora, no futuro ou nunca. Ela existe em um de três estados: <em>pending</em> (operação em andamento), <em>fulfilled</em> (completou com sucesso, tem um valor) ou <em>rejected</em> (falhou, tem um motivo de erro). Uma vez que uma Promise sai do estado <em>pending</em>, ela é imutável — não pode voltar a <em>pending</em> nem mudar de <em>fulfilled</em> para <em>rejected</em>. Ao invés de aninhar callbacks, você encadeia <code>.then()</code> para sucesso e <code>.catch()</code> para falha. O encadeamento é possível porque cada <code>.then()</code> retorna uma nova Promise, permitindo que a cadeia continue de forma linear, de cima para baixo, sem pirâmide.</p>
+
+        <p>O <strong>async/await</strong>, introduzido no ES2017, é açúcar sintático sobre Promises — não é uma nova forma de assincronia, mas sim uma nova forma de escrever código baseado em Promises com aparência de código síncrono. Uma função marcada com <code>async</code> sempre retorna uma Promise. Dentro dela, <code>await</code> pausa a execução da função (sem bloquear a thread principal — o event loop continua rodando) até a Promise resolver, então extrai o valor resolvido. O resultado é código que pode ser lido de cima para baixo, com variáveis recebendo valores de operações assíncronas como se fossem síncronas, e com tratamento de erros via <code>try/catch</code> como no código síncrono convencional.</p>
+
+        <!-- Estados da Promise -->
+        <div class="promise-states" id="promise-states">
+          <div class="pstate pstate-pending">
+            <span class="pstate-icon">&#9203;</span>
+            <div class="pstate-name">pending</div>
+            <div class="pstate-desc">Operação em andamento. O valor ainda não está disponível.</div>
+          </div>
+          <div class="pstate pstate-fulfilled">
+            <span class="pstate-icon">&#9989;</span>
+            <div class="pstate-name">fulfilled</div>
+            <div class="pstate-desc">Completou com sucesso. Valor disponível via <code>.then()</code> ou <code>await</code>.</div>
+          </div>
+          <div class="pstate pstate-rejected">
+            <span class="pstate-icon">&#10060;</span>
+            <div class="pstate-name">rejected</div>
+            <div class="pstate-desc">Falhou. Motivo disponível via <code>.catch()</code> ou bloco <code>catch</code>.</div>
+          </div>
+        </div>
+
+        <div class="code-wrap sr">
+          <div class="code-label">
+            <span>javascript — evolução histórica: callback hell, Promises, async/await</span>
+            <button class="code-copy" onclick="copyCode(this)">copiar</button>
+          </div>
+          <pre class="code-block"><code><span class="hl-cmt">// CALLBACK HELL — pyramid of doom</span>
+<span class="hl-fn">carregarUsuario</span>(<span class="hl-num">1</span>, <span class="hl-kw">function</span>(usuario) {
+  <span class="hl-fn">carregarPedidos</span>(usuario.id, <span class="hl-kw">function</span>(pedidos) {
+    <span class="hl-fn">carregarItens</span>(pedidos[<span class="hl-num">0</span>].id, <span class="hl-kw">function</span>(itens) {
+      <span class="hl-cmt">// 3 níveis de indentação — e poderia ter mais</span>
+    }, <span class="hl-kw">function</span>(err) { <span class="hl-fn">console</span>.<span class="hl-fn">error</span>(err); });
+  }, <span class="hl-kw">function</span>(err) { <span class="hl-fn">console</span>.<span class="hl-fn">error</span>(err); });
+}, <span class="hl-kw">function</span>(err) { <span class="hl-fn">console</span>.<span class="hl-fn">error</span>(err); });
+
+<span class="hl-cmt">// PROMISES — encadeamento linear, um .catch() para tudo</span>
+<span class="hl-fn">carregarUsuario</span>(<span class="hl-num">1</span>)
+  .<span class="hl-fn">then</span>(usuario =&gt; <span class="hl-fn">carregarPedidos</span>(usuario.id))
+  .<span class="hl-fn">then</span>(pedidos =&gt; <span class="hl-fn">carregarItens</span>(pedidos[<span class="hl-num">0</span>].id))
+  .<span class="hl-fn">then</span>(itens =&gt; <span class="hl-fn">console</span>.<span class="hl-fn">log</span>(itens))
+  .<span class="hl-fn">catch</span>(err =&gt; <span class="hl-fn">console</span>.<span class="hl-fn">error</span>(err));
+
+<span class="hl-cmt">// ASYNC/AWAIT — parece código síncrono, é código assíncrono</span>
+<span class="hl-kw">async function</span> <span class="hl-fn">carregarTudo</span>() {
+  <span class="hl-kw">try</span> {
+    <span class="hl-kw">const</span> usuario = <span class="hl-kw">await</span> <span class="hl-fn">carregarUsuario</span>(<span class="hl-num">1</span>);
+    <span class="hl-kw">const</span> pedidos = <span class="hl-kw">await</span> <span class="hl-fn">carregarPedidos</span>(usuario.id);
+    <span class="hl-kw">const</span> itens   = <span class="hl-kw">await</span> <span class="hl-fn">carregarItens</span>(pedidos[<span class="hl-num">0</span>].id);
+    <span class="hl-fn">console</span>.<span class="hl-fn">log</span>(itens);
+  } <span class="hl-kw">catch</span> (err) {
+    <span class="hl-fn">console</span>.<span class="hl-fn">error</span>(err);
   }
-}</code></pre>
-<h4 id="cancelamento-com-abortcontroller">Cancelamento com AbortController</h4>
-<p>Problema: componente desmontado antes da resposta chegar → <code>setState</code> em componente desmontado → memory leak.</p>
-<pre class="code-block"><code class="language-typescript">useEffect(() =&gt; {
-  const controller = new AbortController();
-
-  async function carregar() {
-    try {
-      const res = await fetch('/api/produtos', {
-        signal: controller.signal  // vincula ao AbortController
-      });
-      const dados = await res.json();
-      setProdutos(dados); // só executa se não foi cancelado
-    } catch (err) {
-      if (err instanceof DOMException &amp;&amp; err.name === 'AbortError') {
-        return; // cancelamento esperado — não é erro
-      }
-      setError('Falha ao carregar produtos');
-    }
-  }
-
-  carregar();
-
-  return () =&gt; controller.abort(); // cleanup: cancela ao desmontar
-}, []);</code></pre>
-<hr>
-<h3 id="maquina-de-estados-de-chamadas-http">Máquina de Estados de Chamadas HTTP</h3>
-<h4 id="modelagem-formal-dos-estados">Modelagem Formal dos Estados</h4>
-<pre class="code-block"><code class="language-">        início
-           │
-           ▼
-       ┌───────┐
-       │ IDLE  │ ── usuário submete formulário ──►
-       └───────┘
-                                                 ▼
-                                          ┌──────────┐
-                              ◄── erro ── │ LOADING  │ ── sucesso ──►
-                              │           └──────────┘               │
-                              ▼                                       ▼
-                        ┌─────────┐                            ┌─────────┐
-                        │  ERROR  │                            │ SUCCESS │
-                        └─────────┘                            └─────────┘
-                              │                                       │
-                     usuário tenta novamente            nova ação do usuário
-                              │                                       │
-                              └──────────────────────────────────────┘
-                                                  │
-                                                  ▼
-                                              ┌───────┐
-                                              │ IDLE  │
-                                              └───────┘</code></pre>
-<h4 id="implementacao-com-usereducer-react">Implementação com <code>useReducer</code> (React)</h4>
-<pre class="code-block"><code class="language-typescript">type Estado =
-  | { tipo: 'IDLE' }
-  | { tipo: 'LOADING' }
-  | { tipo: 'SUCCESS'; dados: Produto[] }
-  | { tipo: 'ERROR'; mensagem: string };
-
-type Acao =
-  | { tipo: 'INICIAR' }
-  | { tipo: 'SUCESSO'; dados: Produto[] }
-  | { tipo: 'FALHA'; mensagem: string }
-  | { tipo: 'RESETAR' };
-
-function reducer(estado: Estado, acao: Acao): Estado {
-  switch (acao.tipo) {
-    case 'INICIAR':  return { tipo: 'LOADING' };
-    case 'SUCESSO':  return { tipo: 'SUCCESS', dados: acao.dados };
-    case 'FALHA':    return { tipo: 'ERROR', mensagem: acao.mensagem };
-    case 'RESETAR':  return { tipo: 'IDLE' };
-    default:         return estado;
-  }
-}</code></pre>
-<hr>
-<h3 id="resiliencia-timeout-retry-e-fallback">Resiliência: Timeout, Retry e Fallback</h3>
-<h4 id="timeout-explicito-com-abortcontroller">Timeout Explícito com AbortController</h4>
-<pre class="code-block"><code class="language-typescript">async function fetchComTimeout(url: string, timeoutMs = 5000): Promise&lt;Response&gt; {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() =&gt; controller.abort(), timeoutMs);
-
-  try {
-    const response = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeoutId);
-    return response;
-  } catch (err) {
-    clearTimeout(timeoutId);
-    if (err instanceof DOMException &amp;&amp; err.name === 'AbortError') {
-      throw new Error(`Timeout após ${timeoutMs}ms`);
-    }
-    throw err;
-  }
-}</code></pre>
-<h4 id="retry-com-exponential-backoff">Retry com Exponential Backoff</h4>
-<pre class="code-block"><code class="language-typescript">async function fetchComRetry&lt;T&gt;(
-  fn: () =&gt; Promise&lt;T&gt;,
-  maxTentativas = 3,
-  delayBaseMs = 500
-): Promise&lt;T&gt; {
-  let ultimoErro: Error;
-
-  for (let tentativa = 1; tentativa &lt;= maxTentativas; tentativa++) {
-    try {
-      return await fn();
-    } catch (err) {
-      ultimoErro = err instanceof Error ? err : new Error(String(err));
-
-      if (tentativa &lt; maxTentativas) {
-        const delay = delayBaseMs * Math.pow(2, tentativa - 1); // 500, 1000, 2000ms
-        await new Promise(resolve =&gt; setTimeout(resolve, delay));
-      }
-    }
-  }
-
-  throw ultimoErro!;
 }
 
-// Uso
-const produtos = await fetchComRetry(
-  () =&gt; api.get&lt;Produto[]&gt;('/produtos').then(r =&gt; r.data),
-  3,       // 3 tentativas
-  500      // delay inicial: 500ms, depois 1000ms, depois 2000ms
-);</code></pre>
-<hr>
-<h3 id="integracao-com-axios-padroes-tecnicos">Integração com Axios — Padrões Técnicos</h3>
-<h4 id="instancia-configurada">Instância Configurada</h4>
-<pre class="code-block"><code class="language-typescript">// src/lib/api.ts
-import axios from 'axios';
+<span class="hl-cmt">// PARALELO com Promise.all — mais rápido que sequencial</span>
+<span class="hl-kw">async function</span> <span class="hl-fn">carregarParalelo</span>() {
+  <span class="hl-kw">const</span> [usuario, config] = <span class="hl-kw">await</span> <span class="hl-typ">Promise</span>.<span class="hl-fn">all</span>([
+    <span class="hl-fn">carregarUsuario</span>(<span class="hl-num">1</span>),
+    <span class="hl-fn">carregarConfig</span>()    <span class="hl-cmt">// independente do usuário — pode rodar junto</span>
+  ]);
+}</code></pre>
+        </div>
 
-export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
-  timeout: 10_000,                    // 10 segundos
-  headers: { 'Content-Type': 'application/json' }
-});
+        <div class="callout callout-tip sr">
+          <div class="callout-label">Boa prática: paralelo vs sequencial</div>
+          <p>Prefira <code>async/await</code> para fluxos sequenciais onde cada passo depende do anterior. Use <code>Promise.all()</code> para operações independentes que podem rodar em paralelo — isso reduz o tempo total de espera. Usar <code>await</code> sequencial em operações independentes é um bug de desempenho silencioso.</p>
+        </div>
 
-// Interceptor: adiciona token de autenticação
-api.interceptors.request.use(config =&gt; {
-  const token = localStorage.getItem('token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
+        <div class="deep-dive sr">
+          <div class="deep-header" onclick="toggleDeep(this)">
+            <h4>Aprofundamento: Promise.all, Promise.race, Promise.allSettled e Promise.any</h4>
+            <span class="deep-arrow">&#9660;</span>
+          </div>
+          <div class="deep-body">
+            <p><strong>Promise.all(array)</strong> — aguarda todas as Promises resolverem. Se qualquer uma rejeitar, toda a expressão rejeita imediatamente ("fail fast"). Use quando todas as operações são obrigatórias e uma falha invalida o resto.</p>
+            <p><strong>Promise.allSettled(array)</strong> — aguarda todas as Promises terminarem, independente de sucesso ou falha. Retorna um array de objetos <code>{ status, value }</code> ou <code>{ status, reason }</code>. Use quando você precisa tratar cada resultado individualmente, mesmo que alguns falhem.</p>
+            <p><strong>Promise.race(array)</strong> — resolve ou rejeita assim que a primeira Promise terminar (sucesso ou falha). Útil para implementar timeouts: <code>Promise.race([fetchDados(), rejectAfter(5000)])</code>.</p>
+            <p><strong>Promise.any(array)</strong> — resolve quando a primeira Promise tiver sucesso. Só rejeita se todas falharem (com um <code>AggregateError</code>). Útil para redundância: tentar múltiplos endpoints e usar o mais rápido que responder com sucesso.</p>
+          </div>
+        </div>
+      </section>
 
-// Interceptor: trata erros globalmente
-api.interceptors.response.use(
-  response =&gt; response,
-  error =&gt; {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
+      <!-- ════════ 3. FETCH API ════════ -->
+      <section class="mat-section" id="sec-fetch">
+        <h2>3. fetch() API</h2>
+
+        <p>A <code>fetch()</code> API é a forma nativa e moderna de fazer requisições HTTP no navegador. Introduzida como padrão W3C e disponível em todos os browsers modernos desde 2015, ela substitui o antigo <code>XMLHttpRequest</code> (XHR), que tinha uma API verbosa e baseada em eventos. <code>fetch()</code> retorna uma <strong>Promise</strong> que resolve para um objeto <code>Response</code> quando o servidor responde — não quando os dados estão prontos para uso, mas quando os primeiros bytes da resposta chegam e os metadados estão disponíveis.</p>
+
+        <p>Isso explica por que são necessários <strong>dois awaits</strong> para obter dados JSON. O primeiro <code>await fetch(url)</code> espera o servidor responder e retorna o objeto <code>Response</code>. Neste ponto, você tem acesso a metadados como <code>res.status</code>, <code>res.headers</code> e <code>res.ok</code>, mas o corpo da resposta ainda está sendo transmitido. O segundo <code>await res.json()</code> espera o corpo completo ser recebido e então o parseia como JSON. Chamar <code>res.json()</code> sem <code>await</code> retorna mais uma Promise — sem o await você ficará com um objeto Promise não resolvido, não os dados.</p>
+
+        <p>A propriedade <code>res.ok</code> é <code>true</code> quando o status HTTP está entre 200 e 299, e <code>false</code> para qualquer outro código — incluindo 400, 404, 500 e todos os outros erros. Esta propriedade é um atalho conveniente; se precisar verificar o código exato, use <code>res.status</code>. Conhecer essa propriedade é fundamental para o próximo tópico: a armadilha mais comum ao usar <code>fetch()</code>.</p>
+
+        <div class="callout callout-danger sr">
+          <div class="callout-label">Armadilha Crítica — fetch() NÃO rejeita em erros HTTP 4xx/5xx</div>
+          <p><strong>fetch() só rejeita a Promise em caso de falha de rede</strong> — sem conexão, servidor inacessível ou CORS bloqueado. Respostas com status <strong>400, 401, 403, 404, 500</strong> ou qualquer outro código de erro HTTP são tratadas como <strong>sucesso</strong> pelo fetch — a Promise resolve normalmente. Se você não checar <code>res.ok</code>, seu código vai tentar parsear a resposta de erro como se fossem dados válidos e vai falhar silenciosamente, ou pior: vai renderizar a mensagem de erro do servidor como se fossem dados do usuário.</p>
+        </div>
+
+        <div class="code-wrap sr">
+          <div class="code-label">
+            <span>javascript — a armadilha e o wrapper correto</span>
+            <button class="code-copy" onclick="copyCode(this)">copiar</button>
+          </div>
+          <pre class="code-block"><code><span class="hl-cmt">// ERRADO — 404 e 500 NÃO caem no catch</span>
+<span class="hl-kw">const</span> res   = <span class="hl-kw">await</span> <span class="hl-fn">fetch</span>(<span class="hl-str">'/api/produtos/999'</span>);
+<span class="hl-kw">const</span> dados = <span class="hl-kw">await</span> res.<span class="hl-fn">json</span>(); <span class="hl-cmt">// pode ser {"error":"Not found"} — tratado como sucesso!</span>
+
+<span class="hl-cmt">// CORRETO — verificar res.ok antes de parsear o corpo</span>
+<span class="hl-kw">const</span> res = <span class="hl-kw">await</span> <span class="hl-fn">fetch</span>(<span class="hl-str">'/api/produtos/999'</span>);
+<span class="hl-kw">if</span> (!res.ok) <span class="hl-kw">throw new</span> <span class="hl-typ">Error</span>(<span class="hl-str">`HTTP </span>${res.status}<span class="hl-str">`</span>);
+<span class="hl-kw">const</span> dados = <span class="hl-kw">await</span> res.<span class="hl-fn">json</span>();
+
+<span class="hl-cmt">// MELHOR — wrapper reutilizável que unifica o tratamento</span>
+<span class="hl-kw">async function</span> <span class="hl-fn">fetchJson</span>(url, options = {}) {
+  <span class="hl-kw">const</span> res = <span class="hl-kw">await</span> <span class="hl-fn">fetch</span>(url, options);
+  <span class="hl-kw">if</span> (!res.ok) {
+    <span class="hl-kw">const</span> erro = <span class="hl-kw">await</span> res.<span class="hl-fn">json</span>().<span class="hl-fn">catch</span>(() =&gt; ({})); <span class="hl-cmt">// body pode não ser JSON</span>
+    <span class="hl-kw">throw new</span> <span class="hl-typ">Error</span>(erro.message || <span class="hl-str">`HTTP </span>${res.status}<span class="hl-str">`</span>);
   }
-);</code></pre>
-<hr>
-<h3 id="miniestudo-de-caso">Miniestudo de Caso</h3>
-<h4 id="busca-de-produtos-com-estados-de-tela-e-falha-intermitente">Busca de produtos com estados de tela e falha intermitente</h4>
-<p>Uma tela de catálogo consulta <code>/api/produtos</code> ao carregar. Em rede estável, funciona. Em rede lenta, o usuário muda rapidamente o termo de busca e a resposta antiga chega depois, sobrescrevendo o estado mais novo. Em outra tentativa, a chamada excede o tempo aceitável.</p>
-<h4 id="decisoes-aplicadas">Decisões aplicadas</h4>
+  <span class="hl-kw">return</span> res.<span class="hl-fn">json</span>();
+}</code></pre>
+        </div>
 
-    <div class="table-responsive my-4">
-      <table class="table table-bordered table-striped align-middle markdown-table">
-        <thead><tr><th>Problema</th><th>Resposta técnica</th></tr></thead>
-        <tbody><tr><td>resposta antiga chega depois</td><td>cancelamento ou controle de versão da requisição</td></tr>
-<tr><td>chamada demora demais</td><td>timeout explícito</td></tr>
-<tr><td>erro transitório de infraestrutura</td><td>retry limitado com critério</td></tr>
-<tr><td>usuário sem feedback</td><td>estados <code>loading</code>, <code>success</code> e <code>error</code> claros</td></tr></tbody>
-      </table>
-    </div>
-  
-<h4 id="valor-do-caso">Valor do caso</h4>
-<p>Esse caso aproxima os conceitos do projeto real: a integração assíncrona não é só &quot;usar <code>await</code>&quot;, mas modelar comportamento de interface diante de latência, cancelamento e erro.</p>
-<h4 id="perguntas-para-discutir">Perguntas para discutir</h4>
-<ol>
-<li>Quando retry ajuda e quando piora a situação?</li>
-<li>Em que momento cancelar a requisição é melhor do que ignorar a resposta antiga?</li>
-<li>Que evidência de teste mostraria que a tela distingue timeout de erro de validação?</li>
-</ol>
-<hr>
-<h3 id="checklist-de-validacao">Checklist de Validação</h3>
-<ul>
-<li>[ ] Toda chamada HTTP exibe estado de carregamento (spinner, skeleton ou disabled button)?</li>
-<li>[ ] Estados de sucesso, erro 4xx e erro 5xx têm representação visual distinta?</li>
-<li>[ ] Existe timeout configurado em todas as chamadas (não aguardar indefinidamente)?</li>
-<li>[ ] Chamadas em <code>useEffect</code> têm cleanup com <code>AbortController</code>?</li>
-<li>[ ] Erros de rede (sem resposta do servidor) são tratados separadamente de erros HTTP?</li>
-<li>[ ] A RTM contém evidências de integração (screenshot, log, teste de integração)?</li>
-<li>[ ] Retries são implementados com backoff exponencial (não loop fixo)?</li>
-<li>[ ] O tratamento de erro 401 redireciona para login?</li>
-</ul>
-<hr>
-<h3 id="exercicio-pratico">Exercício Prático</h3>
-<h4 id="cenario">Cenário</h4>
-<p>Você precisa implementar uma busca de produtos com as seguintes características:</p>
-<ul>
-<li>Busca com debounce de 300ms (usuário digita nome do produto)</li>
-<li>Timeout de 5 segundos</li>
-<li>Retry automático em falhas 503 (máximo 3 tentativas)</li>
-<li>Cancelamento da requisição se usuário digitar novo termo antes da resposta chegar</li>
-</ul>
-<h4 id="tarefa-1-hook-com-abortcontroller">Tarefa 1 — Hook com AbortController</h4>
-<p>Implemente <code>useBuscaProdutos(termo: string)</code> que:</p>
-<ul>
-<li>Cancela requisição anterior quando <code>termo</code> muda</li>
-<li>Gerencia estados: idle, loading, success, error</li>
-</ul>
-<h4 id="tarefa-2-retry-com-backoff">Tarefa 2 — Retry com Backoff</h4>
-<p>Implemente a função <code>fetchComRetry</code> respeitando apenas erros 502, 503, 504 como retentáveis.</p>
-<h4 id="tarefa-3-maquina-de-estados">Tarefa 3 — Máquina de Estados</h4>
-<p>Desenhe o diagrama de estados da busca (incluindo transições de cancelamento).</p>
-<hr>
-<h3 id="evolucao-do-conceito-resiliencia-de-rede">Evolução do Conceito: Resiliência de Rede</h3>
-<p>Os padrões de resiliência são detalhados em profundidade na <a href="./aula_11_redes_resiliencia.md" target="_blank" rel="noopener noreferrer">Aula 11</a>, que cobre:</p>
-<ul>
-<li>Circuit Breaker (não abordado nesta aula)</li>
-<li>Idempotência em operações de escrita</li>
-<li>Fundamentos TCP/IP e HTTP</li>
-<li>Quando NÃO fazer retry (400, 401, 403, 404, 422)</li>
-</ul>
-<hr>
-<h3 id="ver-tambem">Ver Também</h3>
+        <h3>Quando fetch() rejeita de verdade?</h3>
+        <p>A Promise de <code>fetch()</code> é rejeitada apenas em falhas de rede genuínas: o computador está sem conexão, o DNS não resolve o hostname, o servidor recusou a conexão TCP, ou a requisição foi bloqueada por CORS (Cross-Origin Resource Sharing). Em todos esses casos, nem mesmo uma resposta HTTP chega — não há status code para verificar. Esta distinção é essencial para o tratamento de erros robusto, pois falhas de rede e erros HTTP requerem mensagens diferentes para o usuário.</p>
 
-    <div class="table-responsive my-4">
-      <table class="table table-bordered table-striped align-middle markdown-table">
-        <thead><tr><th>Conceito</th><th>Documento Relacionado</th></tr></thead>
-        <tbody><tr><td>Estados de UI e heurísticas</td><td><a href="./aula_09_estado_global_heuristicas.md" target="_blank" rel="noopener noreferrer">Aula 09 — Estado Global</a></td></tr>
-<tr><td>Timeout e retry (backend)</td><td><a href="./aula_11_redes_resiliencia.md" target="_blank" rel="noopener noreferrer">Aula 11 — Redes</a></td></tr>
-<tr><td>Contratos de API</td><td><a href="./aula_07_frontend_personas_contratos.md" target="_blank" rel="noopener noreferrer">Aula 07 — Front-end I</a></td></tr></tbody>
-      </table>
-    </div>
-  
-<hr>
-<h3 id="referencias">Referências</h3>
-<ul>
-<li><a href="https://doi.org/10.1145/359545.359563" target="_blank" rel="noopener noreferrer">Lamport, L. (1978) — Time, Clocks, and the Ordering of Events in a Distributed System</a></li>
-<li><a href="https://www.computer.org/education/bodies-of-knowledge/software-engineering/v4" target="_blank" rel="noopener noreferrer">SWEBOK — Software Engineering Body of Knowledge</a></li>
-<li><a href="https://tc39.es/ecma262/" target="_blank" rel="noopener noreferrer">ECMA-262 — ECMAScript Language Specification</a></li>
-<li><a href="https://developer.mozilla.org/en-US/docs/Web/API/AbortController" target="_blank" rel="noopener noreferrer">MDN Web Docs — AbortController, Fetch API e Event Loop</a></li>
-<li><a href="https://axios-http.com/docs/intro" target="_blank" rel="noopener noreferrer">Axios Documentation</a></li>
-</ul>
-<hr>
-<h3 id="glossario">Glossário</h3>
+        <table class="mat-table sr">
+          <thead>
+            <tr><th>Situação</th><th>res.ok</th><th>Promise rejeita?</th><th>Ação necessária</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>200 OK com dados válidos</td><td><span class="tag tag-green">true</span></td><td>Não</td><td>Parsear e renderizar normalmente</td></tr>
+            <tr><td>404 Not Found</td><td><span class="tag tag-red">false</span></td><td>Não</td><td>Verificar <code>res.ok</code> e lançar erro</td></tr>
+            <tr><td>500 Internal Server Error</td><td><span class="tag tag-red">false</span></td><td>Não</td><td>Verificar <code>res.ok</code> e lançar erro</td></tr>
+            <tr><td>Sem conexão de rede</td><td>—</td><td><strong>Sim</strong></td><td>Capturar no bloco <code>catch</code></td></tr>
+            <tr><td>CORS bloqueado pelo browser</td><td>—</td><td><strong>Sim</strong></td><td>Capturar no <code>catch</code> (corrigir no servidor)</td></tr>
+          </tbody>
+        </table>
+      </section>
 
-    <div class="table-responsive my-4">
-      <table class="table table-bordered table-striped align-middle markdown-table">
-        <thead><tr><th>Termo</th><th>Definição</th></tr></thead>
-        <tbody><tr><td><strong>Event Loop</strong></td><td>Mecanismo que controla a execução de código síncrono e callbacks assíncronos</td></tr>
-<tr><td><strong>Microtask</strong></td><td>Tarefa de alta prioridade executada antes do próximo ciclo do Event Loop (Promises)</td></tr>
-<tr><td><strong>Macrotask</strong></td><td>Tarefa de baixa prioridade (setTimeout, setInterval, I/O)</td></tr>
-<tr><td><strong>AbortController</strong></td><td>API Web para cancelar requisições fetch/axios em andamento</td></tr>
-<tr><td><strong>Exponential Backoff</strong></td><td>Estratégia de retry com intervalos crescentes exponencialmente</td></tr>
-<tr><td><strong>Race Condition</strong></td><td>Bug causado por dois processos assíncronos competindo pelo mesmo estado</td></tr>
-<tr><td><strong>Timeout</strong></td><td>Limite de tempo após o qual uma operação é considerada falha</td></tr>
-<tr><td><strong>Interceptor</strong></td><td>Função que intercepta requisições/respostas para aplicar lógica transversal</td></tr>
-<tr><td><strong>Non-blocking I/O</strong></td><td>Operações de I/O que não bloqueiam a thread principal enquanto aguardam</td></tr></tbody>
-      </table>
-    </div>
-  
-      </div>
-    </div>
-  </main>
-  <div class="logo-container text-center py-4">
-    <img src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli Logo Compact" style="max-width: 150px;">
+      <!-- ════════ 4. OS 3 ESTADOS DA UI ASSÍNCRONA ════════ -->
+      <section class="mat-section" id="sec-estados">
+        <h2>4. Os 3 estados da UI assíncrona</h2>
+
+        <p>Qualquer operação assíncrona que afeta a interface do usuário precisa tratar exatamente três estados: <strong>Loading</strong>, <strong>Success</strong> e <strong>Error</strong>. Ignorar qualquer um desses estados não é apenas uma má prática — é um bug de UX que afeta diretamente a percepção de qualidade e confiabilidade do sistema. Um sistema que simplesmente não mostra nada enquanto carrega, ou que silencia erros sem explicar o que aconteceu, frustra o usuário e destrói a confiança que ele deposita na ferramenta.</p>
+
+        <p>O estado de <strong>Loading</strong> comunica que algo está acontecendo. Sem feedback visual de carregamento, o usuário não sabe se o sistema está processando ou travado — e vai clicar no botão novamente, disparando múltiplas requisições simultâneas. Spinners e skeleton screens são as duas estratégias principais (detalhadas na seção 9). O estado de <strong>Success</strong> é onde o fluxo feliz vive: renderizar os dados recebidos, atualizar a interface, possivelmente mostrar uma mensagem de confirmação transitória e então deixar o usuário trabalhar. O estado de <strong>Error</strong> precisa comunicar o que deu errado em linguagem humana, nunca expor mensagens técnicas, stack traces ou códigos de status ao usuário final, e sempre oferecer uma saída — geralmente um botão "Tentar novamente".</p>
+
+        <p>Uma implementação correta dos três estados protege o usuário de decisões equivocadas baseadas em informações incompletas. Se você renderiza uma lista vazia durante o loading, o usuário pode concluir erroneamente que não há dados. Se você mantém a última versão dos dados em tela durante um erro silencioso, o usuário pode agir sobre informações desatualizadas sem saber. Cada estado exige uma representação visual deliberada — não acidental — que comunica claramente o que o sistema está fazendo.</p>
+
+        <!-- UI state cards -->
+        <div class="ui-states sr">
+          <div class="ui-state-card ui-state-loading">
+            <span class="ui-state-icon">&#9203;</span>
+            <div class="ui-state-title">Loading</div>
+            <div class="ui-state-desc">Spinner, skeleton screen ou progress bar. Comunica que a operação está em andamento e que o sistema está respondendo.</div>
+          </div>
+          <div class="ui-state-card ui-state-success">
+            <span class="ui-state-icon">&#9989;</span>
+            <div class="ui-state-title">Success</div>
+            <div class="ui-state-desc">Renderizar os dados obtidos. Pode incluir toast de confirmação para ações destrutivas ("Salvo com sucesso"). Substitui o loading.</div>
+          </div>
+          <div class="ui-state-card ui-state-error">
+            <span class="ui-state-icon">&#9888;</span>
+            <div class="ui-state-title">Error</div>
+            <div class="ui-state-desc">Mensagem em linguagem humana. Nunca stack traces. Sempre uma ação de recuperação: retry, voltar, ou contato com suporte.</div>
+          </div>
+        </div>
+
+        <div class="code-wrap sr">
+          <div class="code-label">
+            <span>javascript — os 3 estados implementados na UI</span>
+            <button class="code-copy" onclick="copyCode(this)">copiar</button>
+          </div>
+          <pre class="code-block"><code><span class="hl-kw">async function</span> <span class="hl-fn">carregarDados</span>() {
+  <span class="hl-kw">const</span> container = document.<span class="hl-fn">getElementById</span>(<span class="hl-str">'container'</span>);
+
+  <span class="hl-cmt">// Estado 1: Loading</span>
+  container.innerHTML = <span class="hl-str">`
+    &lt;div class="loading-state"&gt;
+      &lt;div class="spinner"&gt;&lt;/div&gt;
+      &lt;p&gt;Carregando produtos...&lt;/p&gt;
+    &lt;/div&gt;
+  `</span>;
+
+  <span class="hl-kw">try</span> {
+    <span class="hl-kw">const</span> dados = <span class="hl-kw">await</span> <span class="hl-fn">fetchJson</span>(<span class="hl-str">'/api/produtos'</span>);
+
+    <span class="hl-cmt">// Estado 2: Success</span>
+    <span class="hl-fn">renderizar</span>(dados);
+
+  } <span class="hl-kw">catch</span> (err) {
+    <span class="hl-cmt">// Estado 3: Error — mensagem humana + botão de retry</span>
+    container.innerHTML = <span class="hl-str">`
+      &lt;div class="error-state"&gt;
+        &lt;p&gt;Não foi possível carregar os produtos.&lt;/p&gt;
+        &lt;p class="detail"&gt;</span>${err.message}<span class="hl-str">&lt;/p&gt;
+        &lt;button onclick="carregarDados()"&gt;Tentar novamente&lt;/button&gt;
+      &lt;/div&gt;
+    `</span>;
+  }
+}</code></pre>
+        </div>
+
+        <!-- Skeleton demo visual -->
+        <div class="sr">
+          <p><strong>Exemplo visual: spinner + skeleton screen</strong></p>
+          <div class="spinner-demo">
+            <div class="spinner"></div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:8px;">
+              <div class="skeleton-line" style="width:60%;"></div>
+              <div class="skeleton-line" style="width:82%;"></div>
+              <div class="skeleton-line" style="width:47%;"></div>
+            </div>
+          </div>
+          <p style="font-size:.82rem;color:var(--muted);">O skeleton screen imita o layout do conteúdo que virá, reduzindo a percepção de espera comparado a uma área vazia com apenas um spinner.</p>
+        </div>
+      </section>
+
+      <!-- ════════ 5. TRATAMENTO DE ERROS ROBUSTO ════════ -->
+      <section class="mat-section" id="sec-erros">
+        <h2>5. Tratamento de erros robusto</h2>
+
+        <p>O tratamento de erros em código assíncrono tem três camadas distintas que precisam ser consideradas separadamente. A primeira são os <strong>erros de rede</strong> — quando o <code>fetch()</code> rejeita sua Promise porque não foi possível sequer estabelecer uma conexão HTTP. A segunda são os <strong>erros HTTP</strong> — quando o servidor respondeu, mas com um status de erro (4xx ou 5xx), indicando que a requisição foi inválida, não autorizada, não encontrada ou que houve um problema no servidor. A terceira são os <strong>erros de parsing JSON</strong> — quando a resposta chegou com status 200, mas o corpo não é um JSON válido (por exemplo, uma página HTML de erro gerada por um proxy ou pelo servidor antes da aplicação tomar controle).</p>
+
+        <p>Cada tipo de erro tem causas distintas, mensagens distintas para o usuário e estratégias de recuperação distintas. Um erro de rede sugere verificar a conexão. Um erro 404 sugere que o recurso não existe mais e talvez o usuário precise navegar para outro lugar. Um erro 401 indica sessão expirada e exige reautenticação. Um erro 500 indica problema no servidor e o usuário pode tentar novamente mais tarde. Tratar todos os erros com a mesma mensagem genérica ("Algo deu errado") é melhor do que não tratar, mas ainda assim é uma experiência inferior à que um sistema bem projetado pode oferecer.</p>
+
+        <p>As mensagens de erro para o usuário merecem atenção especial. Nunca exiba mensagens técnicas como <code>TypeError: Failed to fetch</code> ou stack traces — além de confusas, podem revelar informações sobre a arquitetura interna do sistema. Traduza erros para linguagem humana contextualizada: "Não foi possível carregar os produtos. Verifique sua conexão e tente novamente." é infinitamente mais útil do que a mensagem do runtime. Para aplicações de produção, registre o erro técnico completo em um serviço de monitoramento (Sentry, Datadog) enquanto exibe a mensagem amigável ao usuário.</p>
+
+        <div class="code-wrap sr">
+          <div class="code-label">
+            <span>javascript — wrapper com tratamento em 3 camadas</span>
+            <button class="code-copy" onclick="copyCode(this)">copiar</button>
+          </div>
+          <pre class="code-block"><code><span class="hl-kw">async function</span> <span class="hl-fn">fetchJson</span>(url, options = {}) {
+  <span class="hl-kw">let</span> res;
+  <span class="hl-kw">try</span> {
+    res = <span class="hl-kw">await</span> <span class="hl-fn">fetch</span>(url, options);        <span class="hl-cmt">// Camada 1: erro de rede</span>
+  } <span class="hl-kw">catch</span> (networkErr) {
+    <span class="hl-kw">throw new</span> <span class="hl-typ">Error</span>(<span class="hl-str">'Sem conexão com o servidor. Verifique sua internet.'</span>);
+  }
+
+  <span class="hl-kw">if</span> (!res.ok) {                             <span class="hl-cmt">// Camada 2: erro HTTP</span>
+    <span class="hl-kw">const</span> corpo = <span class="hl-kw">await</span> res.<span class="hl-fn">json</span>().<span class="hl-fn">catch</span>(() =&gt; ({}));
+    <span class="hl-kw">throw new</span> <span class="hl-typ">Error</span>(corpo.message || <span class="hl-str">`Erro </span>${res.status}<span class="hl-str">: </span>${res.statusText}<span class="hl-str">`</span>);
+  }
+
+  <span class="hl-kw">try</span> {
+    <span class="hl-kw">return await</span> res.<span class="hl-fn">json</span>();                <span class="hl-cmt">// Camada 3: erro de parsing</span>
+  } <span class="hl-kw">catch</span> {
+    <span class="hl-kw">throw new</span> <span class="hl-typ">Error</span>(<span class="hl-str">'Resposta do servidor não é um JSON válido.'</span>);
+  }
+}
+
+<span class="hl-cmt">// No componente: log técnico separado da mensagem ao usuário</span>
+<span class="hl-kw">try</span> {
+  <span class="hl-kw">const</span> dados = <span class="hl-kw">await</span> <span class="hl-fn">fetchJson</span>(<span class="hl-str">'/api/produtos'</span>);
+  <span class="hl-fn">renderizar</span>(dados);
+} <span class="hl-kw">catch</span> (err) {
+  <span class="hl-fn">logParaSentry</span>(err);                        <span class="hl-cmt">// log técnico completo para debugging</span>
+  <span class="hl-fn">mostrarErroNaUI</span>(err.message);              <span class="hl-cmt">// mensagem amigável para o usuário</span>
+}</code></pre>
+        </div>
+
+        <div class="callout callout-warn sr">
+          <div class="callout-label">Erro silencioso é o pior tipo de erro</div>
+          <p>Evite <code>.catch(() =&gt; {})</code> ou <code>catch (err) {}</code> sem qualquer ação dentro. "Engolir" erros silenciosamente torna bugs impossíveis de depurar — o código parece funcionar mas dados nunca chegam na tela, sem nenhuma pista do que aconteceu. Se você não sabe como tratar um erro em determinado ponto, pelo menos faça um <code>console.error(err)</code> temporário e mostre o estado de erro na UI.</p>
+        </div>
+      </section>
+
+      <!-- ════════ 6. HEADERS, MÉTODOS E CORPO ════════ -->
+      <section class="mat-section" id="sec-headers">
+        <h2>6. Headers, métodos e corpo da requisição</h2>
+
+        <p>Por padrão, <code>fetch(url)</code> faz uma requisição GET sem corpo e sem headers customizados. Para qualquer outra operação — criar, atualizar, deletar recursos ou enviar dados — você precisa passar um objeto de opções como segundo argumento. As três propriedades mais importantes são <code>method</code> (string com o verbo HTTP), <code>headers</code> (objeto com os headers da requisição) e <code>body</code> (string com o corpo serializado). Para enviar JSON, o padrão é: serializar o objeto com <code>JSON.stringify()</code>, definir o <code>Content-Type</code> como <code>application/json</code> e usar o método HTTP correto conforme a semântica da operação — POST para criar, PUT para substituir completamente, PATCH para atualização parcial, DELETE para remover.</p>
+
+        <p>O header <code>Content-Type: application/json</code> é obrigatório ao enviar JSON — ele informa ao servidor como o corpo deve ser interpretado. Sem ele, muitos frameworks de servidor (como Express com o middleware <code>express.json()</code>) não vão parsear o corpo corretamente e a requisição chegará com <code>req.body</code> vazio ou com o valor <code>undefined</code>. Da mesma forma, o header <code>Accept: application/json</code> indica que o cliente espera uma resposta JSON — alguns servidores podem retornar HTML ou XML por padrão se não especificado.</p>
+
+        <p>A autenticação geralmente é feita via o header <code>Authorization</code> com o esquema <code>Bearer</code>: <code>Authorization: Bearer &lt;token&gt;</code>. O token é tipicamente um JWT (JSON Web Token) obtido no login e armazenado pelo cliente. Em uma aplicação real, você criaria uma função auxiliar que adiciona automaticamente o token de autenticação a todas as requisições privadas, centralizando a lógica e evitando a repetição do mesmo header em cada chamada individual.</p>
+
+        <div class="code-wrap sr">
+          <div class="code-label">
+            <span>javascript — POST, PATCH com JSON e autenticação Bearer</span>
+            <button class="code-copy" onclick="copyCode(this)">copiar</button>
+          </div>
+          <pre class="code-block"><code><span class="hl-cmt">// POST — criar recurso</span>
+<span class="hl-kw">async function</span> <span class="hl-fn">criar</span>(dados) {
+  <span class="hl-kw">return</span> <span class="hl-fn">fetchJson</span>(<span class="hl-str">'/api/produtos'</span>, {
+    method: <span class="hl-str">'POST'</span>,
+    headers: {
+      <span class="hl-str">'Content-Type'</span>: <span class="hl-str">'application/json'</span>,
+      <span class="hl-str">'Authorization'</span>: <span class="hl-str">`Bearer </span>${localStorage.<span class="hl-fn">getItem</span>(<span class="hl-str">'token'</span>)}<span class="hl-str">`</span>
+    },
+    body: JSON.<span class="hl-fn">stringify</span>(dados)
+  });
+}
+
+<span class="hl-cmt">// PATCH — atualizar campos específicos</span>
+<span class="hl-kw">async function</span> <span class="hl-fn">atualizarPreco</span>(id, novoPreco) {
+  <span class="hl-kw">return</span> <span class="hl-fn">fetchJson</span>(<span class="hl-str">`/api/produtos/</span>${id}<span class="hl-str">`</span>, {
+    method: <span class="hl-str">'PATCH'</span>,
+    headers: { <span class="hl-str">'Content-Type'</span>: <span class="hl-str">'application/json'</span> },
+    body: JSON.<span class="hl-fn">stringify</span>({ preco: novoPreco })
+  });
+}
+
+<span class="hl-cmt">// Helper que injeta autenticação em todas as requisições privadas</span>
+<span class="hl-kw">function</span> <span class="hl-fn">authFetch</span>(url, options = {}) {
+  <span class="hl-kw">const</span> token = localStorage.<span class="hl-fn">getItem</span>(<span class="hl-str">'authToken'</span>);
+  <span class="hl-kw">return</span> <span class="hl-fn">fetchJson</span>(url, {
+    ...options,
+    headers: {
+      <span class="hl-str">'Content-Type'</span>: <span class="hl-str">'application/json'</span>,
+      ...(token ? { <span class="hl-str">'Authorization'</span>: <span class="hl-str">`Bearer </span>${token}<span class="hl-str">`</span> } : {}),
+      ...options.headers  <span class="hl-cmt">// permite sobrescrever por chamada</span>
+    }
+  });
+}</code></pre>
+        </div>
+      </section>
+
+      <!-- ════════ 7. LOCALSTORAGE E SESSIONSTORAGE ════════ -->
+      <section class="mat-section" id="sec-storage">
+        <h2>7. localStorage e sessionStorage</h2>
+
+        <p>O navegador oferece duas APIs de armazenamento no lado do cliente que complementam o trabalho com <code>fetch()</code>: <code>localStorage</code> e <code>sessionStorage</code>. A diferença fundamental entre elas é a <strong>persistência</strong>. O <code>localStorage</code> persiste os dados indefinidamente — eles sobrevivem ao fechamento da aba, ao fechamento do navegador e à reinicialização do computador, até que sejam explicitamente removidos pelo código ou pelo usuário nas configurações do navegador. O <code>sessionStorage</code> persiste apenas durante a sessão da aba atual — é apagado quando a aba ou o navegador é fechado, e não é compartilhado entre abas mesmo do mesmo site.</p>
+
+        <p>A API é simples e idêntica entre os dois: <code>setItem(chave, valor)</code> para gravar, <code>getItem(chave)</code> para ler (retorna <code>null</code> se a chave não existir), <code>removeItem(chave)</code> para remover uma chave específica e <code>clear()</code> para apagar todo o conteúdo do storage. Como apenas strings são suportadas, objetos e arrays precisam ser serializados com <code>JSON.stringify()</code> antes de gravar e desserializados com <code>JSON.parse()</code> ao ler. Um erro comum é esquecer a serialização — o storage vai chamar <code>.toString()</code> automaticamente, resultando em <code>"[object Object]"</code> gravado ao invés do objeto real.</p>
+
+        <p>Os casos de uso típicos são: <code>localStorage</code> para preferências do usuário (tema escuro/claro, idioma, tamanho de fonte), tokens de autenticação de longa duração, e cache leve de dados estáticos. <code>sessionStorage</code> para estado temporário de formulários multi-passo, filtros de busca que não precisam persistir entre sessões, e dados de navegação dentro de um fluxo específico. O limite de armazenamento é tipicamente 5 MB por origem — inadequado para grandes volumes de dados binários ou listas extensas.</p>
+
+        <div class="callout callout-warn sr">
+          <div class="callout-label">Limitação de segurança — nunca guarde dados sensíveis</div>
+          <p><code>localStorage</code> e <code>sessionStorage</code> são acessíveis a <strong>qualquer JavaScript</strong> rodando na mesma origem. Um ataque XSS (Cross-Site Scripting) bem-sucedido pode extrair todo o conteúdo do storage com uma única linha de código. Nunca guarde senhas, dados de cartão de crédito ou informações médicas. Para tokens de autenticação em aplicações de alta segurança, prefira cookies com a flag <code>HttpOnly</code> — eles não são acessíveis ao JavaScript. Use o Web Storage para conveniência e preferências, não como cofre de dados sensíveis.</p>
+        </div>
+
+        <div class="code-wrap sr">
+          <div class="code-label">
+            <span>javascript — helpers para serialização e padrões de uso</span>
+            <button class="code-copy" onclick="copyCode(this)">copiar</button>
+          </div>
+          <pre class="code-block"><code><span class="hl-cmt">// Wrapper com serialização automática e proteção contra parse errors</span>
+<span class="hl-kw">const</span> store = {
+  <span class="hl-fn">set</span>(chave, valor) {
+    localStorage.<span class="hl-fn">setItem</span>(chave, JSON.<span class="hl-fn">stringify</span>(valor));
+  },
+  <span class="hl-fn">get</span>(chave, padrao = <span class="hl-kw">null</span>) {
+    <span class="hl-kw">try</span> {
+      <span class="hl-kw">const</span> item = localStorage.<span class="hl-fn">getItem</span>(chave);
+      <span class="hl-kw">return</span> item !== <span class="hl-kw">null</span> ? JSON.<span class="hl-fn">parse</span>(item) : padrao;
+    } <span class="hl-kw">catch</span> { <span class="hl-kw">return</span> padrao; } <span class="hl-cmt">// valor corrompido → retorna padrão</span>
+  },
+  <span class="hl-fn">remove</span>(chave) { localStorage.<span class="hl-fn">removeItem</span>(chave); }
+};
+
+<span class="hl-cmt">// Uso: preferências e token de sessão</span>
+store.<span class="hl-fn">set</span>(<span class="hl-str">'preferencias'</span>, { tema: <span class="hl-str">'escuro'</span>, idioma: <span class="hl-str">'pt-BR'</span>, fontePequena: <span class="hl-kw">false</span> });
+store.<span class="hl-fn">set</span>(<span class="hl-str">'authToken'</span>, resposta.token);
+
+<span class="hl-kw">const</span> prefs = store.<span class="hl-fn">get</span>(<span class="hl-str">'preferencias'</span>, { tema: <span class="hl-str">'claro'</span> });
+<span class="hl-fn">aplicarTema</span>(prefs.tema);
+
+<span class="hl-cmt">// Logout: limpar dados do usuário do storage</span>
+<span class="hl-kw">function</span> <span class="hl-fn">logout</span>() {
+  store.<span class="hl-fn">remove</span>(<span class="hl-str">'authToken'</span>);
+  store.<span class="hl-fn">remove</span>(<span class="hl-str">'usuario'</span>);
+  window.location.<span class="hl-fn">assign</span>(<span class="hl-str">'/login.html'</span>);
+}</code></pre>
+        </div>
+      </section>
+
+      <!-- ════════ 8. ABORTCONTROLLER ════════ -->
+      <section class="mat-section" id="sec-abort">
+        <h2>8. AbortController — cancelar requisições</h2>
+
+        <p>Imagine que o usuário abre uma tela que dispara um <code>fetch()</code> para carregar dados. Antes da resposta chegar, ele navega para outra tela. O <code>fetch()</code> continua em execução em background e, quando a resposta finalmente chega, o callback vai tentar atualizar um componente que já não existe mais na tela — causando erros, comportamentos inesperados ou, em frameworks como React, o aviso "Can't perform a state update on an unmounted component". A solução para esse problema clássico é o <code>AbortController</code>, uma API nativa do navegador que permite cancelar requisições <code>fetch()</code> em andamento.</p>
+
+        <p>O padrão é direto: você cria uma instância de <code>AbortController</code>, passa seu atributo <code>signal</code> para o objeto de opções do <code>fetch()</code>, e chama <code>controller.abort()</code> quando quiser cancelar. Quando a requisição é abortada, a Promise do <code>fetch()</code> é rejeitada com um erro especial chamado <code>AbortError</code> — um <code>DOMException</code> com <code>name === 'AbortError'</code>. É essencial verificar o nome do erro no bloco <code>catch</code> e ignorar (ou tratar de forma diferente) os <code>AbortError</code>, pois eles representam cancelamentos intencionais, não falhas reais que o usuário precisa ver.</p>
+
+        <p>O <code>AbortController</code> resolve também o problema de race conditions em buscas em tempo real. Sem cancelamento, se o usuário digita "pro" e depois "prod", podem chegar duas respostas fora de ordem — a de "prod" pode chegar antes da de "pro", e então a resposta de "pro" sobrescreve os resultados corretos. Com <code>AbortController</code>, cada nova busca cancela a anterior antes de iniciar, eliminando o risco de resultados desatualizados sobrescreverem os corretos.</p>
+
+        <div class="code-wrap sr">
+          <div class="code-label">
+            <span>javascript — AbortController para cancelar buscas e prevenir race conditions</span>
+            <button class="code-copy" onclick="copyCode(this)">copiar</button>
+          </div>
+          <pre class="code-block"><code><span class="hl-cmt">// Padrão: cancelar requisição anterior antes de iniciar nova</span>
+<span class="hl-kw">function</span> <span class="hl-fn">criarBusca</span>() {
+  <span class="hl-kw">let</span> controller;
+
+  <span class="hl-kw">return async function</span>(termo) {
+    <span class="hl-kw">if</span> (controller) controller.<span class="hl-fn">abort</span>();    <span class="hl-cmt">// cancela requisição anterior</span>
+    controller = <span class="hl-kw">new</span> <span class="hl-typ">AbortController</span>();
+
+    <span class="hl-kw">try</span> {
+      <span class="hl-kw">const</span> dados = <span class="hl-kw">await</span> <span class="hl-fn">fetchJson</span>(
+        <span class="hl-str">`/api/busca?q=</span>${<span class="hl-fn">encodeURIComponent</span>(termo)}<span class="hl-str">`</span>,
+        { signal: controller.signal }
+      );
+      <span class="hl-fn">renderizar</span>(dados);
+    } <span class="hl-kw">catch</span> (err) {
+      <span class="hl-kw">if</span> (err.name !== <span class="hl-str">'AbortError'</span>) <span class="hl-kw">throw</span> err; <span class="hl-cmt">// ignora cancelamentos intencionais</span>
+    }
+  };
+}
+
+<span class="hl-kw">const</span> buscar = <span class="hl-fn">criarBusca</span>();
+input.<span class="hl-fn">addEventListener</span>(<span class="hl-str">'input'</span>, e =&gt; <span class="hl-fn">buscar</span>(e.target.value));
+
+<span class="hl-cmt">// Timeout: abortar automaticamente após N milissegundos</span>
+<span class="hl-kw">function</span> <span class="hl-fn">fetchComTimeout</span>(url, options = {}, ms = <span class="hl-num">10000</span>) {
+  <span class="hl-kw">const</span> controller = <span class="hl-kw">new</span> <span class="hl-typ">AbortController</span>();
+  <span class="hl-kw">const</span> timer = <span class="hl-fn">setTimeout</span>(() =&gt; controller.<span class="hl-fn">abort</span>(), ms);
+  <span class="hl-kw">return</span> <span class="hl-fn">fetchJson</span>(url, { ...options, signal: controller.signal })
+    .<span class="hl-fn">finally</span>(() =&gt; <span class="hl-fn">clearTimeout</span>(timer));
+}
+
+<span class="hl-cmt">// Em React: cleanup no useEffect</span>
+<span class="hl-cmt">// useEffect(() => {</span>
+<span class="hl-cmt">//   const ctrl = new AbortController();</span>
+<span class="hl-cmt">//   fetchJson('/api/dados', { signal: ctrl.signal })</span>
+<span class="hl-cmt">//     .then(setDados)</span>
+<span class="hl-cmt">//     .catch(err => { if (err.name !== 'AbortError') setErro(err); });</span>
+<span class="hl-cmt">//   return () => ctrl.abort(); // cleanup ao desmontar o componente</span>
+<span class="hl-cmt">// }, []);</span></code></pre>
+        </div>
+      </section>
+
+      <!-- ════════ 9. ESTRATÉGIAS DE LOADING UX ════════ -->
+      <section class="mat-section" id="sec-ux">
+        <h2>9. Estratégias de loading UX</h2>
+
+        <p>A escolha entre diferentes estratégias de feedback de loading afeta diretamente a percepção de velocidade e qualidade da aplicação. <strong>Spinners</strong> são simples de implementar e adequados para ações discretas como enviar formulário ou clicar em um botão de salvar. Porém, se a espera for longa (mais de 3-4 segundos), o spinner gera ansiedade porque o usuário não tem nenhuma referência de quanto tempo falta. <strong>Skeleton screens</strong> são esqueletos visuais que imitam a estrutura do conteúdo que está carregando, preenchidos com um efeito shimmer animado. Pesquisas de UX mostram que skeleton screens reduzem a percepção subjetiva de espera porque o usuário processa informação estrutural mesmo sem os dados reais, tornando a transição menos abrupta.</p>
+
+        <p>A <strong>UI otimista</strong> (optimistic UI) é uma estratégia avançada onde a interface assume que a operação será bem-sucedida e atualiza imediatamente, revertendo apenas se o servidor retornar erro. Por exemplo: ao curtir uma publicação, o contador incrementa instantaneamente na tela sem esperar a confirmação do servidor. Isso torna a interface extremamente responsiva e elimina o ciclo perceptível de espera para ações simples. A desvantagem é a complexidade de implementar o rollback (reversão) quando a operação falha, especialmente se o usuário já interagiu com o estado otimista entre o envio e o erro.</p>
+
+        <p>O <strong>debounce</strong> em campos de busca é praticamente obrigatório para qualquer campo que dispara requisições ao digitar. Sem debounce, cada tecla pressionada dispara um <code>fetch()</code>, resultando em dezenas de requisições por segundo — sobrecarrega o servidor, consome largura de banda desnecessária e pode resultar em race conditions onde respostas chegam fora de ordem. O debounce agrupa eventos em uma janela de tempo e dispara apenas quando há uma pausa na digitação. Um valor típico de 300-500ms é imperceptível para o usuário mas reduz em mais de 90% o número de requisições disparadas durante uma sessão de busca.</p>
+
+        <div class="code-wrap sr">
+          <div class="code-label">
+            <span>javascript — debounce + busca com cancelamento e 3 estados</span>
+            <button class="code-copy" onclick="copyCode(this)">copiar</button>
+          </div>
+          <pre class="code-block"><code><span class="hl-cmt">// Debounce genérico — retarda a execução até o usuário parar</span>
+<span class="hl-kw">function</span> <span class="hl-fn">debounce</span>(fn, ms) {
+  <span class="hl-kw">let</span> timer;
+  <span class="hl-kw">return</span> (...args) =&gt; {
+    <span class="hl-fn">clearTimeout</span>(timer);
+    timer = <span class="hl-fn">setTimeout</span>(() =&gt; fn(...args), ms);
+  };
+}
+
+<span class="hl-kw">const</span> buscar = <span class="hl-fn">criarBusca</span>(); <span class="hl-cmt">// AbortController da seção anterior</span>
+
+<span class="hl-kw">const</span> buscarComDebounce = <span class="hl-fn">debounce</span>(<span class="hl-kw">async</span> (termo) =&gt; {
+  <span class="hl-kw">if</span> (!termo.trim()) { <span class="hl-fn">limparResultados</span>(); <span class="hl-kw">return</span>; }
+
+  <span class="hl-fn">mostrarLoading</span>();
+  <span class="hl-kw">try</span> {
+    <span class="hl-kw">const</span> resultados = <span class="hl-kw">await</span> <span class="hl-fn">buscar</span>(termo);
+    <span class="hl-fn">renderizarResultados</span>(resultados);
+  } <span class="hl-kw">catch</span> (err) {
+    <span class="hl-kw">if</span> (err.name !== <span class="hl-str">'AbortError'</span>) <span class="hl-fn">mostrarErro</span>(err.message);
+  }
+}, <span class="hl-num">400</span>); <span class="hl-cmt">// 400ms de pausa antes de disparar</span>
+
+document.<span class="hl-fn">getElementById</span>(<span class="hl-str">'busca'</span>).<span class="hl-fn">addEventListener</span>(<span class="hl-str">'input'</span>, e =&gt; {
+  <span class="hl-fn">buscarComDebounce</span>(e.target.value);
+});
+
+<span class="hl-cmt">// Skeleton screen gerado dinamicamente</span>
+<span class="hl-kw">function</span> <span class="hl-fn">renderizarSkeleton</span>(qtd = <span class="hl-num">3</span>) {
+  <span class="hl-kw">return</span> <span class="hl-typ">Array</span>.<span class="hl-fn">from</span>({ length: qtd }, () =&gt; <span class="hl-str">`
+    &lt;div class="skeleton-card"&gt;
+      &lt;div class="skeleton" style="height:140px;margin-bottom:12px;"&gt;&lt;/div&gt;
+      &lt;div class="skeleton" style="width:70%;height:18px;margin-bottom:8px;"&gt;&lt;/div&gt;
+      &lt;div class="skeleton" style="width:40%;height:14px;"&gt;&lt;/div&gt;
+    &lt;/div&gt;
+  `</span>).<span class="hl-fn">join</span>(<span class="hl-str">''</span>);
+}</code></pre>
+        </div>
+
+        <table class="mat-table sr">
+          <thead>
+            <tr><th>Estratégia</th><th>Quando usar</th><th>Vantagem</th><th>Desvantagem</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Spinner</strong></td><td>Ações pontuais (salvar, enviar formulário)</td><td>Simples, universalmente compreendido</td><td>Sem estimativa de tempo de espera</td></tr>
+            <tr><td><strong>Skeleton screen</strong></td><td>Carregamento de listas, cards e feeds</td><td>Reduz percepção subjetiva de espera</td><td>Mais complexo de implementar fielmente</td></tr>
+            <tr><td><strong>UI Otimista</strong></td><td>Ações reversíveis de baixo risco (like, follow)</td><td>Interface instantânea, sem latência percebida</td><td>Rollback complexo quando a operação falha</td></tr>
+            <tr><td><strong>Debounce</strong></td><td>Busca em tempo real, filtros ao digitar</td><td>Reduz requisições em mais de 90%</td><td>Pequeno delay perceptível em buscas curtas</td></tr>
+            <tr><td><strong>Progress bar</strong></td><td>Upload de arquivos, processos demorados</td><td>Informa progresso concreto e estimativa de tempo</td><td>Requer API de progresso no servidor (streaming)</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ════════ 10. RM-ODP ════════ -->
+      <section class="mat-section" id="sec-rmodp">
+        <h2>10. RM-ODP — fetch como interface de serviço distribuído</h2>
+
+        <p>O framework RM-ODP (ISO/IEC 10746) oferece cinco visões complementares para descrever sistemas distribuídos. Para a aula de JavaScript assíncrono e <code>fetch()</code>, as visões mais diretamente relevantes são a <strong>Computational</strong> e a <strong>Engineering</strong>. A visão Computational descreve a decomposição funcional do sistema em componentes com interfaces bem definidas e contratos explícitos. A visão Engineering descreve como esses componentes se comunicam — os canais de comunicação, os protocolos, a latência, as falhas possíveis e os mecanismos de binding que tornam a comunicação possível.</p>
+
+        <p>Sob a visão <strong>Computational</strong>, cada chamada <code>fetch(url, options)</code> é a invocação de uma interface de serviço exposta por um componente remoto — a API REST rodando no servidor. O contrato desta interface inclui: o endpoint (URL + método HTTP), o formato dos parâmetros de entrada (query string, body JSON, headers de autenticação), o formato dos dados de saída (estrutura do JSON da resposta), e os possíveis estados de erro (status codes e seus significados documentados). A função <code>fetchJson()</code> wrapper que construímos é um <em>proxy de interface</em>: ela encapsula os detalhes de transporte HTTP e expõe apenas o contrato funcional — "dado uma URL, retorno os dados ou lanço um erro com mensagem amigável".</p>
+
+        <p>Sob a visão <strong>Engineering</strong>, o <code>fetch()</code> usa a rede como canal de comunicação — um canal com características reais e não ideais que moldam cada decisão de design. A latência (50–500ms típico) justifica o estado de Loading. A possibilidade de falha justifica o tratamento de erros e os retries com backoff exponencial. As requisições fora de ordem (race conditions) justificam o <code>AbortController</code>. A repetição excessiva de requisições justifica o debounce. Cada ferramenta que estudamos nesta aula é uma resposta de engenharia a uma característica real do canal de comunicação distribuído.</p>
+
+        <div class="odp-stack" id="odp-stack">
+          <div class="odp-layer" style="background:#dbeafe;">
+            <div class="odp-icon">&#127970;</div>
+            <div>
+              <div class="odp-name">Enterprise — por que buscamos dados remotos?</div>
+              <div class="odp-desc">O sistema precisa apresentar dados atualizados de um servidor centralizado para garantir consistência entre usuários diferentes. A regra de negócio exige que nenhum dado crítico exista apenas no cliente, onde pode estar desatualizado ou ser manipulado.</div>
+              <span class="odp-focus" style="background:#dbeafe;color:#1d4ed8;">RF: O sistema exibe dados atualizados buscados da API a cada acesso</span>
+            </div>
+          </div>
+          <div class="odp-layer" style="background:#ede9fe;">
+            <div class="odp-icon">&#9881;</div>
+            <div>
+              <div class="odp-name">Computational — fetch como invocação de interface</div>
+              <div class="odp-desc">O componente front-end invoca a interface <code>GET /api/produtos</code> do componente back-end. Contrato: aceita Bearer token no header Authorization, retorna array de produtos em JSON com status 200, ou objeto de erro com status 4xx/5xx. fetchJson() é o proxy desta interface.</div>
+              <span class="odp-focus" style="background:#ede9fe;color:#7c3aed;">fetchJson() encapsula o transporte e expõe apenas o contrato</span>
+            </div>
+          </div>
+          <div class="odp-layer" style="background:#fef3c7;">
+            <div class="odp-icon">&#128295;</div>
+            <div>
+              <div class="odp-name">Engineering — rede como canal com características reais</div>
+              <div class="odp-desc">O canal HTTP tem latência variável (50–500ms), pode falhar (timeout, CORS, sem rede) e pode retornar respostas fora de ordem (race conditions). AbortController cancela requisições stale. Debounce limita a frequência de invocação. Retry com backoff lida com falhas transitórias.</div>
+              <span class="odp-focus" style="background:#fef3c7;color:#92400e;">AbortController, debounce, timeout — engenharia do canal de comunicação</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════ 11. RF, RN E RNF ════════ -->
+      <section class="mat-section" id="sec-req">
+        <h2>11. RF, RN e RNF — front-end assíncrono</h2>
+
+        <p>Os <strong>Requisitos Funcionais (RF)</strong> descrevem o que o sistema deve fazer. No contexto de integração front-end com API, os RFs tipicamente descrevem o fluxo completo de uma operação: buscar dados, exibir dados, enviar formulário, atualizar estado na tela. Um RF bem escrito menciona o endpoint envolvido, o formato esperado e o comportamento resultante: "O sistema deve permitir que o usuário liste todos os produtos da sua loja, buscando os dados em <code>GET /api/produtos?page=1&amp;limit=20</code> com autenticação Bearer; o resultado deve ser exibido em cards com nome, preço e estoque."</p>
+
+        <p>Os <strong>Requisitos de Negócio (RN)</strong> estabelecem restrições que emergem de regras do domínio, independentes de tecnologia. "A lista de produtos deve sempre refletir o estoque em tempo real — dados com mais de 5 minutos de cache não podem ser exibidos a usuários compradores" é uma RN que impõe restrições sobre estratégias de cache. "Usuários não autenticados não podem visualizar preços de atacado" é uma RN que se manifesta tanto no servidor (autorização no endpoint) quanto no front-end (o componente não renderiza o campo de preço de atacado sem token válido).</p>
+
+        <p>Os <strong>Requisitos Não-Funcionais (RNF)</strong> definem as qualidades do sistema. Para o front-end assíncrono, três eixos são especialmente relevantes: <em>Usabilidade</em> (o usuário sempre sabe o que está acontecendo — estados de loading e error explícitos), <em>Confiabilidade</em> (o sistema se recupera de falhas transitórias sem perda de dados) e <em>Desempenho</em> (a interface não sobrecarrega o servidor e responde rapidamente às interações). Cada um desses eixos deve ter métricas mensuráveis associadas, não apenas intenções vagas.</p>
+
+        <div class="eixo-grid" id="eixo-grid">
+          <div class="eixo-card" style="border-top-color:#3b82f6;">
+            <span class="eixo-tag" style="color:#3b82f6;">Usabilidade</span>
+            <div class="eixo-title">Estados explícitos na UI</div>
+            <div class="eixo-q">O usuário sempre sabe o que está acontecendo?</div>
+            <div class="eixo-example">RNF: Feedback de loading em menos de 100ms; mensagem de erro em linguagem natural; botão de retry sempre visível em estados de erro.</div>
+          </div>
+          <div class="eixo-card" style="border-top-color:#22c55e;">
+            <span class="eixo-tag" style="color:#22c55e;">Confiabilidade</span>
+            <div class="eixo-title">Retry com backoff exponencial</div>
+            <div class="eixo-q">O sistema se recupera de falhas transitórias sem intervenção do usuário?</div>
+            <div class="eixo-example">RNF: Em caso de falha de rede, tentar novamente automaticamente até 3 vezes com espera de 1s, 2s e 4s entre tentativas.</div>
+          </div>
+          <div class="eixo-card" style="border-top-color:#f59e0b;">
+            <span class="eixo-tag" style="color:#f59e0b;">Desempenho</span>
+            <div class="eixo-title">Debounce e AbortController</div>
+            <div class="eixo-q">A interface limita requisições desnecessárias e previne race conditions?</div>
+            <div class="eixo-example">RNF: Campos de busca em tempo real não disparam mais de 2,5 requisições por segundo; requisições stale são canceladas antes de iniciar novas.</div>
+          </div>
+          <div class="eixo-card" style="border-top-color:#8b5cf6;">
+            <span class="eixo-tag" style="color:#8b5cf6;">Segurança</span>
+            <div class="eixo-title">Armazenamento seguro e sanitização</div>
+            <div class="eixo-q">Dados sensíveis estão protegidos de ataques XSS e exposição acidental?</div>
+            <div class="eixo-example">RNF: Tokens de autenticação armazenados em cookies HttpOnly quando possível; nenhuma mensagem de erro expõe stack traces ou estrutura interna da API.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════ 12. CHECKLIST ════════ -->
+      <section class="mat-section" id="sec-checklist">
+        <h2>12. Checklist de Estudo</h2>
+        <p>Clique nos itens à medida que você dominar cada conceito:</p>
+        <ul class="checklist" id="checklist">
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo explicar o que são call stack, task queue e microtask queue, e como o event loop as coordena sem bloquear a UI.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo reescrever um trecho de callback hell usando Promises encadeadas e depois usando async/await com try/catch.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Sei por que fetch() precisa de dois awaits para obter dados JSON e o que cada um faz.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo explicar e demonstrar a armadilha do fetch: por que respostas 404 e 500 não rejeitam a Promise.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Implementei os 3 estados da UI (Loading, Success, Error) em um componente real com botão de retry no estado de erro.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Escrevi uma função fetchJson() que trata erros de rede, HTTP e parsing JSON de forma unificada em 3 camadas.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo fazer requisições POST, PATCH e DELETE com headers corretos, Content-Type e body serializado em JSON.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Sei a diferença entre localStorage e sessionStorage e conheço as limitações de segurança (XSS, sem senhas).</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Implementei AbortController para cancelar requisições stale ao iniciar uma nova busca, evitando race conditions.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Implementei debounce em um campo de busca e consigo explicar por que ele é necessário e qual valor usar.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo mapear a chamada fetch() nas visões Computational (contrato de interface) e Engineering (canal com falhas) do RM-ODP.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Escrevi RFs, RNs e RNFs para integração front-end com API, com métricas mensuráveis para Usabilidade, Confiabilidade e Desempenho.</span></li>
+        </ul>
+      </section>
+
+      <!-- ════════ REFERÊNCIAS ════════ -->
+      <section class="mat-section" id="sec-refs">
+        <h2>Referências</h2>
+        <ul>
+          <li><a href="https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch" target="_blank" rel="noopener noreferrer">MDN Web Docs — Using Fetch</a> — referência completa da Fetch API com exemplos práticos</li>
+          <li><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Event_loop" target="_blank" rel="noopener noreferrer">MDN — The event loop</a> — explicação do event loop, call stack e filas de tarefas</li>
+          <li><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Using_promises" target="_blank" rel="noopener noreferrer">MDN — Using Promises</a> — guia de Promises com encadeamento e tratamento de erros</li>
+          <li><a href="https://developer.mozilla.org/en-US/docs/Web/API/AbortController" target="_blank" rel="noopener noreferrer">MDN — AbortController</a> — documentação da API de cancelamento de requisições</li>
+          <li><a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage" target="_blank" rel="noopener noreferrer">MDN — Window.localStorage</a> — API de armazenamento local e suas limitações</li>
+          <li><a href="https://javascript.info/async-await" target="_blank" rel="noopener noreferrer">javascript.info — Async/await</a> — tutorial detalhado com exemplos progressivos</li>
+          <li><a href="https://jakearchibald.com/2015/tasks-microtasks-queues-and-schedules/" target="_blank" rel="noopener noreferrer">Jake Archibald — Tasks, microtasks, queues and schedules</a> — artigo visual interativo sobre o event loop</li>
+          <li><a href="https://www.iso.org/standard/20696.html" target="_blank" rel="noopener noreferrer">ISO/IEC 10746 — RM-ODP</a> — especificação do framework de visões para sistemas distribuídos</li>
+        </ul>
+      </section>
+
+    </article>
   </div>
-  <footer class="inteli-footer mt-auto py-4 bg-light border-top">
+
+  <div class="text-center py-4">
+    <img src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli Logo" style="max-width:140px;">
+  </div>
+  <footer class="py-4 bg-light border-top">
     <div class="container text-center">
       <p class="mb-1">Material criado pelo professor <strong>Afonso Brandão</strong> para o <strong>Inteli</strong>.</p>
       <small class="text-muted">Licença de leitura aberta</small>
     </div>
   </footer>
+
+  <script>
+    // ── Progress bar + floating nav ───────────────────────────────────────
+    const floatNav = document.getElementById('float-nav');
+    const matHeader = document.querySelector('.mat-header');
+    window.addEventListener('scroll', () => {
+      const h = document.documentElement;
+      const pct = (h.scrollTop / (h.scrollHeight - h.clientHeight)) * 100;
+      document.getElementById('progress-bar').style.width = pct + '%';
+      const headerBottom = matHeader.getBoundingClientRect().bottom;
+      if (headerBottom < 0) { floatNav.classList.add('visible'); }
+      else { floatNav.classList.remove('visible'); }
+    });
+
+    // ── Scroll reveal ─────────────────────────────────────────────────────
+    const srObserver = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) { e.target.classList.add('vis'); srObserver.unobserve(e.target); }
+      });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.sr').forEach(el => srObserver.observe(el));
+
+    // ── Event loop diagram animation ──────────────────────────────────────
+    const elObserver = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        const ids = ['el0','ela0','el1','ela1','el2','ela2','el3'];
+        ids.forEach((id, i) => setTimeout(() => {
+          const el = document.getElementById(id);
+          if (el) el.classList.add('reveal');
+        }, i * 220));
+        elObserver.disconnect();
+      }
+    }, { threshold: 0.3 });
+    const evloopDiagram = document.getElementById('evloop-diagram');
+    if (evloopDiagram) elObserver.observe(evloopDiagram);
+
+    // ── Promise states animation ──────────────────────────────────────────
+    const psObserver = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        document.querySelectorAll('.pstate').forEach((el, i) => {
+          setTimeout(() => el.classList.add('reveal'), i * 200);
+        });
+        psObserver.disconnect();
+      }
+    }, { threshold: 0.3 });
+    const psEl = document.getElementById('promise-states');
+    if (psEl) psObserver.observe(psEl);
+
+    // ── RM-ODP layers animation ───────────────────────────────────────────
+    const odpObserver = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        document.querySelectorAll('.odp-layer').forEach((el, i) => {
+          setTimeout(() => el.classList.add('reveal'), i * 220);
+        });
+        odpObserver.disconnect();
+      }
+    }, { threshold: 0.1 });
+    const odpEl = document.getElementById('odp-stack');
+    if (odpEl) odpObserver.observe(odpEl);
+
+    // ── Eixos animation ───────────────────────────────────────────────────
+    const eixoObserver = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        document.querySelectorAll('.eixo-card').forEach((el, i) => {
+          setTimeout(() => el.classList.add('reveal'), i * 120);
+        });
+        eixoObserver.disconnect();
+      }
+    }, { threshold: 0.1 });
+    const eixoEl = document.getElementById('eixo-grid');
+    if (eixoEl) eixoObserver.observe(eixoEl);
+
+    // ── Deep dive toggle ─────────────────────────────────────────────────
+    function toggleDeep(header) {
+      header.classList.toggle('open');
+      const body = header.nextElementSibling;
+      body.classList.toggle('open');
+    }
+
+    // ── Checklist ────────────────────────────────────────────────────────
+    function toggleCk(li) {
+      li.classList.toggle('done');
+    }
+
+    // ── Copy code ────────────────────────────────────────────────────────
+    function copyCode(btn) {
+      const pre = btn.closest('.code-wrap').querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(() => {
+        btn.textContent = 'copiado ✓';
+        setTimeout(() => btn.textContent = 'copiar', 2000);
+      });
+    }
+
+    // ── Active TOC on scroll ─────────────────────────────────────────────
+    const sections = document.querySelectorAll('.mat-section[id]');
+    const tocLinks = document.querySelectorAll('.mat-toc a');
+    const tocObserver = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          const id = e.target.id;
+          tocLinks.forEach(a => {
+            a.classList.toggle('active', a.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    sections.forEach(s => tocObserver.observe(s));
+  </script>
 </body>
 </html>

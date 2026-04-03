@@ -3,233 +3,839 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aula 4 — Banco de Dados III - Joins — Material - Inteli</title>
+  <title>Aula 4 — Banco de Dados III — JOINs e Consultas Complexas — Material — Inteli</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="../../../css/inteli-styles.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    .page-header { background: #b2b6bf; color: white; }
-    .study-content { font-size: 1rem; line-height: 1.7; }
-    .study-content h2, .study-content h3, .study-content h4, .study-content h5, .study-content h6 { margin-top: 2rem; margin-bottom: 1rem; color: var(--inteli-dark-gray); }
-    .study-content h2:first-child { margin-top: 0; }
-    .study-content p, .study-content ul, .study-content ol, .study-content blockquote, .study-content .table-responsive, .study-content pre { margin-bottom: 1.25rem; }
-    .study-content ul, .study-content ol { padding-left: 1.5rem; }
-    .study-content code { background: #f1f3f5; color: #5c2d91; padding: 0.1rem 0.35rem; border-radius: 0.35rem; }
-    .study-content pre.code-block { background: #1f2430; color: #f6f7f9; padding: 1rem; border-radius: 0.75rem; overflow-x: auto; }
-    .study-content pre.code-block code { background: transparent; color: inherit; padding: 0; }
-    .study-content hr { margin: 2rem 0; border-color: #d7dce2; opacity: 1; }
-    .custom-blockquote { border-left: 4px solid #b2b6bf; background: #f8f9fb; padding: 1rem 1.25rem; border-radius: 0.5rem; }
-    .markdown-table th { white-space: nowrap; }
+    :root {
+      --ac:#1863dc; --hi:#855ede; --dk:#2e2640; --gr:#0d9488; --re:#dc2626; --am:#d97706;
+      --text:#1e293b; --muted:#64748b; --border:#e2e8f0; --bg:#f8fafc; --card:#ffffff;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family:'Manrope',sans-serif; color:var(--text); background:var(--bg); }
+
+    /* ── Progress bar ── */
+    #progress-bar { position:fixed; top:0; left:0; height:3px; background:linear-gradient(90deg,var(--ac),var(--hi)); width:0%; z-index:9999; transition:width .1s; }
+
+    /* ── Floating nav ── */
+    #float-nav { position:fixed; bottom:28px; right:28px; display:flex; flex-direction:column; gap:8px; z-index:9998; opacity:0; pointer-events:none; transform:translateY(12px); transition:opacity .3s,transform .3s; }
+    #float-nav.visible { opacity:1; pointer-events:auto; transform:translateY(0); }
+    .fn-btn { display:flex; align-items:center; gap:6px; padding:10px 16px; border-radius:999px; font-size:.82rem; font-weight:700; text-decoration:none; box-shadow:0 4px 18px rgba(0,0,0,.25); transition:transform .15s,box-shadow .15s; white-space:nowrap; }
+    .fn-btn:hover { transform:translateY(-2px); box-shadow:0 6px 24px rgba(0,0,0,.32); text-decoration:none; }
+    .fn-btn-slides { background:white; color:var(--ac); border:2px solid var(--ac); }
+    .fn-btn-back   { background:var(--dk); color:white; }
+
+    /* ── Header ── */
+    .mat-header { background:linear-gradient(135deg,#12082c 0%,#1863dc 55%,#855ede 100%); color:white; padding:40px 0 32px; }
+    .mat-header h1 { font-size:2.2rem; font-weight:800; margin:0 0 8px; }
+    .mat-header .subtitle { font-size:1rem; opacity:.85; margin:0 0 20px; }
+    .mat-badge { background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.3); color:white; padding:4px 14px; border-radius:999px; font-size:.78rem; font-weight:700; display:inline-block; margin-bottom:12px; }
+
+    /* ── Layout ── */
+    .mat-layout { display:grid; grid-template-columns:260px 1fr; gap:32px; max-width:1200px; margin:0 auto; padding:40px 24px; }
+    @media(max-width:900px){ .mat-layout { grid-template-columns:1fr; } .mat-sidebar { display:none; } }
+
+    /* ── Sidebar ── */
+    .mat-sidebar { position:sticky; top:24px; max-height:calc(100vh - 48px); overflow-y:auto; }
+    .mat-toc { background:var(--card); border-radius:14px; padding:20px; border:1px solid var(--border); box-shadow:0 2px 8px rgba(0,0,0,.05); }
+    .mat-toc h4 { font-size:.8rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:0 0 12px; }
+    .mat-toc a { display:block; color:var(--muted); text-decoration:none; font-size:.82rem; padding:4px 0 4px 12px; border-left:2px solid transparent; transition:all .2s; line-height:1.3; }
+    .mat-toc a:hover, .mat-toc a.active { color:var(--ac); border-left-color:var(--ac); }
+    .mat-toc .toc-h3 { padding-left:22px; font-size:.77rem; }
+
+    /* ── Article ── */
+    .mat-article { min-width:0; }
+    .mat-section { margin-bottom:56px; }
+    .mat-section h2 { font-size:1.75rem; font-weight:800; color:var(--dk); padding-bottom:12px; border-bottom:2px solid var(--border); margin:0 0 24px; scroll-margin-top:80px; }
+    .mat-section h3 { font-size:1.2rem; font-weight:700; color:var(--dk); margin:32px 0 12px; scroll-margin-top:80px; }
+    .mat-section h4 { font-size:1rem; font-weight:700; color:var(--dk); margin:24px 0 10px; }
+    .mat-section p { line-height:1.8; margin-bottom:16px; font-size:.97rem; color:#374151; }
+    .mat-section ul, .mat-section ol { padding-left:1.5rem; margin-bottom:16px; }
+    .mat-section li { line-height:1.75; font-size:.97rem; color:#374151; margin-bottom:4px; }
+    .mat-section strong { color:var(--dk); }
+
+    /* ── Callout boxes ── */
+    .callout { border-radius:12px; padding:16px 20px; margin:20px 0; border-left:4px solid; }
+    .callout-info  { background:#eff6ff; border-color:#3b82f6; }
+    .callout-warn  { background:#fffbeb; border-color:#f59e0b; }
+    .callout-danger{ background:#fef2f2; border-color:#ef4444; }
+    .callout-tip   { background:#f0fdf4; border-color:#22c55e; }
+    .callout-deep  { background:#f5f3ff; border-color:#8b5cf6; }
+    .callout-label { font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; margin-bottom:6px; }
+    .callout-info  .callout-label { color:#3b82f6; }
+    .callout-warn  .callout-label { color:#f59e0b; }
+    .callout-danger .callout-label { color:#ef4444; }
+    .callout-tip   .callout-label { color:#22c55e; }
+    .callout-deep  .callout-label { color:#8b5cf6; }
+    .callout p { margin:0; font-size:.91rem; line-height:1.65; color:#374151; }
+
+    /* ── Code blocks ── */
+    .code-wrap { position:relative; margin:20px 0; border-radius:12px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,.15); }
+    .code-label { background:#313244; color:#6c7086; font-size:.7rem; font-weight:700; padding:6px 14px; font-family:'JetBrains Mono',monospace; display:flex; justify-content:space-between; align-items:center; }
+    .code-copy { background:transparent; border:1px solid #6c7086; color:#cdd6f4; font-size:.65rem; padding:2px 8px; border-radius:5px; cursor:pointer; font-family:'JetBrains Mono',monospace; transition:all .2s; }
+    .code-copy:hover { background:#6c7086; color:white; }
+    pre.code-block { background:#1e1e2e; color:#cdd6f4; padding:18px 20px; margin:0; font-family:'JetBrains Mono',monospace; font-size:.82rem; line-height:1.75; overflow-x:auto; }
+    pre.code-block code { font-family:inherit; background:transparent; color:inherit; padding:0; }
+    .hl-kw  { color:#89b4fa; font-weight:600; }
+    .hl-str { color:#a6e3a1; }
+    .hl-num { color:#fab387; }
+    .hl-cmt { color:#6c7086; font-style:italic; }
+    .hl-typ { color:#cba6f7; }
+    .hl-fn  { color:#f9e2af; }
+    .hl-url { color:#94e2d5; text-decoration:underline; }
+
+    /* ── Tables ── */
+    .mat-table { width:100%; border-collapse:collapse; margin:20px 0; border-radius:10px; overflow:hidden; border:1px solid var(--border); font-size:.88rem; }
+    .mat-table thead th { background:var(--dk); color:white; padding:12px 16px; text-align:left; font-size:.8rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+    .mat-table tbody td { padding:10px 16px; border-bottom:1px solid var(--border); line-height:1.5; }
+    .mat-table tbody tr:last-child td { border-bottom:none; }
+    .mat-table tbody tr:hover { background:#f8fafc; }
+    .tag { display:inline-block; padding:2px 8px; border-radius:5px; font-size:.72rem; font-weight:700; }
+    .tag-blue  { background:#dbeafe; color:#1d4ed8; }
+    .tag-green { background:#dcfce7; color:#15803d; }
+    .tag-red   { background:#fee2e2; color:#b91c1c; }
+    .tag-purple{ background:#ede9fe; color:#7c3aed; }
+    .tag-amber { background:#fef3c7; color:#92400e; }
+
+    /* ── JOIN type cards ── */
+    .join-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; margin:20px 0; }
+    .join-card { border-radius:12px; padding:16px; border:2px solid transparent; transition:transform .2s,box-shadow .2s; }
+    .join-card:hover { transform:translateY(-3px); box-shadow:0 8px 24px rgba(0,0,0,.1); }
+    .join-card.inner { background:#dbeafe; border-color:#3b82f6; }
+    .join-card.left  { background:#dcfce7; border-color:#22c55e; }
+    .join-card.right { background:#fef3c7; border-color:#f59e0b; }
+    .join-card.full  { background:#ede9fe; border-color:#8b5cf6; }
+    .join-card.self  { background:#fee2e2; border-color:#ef4444; }
+    .join-type { font-family:'JetBrains Mono',monospace; font-size:.95rem; font-weight:800; margin-bottom:4px; }
+    .join-card.inner .join-type { color:#1d4ed8; }
+    .join-card.left  .join-type { color:#15803d; }
+    .join-card.right .join-type { color:#92400e; }
+    .join-card.full  .join-type { color:#7c3aed; }
+    .join-card.self  .join-type { color:#b91c1c; }
+    .join-desc { font-size:.8rem; color:#374151; line-height:1.5; }
+
+    /* ── RM-ODP layers ── */
+    .odp-stack { display:flex; flex-direction:column; gap:8px; margin:20px 0; }
+    .odp-layer { border-radius:10px; padding:14px 18px; display:flex; align-items:center; gap:14px; opacity:0; transform:translateX(-20px); transition:all .5s cubic-bezier(.34,1.3,.64,1); }
+    .odp-layer.reveal { opacity:1; transform:translateX(0); }
+    .odp-icon { font-size:1.4rem; flex-shrink:0; }
+    .odp-name { font-size:.9rem; font-weight:700; color:var(--dk); }
+    .odp-desc { font-size:.8rem; color:#374151; margin-top:2px; line-height:1.5; }
+    .odp-focus { font-size:.73rem; font-weight:700; padding:2px 8px; border-radius:5px; margin-top:4px; display:inline-block; }
+
+    /* ── RNF eixos ── */
+    .eixo-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:20px 0; }
+    .eixo-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; border-top:4px solid; opacity:0; transform:translateY(16px); transition:all .5s cubic-bezier(.34,1.3,.64,1); }
+    .eixo-card.reveal { opacity:1; transform:translateY(0); }
+    .eixo-tag { font-family:'JetBrains Mono',monospace; font-size:.72rem; font-weight:800; text-transform:uppercase; margin-bottom:6px; display:block; }
+    .eixo-title { font-size:.9rem; font-weight:700; color:var(--dk); margin-bottom:4px; }
+    .eixo-q { font-size:.78rem; color:var(--muted); line-height:1.5; }
+    .eixo-example { font-size:.75rem; color:#374151; margin-top:6px; background:#f8fafc; padding:5px 8px; border-radius:6px; font-style:italic; line-height:1.5; }
+
+    /* ── Expandable deep-dive ── */
+    .deep-dive { margin:20px 0; border:1px solid #ede9fe; border-radius:12px; overflow:hidden; }
+    .deep-header { background:#f5f3ff; padding:14px 18px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; user-select:none; }
+    .deep-header h4 { margin:0; font-size:.9rem; color:#6d28d9; font-weight:700; }
+    .deep-arrow { font-size:.8rem; color:#8b5cf6; transition:transform .3s; }
+    .deep-header.open .deep-arrow { transform:rotate(180deg); }
+    .deep-body { padding:0 18px; max-height:0; overflow:hidden; transition:max-height .4s ease, padding .3s; }
+    .deep-body.open { max-height:3000px; padding:16px 18px; }
+
+    /* ── Scroll reveal ── */
+    .sr { opacity:0; transform:translateY(24px); transition:opacity .5s ease,transform .5s ease; }
+    .sr.vis { opacity:1; transform:translateY(0); }
+
+    /* ── Checklist ── */
+    .checklist { list-style:none; padding:0; margin:20px 0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:8px 0; border-bottom:1px solid var(--border); font-size:.9rem; color:#374151; cursor:pointer; user-select:none; }
+    .checklist li:last-child { border-bottom:none; }
+    .ck-box { width:20px; height:20px; border:2px solid var(--border); border-radius:5px; flex-shrink:0; display:flex; align-items:center; justify-content:center; transition:all .2s; margin-top:2px; }
+    .checklist li.done .ck-box { background:var(--gr); border-color:var(--gr); color:white; }
+    .checklist li.done .ck-text { text-decoration:line-through; color:var(--muted); }
+
+    /* ── Output table sim ── */
+    .output-table { background:#1e1e2e; border-radius:10px; overflow:hidden; margin:16px 0; font-family:'JetBrains Mono',monospace; font-size:.8rem; }
+    .output-table-header { background:#313244; color:#cba6f7; padding:8px 14px; font-weight:700; font-size:.72rem; letter-spacing:.06em; text-transform:uppercase; display:grid; gap:8px; }
+    .output-table-row { color:#cdd6f4; padding:7px 14px; border-top:1px solid #313244; display:grid; gap:8px; }
+    .output-table-row:hover { background:#313244; }
+    .output-null { color:#f38ba8; font-style:italic; }
   </style>
 </head>
 <body>
-  <header class="page-header py-4">
-    <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2">
-      <div>
-        <div><span class="module-badge bg-common">Módulo 2 • Ciclo Comum</span></div>
-        <h1 class="h3 mb-1 mt-2">Aula 4 — Material</h1>
-        <div>Banco de Dados III - Joins</div>
-      </div>
+  <div id="progress-bar"></div>
+
+  <!-- Floating nav (appears after scrolling past header) -->
+  <div id="float-nav">
+    <a href="../slides/slide_lesson-4.html" class="fn-btn fn-btn-slides">&#9654; Slides</a>
+    <a href="../../home-module-2-common.html" class="fn-btn fn-btn-back">&#8592; Módulo</a>
+  </div>
+
+  <header class="mat-header">
+    <div class="container">
+      <div class="mat-badge">Módulo 2 · Ciclo Comum · IN02</div>
+      <h1>Banco de Dados III — JOINs e Consultas Complexas</h1>
+      <p class="subtitle">Aula 4 — Material de Leitura Aprofundado</p>
       <div class="d-flex gap-2 flex-wrap">
-        <a href="../slides/slide_lesson-4.html" class="btn btn-light">Slides</a>
-        <a href="../../home-module-2-common.html" class="btn btn-outline-light">← Voltar ao Módulo</a>
+        <a href="../slides/slide_lesson-4.html" class="btn btn-light btn-sm">&#9654; Slides</a>
+        <a href="../../home-module-2-common.html" class="btn btn-outline-light btn-sm">&#8592; Voltar ao Módulo</a>
       </div>
     </div>
   </header>
-  <main class="container py-5">
-    <div class="card shadow-sm border-0">
-      <div class="card-body p-4 p-lg-5 study-content">
-        <p class="text-muted mb-4">Conteúdo importado de <code>Autoestudo: JOINS, Filtros e Consultas Relacionais</code>.</p>
-        <h3 id="sumario">Sumário</h3>
-<ol>
-<li><a href="#contexto-e-objetivo">Contexto e Objetivo</a></li>
-<li><a href="#por-que-join-existe">Por que JOIN existe</a></li>
-<li><a href="#inner-left-e-right-join">INNER, LEFT e RIGHT JOIN</a></li>
-<li><a href="#filtros-ordenacao-e-agregacao">Filtros, Ordenação e Agregação</a></li>
-<li><a href="#erros-comuns-em-consultas-relacionais">Erros Comuns em Consultas Relacionais</a></li>
-<li><a href="#conexao-com-endpoints-e-telas">Conexão com Endpoints e Telas</a></li>
-<li><a href="#aprofundamento-orientado">Aprofundamento Orientado</a></li>
-<li><a href="#miniestudo-de-caso">Miniestudo de Caso</a></li>
-<li><a href="#checklist-de-estudo">Checklist de Estudo</a></li>
-<li><a href="#referencias">Referências</a></li>
-</ol>
-<hr>
-<h3 id="contexto-e-objetivo">Contexto e Objetivo</h3>
-<p>Esta aula aprofunda a leitura de dados distribuídos em múltiplas tabelas. O objetivo é entender quando e como combinar registros relacionados para responder perguntas reais do sistema.</p>
-<hr>
-<h3 id="por-que-join-existe">Por que JOIN existe</h3>
-<p>Em bancos relacionais, a informação costuma ficar separada por responsabilidade. Um <code>JOIN</code> recompõe essa visão.</p>
-<h4 id="exemplo-de-tabelas-separadas">Exemplo de tabelas separadas</h4>
 
-    <div class="table-responsive my-4">
-      <table class="table table-bordered table-striped align-middle markdown-table">
-        <thead><tr><th>Tabela</th><th>Papel</th></tr></thead>
-        <tbody><tr><td><code>cliente</code></td><td>Dados do cliente</td></tr>
-<tr><td><code>pedido</code></td><td>Cabeçalho do pedido</td></tr>
-<tr><td><code>item_pedido</code></td><td>Itens do pedido</td></tr>
-<tr><td><code>produto</code></td><td>Catálogo</td></tr></tbody>
-      </table>
-    </div>
-  
-<p>Pergunta de negócio:</p>
-<blockquote class="blockquote custom-blockquote"><p class="mb-0">Quais produtos aparecem em cada pedido de determinado cliente?</p></blockquote>
-<p>Essa resposta exige cruzar tabelas.</p>
-<hr>
-<h3 id="inner-left-e-right-join">INNER, LEFT e RIGHT JOIN</h3>
+  <div class="mat-layout">
 
-    <div class="table-responsive my-4">
-      <table class="table table-bordered table-striped align-middle markdown-table">
-        <thead><tr><th>Tipo</th><th>Quando usar</th><th>Efeito</th></tr></thead>
-        <tbody><tr><td><code>INNER JOIN</code></td><td>Quero apenas registros com correspondência dos dois lados</td><td>descarta ausentes</td></tr>
-<tr><td><code>LEFT JOIN</code></td><td>Quero manter tudo da tabela da esquerda</td><td>traz <code>NULL</code> quando não encontra do outro lado</td></tr>
-<tr><td><code>RIGHT JOIN</code></td><td>Mesmo raciocínio invertido</td><td>menos comum na prática</td></tr></tbody>
-      </table>
-    </div>
-  
-<h4 id="exemplo-com-inner-join">Exemplo com <code>INNER JOIN</code></h4>
-<pre class="code-block"><code class="language-sql">SELECT p.id, c.nome
-FROM pedido p
-INNER JOIN cliente c ON c.id = p.cliente_id;</code></pre>
-<h4 id="exemplo-com-left-join">Exemplo com <code>LEFT JOIN</code></h4>
-<pre class="code-block"><code class="language-sql">SELECT c.nome, p.id
-FROM cliente c
-LEFT JOIN pedido p ON p.cliente_id = c.id;</code></pre>
-<p>Esse segundo caso também mostra clientes sem pedido.</p>
-<hr>
-<h3 id="filtros-ordenacao-e-agregacao">Filtros, Ordenação e Agregação</h3>
-<p>JOINS costumam vir acompanhados de filtros e resumos.</p>
-<h4 id="exemplo">Exemplo</h4>
-<pre class="code-block"><code class="language-sql">SELECT c.nome, COUNT(p.id) AS total_pedidos
-FROM cliente c
-LEFT JOIN pedido p ON p.cliente_id = c.id
-GROUP BY c.nome
-ORDER BY total_pedidos DESC;</code></pre>
-<h4 id="elementos-que-precisam-ser-dominados">Elementos que precisam ser dominados</h4>
-<ul>
-<li><code>WHERE</code></li>
-<li><code>GROUP BY</code></li>
-<li><code>COUNT</code>, <code>SUM</code>, <code>AVG</code></li>
-<li><code>ORDER BY</code></li>
-</ul>
-<hr>
-<h3 id="erros-comuns-em-consultas-relacionais">Erros Comuns em Consultas Relacionais</h3>
-
-    <div class="table-responsive my-4">
-      <table class="table table-bordered table-striped align-middle markdown-table">
-        <thead><tr><th>Erro</th><th>Sintoma</th></tr></thead>
-        <tbody><tr><td>JOIN sem condição correta</td><td>número exagerado de linhas</td></tr>
-<tr><td>JOIN em chave errada</td><td>resultado sem sentido</td></tr>
-<tr><td><code>INNER JOIN</code> quando precisava <code>LEFT JOIN</code></td><td>linhas desaparecem</td></tr>
-<tr><td>Falta de <code>GROUP BY</code> adequado</td><td>agregações incorretas</td></tr></tbody>
-      </table>
-    </div>
-  
-<h4 id="regra-pratica">Regra prática</h4>
-<p>Antes de escrever a query, responda:</p>
-<ol>
-<li>Quais tabelas participam?</li>
-<li>Qual é a chave que conecta cada uma?</li>
-<li>Quero perder linhas sem correspondência ou preservá-las?</li>
-<li>Estou listando linhas ou resumindo resultados?</li>
-</ol>
-<hr>
-<h3 id="conexao-com-endpoints-e-telas">Conexão com Endpoints e Telas</h3>
-<p>Quase toda listagem útil do sistema nasce de uma consulta relacional.</p>
-
-    <div class="table-responsive my-4">
-      <table class="table table-bordered table-striped align-middle markdown-table">
-        <thead><tr><th>Necessidade da interface</th><th>Tipo de consulta provável</th></tr></thead>
-        <tbody><tr><td>listar pedidos com nome do cliente</td><td><code>pedido</code> + <code>cliente</code></td></tr>
-<tr><td>mostrar itens do pedido com nome do produto</td><td><code>pedido</code> + <code>item_pedido</code> + <code>produto</code></td></tr>
-<tr><td>exibir ranking ou totais</td><td><code>JOIN</code> + agregação</td></tr></tbody>
-      </table>
-    </div>
-  
-<h4 id="pergunta-importante">Pergunta importante</h4>
-<p>Se a tela precisa de um dado composto, faz mais sentido:</p>
-<ul>
-<li>uma query pronta no backend</li>
-<li>ou várias chamadas menores que a interface precisa recompor?</li>
-</ul>
-<p>Em geral, para leitura coerente e simples, a composição deveria acontecer no backend.</p>
-<hr>
-<h3 id="aprofundamento-orientado">Aprofundamento Orientado</h3>
-<h4 id="1-pensar-em-consulta-antes-de-pensar-em-framework">1. Pensar em consulta antes de pensar em framework</h4>
-<p>Antes de escrever ORM, vale montar a consulta em SQL puro. Isso ajuda a:</p>
-<ul>
-<li>validar a lógica</li>
-<li>enxergar duplicações</li>
-<li>distinguir erro de modelagem de erro de implementação</li>
-</ul>
-<h4 id="2-cuidado-com-linhas-duplicadas">2. Cuidado com linhas duplicadas</h4>
-<p>Se um pedido tem vários itens, um <code>JOIN</code> pode multiplicar linhas. Isso não é sempre erro, mas exige interpretação correta.</p>
-
-    <div class="table-responsive my-4">
-      <table class="table table-bordered table-striped align-middle markdown-table">
-        <thead><tr><th>Situação</th><th>O que fazer</th></tr></thead>
-        <tbody><tr><td>quero ver cada item separadamente</td><td>manter duplicação esperada</td></tr>
-<tr><td>quero resumir por pedido</td><td>agrupar ou agregar</td></tr>
-<tr><td>quero evitar repetição de texto</td><td>rever projeção e <code>GROUP BY</code></td></tr></tbody>
-      </table>
-    </div>
-  
-<h4 id="3-ponte-para-a-aula-5">3. Ponte para a aula 5</h4>
-<p>As consultas escritas aqui serão consumidas pela camada de backend. Por isso, ao finalizar o estudo, o aluno deveria já conseguir dizer:</p>
-<ul>
-<li>que consulta alimenta qual endpoint</li>
-<li>que campos precisam entrar no retorno</li>
-<li>que filtros a API provavelmente vai expor</li>
-</ul>
-<hr>
-<h3 id="miniestudo-de-caso">Miniestudo de Caso</h3>
-<h4 id="tela-de-pedidos-precisa-mostrar-contexto-completo">Tela de pedidos precisa mostrar contexto completo</h4>
-<p>O gerente pediu uma listagem com número do pedido, nome do cliente, quantidade total de itens e valor total. Os dados existem, mas estão espalhados em <code>pedido</code>, <code>cliente</code>, <code>item_pedido</code> e <code>produto</code>.</p>
-<h4 id="estrutura-da-consulta">Estrutura da consulta</h4>
-
-    <div class="table-responsive my-4">
-      <table class="table table-bordered table-striped align-middle markdown-table">
-        <thead><tr><th>Informação exibida</th><th>Origem provável</th></tr></thead>
-        <tbody><tr><td>número do pedido</td><td><code>pedido.id</code></td></tr>
-<tr><td>nome do cliente</td><td><code>cliente.nome</code></td></tr>
-<tr><td>total de itens</td><td><code>SUM(item_pedido.quantidade)</code></td></tr>
-<tr><td>valor total</td><td>soma de <code>item_pedido.quantidade * produto.preco_cents</code></td></tr></tbody>
-      </table>
-    </div>
-  
-<h4 id="ponto-pedagogico">Ponto pedagógico</h4>
-<p>Esse caso ajuda o aluno a perceber que a pergunta de negócio vem antes da query. O <code>JOIN</code> existe para responder uma necessidade concreta da tela ou do relatório, não para &quot;usar mais SQL&quot;.</p>
-<h4 id="perguntas-para-discutir">Perguntas para discutir</h4>
-<ol>
-<li>Em quais junções o <code>LEFT JOIN</code> faria mais sentido do que <code>INNER JOIN</code>?</li>
-<li>Como evitar que um pedido com vários itens apareça duplicado quando a intenção é resumir por pedido?</li>
-<li>Essa consulta deveria ser montada no front-end ou entregue pronta pelo backend?</li>
-</ol>
-<hr>
-<h3 id="checklist-de-estudo">Checklist de Estudo</h3>
-<ul>
-<li>[ ] Sei explicar a diferença entre <code>INNER JOIN</code> e <code>LEFT JOIN</code>?</li>
-<li>[ ] Consigo identificar a chave usada na junção?</li>
-<li>[ ] Consigo combinar JOIN com filtro e ordenação?</li>
-<li>[ ] Consigo resumir resultados com <code>COUNT</code> e <code>GROUP BY</code>?</li>
-<li>[ ] Sei reconhecer um resultado duplicado por JOIN mal escrito?</li>
-</ul>
-<hr>
-<h3 id="referencias">Referências</h3>
-<ul>
-<li><a href="https://www.postgresql.org/docs/current/queries-table-expressions.html" target="_blank" rel="noopener noreferrer">PostgreSQL Documentation — Table Expressions</a></li>
-<li><a href="https://sqlbolt.com/lesson/select_queries_with_outer_joins" target="_blank" rel="noopener noreferrer">SQLBolt — SQL Lesson 7: OUTER JOINs</a></li>
-<li><a href="https://www.computer.org/education/bodies-of-knowledge/software-engineering/v4" target="_blank" rel="noopener noreferrer">SWEBOK — Software Engineering Body of Knowledge</a></li>
-</ul>
+    <!-- ── Sidebar ── -->
+    <aside class="mat-sidebar">
+      <div class="mat-toc">
+        <h4>Neste material</h4>
+        <a href="#sec-normalizacao">1. O problema: tabelas separadas</a>
+        <a href="#sec-inner">2. INNER JOIN</a>
+        <a href="#sec-left" class="toc-h3">3. LEFT JOIN</a>
+        <a href="#sec-right-full" class="toc-h3">4. RIGHT JOIN e FULL OUTER JOIN</a>
+        <a href="#sec-self">5. SELF JOIN</a>
+        <a href="#sec-groupby">6. GROUP BY e agregação com JOIN</a>
+        <a href="#sec-where-having" class="toc-h3">7. WHERE vs HAVING</a>
+        <a href="#sec-subquery">8. Subconsultas</a>
+        <a href="#sec-window">9. Window Functions</a>
+        <a href="#sec-rmodp">10. RM-ODP</a>
+        <a href="#sec-req">11. RF, RN e RNF</a>
+        <a href="#sec-checklist">12. Checklist</a>
+        <a href="#sec-refs">Referências</a>
       </div>
-    </div>
-  </main>
-  <div class="logo-container text-center py-4">
-    <img src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli Logo Compact" style="max-width: 150px;">
+    </aside>
+
+    <!-- ── Article ── -->
+    <article class="mat-article">
+
+      <!-- ════════ 1. O PROBLEMA ════════ -->
+      <section class="mat-section" id="sec-normalizacao">
+        <h2>1. O problema: dados em tabelas separadas</h2>
+
+        <p>Nas aulas anteriores você aprendeu a criar tabelas e aplicar as formas normais — 1FN, 2FN e 3FN. A normalização resolve problemas críticos: elimina redundância de dados, previne <strong>anomalias de inserção</strong> (ter que duplicar informação ao inserir um novo registro), <strong>anomalias de atualização</strong> (ter que alterar o mesmo dado em dezenas de linhas) e <strong>anomalias de deleção</strong> (perder dados importantes ao excluir um registro). Um banco normalizado é mais consistente, ocupa menos espaço e é mais fácil de manter.</p>
+
+        <p>Mas há um preço. Quando você separa informações em tabelas distintas — clientes em uma, pedidos em outra, produtos em uma terceira — você precisa de um mecanismo para <em>juntar</em> esses dados no momento da consulta. Sem esse mecanismo, você precisaria fazer várias consultas separadas no código da aplicação e montar os dados manualmente: consultar todos os clientes, depois consultar pedidos de cada um, e combinar os resultados em loops. Isso é lento, verboso e propenso a erros.</p>
+
+        <p>A solução que o SQL oferece é o <strong>JOIN</strong>: uma operação que combina linhas de duas ou mais tabelas com base em uma condição de relacionamento — geralmente a igualdade entre uma chave estrangeira e a chave primária correspondente. Em vez de múltiplas viagens ao banco, você descreve a consulta completa em um único comando SQL e deixa o mecanismo do banco de dados (o <em>query planner</em>) decidir a forma mais eficiente de executá-la. Essa abordagem não é só mais elegante — em tabelas grandes, a diferença de desempenho pode ser de ordens de magnitude.</p>
+
+        <div class="callout callout-info sr">
+          <div class="callout-label">Conceito fundamental</div>
+          <p>O JOIN não "desnormaliza" o banco. Ele combina dados normalizados <em>temporariamente</em>, apenas para responder a uma consulta. Os dados continuam separados e normalizados no armazenamento. O resultado do JOIN existe apenas em memória, durante a execução da query.</p>
+        </div>
+
+        <h3>O modelo de dados desta aula</h3>
+        <p>Para explorar todos os tipos de JOIN, usaremos um modelo de e-commerce simplificado com quatro tabelas. Cada tabela tem uma responsabilidade clara e se relaciona com as demais via chaves estrangeiras:</p>
+
+        <table class="mat-table sr">
+          <thead>
+            <tr><th>Tabela</th><th>Responsabilidade</th><th>Chave Primária</th><th>Relacionamentos</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>clientes</code></td><td>Dados cadastrais do comprador</td><td><code>id</code></td><td>—</td></tr>
+            <tr><td><code>pedidos</code></td><td>Cabeçalho de cada compra</td><td><code>id</code></td><td><code>cliente_id → clientes.id</code></td></tr>
+            <tr><td><code>itens_pedido</code></td><td>Linha de detalhe de cada produto no pedido</td><td><code>id</code></td><td><code>pedido_id → pedidos.id</code>, <code>produto_id → produtos.id</code></td></tr>
+            <tr><td><code>produtos</code></td><td>Catálogo de produtos disponíveis</td><td><code>id</code></td><td>—</td></tr>
+          </tbody>
+        </table>
+
+        <p>Este é exatamente o padrão que você encontrará em sistemas reais. O ORDER HEADER / ORDER LINE é um dos relacionamentos mais clássicos da modelagem de dados. Dominá-lo em SQL significa que você consegue extrair qualquer informação comercialmente relevante desse tipo de estrutura — relatórios de vendas, análise de clientes, controle de estoque, tudo passa por JOINs sobre esse modelo.</p>
+      </section>
+
+      <!-- ════════ 2. INNER JOIN ════════ -->
+      <section class="mat-section" id="sec-inner">
+        <h2>2. INNER JOIN — a interseção dos conjuntos</h2>
+
+        <p>O <strong>INNER JOIN</strong> é o JOIN mais comum e o mais intuitivo quando você pensa em termos de teoria de conjuntos. Ele retorna apenas os registros que têm correspondência nas <em>duas</em> tabelas envolvidas. Se um cliente não tem nenhum pedido, ele não aparece no resultado. Se um pedido tiver um <code>cliente_id</code> inválido (o que não deveria acontecer com uma FK correta), aquele pedido também não apareceria. O resultado é a interseção: apenas o que existe em ambos os lados.</p>
+
+        <p>A sintaxe do INNER JOIN usa a cláusula <code>ON</code> para especificar a condição de junção. É uma boa prática usar <strong>aliases</strong> (apelidos) para as tabelas — <code>c</code> para <code>clientes</code>, <code>p</code> para <code>pedidos</code> — para tornar a query mais legível e evitar ambiguidade quando as tabelas têm colunas com o mesmo nome (como <code>id</code>). A palavra <code>INNER</code> é opcional; <code>JOIN</code> sozinho é tratado como INNER JOIN na maioria dos SGBDs.</p>
+
+        <div class="code-wrap">
+          <div class="code-label">SQL — INNER JOIN básico<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-cmt">-- INNER JOIN: pedidos com cliente</span>
+<span class="hl-kw">SELECT</span> c.nome, p.id <span class="hl-kw">AS</span> pedido_id, p.total
+<span class="hl-kw">FROM</span> clientes c
+<span class="hl-kw">INNER JOIN</span> pedidos p <span class="hl-kw">ON</span> c.id = p.cliente_id;</code></pre>
+        </div>
+
+        <p>Veja como o banco executa essa query mentalmente: ele percorre todas as linhas de <code>clientes</code>, e para cada linha, procura linhas em <code>pedidos</code> onde <code>pedidos.cliente_id</code> é igual ao <code>clientes.id</code> atual. Cada combinação que satisfaça a condição gera uma linha no resultado. Um cliente com três pedidos gerará três linhas no resultado — uma para cada pedido.</p>
+
+        <h3>Resultado visual</h3>
+        <p>Supondo que o banco tenha três clientes (Ana, Bruno, Carla) e que apenas Ana e Bruno tenham pedidos, o resultado seria:</p>
+
+        <div class="output-table sr">
+          <div class="output-table-header" style="grid-template-columns:1fr 80px 100px;">
+            <span>nome</span><span>pedido_id</span><span>total</span>
+          </div>
+          <div class="output-table-row" style="grid-template-columns:1fr 80px 100px;">
+            <span>Ana Silva</span><span>1</span><span>R$ 450,00</span>
+          </div>
+          <div class="output-table-row" style="grid-template-columns:1fr 80px 100px;">
+            <span>Ana Silva</span><span>4</span><span>R$ 1.200,00</span>
+          </div>
+          <div class="output-table-row" style="grid-template-columns:1fr 80px 100px;">
+            <span>Bruno Costa</span><span>2</span><span>R$ 89,90</span>
+          </div>
+        </div>
+        <p style="font-size:.8rem;color:var(--muted);">Carla Pereira não aparece pois não tem pedidos — comportamento esperado do INNER JOIN.</p>
+
+        <div class="callout callout-warn sr">
+          <div class="callout-label">Atenção com NULLs</div>
+          <p>O INNER JOIN nunca retorna linhas com NULL nas colunas usadas na condição <code>ON</code>, pois a comparação <code>NULL = NULL</code> retorna <code>NULL</code> (não <code>TRUE</code>) em SQL. Se <code>cliente_id</code> for NULL em algum pedido (o que seria um problema de integridade referencial), essa linha não aparecerá no resultado.</p>
+        </div>
+
+        <h3>Quando usar o INNER JOIN</h3>
+        <p>Use INNER JOIN quando você precisa de dados que <strong>necessariamente existem em ambas as tabelas</strong> e não quer ver registros incompletos no resultado. Exemplos típicos: listar pedidos com os dados do cliente (não faz sentido exibir um pedido sem saber quem é o cliente), exibir itens de um pedido com o nome do produto, gerar relatório de vendas por vendedor.</p>
+      </section>
+
+      <!-- ════════ 3. LEFT JOIN ════════ -->
+      <section class="mat-section" id="sec-left">
+        <h2>3. LEFT JOIN — todos da esquerda, com ou sem par</h2>
+
+        <p>O <strong>LEFT JOIN</strong> (ou LEFT OUTER JOIN) resolve um problema que o INNER JOIN não consegue: "quero ver <em>todos</em> os registros da tabela da esquerda, mesmo que não tenham correspondência na tabela da direita". Quando não há correspondência, as colunas da tabela da direita aparecem preenchidas com <code>NULL</code>. A tabela "esquerda" é aquela que vem antes da cláusula <code>LEFT JOIN</code>.</p>
+
+        <p>O caso de uso mais clássico é o relatório de clientes com contagem de pedidos. Se você usar INNER JOIN, clientes sem nenhum pedido desaparecem do relatório — o que pode ser exatamente o oposto do que o negócio precisa. Talvez o objetivo seja justamente identificar esses clientes inativos para uma campanha de reativação. O LEFT JOIN preserva todos os clientes, colocando zero na contagem de pedidos para os que não compraram.</p>
+
+        <div class="code-wrap">
+          <div class="code-label">SQL — LEFT JOIN com COUNT<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-cmt">-- LEFT JOIN: todos os clientes, com ou sem pedidos</span>
+<span class="hl-kw">SELECT</span> c.nome, <span class="hl-fn">COUNT</span>(p.id) <span class="hl-kw">AS</span> total_pedidos
+<span class="hl-kw">FROM</span> clientes c
+<span class="hl-kw">LEFT JOIN</span> pedidos p <span class="hl-kw">ON</span> c.id = p.cliente_id
+<span class="hl-kw">GROUP BY</span> c.id, c.nome
+<span class="hl-kw">ORDER BY</span> total_pedidos <span class="hl-kw">DESC</span>;</code></pre>
+        </div>
+
+        <p>Um detalhe importante: usamos <code>COUNT(p.id)</code> e não <code>COUNT(*)</code>. Isso porque <code>COUNT(*)</code> conta linhas independentemente de NULLs, enquanto <code>COUNT(p.id)</code> ignora linhas onde <code>p.id</code> é NULL — ou seja, conta corretamente zero pedidos para o cliente sem correspondência. Se usássemos <code>COUNT(*)</code>, clientes sem pedidos apareceriam com contagem 1 (por causa da linha com NULLs que o LEFT JOIN gera), o que seria um bug sutil e perigoso.</p>
+
+        <h3>O truque IS NULL: encontrar ausências</h3>
+        <p>Uma das aplicações mais poderosas do LEFT JOIN é encontrar registros que <em>não existem</em> na segunda tabela. Isso é feito combinando LEFT JOIN com um filtro <code>WHERE coluna_direita IS NULL</code>. Essa técnica é frequentemente mais eficiente do que usar <code>NOT IN</code> com subquery, especialmente quando há NULLs na lista.</p>
+
+        <div class="code-wrap">
+          <div class="code-label">SQL — encontrar clientes sem pedidos<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-cmt">-- Clientes sem nenhum pedido (LEFT JOIN + IS NULL)</span>
+<span class="hl-kw">SELECT</span> c.nome
+<span class="hl-kw">FROM</span> clientes c
+<span class="hl-kw">LEFT JOIN</span> pedidos p <span class="hl-kw">ON</span> c.id = p.cliente_id
+<span class="hl-kw">WHERE</span> p.id <span class="hl-kw">IS NULL</span>;</code></pre>
+        </div>
+
+        <p>A lógica é elegante: o LEFT JOIN gera uma linha para cada cliente, com <code>p.id = NULL</code> para os que não têm pedidos. O <code>WHERE p.id IS NULL</code> filtra exatamente essas linhas. O resultado são apenas os clientes que nunca compraram. Esse padrão — LEFT JOIN + IS NULL — é uma ferramenta essencial no arsenal de qualquer desenvolvedor que trabalha com SQL.</p>
+
+        <div class="callout callout-tip sr">
+          <div class="callout-label">Diferença em relação ao INNER JOIN</div>
+          <p>INNER JOIN: apenas os registros que têm correspondência nos dois lados.<br>LEFT JOIN: todos os registros da tabela esquerda + os que têm correspondência na direita (com NULL onde não há). O resultado do LEFT JOIN sempre contém o resultado do INNER JOIN mais as linhas extras com NULL.</p>
+        </div>
+      </section>
+
+      <!-- ════════ 4. RIGHT JOIN e FULL OUTER JOIN ════════ -->
+      <section class="mat-section" id="sec-right-full">
+        <h2>4. RIGHT JOIN e FULL OUTER JOIN</h2>
+
+        <p>O <strong>RIGHT JOIN</strong> é o espelho exato do LEFT JOIN: preserva todos os registros da tabela da <em>direita</em> (a que vem após <code>RIGHT JOIN</code>), mesmo que não tenham correspondência na esquerda. Na prática, o RIGHT JOIN é raramente necessário: qualquer consulta que usa RIGHT JOIN pode ser reescrita como LEFT JOIN simplesmente trocando a ordem das tabelas. Muitas equipes adotam a convenção de sempre usar LEFT JOIN para manter a consistência e legibilidade do código.</p>
+
+        <p>O <strong>FULL OUTER JOIN</strong> combina LEFT e RIGHT: retorna todos os registros de <em>ambas</em> as tabelas, colocando NULL nas colunas da outra tabela quando não há correspondência. É útil em cenários de reconciliação de dados — por exemplo, comparar duas tabelas de fontes diferentes e encontrar registros que existem em uma mas não na outra, em qualquer direção. Nem todos os SGBDs suportam FULL OUTER JOIN diretamente: MySQL, por exemplo, não tem essa sintaxe nativa, sendo necessário simular com UNION de LEFT JOIN e RIGHT JOIN.</p>
+
+        <div class="code-wrap">
+          <div class="code-label">SQL — FULL OUTER JOIN e anti-join bilateral<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-cmt">-- FULL OUTER JOIN: todos de ambas as tabelas</span>
+<span class="hl-kw">SELECT</span> c.nome, p.id <span class="hl-kw">AS</span> pedido_id
+<span class="hl-kw">FROM</span> clientes c
+<span class="hl-kw">FULL OUTER JOIN</span> pedidos p <span class="hl-kw">ON</span> c.id = p.cliente_id;
+
+<span class="hl-cmt">-- Anti-join total: registros sem par em nenhum dos lados</span>
+<span class="hl-kw">SELECT</span> c.nome, p.id <span class="hl-kw">AS</span> pedido_id
+<span class="hl-kw">FROM</span> clientes c
+<span class="hl-kw">FULL OUTER JOIN</span> pedidos p <span class="hl-kw">ON</span> c.id = p.cliente_id
+<span class="hl-kw">WHERE</span> c.id <span class="hl-kw">IS NULL OR</span> p.id <span class="hl-kw">IS NULL</span>;</code></pre>
+        </div>
+
+        <div class="join-grid sr">
+          <div class="join-card inner">
+            <div class="join-type">INNER JOIN</div>
+            <div class="join-desc">Apenas registros com correspondência nos dois lados. Interseção dos conjuntos.</div>
+          </div>
+          <div class="join-card left">
+            <div class="join-type">LEFT JOIN</div>
+            <div class="join-desc">Todos da esquerda + correspondências da direita. NULL quando não há par.</div>
+          </div>
+          <div class="join-card right">
+            <div class="join-type">RIGHT JOIN</div>
+            <div class="join-desc">Todos da direita + correspondências da esquerda. Espelho do LEFT JOIN.</div>
+          </div>
+          <div class="join-card full">
+            <div class="join-type">FULL OUTER</div>
+            <div class="join-desc">Todos de ambos os lados. NULL onde não há correspondência em qualquer direção.</div>
+          </div>
+        </div>
+
+        <p>Ao escrever JOINs múltiplos — unindo três ou mais tabelas — o banco executa os JOINs da esquerda para a direita, um de cada vez. A ordem das tabelas importa para a legibilidade e, em casos específicos, pode influenciar o plano de execução. A boa prática é começar pela tabela mais restritiva (com menos linhas ou com o melhor índice) para reduzir o volume de dados processados nos JOINs subsequentes.</p>
+
+        <div class="code-wrap">
+          <div class="code-label">SQL — JOIN múltiplo: quatro tabelas<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-cmt">-- JOIN múltiplo: pedidos + cliente + produto</span>
+<span class="hl-kw">SELECT</span> c.nome, pr.nome <span class="hl-kw">AS</span> produto, ip.quantidade, ip.preco_unit
+<span class="hl-kw">FROM</span> pedidos p
+<span class="hl-kw">INNER JOIN</span> clientes c <span class="hl-kw">ON</span> c.id = p.cliente_id
+<span class="hl-kw">INNER JOIN</span> itens_pedido ip <span class="hl-kw">ON</span> ip.pedido_id = p.id
+<span class="hl-kw">INNER JOIN</span> produtos pr <span class="hl-kw">ON</span> pr.id = ip.produto_id;</code></pre>
+        </div>
+      </section>
+
+      <!-- ════════ 5. SELF JOIN ════════ -->
+      <section class="mat-section" id="sec-self">
+        <h2>5. SELF JOIN — a tabela se une consigo mesma</h2>
+
+        <p>O <strong>SELF JOIN</strong> não é um tipo especial de JOIN em termos de sintaxe — é apenas um JOIN onde as duas "tabelas" são, na verdade, a mesma tabela referenciada com aliases diferentes. Ele resolve um problema elegante: quando uma tabela contém um relacionamento <em>hierárquico ou reflexivo</em> dentro de si mesma.</p>
+
+        <p>O exemplo clássico é a tabela de funcionários. Um funcionário tem um gerente — mas o gerente também é um funcionário na mesma tabela. A coluna <code>gerente_id</code> é uma chave estrangeira que aponta para a própria tabela <code>funcionarios</code>. Para exibir o nome do funcionário junto com o nome do seu gerente, você precisa unir a tabela de funcionários com ela mesma: uma vez para o funcionário (alias <code>f</code>) e uma vez para o gerente (alias <code>g</code>).</p>
+
+        <div class="code-wrap">
+          <div class="code-label">SQL — SELF JOIN: funcionários e gerentes<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-cmt">-- Estrutura da tabela com auto-referência</span>
+<span class="hl-kw">CREATE TABLE</span> funcionarios (
+  id         <span class="hl-typ">SERIAL PRIMARY KEY</span>,
+  nome       <span class="hl-typ">VARCHAR(100)</span>,
+  gerente_id <span class="hl-typ">INT REFERENCES</span> funcionarios(id)
+);
+
+<span class="hl-cmt">-- SELF JOIN: nome do funcionário + nome do gerente</span>
+<span class="hl-kw">SELECT</span>
+  f.nome <span class="hl-kw">AS</span> funcionario,
+  g.nome <span class="hl-kw">AS</span> gerente
+<span class="hl-kw">FROM</span> funcionarios f
+<span class="hl-kw">LEFT JOIN</span> funcionarios g <span class="hl-kw">ON</span> f.gerente_id = g.id;
+
+<span class="hl-cmt">-- Resultado esperado:</span>
+<span class="hl-cmt">-- Carla | Ana</span>
+<span class="hl-cmt">-- Bruno | Ana</span>
+<span class="hl-cmt">-- Ana   | NULL  (raiz da hierarquia, sem gerente)</span></code></pre>
+        </div>
+
+        <p>Note o uso de LEFT JOIN em vez de INNER JOIN: o CEO (ou qualquer raiz da hierarquia) tem <code>gerente_id = NULL</code>, então um INNER JOIN eliminaria esse registro — e você perderia o topo da hierarquia nos resultados. O LEFT JOIN preserva todos, mostrando NULL para o gerente de quem está no topo. Outro exemplo clássico de SELF JOIN é a tabela de categorias com subcategorias: <code>categoria_pai_id</code> apontando para a própria tabela de categorias.</p>
+
+        <div class="callout callout-deep sr">
+          <div class="callout-label">Consultas hierárquicas avançadas</div>
+          <p>Para hierarquias com profundidade variável (árvores arbitrariamente profundas), o SELF JOIN simples não é suficiente — você precisaria de um JOIN por nível. A solução é a <strong>CTE recursiva</strong> (<code>WITH RECURSIVE</code>), disponível no PostgreSQL, que permite percorrer hierarquias de qualquer profundidade em uma única query. Isso está além do escopo desta aula, mas é um tópico importante para sistemas com estruturas organizacionais ou categorias hierárquicas.</p>
+        </div>
+      </section>
+
+      <!-- ════════ 6. GROUP BY E AGREGAÇÃO COM JOIN ════════ -->
+      <section class="mat-section" id="sec-groupby">
+        <h2>6. GROUP BY e funções de agregação com JOIN</h2>
+
+        <p>A combinação de JOIN com <code>GROUP BY</code> é onde as consultas SQL se tornam verdadeiramente poderosas para análise de dados. Você une as tabelas para ter acesso a todas as colunas relevantes e, em seguida, agrupa e resume esses dados para responder perguntas de negócio: "qual é o total de vendas por cliente?", "quais categorias têm mais produtos acima de determinado preço?", "qual vendedor fechou mais pedidos no último trimestre?"</p>
+
+        <p>As funções de agregação mais usadas são <code>COUNT()</code>, <code>SUM()</code>, <code>AVG()</code>, <code>MIN()</code> e <code>MAX()</code>. Quando combinadas com GROUP BY, elas operam sobre cada grupo de linhas, produzindo um único valor resumido por grupo. Uma regra fundamental: toda coluna no SELECT que não é uma função de agregação <em>deve</em> aparecer na cláusula GROUP BY — caso contrário, o banco de dados não saberá qual valor exibir para as linhas do grupo.</p>
+
+        <div class="code-wrap">
+          <div class="code-label">SQL — GROUP BY + HAVING<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-cmt">-- GROUP BY + HAVING: categorias com mais de 3 produtos acima de R$100</span>
+<span class="hl-kw">SELECT</span> categoria, <span class="hl-fn">COUNT</span>(*) <span class="hl-kw">AS</span> qtd, <span class="hl-fn">AVG</span>(preco) <span class="hl-kw">AS</span> media
+<span class="hl-kw">FROM</span> produtos
+<span class="hl-kw">WHERE</span> preco &gt; <span class="hl-num">100</span>
+<span class="hl-kw">GROUP BY</span> categoria
+<span class="hl-kw">HAVING</span> <span class="hl-fn">COUNT</span>(*) &gt; <span class="hl-num">3</span>
+<span class="hl-kw">ORDER BY</span> media <span class="hl-kw">DESC</span>;</code></pre>
+        </div>
+
+        <p>O exemplo acima demonstra a sequência lógica de uma query com GROUP BY: primeiro o <code>WHERE</code> filtra linhas individuais (apenas produtos com preço acima de R$100), depois o <code>GROUP BY</code> agrupa por categoria, depois o <code>HAVING</code> filtra grupos (apenas categorias com mais de 3 produtos nessa faixa de preço), e finalmente o <code>ORDER BY</code> ordena o resultado. Entender essa ordem de execução é fundamental para escrever queries corretas.</p>
+
+        <div class="callout callout-info sr">
+          <div class="callout-label">Ordem de execução de uma SELECT</div>
+          <p>O SQL executa as cláusulas em uma ordem específica — diferente da ordem em que você as escreve:<br>
+          <strong>FROM → JOIN → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT</strong><br>
+          Por isso, você não pode usar um alias definido no SELECT dentro de um WHERE (o WHERE é executado antes do SELECT). No HAVING, em muitos SGBDs, aliases do SELECT já estão disponíveis.</p>
+        </div>
+      </section>
+
+      <!-- ════════ 7. WHERE vs HAVING ════════ -->
+      <section class="mat-section" id="sec-where-having">
+        <h2>7. WHERE vs HAVING — antes e depois do agrupamento</h2>
+
+        <p>A distinção entre <code>WHERE</code> e <code>HAVING</code> é uma das mais importantes — e mais frequentemente confundidas — em SQL. A regra é simples: <strong>WHERE filtra linhas individuais antes do agrupamento</strong>, enquanto <strong>HAVING filtra grupos depois do agrupamento</strong>. O WHERE nunca pode referenciar funções de agregação (como COUNT ou SUM), porque o agrupamento ainda não aconteceu nesse ponto da execução. O HAVING é exatamente para isso: filtrar com base em agregações.</p>
+
+        <p>Para solidificar a diferença, considere dois problemas distintos. Primeiro: "quais clientes fizeram mais de 5 pedidos?" — isso é um filtro sobre o resultado agregado, portanto vai no HAVING. Segundo: "quais pedidos de valor acima de R$500 foram feitos por clientes de São Paulo?" — isso envolve filtros sobre colunas individuais antes de qualquer agrupamento, portanto vai no WHERE. Às vezes você precisa dos dois: WHERE para pré-filtrar linhas, HAVING para pós-filtrar grupos.</p>
+
+        <div class="code-wrap">
+          <div class="code-label">SQL — WHERE vs HAVING: comparação direta<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-cmt">-- WHERE: filtra ANTES do agrupamento</span>
+<span class="hl-cmt">-- "dentre os pedidos de 2024, quais clientes compraram mais de 3 vezes?"</span>
+<span class="hl-kw">SELECT</span> c.nome, <span class="hl-fn">COUNT</span>(p.id) <span class="hl-kw">AS</span> total
+<span class="hl-kw">FROM</span> clientes c
+<span class="hl-kw">INNER JOIN</span> pedidos p <span class="hl-kw">ON</span> c.id = p.cliente_id
+<span class="hl-kw">WHERE</span> p.criado_em &gt;= <span class="hl-str">'2024-01-01'</span>    <span class="hl-cmt">-- filtra linhas antes de agrupar</span>
+<span class="hl-kw">GROUP BY</span> c.id, c.nome
+<span class="hl-kw">HAVING</span> <span class="hl-fn">COUNT</span>(p.id) &gt; <span class="hl-num">3</span>;            <span class="hl-cmt">-- filtra grupos após agrupar</span>
+
+<span class="hl-cmt">-- Erro comum: usar COUNT no WHERE (não é permitido)</span>
+<span class="hl-cmt">-- WHERE COUNT(p.id) > 3   &lt;-- ERRO: aggregate não pode aparecer no WHERE</span></code></pre>
+        </div>
+
+        <p>Do ponto de vista de desempenho, aplicar filtros no WHERE é sempre preferível ao HAVING quando possível, porque o WHERE reduz o volume de dados antes de o banco fazer o trabalho de agrupamento. Filtrar depois de agrupar (HAVING) significa que o banco já processou todos os dados. Portanto, se um filtro pode ser expresso tanto com WHERE quanto com HAVING sem mudança de semântica, prefira o WHERE.</p>
+
+        <table class="mat-table sr">
+          <thead><tr><th>Critério</th><th>WHERE</th><th>HAVING</th></tr></thead>
+          <tbody>
+            <tr><td>Quando é executado</td><td>Antes do GROUP BY</td><td>Depois do GROUP BY</td></tr>
+            <tr><td>Filtra</td><td>Linhas individuais</td><td>Grupos</td></tr>
+            <tr><td>Pode usar agregações?</td><td>Não (erro de sintaxe)</td><td>Sim (COUNT, SUM, AVG…)</td></tr>
+            <tr><td>Pode usar colunas normais?</td><td>Sim</td><td>Sim (dependendo do SGBD)</td></tr>
+            <tr><td>Impacto de desempenho</td><td>Reduz dados cedo</td><td>Opera sobre grupos já formados</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ════════ 8. SUBQUERIES ════════ -->
+      <section class="mat-section" id="sec-subquery">
+        <h2>8. Subconsultas — queries dentro de queries</h2>
+
+        <p>Uma <strong>subconsulta</strong> (ou subquery) é uma consulta SQL aninhada dentro de outra consulta. Elas permitem expressar problemas complexos de forma modular: você resolve um sub-problema interno e usa o resultado como parte da consulta principal. Subconsultas podem aparecer em três posições principais: no <code>WHERE</code> (como lista de valores ou condição booleana), no <code>FROM</code> (como uma tabela derivada, também chamada de <em>derived table</em> ou <em>inline view</em>), e no <code>SELECT</code> (como valor escalar).</p>
+
+        <p>A forma mais simples é a subconsulta no <code>WHERE</code> com <code>IN</code>. Ela responde "quais clientes estão na lista de clientes que fizeram pedidos acima de R$1.000?" sem precisar fazer um JOIN explícito. O operador <code>IN</code> verifica se o valor está em um conjunto retornado pela subconsulta. A subconsulta é executada uma vez, e seu resultado é usado como uma lista de valores para o filtro da consulta externa.</p>
+
+        <div class="code-wrap">
+          <div class="code-label">SQL — Subquery com IN<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-cmt">-- Subquery com IN</span>
+<span class="hl-kw">SELECT</span> nome <span class="hl-kw">FROM</span> clientes
+<span class="hl-kw">WHERE</span> id <span class="hl-kw">IN</span> (
+  <span class="hl-kw">SELECT DISTINCT</span> cliente_id <span class="hl-kw">FROM</span> pedidos <span class="hl-kw">WHERE</span> total &gt; <span class="hl-num">1000</span>
+);</code></pre>
+        </div>
+
+        <p>O operador <code>EXISTS</code> é frequentemente uma alternativa mais eficiente ao <code>IN</code>, especialmente quando a subconsulta pode retornar muitos valores ou quando há NULLs envolvidos. Ao contrário do <code>IN</code>, o <code>EXISTS</code> não precisa coletar todos os resultados da subconsulta — ele para assim que encontra a primeira correspondência. A subconsulta dentro do <code>EXISTS</code> usa um <code>SELECT 1</code> por convenção (você não precisa de dados, apenas verificar se a linha existe), e referencia colunas da consulta externa — tornando-a uma <strong>subconsulta correlacionada</strong>: ela é executada uma vez para cada linha da consulta externa.</p>
+
+        <div class="code-wrap">
+          <div class="code-label">SQL — EXISTS vs IN (performance)<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-cmt">-- EXISTS vs IN (performático)</span>
+<span class="hl-kw">SELECT</span> nome <span class="hl-kw">FROM</span> clientes c
+<span class="hl-kw">WHERE EXISTS</span> (
+  <span class="hl-kw">SELECT</span> <span class="hl-num">1</span> <span class="hl-kw">FROM</span> pedidos p
+  <span class="hl-kw">WHERE</span> p.cliente_id = c.id          <span class="hl-cmt">-- correlação com a query externa</span>
+    <span class="hl-kw">AND</span> p.total &gt; <span class="hl-num">1000</span>
+);</code></pre>
+        </div>
+
+        <p>A terceira forma importante é a <strong>tabela derivada</strong>: uma subconsulta no <code>FROM</code> que se comporta como uma tabela temporária. Isso permite fazer um JOIN com o resultado de uma consulta agregada. Por exemplo: para listar clientes com seu total de pedidos lado a lado com a média geral de todos os clientes, você pode usar uma subconsulta no FROM que calcula a média, e fazer JOIN dessa tabela derivada com a tabela de clientes. Nos bancos de dados modernos, as <strong>CTEs</strong> (<code>WITH nome AS (...)</code>) são uma alternativa mais legível às tabelas derivadas aninhadas.</p>
+
+        <div class="deep-dive">
+          <div class="deep-header" onclick="toggleDeep(this)">
+            <h4>Aprofundamento: JOIN vs Subquery — quando escolher cada um?</h4>
+            <span class="deep-arrow">&#9660;</span>
+          </div>
+          <div class="deep-body">
+            <p>Em termos de expressividade, qualquer consulta escrita com subquery pode ser reescrita com JOIN (e vice-versa, em muitos casos). A escolha prática depende de legibilidade e desempenho.</p>
+            <p><strong>Prefira JOIN quando:</strong> você precisa de colunas de ambas as tabelas no resultado, quer fazer agregações combinando múltiplas tabelas, ou quando o otimizador do seu SGBD está bem calibrado para JOINs (o PostgreSQL, por exemplo, converte automaticamente muitos <code>IN</code> em JOINs internamente).</p>
+            <p><strong>Prefira subquery quando:</strong> a lógica é mais clara em termos de "verificar se algo existe" (EXISTS), você quer calcular um valor agregado de uma tabela inteira e compará-lo com valores individuais, ou quando a subconsulta isolada é mais legível do que um JOIN com muitos aliases.</p>
+            <p><strong>Use EXPLAIN ANALYZE</strong> para ver o plano de execução real e tomar decisões baseadas em dados, não em intuição. Em muitos casos, o otimizador tornará ambas as versões equivalentes em performance.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════ 9. WINDOW FUNCTIONS ════════ -->
+      <section class="mat-section" id="sec-window">
+        <h2>9. Window Functions — agregação sem colapso de linhas</h2>
+
+        <p>As <strong>window functions</strong> (funções de janela) resolvem um problema que o GROUP BY não consegue: calcular uma agregação por grupo e ainda assim manter as linhas individuais no resultado. Quando você usa GROUP BY + COUNT, você colapsa várias linhas em uma. Com uma window function, você pode calcular o COUNT por grupo e exibir esse valor em cada linha do grupo, sem colapsar nada. Isso é extremamente útil em relatórios analíticos.</p>
+
+        <p>A sintaxe usa a cláusula <code>OVER</code>: você especifica sobre qual "janela" (subconjunto de linhas) a função deve operar. A janela pode ser definida por <code>PARTITION BY</code> (equivalente a agrupar) e <code>ORDER BY</code> (para funções que dependem de ordem, como ranking e acumuladores). <code>ROW_NUMBER()</code> atribui um número sequencial a cada linha dentro da partição. <code>RANK()</code> faz o mesmo, mas dá o mesmo rank para empates (com "saltos" nos números seguintes). <code>DENSE_RANK()</code> é igual ao RANK, mas sem saltos.</p>
+
+        <div class="code-wrap">
+          <div class="code-label">SQL — Window Functions: ROW_NUMBER, RANK, LAG<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-cmt">-- ROW_NUMBER: ranking de pedidos por cliente (por valor decrescente)</span>
+<span class="hl-kw">SELECT</span>
+  c.nome,
+  p.id <span class="hl-kw">AS</span> pedido_id,
+  p.total,
+  <span class="hl-fn">ROW_NUMBER</span>() <span class="hl-kw">OVER</span> (
+    <span class="hl-kw">PARTITION BY</span> c.id
+    <span class="hl-kw">ORDER BY</span> p.total <span class="hl-kw">DESC</span>
+  ) <span class="hl-kw">AS</span> ranking_cliente
+<span class="hl-kw">FROM</span> clientes c
+<span class="hl-kw">INNER JOIN</span> pedidos p <span class="hl-kw">ON</span> c.id = p.cliente_id;
+
+<span class="hl-cmt">-- LAG: valor do pedido anterior do mesmo cliente</span>
+<span class="hl-kw">SELECT</span>
+  c.nome,
+  p.criado_em,
+  p.total,
+  <span class="hl-fn">LAG</span>(p.total) <span class="hl-kw">OVER</span> (
+    <span class="hl-kw">PARTITION BY</span> c.id
+    <span class="hl-kw">ORDER BY</span> p.criado_em
+  ) <span class="hl-kw">AS</span> pedido_anterior
+<span class="hl-kw">FROM</span> clientes c
+<span class="hl-kw">INNER JOIN</span> pedidos p <span class="hl-kw">ON</span> c.id = p.cliente_id;
+
+<span class="hl-cmt">-- SUM acumulado: total acumulado de vendas por mes</span>
+<span class="hl-kw">SELECT</span>
+  <span class="hl-fn">DATE_TRUNC</span>(<span class="hl-str">'month'</span>, criado_em) <span class="hl-kw">AS</span> mes,
+  <span class="hl-fn">SUM</span>(total) <span class="hl-kw">AS</span> vendas_mes,
+  <span class="hl-fn">SUM</span>(<span class="hl-fn">SUM</span>(total)) <span class="hl-kw">OVER</span> (<span class="hl-kw">ORDER BY</span> <span class="hl-fn">DATE_TRUNC</span>(<span class="hl-str">'month'</span>, criado_em)) <span class="hl-kw">AS</span> acumulado
+<span class="hl-kw">FROM</span> pedidos
+<span class="hl-kw">GROUP BY</span> mes
+<span class="hl-kw">ORDER BY</span> mes;</code></pre>
+        </div>
+
+        <p><code>LAG(coluna)</code> e <code>LEAD(coluna)</code> permitem acessar o valor da linha anterior e da linha seguinte na janela ordenada, respectivamente. Isso é particularmente útil para calcular variações: "quanto cresceu este pedido em relação ao anterior do mesmo cliente?", "qual a diferença de preço entre este produto e o produto seguinte da mesma categoria?". Essas análises seriam extremamente complexas com JOIN e GROUP BY tradicionais, mas são naturais com window functions.</p>
+
+        <div class="callout callout-info sr">
+          <div class="callout-label">Window Functions vs GROUP BY</div>
+          <p>GROUP BY colapsa múltiplas linhas em uma única linha por grupo — você perde o detalhe individual.<br>
+          Window Functions calculam sobre um conjunto de linhas mas <em>mantêm todas as linhas</em> no resultado — você ganha a agregação sem perder o detalhe. Isso as torna ideais para relatórios analíticos onde você precisa de contexto por linha.</p>
+        </div>
+      </section>
+
+      <!-- ════════ 10. RM-ODP ════════ -->
+      <section class="mat-section" id="sec-rmodp">
+        <h2>10. RM-ODP — JOINs nas visões do sistema</h2>
+
+        <p>O framework RM-ODP nos convida a analisar o sistema a partir de cinco perspectivas complementares. Os JOINs e consultas complexas que aprendemos nesta aula têm um papel central em pelo menos duas dessas visões: a visão de <strong>Informação</strong> e a visão <strong>Computacional</strong>.</p>
+
+        <p>A visão de Informação define a estrutura dos dados do sistema: entidades, atributos e relacionamentos. O diagrama ER que você desenhou nas aulas anteriores é a expressão visual desta visão. Os JOINs são precisamente a forma como o SQL <em>navega os relacionamentos</em> desse modelo: cada <code>ON c.id = p.cliente_id</code> percorre exatamente a seta de relacionamento desenhada entre <code>clientes</code> e <code>pedidos</code>. Isso significa que o modelo ER não é apenas documentação — ele especifica diretamente quais JOINs serão necessários.</p>
+
+        <div class="odp-stack" id="odp-stack">
+          <div class="odp-layer" style="background:#dbeafe;">
+            <div class="odp-icon">&#127970;</div>
+            <div>
+              <div class="odp-name">Enterprise (Empresarial)</div>
+              <div class="odp-desc">Define o propósito das consultas: "o sistema deve permitir que o gestor visualize o histórico completo de compras de qualquer cliente". Essa necessidade de negócio é o motor que justifica o INNER JOIN entre clientes e pedidos.</div>
+              <span class="odp-focus" style="background:#dbeafe;color:#1d4ed8;">Requisitos → necessidade de consultas cruzadas</span>
+            </div>
+          </div>
+          <div class="odp-layer" style="background:#dcfce7;">
+            <div class="odp-icon">&#128203;</div>
+            <div>
+              <div class="odp-name">Information (Informação)</div>
+              <div class="odp-desc">As tabelas clientes, pedidos, itens_pedido e produtos são o modelo de informação. Os JOINs são queries sobre esse modelo: eles navegam as associações definidas no modelo ER para reconstituir informação composta a partir de partes normalizadas.</div>
+              <span class="odp-focus" style="background:#dcfce7;color:#15803d;">JOIN = navegação do modelo de informação</span>
+            </div>
+          </div>
+          <div class="odp-layer" style="background:#ede9fe;">
+            <div class="odp-icon">&#9881;</div>
+            <div>
+              <div class="odp-name">Computational (Computacional)</div>
+              <div class="odp-desc">Na camada computacional, as consultas complexas se manifestam como operações de leitura com interface definida. Uma rota GET /clientes/:id/pedidos encapsula um LEFT JOIN. Uma rota GET /relatorios/vendas-por-categoria encapsula um GROUP BY + JOIN. A interface de serviço abstrai a complexidade SQL do consumidor.</div>
+              <span class="odp-focus" style="background:#ede9fe;color:#7c3aed;">GET /clientes/:id/pedidos → LEFT JOIN + GROUP BY</span>
+            </div>
+          </div>
+          <div class="odp-layer" style="background:#fef3c7;">
+            <div class="odp-icon">&#128295;</div>
+            <div>
+              <div class="odp-name">Engineering (Engenharia)</div>
+              <div class="odp-desc">O plano de execução do JOIN (hash join, nested loop, merge join) é um detalhe da camada de engenharia — como o SGBD distribui e coordena o processamento. Índices em chaves estrangeiras são um mecanismo de engenharia para tornar JOINs eficientes.</div>
+              <span class="odp-focus" style="background:#fef3c7;color:#92400e;">Query planner, índices, EXPLAIN ANALYZE</span>
+            </div>
+          </div>
+          <div class="odp-layer" style="background:#fee2e2;">
+            <div class="odp-icon">&#128187;</div>
+            <div>
+              <div class="odp-name">Technology (Tecnologia)</div>
+              <div class="odp-desc">PostgreSQL 16 com suporte completo a FULL OUTER JOIN, window functions, CTEs recursivas. A escolha tecnológica determina quais operações estão disponíveis — MySQL 5.x não tem FULL OUTER JOIN; SQLite não tem LAG/LEAD.</div>
+              <span class="odp-focus" style="background:#fee2e2;color:#b91c1c;">PostgreSQL 16, suporte a ANSI SQL:2016</span>
+            </div>
+          </div>
+        </div>
+
+        <p>Ao projetar uma nova rota ou endpoint que precisará de dados de múltiplas tabelas, a primeira pergunta que você deve fazer é: "quais relacionamentos do modelo ER eu preciso navegar?" Essa pergunta traduz diretamente nos JOINs necessários. É a visão de Informação guiando a visão Computacional.</p>
+      </section>
+
+      <!-- ════════ 11. RF, RN e RNF ════════ -->
+      <section class="mat-section" id="sec-req">
+        <h2>11. RF, RN e RNF aplicados a consultas complexas</h2>
+
+        <p>Cada consulta que você escreve pode ser rastreada a um requisito. Entender essa ligação torna o código mais justificável e facilita decisões de otimização: você prioriza a performance das queries que atendem a requisitos funcionais críticos, e documenta as garantias de qualidade como requisitos não funcionais mensuráveis.</p>
+
+        <h3>Requisitos Funcionais (RF)</h3>
+        <p>Requisitos funcionais descrevem <em>o que</em> o sistema deve fazer. Consultas complexas frequentemente implementam diretamente RFs de reporting e visualização. Exemplos de RFs mapeados a consultas desta aula:</p>
+
+        <table class="mat-table sr">
+          <thead><tr><th>RF</th><th>Descrição</th><th>Query correspondente</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="tag tag-blue">RF-12</span></td>
+              <td>O sistema deve exibir o histórico de pedidos de cada cliente, com nome do produto e valor</td>
+              <td>INNER JOIN em 4 tabelas: clientes, pedidos, itens_pedido, produtos</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-green">RF-15</span></td>
+              <td>O gestor deve ver quais clientes não realizaram nenhum pedido nos últimos 90 dias</td>
+              <td>LEFT JOIN clientes + pedidos + IS NULL + WHERE por data</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-purple">RF-18</span></td>
+              <td>O relatório de vendas deve exibir o total e a média por categoria de produto</td>
+              <td>INNER JOIN + GROUP BY + SUM + AVG + ORDER BY</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-amber">RF-22</span></td>
+              <td>O dashboard deve exibir o ranking dos 10 clientes com maior valor total gasto</td>
+              <td>LEFT JOIN + GROUP BY + SUM + ORDER BY DESC + LIMIT 10</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Regras de Negócio (RN)</h3>
+        <p>Regras de negócio são restrições e políticas do domínio que as consultas devem respeitar. Elas aparecem como filtros, condições e lógicas específicas nas queries. Por exemplo: "RN-03: Um pedido somente é considerado faturado se seu status for 'pago' ou 'entregue'" — isso se traduz em um filtro <code>WHERE p.status IN ('pago', 'entregue')</code> em toda query de relatório financeiro. Regras de negócio violadas em queries geram relatórios incorretos, mesmo que o SQL seja sintaticamente válido.</p>
+
+        <h3>Requisitos Não Funcionais (RNF)</h3>
+
+        <div class="eixo-grid" id="eixo-grid">
+          <div class="eixo-card" style="border-top-color:#1863dc;">
+            <span class="eixo-tag" style="color:#1863dc;">RNF — Desempenho</span>
+            <div class="eixo-title">Tempo de resposta das queries</div>
+            <div class="eixo-q">Consultas de relatório devem retornar em menos de 2 segundos para até 100.000 pedidos?</div>
+            <div class="eixo-example">Evidência: EXPLAIN ANALYZE mostra Seq Scan em 95k linhas; adicionar índice em pedidos.cliente_id reduz custo de 8.400ms para 12ms</div>
+          </div>
+          <div class="eixo-card" style="border-top-color:#0d9488;">
+            <span class="eixo-tag" style="color:#0d9488;">RNF — Confiabilidade</span>
+            <div class="eixo-title">Consistência dos dados retornados</div>
+            <div class="eixo-q">Relatórios devem refletir exatamente o estado transacional do banco, sem dados fantasmas?</div>
+            <div class="eixo-example">Evidência: queries de leitura encapsuladas em transações; testes com fixtures de banco validam os JOINs produzem resultados corretos</div>
+          </div>
+          <div class="eixo-card" style="border-top-color:#855ede;">
+            <span class="eixo-tag" style="color:#855ede;">RNF — Manutenibilidade</span>
+            <div class="eixo-title">Legibilidade das queries SQL</div>
+            <div class="eixo-q">Novos desenvolvedores conseguem entender e modificar as queries em menos de 15 minutos?</div>
+            <div class="eixo-example">Evidência: usar CTEs nomeadas em vez de subqueries aninhadas; comentários explicando o propósito de cada JOIN</div>
+          </div>
+          <div class="eixo-card" style="border-top-color:#d97706;">
+            <span class="eixo-tag" style="color:#d97706;">RNF — Escalabilidade</span>
+            <div class="eixo-title">Performance sob crescimento de dados</div>
+            <div class="eixo-q">O desempenho permanece aceitável quando o volume de pedidos dobra?</div>
+            <div class="eixo-example">Evidência: índices compostos em (cliente_id, criado_em); índices parciais para status comuns; monitorar pg_stat_statements</div>
+          </div>
+        </div>
+
+        <div class="callout callout-warn sr">
+          <div class="callout-label">Indices em chaves estrangeiras</div>
+          <p>O PostgreSQL <strong>não cria automaticamente</strong> índices em colunas de chave estrangeira — apenas na chave primária. Em uma tabela de pedidos com milhões de linhas, um JOIN sem índice em <code>pedidos.cliente_id</code> fará um Seq Scan completo para cada cliente. Crie sempre um índice em FKs que serão usadas em JOINs frequentes: <code>CREATE INDEX ON pedidos (cliente_id);</code></p>
+        </div>
+      </section>
+
+      <!-- ════════ 12. CHECKLIST ════════ -->
+      <section class="mat-section" id="sec-checklist">
+        <h2>12. Checklist de Estudo</h2>
+        <p>Clique nos itens à medida que você dominar cada conceito:</p>
+        <ul class="checklist" id="checklist">
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo explicar por que a normalização exige JOINs para consultar dados relacionados.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo escrever um INNER JOIN entre duas tabelas com a condição ON correta e usar aliases.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo explicar a diferença de resultado entre INNER JOIN e LEFT JOIN com um exemplo concreto.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo usar LEFT JOIN + IS NULL para encontrar registros sem correspondência (anti-join).</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo escrever um JOIN múltiplo unindo 3 ou 4 tabelas em uma única query.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo usar SELF JOIN para consultar hierarquias (funcionário + gerente) na mesma tabela.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo combinar JOIN com GROUP BY e funções de agregação (COUNT, SUM, AVG).</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo explicar a diferença entre WHERE e HAVING e quando usar cada um.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo escrever uma subquery com IN e uma com EXISTS e explicar a diferença de comportamento.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo usar ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...) e explicar o que cada parte faz.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo identificar qual visão do RM-ODP é mais relevante para o design de consultas SQL.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Sei por que é importante criar índices em colunas de chave estrangeira usadas em JOINs frequentes.</span></li>
+        </ul>
+      </section>
+
+      <!-- ════════ REFERÊNCIAS ════════ -->
+      <section class="mat-section" id="sec-refs">
+        <h2>Referências</h2>
+        <ul>
+          <li><a href="https://www.postgresql.org/docs/current/queries-table-expressions.html" target="_blank" rel="noopener noreferrer">PostgreSQL Docs — Table Expressions e JOINs</a> — documentação oficial do PostgreSQL sobre JOIN, GROUP BY e HAVING</li>
+          <li><a href="https://www.postgresql.org/docs/current/functions-window.html" target="_blank" rel="noopener noreferrer">PostgreSQL Docs — Window Functions</a> — referência completa de ROW_NUMBER, RANK, LAG, LEAD e agregações de janela</li>
+          <li><a href="https://use-the-index-luke.com/" target="_blank" rel="noopener noreferrer">Use The Index, Luke!</a> — guia prático sobre índices e performance de queries SQL (gratuito e em inglês)</li>
+          <li><a href="https://www.postgresql.org/docs/current/using-explain.html" target="_blank" rel="noopener noreferrer">PostgreSQL Docs — Using EXPLAIN</a> — como interpretar o plano de execução de queries com EXPLAIN ANALYZE</li>
+          <li><a href="https://www.iso.org/standard/63555.html" target="_blank" rel="noopener noreferrer">ISO/IEC 9075 — SQL Standard</a> — padrão ANSI/ISO do SQL (SQL:2016)</li>
+          <li><a href="https://www.iso.org/standard/20696.html" target="_blank" rel="noopener noreferrer">ISO/IEC 10746 — RM-ODP</a> — Reference Model for Open Distributed Processing</li>
+          <li><a href="https://www.postgresql.org/docs/current/indexes.html" target="_blank" rel="noopener noreferrer">PostgreSQL Docs — Indexes</a> — tipos de índice, criação e estratégias de uso para otimizar JOINs</li>
+        </ul>
+      </section>
+
+    </article>
   </div>
-  <footer class="inteli-footer mt-auto py-4 bg-light border-top">
+
+  <div class="text-center py-4">
+    <img src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli Logo" style="max-width:140px;">
+  </div>
+  <footer class="py-4 bg-light border-top">
     <div class="container text-center">
       <p class="mb-1">Material criado pelo professor <strong>Afonso Brandão</strong> para o <strong>Inteli</strong>.</p>
       <small class="text-muted">Licença de leitura aberta</small>
     </div>
   </footer>
+
+  <script>
+    // ── Progress bar + floating nav ───────────────────────────────────────
+    const floatNav = document.getElementById('float-nav');
+    const matHeader = document.querySelector('.mat-header');
+    window.addEventListener('scroll', () => {
+      const h = document.documentElement;
+      const pct = (h.scrollTop / (h.scrollHeight - h.clientHeight)) * 100;
+      document.getElementById('progress-bar').style.width = pct + '%';
+      const headerBottom = matHeader.getBoundingClientRect().bottom;
+      if (headerBottom < 0) { floatNav.classList.add('visible'); }
+      else { floatNav.classList.remove('visible'); }
+    });
+
+    // ── Scroll reveal (IntersectionObserver) ─────────────────────────────
+    const srObserver = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) { e.target.classList.add('vis'); srObserver.unobserve(e.target); }
+      });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.sr').forEach(el => srObserver.observe(el));
+
+    // ── RM-ODP layers animation ───────────────────────────────────────────
+    const odpObserver = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        document.querySelectorAll('.odp-layer').forEach((el, i) => {
+          setTimeout(() => el.classList.add('reveal'), i * 220);
+        });
+        odpObserver.disconnect();
+      }
+    }, { threshold: 0.1 });
+    odpObserver.observe(document.getElementById('odp-stack'));
+
+    // ── Eixos animation ───────────────────────────────────────────────────
+    const eixoObserver = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        document.querySelectorAll('.eixo-card').forEach((el, i) => {
+          setTimeout(() => el.classList.add('reveal'), i * 120);
+        });
+        eixoObserver.disconnect();
+      }
+    }, { threshold: 0.1 });
+    eixoObserver.observe(document.getElementById('eixo-grid'));
+
+    // ── Deep dive toggle ─────────────────────────────────────────────────
+    function toggleDeep(header) {
+      header.classList.toggle('open');
+      const body = header.nextElementSibling;
+      body.classList.toggle('open');
+    }
+
+    // ── Checklist ────────────────────────────────────────────────────────
+    function toggleCk(li) {
+      li.classList.toggle('done');
+    }
+
+    // ── Copy code ────────────────────────────────────────────────────────
+    function copyCode(btn) {
+      const pre = btn.closest('.code-wrap').querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(() => {
+        btn.textContent = 'copiado ok';
+        setTimeout(() => btn.textContent = 'copiar', 2000);
+      });
+    }
+
+    // ── Active TOC on scroll ─────────────────────────────────────────────
+    const sections = document.querySelectorAll('.mat-section[id], h2[id], h3[id]');
+    const tocLinks = document.querySelectorAll('.mat-toc a');
+    const tocObserver = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          const id = e.target.id;
+          tocLinks.forEach(a => {
+            a.classList.toggle('active', a.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    sections.forEach(s => tocObserver.observe(s));
+  </script>
 </body>
 </html>

@@ -450,11 +450,8 @@ test.describe('module2-slides.md - Slides do Módulo 2', () => {
 });
 
 test.describe('lesson-materials.md - Materiais de Leitura Livro-Didático', () => {
-  // Materiais já migrados para o padrão livro-didático.
-  // Expandir esta lista à medida que cada material for reescrito.
-  const upgradedMaterials = [
-    'pages/module-2-common/materials/lesson-1-material.html',
-  ];
+  // Todos os materiais do Módulo 2 migrados para o padrão livro-didático.
+  const upgradedMaterials = listHtmlFiles('pages/module-2-common/materials');
 
   test('materiais migrados devem ter barra de progresso de leitura', () => {
     upgradedMaterials.forEach((file) => {
