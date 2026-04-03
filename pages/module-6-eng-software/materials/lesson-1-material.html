@@ -3,13 +3,964 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Material Aula 1 - Projeto 6</title>
+  <title>Aula 1 — Filtragem Colaborativa por Usuário — Material — Inteli</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="../../../css/inteli-styles.css" rel="stylesheet">
-  <style>body{background:#f7f9fb;color:#2e2640;font-family:"Manrope",sans-serif;line-height:1.7}.page-header{background:linear-gradient(135deg,#2e2640,#ff4545);color:#fff;padding:28px 0;margin-bottom:24px}.cardx{background:#fff;border:1px solid #e3e7ea;border-radius:16px;padding:24px;margin-bottom:16px}.badge-accent{background:#ff4545;color:#fff;border-radius:6px;padding:2px 10px;font-size:.8rem;font-weight:600}</style>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ac:#1863dc; --hi:#855ede; --dk:#2e2640; --gr:#0d9488; --re:#dc2626; --am:#d97706;
+      --text:#1e293b; --muted:#64748b; --border:#e2e8f0; --bg:#f8fafc; --card:#ffffff;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family:'Manrope',sans-serif; color:var(--text); background:var(--bg); }
+
+    /* ── Progress bar ── */
+    #progress-bar { position:fixed; top:0; left:0; height:3px; background:linear-gradient(90deg,var(--re),#ff4545); width:0%; z-index:9999; transition:width .1s; }
+
+    /* ── Floating nav ── */
+    #float-nav { position:fixed; bottom:28px; right:28px; display:flex; flex-direction:column; gap:8px; z-index:9998; opacity:0; pointer-events:none; transform:translateY(12px); transition:opacity .3s,transform .3s; }
+    #float-nav.visible { opacity:1; pointer-events:auto; transform:translateY(0); }
+    .fn-btn { display:flex; align-items:center; gap:6px; padding:10px 16px; border-radius:999px; font-size:.82rem; font-weight:700; text-decoration:none; box-shadow:0 4px 18px rgba(0,0,0,.25); transition:transform .15s,box-shadow .15s; white-space:nowrap; }
+    .fn-btn:hover { transform:translateY(-2px); box-shadow:0 6px 24px rgba(0,0,0,.32); text-decoration:none; }
+    .fn-btn-slides { background:white; color:var(--re); border:2px solid var(--re); }
+    .fn-btn-back   { background:var(--dk); color:white; }
+
+    /* ── Header ── */
+    .mat-header { background:linear-gradient(135deg,#2e2640 0%,#c62828 55%,#ff4545 100%); color:white; padding:40px 0 32px; }
+    .mat-header h1 { font-size:2.2rem; font-weight:800; margin:0 0 8px; }
+    .mat-header .subtitle { font-size:1rem; opacity:.85; margin:0 0 20px; }
+    .mat-badge { background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.3); color:white; padding:4px 14px; border-radius:999px; font-size:.78rem; font-weight:700; display:inline-block; margin-bottom:12px; }
+
+    /* ── Layout ── */
+    .mat-layout { display:grid; grid-template-columns:260px 1fr; gap:32px; max-width:1200px; margin:0 auto; padding:40px 24px; }
+    @media(max-width:900px){ .mat-layout { grid-template-columns:1fr; } .mat-sidebar { display:none; } }
+
+    /* ── Sidebar ── */
+    .mat-sidebar { position:sticky; top:24px; max-height:calc(100vh - 48px); overflow-y:auto; }
+    .mat-toc { background:var(--card); border-radius:14px; padding:20px; border:1px solid var(--border); box-shadow:0 2px 8px rgba(0,0,0,.05); }
+    .mat-toc h4 { font-size:.8rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:0 0 12px; }
+    .mat-toc a { display:block; color:var(--muted); text-decoration:none; font-size:.82rem; padding:4px 0 4px 12px; border-left:2px solid transparent; transition:all .2s; line-height:1.3; }
+    .mat-toc a:hover, .mat-toc a.active { color:var(--re); border-left-color:var(--re); }
+    .mat-toc .toc-h3 { padding-left:22px; font-size:.77rem; }
+
+    /* ── Article ── */
+    .mat-article { min-width:0; }
+    .mat-section { margin-bottom:56px; }
+    .mat-section h2 { font-size:1.75rem; font-weight:800; color:var(--dk); padding-bottom:12px; border-bottom:2px solid var(--border); margin:0 0 24px; scroll-margin-top:80px; }
+    .mat-section h3 { font-size:1.2rem; font-weight:700; color:var(--dk); margin:32px 0 12px; scroll-margin-top:80px; }
+    .mat-section h4 { font-size:1rem; font-weight:700; color:var(--dk); margin:24px 0 10px; }
+    .mat-section p { line-height:1.8; margin-bottom:16px; font-size:.97rem; color:#374151; }
+    .mat-section ul, .mat-section ol { padding-left:1.5rem; margin-bottom:16px; }
+    .mat-section li { line-height:1.75; font-size:.97rem; color:#374151; margin-bottom:4px; }
+    .mat-section strong { color:var(--dk); }
+
+    /* ── Callout boxes ── */
+    .callout { border-radius:12px; padding:16px 20px; margin:20px 0; border-left:4px solid; }
+    .callout-info  { background:#eff6ff; border-color:#3b82f6; }
+    .callout-warn  { background:#fffbeb; border-color:#f59e0b; }
+    .callout-danger{ background:#fef2f2; border-color:#ef4444; }
+    .callout-tip   { background:#f0fdf4; border-color:#22c55e; }
+    .callout-deep  { background:#f5f3ff; border-color:#8b5cf6; }
+    .callout-label { font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; margin-bottom:6px; }
+    .callout-info  .callout-label { color:#3b82f6; }
+    .callout-warn  .callout-label { color:#f59e0b; }
+    .callout-danger .callout-label { color:#ef4444; }
+    .callout-tip   .callout-label { color:#22c55e; }
+    .callout-deep  .callout-label { color:#8b5cf6; }
+    .callout p { margin:0; font-size:.91rem; line-height:1.65; color:#374151; }
+
+    /* ── Code blocks ── */
+    .code-wrap { position:relative; margin:20px 0; border-radius:12px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,.15); }
+    .code-label { background:#313244; color:#6c7086; font-size:.7rem; font-weight:700; padding:6px 14px; font-family:'JetBrains Mono',monospace; display:flex; justify-content:space-between; align-items:center; }
+    .code-copy { background:transparent; border:1px solid #6c7086; color:#cdd6f4; font-size:.65rem; padding:2px 8px; border-radius:5px; cursor:pointer; font-family:'JetBrains Mono',monospace; transition:all .2s; }
+    .code-copy:hover { background:#6c7086; color:white; }
+    pre.code-block { background:#1e1e2e; color:#cdd6f4; padding:18px 20px; margin:0; font-family:'JetBrains Mono',monospace; font-size:.82rem; line-height:1.75; overflow-x:auto; }
+    pre.code-block code { font-family:inherit; background:transparent; color:inherit; padding:0; }
+    .hl-kw  { color:#89b4fa; font-weight:600; }
+    .hl-str { color:#a6e3a1; }
+    .hl-num { color:#fab387; }
+    .hl-cmt { color:#6c7086; font-style:italic; }
+    .hl-typ { color:#cba6f7; }
+    .hl-fn  { color:#f9e2af; }
+    .hl-url { color:#94e2d5; text-decoration:underline; }
+
+    /* ── Tables ── */
+    .mat-table { width:100%; border-collapse:collapse; margin:20px 0; border-radius:10px; overflow:hidden; border:1px solid var(--border); font-size:.88rem; }
+    .mat-table thead th { background:var(--dk); color:white; padding:12px 16px; text-align:left; font-size:.8rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+    .mat-table tbody td { padding:10px 16px; border-bottom:1px solid var(--border); line-height:1.5; }
+    .mat-table tbody tr:last-child td { border-bottom:none; }
+    .mat-table tbody tr:hover { background:#f8fafc; }
+    .tag { display:inline-block; padding:2px 8px; border-radius:5px; font-size:.72rem; font-weight:700; }
+    .tag-blue  { background:#dbeafe; color:#1d4ed8; }
+    .tag-green { background:#dcfce7; color:#15803d; }
+    .tag-red   { background:#fee2e2; color:#b91c1c; }
+    .tag-purple{ background:#ede9fe; color:#7c3aed; }
+    .tag-amber { background:#fef3c7; color:#92400e; }
+
+    /* ── SOA Diagram ── */
+    .soa-diagram { display:flex; align-items:center; justify-content:center; gap:0; padding:24px 0; flex-wrap:wrap; }
+    .soa-node { background:white; border:2px solid var(--border); border-radius:14px; padding:16px 20px; text-align:center; min-width:110px; box-shadow:0 4px 14px rgba(0,0,0,.07); opacity:0; transform:translateY(20px); transition:all .5s cubic-bezier(.34,1.3,.64,1); }
+    .soa-node.reveal { opacity:1; transform:translateY(0); }
+    .soa-node .soa-icon { font-size:2rem; display:block; margin-bottom:6px; }
+    .soa-node .soa-label { font-size:.78rem; font-weight:700; color:var(--dk); }
+    .soa-node .soa-sub { font-size:.68rem; color:var(--muted); margin-top:2px; }
+    .soa-arrow { display:flex; flex-direction:column; align-items:center; padding:0 8px; min-width:80px; opacity:0; transition:opacity .4s ease; }
+    .soa-arrow.reveal { opacity:1; }
+    .soa-arrow-line { height:2px; background:linear-gradient(90deg,var(--re),#ff4545); width:60px; border-radius:1px; }
+    .soa-arrow-label { font-size:.65rem; font-weight:700; color:var(--muted); margin:3px 0; }
+
+    /* ── RM-ODP layers ── */
+    .odp-stack { display:flex; flex-direction:column; gap:8px; margin:20px 0; }
+    .odp-layer { border-radius:10px; padding:14px 18px; display:flex; align-items:center; gap:14px; opacity:0; transform:translateX(-20px); transition:all .5s cubic-bezier(.34,1.3,.64,1); }
+    .odp-layer.reveal { opacity:1; transform:translateX(0); }
+    .odp-icon { font-size:1.4rem; flex-shrink:0; }
+    .odp-name { font-size:.9rem; font-weight:700; color:var(--dk); }
+    .odp-desc { font-size:.8rem; color:#374151; margin-top:2px; line-height:1.5; }
+    .odp-focus { font-size:.73rem; font-weight:700; padding:2px 8px; border-radius:5px; margin-top:4px; display:inline-block; }
+
+    /* ── Scroll reveal ── */
+    .sr { opacity:0; transform:translateY(24px); transition:opacity .5s ease,transform .5s ease; }
+    .sr.vis { opacity:1; transform:translateY(0); }
+
+    /* ── Checklist ── */
+    .checklist { list-style:none; padding:0; margin:20px 0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:8px 0; border-bottom:1px solid var(--border); font-size:.9rem; color:#374151; cursor:pointer; user-select:none; }
+    .checklist li:last-child { border-bottom:none; }
+    .ck-box { width:20px; height:20px; border:2px solid var(--border); border-radius:5px; flex-shrink:0; display:flex; align-items:center; justify-content:center; transition:all .2s; margin-top:2px; }
+    .checklist li.done .ck-box { background:var(--gr); border-color:var(--gr); color:white; }
+    .checklist li.done .ck-text { text-decoration:line-through; color:var(--muted); }
+
+    /* ── Quality eixos ── */
+    .eixo-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:20px 0; }
+    .eixo-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; border-top:4px solid; opacity:0; transform:translateY(16px); transition:all .5s cubic-bezier(.34,1.3,.64,1); }
+    .eixo-card.reveal { opacity:1; transform:translateY(0); }
+    .eixo-tag { font-family:'JetBrains Mono',monospace; font-size:.72rem; font-weight:800; text-transform:uppercase; margin-bottom:6px; display:block; }
+    .eixo-title { font-size:.9rem; font-weight:700; color:var(--dk); margin-bottom:4px; }
+    .eixo-q { font-size:.78rem; color:var(--muted); line-height:1.5; }
+    .eixo-example { font-size:.75rem; color:#374151; margin-top:6px; background:#f8fafc; padding:5px 8px; border-radius:6px; font-style:italic; line-height:1.5; }
+  </style>
 </head>
 <body>
-  <header class="page-header"><div class="container d-flex justify-content-between align-items-center flex-wrap gap-2"><div><div><span class="badge-accent">Projeto 6 • Engenharia de Software</span></div><h1 class="h3 mb-1 mt-2">Aula 1 — Material</h1><div>Filtragem Colaborativa por Usuário</div></div><div class="d-flex gap-2 flex-wrap"><a href="../slides/slide_lesson-1.html" class="btn btn-light">Slides</a><a href="../../home-module-6-eng-software.html" class="btn btn-outline-light">← Voltar ao Módulo</a></div></div></header>
-  <main class="container pb-4"><section class="cardx"><h2 class="h5">Objetivo</h2><p>Apresentar a visão geral da plataforma digital, os atores do ecossistema e a decomposição inicial em serviços para recomendação em dispositivos móveis.</p></section><section class="cardx"><h2 class="h5">Pontos-chave</h2><ul><li>Problema de negócio e proposta de valor.</li><li>Serviços de catálogo, perfil, eventos e recomendação.</li><li>Integração entre front mobile, API e processamento.</li></ul></section></main>
+  <div id="progress-bar"></div>
+
+  <!-- Floating nav (appears after scrolling past header) -->
+  <div id="float-nav">
+    <a href="../slides/slide_lesson-1.html" class="fn-btn fn-btn-slides">&#9654; Slides</a>
+    <a href="../../home-module-6-eng-software.html" class="fn-btn fn-btn-back">&larr; Modulo</a>
+  </div>
+
+  <header class="mat-header">
+    <div class="container">
+      <div class="mat-badge">Modulo 6 &middot; Engenharia de Software &middot; ES06</div>
+      <h1>Filtragem Colaborativa por Usuario</h1>
+      <p class="subtitle">Aula 1 &mdash; Material de Leitura Aprofundado</p>
+      <div class="d-flex gap-2 flex-wrap">
+        <a href="../slides/slide_lesson-1.html" class="btn btn-light btn-sm">&#9654; Slides</a>
+        <a href="../../home-module-6-eng-software.html" class="btn btn-outline-light btn-sm">&larr; Voltar ao Modulo</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="mat-layout">
+
+    <!-- ── Sidebar ── -->
+    <aside class="mat-sidebar">
+      <div class="mat-toc">
+        <h4>Nesta pagina</h4>
+        <a href="#introducao">1. Introducao — O Projeto 6</a>
+        <a href="#swebok">2. SWEBOK</a>
+        <a href="#swebok-relevantes" class="toc-h3">2.1 Areas Relevantes</a>
+        <a href="#sebok">3. SEBOK</a>
+        <a href="#sebok-pensamento" class="toc-h3">3.1 Pensamento Sistemico</a>
+        <a href="#comparacao">4. SWEBOK vs SEBOK</a>
+        <a href="#react-native">5. React Native</a>
+        <a href="#rn-arquitetura" class="toc-h3">5.1 Arquitetura</a>
+        <a href="#rn-componentes" class="toc-h3">5.2 Componentes</a>
+        <a href="#rn-mvvm" class="toc-h3">5.3 MVVM</a>
+        <a href="#filtragem-colaborativa">6. Filtragem Colaborativa</a>
+        <a href="#fc-algoritmo" class="toc-h3">6.1 O Algoritmo</a>
+        <a href="#fc-exemplo" class="toc-h3">6.2 Exemplo Pratico</a>
+        <a href="#rm-odp">7. RM-ODP</a>
+        <a href="#qualidade">8. ISO/IEC 25010</a>
+        <a href="#qualidade-rfrnf" class="toc-h3">8.1 RF vs RNF</a>
+        <a href="#checklist">9. Checklist</a>
+        <a href="#referencias">10. Referencias</a>
+      </div>
+    </aside>
+
+    <!-- ── Article ── -->
+    <article class="mat-article">
+
+      <!-- ════════ 1. INTRODUCAO ════════ -->
+      <section class="mat-section" id="introducao">
+        <h2>1. Introducao — O Projeto 6</h2>
+
+        <p>O Projeto 6 do curso de Engenharia de Software do Inteli propoe a construcao de uma <strong>plataforma digital baseada em arquitetura orientada a servicos (SOA)</strong> voltada para recomendacao personalizada em dispositivos moveis. Ao longo de 14 aulas, voce ira projetar, implementar e validar um sistema que combina engenharia de software rigorosa com tecnicas de inteligencia artificial para entregar valor real a usuarios finais.</p>
+
+        <p>O problema central que o projeto ataca e a <strong>sobrecarga de opcoes</strong>: em plataformas com catalogos extensos — seja de produtos, conteudos educacionais ou eventos —, usuarios frequentemente abandonam a navegacao antes de encontrar algo relevante. Sistemas de recomendacao resolvem isso ao filtrar e priorizar itens com base em padroes de comportamento, preferencias explicitas e similaridade entre usuarios ou itens.</p>
+
+        <p>A stack tecnologica do projeto inclui <strong>React Native</strong> para o aplicativo movel, <strong>Node.js</strong> com Express para a camada de servicos, <strong>PostgreSQL</strong> como banco de dados relacional e algoritmos de <strong>filtragem colaborativa</strong> para o motor de recomendacao. A arquitetura SOA garante que cada dominio (catalogo, perfis, eventos, recomendacoes) seja um servico independente com contrato bem definido.</p>
+
+        <p>Ao final do modulo, voce tera nao apenas um aplicativo funcional, mas tambem a documentacao completa seguindo os frameworks SWEBOK, SEBOK e RM-ODP — habilidades essenciais para engenheiros de software que desejam atuar em projetos de escala real. Esta primeira aula estabelece o alicerce teorico: os corpos de conhecimento que orientam a profissao, a tecnologia mobile que usaremos e o algoritmo central de recomendacao.</p>
+
+        <div class="callout callout-info sr">
+          <div class="callout-label">&#128161; O que e um sistema de recomendacao?</div>
+          <p>Um sistema de recomendacao e um tipo de sistema de filtragem de informacao que busca prever a preferencia de um usuario por um item. Os exemplos mais conhecidos sao o algoritmo de recomendacao da Netflix (que sugere filmes com base no que voce ja assistiu), o feed do Spotify Discover Weekly e as sugestoes de produtos da Amazon. O mercado global de sistemas de recomendacao foi avaliado em USD 5.2 bilhoes em 2023 e deve ultrapassar USD 28 bilhoes ate 2030, segundo a Grand View Research.</p>
+        </div>
+      </section>
+
+      <!-- ════════ 2. SWEBOK ════════ -->
+      <section class="mat-section" id="swebok">
+        <h2>2. SWEBOK — Software Engineering Body of Knowledge</h2>
+
+        <p>O <strong>SWEBOK</strong> (Software Engineering Body of Knowledge) e um guia de referencia publicado pelo <strong>IEEE Computer Society</strong> que organiza e cataloga o conhecimento necessario para a pratica profissional da engenharia de software. Diferentemente de um livro didatico, o SWEBOK nao ensina conceitos do zero — ele mapeia, categoriza e delimita o que um engenheiro de software competente deve saber.</p>
+
+        <p>A primeira versao do SWEBOK foi publicada em 2004, resultado de um esforco colaborativo de centenas de profissionais e academicos ao redor do mundo. A versao atual, <strong>SWEBOK V4</strong>, publicada em 2024, reflete duas decadas de evolucao da disciplina e inclui areas que nao existiam na versao original, como inteligencia artificial aplicada, DevOps e seguranca de software como area transversal.</p>
+
+        <p>O proposito fundamental do SWEBOK e <strong>profissionalizar a engenharia de software</strong>. Assim como a medicina tem seu corpo de conhecimento que define o que um medico deve saber, e a engenharia civil tem o seu, o SWEBOK faz o mesmo para engenharia de software. Ele serve como base para certificacoes profissionais (como o CSEP do IEEE), para o design de curriculos universitarios e como referencia para praticantes que desejam avaliar suas lacunas de conhecimento.</p>
+
+        <p>O guia esta organizado em <strong>15 areas de conhecimento</strong> (Knowledge Areas — KAs), cada uma cobrindo um dominio especifico da engenharia de software. Veja a tabela completa abaixo:</p>
+
+        <table class="mat-table sr">
+          <thead>
+            <tr><th>#</th><th>Area de Conhecimento</th><th>Descricao</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td><strong>Software Requirements</strong></td><td>Elicitacao, analise, especificacao e validacao de requisitos de software</td></tr>
+            <tr><td>2</td><td><strong>Software Design</strong></td><td>Principios, padroes e notacoes para a estrutura e organizacao do software</td></tr>
+            <tr><td>3</td><td><strong>Software Construction</strong></td><td>Codificacao, verificacao unitaria, depuracao e praticas de desenvolvimento</td></tr>
+            <tr><td>4</td><td><strong>Software Testing</strong></td><td>Tecnicas, niveis e processos de teste de software</td></tr>
+            <tr><td>5</td><td><strong>Software Maintenance</strong></td><td>Modificacao de software apos entrega: correcao, adaptacao, melhoria</td></tr>
+            <tr><td>6</td><td><strong>Software Configuration Management</strong></td><td>Controle de versao, rastreamento de mudancas, integridade de builds</td></tr>
+            <tr><td>7</td><td><strong>Software Engineering Management</strong></td><td>Planejamento, estimativa, acompanhamento e controle de projetos</td></tr>
+            <tr><td>8</td><td><strong>Software Engineering Process</strong></td><td>Definicao, implementacao e melhoria de processos de engenharia</td></tr>
+            <tr><td>9</td><td><strong>Software Engineering Models &amp; Methods</strong></td><td>Modelagem, metodos formais e abordagens de desenvolvimento</td></tr>
+            <tr><td>10</td><td><strong>Software Quality</strong></td><td>Fundamentos, processos e metricas de qualidade de software</td></tr>
+            <tr><td>11</td><td><strong>Software Engineering Professional Practice</strong></td><td>Etica, padroes profissionais, dinamicas de grupo, comunicacao</td></tr>
+            <tr><td>12</td><td><strong>Software Engineering Economics</strong></td><td>Analise de custo-beneficio, valor de software, metricas financeiras</td></tr>
+            <tr><td>13</td><td><strong>Computing Foundations</strong></td><td>Fundamentos de computacao necessarios para engenharia de software</td></tr>
+            <tr><td>14</td><td><strong>Mathematical Foundations</strong></td><td>Fundamentos matematicos: logica, probabilidade, estatistica</td></tr>
+            <tr><td>15</td><td><strong>Engineering Foundations</strong></td><td>Fundamentos de engenharia: metodos empiricos, analise de causa raiz</td></tr>
+          </tbody>
+        </table>
+
+        <div class="callout callout-deep sr">
+          <div class="callout-label">&#128218; Aprofundamento</div>
+          <p>SWEBOK nao e um livro didatico — e um guia de referencia que mapeia o que um engenheiro de software deve saber. Cada area de conhecimento inclui topicos, sub-topicos e referencias bibliograficas, mas nao tenta ensinar o conteudo em si. Pense nele como um "mapa do territorio": ele mostra quais regioes existem e como se conectam, mas voce precisa de outros recursos para explorar cada uma em profundidade.</p>
+        </div>
+
+        <h3 id="swebok-relevantes">Areas Mais Relevantes para o Projeto 6</h3>
+
+        <p>Embora todas as 15 areas do SWEBOK sejam importantes para um engenheiro de software completo, cinco delas sao particularmente criticas para o contexto do Projeto 6. Vamos examinar cada uma em detalhe:</p>
+
+        <p><strong>Software Requirements (Requisitos)</strong> — No Projeto 6, a elicitacao de requisitos e especialmente desafiadora porque o sistema de recomendacao envolve necessidades explicitas (o usuario quer buscar itens por categoria) e implicitas (o sistema deve inferir preferencias sem que o usuario declare explicitamente). Voce precisara distinguir entre requisitos funcionais ("o sistema deve permitir que o usuario avalie itens de 1 a 5") e requisitos nao funcionais ("o tempo de resposta da recomendacao deve ser inferior a 200ms para 95% das requisicoes").</p>
+
+        <p><strong>Software Design (Projeto)</strong> — A arquitetura SOA do Projeto 6 exige decisoes de design cuidadosas: como decompor o sistema em servicos, como definir contratos entre eles, como garantir acoplamento fraco e coesao alta. Padroes de design como Repository, Service Layer e Observer serao fundamentais. Veja um exemplo de contrato de interface em TypeScript:</p>
+
+        <div class="code-wrap sr">
+          <div class="code-label">TypeScript — Interface de Servico de Recomendacao <button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-cmt">// Contrato do servico de recomendacao (Design Pattern: Interface Segregation)</span>
+<span class="hl-kw">interface</span> <span class="hl-typ">RecommendationService</span> {
+  <span class="hl-fn">getRecommendationsForUser</span>(userId: <span class="hl-typ">string</span>, limit: <span class="hl-typ">number</span>): <span class="hl-typ">Promise</span>&lt;<span class="hl-typ">RecommendedItem</span>[]&gt;;
+  <span class="hl-fn">recordUserRating</span>(userId: <span class="hl-typ">string</span>, itemId: <span class="hl-typ">string</span>, rating: <span class="hl-typ">number</span>): <span class="hl-typ">Promise</span>&lt;<span class="hl-typ">void</span>&gt;;
+  <span class="hl-fn">getSimilarUsers</span>(userId: <span class="hl-typ">string</span>, k: <span class="hl-typ">number</span>): <span class="hl-typ">Promise</span>&lt;<span class="hl-typ">SimilarUser</span>[]&gt;;
+}
+
+<span class="hl-kw">interface</span> <span class="hl-typ">RecommendedItem</span> {
+  itemId: <span class="hl-typ">string</span>;
+  title: <span class="hl-typ">string</span>;
+  predictedRating: <span class="hl-typ">number</span>;
+  confidence: <span class="hl-typ">number</span>;    <span class="hl-cmt">// 0.0 a 1.0</span>
+}
+
+<span class="hl-kw">interface</span> <span class="hl-typ">SimilarUser</span> {
+  userId: <span class="hl-typ">string</span>;
+  similarity: <span class="hl-typ">number</span>;  <span class="hl-cmt">// cosseno: -1.0 a 1.0</span>
+}</code></pre>
+        </div>
+
+        <p><strong>Software Construction (Construcao)</strong> — A construcao no Projeto 6 envolve codificar em React Native (front-end mobile), Node.js (servicos back-end) e Python (algoritmos de recomendacao). Boas praticas de construcao incluem nomenclatura consistente, tratamento adequado de erros, logging estruturado e revisao de codigo por pares.</p>
+
+        <p><strong>Software Testing (Testes)</strong> — Testar um sistema de recomendacao apresenta desafios unicos: como validar que as recomendacoes sao "boas"? Alem dos testes unitarios e de integracao tradicionais, voce precisara de metricas de avaliacao especificas como precisao, recall e NDCG (Normalized Discounted Cumulative Gain).</p>
+
+        <p><strong>Software Quality (Qualidade)</strong> — A qualidade no contexto de recomendacao e multidimensional: um sistema pode ser tecnicamente correto mas gerar recomendacoes irrelevantes, ou ser altamente preciso mas tao lento que prejudica a experiencia do usuario. A ISO/IEC 25010, que estudaremos em detalhe na secao 8, fornece o framework para pensar qualidade de forma estruturada.</p>
+      </section>
+
+      <!-- ════════ 3. SEBOK ════════ -->
+      <section class="mat-section" id="sebok">
+        <h2>3. SEBOK — Systems Engineering Body of Knowledge</h2>
+
+        <p>O <strong>SEBOK</strong> (Systems Engineering Body of Knowledge) e um guia colaborativo mantido pelo <strong>BKCASE</strong> (Body of Knowledge and Curriculum to Advance Systems Engineering), com apoio do <strong>INCOSE</strong> (International Council on Systems Engineering). Enquanto o SWEBOK foca exclusivamente no software, o SEBOK adota uma perspectiva mais ampla: ele trata de <strong>sistemas</strong> — conjuntos integrados de componentes (hardware, software, pessoas, processos) que trabalham juntos para atingir um objetivo.</p>
+
+        <p>A distincao e fundamental. Software nunca opera isoladamente. O aplicativo React Native do Projeto 6 roda em um smartphone (hardware) com sistema operacional (software de plataforma), conectado a uma rede (infraestrutura), consumindo APIs que rodam em servidores (cloud), acessando um banco de dados (armazenamento), e sendo utilizado por pessoas (usuarios) com expectativas, limitacoes cognitivas e contextos variados. O SEBOK nos equipa para pensar nesse <strong>todo integrado</strong>.</p>
+
+        <p>Publicado inicialmente em 2012, o SEBOK e mantido como um recurso wiki vivo (sebokwiki.org) que e atualizado continuamente pela comunidade de engenharia de sistemas. Ele esta organizado em <strong>7 partes</strong>:</p>
+
+        <ol>
+          <li><strong>Parte 1 — SEBoK Introduction:</strong> Contexto, proposito e como usar o guia</li>
+          <li><strong>Parte 2 — Foundations of Systems Engineering:</strong> Fundamentos teoricos, pensamento sistemico, complexidade</li>
+          <li><strong>Parte 3 — Systems Engineering and Management:</strong> Processos do ciclo de vida, planejamento, avaliacao</li>
+          <li><strong>Parte 4 — Applications of Systems Engineering:</strong> Dominios de aplicacao: defesa, saude, transporte, software</li>
+          <li><strong>Parte 5 — Enabling Systems Engineering:</strong> Ferramentas, habilitadores organizacionais, formacao</li>
+          <li><strong>Parte 6 — Related Disciplines:</strong> Conexoes com outras disciplinas (gestao de projetos, engenharia de software)</li>
+          <li><strong>Parte 7 — Systems Engineering Implementation Examples:</strong> Estudos de caso e exemplos praticos</li>
+        </ol>
+
+        <div class="callout callout-warn sr">
+          <div class="callout-label">&#9888;&#65039; Atencao</div>
+          <p>Engenheiros de software frequentemente esquecem que o software e parte de um sistema maior. Um bug no algoritmo de recomendacao pode parecer um problema puramente de software, mas suas consequencias sao sistemicas: usuarios recebem sugestoes irrelevantes, perdem confianca na plataforma, reduzem o engajamento, e o negocio perde valor. Pensar "so no codigo" e insuficiente.</p>
+        </div>
+
+        <h3 id="sebok-pensamento">Pensamento Sistemico</h3>
+
+        <p>O pensamento sistemico e a competencia central que o SEBOK busca desenvolver. Ele consiste em enxergar o sistema nao como uma colecao de partes independentes, mas como uma <strong>rede de componentes interdependentes</strong> cujo comportamento emergente nao pode ser previsto analisando cada parte isoladamente. No Projeto 6, isso significa entender que a qualidade das recomendacoes depende nao apenas do algoritmo, mas da qualidade dos dados, da velocidade da API, da usabilidade do app e do contexto de uso.</p>
+
+        <p>Considere os componentes do sistema de recomendacao como um ecossistema interconectado. O aplicativo movel e a interface com o usuario; a API Gateway roteia requisicoes para os servicos corretos; o servico de catalogo gerencia os itens disponiveis; o servico de perfis mantem o historico de interacoes; o motor de recomendacao processa os dados e gera sugestoes; e o banco de dados persiste tudo. Uma falha em qualquer ponto — latencia na API, dados inconsistentes no banco, modelo de recomendacao desatualizado — impacta a experiencia total.</p>
+
+        <p>O diagrama abaixo ilustra essa arquitetura como um sistema de componentes conectados:</p>
+
+        <div class="soa-diagram sr" id="soa-diagram">
+          <div class="soa-node" id="soan0">
+            <span class="soa-icon">&#128241;</span>
+            <div class="soa-label">App Mobile</div>
+            <div class="soa-sub">React Native</div>
+          </div>
+          <div class="soa-arrow" id="soaa0">
+            <div class="soa-arrow-label">HTTPS</div>
+            <div class="soa-arrow-line"></div>
+          </div>
+          <div class="soa-node" id="soan1">
+            <span class="soa-icon">&#127760;</span>
+            <div class="soa-label">API Gateway</div>
+            <div class="soa-sub">Node.js / Express</div>
+          </div>
+          <div class="soa-arrow" id="soaa1">
+            <div class="soa-arrow-label">REST</div>
+            <div class="soa-arrow-line"></div>
+          </div>
+          <div class="soa-node" id="soan2">
+            <span class="soa-icon">&#9881;&#65039;</span>
+            <div class="soa-label">Motor de Rec.</div>
+            <div class="soa-sub">Python / Collab Filter</div>
+          </div>
+          <div class="soa-arrow" id="soaa2">
+            <div class="soa-arrow-label">SQL</div>
+            <div class="soa-arrow-line"></div>
+          </div>
+          <div class="soa-node" id="soan3">
+            <span class="soa-icon">&#128451;&#65039;</span>
+            <div class="soa-label">PostgreSQL</div>
+            <div class="soa-sub">Dados + Avaliacoes</div>
+          </div>
+        </div>
+
+        <p>Este diagrama revela uma propriedade essencial do pensamento sistemico: o valor entregue ao usuario (recomendacoes precisas e rapidas) e uma <strong>propriedade emergente</strong> que resulta da interacao coordenada de todos os componentes. Nenhum componente isolado "gera" o valor — ele emerge do sistema como um todo.</p>
+      </section>
+
+      <!-- ════════ 4. COMPARACAO ════════ -->
+      <section class="mat-section" id="comparacao">
+        <h2>4. SWEBOK vs SEBOK — Analise Comparativa</h2>
+
+        <p>Uma duvida comum entre estudantes de engenharia de software e: "Se ja temos o SWEBOK, por que precisamos do SEBOK?" A resposta esta na diferenca de <strong>escopo e perspectiva</strong>. O SWEBOK olha para dentro do software — seu design, construcao, teste e manutencao. O SEBOK olha para fora — como o software se integra com hardware, pessoas, processos e organizacoes para formar um sistema funcional.</p>
+
+        <p>No Projeto 6, essa complementaridade e evidente. Quando voce esta decidindo entre usar cosseno ou Pearson para calcular similaridade entre usuarios, voce esta operando no dominio do SWEBOK (construcao, algoritmos, qualidade de codigo). Quando voce esta avaliando como o tempo de resposta do motor de recomendacao afeta a experiencia do usuario no app movel, voce esta operando no dominio do SEBOK (comportamento do sistema, propriedades emergentes, interacao entre componentes).</p>
+
+        <table class="mat-table sr">
+          <thead>
+            <tr><th>Dimensao</th><th>SWEBOK</th><th>SEBOK</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Foco</strong></td><td>Software como artefato</td><td>Sistema como um todo integrado</td></tr>
+            <tr><td><strong>Publicador</strong></td><td>IEEE Computer Society</td><td>BKCASE / INCOSE</td></tr>
+            <tr><td><strong>Escopo</strong></td><td>15 areas de conhecimento de software</td><td>7 partes cobrindo engenharia de sistemas</td></tr>
+            <tr><td><strong>Abordagem</strong></td><td>Prescritiva — cataloga o que um engenheiro deve saber</td><td>Holistica — integra perspectivas de multiplos stakeholders</td></tr>
+            <tr><td><strong>Certificacao</strong></td><td>CSEP (Certified Software Engineering Professional)</td><td>CSEP/ESEP do INCOSE</td></tr>
+            <tr><td><strong>Formato</strong></td><td>Documento PDF estatico (versoes V3, V4)</td><td>Wiki vivo (sebokwiki.org), atualizado continuamente</td></tr>
+            <tr><td><strong>Uso no Projeto 6</strong></td><td>Guiar design, construcao e teste do codigo</td><td>Guiar arquitetura, integracao e visao sistemica</td></tr>
+          </tbody>
+        </table>
+
+        <p>A chave para utilizar ambos os guias de forma eficaz e entender que eles operam em niveis de abstracao diferentes. O SWEBOK e mais concreto e diretamente aplicavel ao dia a dia do desenvolvedor. O SEBOK e mais abstrato e mais util nas fases de planejamento, arquitetura e avaliacao de trade-offs entre componentes do sistema.</p>
+
+        <div class="callout callout-tip sr">
+          <div class="callout-label">&#128161; Dica</div>
+          <p>Nao e SWEBOK <em>ou</em> SEBOK — e SWEBOK <em>e</em> SEBOK. Ambos sao complementares. Use o SWEBOK para garantir que cada pedaco de software que voce escreve segue boas praticas da engenharia de software. Use o SEBOK para garantir que esses pedacos se integram em um sistema que entrega valor real aos usuarios e ao negocio.</p>
+        </div>
+      </section>
+
+      <!-- ════════ 5. REACT NATIVE ════════ -->
+      <section class="mat-section" id="react-native">
+        <h2>5. React Native — Fundamentos</h2>
+
+        <p>O <strong>React Native</strong> e um framework de codigo aberto criado pela <strong>Meta (Facebook)</strong> em 2015 que permite desenvolver aplicativos moveis nativos utilizando JavaScript e React. A proposta fundamental e: escreva uma unica base de codigo e gere aplicativos para iOS e Android que utilizam componentes nativos da plataforma — nao WebViews, nao widgets customizados, mas os mesmos componentes que um desenvolvedor nativo usaria em Swift/Kotlin.</p>
+
+        <p>Desde seu lancamento, o React Native conquistou adocao massiva. Empresas como Facebook, Instagram, Airbnb (ate 2018), Shopify, Discord e Coinbase utilizam ou utilizaram React Native em producao. O ecossistema e maduro, com milhares de bibliotecas, ferramentas de depuracao avancadas e uma comunidade global de milhoes de desenvolvedores.</p>
+
+        <p>Para o Projeto 6, a escolha de React Native e estrategica: permite que equipes com background em JavaScript (a linguagem mais popular do mundo segundo o Stack Overflow Survey) desenvolvam um aplicativo movel sem precisar aprender Swift e Kotlin separadamente. Alem disso, a arquitetura baseada em componentes do React se alinha naturalmente com o padrao MVVM que adotaremos.</p>
+
+        <p>Antes de entender o React Native em profundidade, e importante situa-lo no espectro de abordagens para desenvolvimento mobile:</p>
+
+        <table class="mat-table sr">
+          <thead>
+            <tr><th>Abordagem</th><th>Tecnologia</th><th>Performance</th><th>Compartilhamento de Codigo</th><th>Acesso a APIs Nativas</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><span class="tag tag-blue">Nativo</span></td><td>Swift (iOS), Kotlin (Android)</td><td>Maxima</td><td>Nenhum</td><td>Total</td></tr>
+            <tr><td><span class="tag tag-green">Cross-platform Nativo</span></td><td>React Native, Flutter</td><td>Proxima ao nativo</td><td>80-95%</td><td>Via bridges/plugins</td></tr>
+            <tr><td><span class="tag tag-amber">Hibrido</span></td><td>Ionic, Cordova</td><td>Limitada (WebView)</td><td>95-100%</td><td>Via plugins</td></tr>
+            <tr><td><span class="tag tag-purple">PWA</span></td><td>HTML5, Service Workers</td><td>Variavel</td><td>100%</td><td>Limitado</td></tr>
+          </tbody>
+        </table>
+
+        <h3 id="rn-arquitetura">Arquitetura do React Native</h3>
+
+        <p>A arquitetura do React Native passou por uma transformacao significativa. A <strong>arquitetura antiga</strong> utilizava uma <em>Bridge</em> (ponte) que serializava mensagens em JSON entre o thread JavaScript e o thread nativo. Essa comunicacao assincrona introduzia latencia: cada interacao do usuario precisava cruzar a ponte duas vezes (ida e volta), o que podia causar atrasos perceptiveis em animacoes complexas e listas longas.</p>
+
+        <p>A <strong>Nova Arquitetura</strong> (New Architecture), introduzida gradualmente a partir do React Native 0.68 e estabilizada na versao 0.73+, substitui a Bridge por tres componentes fundamentais: o <strong>JSI</strong> (JavaScript Interface), que permite chamadas sincronas entre JavaScript e codigo nativo sem serializacao JSON; o <strong>Fabric</strong>, um novo renderer que gerencia a arvore de UI de forma mais eficiente; e o <strong>TurboModules</strong>, que carregam modulos nativos sob demanda em vez de inicializar todos na partida do app.</p>
+
+        <p>Alem disso, o React Native utiliza o <strong>Hermes</strong>, um engine JavaScript otimizado pela Meta especificamente para dispositivos moveis. O Hermes compila JavaScript para bytecode durante o build (AOT — Ahead of Time), reduzindo o tempo de inicializacao do app, o consumo de memoria e o tamanho do bundle. Em benchmarks reais, apps com Hermes iniciam ate 2x mais rapido que com o JSC (JavaScriptCore).</p>
+
+        <div class="callout callout-info sr">
+          <div class="callout-label">&#128640; Nova Arquitetura</div>
+          <p>Se voce esta iniciando um projeto novo com React Native em 2025+, a Nova Arquitetura ja e o padrao. A Bridge legada sera descontinuada nas versoes futuras. No Projeto 6, trabalharemos exclusivamente com a Nova Arquitetura, o que significa que voce tera acesso a rendering sincronico, modulos lazy-loaded e performance significativamente superior em listas e animacoes.</p>
+        </div>
+
+        <h3 id="rn-componentes">Componentes Fundamentais</h3>
+
+        <p>O React Native fornece um conjunto de componentes primitivos que mapeiam diretamente para views nativas de cada plataforma. Os mais importantes para o Projeto 6 sao:</p>
+
+        <ul>
+          <li><strong>View</strong> — Container generico, equivalente a uma <code>&lt;div&gt;</code> na web. Suporta Flexbox para layout.</li>
+          <li><strong>Text</strong> — Exibe texto. Todo texto deve estar dentro de um componente Text (diferente da web).</li>
+          <li><strong>FlatList</strong> — Lista virtualizada de alta performance. Renderiza apenas os itens visiveis na tela, essencial para listas de recomendacoes com centenas de itens.</li>
+          <li><strong>TouchableOpacity</strong> — Wrapper que reduz a opacidade ao ser pressionado, dando feedback tactil ao usuario.</li>
+          <li><strong>StyleSheet</strong> — API para criar estilos otimizados. Sintaxe similar ao CSS, mas em camelCase e sem unidades (pixels sao implicitos).</li>
+          <li><strong>Image</strong> — Exibe imagens locais ou remotas com cache automatico.</li>
+          <li><strong>ScrollView</strong> — Container que permite rolagem. Use FlatList em vez de ScrollView para listas grandes.</li>
+        </ul>
+
+        <p>Veja um componente completo que renderiza um card de item recomendado:</p>
+
+        <div class="code-wrap sr">
+          <div class="code-label">React Native — Componente de Card de Recomendacao <button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-kw">import</span> React <span class="hl-kw">from</span> <span class="hl-str">'react'</span>;
+<span class="hl-kw">import</span> { View, Text, Image, TouchableOpacity, StyleSheet } <span class="hl-kw">from</span> <span class="hl-str">'react-native'</span>;
+
+<span class="hl-kw">const</span> <span class="hl-fn">RecommendationCard</span> = ({ item, onPress }) =&gt; (
+  &lt;<span class="hl-typ">TouchableOpacity</span> style={styles.card} onPress={() =&gt; onPress(item.id)}&gt;
+    &lt;<span class="hl-typ">Image</span> source={{ uri: item.imageUrl }} style={styles.image} /&gt;
+    &lt;<span class="hl-typ">View</span> style={styles.info}&gt;
+      &lt;<span class="hl-typ">Text</span> style={styles.title} numberOfLines={<span class="hl-num">2</span>}&gt;{item.title}&lt;/<span class="hl-typ">Text</span>&gt;
+      &lt;<span class="hl-typ">Text</span> style={styles.category}&gt;{item.category}&lt;/<span class="hl-typ">Text</span>&gt;
+      &lt;<span class="hl-typ">View</span> style={styles.ratingRow}&gt;
+        &lt;<span class="hl-typ">Text</span> style={styles.stars}&gt;{'&#9733;'.repeat(Math.round(item.predictedRating))}&lt;/<span class="hl-typ">Text</span>&gt;
+        &lt;<span class="hl-typ">Text</span> style={styles.confidence}&gt;
+          {(item.confidence * <span class="hl-num">100</span>).toFixed(<span class="hl-num">0</span>)}% confianca
+        &lt;/<span class="hl-typ">Text</span>&gt;
+      &lt;/<span class="hl-typ">View</span>&gt;
+    &lt;/<span class="hl-typ">View</span>&gt;
+  &lt;/<span class="hl-typ">TouchableOpacity</span>&gt;
+);
+
+<span class="hl-kw">const</span> styles = StyleSheet.create({
+  card: { flexDirection: <span class="hl-str">'row'</span>, backgroundColor: <span class="hl-str">'#fff'</span>,
+          borderRadius: <span class="hl-num">12</span>, padding: <span class="hl-num">12</span>, marginBottom: <span class="hl-num">10</span>,
+          shadowColor: <span class="hl-str">'#000'</span>, shadowOpacity: <span class="hl-num">0.08</span>,
+          shadowRadius: <span class="hl-num">8</span>, elevation: <span class="hl-num">3</span> },
+  image: { width: <span class="hl-num">80</span>, height: <span class="hl-num">80</span>, borderRadius: <span class="hl-num">10</span> },
+  info: { flex: <span class="hl-num">1</span>, marginLeft: <span class="hl-num">12</span>, justifyContent: <span class="hl-str">'center'</span> },
+  title: { fontSize: <span class="hl-num">15</span>, fontWeight: <span class="hl-str">'700'</span>, color: <span class="hl-str">'#1e293b'</span> },
+  category: { fontSize: <span class="hl-num">12</span>, color: <span class="hl-str">'#64748b'</span>, marginTop: <span class="hl-num">2</span> },
+  ratingRow: { flexDirection: <span class="hl-str">'row'</span>, alignItems: <span class="hl-str">'center'</span>, marginTop: <span class="hl-num">6</span> },
+  stars: { fontSize: <span class="hl-num">14</span>, color: <span class="hl-str">'#f59e0b'</span> },
+  confidence: { fontSize: <span class="hl-num">11</span>, color: <span class="hl-str">'#94a3b8'</span>, marginLeft: <span class="hl-num">8</span> },
+});
+
+<span class="hl-kw">export default</span> RecommendationCard;</code></pre>
+        </div>
+
+        <h3 id="rn-mvvm">MVVM no React Native</h3>
+
+        <p>O padrao <strong>MVVM</strong> (Model-View-ViewModel) e a arquitetura recomendada para organizar codigo React Native em projetos de media e grande escala. A separacao de responsabilidades e clara:</p>
+
+        <ul>
+          <li><strong>Model</strong> — Representa os dados e a logica de negocio. No Projeto 6, sao as interfaces TypeScript que definem a estrutura de usuarios, itens, avaliacoes e recomendacoes, alem dos servicos que buscam e persistem esses dados.</li>
+          <li><strong>View</strong> — Os componentes React Native que renderizam a UI. A View nao contem logica de negocio; ela apenas exibe dados e encaminha eventos do usuario para o ViewModel.</li>
+          <li><strong>ViewModel</strong> — A camada intermediaria, implementada no React Native como <strong>custom hooks</strong>. O ViewModel busca dados do Model, transforma-os para exibicao e expoe o estado reativo que a View consome.</li>
+        </ul>
+
+        <p>A vantagem do MVVM e a <strong>testabilidade</strong>: voce pode testar o ViewModel (hook) isoladamente, sem renderizar componentes, usando bibliotecas como <code>@testing-library/react-hooks</code>. Isso acelera drasticamente os testes e permite TDD eficaz.</p>
+
+        <p>Veja um exemplo de ViewModel implementado como custom hook:</p>
+
+        <div class="code-wrap sr">
+          <div class="code-label">React Native — Custom Hook (ViewModel) <button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-kw">import</span> { useState, useEffect, useCallback } <span class="hl-kw">from</span> <span class="hl-str">'react'</span>;
+<span class="hl-kw">import</span> { recommendationApi } <span class="hl-kw">from</span> <span class="hl-str">'../services/recommendationApi'</span>;
+
+<span class="hl-cmt">// ViewModel: gerencia estado e logica de recomendacoes</span>
+<span class="hl-kw">export function</span> <span class="hl-fn">useRecommendations</span>(userId) {
+  <span class="hl-kw">const</span> [items, setItems] = useState([]);
+  <span class="hl-kw">const</span> [loading, setLoading] = useState(<span class="hl-num">true</span>);
+  <span class="hl-kw">const</span> [error, setError] = useState(<span class="hl-num">null</span>);
+
+  <span class="hl-kw">const</span> <span class="hl-fn">fetchRecommendations</span> = useCallback(<span class="hl-kw">async</span> () =&gt; {
+    <span class="hl-kw">try</span> {
+      setLoading(<span class="hl-num">true</span>);
+      setError(<span class="hl-num">null</span>);
+      <span class="hl-kw">const</span> data = <span class="hl-kw">await</span> recommendationApi.getForUser(userId, <span class="hl-num">20</span>);
+      setItems(data);
+    } <span class="hl-kw">catch</span> (err) {
+      setError(err.message);
+    } <span class="hl-kw">finally</span> {
+      setLoading(<span class="hl-num">false</span>);
+    }
+  }, [userId]);
+
+  useEffect(() =&gt; { fetchRecommendations(); }, [fetchRecommendations]);
+
+  <span class="hl-kw">const</span> <span class="hl-fn">rateItem</span> = useCallback(<span class="hl-kw">async</span> (itemId, rating) =&gt; {
+    <span class="hl-kw">await</span> recommendationApi.recordRating(userId, itemId, rating);
+    <span class="hl-cmt">// Refetch para atualizar recomendacoes apos nova avaliacao</span>
+    fetchRecommendations();
+  }, [userId, fetchRecommendations]);
+
+  <span class="hl-kw">return</span> { items, loading, error, refresh: fetchRecommendations, rateItem };
+}</code></pre>
+        </div>
+      </section>
+
+      <!-- ════════ 6. FILTRAGEM COLABORATIVA ════════ -->
+      <section class="mat-section" id="filtragem-colaborativa">
+        <h2>6. Filtragem Colaborativa por Usuario</h2>
+
+        <p>A <strong>filtragem colaborativa</strong> (collaborative filtering) e a tecnica mais classica e amplamente utilizada em sistemas de recomendacao. A ideia central e elegante na sua simplicidade: se dois usuarios concordaram no passado sobre a qualidade de certos itens, e provavel que concordem novamente no futuro. Em outras palavras, usuarios similares tendem a gostar de coisas similares.</p>
+
+        <p>Existem duas abordagens principais: <strong>user-based</strong> (baseada em usuario) e <strong>item-based</strong> (baseada em item). Na abordagem user-based, que e o foco desta aula, encontramos usuarios similares ao usuario-alvo e recomendamos itens que esses usuarios similares avaliaram positivamente mas que o usuario-alvo ainda nao consumiu. Na abordagem item-based, encontramos itens similares aos que o usuario ja consumiu e recomendamos esses itens similares.</p>
+
+        <p>A filtragem colaborativa tem uma propriedade notavel: ela nao precisa saber nada sobre o conteudo dos itens. Nao importa se o item e um filme, um livro ou um produto — o algoritmo trabalha exclusivamente com a <strong>matriz de avaliacoes</strong>. Isso e simultaneamente sua maior forca (generalidade) e sua maior fraqueza (cold start problem, que discutiremos adiante).</p>
+
+        <h3 id="fc-algoritmo">O Algoritmo Passo a Passo</h3>
+
+        <p>O algoritmo de filtragem colaborativa user-based pode ser decomposto em cinco etapas claras:</p>
+
+        <ol>
+          <li><strong>Construir a matriz usuario-item</strong> — Uma matriz R onde R[u][i] representa a avaliacao que o usuario u deu ao item i. Celulas vazias indicam que o usuario nao avaliou aquele item.</li>
+          <li><strong>Calcular a similaridade entre usuarios</strong> — Para cada par de usuarios, calculamos uma metrica de similaridade baseada nas avaliacoes que ambos deram aos mesmos itens. A metrica mais comum e a <strong>similaridade por cosseno</strong>.</li>
+          <li><strong>Selecionar os k vizinhos mais similares</strong> — Para o usuario-alvo, selecionamos os k usuarios com maior similaridade (k-nearest neighbors).</li>
+          <li><strong>Predizer a avaliacao ponderada</strong> — Para cada item que o usuario-alvo nao avaliou, calculamos uma predicao ponderada usando as avaliacoes dos k vizinhos, ponderadas pela similaridade.</li>
+          <li><strong>Recomendar os top-N itens</strong> — Ordenamos os itens por predicao decrescente e recomendamos os N primeiros.</li>
+        </ol>
+
+        <p>A formula da <strong>similaridade por cosseno</strong> entre dois usuarios u e v e:</p>
+
+        <div class="callout callout-deep sr">
+          <div class="callout-label">&#128202; Formula</div>
+          <p><strong>sim(u, v) = (sum de r_ui * r_vi para todo i em I_uv) / (sqrt(sum de r_ui^2) * sqrt(sum de r_vi^2))</strong></p>
+          <p>Onde I_uv e o conjunto de itens avaliados por ambos u e v, r_ui e a avaliacao do usuario u para o item i, e r_vi e a avaliacao do usuario v para o item i. O resultado varia de -1 (completamente opostos) a 1 (identicos).</p>
+        </div>
+
+        <p>A implementacao em Python e direta. Veja o calculo completo de similaridade e predicao:</p>
+
+        <div class="code-wrap sr">
+          <div class="code-label">Python — Filtragem Colaborativa User-Based <button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-kw">import</span> numpy <span class="hl-kw">as</span> np
+<span class="hl-kw">from</span> numpy.linalg <span class="hl-kw">import</span> norm
+
+<span class="hl-kw">def</span> <span class="hl-fn">cosine_similarity</span>(ratings, user_a, user_b):
+    <span class="hl-str">"""Calcula similaridade cosseno entre dois usuarios."""</span>
+    <span class="hl-cmt"># Encontrar itens avaliados por ambos</span>
+    common = ~np.isnan(ratings[user_a]) &amp; ~np.isnan(ratings[user_b])
+    <span class="hl-kw">if</span> common.sum() == <span class="hl-num">0</span>:
+        <span class="hl-kw">return</span> <span class="hl-num">0.0</span>
+
+    vec_a = ratings[user_a][common]
+    vec_b = ratings[user_b][common]
+
+    dot = np.dot(vec_a, vec_b)
+    denom = norm(vec_a) * norm(vec_b)
+    <span class="hl-kw">return</span> dot / denom <span class="hl-kw">if</span> denom &gt; <span class="hl-num">0</span> <span class="hl-kw">else</span> <span class="hl-num">0.0</span>
+
+
+<span class="hl-kw">def</span> <span class="hl-fn">predict_rating</span>(ratings, target_user, item, k=<span class="hl-num">3</span>):
+    <span class="hl-str">"""Prediz a avaliacao do usuario-alvo para um item."""</span>
+    similarities = []
+    <span class="hl-kw">for</span> other <span class="hl-kw">in</span> range(ratings.shape[<span class="hl-num">0</span>]):
+        <span class="hl-kw">if</span> other == target_user <span class="hl-kw">or</span> np.isnan(ratings[other][item]):
+            <span class="hl-kw">continue</span>
+        sim = cosine_similarity(ratings, target_user, other)
+        similarities.append((other, sim))
+
+    <span class="hl-cmt"># Selecionar os k vizinhos mais similares</span>
+    similarities.sort(key=<span class="hl-kw">lambda</span> x: x[<span class="hl-num">1</span>], reverse=<span class="hl-num">True</span>)
+    top_k = similarities[:k]
+
+    <span class="hl-kw">if</span> <span class="hl-kw">not</span> top_k:
+        <span class="hl-kw">return</span> np.nanmean(ratings[target_user])  <span class="hl-cmt"># fallback: media do usuario</span>
+
+    <span class="hl-cmt"># Predicao ponderada</span>
+    num = sum(sim * ratings[user][item] <span class="hl-kw">for</span> user, sim <span class="hl-kw">in</span> top_k)
+    den = sum(abs(sim) <span class="hl-kw">for</span> _, sim <span class="hl-kw">in</span> top_k)
+    <span class="hl-kw">return</span> num / den <span class="hl-kw">if</span> den &gt; <span class="hl-num">0</span> <span class="hl-kw">else</span> <span class="hl-num">0.0</span></code></pre>
+        </div>
+
+        <div class="callout callout-warn sr">
+          <div class="callout-label">&#9888;&#65039; Cold Start Problem</div>
+          <p>O problema de <strong>cold start</strong> (partida a frio) e o calcanhar de Aquiles da filtragem colaborativa: quando um novo usuario entra no sistema sem nenhuma avaliacao, nao ha dados para calcular similaridade com outros usuarios. Da mesma forma, um novo item sem avaliacoes nunca sera recomendado. Estrategias de mitigacao incluem: pedir avaliacoes iniciais no onboarding, usar filtragem baseada em conteudo como fallback, e recomendar itens populares para novos usuarios.</p>
+        </div>
+
+        <h3 id="fc-exemplo">Exemplo Pratico</h3>
+
+        <p>Vamos trabalhar com um exemplo concreto e pequeno para solidificar o entendimento. Considere a seguinte matriz de avaliacoes (escala 1-5), onde "?" indica que o usuario nao avaliou o item e queremos prever a avaliacao de <strong>Ana</strong> para o <strong>Item D</strong>:</p>
+
+        <table class="mat-table sr">
+          <thead>
+            <tr><th>Usuario</th><th>Item A</th><th>Item B</th><th>Item C</th><th>Item D</th><th>Item E</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Ana</strong></td><td>5</td><td>3</td><td>4</td><td><span class="tag tag-amber">?</span></td><td>1</td></tr>
+            <tr><td><strong>Bruno</strong></td><td>4</td><td>2</td><td>5</td><td>4</td><td>2</td></tr>
+            <tr><td><strong>Carla</strong></td><td>2</td><td>5</td><td>1</td><td>3</td><td>5</td></tr>
+            <tr><td><strong>Diego</strong></td><td>5</td><td>4</td><td>4</td><td>5</td><td>1</td></tr>
+            <tr><td><strong>Eva</strong></td><td>1</td><td>4</td><td>2</td><td>2</td><td>4</td></tr>
+          </tbody>
+        </table>
+
+        <p><strong>Passo 1:</strong> Calculamos a similaridade por cosseno entre Ana e cada outro usuario, usando apenas os itens avaliados por ambos (A, B, C, E — ja que D e o que queremos prever):</p>
+
+        <ul>
+          <li><strong>sim(Ana, Bruno)</strong> — Vetores: Ana = [5, 3, 4, 1], Bruno = [4, 2, 5, 2]. Cosseno = (20+6+20+2) / (sqrt(51) * sqrt(49)) = 48 / 49.99 = <strong>0.960</strong></li>
+          <li><strong>sim(Ana, Carla)</strong> — Vetores: Ana = [5, 3, 4, 1], Carla = [2, 5, 1, 5]. Cosseno = (10+15+4+5) / (sqrt(51) * sqrt(55)) = 34 / 52.96 = <strong>0.642</strong></li>
+          <li><strong>sim(Ana, Diego)</strong> — Vetores: Ana = [5, 3, 4, 1], Diego = [5, 4, 4, 1]. Cosseno = (25+12+16+1) / (sqrt(51) * sqrt(58)) = 54 / 54.39 = <strong>0.993</strong></li>
+          <li><strong>sim(Ana, Eva)</strong> — Vetores: Ana = [5, 3, 4, 1], Eva = [1, 4, 2, 4]. Cosseno = (5+12+8+4) / (sqrt(51) * sqrt(37)) = 29 / 43.44 = <strong>0.668</strong></li>
+        </ul>
+
+        <p><strong>Passo 2:</strong> Com k=2, selecionamos os 2 vizinhos mais similares: <strong>Diego (0.993)</strong> e <strong>Bruno (0.960)</strong>.</p>
+
+        <p><strong>Passo 3:</strong> Calculamos a predicao ponderada para o Item D:</p>
+
+        <p>pred(Ana, D) = (0.993 * 5 + 0.960 * 4) / (0.993 + 0.960) = (4.965 + 3.840) / 1.953 = 8.805 / 1.953 = <strong>4.51</strong></p>
+
+        <p>Portanto, prevemos que Ana daria aproximadamente <strong>4.5 estrelas</strong> para o Item D — uma avaliacao alta, o que faz sentido: os usuarios mais similares a Ana (Diego e Bruno) avaliaram o Item D com 5 e 4, respectivamente.</p>
+      </section>
+
+      <!-- ════════ 7. RM-ODP ════════ -->
+      <section class="mat-section" id="rm-odp">
+        <h2>7. RM-ODP — Viewpoints de Arquitetura</h2>
+
+        <p>O <strong>RM-ODP</strong> (Reference Model for Open Distributed Processing), definido pela <strong>ISO/IEC 10746</strong>, e um framework para descrever sistemas distribuidos a partir de multiplas perspectivas complementares. Cada perspectiva — chamada de <em>viewpoint</em> — captura os interesses de um grupo especifico de stakeholders e utiliza conceitos adequados a esses interesses.</p>
+
+        <p>A motivacao do RM-ODP e que sistemas distribuidos sao complexos demais para serem descritos por uma unica perspectiva. Um engenheiro de rede se interessa por protocolos e topologia; um analista de negocios se interessa por processos e regras; um desenvolvedor se interessa por interfaces e algoritmos. O RM-ODP reconhece essa multiplicidade e fornece cinco <em>viewpoints</em> que, juntos, oferecem uma descricao completa do sistema.</p>
+
+        <p>Para o Projeto 6, o RM-ODP e especialmente relevante porque estamos construindo um sistema genuinamente distribuido: o app movel, a API Gateway, os microservicos, o motor de recomendacao e o banco de dados sao componentes independentes que se comunicam via rede. Descrever esse sistema apenas pelo codigo (viewpoint computacional) seria incompleto — precisamos tambem descrever o proposito (enterprise), os dados (information), a distribuicao (engineering) e as tecnologias (technology).</p>
+
+        <div class="odp-stack sr" id="odp-stack">
+          <div class="odp-layer" style="background:#dbeafe;">
+            <div class="odp-icon">&#127970;</div>
+            <div>
+              <div class="odp-name">Enterprise (Empresarial)</div>
+              <div class="odp-desc">Captura o proposito, escopo e politicas do sistema. Quem sao os stakeholders? Qual e o objetivo de negocio? No Projeto 6: "fornecer recomendacoes personalizadas para aumentar o engajamento dos usuarios na plataforma".</div>
+              <span class="odp-focus" style="background:#dbeafe;color:#1d4ed8;">Aula 1 — Minimundo, objetivos de negocio</span>
+            </div>
+          </div>
+          <div class="odp-layer" style="background:#dcfce7;">
+            <div class="odp-icon">&#128203;</div>
+            <div>
+              <div class="odp-name">Information (Informacao)</div>
+              <div class="odp-desc">Descreve como a informacao e estruturada e manipulada. Entidades, atributos, relacionamentos. No Projeto 6: usuarios, itens, avaliacoes, recomendacoes, categorias — e suas invariantes de dados.</div>
+              <span class="odp-focus" style="background:#dcfce7;color:#15803d;">Aulas 2-4 — Modelagem ER, esquema PostgreSQL</span>
+            </div>
+          </div>
+          <div class="odp-layer" style="background:#ede9fe;">
+            <div class="odp-icon">&#9881;&#65039;</div>
+            <div>
+              <div class="odp-name">Computational (Computacional)</div>
+              <div class="odp-desc">Decomposicao funcional em componentes com interfaces. Servicos, contratos, operacoes. No Projeto 6: servico de catalogo, servico de perfis, servico de recomendacao — cada um com API REST definida.</div>
+              <span class="odp-focus" style="background:#ede9fe;color:#7c3aed;">Aulas 5-8 — SOA, endpoints, React Native</span>
+            </div>
+          </div>
+          <div class="odp-layer" style="background:#fef3c7;">
+            <div class="odp-icon">&#128295;</div>
+            <div>
+              <div class="odp-name">Engineering (Engenharia)</div>
+              <div class="odp-desc">Como os componentes sao distribuidos e se comunicam: nos, canais, protocolos. No Projeto 6: app no smartphone do usuario, API em servidor cloud, banco em instancia gerenciada, motor de rec. como servico separado.</div>
+              <span class="odp-focus" style="background:#fef3c7;color:#92400e;">Aulas 9-11 — Deploy, integracao, testes E2E</span>
+            </div>
+          </div>
+          <div class="odp-layer" style="background:#fee2e2;">
+            <div class="odp-icon">&#128187;</div>
+            <div>
+              <div class="odp-name">Technology (Tecnologia)</div>
+              <div class="odp-desc">As tecnologias e padroes concretos utilizados. No Projeto 6: React Native 0.73+, Node.js 20 LTS, Express 4, PostgreSQL 16, Python 3.11, NumPy, Docker, GitHub Actions.</div>
+              <span class="odp-focus" style="background:#fee2e2;color:#b91c1c;">Aulas 12-14 — Stack final, otimizacao, entrega</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-deep sr">
+          <div class="callout-label">&#128161; Por que RM-ODP importa para sistemas distribuidos?</div>
+          <p>Em um sistema monolitico, a distancia entre a descricao e a implementacao e curta — tudo roda no mesmo processo. Em sistemas distribuidos como o do Projeto 6, essa distancia e enorme: o codigo que roda no smartphone do usuario e completamente diferente do codigo que roda no servidor, que e diferente do motor de recomendacao em Python. O RM-ODP fornece um vocabulario e uma estrutura para descrever esse sistema complexo de forma completa, garantindo que nenhuma perspectiva seja esquecida.</p>
+        </div>
+
+        <p>Uma pratica recomendada e documentar cada viewpoint em um artefato especifico: o Enterprise viewpoint em um documento de visao (Vision Document), o Information viewpoint em um diagrama ER com dicionario de dados, o Computational viewpoint em diagramas de componentes com contratos de API, o Engineering viewpoint em diagramas de deploy, e o Technology viewpoint em um documento de decisoes arquiteturais (ADR — Architecture Decision Records).</p>
+      </section>
+
+      <!-- ════════ 8. QUALIDADE ════════ -->
+      <section class="mat-section" id="qualidade">
+        <h2>8. Qualidade de Software — ISO/IEC 25010</h2>
+
+        <p>A <strong>ISO/IEC 25010</strong>, parte da familia SQuaRE (Systems and software Quality Requirements and Evaluation), define um modelo de qualidade para produtos de software e sistemas. Ela organiza a qualidade em <strong>8 caracteristicas</strong> principais, cada uma com sub-caracteristicas. Este modelo e essencial para o Projeto 6 porque fornece uma linguagem comum para discutir, especificar e avaliar a qualidade do sistema de recomendacao.</p>
+
+        <p>E importante entender que qualidade de software nao e um conceito unidimensional. Um sistema pode ter excelente <em>functional suitability</em> (faz o que deve fazer) mas pessima <em>performance efficiency</em> (demora 10 segundos para responder). A ISO 25010 nos forca a pensar em qualidade de forma multidimensional, considerando trade-offs entre as diferentes caracteristicas.</p>
+
+        <p>No contexto de sistemas de recomendacao, a tensao entre caracteristicas de qualidade e especialmente pronunciada. Melhorar a precisao do algoritmo (functional suitability) pode aumentar o tempo de processamento (performance efficiency). Registrar mais dados do usuario para melhorar recomendacoes (functional suitability) pode comprometer a privacidade (security). Essas tensoes devem ser explicitadas e resolvidas conscientemente, nao ignoradas.</p>
+
+        <div class="eixo-grid sr" id="eixo-grid">
+          <div class="eixo-card" style="border-color:#3b82f6;">
+            <span class="eixo-tag" style="color:#3b82f6;">FUNC</span>
+            <div class="eixo-title">Functional Suitability</div>
+            <div class="eixo-q">O sistema faz o que deveria fazer?</div>
+            <div class="eixo-example">"Recomendacoes sao relevantes e o usuario consegue avaliar itens de 1 a 5."</div>
+          </div>
+          <div class="eixo-card" style="border-color:#ef4444;">
+            <span class="eixo-tag" style="color:#ef4444;">PERF</span>
+            <div class="eixo-title">Performance Efficiency</div>
+            <div class="eixo-q">O sistema responde rapido e usa recursos adequadamente?</div>
+            <div class="eixo-example">"Recomendacoes geradas em menos de 200ms para 95% das requisicoes."</div>
+          </div>
+          <div class="eixo-card" style="border-color:#22c55e;">
+            <span class="eixo-tag" style="color:#22c55e;">COMP</span>
+            <div class="eixo-title">Compatibility</div>
+            <div class="eixo-q">O sistema coexiste e interopera com outros?</div>
+            <div class="eixo-example">"API REST segue OpenAPI 3.0, permitindo integracao com outros servicos."</div>
+          </div>
+          <div class="eixo-card" style="border-color:#f59e0b;">
+            <span class="eixo-tag" style="color:#f59e0b;">USAB</span>
+            <div class="eixo-title">Usability</div>
+            <div class="eixo-q">O sistema e facil de usar e aprender?</div>
+            <div class="eixo-example">"Novo usuario completa primeira avaliacao em menos de 30 segundos."</div>
+          </div>
+          <div class="eixo-card" style="border-color:#8b5cf6;">
+            <span class="eixo-tag" style="color:#8b5cf6;">RELI</span>
+            <div class="eixo-title">Reliability</div>
+            <div class="eixo-q">O sistema funciona corretamente sob condicoes normais e adversas?</div>
+            <div class="eixo-example">"Disponibilidade de 99.5%. Graceful degradation quando o motor de rec. esta indisponivel."</div>
+          </div>
+          <div class="eixo-card" style="border-color:#06b6d4;">
+            <span class="eixo-tag" style="color:#06b6d4;">SECU</span>
+            <div class="eixo-title">Security</div>
+            <div class="eixo-q">O sistema protege dados e impede acessos nao autorizados?</div>
+            <div class="eixo-example">"Autenticacao JWT. Dados de avaliacao anonimizados no motor de recomendacao."</div>
+          </div>
+          <div class="eixo-card" style="border-color:#64748b;">
+            <span class="eixo-tag" style="color:#64748b;">MAIN</span>
+            <div class="eixo-title">Maintainability</div>
+            <div class="eixo-q">O sistema e facil de modificar e evoluir?</div>
+            <div class="eixo-example">"Cobertura de testes > 80%. Servicos desacoplados permitem trocar algoritmo sem afetar API."</div>
+          </div>
+          <div class="eixo-card" style="border-color:#059669;">
+            <span class="eixo-tag" style="color:#059669;">PORT</span>
+            <div class="eixo-title">Portability</div>
+            <div class="eixo-q">O sistema pode ser transferido para outros ambientes?</div>
+            <div class="eixo-example">"App roda em iOS e Android. Servicos em containers Docker, portaveis entre clouds."</div>
+          </div>
+        </div>
+
+        <h3 id="qualidade-rfrnf">Requisitos Funcionais vs Nao Funcionais</h3>
+
+        <p>Uma distincao fundamental em engenharia de requisitos e entre <strong>Requisitos Funcionais (RF)</strong> e <strong>Requisitos Nao Funcionais (RNF)</strong>. Os RFs descrevem <em>o que</em> o sistema deve fazer — funcionalidades, comportamentos, transformacoes de dados. Os RNFs descrevem <em>como</em> o sistema deve se comportar — qualidades, restricoes, propriedades emergentes.</p>
+
+        <p>No Projeto 6, essa distincao e particularmente importante porque os RNFs frequentemente sao os que determinam a arquitetura. A decisao de usar SOA, por exemplo, nao vem de um RF — vem de RNFs como <em>maintainability</em> (facilidade de modificar servicos independentemente) e <em>scalability</em> (capacidade de escalar o motor de recomendacao separadamente do catalogo).</p>
+
+        <p>Veja exemplos concretos do Projeto 6:</p>
+
+        <table class="mat-table sr">
+          <thead>
+            <tr><th>Tipo</th><th>ID</th><th>Descricao</th><th>ISO 25010</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><span class="tag tag-blue">RF</span></td><td>RF01</td><td>O sistema deve permitir que o usuario avalie itens em escala de 1 a 5 estrelas</td><td>Functional Suitability</td></tr>
+            <tr><td><span class="tag tag-blue">RF</span></td><td>RF02</td><td>O sistema deve gerar uma lista de ate 20 recomendacoes personalizadas</td><td>Functional Suitability</td></tr>
+            <tr><td><span class="tag tag-blue">RF</span></td><td>RF03</td><td>O sistema deve permitir busca por nome e categoria no catalogo</td><td>Functional Suitability</td></tr>
+            <tr><td><span class="tag tag-blue">RF</span></td><td>RF04</td><td>O sistema deve exibir o nivel de confianca de cada recomendacao</td><td>Functional Suitability</td></tr>
+            <tr><td><span class="tag tag-green">RNF</span></td><td>RNF01</td><td>Tempo de resposta da API de recomendacao menor que 200ms (p95)</td><td>Performance Efficiency</td></tr>
+            <tr><td><span class="tag tag-green">RNF</span></td><td>RNF02</td><td>App deve funcionar em iOS 15+ e Android 12+</td><td>Portability</td></tr>
+            <tr><td><span class="tag tag-green">RNF</span></td><td>RNF03</td><td>Dados de avaliacao devem ser anonimizados antes de serem processados pelo motor</td><td>Security</td></tr>
+            <tr><td><span class="tag tag-green">RNF</span></td><td>RNF04</td><td>Cobertura de testes unitarios maior que 80%</td><td>Maintainability</td></tr>
+            <tr><td><span class="tag tag-green">RNF</span></td><td>RNF05</td><td>Sistema deve degradar graciosamente quando o motor de rec. estiver indisponivel</td><td>Reliability</td></tr>
+          </tbody>
+        </table>
+
+        <div class="callout callout-tip sr">
+          <div class="callout-label">&#128161; Dica pratica</div>
+          <p>Ao escrever RNFs, sempre inclua metricas mensuráveis. "O sistema deve ser rapido" nao e um requisito — e um desejo. "O tempo de resposta da API de recomendacao deve ser inferior a 200ms para 95% das requisicoes medidas em um periodo de 24 horas" e um requisito. A ISO 25010 fornece o vocabulario; cabe a voce transformar esse vocabulario em requisitos concretos.</p>
+        </div>
+      </section>
+
+      <!-- ════════ 9. CHECKLIST ════════ -->
+      <section class="mat-section" id="checklist">
+        <h2>9. Checklist de Verificacao</h2>
+
+        <p>Use esta lista para avaliar sua compreensao dos topicos abordados nesta aula. Clique em cada item para marca-lo como concluido. O objetivo e que todos os itens estejam marcados antes de prosseguir para a Aula 2.</p>
+
+        <ul class="checklist">
+          <li onclick="toggleCk(this)">
+            <span class="ck-box"></span>
+            <span class="ck-text">Compreendo o contexto e objetivos do Projeto 6 (plataforma SOA de recomendacao mobile)</span>
+          </li>
+          <li onclick="toggleCk(this)">
+            <span class="ck-box"></span>
+            <span class="ck-text">Sei explicar o que e SWEBOK e citar ao menos 5 das 15 areas de conhecimento</span>
+          </li>
+          <li onclick="toggleCk(this)">
+            <span class="ck-box"></span>
+            <span class="ck-text">Entendo a diferenca entre SWEBOK e SEBOK e quando usar cada um</span>
+          </li>
+          <li onclick="toggleCk(this)">
+            <span class="ck-box"></span>
+            <span class="ck-text">Consigo descrever o que e React Native, sua arquitetura (JSI, Fabric, Hermes) e como difere de abordagens nativas e hibridas</span>
+          </li>
+          <li onclick="toggleCk(this)">
+            <span class="ck-box"></span>
+            <span class="ck-text">Sei explicar o conceito de filtragem colaborativa por usuario e os 5 passos do algoritmo</span>
+          </li>
+          <li onclick="toggleCk(this)">
+            <span class="ck-box"></span>
+            <span class="ck-text">Consigo calcular manualmente a similaridade por cosseno entre dois usuarios</span>
+          </li>
+          <li onclick="toggleCk(this)">
+            <span class="ck-box"></span>
+            <span class="ck-text">Consigo identificar e explicar os 5 viewpoints do RM-ODP</span>
+          </li>
+          <li onclick="toggleCk(this)">
+            <span class="ck-box"></span>
+            <span class="ck-text">Conheco os 8 eixos de qualidade da ISO/IEC 25010 e consigo dar exemplos de cada</span>
+          </li>
+          <li onclick="toggleCk(this)">
+            <span class="ck-box"></span>
+            <span class="ck-text">Entendo a diferenca entre requisitos funcionais e nao funcionais e sei escrever RNFs mensuraveis</span>
+          </li>
+        </ul>
+      </section>
+
+      <!-- ════════ 10. REFERENCIAS ════════ -->
+      <section class="mat-section" id="referencias">
+        <h2>10. Referencias</h2>
+        <ul>
+          <li><a href="https://www.computer.org/education/bodies-of-knowledge/software-engineering/v4" target="_blank" rel="noopener noreferrer">SWEBOK V4 — Software Engineering Body of Knowledge</a> — IEEE Computer Society, 2024</li>
+          <li><a href="https://sebokwiki.org" target="_blank" rel="noopener noreferrer">SEBoK — Systems Engineering Body of Knowledge</a> — BKCASE / INCOSE</li>
+          <li><a href="https://reactnative.dev/docs/getting-started" target="_blank" rel="noopener noreferrer">React Native Documentation</a> — Meta / Facebook</li>
+          <li><a href="https://reactnative.dev/docs/the-new-architecture/landing-page" target="_blank" rel="noopener noreferrer">React Native New Architecture</a> — JSI, Fabric, TurboModules</li>
+          <li><a href="https://dl.acm.org/doi/10.1145/371920.372071" target="_blank" rel="noopener noreferrer">Sarwar et al. (2001) — Item-Based Collaborative Filtering Recommendation Algorithms</a> — ACM</li>
+          <li><a href="https://iso25000.com/index.php/en/iso-25000-standards/iso-25010" target="_blank" rel="noopener noreferrer">ISO/IEC 25010 — SQuaRE Quality Model</a></li>
+          <li><a href="https://www.iso.org/standard/20696.html" target="_blank" rel="noopener noreferrer">ISO/IEC 10746 — RM-ODP</a></li>
+          <li><a href="https://hermesengine.dev/" target="_blank" rel="noopener noreferrer">Hermes — JavaScript Engine for React Native</a> — Meta</li>
+        </ul>
+      </section>
+
+    </article>
+  </div>
+
+  <div class="text-center py-4">
+    <img src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli Logo" style="max-width:140px;">
+  </div>
+  <footer class="py-4 bg-light border-top">
+    <div class="container text-center">
+      <p class="mb-1">Material criado pelo professor <strong>Afonso Brandao</strong> para o <strong>Inteli</strong>.</p>
+      <small class="text-muted">Conteudo de leitura aberta</small>
+    </div>
+  </footer>
+
+  <script>
+    // ── Progress bar + floating nav ───────────────────────────────────────
+    var floatNav = document.getElementById('float-nav');
+    var matHeader = document.querySelector('.mat-header');
+    window.addEventListener('scroll', function() {
+      var h = document.documentElement;
+      var pct = (h.scrollTop / (h.scrollHeight - h.clientHeight)) * 100;
+      document.getElementById('progress-bar').style.width = pct + '%';
+      var headerBottom = matHeader.getBoundingClientRect().bottom;
+      if (headerBottom < 0) { floatNav.classList.add('visible'); }
+      else { floatNav.classList.remove('visible'); }
+    });
+
+    // ── Scroll reveal (IntersectionObserver) ─────────────────────────────
+    var srObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        if (e.isIntersecting) { e.target.classList.add('vis'); srObserver.unobserve(e.target); }
+      });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.sr').forEach(function(el) { srObserver.observe(el); });
+
+    // ── SOA diagram animation ────────────────────────────────────────────
+    var soaObserver = new IntersectionObserver(function(entries) {
+      if (entries[0].isIntersecting) {
+        var ids = ['soan0','soaa0','soan1','soaa1','soan2','soaa2','soan3'];
+        ids.forEach(function(id, i) {
+          setTimeout(function() {
+            var el = document.getElementById(id);
+            if (el) el.classList.add('reveal');
+          }, i * 280);
+        });
+        soaObserver.disconnect();
+      }
+    }, { threshold: 0.3 });
+    var soaDiagram = document.getElementById('soa-diagram');
+    if (soaDiagram) soaObserver.observe(soaDiagram);
+
+    // ── RM-ODP layers animation ──────────────────────────────────────────
+    var odpObserver = new IntersectionObserver(function(entries) {
+      if (entries[0].isIntersecting) {
+        document.querySelectorAll('.odp-layer').forEach(function(el, i) {
+          setTimeout(function() { el.classList.add('reveal'); }, i * 220);
+        });
+        odpObserver.disconnect();
+      }
+    }, { threshold: 0.1 });
+    var odpStack = document.getElementById('odp-stack');
+    if (odpStack) odpObserver.observe(odpStack);
+
+    // ── Quality eixos animation ──────────────────────────────────────────
+    var eixoObserver = new IntersectionObserver(function(entries) {
+      if (entries[0].isIntersecting) {
+        document.querySelectorAll('.eixo-card').forEach(function(el, i) {
+          setTimeout(function() { el.classList.add('reveal'); }, i * 120);
+        });
+        eixoObserver.disconnect();
+      }
+    }, { threshold: 0.1 });
+    var eixoGrid = document.getElementById('eixo-grid');
+    if (eixoGrid) eixoObserver.observe(eixoGrid);
+
+    // ── Checklist ────────────────────────────────────────────────────────
+    function toggleCk(li) {
+      li.classList.toggle('done');
+    }
+
+    // ── Copy code ────────────────────────────────────────────────────────
+    function copyCode(btn) {
+      var pre = btn.closest('.code-wrap').querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(function() {
+        btn.textContent = 'copiado \u2713';
+        setTimeout(function() { btn.textContent = 'copiar'; }, 2000);
+      });
+    }
+
+    // ── Active TOC on scroll ─────────────────────────────────────────────
+    var sections = document.querySelectorAll('.mat-section[id], h3[id]');
+    var tocLinks = document.querySelectorAll('.mat-toc a');
+    var tocObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        if (e.isIntersecting) {
+          var id = e.target.id;
+          tocLinks.forEach(function(a) {
+            a.classList.toggle('active', a.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    sections.forEach(function(s) { tocObserver.observe(s); });
+  </script>
 </body>
 </html>
