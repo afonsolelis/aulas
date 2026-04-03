@@ -76,6 +76,8 @@ test.describe('README.md - Índice das Specs', () => {
       'lesson-cards.md',
       'index-module-cards.md',
       'module-2-common.md',
+      'module2-slides.md',
+      'lesson-materials.md',
     ].forEach((file) => {
       expect(readme).toContain(file);
       expect(fs.existsSync(resolveRepoPath(`specs/${file}`))).toBe(true);
@@ -403,8 +405,83 @@ test.describe('testing-standards.md - Testes Automatizados com Playwright', () =
       'accessibility.md',
       'autoestudos-pages.md',
       'testing-standards.md',
+      'module2-slides.md',
+      'lesson-materials.md',
     ].forEach((label) => {
       expect(suite).toContain(label);
+    });
+  });
+});
+
+test.describe('module2-slides.md - Slides do Módulo 2', () => {
+  test('slides do módulo 2 devem usar sistema próprio de navegação (sem Reveal.js)', () => {
+    module2Slides.forEach((file) => {
+      const html = read(file);
+      expect(html).not.toMatch(/Reveal\.initialize|reveal\.js/i);
+      expect(html).toContain('slide-container');
+      expect(html).toContain('showSlide');
+    });
+  });
+
+  test('slides do módulo 2 devem ter animMap e timer helpers Cardiff', () => {
+    module2Slides.forEach((file) => {
+      const html = read(file);
+      expect(html).toContain('animMap');
+      expect(html).toMatch(/function\s+T\s*\(/);
+      expect(html).toMatch(/function\s+clearT\s*\(/);
+    });
+  });
+
+  test('slides do módulo 2 devem conter slides RM-ODP e RF/RNF', () => {
+    module2Slides.forEach((file) => {
+      const html = read(file);
+      expect(html).toMatch(/RM-ODP|rm-odp/i);
+      expect(html).toMatch(/RF.*RNF|RNF.*RF|8 Eixos|animRfRnf/i);
+    });
+  });
+
+  test('slides do módulo 2 devem ter footer com botão Material verde', () => {
+    module2Slides.forEach((file) => {
+      const html = read(file);
+      expect(html).toMatch(/back-home.*material|material.*back-home/i);
+      expect(html).toMatch(/#2f8f78/);
+    });
+  });
+});
+
+test.describe('lesson-materials.md - Materiais de Leitura Livro-Didático', () => {
+  // Materiais já migrados para o padrão livro-didático.
+  // Expandir esta lista à medida que cada material for reescrito.
+  const upgradedMaterials = [
+    'pages/module-2-common/materials/lesson-1-material.html',
+  ];
+
+  test('materiais migrados devem ter barra de progresso de leitura', () => {
+    upgradedMaterials.forEach((file) => {
+      const html = read(file);
+      expect(html).toContain('progress-bar');
+    });
+  });
+
+  test('materiais migrados devem ter floating nav com Slides e Módulo', () => {
+    upgradedMaterials.forEach((file) => {
+      const html = read(file);
+      expect(html).toContain('float-nav');
+      expect(html).toMatch(/fn-btn|float.*nav/i);
+    });
+  });
+
+  test('materiais migrados devem ter sidebar TOC', () => {
+    upgradedMaterials.forEach((file) => {
+      const html = read(file);
+      expect(html).toMatch(/mat-toc|mat-sidebar/i);
+    });
+  });
+
+  test('materiais migrados não devem ser placeholders', () => {
+    upgradedMaterials.forEach((file) => {
+      const html = read(file);
+      expect(html).not.toMatch(/Placeholder|em organização|em desenvolvimento|em breve/i);
     });
   });
 });
