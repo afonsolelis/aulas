@@ -12,4 +12,5 @@ Arquivos:
 - `index-module-cards.md`: regras dos cards de módulo na `index.html`.
 - `module-2-common.md`: regras específicas do módulo 2 do ciclo comum.
 - `module2-slides.md`: padrão completo para slides do Módulo 2 (sistema próprio JS, animações Cardiff, RM-ODP, RF/RNF).
+- `module2-slide-structure.md`: estrutura obrigatória dos 3 slides iniciais — Capa, Daily (cronômetro 15min) e Agenda.
 - `lesson-materials.md`: padrão livro-didático para materiais de leitura (progress bar, floating nav, sidebar TOC, scroll animations).

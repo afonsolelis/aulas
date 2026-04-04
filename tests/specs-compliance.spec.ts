@@ -413,6 +413,44 @@ test.describe('testing-standards.md - Testes Automatizados com Playwright', () =
   });
 });
 
+test.describe('module2-slide-structure.md - Estrutura Obrigatória dos Slides do Módulo 2', () => {
+  test('todos os slides devem ter daily com cronômetro', () => {
+    module2Slides.forEach((file) => {
+      const html = read(file);
+      expect(html).toContain('daily-timer');
+      expect(html).toContain('startDaily');
+      expect(html).toContain('resetDaily');
+      expect(html).toContain('dailyInterval');
+    });
+  });
+
+  test('todos os slides devem ter slide de capa com cv-badge e cv-tags', () => {
+    module2Slides.forEach((file) => {
+      const html = read(file);
+      expect(html).toContain('cv-badge');
+      expect(html).toContain('cv-tags');
+      expect(html).toContain('cv-tag');
+    });
+  });
+
+  test('todos os slides devem ter slide de agenda', () => {
+    module2Slides.forEach((file) => {
+      const html = read(file);
+      expect(html).toMatch(/animAgenda|Agenda da Aula/i);
+    });
+  });
+
+  test('daily deve ter as 4 tags obrigatórias (dt0–dt3)', () => {
+    module2Slides.forEach((file) => {
+      const html = read(file);
+      expect(html).toContain('id="dt0"');
+      expect(html).toContain('id="dt1"');
+      expect(html).toContain('id="dt2"');
+      expect(html).toContain('id="dt3"');
+    });
+  });
+});
+
 test.describe('module2-slides.md - Slides do Módulo 2', () => {
   test('slides do módulo 2 devem usar sistema próprio de navegação (sem Reveal.js)', () => {
     module2Slides.forEach((file) => {

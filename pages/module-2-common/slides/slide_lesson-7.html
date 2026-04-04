@@ -132,6 +132,10 @@
     .nav-buttons button:disabled { background:#caced6; cursor:not-allowed; }
     .slide-counter { font-weight:700; color:var(--dk); min-width:70px; text-align:center; }
     .fullscreen-btn { background:#f1f4f8; border:none; font-size:1.1rem; cursor:pointer; padding:8px 12px; border-radius:8px; }
+
+    .daily-timer { font-size:3.5rem; font-weight:800; font-family:monospace; background:rgba(255,255,255,.15); border-radius:16px; padding:10px 28px; display:inline-block; margin-bottom:16px; letter-spacing:4px; color:white; }
+    .daily-tag { background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.3); padding:6px 16px; border-radius:8px; font-weight:700; font-size:.85rem; color:white; opacity:0; transform:translateY(14px); transition:all .45s cubic-bezier(.34,1.3,.64,1); display:inline-block; margin:4px; }
+    .daily-tag.vis { opacity:1; transform:translateY(0); }
   </style>
 </head>
 <body>
@@ -151,6 +155,27 @@
         <div class="cv-tag" id="ct4">📡 Eventos</div>
         <div class="cv-tag" id="ct5">📝 Formulários</div>
       </div>
+
+  <!-- ====== SLIDE 2: DAILY ====== -->
+  <div class="slide cover-bg" style="background:linear-gradient(135deg,#1f2937 0%,#4b5563 50%,#b2b6bf 100%)!important;">
+    <div class="sc" style="text-align:center;">
+      <div style="background:rgba(255,255,255,.12);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.22);border-radius:20px;padding:28px 32px;">
+        <div style="font-size:2rem;font-weight:800;color:white;margin-bottom:6px;">⏱️ Daily — 15 Minutos</div>
+        <div style="font-size:1rem;color:rgba(255,255,255,.85);margin-bottom:18px;">O que você fez? O que vai fazer? Algum impedimento?</div>
+        <div class="daily-timer" id="daily-timer">15:00</div>
+        <div style="margin-bottom:18px;">
+          <button id="daily-start-btn" onclick="startDaily()" style="background:rgba(255,255,255,.25);border:1px solid rgba(255,255,255,.4);color:white;padding:9px 22px;border-radius:10px;font-weight:700;font-size:.9rem;cursor:pointer;margin:0 6px;font-family:'Manrope',sans-serif;">▶ Iniciar</button>
+          <button onclick="resetDaily()" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:white;padding:9px 22px;border-radius:10px;font-weight:700;font-size:.9rem;cursor:pointer;margin:0 6px;font-family:'Manrope',sans-serif;">↺ Reset</button>
+        </div>
+        <div>
+          <span class="daily-tag" id="dt0">✅ O que fiz</span>
+          <span class="daily-tag" id="dt1">🎯 O que vou fazer</span>
+          <span class="daily-tag" id="dt2">🚧 Impedimentos</span>
+          <span class="daily-tag" id="dt3">📦 Progresso do projeto</span>
+        </div>
+      </div>
+    </div>
+  </div>
     </div>
   </div>
 
@@ -507,6 +532,34 @@
 </div>
 
 <script>
+// ── DAILY TIMER ───────────────────────────────────────────────────────────
+var dailyInterval = null;
+var dailySeconds = 900;
+var dailyRunning = false;
+function updateDailyDisplay() {
+  var m = Math.floor(dailySeconds / 60);
+  var s = dailySeconds % 60;
+  var el = document.getElementById('daily-timer');
+  if (el) el.textContent = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+}
+function startDaily() {
+  if (dailyRunning) { clearInterval(dailyInterval); dailyRunning = false; document.getElementById('daily-start-btn').textContent = '▶ Continuar'; return; }
+  dailyRunning = true;
+  document.getElementById('daily-start-btn').textContent = '⏸ Pausar';
+  dailyInterval = setInterval(function() {
+    if (dailySeconds <= 0) { clearInterval(dailyInterval); dailyRunning = false; document.getElementById('daily-start-btn').textContent = '✅ Fim!'; return; }
+    dailySeconds--;
+    updateDailyDisplay();
+  }, 1000);
+}
+function resetDaily() {
+  clearInterval(dailyInterval);
+  dailyRunning = false;
+  dailySeconds = 900;
+  updateDailyDisplay();
+  document.getElementById('daily-start-btn').textContent = '▶ Iniciar';
+}
+
 // ── NAVIGATION ──────────────────────────────────────────────────────────────
 var currentSlide = 0;
 var slides = document.querySelectorAll('.slide');
@@ -552,6 +605,13 @@ function resetLines(ids) {
 }
 
 // ── SLIDE 1: Cover ────────────────────────────────────────────────────────
+function animAgenda() {
+  ['ag0','ag1','ag2','ag3'].forEach(function(id){ var el=document.getElementById(id); if(el){ el.style.opacity='0'; el.style.transform='translateY(18px)'; } });
+  ['ag0','ag1','ag2','ag3'].forEach(function(id,i){
+    T(function(){ var el=document.getElementById(id); if(el){ el.style.opacity='1'; el.style.transform='translateY(0)'; } }, i*160);
+  });
+}
+
 function animCover() {
   ['ct0','ct1','ct2','ct3','ct4','ct5'].forEach(function(id){ var el=document.getElementById(id); if(el) el.classList.remove('vis'); });
   ['ct0','ct1','ct2','ct3','ct4','ct5'].forEach(function(id,i){
