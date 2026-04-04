@@ -520,3 +520,16 @@ test.describe('lesson-materials.md - Materiais de Leitura Livro-Didático', () =
     });
   });
 });
+
+test.describe('palestras-cards.md - Cards de Palestras', () => {
+  test('cada card de palestra deve ter tag de empresa', () => {
+    const html = read('pages/home-palestras.html');
+    expect(html).toContain('company-tag');
+  });
+
+  test('palestra da Cardiff deve identificar BNP Paribas Cardif', () => {
+    const html = read('pages/home-palestras.html');
+    expect(html).toMatch(/BNP Paribas Cardif|Cardiff/i);
+    expect(html).toContain('company-tag');
+  });
+});
