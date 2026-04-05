@@ -1,0 +1,101 @@
+name: Code Quality Checks
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  lint:
+    name: Validate HTML & Config
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Validate JSON files
+        run: |
+          echo "Validating JSON configuration files..."
+          for file in config/*.json; do
+            if [ -f "$file" ]; then
+              jq . "$file" > /dev/null 2>&1 && echo "✓ $file" || (echo "✗ $file - Invalid JSON"; exit 1)
+            fi
+          done
+      
+      - name: Check file naming conventions
+        run: |
+          echo "Checking file naming conventions..."
+          
+          # Check for invalid slide names
+          find pages -name "*.html" -type f | while read file; do
+            if [[ $file =~ module-[0-9]+-[a-z\-]+/slides/ ]]; then
+              filename=$(basename "$file")
+              if [[ ! $filename =~ ^slide_lesson-[0-9]+\.html$ ]]; then
+                echo "✗ Invalid slide naming: $file"
+                echo "  Expected: slide_lesson-<n>.html"
+                exit 1
+              fi
+            fi
+          done
+          echo "✓ File naming conventions are correct"
+      
+      - name: Verify module directory structure
+        run: |
+          echo "Verifying module directory structure..."
+          
+          for dir in pages/module-*; do
+            if [ -d "$dir" ]; then
+              if [ ! -d "$dir/slides" ] || [ ! -d "$dir/materials" ]; then
+                echo "✗ Missing slides/ or materials/ directory in $dir"
+                exit 1
+              fi
+              echo "✓ $(basename $dir) structure is valid"
+            fi
+          done
+      
+      - name: Check for relative paths in HTML
+        run: |
+          echo "Checking for absolute paths (should be relative)..."
+          count=0
+          for file in pages/**/*.html index.html; do
+            if grep -q 'href="http' "$file" 2>/dev/null || grep -q "src=\"http" "$file" 2>/dev/null; then
+              echo "⚠ Warning: Found absolute URLs in $file (consider using relative paths)"
+            fi
+          done
+          echo "✓ Path validation complete"
+
+  security:
+    name: Security Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Check for exposed credentials
+        run: |
+          echo "Scanning for potentially exposed credentials..."
+          
+          # Basic check for common credential patterns
+          if grep -r "password\s*=" pages/ config/ 2>/dev/null | grep -v "placeholder"; then
+            echo "⚠ Warning: Found potential hardcoded credentials"
+          fi
+          
+          if grep -r "API_KEY\|SECRET_KEY\|PRIVATE_KEY" pages/ config/ 2>/dev/null; then
+            echo "✗ Error: Found hardcoded credentials"
+            exit 1
+          fi
+          
+          echo "✓ No obvious credentials found"

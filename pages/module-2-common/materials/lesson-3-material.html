@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aula 3 — Banco de Dados II — Material — Inteli</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="../../../css/inteli-styles.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ac:#4b5563; --hi:#b2b6bf; --dk:#2e2640; --gr:#0d9488; --re:#dc2626; --am:#d97706;
+      --text:#1e293b; --muted:#64748b; --border:#e2e8f0; --bg:#f8fafc; --card:#ffffff;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family:'Manrope',sans-serif; color:var(--text); background:var(--bg); }
+
+    /* ── Progress bar ── */
+    #progress-bar { position:fixed; top:0; left:0; height:3px; background:linear-gradient(90deg,var(--ac),var(--hi)); width:0%; z-index:9999; transition:width .1s; }
+
+    /* ── Floating nav ── */
+    #float-nav { position:fixed; bottom:28px; right:28px; display:flex; flex-direction:column; gap:8px; z-index:9998; opacity:0; pointer-events:none; transform:translateY(12px); transition:opacity .3s,transform .3s; }
+    #float-nav.visible { opacity:1; pointer-events:auto; transform:translateY(0); }
+    .fn-btn { display:flex; align-items:center; gap:6px; padding:10px 16px; border-radius:999px; font-size:.82rem; font-weight:700; text-decoration:none; box-shadow:0 4px 18px rgba(0,0,0,.25); transition:transform .15s,box-shadow .15s; white-space:nowrap; }
+    .fn-btn:hover { transform:translateY(-2px); box-shadow:0 6px 24px rgba(0,0,0,.32); text-decoration:none; }
+    .fn-btn-slides { background:white; color:var(--ac); border:2px solid var(--ac); }
+    .fn-btn-back   { background:var(--dk); color:white; }
+
+    /* ── Header ── */
+    .mat-header { background:linear-gradient(135deg,#1f2937 0%,#4b5563 50%,#b2b6bf 100%); color:white; padding:40px 0 32px; }
+    .mat-header h1 { font-size:2.2rem; font-weight:800; margin:0 0 8px; }
+    .mat-header .subtitle { font-size:1rem; opacity:.85; margin:0 0 20px; }
+    .mat-badge { background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.3); color:white; padding:4px 14px; border-radius:999px; font-size:.78rem; font-weight:700; display:inline-block; margin-bottom:12px; }
+
+    /* ── Layout ── */
+    .mat-layout { display:grid; grid-template-columns:260px 1fr; gap:32px; max-width:1200px; margin:0 auto; padding:40px 24px; }
+    @media(max-width:900px){ .mat-layout { grid-template-columns:1fr; } .mat-sidebar { display:none; } }
+
+    /* ── Sidebar ── */
+    .mat-sidebar { position:sticky; top:24px; max-height:calc(100vh - 48px); overflow-y:auto; }
+    .mat-toc { background:var(--card); border-radius:14px; padding:20px; border:1px solid var(--border); box-shadow:0 2px 8px rgba(0,0,0,.05); }
+    .mat-toc h4 { font-size:.8rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:0 0 12px; }
+    .mat-toc a { display:block; color:var(--muted); text-decoration:none; font-size:.82rem; padding:4px 0 4px 12px; border-left:2px solid transparent; transition:all .2s; line-height:1.3; }
+    .mat-toc a:hover, .mat-toc a.active { color:var(--ac); border-left-color:var(--ac); }
+    .mat-toc .toc-h3 { padding-left:22px; font-size:.77rem; }
+
+    /* ── Article ── */
+    .mat-article { min-width:0; }
+    .mat-section { margin-bottom:56px; }
+    .mat-section h2 { font-size:1.75rem; font-weight:800; color:var(--dk); padding-bottom:12px; border-bottom:2px solid var(--border); margin:0 0 24px; scroll-margin-top:80px; }
+    .mat-section h3 { font-size:1.2rem; font-weight:700; color:var(--dk); margin:32px 0 12px; scroll-margin-top:80px; }
+    .mat-section h4 { font-size:1rem; font-weight:700; color:var(--dk); margin:24px 0 10px; }
+    .mat-section p { line-height:1.8; margin-bottom:16px; font-size:.97rem; color:#374151; }
+    .mat-section ul, .mat-section ol { padding-left:1.5rem; margin-bottom:16px; }
+    .mat-section li { line-height:1.75; font-size:.97rem; color:#374151; margin-bottom:4px; }
+    .mat-section strong { color:var(--dk); }
+
+    /* ── Callout boxes ── */
+    .callout { border-radius:12px; padding:16px 20px; margin:20px 0; border-left:4px solid; }
+    .callout-info  { background:#eff6ff; border-color:#3b82f6; }
+    .callout-warn  { background:#fffbeb; border-color:#f59e0b; }
+    .callout-danger{ background:#fef2f2; border-color:#ef4444; }
+    .callout-tip   { background:#f0fdf4; border-color:#22c55e; }
+    .callout-deep  { background:#f5f3ff; border-color:#8b5cf6; }
+    .callout-label { font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; margin-bottom:6px; }
+    .callout-info  .callout-label { color:#3b82f6; }
+    .callout-warn  .callout-label { color:#f59e0b; }
+    .callout-danger .callout-label { color:#ef4444; }
+    .callout-tip   .callout-label { color:#22c55e; }
+    .callout-deep  .callout-label { color:#8b5cf6; }
+    .callout p { margin:0; font-size:.91rem; line-height:1.65; color:#374151; }
+
+    /* ── Code blocks ── */
+    .code-wrap { position:relative; margin:20px 0; border-radius:12px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,.15); }
+    .code-label { background:#313244; color:#6c7086; font-size:.7rem; font-weight:700; padding:6px 14px; font-family:'JetBrains Mono',monospace; display:flex; justify-content:space-between; align-items:center; }
+    .code-copy { background:transparent; border:1px solid #6c7086; color:#cdd6f4; font-size:.65rem; padding:2px 8px; border-radius:5px; cursor:pointer; font-family:'JetBrains Mono',monospace; transition:all .2s; }
+    .code-copy:hover { background:#6c7086; color:white; }
+    pre.code-block { background:#1e1e2e; color:#cdd6f4; padding:18px 20px; margin:0; font-family:'JetBrains Mono',monospace; font-size:.82rem; line-height:1.75; overflow-x:auto; }
+    pre.code-block code { font-family:inherit; background:transparent; color:inherit; padding:0; }
+    .hl-kw  { color:#89b4fa; font-weight:600; }
+    .hl-str { color:#a6e3a1; }
+    .hl-num { color:#fab387; }
+    .hl-cmt { color:#6c7086; font-style:italic; }
+    .hl-typ { color:#cba6f7; }
+    .hl-fn  { color:#f9e2af; }
+    .hl-url { color:#94e2d5; text-decoration:underline; }
+
+    /* ── Tables ── */
+    .mat-table { width:100%; border-collapse:collapse; margin:20px 0; border-radius:10px; overflow:hidden; border:1px solid var(--border); font-size:.88rem; }
+    .mat-table thead th { background:var(--dk); color:white; padding:12px 16px; text-align:left; font-size:.8rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+    .mat-table tbody td { padding:10px 16px; border-bottom:1px solid var(--border); line-height:1.5; }
+    .mat-table tbody tr:last-child td { border-bottom:none; }
+    .mat-table tbody tr:hover { background:#f8fafc; }
+    .tag { display:inline-block; padding:2px 8px; border-radius:5px; font-size:.72rem; font-weight:700; }
+    .tag-blue  { background:#dbeafe; color:#1d4ed8; }
+    .tag-green { background:#dcfce7; color:#15803d; }
+    .tag-red   { background:#fee2e2; color:#b91c1c; }
+    .tag-purple{ background:#ede9fe; color:#7c3aed; }
+    .tag-amber { background:#fef3c7; color:#92400e; }
+
+    /* ── CRUD operation cards ── */
+    .crud-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; margin:20px 0; }
+    .crud-card { border-radius:12px; padding:16px; border:2px solid transparent; transition:transform .2s,box-shadow .2s; }
+    .crud-card:hover { transform:translateY(-3px); box-shadow:0 8px 24px rgba(0,0,0,.1); }
+    .crud-card.INSERT { background:#dcfce7; border-color:#22c55e; }
+    .crud-card.SELECT { background:#dbeafe; border-color:#3b82f6; }
+    .crud-card.UPDATE { background:#fef3c7; border-color:#f59e0b; }
+    .crud-card.DELETE { background:#fee2e2; border-color:#ef4444; }
+    .crud-verb { font-family:'JetBrains Mono',monospace; font-size:1rem; font-weight:800; margin-bottom:4px; }
+    .crud-card.INSERT .crud-verb { color:#15803d; }
+    .crud-card.SELECT .crud-verb { color:#1d4ed8; }
+    .crud-card.UPDATE .crud-verb { color:#92400e; }
+    .crud-card.DELETE .crud-verb { color:#b91c1c; }
+    .crud-desc { font-size:.8rem; color:#374151; line-height:1.5; }
+    .crud-example { font-family:'JetBrains Mono',monospace; font-size:.72rem; color:#64748b; margin-top:6px; background:rgba(255,255,255,.6); padding:3px 7px; border-radius:5px; }
+
+    /* ── Aggregation cards ── */
+    .agg-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin:20px 0; }
+    .agg-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; border-top:4px solid; text-align:center; opacity:0; transform:translateY(16px); transition:all .5s cubic-bezier(.34,1.3,.64,1); }
+    .agg-card.reveal { opacity:1; transform:translateY(0); }
+    .agg-fn { font-family:'JetBrains Mono',monospace; font-size:1.1rem; font-weight:800; margin-bottom:4px; display:block; }
+    .agg-desc { font-size:.78rem; color:var(--muted); line-height:1.4; }
+    .agg-ex { font-size:.73rem; color:#374151; margin-top:6px; font-style:italic; }
+
+    /* ── RM-ODP layers ── */
+    .odp-stack { display:flex; flex-direction:column; gap:8px; margin:20px 0; }
+    .odp-layer { border-radius:10px; padding:14px 18px; display:flex; align-items:center; gap:14px; opacity:0; transform:translateX(-20px); transition:all .5s cubic-bezier(.34,1.3,.64,1); }
+    .odp-layer.reveal { opacity:1; transform:translateX(0); }
+    .odp-icon { font-size:1.4rem; flex-shrink:0; }
+    .odp-name { font-size:.9rem; font-weight:700; color:var(--dk); }
+    .odp-desc { font-size:.8rem; color:#374151; margin-top:2px; line-height:1.5; }
+    .odp-focus { font-size:.73rem; font-weight:700; padding:2px 8px; border-radius:5px; margin-top:4px; display:inline-block; }
+
+    /* ── Transaction flow ── */
+    .tx-flow { background:#1e1e2e; border-radius:14px; padding:24px; margin:20px 0; }
+    .tx-step { display:flex; align-items:flex-start; gap:14px; margin-bottom:14px; opacity:0; transform:translateX(-16px); transition:all .4s ease; }
+    .tx-step.reveal { opacity:1; transform:translateX(0); }
+    .tx-step-num { width:28px; height:28px; border-radius:50%; background:var(--gr); color:white; font-size:.75rem; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; }
+    .tx-step-num.rollback { background:var(--re); }
+    .tx-step-text { color:#cdd6f4; font-size:.85rem; line-height:1.6; }
+    .tx-step-code { display:inline-block; background:#313244; color:#a6e3a1; padding:1px 7px; border-radius:4px; font-family:'JetBrains Mono',monospace; font-size:.78rem; }
+
+    /* ── Expandable deep-dive ── */
+    .deep-dive { margin:20px 0; border:1px solid #ede9fe; border-radius:12px; overflow:hidden; }
+    .deep-header { background:#f5f3ff; padding:14px 18px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; user-select:none; }
+    .deep-header h4 { margin:0; font-size:.9rem; color:#6d28d9; font-weight:700; }
+    .deep-arrow { font-size:.8rem; color:#8b5cf6; transition:transform .3s; }
+    .deep-header.open .deep-arrow { transform:rotate(180deg); }
+    .deep-body { padding:0 18px; max-height:0; overflow:hidden; transition:max-height .4s ease, padding .3s; }
+    .deep-body.open { max-height:2000px; padding:16px 18px; }
+
+    /* ── Scroll reveal ── */
+    .sr { opacity:0; transform:translateY(24px); transition:opacity .5s ease,transform .5s ease; }
+    .sr.vis { opacity:1; transform:translateY(0); }
+
+    /* ── Checklist ── */
+    .checklist { list-style:none; padding:0; margin:20px 0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:8px 0; border-bottom:1px solid var(--border); font-size:.9rem; color:#374151; cursor:pointer; user-select:none; }
+    .checklist li:last-child { border-bottom:none; }
+    .ck-box { width:20px; height:20px; border:2px solid var(--border); border-radius:5px; flex-shrink:0; display:flex; align-items:center; justify-content:center; transition:all .2s; margin-top:2px; }
+    .checklist li.done .ck-box { background:var(--gr); border-color:var(--gr); color:white; }
+    .checklist li.done .ck-text { text-decoration:line-through; color:var(--muted); }
+  </style>
+</head>
+<body>
+  <div id="progress-bar"></div>
+
+  <!-- Floating nav (appears after scrolling past header) -->
+  <div id="float-nav">
+    <a href="../slides/slide_lesson-3.html" class="fn-btn fn-btn-slides">&#9654; Slides</a>
+    <a href="../../home-module-2-common.html" class="fn-btn fn-btn-back">&#8592; Módulo</a>
+  </div>
+
+  <header class="mat-header">
+    <div class="container">
+      <div class="mat-badge">Módulo 2 · Ciclo Comum · IN02</div>
+      <h1>Banco de Dados II</h1>
+      <p class="subtitle">Aula 3 — Material de Leitura Aprofundado</p>
+      <div class="d-flex gap-2 flex-wrap">
+        <a href="../slides/slide_lesson-3.html" class="btn btn-light btn-sm">&#9654; Slides</a>
+        <a href="../../home-module-2-common.html" class="btn btn-outline-light btn-sm">&#8592; Voltar ao Módulo</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="mat-layout">
+
+    <!-- ── Sidebar ── -->
+    <aside class="mat-sidebar">
+      <div class="mat-toc">
+        <h4>Neste material</h4>
+        <a href="#sec-revisao">1. Revisão e ciclo de vida dos dados</a>
+        <a href="#sec-insert">2. INSERT — Inserindo dados</a>
+        <a href="#sec-insert-multi" class="toc-h3">2.1 INSERT múltiplo e RETURNING</a>
+        <a href="#sec-select">3. SELECT — Consultando dados</a>
+        <a href="#sec-select-filtros" class="toc-h3">3.1 WHERE, BETWEEN, IN, LIKE</a>
+        <a href="#sec-agregacao">4. Funções de agregação</a>
+        <a href="#sec-groupby" class="toc-h3">4.1 GROUP BY e HAVING</a>
+        <a href="#sec-update">5. UPDATE — Atualizando dados</a>
+        <a href="#sec-delete">6. DELETE — Excluindo dados</a>
+        <a href="#sec-delete-diff" class="toc-h3">6.1 DELETE vs TRUNCATE vs DROP</a>
+        <a href="#sec-indices">7. Índices</a>
+        <a href="#sec-explain" class="toc-h3">7.1 EXPLAIN ANALYZE</a>
+        <a href="#sec-transacoes">8. Transações na prática</a>
+        <a href="#sec-rmodp">9. RM-ODP — Information + Computational</a>
+        <a href="#sec-req">10. RF, RN e RNF</a>
+        <a href="#sec-checklist">11. Checklist</a>
+        <a href="#sec-refs">Referências</a>
+      </div>
+    </aside>
+
+    <!-- ── Article ── -->
+    <article class="mat-article">
+
+      <!-- ════════ 1. REVISÃO ════════ -->
+      <section class="mat-section" id="sec-revisao">
+        <h2>1. Revisão: a estrutura está criada — agora vamos popular</h2>
+
+        <p>Na aula anterior, você aprendeu a modelar o domínio usando o Diagrama de Entidade-Relacionamento (DER) e a traduzir esse modelo em tabelas SQL com <code>CREATE TABLE</code>, chaves primárias, chaves estrangeiras e constraints. Você criou a <em>estrutura</em> do banco — o esqueleto. Agora chegou a hora de dar vida a esse esqueleto: inserir dados, consultá-los, atualizá-los e eventualmente removê-los. Esse conjunto de quatro operações é o que chamamos de <strong>CRUD</strong> — Create, Read, Update, Delete.</p>
+
+        <p>CRUD não é apenas uma sigla de mnemônico: é a fundação de qualquer sistema que persiste dados. Não importa se você está construindo um e-commerce, um sistema hospitalar ou um aplicativo de tarefas — em algum nível, toda funcionalidade se reduz a uma combinação dessas quatro operações. Uma "matrícula de aluno" é um INSERT em <code>matriculas</code>. Um "relatório de vendas" é um SELECT com GROUP BY. Uma "atualização de endereço" é um UPDATE com WHERE. Uma "exclusão de conta" é, muitas vezes, não um DELETE, mas um UPDATE que marca o registro como inativo — e entender essa nuance é parte do que separa desenvolvedores experientes de iniciantes.</p>
+
+        <p>O ciclo de vida de um dado em um sistema típico começa com a inserção (geralmente disparada por uma ação do usuário: preencher um formulário, finalizar uma compra, registrar uma presença). Em seguida, o dado é lido repetidamente — em listagens, relatórios, telas de detalhe. Com o tempo, pode ser atualizado (um pedido muda de status, um produto tem o preço corrigido). E eventualmente pode ser arquivado ou removido. Cada etapa desse ciclo exige que você escreva SQL correto, seguro e eficiente — e esse é o tema central desta aula.</p>
+
+        <div class="callout callout-info sr">
+          <div class="callout-label">Contexto: o modelo da Loja Universitária</div>
+          <p>Ao longo desta aula, usaremos as tabelas <strong>clientes</strong>, <strong>produtos</strong>, <strong>pedidos</strong> e <strong>itens_pedido</strong> criadas na Aula 2. Se precisar, revise o DER e os <code>CREATE TABLE</code> antes de prosseguir — o SQL desta aula pressupõe que essas tabelas existem no banco.</p>
+        </div>
+
+        <!-- CRUD overview cards -->
+        <div class="crud-grid sr">
+          <div class="crud-card INSERT">
+            <div class="crud-verb">INSERT</div>
+            <div class="crud-desc">Adiciona novos registros a uma tabela</div>
+            <div class="crud-example">CREATE em CRUD</div>
+          </div>
+          <div class="crud-card SELECT">
+            <div class="crud-verb">SELECT</div>
+            <div class="crud-desc">Consulta e retorna registros existentes</div>
+            <div class="crud-example">READ em CRUD</div>
+          </div>
+          <div class="crud-card UPDATE">
+            <div class="crud-verb">UPDATE</div>
+            <div class="crud-desc">Modifica registros existentes</div>
+            <div class="crud-example">UPDATE em CRUD</div>
+          </div>
+          <div class="crud-card DELETE">
+            <div class="crud-verb">DELETE</div>
+            <div class="crud-desc">Remove registros de uma tabela</div>
+            <div class="crud-example">DELETE em CRUD</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════ 2. INSERT ════════ -->
+      <section class="mat-section" id="sec-insert">
+        <h2>2. INSERT — Inserindo dados</h2>
+
+        <p>O comando <code>INSERT INTO</code> é a forma de adicionar novos registros a uma tabela. A sintaxe básica exige que você especifique o nome da tabela, a lista de colunas que está preenchendo e os valores correspondentes. Listar explicitamente as colunas é uma boa prática obrigatória: se um dia você alterar a ordem das colunas na tabela ou adicionar uma nova coluna, um INSERT sem lista de colunas quebrará silenciosamente — ou, pior, inserirá dados nas colunas erradas sem nenhuma mensagem de erro.</p>
+
+        <p>O PostgreSQL não exige que você forneça valores para colunas com <code>DEFAULT</code> ou <code>SERIAL</code> (geradas automaticamente). Mas para colunas definidas com <code>NOT NULL</code> sem valor padrão, omiti-las causará um erro imediato. Esse erro é desejável: o banco está protegendo a integridade dos seus dados. A lição prática é simples — antes de escrever um INSERT, leia o <code>CREATE TABLE</code> e identifique quais colunas são obrigatórias.</p>
+
+        <p>Para inserções que envolvem múltiplas tabelas relacionadas — por exemplo, criar um pedido e seus itens ao mesmo tempo — a ordem importa. Você deve inserir primeiro o registro pai (o pedido) antes dos registros filhos (os itens), porque a chave estrangeira <code>pedido_id</code> em <code>itens_pedido</code> deve referenciar um pedido que já existe. Se tentar inserir os itens primeiro, o banco rejeitará a operação com uma violação de chave estrangeira. É exatamente por isso que transações — que veremos adiante — são essenciais em inserções em cascata.</p>
+
+        <div class="code-wrap sr">
+          <div class="code-label">INSERT básico — uma linha <button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-cmt">-- Inserindo um produto</span>
+<span class="hl-kw">INSERT INTO</span> produtos (nome, preco, estoque)
+<span class="hl-kw">VALUES</span> (<span class="hl-str">'Notebook'</span>, <span class="hl-num">2500.00</span>, <span class="hl-num">10</span>);</code></pre>
+        </div>
+
+        <h3 id="sec-insert-multi">2.1 INSERT múltiplo e RETURNING</h3>
+
+        <p>O PostgreSQL permite inserir múltiplas linhas em um único comando <code>INSERT</code>, separando cada conjunto de valores por vírgula. Isso é significativamente mais eficiente do que enviar N comandos INSERT separados, pois reduz o número de round-trips entre a aplicação e o banco — cada ida e volta pela rede tem um custo de latência que se acumula. Em testes com 1000 registros, um INSERT em lote pode ser 10 a 50 vezes mais rápido que 1000 INSERTs individuais.</p>
+
+        <p>A cláusula <code>RETURNING</code> é uma extensão do PostgreSQL (não existe no SQL padrão) que permite recuperar valores de colunas dos registros recém-inseridos sem precisar fazer um SELECT adicional. Isso é especialmente útil para obter o <code>id</code> gerado automaticamente por um <code>SERIAL</code> ou <code>BIGSERIAL</code>. Em vez de inserir e depois fazer <code>SELECT MAX(id)</code> (que é inseguro em ambientes concorrentes), você usa <code>RETURNING id</code> e obtém o valor correto da sua inserção específica, mesmo que outros clientes estejam inserindo registros simultaneamente.</p>
+
+        <p>Outra forma poderosa de inserção é o <code>INSERT INTO ... SELECT</code>, que permite copiar ou transformar dados de uma tabela para outra em uma única operação. Essa técnica é útil para migrações de dados, criação de tabelas de histórico, população de tabelas de cache e operações de ETL (Extract, Transform, Load). O SELECT pode incluir qualquer transformação que o banco suporte — funções de string, cálculos, subqueries, JOINs — e todos os resultados serão inseridos de uma vez.</p>
+
+        <div class="code-wrap sr">
+          <div class="code-label">INSERT múltiplo e RETURNING <button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-cmt">-- INSERT múltiplo: mais eficiente que INSERTs separados</span>
+<span class="hl-kw">INSERT INTO</span> produtos (nome, preco, estoque) <span class="hl-kw">VALUES</span>
+  (<span class="hl-str">'Mouse'</span>,    <span class="hl-num">45.90</span>,  <span class="hl-num">150</span>),
+  (<span class="hl-str">'Teclado'</span>,  <span class="hl-num">120.00</span>, <span class="hl-num">80</span>),
+  (<span class="hl-str">'Monitor'</span>,  <span class="hl-num">890.00</span>, <span class="hl-num">25</span>);
+
+<span class="hl-cmt">-- RETURNING: obtém o id gerado sem um SELECT extra</span>
+<span class="hl-kw">INSERT INTO</span> pedidos (cliente_id, total)
+<span class="hl-kw">VALUES</span> (<span class="hl-num">1</span>, <span class="hl-num">350.00</span>)
+<span class="hl-kw">RETURNING</span> id, criado_em;
+
+<span class="hl-cmt">-- INSERT com SELECT: copia produtos descontinuados para histórico</span>
+<span class="hl-kw">INSERT INTO</span> produtos_historico (produto_id, nome, preco, arquivado_em)
+<span class="hl-kw">SELECT</span> id, nome, preco, <span class="hl-fn">NOW</span>()
+<span class="hl-kw">FROM</span> produtos
+<span class="hl-kw">WHERE</span> descontinuado = <span class="hl-kw">TRUE</span>;</code></pre>
+        </div>
+
+        <div class="callout callout-tip sr">
+          <div class="callout-label">Boas práticas de INSERT</div>
+          <p><strong>Sempre liste as colunas explicitamente</strong> — nunca confie na ordem implícita da tabela.<br>
+          <strong>Use INSERT em lote</strong> quando precisar inserir muitos registros de uma vez.<br>
+          <strong>Use RETURNING</strong> para obter IDs gerados em vez de fazer SELECT MAX(id).<br>
+          <strong>Envolva INSERTs em cascata em transações</strong> — se a inserção do item falhar, o pedido deve ser desfeito.</p>
+        </div>
+      </section>
+
+      <!-- ════════ 3. SELECT ════════ -->
+      <section class="mat-section" id="sec-select">
+        <h2>3. SELECT — Consultando dados</h2>
+
+        <p>O <code>SELECT</code> é o comando mais usado em SQL — e também o mais poderoso. Toda consulta começa com uma pergunta em linguagem natural ("quais produtos custam mais de R$100 e têm estoque disponível?") e termina em SQL que o banco executa eficientemente. O processo de transformar perguntas de negócio em SQL é uma habilidade fundamental para desenvolvedores back-end.</p>
+
+        <p>O <code>SELECT *</code> (asterisco) retorna todas as colunas de uma tabela e é conveniente para exploração durante o desenvolvimento. No entanto, em código de produção, prefira sempre listar as colunas que você realmente precisa. Isso reduz a quantidade de dados transferidos pelo banco, documenta o contrato de dados da sua query e evita surpresas quando alguém adiciona novas colunas à tabela. Um <code>SELECT *</code> em produção também dificulta o uso de índices cobrindo (<em>covering indexes</em>), que só são usados quando o índice contém todas as colunas que a query precisa.</p>
+
+        <p>Os <strong>aliases</strong> (apelidos) com <code>AS</code> permitem renomear colunas no resultado da query. Isso é especialmente útil quando o nome da coluna no banco é técnico (como <code>dt_nasc</code>) e você quer retornar algo mais legível para a camada de aplicação (como <code>data_nascimento</code>). Aliases também são usados em expressões calculadas — você não pode fazer <code>SELECT preco * 0.9 FROM produtos ORDER BY preco * 0.9</code>; é muito mais claro usar <code>SELECT preco * 0.9 AS preco_com_desconto FROM produtos ORDER BY preco_com_desconto</code>.</p>
+
+        <div class="code-wrap sr">
+          <div class="code-label">SELECT com colunas específicas e aliases <button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-cmt">-- Listando colunas específicas com alias</span>
+<span class="hl-kw">SELECT</span>
+  nome                          <span class="hl-kw">AS</span> produto,
+  preco                         <span class="hl-kw">AS</span> preco_original,
+  preco * <span class="hl-num">0.9</span>                   <span class="hl-kw">AS</span> preco_com_desconto,
+  estoque                       <span class="hl-kw">AS</span> quantidade_disponivel
+<span class="hl-kw">FROM</span> produtos
+<span class="hl-kw">WHERE</span> estoque > <span class="hl-num">0</span>
+<span class="hl-kw">ORDER BY</span> preco_com_desconto <span class="hl-kw">DESC</span>;</code></pre>
+        </div>
+
+        <h3 id="sec-select-filtros">3.1 WHERE, BETWEEN, IN, LIKE, IS NULL</h3>
+
+        <p>A cláusula <code>WHERE</code> é onde a maioria da lógica de filtro acontece. Você pode combinar condições com <code>AND</code> e <code>OR</code>, agrupando com parênteses quando necessário para controlar a precedência — <code>AND</code> tem precedência sobre <code>OR</code>, assim como multiplicação tem sobre adição na matemática. Uma query sem WHERE retorna todos os registros da tabela, o que pode ser intencional (em uma listagem completa) ou acidental (em um UPDATE, como veremos, isso é catastrófico).</p>
+
+        <p>O operador <code>BETWEEN</code> é um atalho conveniente para <code>coluna &gt;= valor1 AND coluna &lt;= valor2</code> — observe que é inclusivo em ambos os lados. O operador <code>IN</code> permite comparar uma coluna com uma lista de valores, substituindo múltiplos <code>OR</code>. O <code>LIKE</code> permite busca por padrão em strings: <code>%</code> representa zero ou mais caracteres e <code>_</code> representa exatamente um caractere. Para buscas case-insensitive no PostgreSQL, use <code>ILIKE</code> em vez de <code>LIKE</code>.</p>
+
+        <p>O tratamento de valores nulos exige atenção especial. Em SQL, <code>NULL</code> representa a ausência de valor — e qualquer comparação com NULL usando <code>=</code> ou <code>!=</code> retorna NULL (não TRUE, não FALSE — NULL). Por isso, para verificar se um campo é nulo, você deve usar <code>IS NULL</code> ou <code>IS NOT NULL</code>. Esquecer isso é um bug clássico: <code>WHERE descricao != NULL</code> nunca retorna nada, pois a comparação é NULL, não TRUE.</p>
+
+        <div class="code-wrap sr">
+          <div class="code-label">SELECT com filtros avançados <button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-cmt">-- BETWEEN: faixa de preço (inclusivo em ambos os lados)</span>
+<span class="hl-kw">SELECT</span> nome, preco <span class="hl-kw">FROM</span> produtos
+<span class="hl-kw">WHERE</span> preco <span class="hl-kw">BETWEEN</span> <span class="hl-num">50</span> <span class="hl-kw">AND</span> <span class="hl-num">500</span>
+  <span class="hl-kw">AND</span> estoque > <span class="hl-num">0</span>
+<span class="hl-kw">ORDER BY</span> preco <span class="hl-kw">DESC</span>
+<span class="hl-kw">LIMIT</span> <span class="hl-num">10</span>;
+
+<span class="hl-cmt">-- IN: filtrar por lista de valores</span>
+<span class="hl-kw">SELECT</span> nome, categoria <span class="hl-kw">FROM</span> produtos
+<span class="hl-kw">WHERE</span> categoria <span class="hl-kw">IN</span> (<span class="hl-str">'eletrônicos'</span>, <span class="hl-str">'acessórios'</span>, <span class="hl-str">'periféricos'</span>);
+
+<span class="hl-cmt">-- ILIKE: busca case-insensitive por padrão</span>
+<span class="hl-kw">SELECT</span> nome, email <span class="hl-kw">FROM</span> clientes
+<span class="hl-kw">WHERE</span> nome <span class="hl-kw">ILIKE</span> <span class="hl-str">'%silva%'</span>;
+
+<span class="hl-cmt">-- IS NULL / IS NOT NULL: valores ausentes</span>
+<span class="hl-kw">SELECT</span> nome, telefone <span class="hl-kw">FROM</span> clientes
+<span class="hl-kw">WHERE</span> telefone <span class="hl-kw">IS NULL</span>;        <span class="hl-cmt">-- clientes sem telefone cadastrado</span>
+
+<span class="hl-kw">SELECT</span> nome, descricao <span class="hl-kw">FROM</span> produtos
+<span class="hl-kw">WHERE</span> descricao <span class="hl-kw">IS NOT NULL</span>;  <span class="hl-cmt">-- produtos que têm descrição</span></code></pre>
+        </div>
+
+        <div class="callout callout-warn sr">
+          <div class="callout-label">Cuidado: comparações com NULL</div>
+          <p>Em SQL, <code>NULL = NULL</code> retorna <code>NULL</code>, não <code>TRUE</code>. Para verificar valores nulos, <strong>sempre use <code>IS NULL</code> ou <code>IS NOT NULL</code></strong>. Usar <code>= NULL</code> é um erro silencioso que não filtra nada e não gera nenhuma mensagem de erro — apenas retorna um conjunto vazio inesperado.</p>
+        </div>
+      </section>
+
+      <!-- ════════ 4. FUNÇÕES DE AGREGAÇÃO ════════ -->
+      <section class="mat-section" id="sec-agregacao">
+        <h2>4. Funções de agregação</h2>
+
+        <p>As funções de agregação calculam um valor único a partir de um conjunto de linhas. Elas são fundamentais para relatórios, dashboards e qualquer situação em que você precisa responder perguntas como "quantos?", "qual a soma?", "qual a média?", "qual o maior?" ou "qual o menor?". Sem funções de agregação, você teria que buscar todos os dados para a aplicação e calcular tudo no código — o que é ineficiente, escala mal e aumenta o tráfego de rede desnecessariamente.</p>
+
+        <p>A distinção entre <code>COUNT(*)</code> e <code>COUNT(coluna)</code> é importante e frequentemente confunde iniciantes. <code>COUNT(*)</code> conta o número de linhas no conjunto de resultados, independente de qualquer valor ser NULL. <code>COUNT(coluna)</code> conta apenas as linhas onde o valor dessa coluna específica não é NULL. Se você quer saber quantos clientes existem, use <code>COUNT(*)</code>. Se quer saber quantos clientes têm telefone cadastrado (campo opcional), use <code>COUNT(telefone)</code>. Essa diferença pode produzir resultados significativamente diferentes em tabelas com muitos valores nulos.</p>
+
+        <p>As funções <code>SUM</code>, <code>AVG</code>, <code>MIN</code> e <code>MAX</code> também ignoram valores NULL automaticamente — o que geralmente é o comportamento desejado. Uma exceção importante: se você usar <code>AVG</code> em uma coluna onde alguns valores são NULL e outros são zero, os zeros entram no cálculo mas os NULLs não. Isso pode fazer a média parecer maior do que seria se NULL fosse tratado como zero. Se NULL foi usado erroneamente para representar "zero", você tem um problema de modelagem de dados que distorcerá qualquer agregação.</p>
+
+        <!-- Aggregation cards -->
+        <div class="agg-grid" id="agg-grid">
+          <div class="agg-card" style="border-color:#3b82f6;">
+            <span class="agg-fn" style="color:#1d4ed8;">COUNT</span>
+            <div class="agg-desc">Conta linhas ou valores não nulos</div>
+            <div class="agg-ex">COUNT(*) vs COUNT(col)</div>
+          </div>
+          <div class="agg-card" style="border-color:#22c55e;">
+            <span class="agg-fn" style="color:#15803d;">SUM</span>
+            <div class="agg-desc">Soma de valores numéricos</div>
+            <div class="agg-ex">Total de vendas do dia</div>
+          </div>
+          <div class="agg-card" style="border-color:#f59e0b;">
+            <span class="agg-fn" style="color:#92400e;">AVG</span>
+            <div class="agg-desc">Média aritmética dos valores</div>
+            <div class="agg-ex">Preço médio por categoria</div>
+          </div>
+          <div class="agg-card" style="border-color:#ef4444;">
+            <span class="agg-fn" style="color:#b91c1c;">MAX</span>
+            <div class="agg-desc">Maior valor no conjunto</div>
+            <div class="agg-ex">Produto mais caro</div>
+          </div>
+          <div class="agg-card" style="border-color:#8b5cf6;">
+            <span class="agg-fn" style="color:#7c3aed;">MIN</span>
+            <div class="agg-desc">Menor valor no conjunto</div>
+            <div class="agg-ex">Pedido mais antigo</div>
+          </div>
+        </div>
+
+        <h3 id="sec-groupby">4.1 GROUP BY e HAVING</h3>
+
+        <p>O <code>GROUP BY</code> divide os resultados em grupos com base nos valores de uma ou mais colunas, e as funções de agregação são calculadas para cada grupo separadamente. Por exemplo, para calcular o total de vendas por categoria de produto, você agrupa por <code>categoria</code> e soma os valores. Uma regra obrigatória do SQL: toda coluna que aparece no <code>SELECT</code> e não está dentro de uma função de agregação <em>deve</em> aparecer no <code>GROUP BY</code>. Violar isso é um erro em bancos como PostgreSQL (alguns outros bancos, como MySQL em modo permissivo, aceitam — mas produzem resultados imprevisíveis).</p>
+
+        <p>O <code>HAVING</code> filtra grupos após a agregação, da mesma forma que o <code>WHERE</code> filtra linhas antes. A distinção é crucial: <code>WHERE</code> age sobre as linhas individuais antes do agrupamento; <code>HAVING</code> age sobre os grupos resultantes depois do agrupamento. Você não pode usar funções de agregação no <code>WHERE</code> — isso gerará um erro. Se quiser filtrar por uma condição que envolve uma agregação (como "mostrar apenas categorias com mais de 5 produtos"), use <code>HAVING</code>.</p>
+
+        <div class="code-wrap sr">
+          <div class="code-label">GROUP BY e HAVING <button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-cmt">-- Total e média de preço por categoria</span>
+<span class="hl-kw">SELECT</span>
+  categoria,
+  <span class="hl-fn">COUNT</span>(*) <span class="hl-kw">AS</span> total_produtos,
+  <span class="hl-fn">AVG</span>(preco) <span class="hl-kw">AS</span> preco_medio,
+  <span class="hl-fn">SUM</span>(preco * estoque) <span class="hl-kw">AS</span> valor_em_estoque
+<span class="hl-kw">FROM</span> produtos
+<span class="hl-kw">GROUP BY</span> categoria
+<span class="hl-kw">HAVING</span> <span class="hl-fn">COUNT</span>(*) > <span class="hl-num">5</span>         <span class="hl-cmt">-- só categorias com mais de 5 produtos</span>
+<span class="hl-kw">ORDER BY</span> valor_em_estoque <span class="hl-kw">DESC</span>;
+
+<span class="hl-cmt">-- Clientes com mais de 3 pedidos</span>
+<span class="hl-kw">SELECT</span>
+  c.nome,
+  <span class="hl-fn">COUNT</span>(p.id) <span class="hl-kw">AS</span> total_pedidos,
+  <span class="hl-fn">SUM</span>(p.total) <span class="hl-kw">AS</span> valor_total_compras
+<span class="hl-kw">FROM</span> clientes c
+<span class="hl-kw">JOIN</span> pedidos p <span class="hl-kw">ON</span> p.cliente_id = c.id
+<span class="hl-kw">GROUP BY</span> c.id, c.nome
+<span class="hl-kw">HAVING</span> <span class="hl-fn">COUNT</span>(p.id) > <span class="hl-num">3</span>
+<span class="hl-kw">ORDER BY</span> valor_total_compras <span class="hl-kw">DESC</span>;</code></pre>
+        </div>
+
+        <table class="mat-table sr">
+          <thead><tr><th>Cláusula</th><th>Quando age</th><th>Pode usar agregação?</th><th>Exemplo</th></tr></thead>
+          <tbody>
+            <tr><td><strong>WHERE</strong></td><td>Antes do GROUP BY — filtra linhas</td><td>Não</td><td><code>WHERE preco &gt; 100</code></td></tr>
+            <tr><td><strong>GROUP BY</strong></td><td>Depois do WHERE — agrupa os grupos</td><td>—</td><td><code>GROUP BY categoria</code></td></tr>
+            <tr><td><strong>HAVING</strong></td><td>Depois do GROUP BY — filtra grupos</td><td>Sim</td><td><code>HAVING COUNT(*) &gt; 5</code></td></tr>
+            <tr><td><strong>ORDER BY</strong></td><td>Por último — ordena o resultado</td><td>Sim</td><td><code>ORDER BY AVG(preco) DESC</code></td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ════════ 5. UPDATE ════════ -->
+      <section class="mat-section" id="sec-update">
+        <h2>5. UPDATE — Atualizando dados</h2>
+
+        <p>O comando <code>UPDATE</code> modifica o valor de uma ou mais colunas em registros existentes. Sua sintaxe é aparentemente simples — <code>UPDATE tabela SET coluna = valor WHERE condição</code> — mas esconde um perigo que pode destruir dados de produção em segundos. O perigo é a ausência da cláusula <code>WHERE</code>: um UPDATE sem WHERE atualiza <em>todos</em> os registros da tabela. Um <code>UPDATE usuarios SET senha = 'abc123'</code> sem WHERE não atualiza um usuário — ele atualiza todos os usuários, substituindo todas as senhas. Esse tipo de acidente é responsável por incidentes de segurança e perdas de dados que custam horas ou dias de trabalho para recuperar.</p>
+
+        <p>A regra de ouro — praticada por desenvolvedores experientes — é sempre verificar o WHERE com um SELECT antes de executar o UPDATE. Escreva o SELECT equivalente à sua atualização, execute-o, e confirme que os registros retornados são exatamente os que você quer atualizar. Só então substitua o SELECT pelo UPDATE. Essa prática de dois passos é especialmente importante quando você está trabalhando diretamente em um banco de produção, onde não há como fazer Ctrl+Z.</p>
+
+        <p>Assim como o INSERT, o UPDATE suporta a cláusula <code>RETURNING</code> no PostgreSQL, permitindo que você veja os valores atualizados sem precisar de um SELECT adicional. Isso é particularmente útil quando a atualização depende do valor anterior — por exemplo, incrementar um contador — e você precisa saber qual foi o valor resultante. O UPDATE também suporta subqueries no <code>SET</code> e no <code>WHERE</code>, permitindo atualizações complexas baseadas em dados de outras tabelas.</p>
+
+        <div class="code-wrap sr">
+          <div class="code-label">UPDATE seguro: verificar antes, atualizar depois <button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-cmt">-- PASSO 1: verificar quais registros serão afetados</span>
+<span class="hl-kw">SELECT</span> * <span class="hl-kw">FROM</span> produtos <span class="hl-kw">WHERE</span> categoria = <span class="hl-str">'eletrônicos'</span>;
+
+<span class="hl-cmt">-- PASSO 2: só após confirmar, executar o UPDATE</span>
+<span class="hl-kw">UPDATE</span> produtos
+<span class="hl-kw">SET</span> desconto = <span class="hl-num">0.10</span>
+<span class="hl-kw">WHERE</span> categoria = <span class="hl-str">'eletrônicos'</span>;
+
+<span class="hl-cmt">-- UPDATE com RETURNING: ver o resultado imediatamente</span>
+<span class="hl-kw">UPDATE</span> pedidos
+<span class="hl-kw">SET</span> status = <span class="hl-str">'confirmado'</span>, atualizado_em = <span class="hl-fn">NOW</span>()
+<span class="hl-kw">WHERE</span> id = <span class="hl-num">42</span>
+<span class="hl-kw">RETURNING</span> id, status, atualizado_em;
+
+<span class="hl-cmt">-- UPDATE com subquery: atualizar estoque com base em pedidos</span>
+<span class="hl-kw">UPDATE</span> produtos p
+<span class="hl-kw">SET</span> estoque = p.estoque - (
+  <span class="hl-kw">SELECT</span> <span class="hl-fn">SUM</span>(i.quantidade)
+  <span class="hl-kw">FROM</span> itens_pedido i
+  <span class="hl-kw">WHERE</span> i.produto_id = p.id
+    <span class="hl-kw">AND</span> i.pedido_id = <span class="hl-num">42</span>
+)
+<span class="hl-kw">WHERE</span> p.id <span class="hl-kw">IN</span> (
+  <span class="hl-kw">SELECT</span> produto_id <span class="hl-kw">FROM</span> itens_pedido <span class="hl-kw">WHERE</span> pedido_id = <span class="hl-num">42</span>
+);</code></pre>
+        </div>
+
+        <div class="callout callout-danger sr">
+          <div class="callout-label">Perigo: UPDATE sem WHERE</div>
+          <p><strong>Nunca execute um UPDATE sem WHERE em produção.</strong> Sempre valide os registros afetados com um SELECT antes. Em ambientes críticos, considere começar o UPDATE dentro de uma transação (<code>BEGIN</code>) e só fazer <code>COMMIT</code> após confirmar que os dados estão corretos — assim você pode usar <code>ROLLBACK</code> se necessário.</p>
+        </div>
+      </section>
+
+      <!-- ════════ 6. DELETE ════════ -->
+      <section class="mat-section" id="sec-delete">
+        <h2>6. DELETE — Excluindo dados</h2>
+
+        <p>O comando <code>DELETE FROM</code> remove registros de uma tabela de forma permanente. Como o UPDATE, o DELETE sem WHERE remove <em>todos</em> os registros da tabela — algo potencialmente catastrófico. A mesma prática de segurança se aplica: valide com um SELECT primeiro, execute o DELETE depois. E como o UPDATE, o DELETE também suporta <code>RETURNING</code> no PostgreSQL, o que pode ser útil quando você precisa saber exatamente o que foi removido para fins de auditoria ou para desfazer a operação em outro sistema.</p>
+
+        <p>O DELETE com subquery permite remover registros baseados em condições de outras tabelas. Por exemplo, para remover logs antigos sem um índice eficiente na coluna de data, você pode usar um subquery com LIMIT para deletar em lotes menores, evitando bloquear a tabela por tempo excessivo. Essa técnica de "delete em lotes" é uma boa prática em tabelas de log e histórico de grandes sistemas, onde deletar milhões de registros de uma vez pode degradar o desempenho do banco por minutos.</p>
+
+        <p>Em muitos sistemas de negócio, a exclusão permanente de dados não é desejável — nem do ponto de vista técnico (um cliente que cancela pode voltar, um pedido cancelado pode precisar de auditoria) nem do ponto de vista legal (legislações como LGPD e GDPR têm regras sobre retenção e exclusão de dados). Por isso, o padrão de <strong>soft delete</strong> (exclusão suave) é amplamente usado: em vez de deletar o registro, você adiciona uma coluna como <code>deleted_at TIMESTAMP</code> ou <code>ativo BOOLEAN</code> e marca o registro como inativo. O registro continua no banco, mas as queries normais o excluem do resultado com <code>WHERE deleted_at IS NULL</code>.</p>
+
+        <h3 id="sec-delete-diff">6.1 DELETE vs TRUNCATE vs DROP</h3>
+
+        <p>Esses três comandos têm efeitos muito diferentes e confundi-los é um erro perigoso. O <code>DELETE</code> remove registros selecionados (ou todos, sem WHERE), registra cada remoção no log de transações e pode ser revertido com ROLLBACK dentro de uma transação. O <code>TRUNCATE</code> remove todos os registros de uma tabela de forma muito mais rápida que um DELETE sem WHERE, pois não registra cada linha no log — ele simplesmente descarta as páginas de dados e reseta os contadores de SERIAL. E o <code>DROP TABLE</code> não apenas remove os dados — ele remove a tabela inteira, incluindo sua definição, índices e constraints.</p>
+
+        <div class="code-wrap sr">
+          <div class="code-label">DELETE, TRUNCATE e soft delete <button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-cmt">-- DELETE com WHERE: remove registros específicos</span>
+<span class="hl-kw">DELETE FROM</span> logs
+<span class="hl-kw">WHERE</span> criado_em &lt; <span class="hl-fn">NOW</span>() - <span class="hl-kw">INTERVAL</span> <span class="hl-str">'30 days'</span>;
+
+<span class="hl-cmt">-- DELETE com RETURNING: saber o que foi removido</span>
+<span class="hl-kw">DELETE FROM</span> sessoes
+<span class="hl-kw">WHERE</span> expirado_em &lt; <span class="hl-fn">NOW</span>()
+<span class="hl-kw">RETURNING</span> usuario_id, criado_em;
+
+<span class="hl-cmt">-- TRUNCATE: remove TUDO rapidamente (sem WHERE!)</span>
+<span class="hl-kw">TRUNCATE</span> logs;
+<span class="hl-kw">TRUNCATE</span> logs <span class="hl-kw">RESTART IDENTITY</span>; <span class="hl-cmt">-- também reseta sequência SERIAL</span>
+
+<span class="hl-cmt">-- Soft delete: desativar em vez de remover</span>
+<span class="hl-kw">UPDATE</span> clientes
+<span class="hl-kw">SET</span> deleted_at = <span class="hl-fn">NOW</span>()
+<span class="hl-kw">WHERE</span> id = <span class="hl-num">7</span>;
+
+<span class="hl-cmt">-- Query que exclui registros "deletados"</span>
+<span class="hl-kw">SELECT</span> * <span class="hl-kw">FROM</span> clientes
+<span class="hl-kw">WHERE</span> deleted_at <span class="hl-kw">IS NULL</span>;   <span class="hl-cmt">-- apenas ativos</span></code></pre>
+        </div>
+
+        <table class="mat-table sr">
+          <thead><tr><th>Comando</th><th>O que remove</th><th>Transacionável?</th><th>Velocidade</th><th>Remove a estrutura?</th></tr></thead>
+          <tbody>
+            <tr><td><strong>DELETE</strong></td><td>Linhas selecionadas (ou todas)</td><td>Sim — pode usar ROLLBACK</td><td>Lento em grandes volumes</td><td>Não</td></tr>
+            <tr><td><strong>TRUNCATE</strong></td><td>Todas as linhas</td><td>Sim no PostgreSQL</td><td>Muito rápido</td><td>Não</td></tr>
+            <tr><td><strong>DROP TABLE</strong></td><td>Tudo — dados e estrutura</td><td>Não é recomendado</td><td>Imediato</td><td>Sim — tabela some</td></tr>
+          </tbody>
+        </table>
+
+        <div class="callout callout-tip sr">
+          <div class="callout-label">Soft Delete na prática</div>
+          <p>Para implementar soft delete, adicione <code>deleted_at TIMESTAMP DEFAULT NULL</code> à tabela. Registros ativos têm <code>deleted_at IS NULL</code>. Registros excluídos têm um timestamp. Crie um índice em <code>deleted_at</code> e inclua sempre <code>WHERE deleted_at IS NULL</code> nas suas queries de listagem. Isso preserva o histórico, facilita auditoria e permite restaurar dados acidentalmente "excluídos".</p>
+        </div>
+      </section>
+
+      <!-- ════════ 7. ÍNDICES ════════ -->
+      <section class="mat-section" id="sec-indices">
+        <h2>7. Índices — Acelerando consultas</h2>
+
+        <p>Um índice é uma estrutura de dados auxiliar que o banco mantém separadamente dos dados da tabela, com o objetivo de acelerar consultas. A analogia clássica é o índice remissivo de um livro: sem ele, para encontrar todas as páginas que mencionam "transação", você teria que ler o livro inteiro. Com o índice, você vai diretamente às páginas listadas. Da mesma forma, sem um índice em <code>cliente_id</code> na tabela de pedidos, o banco precisa varrer todos os pedidos para encontrar os de um cliente específico — uma operação chamada de <em>sequential scan</em>. Com o índice, ele vai diretamente às linhas relevantes.</p>
+
+        <p>O tipo de índice padrão do PostgreSQL é o <strong>B-tree</strong> (árvore B balanceada). Internamente, o índice organiza os valores indexados em uma estrutura de árvore onde cada nó aponta para um subconjunto de valores. Buscar um valor começa na raiz e percorre a árvore — tipicamente 3 a 4 níveis — até encontrar as linhas correspondentes. Isso reduz uma busca em uma tabela de 1 milhão de registros de 1.000.000 comparações para cerca de 20. B-trees funcionam para comparações de igualdade (<code>=</code>), ranges (<code>BETWEEN</code>, <code>&lt;</code>, <code>&gt;</code>) e ordenação (<code>ORDER BY</code>). Para buscas por texto com <code>LIKE '%palavra%'</code> (prefixo desconhecido), um B-tree não ajuda — seria necessário um índice de texto completo (GIN/GiST).</p>
+
+        <p>O custo de um índice não é apenas de espaço em disco (tipicamente 10-30% do tamanho da tabela). Cada INSERT, UPDATE e DELETE precisa também atualizar todos os índices da tabela. Em tabelas com muitos índices e alto volume de escrita, os índices podem se tornar um gargalo. A regra prática: crie índices em colunas usadas frequentemente em <code>WHERE</code>, <code>JOIN ON</code> e <code>ORDER BY</code>. Evite indexar colunas com poucos valores distintos (como um campo booleano <code>ativo</code>), pois o banco muitas vezes preferirá um sequential scan nesses casos de qualquer jeito.</p>
+
+        <div class="code-wrap sr">
+          <div class="code-label">CREATE INDEX e boas práticas <button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-cmt">-- Índice simples em coluna de JOIN/WHERE frequente</span>
+<span class="hl-kw">CREATE INDEX</span> idx_pedidos_cliente_id
+  <span class="hl-kw">ON</span> pedidos (cliente_id);
+
+<span class="hl-cmt">-- Índice composto: útil quando WHERE usa ambas as colunas</span>
+<span class="hl-kw">CREATE INDEX</span> idx_pedidos_status_criado
+  <span class="hl-kw">ON</span> pedidos (status, criado_em <span class="hl-kw">DESC</span>);
+
+<span class="hl-cmt">-- Índice único: garante unicidade e acelera buscas</span>
+<span class="hl-kw">CREATE UNIQUE INDEX</span> idx_clientes_email
+  <span class="hl-kw">ON</span> clientes (email);
+
+<span class="hl-cmt">-- Índice parcial: só indexa registros ativos (menor, mais rápido)</span>
+<span class="hl-kw">CREATE INDEX</span> idx_produtos_ativos
+  <span class="hl-kw">ON</span> produtos (categoria, preco)
+  <span class="hl-kw">WHERE</span> deleted_at <span class="hl-kw">IS NULL</span>;</code></pre>
+        </div>
+
+        <h3 id="sec-explain">7.1 EXPLAIN ANALYZE — Entendendo o que o banco faz</h3>
+
+        <p>O comando <code>EXPLAIN ANALYZE</code> é a ferramenta mais poderosa para diagnosticar problemas de desempenho em queries SQL. Enquanto <code>EXPLAIN</code> mostra o plano que o banco <em>pretende</em> executar (sem executar a query de fato), <code>EXPLAIN ANALYZE</code> executa a query e mostra o plano <em>real</em> com os tempos medidos em cada etapa. Isso permite comparar estimativas com a realidade, identificar onde o banco está gastando mais tempo e confirmar se seus índices estão sendo usados.</p>
+
+        <p>No plano de execução, você procura dois indicadores principais: <strong>Seq Scan</strong> (sequential scan — varrendo a tabela toda) versus <strong>Index Scan</strong> (usando um índice). Um Seq Scan em uma tabela pequena (poucos milhares de registros) é normal e esperado. Um Seq Scan em uma tabela com milhões de registros em uma coluna de filtro usada frequentemente é um sinal claro de que um índice está faltando. Após criar o índice, execute o <code>EXPLAIN ANALYZE</code> novamente e verifique se o plano mudou.</p>
+
+        <div class="code-wrap sr">
+          <div class="code-label">EXPLAIN ANALYZE na prática <button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-cmt">-- Analisa o plano de execução E executa a query</span>
+<span class="hl-kw">EXPLAIN ANALYZE</span>
+<span class="hl-kw">SELECT</span> * <span class="hl-kw">FROM</span> pedidos <span class="hl-kw">WHERE</span> cliente_id = <span class="hl-num">42</span>;
+
+<span class="hl-cmt">-- Saída típica SEM índice (ruim):</span>
+<span class="hl-cmt">-- Seq Scan on pedidos  (cost=0.00..245.00 rows=3 width=48)</span>
+<span class="hl-cmt">--   Filter: (cliente_id = 42)</span>
+<span class="hl-cmt">--   Rows Removed by Filter: 9997</span>
+<span class="hl-cmt">-- Execution Time: 12.345 ms</span>
+
+<span class="hl-cmt">-- Saída típica COM índice (bom):</span>
+<span class="hl-cmt">-- Index Scan using idx_pedidos_cliente_id</span>
+<span class="hl-cmt">--   Index Cond: (cliente_id = 42)</span>
+<span class="hl-cmt">-- Execution Time: 0.112 ms</span></code></pre>
+        </div>
+
+        <div class="callout callout-info sr">
+          <div class="callout-label">Regra de ouro dos índices</div>
+          <p>Crie índices nas colunas que aparecem em <code>WHERE</code>, <code>JOIN ON</code> e <code>ORDER BY</code> em queries frequentes e de alto volume. Mas não crie índices "por precaução" — cada índice tem um custo em escrita. Medir com <code>EXPLAIN ANALYZE</code> antes e depois é a única forma de saber se um índice está ajudando.</p>
+        </div>
+      </section>
+
+      <!-- ════════ 8. TRANSAÇÕES ════════ -->
+      <section class="mat-section" id="sec-transacoes">
+        <h2>8. Transações na prática</h2>
+
+        <p>Uma transação é um grupo de operações SQL que são executadas como uma unidade atômica — ou todas têm sucesso, ou nenhuma tem efeito. As propriedades que garantem isso são conhecidas pelo acrônimo <strong>ACID</strong>: Atomicidade (tudo ou nada), Consistência (o banco passa de um estado válido para outro), Isolamento (transações concorrentes não interferem entre si) e Durabilidade (uma vez confirmada, a transação persiste mesmo em caso de falha de hardware). Sem transações, um banco de dados relacional não seria confiável para aplicações que precisam de garantias de integridade.</p>
+
+        <p>O exemplo clássico de por que transações são necessárias é a transferência bancária. Para transferir R$100 da conta A para a conta B, você precisa de dois UPDATEs: debitar R$100 da conta A e creditar R$100 na conta B. Se o sistema falhar após o primeiro UPDATE e antes do segundo — seja por queda de energia, bug na aplicação ou sobrecarga do servidor — o dinheiro desaparecerá da conta A sem aparecer na conta B. Com uma transação, esses dois UPDATEs são atômicos: se qualquer um falhar, ambos são desfeitos automaticamente. O banco nunca ficará em um estado inconsistente.</p>
+
+        <p>O <code>SAVEPOINT</code> permite criar pontos de retorno dentro de uma transação, de forma que você possa fazer rollback parcial sem desfazer toda a transação. Isso é útil em operações complexas onde algumas etapas podem falhar de forma aceitável. Por exemplo, em um processo de importação de dados, você pode usar um SAVEPOINT por registro importado — se um registro falhar (dados inválidos), você faz rollback ao SAVEPOINT daquele registro e continua com o próximo, sem perder os registros já importados com sucesso.</p>
+
+        <div class="tx-flow" id="tx-flow">
+          <div class="tx-step">
+            <div class="tx-step-num">1</div>
+            <div class="tx-step-text"><span class="tx-step-code">BEGIN</span> — inicia a transação. O banco cria um contexto isolado para estas operações</div>
+          </div>
+          <div class="tx-step">
+            <div class="tx-step-num">2</div>
+            <div class="tx-step-text"><span class="tx-step-code">UPDATE contas SET saldo = saldo - 100 WHERE id = 1</span> — debita da conta origem</div>
+          </div>
+          <div class="tx-step">
+            <div class="tx-step-num">3</div>
+            <div class="tx-step-text"><span class="tx-step-code">UPDATE contas SET saldo = saldo + 100 WHERE id = 2</span> — credita na conta destino</div>
+          </div>
+          <div class="tx-step">
+            <div class="tx-step-num">4</div>
+            <div class="tx-step-text">Verificar se ambas as contas têm saldo coerente — validação opcional antes de confirmar</div>
+          </div>
+          <div class="tx-step">
+            <div class="tx-step-num">5</div>
+            <div class="tx-step-text"><span class="tx-step-code">COMMIT</span> — confirma. Alterações se tornam permanentes e visíveis para outras transações</div>
+          </div>
+          <div class="tx-step">
+            <div class="tx-step-num rollback">!</div>
+            <div class="tx-step-text"><span class="tx-step-code">ROLLBACK</span> — em caso de erro em qualquer passo, desfaz TUDO desde o BEGIN</div>
+          </div>
+        </div>
+
+        <div class="code-wrap sr">
+          <div class="code-label">Transação completa com SAVEPOINT <button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-cmt">-- Transferência bancária segura com transação</span>
+<span class="hl-kw">BEGIN</span>;
+
+<span class="hl-kw">SAVEPOINT</span> antes_da_transferencia;
+
+<span class="hl-kw">UPDATE</span> contas <span class="hl-kw">SET</span> saldo = saldo - <span class="hl-num">100.00</span> <span class="hl-kw">WHERE</span> id = <span class="hl-num">1</span>;
+<span class="hl-kw">UPDATE</span> contas <span class="hl-kw">SET</span> saldo = saldo + <span class="hl-num">100.00</span> <span class="hl-kw">WHERE</span> id = <span class="hl-num">2</span>;
+
+<span class="hl-cmt">-- Verificar se nenhuma conta ficou negativa</span>
+<span class="hl-kw">SELECT</span> id, saldo <span class="hl-kw">FROM</span> contas <span class="hl-kw">WHERE</span> id <span class="hl-kw">IN</span> (<span class="hl-num">1</span>, <span class="hl-num">2</span>);
+
+<span class="hl-cmt">-- Se tudo ok:</span>
+<span class="hl-kw">COMMIT</span>;
+
+<span class="hl-cmt">-- Se algo deu errado:</span>
+<span class="hl-cmt">-- ROLLBACK TO SAVEPOINT antes_da_transferencia;</span>
+<span class="hl-cmt">-- ROLLBACK;  (desfaz tudo desde o BEGIN)</span></code></pre>
+        </div>
+
+        <div class="deep-dive sr">
+          <div class="deep-header" onclick="toggleDeep(this)">
+            <h4>Aprofundamento: o que acontece se o servidor cair no meio de uma transação?</h4>
+            <span class="deep-arrow">&#9660;</span>
+          </div>
+          <div class="deep-body">
+            <p>O PostgreSQL usa um mecanismo chamado <strong>Write-Ahead Log (WAL)</strong> para garantir durabilidade. Antes de modificar os dados no disco, o banco escreve a intenção no log WAL. Se o servidor cair durante uma transação que ainda não fez COMMIT, ao reiniciar, o banco verifica o WAL, descobre que havia uma transação incompleta e automaticamente faz o rollback. Apenas as transações que chegaram a fazer COMMIT — ou seja, que gravaram o registro de commit no WAL — são recuperadas.</p>
+            <p>Isso significa que você nunca precisa se preocupar com "transação parcialmente gravada no disco". O banco garante que ou a transação toda está lá, ou não está. Essa garantia é implementada pelo WAL em conjunto com o sistema de <em>checkpoints</em> do PostgreSQL, que periodicamente sincroniza o estado do banco com o disco.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════ 9. RM-ODP ════════ -->
+      <section class="mat-section" id="sec-rmodp">
+        <h2>9. RM-ODP — Viewpoints Information e Computational</h2>
+
+        <p>Na Aula 1, apresentamos as cinco visões do RM-ODP (Reference Model for Open Distributed Processing). Nesta aula, dois viewpoints se tornam especialmente relevantes: o <strong>Information</strong> e o <strong>Computational</strong>. Analisar as operações CRUD através dessas lentes não é um exercício burocrático — é uma forma de pensar sobre o que o sistema faz com a informação e como essa informação é acessada por diferentes componentes.</p>
+
+        <p>O <strong>viewpoint Information</strong> descreve como a informação é estruturada, quais são seus invariantes (regras que nunca podem ser violadas) e como ela evolui ao longo do tempo. No contexto do CRUD, cada tabela do banco é um objeto de informação, e cada operação CRUD é uma transformação desse objeto. Um INSERT cria uma nova instância do objeto. Um UPDATE transiciona o objeto de um estado para outro. Um DELETE (ou soft delete) marca o objeto como inativo. Os constraints do banco — NOT NULL, UNIQUE, CHECK, FOREIGN KEY — são a forma de expressar os invariantes do viewpoint Information no SQL.</p>
+
+        <p>O <strong>viewpoint Computational</strong> descreve a decomposição funcional do sistema em componentes com interfaces bem definidas. As operações CRUD são exatamente as interfaces que a camada de banco expõe para a camada de aplicação. Quando um desenvolvedor back-end escreve um Model no padrão MVC, esse Model encapsula as operações CRUD de uma entidade — o <code>ClienteModel.buscarPorId(id)</code> nada mais é que um SELECT com WHERE. O <code>PedidoModel.criar(dados)</code> é um BEGIN + INSERT + INSERT (itens) + COMMIT. Pensar em CRUD como interfaces computacionais ajuda a projetar APIs mais coerentes e testáveis.</p>
+
+        <div class="odp-stack" id="odp-stack">
+          <div class="odp-layer" style="background:#dcfce7;">
+            <div class="odp-icon">&#128203;</div>
+            <div>
+              <div class="odp-name">Information Viewpoint</div>
+              <div class="odp-desc">Define as entidades (tabelas), atributos (colunas), relacionamentos (chaves estrangeiras) e invariantes (constraints). O banco de dados é a materialização deste viewpoint. Cada tabela é um objeto de informação; cada linha é uma instância desse objeto; cada constraint é um invariante que o banco garante automaticamente.</div>
+              <span class="odp-focus" style="background:#dcfce7;color:#15803d;">DER, CREATE TABLE, constraints, INSERT, SELECT</span>
+            </div>
+          </div>
+          <div class="odp-layer" style="background:#ede9fe;">
+            <div class="odp-icon">&#9881;&#65039;</div>
+            <div>
+              <div class="odp-name">Computational Viewpoint</div>
+              <div class="odp-desc">Descreve os componentes funcionais e suas interfaces. Os Models do padrão MVC encapsulam as operações CRUD como interfaces bem definidas. Uma rota GET /produtos/:id é uma interface computacional que internamente executa um SELECT. Uma rota POST /pedidos é uma interface que executa uma transação com múltiplos INSERTs.</div>
+              <span class="odp-focus" style="background:#ede9fe;color:#7c3aed;">Models, Controllers, funções CRUD, endpoints REST</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-deep sr">
+          <div class="callout-label">Conexão entre viewpoints</div>
+          <p>A camada de informação (banco) e a camada computacional (código) se comunicam por SQL. Um erro de modelagem no viewpoint Information — como armazenar múltiplos valores em uma coluna — força o viewpoint Computational a implementar lógica de parsing que não deveria existir. Quando você modela bem o banco, o código fica mais simples. Quando o banco está mal modelado, a complexidade migra para o código.</p>
+        </div>
+      </section>
+
+      <!-- ════════ 10. RF, RN e RNF ════════ -->
+      <section class="mat-section" id="sec-req">
+        <h2>10. RF, RN e RNF — Mapeando CRUD a requisitos</h2>
+
+        <p>Toda operação CRUD que você implementa deve ser rastreável a pelo menos um Requisito Funcional (RF) que justifica sua existência. Se nenhum RF exige que o sistema exclua pedidos cancelados definitivamente, então o DELETE não deveria estar no código — e o soft delete provavelmente é a implementação correta. Esse rastreamento não é burocracia: ele é a diferença entre desenvolver funcionalidades que o sistema precisa e desenvolver funcionalidades que ninguém pediu.</p>
+
+        <p>As Regras de Negócio (RN) se traduzem diretamente em validações e constraints no banco. "Um pedido não pode ter total negativo" é uma RN que se materializa como <code>CHECK (total &gt;= 0)</code> na tabela de pedidos — e também como validação na camada de aplicação (lembre: validação no banco é a última linha de defesa, mas a aplicação deve validar antes para dar mensagens de erro adequadas ao usuário). "Um e-mail de cliente deve ser único" é uma RN que vira um <code>UNIQUE INDEX</code> na coluna email.</p>
+
+        <p>Os Requisitos Não Funcionais (RNF) associados às operações CRUD se concentram em três eixos principais: <strong>Desempenho</strong> (as consultas respondem em menos de X ms sob Y usuários simultâneos — endereçado por índices, queries otimizadas e EXPLAIN ANALYZE), <strong>Confiabilidade</strong> (os dados nunca ficam em estado inconsistente — endereçado por transações, constraints e backups), e <strong>Segurança</strong> (dados sensíveis como senhas, CPFs e informações de cartão nunca são armazenados em texto puro nem expostos desnecessariamente nas respostas da API — endereçado por criptografia, hashing e seleção cuidadosa das colunas no SELECT).</p>
+
+        <table class="mat-table sr">
+          <thead><tr><th>Tipo</th><th>Exemplo</th><th>Implementação SQL/DB</th></tr></thead>
+          <tbody>
+            <tr><td><span class="tag tag-blue">RF</span></td><td>O sistema permite cadastrar produtos com nome, preço e estoque</td><td>INSERT INTO produtos (nome, preco, estoque) VALUES (...)</td></tr>
+            <tr><td><span class="tag tag-blue">RF</span></td><td>O sistema lista os pedidos de um cliente, do mais recente ao mais antigo</td><td>SELECT ... FROM pedidos WHERE cliente_id = ? ORDER BY criado_em DESC</td></tr>
+            <tr><td><span class="tag tag-purple">RN</span></td><td>O estoque não pode ficar negativo após uma venda</td><td>CHECK (estoque &gt;= 0) + validação no UPDATE de estoque</td></tr>
+            <tr><td><span class="tag tag-purple">RN</span></td><td>Um pedido deve ter pelo menos um item</td><td>Validação na camada de aplicação antes do COMMIT</td></tr>
+            <tr><td><span class="tag tag-red">RNF</span></td><td>Desempenho: listagem de pedidos por cliente em menos de 50ms</td><td>CREATE INDEX idx_pedidos_cliente_id ON pedidos(cliente_id)</td></tr>
+            <tr><td><span class="tag tag-red">RNF</span></td><td>Confiabilidade: operações de compra nunca deixam o banco inconsistente</td><td>BEGIN/COMMIT/ROLLBACK em todos os fluxos de compra</td></tr>
+            <tr><td><span class="tag tag-red">RNF</span></td><td>Segurança: senhas nunca armazenadas em texto puro</td><td>Hashing (bcrypt) antes do INSERT; nunca SELECT senha FROM usuarios</td></tr>
+          </tbody>
+        </table>
+
+        <div class="callout callout-warn sr">
+          <div class="callout-label">RNF precisa de métrica</div>
+          <p>"O sistema deve ser rápido" não é um RNF — é uma intenção vaga. Um RNF bem escrito tem eixo, métrica, carga e evidência: <em>"As consultas de listagem de pedidos por cliente devem responder em menos de 50ms para 95% das requisições com 500 usuários simultâneos, medido com EXPLAIN ANALYZE e teste de carga com k6."</em> Só assim você sabe quando o requisito foi atendido.</p>
+        </div>
+      </section>
+
+      <!-- ════════ 11. CHECKLIST ════════ -->
+      <section class="mat-section" id="sec-checklist">
+        <h2>11. Checklist de Estudo</h2>
+        <p>Clique nos itens à medida que você dominar cada conceito:</p>
+        <ul class="checklist" id="checklist">
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo escrever um INSERT básico listando explicitamente as colunas, sem omitir nenhuma NOT NULL.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo inserir múltiplas linhas em um único INSERT e usar RETURNING para obter o ID gerado.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo escrever um SELECT com WHERE usando AND/OR, BETWEEN, IN, LIKE e IS NULL corretamente.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo explicar a diferença entre COUNT(*) e COUNT(coluna) e quando cada um é adequado.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo usar GROUP BY com COUNT, SUM e AVG, e filtrar grupos com HAVING.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo explicar por que WHERE e HAVING existem separados e quando usar cada um.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo escrever um UPDATE seguro: verificar com SELECT antes, usar WHERE correto, e RETURNING.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo explicar a diferença entre DELETE, TRUNCATE e DROP TABLE e quando cada um é adequado.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo descrever o padrão de soft delete e implementá-lo com a coluna deleted_at.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo explicar como um índice B-tree funciona e o tradeoff entre velocidade de leitura e escrita.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo usar EXPLAIN ANALYZE para identificar se uma query está fazendo Seq Scan desnecessário.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo escrever uma transação com BEGIN/COMMIT/ROLLBACK e explicar as propriedades ACID.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo mapear as operações CRUD aos viewpoints Information e Computational do RM-ODP.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo associar cada operação CRUD a RFs, RNs e RNFs com métricas mensuráveis.</span></li>
+        </ul>
+      </section>
+
+      <!-- ════════ REFERÊNCIAS ════════ -->
+      <section class="mat-section" id="sec-refs">
+        <h2>Referências</h2>
+        <ul>
+          <li><a href="https://www.postgresql.org/docs/current/sql-insert.html" target="_blank" rel="noopener noreferrer">PostgreSQL Docs — INSERT</a> — referência completa do comando INSERT, incluindo RETURNING e INSERT ... SELECT</li>
+          <li><a href="https://www.postgresql.org/docs/current/sql-select.html" target="_blank" rel="noopener noreferrer">PostgreSQL Docs — SELECT</a> — referência completa de todas as cláusulas do SELECT</li>
+          <li><a href="https://www.postgresql.org/docs/current/sql-update.html" target="_blank" rel="noopener noreferrer">PostgreSQL Docs — UPDATE</a> — UPDATE com subqueries, FROM e RETURNING</li>
+          <li><a href="https://www.postgresql.org/docs/current/sql-delete.html" target="_blank" rel="noopener noreferrer">PostgreSQL Docs — DELETE</a> — DELETE com USING e RETURNING</li>
+          <li><a href="https://www.postgresql.org/docs/current/indexes.html" target="_blank" rel="noopener noreferrer">PostgreSQL Docs — Indexes</a> — tipos de índice, índices parciais, índices cobrindo</li>
+          <li><a href="https://www.postgresql.org/docs/current/sql-explain.html" target="_blank" rel="noopener noreferrer">PostgreSQL Docs — EXPLAIN</a> — como interpretar planos de execução</li>
+          <li><a href="https://www.postgresql.org/docs/current/tutorial-transactions.html" target="_blank" rel="noopener noreferrer">PostgreSQL Docs — Transactions</a> — tutorial de transações, SAVEPOINT e ROLLBACK</li>
+          <li><a href="https://use-the-index-luke.com/" target="_blank" rel="noopener noreferrer">Use The Index, Luke</a> — guia prático sobre índices em bancos relacionais</li>
+          <li><a href="https://www.iso.org/standard/20696.html" target="_blank" rel="noopener noreferrer">ISO/IEC 10746 — RM-ODP</a> — especificação das cinco visões do sistema</li>
+        </ul>
+      </section>
+
+    </article>
+  </div>
+
+  <div class="text-center py-4">
+    <img src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli Logo" style="max-width:140px;">
+  </div>
+  <footer class="py-4 bg-light border-top">
+    <div class="container text-center">
+      <p class="mb-1">Material criado pelo professor <strong>Afonso Brandão</strong> para o <strong>Inteli</strong>.</p>
+      <small class="text-muted">Licença de leitura aberta</small>
+    </div>
+  </footer>
+
+  <script>
+    // ── Progress bar + floating nav ───────────────────────────────────────
+    const floatNav = document.getElementById('float-nav');
+    const matHeader = document.querySelector('.mat-header');
+    window.addEventListener('scroll', () => {
+      const h = document.documentElement;
+      const pct = (h.scrollTop / (h.scrollHeight - h.clientHeight)) * 100;
+      document.getElementById('progress-bar').style.width = pct + '%';
+      const headerBottom = matHeader.getBoundingClientRect().bottom;
+      if (headerBottom < 0) { floatNav.classList.add('visible'); }
+      else { floatNav.classList.remove('visible'); }
+    });
+
+    // ── Scroll reveal (IntersectionObserver) ─────────────────────────────
+    const srObserver = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) { e.target.classList.add('vis'); srObserver.unobserve(e.target); }
+      });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.sr').forEach(el => srObserver.observe(el));
+
+    // ── Aggregation cards animation ───────────────────────────────────────
+    const aggObserver = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        document.querySelectorAll('.agg-card').forEach((el, i) => {
+          setTimeout(() => el.classList.add('reveal'), i * 120);
+        });
+        aggObserver.disconnect();
+      }
+    }, { threshold: 0.1 });
+    const aggGrid = document.getElementById('agg-grid');
+    if (aggGrid) aggObserver.observe(aggGrid);
+
+    // ── RM-ODP layers animation ───────────────────────────────────────────
+    const odpObserver = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        document.querySelectorAll('.odp-layer').forEach((el, i) => {
+          setTimeout(() => el.classList.add('reveal'), i * 220);
+        });
+        odpObserver.disconnect();
+      }
+    }, { threshold: 0.1 });
+    const odpStack = document.getElementById('odp-stack');
+    if (odpStack) odpObserver.observe(odpStack);
+
+    // ── Transaction flow animation ────────────────────────────────────────
+    const txObserver = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        document.querySelectorAll('.tx-step').forEach((el, i) => {
+          setTimeout(() => el.classList.add('reveal'), i * 300);
+        });
+        txObserver.disconnect();
+      }
+    }, { threshold: 0.2 });
+    const txFlow = document.getElementById('tx-flow');
+    if (txFlow) txObserver.observe(txFlow);
+
+    // ── Deep dive toggle ─────────────────────────────────────────────────
+    function toggleDeep(header) {
+      header.classList.toggle('open');
+      const body = header.nextElementSibling;
+      body.classList.toggle('open');
+    }
+
+    // ── Checklist ────────────────────────────────────────────────────────
+    function toggleCk(li) {
+      li.classList.toggle('done');
+    }
+
+    // ── Copy code ────────────────────────────────────────────────────────
+    function copyCode(btn) {
+      const pre = btn.closest('.code-wrap').querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(() => {
+        btn.textContent = 'copiado \u2713';
+        setTimeout(() => btn.textContent = 'copiar', 2000);
+      });
+    }
+
+    // ── Active TOC on scroll ─────────────────────────────────────────────
+    const sections = document.querySelectorAll('.mat-section[id], h2[id], h3[id]');
+    const tocLinks = document.querySelectorAll('.mat-toc a');
+    const tocObserver = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          const id = e.target.id;
+          tocLinks.forEach(a => {
+            a.classList.toggle('active', a.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    sections.forEach(s => tocObserver.observe(s));
+  </script>
+</body>
+</html>

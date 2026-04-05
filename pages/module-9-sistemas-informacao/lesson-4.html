@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
+    rel="stylesheet">
+  <title>Aula 4 - Orientação a Objetos e TDD Deep Dive - Inteli</title>
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
+  <style>
+    .slide-footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      border-top: 1px solid #e6eaeb;
+      padding: 12px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 -2px 10px rgba(46, 38, 64, 0.05);
+      z-index: 100;
+    }
+
+    .back-home {
+      color: var(--inteli-purple);
+      text-decoration: none;
+      font-weight: 600;
+      transition: 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      background: #f3f4f6;
+    }
+
+    .back-home:hover {
+      background: var(--inteli-purple);
+      color: white;
+    }
+
+    .nav-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      background: #f3f4f6;
+      padding: 8px 20px;
+      border-radius: 30px;
+    }
+
+    .nav-buttons button {
+      background: var(--inteli-purple);
+      color: white;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 8px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .nav-buttons button:hover:not(:disabled) {
+      background: var(--inteli-blue);
+      transform: translateY(-1px);
+    }
+
+    .nav-buttons button:disabled {
+      background: #caced6;
+      cursor: not-allowed;
+    }
+
+    .slide-counter {
+      font-weight: 600;
+      color: var(--inteli-purple);
+      min-width: 80px;
+      text-align: center;
+    }
+
+    .fullscreen-btn {
+      background: #f3f4f6;
+      border: none;
+      color: var(--inteli-purple);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.2rem;
+      transition: all 0.2s;
+    }
+
+    .fullscreen-btn:hover {
+      background: var(--inteli-purple);
+      color: white;
+      transform: scale(1.1);
+    }
+
+    :root {
+      --inteli-purple: #2e2640;
+      --inteli-blue: #89cea5;
+      --inteli-dark-purple: #2E2640;
+      --inteli-light-purple: #caced6;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: "Manrope", sans-serif;
+    }
+
+    .slide-container {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .slide {
+      width: 100%;
+      height: 100%;
+      display: none;
+      padding: 60px;
+      box-sizing: border-box;
+      position: absolute;
+    }
+
+    .slide.active {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      animation: slideIn 0.5s ease-in-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(50px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .slide-header {
+      background: linear-gradient(135deg, var(--inteli-purple), var(--inteli-blue));
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 30px;
+    }
+
+    .slide-title {
+      font-size: 2.5rem;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .slide-subtitle {
+      font-size: 1.2rem;
+      opacity: 0.9;
+    }
+
+    .slide-content {
+      flex: 1;
+      overflow-y: auto;
+      font-size: 1.4rem;
+      line-height: 1.6;
+    }
+
+    .slide-content h2 {
+      color: var(--inteli-purple);
+      margin-bottom: 20px;
+    }
+
+    .slide-content ul,
+    .slide-content li {
+      margin-bottom: 10px;
+    }
+
+    .cover-slide {
+      background-image: url('https://www.inteli.edu.br/wp-content/uploads/2025/08/Graduacao.jpg');
+      background-size: cover;
+      background-position: center;
+      position: relative;
+    }
+
+    .cover-slide::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(46, 38, 64, 0.4);
+    }
+
+    .cover-slide .slide-header {
+      position: relative;
+      z-index: 1;
+      background: rgba(30, 30, 30, 0.85);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      padding: 60px;
+      border-radius: 24px;
+      max-width: 800px;
+      width: 90%;
+      margin: 0 auto;
+      margin-bottom: 60px;
+      box-shadow: 0 8px 32px 0 rgba(46, 38, 64, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .cover-logo {
+      height: 50px;
+      margin-bottom: 25px;
+    }
+
+    .footer-logo {
+      height: 30px;
+      width: auto;
+    }
+
+    /* Cover Slide */
+    .cover-slide {
+      padding: 0;
+      background-image: url('https://www.inteli.edu.br/wp-content/uploads/2025/08/Graduacao.jpg');
+      background-size: cover;
+      background-position: center;
+      justify-content: center;
+      align-items: center;
+      display: none;
+    }
+
+    .cover-slide.active {
+      display: flex;
+    }
+
+    .cover-slide::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(46, 38, 64, 0.9), rgba(137, 206, 165, 0.9));
+      z-index: 1;
+    }
+
+    .glass-card {
+      position: relative;
+      z-index: 2;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(16px);
+      padding: 60px;
+      border-radius: 24px;
+      text-align: center;
+      max-width: 900px;
+      width: 90%;
+      box-shadow: 0 25px 50px rgba(46, 38, 64, 0.25);
+    }
+
+    .cover-logo {
+      height: 50px;
+      margin-bottom: 25px;
+    }
+
+    .glass-card .slide-title {
+      color: var(--inteli-purple);
+      font-size: 2.8rem;
+      margin-bottom: 15px;
+    }
+
+    .glass-card .slide-subtitle {
+      color: var(--inteli-blue);
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .glass-card .meta-info {
+      color: #666;
+      font-size: 1.1rem;
+      margin-top: 30px;
+    }
+
+    .topics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin-top: 30px;
+    }
+
+    .topic-tag {
+      background: linear-gradient(135deg, var(--inteli-purple), var(--inteli-blue));
+      color: white;
+      padding: 10px 15px;
+      border-radius: 25px;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    /* Helper helper classes */
+    .highlight {
+      color: var(--inteli-blue);
+      font-weight: bold;
+    }
+
+    .box {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      border-left: 5px solid var(--inteli-purple);
+      margin: 20px 0;
+    }
+
+    .code-block {
+      background: #2e2640;
+      color: #89cea5;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: 'Space Mono', monospace;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      font-size: 1.1rem;
+    }
+
+    .two-columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+    }
+
+    .center-content {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      height: 100%;
+    }
+
+    .diagram-card {
+      background: white;
+      border: 1px solid #e6eaeb;
+      border-radius: 12px;
+      padding: 15px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      text-align: center;
+    }
+  
+    .slide-footer { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.97); border-top: 1px solid #dfe5ec; padding: 10px 24px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 -2px 10px rgba(46,38,64,0.06); z-index: 100; gap: 12px; }
+    .footer-links { display: flex; gap: 10px; }
+    .back-home { color: var(--inteli-purple); text-decoration: none; font-weight: 700; display: inline-flex; align-items: center; gap: 5px; padding: 8px 14px; border-radius: 10px; background: #f1f4f8; }
+    .back-home.material { background: #2f8f78 !important; color: white !important; }
+    .back-home.material:hover { background: #267562 !important; color: white !important; }
+    .back-home:hover { filter: brightness(0.97); color: inherit; }
+    .nav-wrapper { display: flex; align-items: center; gap: 14px; background: #f1f4f8; padding: 7px 18px; border-radius: 30px; }
+    .nav-buttons button { font-weight: 700; }
+    .fullscreen-btn { background: #f1f4f8; border: none; font-size: 1.1rem; cursor: pointer; padding: 8px 12px; border-radius: 8px; }
+
+  </style>
+</head>
+
+<body>
+  <div class="slide-container">
+
+    <!-- Slide 0: Cover -->
+    <div class="slide active cover-slide">
+      <div class="glass-card">
+        <img
+          src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png"
+          alt="Inteli Logo" class="cover-logo">
+        <div class="slide-subtitle">Aula 4 • Projeto 9 • Sistemas de Informação</div>
+        <div class="slide-title">Design Orientado a Objetos & TDD</div>
+        <p style="color: #666; font-size: 1.2rem; margin: 20px 0;">
+          Do Diagrama de Classes à Implementação Limpa com Testes Unitários.
+        </p>
+        <div class="topics-grid">
+          <span class="topic-tag">📐 Design Patterns</span>
+          <span class="topic-tag">📊 UML Avançado</span>
+          <span class="topic-tag">🧪 TDD Prático</span>
+          <span class="topic-tag">♻️ Refatoração</span>
+        </div>
+        <div class="meta-info">
+          <strong>Prof. Afonso Brandão</strong> • 2 horas • Fevereiro 2025
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 1: Agenda -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">📋 Agenda da Aula</div>
+      </div>
+      <div class="slide-content">
+        <div class="two-columns">
+          <div>
+            <h3 style="color: var(--inteli-purple);">1. Fundamentos e Design</h3>
+            <ul>
+              <li>Deep Dive nos 4 Pilares da OO</li>
+              <li>Herança vs Composição (O grande dilema)</li>
+              <li>Mapeamento UML -> Código (C#)</li>
+              <li>Princípios SOLID (S e O)</li>
+            </ul>
+          </div>
+          <div>
+            <h3 style="color: var(--inteli-blue);">2. Qualidade e Prática</h3>
+            <ul>
+              <li>Filosofia do TDD: Design > Teste</li>
+              <li>O Ciclo Red-Green-Refactor detalhado</li>
+              <li>Anti-patterns de testes</li>
+              <li>IA Agents: gerar código, validar outputs e falhas</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 2: Contexto -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">🌉 O Elo Perdido: Dados x Comportamento</div>
+        <div style="font-size: 1.5rem; opacity: 0.9;">Conectando a aula de Banco de Dados com POO</div>
+      </div>
+      <div class="slide-content">
+        <div class="two-columns">
+          <div class="box">
+            <h4>Aula Passada (Dados)</h4>
+            <p>Focamos em <strong>ESTADO</strong>.</p>
+            <ul>
+              <li>Tabelas, Colunas, Tipos</li>
+              <li>Normalização (Evitar redundância)</li>
+              <li>Modelo Anêmico (Só dados, sem lógica)</li>
+            </ul>
+            <div class="code-block">struct Aluno { string nome; }</div>
+          </div>
+          <div class="box" style="border-left-color: var(--inteli-blue);">
+            <h4>Hoje (Objetos)</h4>
+            <p>Focamos em <strong>COMPORTAMENTO</strong>.</p>
+            <ul>
+              <li>Classes, Métodos, Contratos</li>
+              <li>Encapsulamento (Esconder dados)</li>
+              <li>Modelo Rico (Dados + Lógica juntos)</li>
+            </ul>
+            <div class="code-block">class Aluno { Matricular() { ... } }</div>
+          </div>
+        </div>
+        <p style="text-align: center; margin-top: 20px; font-weight: bold;">"Objetos são dados com comportamento;
+          Closures são comportamento com dados."</p>
+      </div>
+    </div>
+
+    <!-- Slide 3: Pilares - Encapsulamento -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">🛡️ Pilar 1: Encapsulamento Real</div>
+        <div style="font-size: 1.5rem; opacity: 0.9;">Tell, Don't Ask</div>
+      </div>
+      <div class="slide-content">
+        <p>Encapsulamento não é (apenas) criar <code>getters</code> e <code>setters</code> para tudo.</p>
+        <p><strong>É sobre proteger invariantes e esconder detalhes de implementação.</strong></p>
+
+        <div class="two-columns">
+          <div>
+            <h4 style="color: #d32f2f;">❌ Jeito Errado (Anêmico)</h4>
+            <div class="code-block" style="font-size: 0.9rem;">
+              var conta = new Conta();
+              // Lógica vaza para fora da classe
+              if (conta.Saldo >= 100) {
+                conta.Saldo -= 100;
+              }</div>
+          </div>
+          <div>
+            <h4 style="color: #388e3c;">✅ Jeito Certo (Tell, Don't Ask)</h4>
+            <div class="code-block" style="font-size: 0.9rem;">
+              var conta = new Conta();
+              // Pede para o objeto fazer o trabalho
+              try {
+                conta.Sacar(100);
+              } catch (SaldoInsuficienteException e) { ... }</div>
+          </div>
+        </div>
+
+        <div class="box" style="margin-top: 20px;">
+          <strong>Lei de Demeter:</strong> "Não fale com estranhos". Evite correntes como
+          <code>pedido.Cliente.Endereco.Cep</code>.
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 3.5: Tamagotchi -->
+    <div class="slide">
+      <div class="slide-header" style="background: linear-gradient(135deg, #00b09b, #96c93d);">
+        <div class="slide-title">👾 Encapsulamento: O Tamagotchi</div>
+        <div style="font-size: 1.5rem; opacity: 0.9;">Você não opera o estômago do seu pet!</div>
+      </div>
+      <div class="slide-content">
+        <div class="two-columns">
+          <div class="center-content">
+            <div style="font-size: 8rem;">👾</div>
+          </div>
+          <div>
+            <div class="box">
+              <h4>A Regra de Ouro:</h4>
+              <p>Num Tamagotchi, você não pode simplesmente dizer: <code>bichinho.Fome = 0;</code></p>
+              <p>Isso violaria as regras internas (invariantes). E se a fome ficar negativa? E se ele morrer de tanto
+                comer?</p>
+            </div>
+            <div class="code-block" style="font-size: 0.9rem;">
+              // ❌ Errado (Cirurgia a céu aberto)
+              bichinho.Fome -= 10;
+              bichinho.Felicidade += 5;
+
+              // ✅ Certo (Interação comportamental)
+              bichinho.Alimentar();
+              // O método sabe como reduzir a fome
+              // e aumentar a felicidade corretamente.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 4: Herança vs Composição -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">🏗️ Herança vs Composição</div>
+        <div style="font-size: 1.5rem; opacity: 0.9;">O Trade-off Clássico</div>
+      </div>
+      <div class="slide-content">
+        <div class="two-columns">
+          <div>
+            <h3 style="color: var(--inteli-purple);">Herança (É um)</h3>
+            <ul>
+              <li>✅ Reuso de código fácil.</li>
+              <li>❌ Alto acoplamento (mudou o pai, quebrou o filho).</li>
+              <li>❌ Herança é estática (definida em tempo de compilação).</li>
+              <li>⚠️ Violação fácil de Liskov (LSP).</li>
+            </ul>
+            <div class="code-block" style="font-size: 0.9rem;">class PatoBorracha : Pato {
+  override Voar() { throw new Error(); }
+} // Quebrou o contrato!</div>
+          </div>
+          <div>
+            <h3 style="color: var(--inteli-blue);">Composição (Tem um)</h3>
+            <ul>
+              <li>✅ Baixo acoplamento.</li>
+              <li>✅ Flexibilidade dinâmica (trocar comportamento em runtime).</li>
+              <li>✅ Mais fácil de testar (Mocks).</li>
+            </ul>
+            <div class="code-block" style="font-size: 0.9rem;">class Pato {
+  private IVoador _comportamentoVoo;
+  public Pato(IVoador v) { _comportamentoVoo = v; }
+}</div>
+          </div>
+        </div>
+        <p style="text-align: center; margin-top: 30px; font-weight: bold; font-size: 1.5rem;">"Favoreça a composição
+          sobre a herança." - Effective Java</p>
+      </div>
+    </div>
+
+    <!-- Slide 5: Polimorfismo e Interfaces -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">🎭 Polimorfismo & Interfaces</div>
+        <div style="font-size: 1.5rem; opacity: 0.9;">Programar para Interfaces, não Implementações</div>
+      </div>
+      <div class="slide-content">
+        <p>O poder de tratar objetos diferentes da mesma maneira.</p>
+
+        <div class="box">
+          <h4>Dependency Inversion Principle (DIP):</h4>
+          <p>Módulos de alto nível não devem depender de módulos de baixo nível. Ambos devem depender de abstrações.</p>
+        </div>
+
+        <div class="code-block">
+          // Acoplado (Ruim)
+          class PagamentoService {
+            private PayPal _paypal = new PayPal(); // Dependência concreta!
+          }
+
+          // Desacoplado (Bom) - Polimorfismo
+          class PagamentoService {
+            private IPagamento _gateway;
+
+            // Injeção de Dependência
+            public PagamentoService(IPagamento gateway) {
+              _gateway = gateway;
+            }
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 5.5: RPG Battle -->
+    <div class="slide">
+      <div class="slide-header" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+        <div class="slide-title">⚔️ Polimorfismo: Batalha RPG</div>
+        <div style="font-size: 1.5rem; opacity: 0.9;">O botão 'X' do controle</div>
+      </div>
+      <div class="slide-content">
+        <p>O jogo não sabe qual personagem você escolheu. Ele apenas sabe que é um <strong>Personagem</strong>.</p>
+
+        <div class="diagram-card" style="margin: 20px 0; background: #f0f4f8;">
+          <h3 style="margin: 0;">O Controle (Client)</h3>
+          <p>Quando você aperta <strong>X</strong>, o controle envia o comando <code>Atacar()</code>.</p>
+        </div>
+
+        <div class="two-columns">
+          <div class="box" style="border-left-color: #e53935;">
+            <h4>Class Guerreiro : Personagem</h4>
+            <p><code>Atacar()</code> -> <br><em>"Desfere golpe de espada!"</em></p>
+          </div>
+          <div class="box" style="border-left-color: #1e88e5;">
+            <h4>Class Mago : Personagem</h4>
+            <p><code>Atacar()</code> -> <br><em>"Lança bola de fogo!"</em></p>
+          </div>
+        </div>
+
+        <div class="code-block" style="margin-top: 20px;">
+          Personagem p = new Mago(); // ou new Guerreiro();
+          p.Atacar(); // O comportamento muda conforme o objeto real!</div>
+      </div>
+    </div>
+
+    <!-- Slide 6: UML Classes Detalhado -->
+    <div class="slide">
+      <div class="slide-header" style="background: linear-gradient(135deg, #2e2640 0%, #2e2640 100%);">
+        <div class="slide-title">📐 UML: Anatomia da Classe</div>
+        <div style="font-size: 1.5rem; opacity: 0.9;">Lendo o mapa do software</div>
+      </div>
+      <div class="slide-content">
+        <div class="two-columns" style="align-items: center;">
+          <div class="diagram-card" style="width: 300px; margin: 0 auto; padding: 0;">
+            <img src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1771845757/oydpq2zvkrsgvhfozajb.png" alt="UML ContaBancaria" style="max-width: 100%; height: auto;">
+          </div>
+
+          <div style="font-size: 1.1rem;">
+            <h4>Legenda:</h4>
+            <ul style="list-style: none;">
+              <li>🔒 <strong>- (Private):</strong> Visível só na classe.</li>
+              <li>🛡️ <strong># (Protected):</strong> Visível filhos.</li>
+              <li>🌍 <strong>+ (Public):</strong> Visível a todos.</li>
+            </ul>
+            <hr>
+            <h4>Estereótipos e Modificadores:</h4>
+            <ul style="list-style: none;">
+              <li><code><< interface >></code>: Contrato puro.</li>
+              <li><em>Itálico</em>: Classe ou método <strong>Abstrato</strong>.</li>
+              <li><u>Sublinhado</u>: Membro <strong>Estático</strong> (compartilhado).</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 7: UML Relacionamentos Code Mapping -->
+    <div class="slide">
+      <div class="slide-header" style="background: linear-gradient(135deg, #2e2640 0%, #2e2640 100%);">
+        <div class="slide-title">🔗 UML -> Código (Rosetta Stone)</div>
+        <div style="font-size: 1.5rem; opacity: 0.9;">Traduzindo diagramas para C#</div>
+      </div>
+      <div class="slide-content">
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
+
+            <div class="diagram-card">
+            <h4>➡️ Associação</h4>
+            <p style="font-size: 0.9rem;">"Usa um"</p>
+            <img src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1771845758/qhzwsuarxvp9y4zxppmk.png" alt="UML Associacao" style="max-width: 100%; height: auto;">
+          </div>
+
+          <!-- Agregação -->
+          <div class="diagram-card">
+            <h4>💠 Agregação</h4>
+            <p style="font-size: 0.9rem;">"Tem um" (Fraco)</p>
+            <img src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1771845759/yiqmydpf9grdeqghjmry.png" alt="UML Agregacao" style="max-width: 100%; height: auto;">
+          </div>
+
+          <!-- Composição -->
+          <div class="diagram-card">
+            <h4>♦️ Composição</h4>
+            <p style="font-size: 0.9rem;">"É parte de" (Forte)</p>
+            <img src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1771845760/tdzmroxuox4efwb8j9lf.png" alt="UML Composicao" style="max-width: 100%; height: auto;">
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 8: SOLID Intro -->
+    <div class="slide">
+      <div class="slide-header">
+        <div class="slide-title">🧱 Princípios SOLID (Intro)</div>
+        <div style="font-size: 1.5rem; opacity: 0.9;">A base do Design Limpo</div>
+      </div>
+      <div class="slide-content">
+        <div class="two-columns">
+          <div class="box">
+            <h3>S - Single Responsibility (SRP)</h3>
+            <p>"Uma classe deve ter apenas um motivo para mudar."</p>
+            <p><strong>Exemplo Ruim:</strong> Classe <code>Relatorio</code> que calcula dados E salva em PDF.</p>
+            <p><strong>Refatoração:</strong> <code>CalculadoraRelatorio</code> e <code>GeradorPDF</code>.</p>
+          </div>
+          <div class="box" style="border-left-color: var(--inteli-blue);">
+            <h3>O - Open/Closed (OCP)</h3>
+            <p>"Aberto para extensão, fechado para modificação."</p>
+            <p><strong>Exemplo Ruim:</strong> <code>if (tipo == "Boleto") ... else if ...</code></p>
+            <p><strong>Refatoração:</strong> Polimorfismo! <code>IPagamento.Processar()</code>.</p>
+          </div>
+        </div>
+        <p style="text-align: center; margin-top: 20px;">Alta Coesão (Coisas relacionadas juntas) e Baixo Acoplamento
+          (Coisas independentes separadas).</p>
+      </div>
+    </div>
+
+    <!-- Slide 9: O que é TDD? -->
+    <div class="slide">
+      <div class="slide-header" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+        <div class="slide-title">🧪 Filosofia TDD</div>
+        <div style="font-size: 1.5rem; opacity: 0.9;">Design First, Code Later</div>
+      </div>
+      <div class="slide-content">
+        <blockquote
+          style="font-size: 1.8rem; font-style: italic; border-left: 8px solid var(--inteli-purple); padding-left: 30px; margin: 40px 0;">
+          "O ato de escrever um teste força você a considerar a interface e a usabilidade do código antes da
+          implementação."
+        </blockquote>
+
+        <div class="two-columns">
+          <div>
+            <h4>Benefícios Reais:</h4>
+            <ul>
+              <li><strong>Design Emergente:</strong> O código cresce organicamente.</li>
+              <li><strong>Coragem:</strong> Refatore sem medo de quebrar.</li>
+              <li><strong>Documentação Viva:</strong> O teste diz O QUE o código faz.</li>
+            </ul>
+          </div>
+          <div
+            style="display: flex; align-items: center; justify-content: center; background: #f9f9f9; border-radius: 10px;">
+            <div style="text-align: center;">
+              <h3>Custo de Mudança</h3>
+              <p>Com TDD = Constante (Graph line flat)</p>
+              <p>Sem TDD = Exponencial (Code rot)</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 10: O Ciclo Red-Green-Refactor -->
+    <div class="slide">
+      <div class="slide-header" style="background: linear-gradient(135deg, #ff4545 0%, #b71c1c 100%);">
+        <div class="slide-title">🚦 O Ciclo Red-Green-Refactor</div>
+        <div style="font-size: 1.5rem; opacity: 0.9;">Passo a Passo</div>
+      </div>
+      <div class="slide-content">
+        <div style="display: flex; justify-content: space-around; align-items: center; height: 100%;">
+
+          <div style="text-align: center; width: 30%;">
+            <div
+              style="width: 120px; height: 120px; background: #ff5252; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto; font-size: 1.5rem; font-weight: bold; box-shadow: 0 10px 20px rgba(255, 82, 82, 0.4);">
+              RED</div>
+            <h3 style="color: #c62828;">1. Teste Falha</h3>
+            <p>Escreva o teste para uma funcionalidade que NÃO existe. O erro deve ser de <strong>compilação</strong> ou
+              <strong>asserção</strong>.
+            </p>
+          </div>
+
+          <div style="font-size: 3rem; color: #ccc;">➡️</div>
+
+          <div style="text-align: center; width: 30%;">
+            <div
+              style="width: 120px; height: 120px; background: #69f0ae; color: #2e7d32; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto; font-size: 1.5rem; font-weight: bold; box-shadow: 0 10px 20px rgba(105, 240, 174, 0.4);">
+              GREEN</div>
+            <h3 style="color: #2e7d32;">2. Faça Passar</h3>
+            <p>Cometa pecados! Use constantes, `return true`, copie e cole. O objetivo é ver a barra verde rápido.</p>
+          </div>
+
+          <div style="font-size: 3rem; color: #ccc;">➡️</div>
+
+          <div style="text-align: center; width: 30%;">
+            <div
+              style="width: 120px; height: 120px; background: #448aff; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto; font-size: 1.3rem; font-weight: bold; box-shadow: 0 10px 20px rgba(68, 138, 255, 0.4);">
+              REFACTOR</div>
+            <h3 style="color: #1565c0;">3. Limpe a Casa</h3>
+            <p>Agora sim: Remova duplicação, renomeie variáveis, aplique Patterns. O teste garante que nada quebrou.</p>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 11: TDD Exemplo Prático -->
+    <div class="slide">
+      <div class="slide-header" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+        <div class="slide-title">💻 Exemplo: Calculadora de Frete</div>
+      </div>
+      <div class="slide-content">
+        <div class="code-block" style="font-size: 0.9rem;">
+          // 1. RED (Teste)
+          [Test]
+          public void Frete_DeveSerZero_ParaPedidosAcimaDe200() {
+            var calc = new FreteCalculadora();
+            var valor = calc.Calcular(pedidoTotal: 250);
+            Assert.AreEqual(0, valor);
+          }
+
+          // 2. GREEN (Implementação "safada")
+          public class FreteCalculadora {
+            public decimal Calcular(decimal pedidoTotal) {
+              return 0; // Hardcoded! Passou o teste.
+            }
+          }
+
+          // 3. REFACTOR (Depois de adicionar mais testes...)
+          public decimal Calcular(decimal pedidoTotal) {
+            if (pedidoTotal > 200) return 0;
+            return 20; // Lógica real
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 12: Anti-Patterns -->
+    <div class="slide">
+      <div class="slide-header" style="background: linear-gradient(135deg, #ff4545 0%, #b71c1c 100%);">
+        <div class="slide-title">⚠️ TDD Anti-Patterns</div>
+        <div style="font-size: 1.5rem; opacity: 0.9;">O que NÃO fazer</div>
+      </div>
+      <div class="slide-content">
+        <div class="two-columns">
+          <div class="box">
+            <h4>🤥 O Mentiroso (The Liar)</h4>
+            <p>O teste passa, mas não testa nada.</p>
+            <div class="code-block" style="font-size: 0.8rem;">Assert.IsTrue(true); // Falso positivo</div>
+          </div>
+          <div class="box">
+            <h4>🏗️ Setup Excessivo</h4>
+            <p>Se você precisa de 50 linhas para instanciar a classe, seu design está altamente acoplado.</p>
+          </div>
+          <div class="box">
+            <h4>🕵️ O Inspetor Privado</h4>
+            <p>Tentar testar métodos `private` ou `internal`. Teste apenas a interface pública!</p>
+          </div>
+          <div class="box">
+            <h4>🐢 A Tartaruga</h4>
+            <p>Testes lentos (que tocam Banco de Dados ou Rede). Teste unitário deve rodar em milissegundos.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 13: IA + TDD -->
+    <div class="slide">
+      <div class="slide-header" style="background: linear-gradient(135deg, #3949ab 0%, #1e88e5 100%);">
+        <div class="slide-title">🤖 TDD na Era dos Agentes de IA</div>
+        <div style="font-size: 1.5rem; opacity: 0.9;">Foco em outputs, comportamento e falhas</div>
+      </div>
+      <div class="slide-content">
+        <div class="box" style="border-left-color: #1e88e5;">
+          <p style="font-size: 1.35rem;">
+            Hoje, quase ninguém escreve tudo na mão. O trabalho mudou:
+            <strong>ler, entender e gerenciar os outputs</strong> gerados por agentes.
+          </p>
+        </div>
+        <div class="two-columns">
+          <div>
+            <h4>Antes (manual)</h4>
+            <ul>
+              <li>Escrever linha por linha.</li>
+              <li>Debug de implementação local.</li>
+              <li>Decisão baseada em estilo pessoal.</li>
+            </ul>
+          </div>
+          <div>
+            <h4>Agora (com IA)</h4>
+            <ul>
+              <li>Definir cenários de teste primeiro.</li>
+              <li>Delegar geração para agentes especializados.</li>
+              <li>Controlar qualidade por evidência (testes + métricas).</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 14: Playbook de agentes -->
+    <div class="slide">
+      <div class="slide-header" style="background: linear-gradient(135deg, #5e35b1 0%, #3949ab 100%);">
+        <div class="slide-title">🧰 Playbook: Skills + Agentes com TDD</div>
+        <div style="font-size: 1.5rem; opacity: 0.9;">Estrutura mínima de trabalho</div>
+      </div>
+      <div class="slide-content">
+        <div class="two-columns">
+          <div>
+            <h4>Boas práticas operacionais</h4>
+            <ul style="font-size: 1.25rem;">
+              <li><strong>Skill de contexto:</strong> arquitetura, convenções e domínio.</li>
+              <li><strong>Agente red:</strong> escreve/expande testes e cenários de falha.</li>
+              <li><strong>Agente green:</strong> implementa o mínimo para passar.</li>
+              <li><strong>Agente refactor:</strong> simplifica sem quebrar contratos.</li>
+              <li><strong>Agente reviewer:</strong> caça regressão e risco técnico.</li>
+            </ul>
+          </div>
+          <div>
+            <div class="code-block" style="font-size: 0.95rem;">
+              // Pipeline orientado a output
+              RED: teste falha e reproduz bug real
+              GREEN: patch minimo, sem escopo extra
+              REFACTOR: melhora design sem alterar comportamento
+              CHECK: cobertura, risco, performance, seguranca
+
+              // Regra de ouro
+              Sem evidencia (teste/metricas), sem merge.
+            </div>
+            <p style="margin-top: 12px; font-size: 1.1rem;">
+              O prompt não é especificação final; os testes são.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 15: Analogia chips -->
+    <div class="slide">
+      <div class="slide-header" style="background: linear-gradient(135deg, #00897b 0%, #26a69a 100%);">
+        <div class="slide-title">🧪 Analogia: Engenharia de Chips</div>
+        <div style="font-size: 1.5rem; opacity: 0.9;">Ninguém rastreia transistor por transistor</div>
+      </div>
+      <div class="slide-content">
+        <p style="font-size: 1.35rem;">
+          Em chips modernos, há <strong>bilhões de transistores</strong>. É humanamente impossível gerenciar um por um.
+          O engenheiro valida <strong>comportamento emergente</strong> por simulação, teste e especificação.
+        </p>
+        <div class="two-columns">
+          <div class="box">
+            <h4>No design de chips</h4>
+            <ul>
+              <li>Verificação funcional por cenários.</li>
+              <li>Validação temporal e consumo de energia.</li>
+              <li>Teste de corner cases e tolerância a falhas.</li>
+            </ul>
+          </div>
+          <div class="box" style="border-left-color: #26a69a;">
+            <h4>No software com IA</h4>
+            <ul>
+              <li>Validar outputs em cenários críticos.</li>
+              <li>Mensurar latência, custo e confiabilidade.</li>
+              <li>Tratar falhas como parte do design.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 16: ATAM para IA -->
+    <div class="slide">
+      <div class="slide-header" style="background: linear-gradient(135deg, #ef6c00 0%, #ff9800 100%);">
+        <div class="slide-title">📐 ATAM para Agentes de IA</div>
+        <div style="font-size: 1.5rem; opacity: 0.9;">Gerenciar comportamento e falhas, não só código</div>
+      </div>
+      <div class="slide-content">
+        <div class="two-columns">
+          <div>
+            <h4>Quality Attributes (alvos)</h4>
+            <ul>
+              <li><strong>Confiabilidade:</strong> taxa de testes verdes por release.</li>
+              <li><strong>Segurança:</strong> ausência de segredos e vulnerabilidades.</li>
+              <li><strong>Modificabilidade:</strong> tempo para ajustar requisito.</li>
+              <li><strong>Observabilidade:</strong> logs e rastreio de decisão do agente.</li>
+            </ul>
+          </div>
+          <div>
+            <h4>Cenários ATAM (exemplos)</h4>
+            <ul>
+              <li>Agente gera patch que passa unitário e quebra integração.</li>
+              <li>Modelo muda versão e altera estilo de código inesperadamente.</li>
+              <li>Falha de teste intermitente mascara regressão real.</li>
+              <li>Refactor melhora legibilidade mas piora latência.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="box" style="margin-top: 18px; border-left-color: #ef6c00;">
+          <strong>Resumo:</strong> o engenheiro moderno governa sistema por evidência de comportamento.
+          Ler código continua essencial, mas o diferencial está em <strong>gerenciar output e risco</strong>.
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 17: Refactoring Guru -->
+    <div class="slide">
+      <div class="slide-header" style="background: linear-gradient(135deg, #11998e, #38ef7d);">
+        <div class="slide-title">📚 A Bíblia Visual</div>
+        <div style="font-size: 1.5rem; opacity: 0.9;">Onde aprender mais?</div>
+      </div>
+      <div class="slide-content center-content">
+        <div style="text-align: center;">
+          <h2 style="font-size: 3rem; margin-bottom: 20px;">Refactoring.Guru</h2>
+          <p style="font-size: 1.5rem;">"O melhor recurso visual para aprender Padrões de Projeto e Refatoração."</p>
+
+          <a href="https://refactoring.guru/pt-br/design-patterns" target="_blank"
+            style="display: inline-block; margin-top: 40px; padding: 20px 40px; background: #2e2640; color: white; text-decoration: none; border-radius: 50px; font-weight: bold; font-size: 1.2rem; transition: transform 0.2s;">
+            🔗 Acessar Refactoring Guru
+          </a>
+
+          <a href="https://github.com/afonsolelis/aula_dotnet_cars" target="_blank" rel="noopener noreferrer"
+            style="display: inline-block; margin-top: 20px; padding: 16px 32px; background: #89cea5; color: #2e2640; text-decoration: none; border-radius: 50px; font-weight: bold; font-size: 1.1rem; transition: transform 0.2s;">
+            🚀 Repositório da Aula (aula_dotnet_cars)
+          </a>
+
+          <p style="margin-top: 40px; color: #666;">Essencial para entender Singleton, Factory, Strategy, Observer, etc.
+          </p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer Navigation -->
+    <div class="slide-footer">
+    <div class="footer-links">
+      <a href="../home-module-9-sistemas-informacao.html" class="back-home">🏠 Home</a>
+      <a href="lesson-4-material.html" class="back-home material">📖 Material</a>
+    </div>
+    <div class="nav-wrapper">
+      <div class="nav-buttons"><button id="prev-btn" onclick="previousSlide()">← Anterior</button></div>
+      <div class="slide-counter"><span id="current-slide">1</span> / <span id="total-slides">1</span></div>
+      <div class="nav-buttons"><button id="next-btn" onclick="nextSlide()">Próximo →</button></div>
+    </div>
+    <button class="fullscreen-btn" onclick="toggleFullScreen()" title="Tela cheia">⛶</button>
+  </div>
+
+<script>
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.slide');
+    const totalSlides = slides.length;
+    document.getElementById('total-slides').textContent = totalSlides;
+    function showSlide(index) {
+      document.querySelectorAll('.slide.active').forEach(s => s.classList.remove('active'));
+      slides[index].classList.add('active');
+
+      currentSlide = index;
+      document.getElementById('current-slide').textContent = index + 1;
+      document.getElementById('prev-btn').disabled = index === 0;
+      document.getElementById('next-btn').disabled = index === totalSlides - 1;
+    }
+    function nextSlide() { if (currentSlide < totalSlides - 1) showSlide(currentSlide + 1); }
+    function previousSlide() { if (currentSlide > 0) showSlide(currentSlide - 1); }
+
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+      else if (e.key === 'ArrowLeft') previousSlide();
+      else if (e.key === 'f' || e.key === 'F') toggleFullScreen();
+    });
+    // Initialize
+    showSlide(0);
+  </script>
+</body>
+
+</html>

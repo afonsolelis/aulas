@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aula 2 — Banco de Dados I — Material — Inteli</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="../../../css/inteli-styles.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ac:#4b5563; --hi:#b2b6bf; --dk:#2e2640; --gr:#0d9488; --re:#dc2626; --am:#d97706;
+      --text:#1e293b; --muted:#64748b; --border:#e2e8f0; --bg:#f8fafc; --card:#ffffff;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family:'Manrope',sans-serif; color:var(--text); background:var(--bg); }
+
+    /* ── Progress bar ── */
+    #progress-bar { position:fixed; top:0; left:0; height:3px; background:linear-gradient(90deg,var(--ac),var(--hi)); width:0%; z-index:9999; transition:width .1s; }
+
+    /* ── Floating nav ── */
+    #float-nav { position:fixed; bottom:28px; right:28px; display:flex; flex-direction:column; gap:8px; z-index:9998; opacity:0; pointer-events:none; transform:translateY(12px); transition:opacity .3s,transform .3s; }
+    #float-nav.visible { opacity:1; pointer-events:auto; transform:translateY(0); }
+    .fn-btn { display:flex; align-items:center; gap:6px; padding:10px 16px; border-radius:999px; font-size:.82rem; font-weight:700; text-decoration:none; box-shadow:0 4px 18px rgba(0,0,0,.25); transition:transform .15s,box-shadow .15s; white-space:nowrap; }
+    .fn-btn:hover { transform:translateY(-2px); box-shadow:0 6px 24px rgba(0,0,0,.32); text-decoration:none; }
+    .fn-btn-slides { background:white; color:var(--ac); border:2px solid var(--ac); }
+    .fn-btn-back   { background:var(--dk); color:white; }
+
+    /* ── Header ── */
+    .mat-header { background:linear-gradient(135deg,#1f2937 0%,#4b5563 50%,#b2b6bf 100%); color:white; padding:40px 0 32px; }
+    .mat-header h1 { font-size:2.2rem; font-weight:800; margin:0 0 8px; }
+    .mat-header .subtitle { font-size:1rem; opacity:.85; margin:0 0 20px; }
+    .mat-badge { background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.3); color:white; padding:4px 14px; border-radius:999px; font-size:.78rem; font-weight:700; display:inline-block; margin-bottom:12px; }
+
+    /* ── Layout ── */
+    .mat-layout { display:grid; grid-template-columns:260px 1fr; gap:32px; max-width:1200px; margin:0 auto; padding:40px 24px; }
+    @media(max-width:900px){ .mat-layout { grid-template-columns:1fr; } .mat-sidebar { display:none; } }
+
+    /* ── Sidebar ── */
+    .mat-sidebar { position:sticky; top:24px; max-height:calc(100vh - 48px); overflow-y:auto; }
+    .mat-toc { background:var(--card); border-radius:14px; padding:20px; border:1px solid var(--border); box-shadow:0 2px 8px rgba(0,0,0,.05); }
+    .mat-toc h4 { font-size:.8rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:0 0 12px; }
+    .mat-toc a { display:block; color:var(--muted); text-decoration:none; font-size:.82rem; padding:4px 0 4px 12px; border-left:2px solid transparent; transition:all .2s; line-height:1.3; }
+    .mat-toc a:hover, .mat-toc a.active { color:var(--ac); border-left-color:var(--ac); }
+    .mat-toc .toc-h3 { padding-left:22px; font-size:.77rem; }
+
+    /* ── Article ── */
+    .mat-article { min-width:0; }
+    .mat-section { margin-bottom:56px; }
+    .mat-section h2 { font-size:1.75rem; font-weight:800; color:var(--dk); padding-bottom:12px; border-bottom:2px solid var(--border); margin:0 0 24px; scroll-margin-top:80px; }
+    .mat-section h3 { font-size:1.2rem; font-weight:700; color:var(--dk); margin:32px 0 12px; scroll-margin-top:80px; }
+    .mat-section h4 { font-size:1rem; font-weight:700; color:var(--dk); margin:24px 0 10px; }
+    .mat-section p { line-height:1.8; margin-bottom:16px; font-size:.97rem; color:#374151; }
+    .mat-section ul, .mat-section ol { padding-left:1.5rem; margin-bottom:16px; }
+    .mat-section li { line-height:1.75; font-size:.97rem; color:#374151; margin-bottom:4px; }
+    .mat-section strong { color:var(--dk); }
+
+    /* ── Callout boxes ── */
+    .callout { border-radius:12px; padding:16px 20px; margin:20px 0; border-left:4px solid; }
+    .callout-info  { background:#eff6ff; border-color:#3b82f6; }
+    .callout-warn  { background:#fffbeb; border-color:#f59e0b; }
+    .callout-danger{ background:#fef2f2; border-color:#ef4444; }
+    .callout-tip   { background:#f0fdf4; border-color:#22c55e; }
+    .callout-deep  { background:#f5f3ff; border-color:#8b5cf6; }
+    .callout-label { font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; margin-bottom:6px; }
+    .callout-info  .callout-label { color:#3b82f6; }
+    .callout-warn  .callout-label { color:#f59e0b; }
+    .callout-danger .callout-label { color:#ef4444; }
+    .callout-tip   .callout-label { color:#22c55e; }
+    .callout-deep  .callout-label { color:#8b5cf6; }
+    .callout p { margin:0; font-size:.91rem; line-height:1.65; color:#374151; }
+    .callout p + p { margin-top:8px; }
+
+    /* ── Code blocks ── */
+    .code-wrap { position:relative; margin:20px 0; border-radius:12px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,.15); }
+    .code-label { background:#313244; color:#6c7086; font-size:.7rem; font-weight:700; padding:6px 14px; font-family:'JetBrains Mono',monospace; display:flex; justify-content:space-between; align-items:center; }
+    .code-copy { background:transparent; border:1px solid #6c7086; color:#cdd6f4; font-size:.65rem; padding:2px 8px; border-radius:5px; cursor:pointer; font-family:'JetBrains Mono',monospace; transition:all .2s; }
+    .code-copy:hover { background:#6c7086; color:white; }
+    pre.code-block { background:#1e1e2e; color:#cdd6f4; padding:18px 20px; margin:0; font-family:'JetBrains Mono',monospace; font-size:.82rem; line-height:1.75; overflow-x:auto; }
+    pre.code-block code { font-family:inherit; background:transparent; color:inherit; padding:0; }
+    .hl-kw  { color:#89b4fa; font-weight:600; }
+    .hl-str { color:#a6e3a1; }
+    .hl-num { color:#fab387; }
+    .hl-cmt { color:#6c7086; font-style:italic; }
+    .hl-typ { color:#cba6f7; }
+    .hl-fn  { color:#f9e2af; }
+
+    /* ── Tables ── */
+    .mat-table { width:100%; border-collapse:collapse; margin:20px 0; border-radius:10px; overflow:hidden; border:1px solid var(--border); font-size:.88rem; }
+    .mat-table thead th { background:var(--dk); color:white; padding:12px 16px; text-align:left; font-size:.8rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+    .mat-table tbody td { padding:10px 16px; border-bottom:1px solid var(--border); line-height:1.5; }
+    .mat-table tbody tr:last-child td { border-bottom:none; }
+    .mat-table tbody tr:hover { background:#f8fafc; }
+    .tag { display:inline-block; padding:2px 8px; border-radius:5px; font-size:.72rem; font-weight:700; }
+    .tag-blue  { background:#dbeafe; color:#1d4ed8; }
+    .tag-green { background:#dcfce7; color:#15803d; }
+    .tag-red   { background:#fee2e2; color:#b91c1c; }
+    .tag-purple{ background:#ede9fe; color:#7c3aed; }
+    .tag-amber { background:#fef3c7; color:#92400e; }
+
+    /* ── ER Diagram ── */
+    .er-diagram { display:flex; align-items:stretch; justify-content:center; gap:0; padding:24px 0; flex-wrap:wrap; }
+    .er-entity { background:white; border:2px solid var(--ac); border-radius:10px; min-width:140px; overflow:hidden; box-shadow:0 4px 14px rgba(0,0,0,.08); opacity:0; transform:translateY(20px); transition:all .5s cubic-bezier(.34,1.3,.64,1); }
+    .er-entity.reveal { opacity:1; transform:translateY(0); }
+    .er-entity-header { background:var(--ac); color:white; padding:8px 14px; font-size:.82rem; font-weight:800; text-align:center; }
+    .er-entity-attr { padding:6px 14px; font-size:.76rem; color:#374151; border-bottom:1px solid var(--border); font-family:'JetBrains Mono',monospace; }
+    .er-entity-attr:last-child { border-bottom:none; }
+    .er-entity-attr.pk { color:var(--ac); font-weight:700; }
+    .er-entity-attr.fk { color:var(--hi); }
+    .er-rel { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0 12px; min-width:90px; opacity:0; transition:opacity .4s ease; }
+    .er-rel.reveal { opacity:1; }
+    .er-rel-line { height:2px; background:linear-gradient(90deg,var(--ac),var(--hi)); width:50px; border-radius:1px; }
+    .er-rel-label { font-size:.65rem; font-weight:800; color:var(--muted); margin:4px 0 2px; text-align:center; }
+    .er-rel-card { font-size:.7rem; font-weight:700; color:var(--hi); font-family:'JetBrains Mono',monospace; }
+
+    /* ── SQL sublinguagens cards ── */
+    .sublang-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; margin:20px 0; }
+    .sublang-card { border-radius:12px; padding:16px; border:2px solid; transition:transform .2s,box-shadow .2s; cursor:default; }
+    .sublang-card:hover { transform:translateY(-3px); box-shadow:0 8px 24px rgba(0,0,0,.1); }
+    .sublang-acronym { font-family:'JetBrains Mono',monospace; font-size:1.2rem; font-weight:800; margin-bottom:4px; }
+    .sublang-name { font-size:.78rem; font-weight:700; margin-bottom:6px; }
+    .sublang-desc { font-size:.75rem; line-height:1.55; }
+    .sublang-cmds { margin-top:8px; font-family:'JetBrains Mono',monospace; font-size:.7rem; background:rgba(255,255,255,.6); padding:4px 8px; border-radius:6px; }
+    .sublang-ddl { background:#dbeafe; border-color:#3b82f6; color:#1d4ed8; }
+    .sublang-dml { background:#dcfce7; border-color:#22c55e; color:#15803d; }
+    .sublang-dql { background:#fef3c7; border-color:#f59e0b; color:#92400e; }
+    .sublang-dcl { background:#fee2e2; border-color:#ef4444; color:#b91c1c; }
+    .sublang-tcl { background:#ede9fe; border-color:#8b5cf6; color:#7c3aed; }
+
+    /* ── Normalização steps ── */
+    .norm-step { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px 20px; margin:12px 0; border-left:4px solid; opacity:0; transform:translateX(-16px); transition:all .5s cubic-bezier(.34,1.3,.64,1); }
+    .norm-step.reveal { opacity:1; transform:translateX(0); }
+    .norm-step-title { font-size:.9rem; font-weight:800; margin-bottom:6px; }
+    .norm-step p { margin:0; font-size:.87rem; color:#374151; line-height:1.6; }
+
+    /* ── RNF eixos ── */
+    .eixo-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:20px 0; }
+    .eixo-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; border-top:4px solid; opacity:0; transform:translateY(16px); transition:all .5s cubic-bezier(.34,1.3,.64,1); }
+    .eixo-card.reveal { opacity:1; transform:translateY(0); }
+    .eixo-tag { font-family:'JetBrains Mono',monospace; font-size:.72rem; font-weight:800; text-transform:uppercase; margin-bottom:6px; display:block; }
+    .eixo-title { font-size:.9rem; font-weight:700; color:var(--dk); margin-bottom:4px; }
+    .eixo-q { font-size:.78rem; color:var(--muted); line-height:1.5; }
+    .eixo-example { font-size:.75rem; color:#374151; margin-top:6px; background:#f8fafc; padding:5px 8px; border-radius:6px; font-style:italic; line-height:1.5; }
+
+    /* ── RM-ODP layers ── */
+    .odp-stack { display:flex; flex-direction:column; gap:8px; margin:20px 0; }
+    .odp-layer { border-radius:10px; padding:14px 18px; display:flex; align-items:center; gap:14px; opacity:0; transform:translateX(-20px); transition:all .5s cubic-bezier(.34,1.3,.64,1); }
+    .odp-layer.reveal { opacity:1; transform:translateX(0); }
+    .odp-icon { font-size:1.4rem; flex-shrink:0; }
+    .odp-name { font-size:.9rem; font-weight:700; color:var(--dk); }
+    .odp-desc { font-size:.8rem; color:#374151; margin-top:2px; line-height:1.5; }
+    .odp-focus { font-size:.73rem; font-weight:700; padding:2px 8px; border-radius:5px; margin-top:4px; display:inline-block; }
+
+    /* ── Scroll reveal ── */
+    .sr { opacity:0; transform:translateY(24px); transition:opacity .5s ease,transform .5s ease; }
+    .sr.vis { opacity:1; transform:translateY(0); }
+
+    /* ── Checklist ── */
+    .checklist { list-style:none; padding:0; margin:20px 0; }
+    .checklist li { display:flex; gap:10px; align-items:flex-start; padding:8px 0; border-bottom:1px solid var(--border); font-size:.9rem; color:#374151; cursor:pointer; user-select:none; }
+    .checklist li:last-child { border-bottom:none; }
+    .ck-box { width:20px; height:20px; border:2px solid var(--border); border-radius:5px; flex-shrink:0; display:flex; align-items:center; justify-content:center; transition:all .2s; margin-top:2px; }
+    .checklist li.done .ck-box { background:var(--gr); border-color:var(--gr); color:white; }
+    .checklist li.done .ck-text { text-decoration:line-through; color:var(--muted); }
+
+    /* ── Expandable deep-dive ── */
+    .deep-dive { margin:20px 0; border:1px solid #ede9fe; border-radius:12px; overflow:hidden; }
+    .deep-header { background:#f5f3ff; padding:14px 18px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; user-select:none; }
+    .deep-header h4 { margin:0; font-size:.9rem; color:#6d28d9; font-weight:700; }
+    .deep-arrow { font-size:.8rem; color:#8b5cf6; transition:transform .3s; }
+    .deep-header.open .deep-arrow { transform:rotate(180deg); }
+    .deep-body { padding:0 18px; max-height:0; overflow:hidden; transition:max-height .4s ease, padding .3s; }
+    .deep-body.open { max-height:2000px; padding:16px 18px; }
+  </style>
+</head>
+<body>
+  <div id="progress-bar"></div>
+
+  <!-- Floating nav (appears after scrolling past header) -->
+  <div id="float-nav">
+    <a href="../slides/slide_lesson-2.html" class="fn-btn fn-btn-slides">&#9654; Slides</a>
+    <a href="../../home-module-2-common.html" class="fn-btn fn-btn-back">&#8592; Módulo</a>
+  </div>
+
+  <header class="mat-header">
+    <div class="container">
+      <div class="mat-badge">Módulo 2 · Ciclo Comum · IN02</div>
+      <h1>Banco de Dados I</h1>
+      <p class="subtitle">Aula 2 — Material de Leitura Aprofundado</p>
+      <div class="d-flex gap-2 flex-wrap">
+        <a href="../slides/slide_lesson-2.html" class="btn btn-light btn-sm">&#9654; Slides</a>
+        <a href="../../home-module-2-common.html" class="btn btn-outline-light btn-sm">&#8592; Voltar ao Módulo</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="mat-layout">
+
+    <!-- ── Sidebar ── -->
+    <aside class="mat-sidebar">
+      <div class="mat-toc">
+        <h4>Neste material</h4>
+        <a href="#sec-bd">1. O que é um banco de dados?</a>
+        <a href="#sec-sgbd">2. SGBD</a>
+        <a href="#sec-er">3. Modelo Entidade-Relacionamento</a>
+        <a href="#sec-relacional" class="toc-h3">4. Modelo Relacional</a>
+        <a href="#sec-sublinguagens">5. As 5 Sublinguagens SQL</a>
+        <a href="#sec-ddl">6. DDL — Criando estruturas</a>
+        <a href="#sec-constraints" class="toc-h3">7. Constraints</a>
+        <a href="#sec-dml">8. DML — Manipulando dados</a>
+        <a href="#sec-dql">9. DQL — Consultando dados</a>
+        <a href="#sec-dcl-tcl">10. DCL e TCL</a>
+        <a href="#sec-rmodp">11. RM-ODP — Viewpoint Information</a>
+        <a href="#sec-req">12. RF, RN e RNF em BD</a>
+        <a href="#sec-checklist">13. Checklist</a>
+        <a href="#sec-refs">Referências</a>
+      </div>
+    </aside>
+
+    <!-- ── Article ── -->
+    <article class="mat-article">
+
+      <!-- ════════ 1. O QUE É UM BANCO DE DADOS ════════ -->
+      <section class="mat-section" id="sec-bd">
+        <h2>1. O que é um banco de dados?</h2>
+
+        <p>Um <strong>banco de dados</strong> é uma coleção organizada de informações relacionadas, estruturadas de forma que possam ser facilmente acessadas, gerenciadas e atualizadas. A palavra-chave aqui é <em>organização</em>: um arquivo de texto com mil linhas de dados pode conter informação, mas não é um banco de dados — falta a estrutura que permite recuperar exatamente o que você precisa em milissegundos.</p>
+
+        <p>Pense no Instagram: cada foto que você posta precisa ser associada ao seu perfil, ter uma lista de curtidas, comentários, tags e metadados como data e localização. Quando alguém abre o feed, o aplicativo busca em frações de segundo as publicações mais recentes de centenas de pessoas que você segue, classifica por relevância e exibe com imagens em alta resolução. Isso só é possível porque todos esses dados estão armazenados em bancos de dados cuidadosamente projetados. O mesmo raciocínio vale para um banco financeiro que precisa garantir que uma transferência debite de uma conta e credite em outra de forma atômica — sem que nenhuma das duas operações fique pela metade — ou para um e-commerce que precisa checar em tempo real se um produto está disponível em estoque antes de confirmar um pedido.</p>
+
+        <p>Antes dos bancos de dados, as aplicações armazenavam dados em arquivos no sistema de arquivos do sistema operacional. Esse modelo causava problemas sérios: redundância (os mesmos dados duplicados em múltiplos arquivos), inconsistência (versões diferentes do mesmo dado), dificuldade de acesso concorrente (dois programas tentando escrever no mesmo arquivo ao mesmo tempo) e ausência de segurança granular. Os bancos de dados foram criados exatamente para resolver esses problemas, fornecendo uma camada de abstração entre os dados e as aplicações que os consomem.</p>
+
+        <div class="callout callout-info sr">
+          <div class="callout-label">Definição formal</div>
+          <p>Segundo Ramakrishnan e Gehrke (<em>Database Management Systems</em>, 3ª ed.), um banco de dados é "uma coleção de dados que descrevem os fatos de um minimundo" — ou seja, um recorte do mundo real relevante para uma determinada organização ou aplicação.</p>
+        </div>
+
+        <h3>Bancos de dados no cotidiano</h3>
+        <p>Vale listar concretamente os tipos de dados que sistemas conhecidos armazenam em bancos de dados para que a abstração fique palpável:</p>
+        <table class="mat-table sr">
+          <thead><tr><th>Sistema</th><th>Dados persistidos</th><th>Operações críticas</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Instagram</strong></td><td>Perfis, fotos, seguidores, curtidas, stories, mensagens</td><td>Feed personalizado, busca por hashtag, notificações em tempo real</td></tr>
+            <tr><td><strong>Banco digital</strong></td><td>Contas, transações, saldos, limites, extratos, investimentos</td><td>Transferência atômica, detecção de fraude, extrato por período</td></tr>
+            <tr><td><strong>E-commerce</strong></td><td>Produtos, estoque, pedidos, clientes, endereços, pagamentos</td><td>Reserva de estoque, cálculo de frete, histórico de pedidos</td></tr>
+            <tr><td><strong>Spotify</strong></td><td>Músicas, artistas, playlists, histórico de escuta, preferências</td><td>Recomendação personalizada, busca full-text, streaming adaptativo</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ════════ 2. SGBD ════════ -->
+      <section class="mat-section" id="sec-sgbd">
+        <h2>2. SGBD — Sistema Gerenciador de Banco de Dados</h2>
+
+        <p>É fundamental distinguir duas coisas que frequentemente se confundem: o <strong>banco de dados</strong> (os dados em si, os arquivos físicos em disco) e o <strong>SGBD</strong> — Sistema Gerenciador de Banco de Dados. O SGBD é o <em>software</em> que gerencia o banco: ele recebe comandos, verifica permissões, garante a integridade dos dados, controla o acesso concorrente de múltiplos usuários ou aplicações, gerencia memória e cache, faz backups e recuperação em caso de falha. O banco de dados em si são os arquivos físicos no disco — sem o SGBD, você não tem como interagir com eles de forma segura e eficiente.</p>
+
+        <p>Um SGBD cumpre quatro funções essenciais: <strong>definição de dados</strong> (permite criar e alterar a estrutura das tabelas via DDL), <strong>manipulação de dados</strong> (permite inserir, atualizar, deletar e consultar via DML e DQL), <strong>controle de dados</strong> (gerencia permissões de acesso via DCL) e <strong>controle de transações</strong> (garante as propriedades ACID via TCL). Essas quatro funções correspondem exatamente às cinco sublinguagens do SQL, que estudaremos mais adiante neste material.</p>
+
+        <p>O mercado oferece vários SGBDs, cada um com características distintas. <strong>PostgreSQL</strong> é o mais robusto e completo entre os open-source, com suporte a tipos avançados (JSON nativo, arrays, geometria), extensões e conformidade rigorosa com o padrão SQL — será nossa ferramenta principal neste módulo. <strong>MySQL</strong> (e seu fork MariaDB) é amplamente usado em aplicações web de médio porte. <strong>SQLite</strong> é uma biblioteca embarcada, sem servidor separado, ideal para apps mobile e desktop. <strong>MongoDB</strong> é um banco de dados NoSQL orientado a documentos JSON, útil quando o esquema é altamente variável. A escolha do SGBD é um RNF da categoria <em>Restrições de Design</em> e deve ser justificada, não aleatória.</p>
+
+        <div class="callout callout-tip sr">
+          <div class="callout-label">Por que PostgreSQL neste módulo?</div>
+          <p>PostgreSQL é open-source, gratuito, tem uma comunidade enorme, segue fielmente o padrão SQL ANSI, suporta JSON nativamente, possui tipos avançados e extensões como PostGIS para dados geográficos. Aprender PostgreSQL prepara você para migrar facilmente para MySQL ou qualquer outro banco relacional — e para entender o que diferencia os bancos NoSQL dos relacionais.</p>
+        </div>
+
+        <h3>Como o SGBD garante integridade</h3>
+        <p>Uma das responsabilidades mais importantes do SGBD é garantir que os dados permaneçam <strong>íntegros</strong> — consistentes com as regras do negócio. Isso é feito por meio de <em>constraints</em> (restrições) definidas no esquema, que o SGBD verifica a cada operação de escrita. Se uma constraint for violada, a operação é rejeitada com um erro antes de qualquer dado ser persistido. Esse mecanismo evita que a responsabilidade de validação fique 100% na camada da aplicação — que pode ter bugs ou ser bypassada diretamente via SQL por alguém com acesso ao banco.</p>
+      </section>
+
+      <!-- ════════ 3. MODELO ENTIDADE-RELACIONAMENTO ════════ -->
+      <section class="mat-section" id="sec-er">
+        <h2>3. Modelo Entidade-Relacionamento (ER)</h2>
+
+        <p>Antes de escrever uma linha de SQL, precisamos modelar o problema. O <strong>Modelo Entidade-Relacionamento</strong> (ER), proposto por Peter Chen em 1976, é a linguagem gráfica padrão para representar a estrutura de informação de um sistema. Ele é independente de tecnologia: um diagrama ER pode ser implementado em PostgreSQL, MySQL, Oracle ou qualquer outro banco relacional. O modelo ER nos força a pensar sobre <em>o que</em> armazenar antes de pensar <em>como</em>.</p>
+
+        <p>Um diagrama ER tem três elementos fundamentais. <strong>Entidades</strong> são os "substantivos" do sistema — as coisas sobre as quais precisamos armazenar informação. Exemplos: Cliente, Produto, Pedido, Funcionário. Cada entidade tem <strong>atributos</strong> — as propriedades que descrevem cada instância dessa entidade. Um Cliente pode ter nome, email e telefone. Um Produto pode ter nome, preço e estoque. Um atributo especial é a <strong>chave primária</strong> (PK) — um atributo (ou conjunto de atributos) cujo valor identifica unicamente cada instância da entidade. Finalmente, <strong>relacionamentos</strong> são as associações entre entidades — os "verbos" do sistema. Um Cliente <em>realiza</em> Pedidos. Um Pedido <em>contém</em> Produtos.</p>
+
+        <p>A <strong>cardinalidade</strong> especifica quantas instâncias de uma entidade podem se relacionar com instâncias de outra. Os três tipos fundamentais são: <strong>1:1</strong> (um para um) — cada pessoa tem exatamente um CPF; <strong>1:N</strong> (um para muitos) — um cliente pode ter vários pedidos, mas cada pedido pertence a um único cliente; e <strong>N:M</strong> (muitos para muitos) — um pedido pode conter vários produtos, e um produto pode aparecer em vários pedidos. Relacionamentos N:M exigem uma tabela intermediária (tabela associativa ou junction table) para serem implementados no modelo relacional.</p>
+
+        <h3>Diagrama ER — Loja Universitária</h3>
+        <p>Veja um diagrama simplificado para o sistema de loja universitária iniciado na Aula 1:</p>
+
+        <div class="er-diagram" id="er-diagram">
+          <div class="er-entity" id="er0">
+            <div class="er-entity-header">Cliente</div>
+            <div class="er-entity-attr pk">id (PK)</div>
+            <div class="er-entity-attr">nome</div>
+            <div class="er-entity-attr">email</div>
+            <div class="er-entity-attr">criado_em</div>
+          </div>
+          <div class="er-rel" id="er-rel0">
+            <div class="er-rel-line"></div>
+            <div class="er-rel-label">realiza</div>
+            <div class="er-rel-card">1 : N</div>
+            <div class="er-rel-line"></div>
+          </div>
+          <div class="er-entity" id="er1">
+            <div class="er-entity-header">Pedido</div>
+            <div class="er-entity-attr pk">id (PK)</div>
+            <div class="er-entity-attr fk">cliente_id (FK)</div>
+            <div class="er-entity-attr">status</div>
+            <div class="er-entity-attr">criado_em</div>
+          </div>
+          <div class="er-rel" id="er-rel1">
+            <div class="er-rel-line"></div>
+            <div class="er-rel-label">contém</div>
+            <div class="er-rel-card">N : M</div>
+            <div class="er-rel-line"></div>
+          </div>
+          <div class="er-entity" id="er2">
+            <div class="er-entity-header">Produto</div>
+            <div class="er-entity-attr pk">id (PK)</div>
+            <div class="er-entity-attr">nome</div>
+            <div class="er-entity-attr">preco</div>
+            <div class="er-entity-attr">estoque</div>
+          </div>
+        </div>
+
+        <div class="callout callout-warn sr">
+          <div class="callout-label">Cuidado com N:M</div>
+          <p>O relacionamento N:M entre Pedido e Produto não pode ser implementado diretamente com duas tabelas. É necessário criar uma tabela associativa <code>item_pedido</code> com as chaves estrangeiras de ambos os lados, mais atributos do relacionamento como <code>quantidade</code> e <code>preco_unit</code>. Esquecer essa tabela é um dos erros mais comuns de modelagem.</p>
+        </div>
+
+        <h3>Por que modelar antes de criar tabelas?</h3>
+        <p>Modelar em ER antes de escrever DDL tem dois benefícios principais. Primeiro, permite identificar problemas de design — entidades esquecidas, relacionamentos ambíguos, atributos mal posicionados — antes que qualquer código seja escrito. Corrigir um diagrama leva minutos; corrigir um banco de dados em produção com dados reais pode levar horas e exigir migrações complexas. Segundo, o diagrama ER é uma linguagem comum entre técnicos e não técnicos: um gerente de produto consegue entender e validar um diagrama ER mesmo sem saber SQL.</p>
+      </section>
+
+      <!-- ════════ 4. MODELO RELACIONAL ════════ -->
+      <section class="mat-section" id="sec-relacional">
+        <h2>4. Modelo Relacional — Tabelas, PK e FK</h2>
+
+        <p>O <strong>modelo relacional</strong>, proposto por Edgar F. Codd em 1970, é o modelo de dados mais amplamente usado no mundo. Toda informação é organizada em <strong>tabelas</strong> (também chamadas de relações, em homenagem ao modelo matemático de álgebra relacional). Cada tabela tem um nome único no banco, um conjunto fixo de <strong>colunas</strong> (atributos) com tipos de dados definidos, e um conjunto de <strong>linhas</strong> (tuplas), onde cada linha representa uma instância da entidade.</p>
+
+        <p>A <strong>chave primária</strong> (Primary Key, PK) é uma coluna (ou conjunto de colunas) que identifica unicamente cada linha da tabela. Toda tabela deve ter uma PK. O SGBD cria automaticamente um índice na PK, tornando buscas por esse campo extremamente rápidas. Em PostgreSQL, o tipo <code>SERIAL</code> (ou <code>BIGSERIAL</code> para tabelas maiores) é a forma mais comum de criar PKs numéricas auto-incrementais. Para sistemas que precisam de IDs globalmente únicos sem coordenação central, usa-se <code>UUID</code>.</p>
+
+        <p>A <strong>chave estrangeira</strong> (Foreign Key, FK) é uma coluna que referencia a PK de outra tabela, estabelecendo o <em>relacionamento</em> entre elas no nível físico. Quando você define uma FK no SGBD, ele passa a verificar automaticamente a integridade referencial: você não pode inserir uma linha com <code>cliente_id = 99</code> em <code>pedidos</code> se não existir um cliente com <code>id = 99</code> na tabela <code>clientes</code>. Também não pode deletar um cliente que ainda tem pedidos associados — a menos que configure um comportamento de cascata (<code>ON DELETE CASCADE</code>).</p>
+
+        <h3>Normalização — organizando para evitar redundância</h3>
+        <p>A <strong>normalização</strong> é um processo de organizar as tabelas de um banco relacional para eliminar redundância e dependências anômalas. Cada <em>forma normal</em> estabelece um conjunto de regras que a tabela deve obedecer. As três primeiras são as mais importantes na prática:</p>
+
+        <div id="norm-stack">
+          <div class="norm-step" style="border-color:var(--ac);">
+            <div class="norm-step-title" style="color:var(--ac);">1FN — Primeira Forma Normal</div>
+            <p><strong>Regra:</strong> todos os atributos devem ser atômicos (sem listas ou grupos repetidos numa mesma coluna) e deve haver uma PK.<br><strong>Exemplo de violação:</strong> coluna <code>telefones</code> com o valor <code>"(11)9999-0001, (11)9999-0002"</code> — dois valores numa coluna só.<br><strong>Solução:</strong> criar uma tabela separada <code>telefones(id, cliente_id, numero)</code>.</p>
+          </div>
+          <div class="norm-step" style="border-color:var(--hi);">
+            <div class="norm-step-title" style="color:var(--hi);">2FN — Segunda Forma Normal</div>
+            <p><strong>Regra:</strong> a tabela deve estar em 1FN e todos os atributos não-chave devem depender <em>funcionalmente</em> de toda a PK. Relevante quando a PK é composta.<br><strong>Exemplo de violação:</strong> tabela <code>item_pedido(pedido_id, produto_id, nome_produto)</code> — <code>nome_produto</code> depende só de <code>produto_id</code>, não de <code>pedido_id</code>.<br><strong>Solução:</strong> mover <code>nome_produto</code> para a tabela <code>produtos</code>.</p>
+          </div>
+          <div class="norm-step" style="border-color:var(--gr);">
+            <div class="norm-step-title" style="color:var(--gr);">3FN — Terceira Forma Normal</div>
+            <p><strong>Regra:</strong> a tabela deve estar em 2FN e não deve haver dependências transitivas (atributo não-chave dependendo de outro atributo não-chave).<br><strong>Exemplo de violação:</strong> tabela <code>pedidos(id, cliente_id, cidade_cliente, estado_cliente)</code> — <code>estado_cliente</code> depende de <code>cidade_cliente</code>, que depende de <code>cliente_id</code>.<br><strong>Solução:</strong> mover dados do cliente para a tabela <code>clientes</code> e referenciar por FK.</p>
+          </div>
+        </div>
+
+        <div class="callout callout-deep sr">
+          <div class="callout-label">Desnormalização controlada</div>
+          <p>Em alguns casos de alta performance (relatórios analíticos, data warehouses), intencionalmente desnormalizamos — repetimos dados — para evitar JOINs custosos em consultas de leitura. Essa é uma decisão de trade-off consciente, documentada como RNF de Desempenho, e não um erro de design. Normalize primeiro; desnormalize com evidência de necessidade.</p>
+        </div>
+      </section>
+
+      <!-- ════════ 5. SQL — AS 5 SUBLINGUAGENS ════════ -->
+      <section class="mat-section" id="sec-sublinguagens">
+        <h2>5. SQL — As 5 Sublinguagens</h2>
+
+        <p>SQL (Structured Query Language) não é uma linguagem monolítica — ela é composta por cinco sublinguagens, cada uma com um propósito distinto. Essa organização existe porque diferentes papéis interagem com o banco de maneiras diferentes: um DBA gerencia estrutura e permissões; um desenvolvedor escreve DML e DQL; um sistema de monitoramento opera transações via TCL. Entender as sublinguagens é entender a separação de responsabilidades no SQL.</p>
+
+        <p>Cada sublinguagem opera em um nível diferente de abstração. DDL opera no nível do <em>esquema</em> — a estrutura que contém os dados. DML e DQL operam no nível dos <em>dados</em> em si — as linhas dentro das tabelas. DCL opera no nível das <em>permissões</em> — quem pode fazer o quê. TCL opera no nível das <em>transações</em> — garantindo que grupos de operações sejam executados de forma atômica. Um profissional de banco de dados competente domina todas as cinco sublinguagens e sabe quando usar cada uma.</p>
+
+        <p>É importante notar que alguns comandos DDL (como <code>TRUNCATE</code>) e os comandos DCL têm efeito imediato e implícito de COMMIT em muitos SGBDs — ou seja, não podem ser revertidos com ROLLBACK. Já os comandos DML fazem parte de transações e podem ser revertidos até o COMMIT ser executado. Essa diferença tem implicações práticas importantes: você pode corrigir um UPDATE errado com ROLLBACK, mas não pode desfazer um DROP TABLE da mesma forma.</p>
+
+        <div class="sublang-grid sr">
+          <div class="sublang-card sublang-ddl">
+            <div class="sublang-acronym">DDL</div>
+            <div class="sublang-name">Data Definition Language</div>
+            <div class="sublang-desc">Define e altera a estrutura do banco: cria, modifica e remove tabelas, índices e outros objetos. Comandos DDL têm efeito imediato e implicitamente fazem COMMIT.</div>
+            <div class="sublang-cmds">CREATE · ALTER · DROP · TRUNCATE</div>
+          </div>
+          <div class="sublang-card sublang-dml">
+            <div class="sublang-acronym">DML</div>
+            <div class="sublang-name">Data Manipulation Language</div>
+            <div class="sublang-desc">Manipula os dados dentro das estruturas existentes: insere, atualiza e deleta linhas. Faz parte de transações e pode ser revertido com ROLLBACK.</div>
+            <div class="sublang-cmds">INSERT · UPDATE · DELETE · MERGE</div>
+          </div>
+          <div class="sublang-card sublang-dql">
+            <div class="sublang-acronym">DQL</div>
+            <div class="sublang-name">Data Query Language</div>
+            <div class="sublang-desc">Consulta dados sem modificá-los. Alguns autores incluem SELECT dentro do DML, mas a separação é didaticamente útil: SELECT tem sintaxe própria e riquíssima.</div>
+            <div class="sublang-cmds">SELECT</div>
+          </div>
+          <div class="sublang-card sublang-dcl">
+            <div class="sublang-acronym">DCL</div>
+            <div class="sublang-name">Data Control Language</div>
+            <div class="sublang-desc">Controla permissões de acesso: concede e revoga privilégios a usuários e roles. Garante que cada usuário acesse apenas o que precisa — princípio do menor privilégio.</div>
+            <div class="sublang-cmds">GRANT · REVOKE</div>
+          </div>
+          <div class="sublang-card sublang-tcl">
+            <div class="sublang-acronym">TCL</div>
+            <div class="sublang-name">Transaction Control Language</div>
+            <div class="sublang-desc">Gerencia transações: delimita blocos de operações que devem ser executados de forma atômica. Se qualquer operação falhar, todas são revertidas.</div>
+            <div class="sublang-cmds">BEGIN · COMMIT · ROLLBACK · SAVEPOINT</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════ 6. DDL ════════ -->
+      <section class="mat-section" id="sec-ddl">
+        <h2>6. DDL — Criando e Alterando Estruturas</h2>
+
+        <p>Os comandos DDL definem o <strong>esquema</strong> do banco de dados — a estrutura que contém os dados. O mais fundamental é o <code>CREATE TABLE</code>, que cria uma nova tabela com suas colunas, tipos e constraints. Em PostgreSQL, cada coluna precisa de um tipo de dado que define o que pode ser armazenado nela: <code>VARCHAR(n)</code> para texto com limite, <code>TEXT</code> para texto sem limite, <code>INTEGER</code> e <code>BIGINT</code> para números inteiros, <code>NUMERIC(p,s)</code> para decimais precisos (use para dinheiro, nunca <code>FLOAT</code>), <code>BOOLEAN</code> para verdadeiro/falso, <code>TIMESTAMP</code> para datas e horas, e <code>UUID</code> para identificadores únicos.</p>
+
+        <p>O comando <code>ALTER TABLE</code> modifica a estrutura de uma tabela existente — adiciona ou remove colunas, altera tipos, adiciona ou remove constraints. Em produção, operações de ALTER em tabelas grandes podem travar a tabela por longos períodos (lock), por isso existem estratégias como adicionar a nova coluna como nullable primeiro, popular os dados em background e depois adicionar a constraint NOT NULL. Compreender o impacto de um ALTER é parte essencial do trabalho de um desenvolvedor de backend.</p>
+
+        <p>O comando <code>DROP TABLE</code> elimina uma tabela e todos os seus dados permanentemente. Em PostgreSQL, se a tabela tiver FKs referenciando ela de outras tabelas, você precisará usar <code>DROP TABLE nome CASCADE</code> (que também deleta as FKs das tabelas dependentes) ou primeiro remover as FKs manualmente. <code>TRUNCATE</code> é diferente: remove todas as linhas da tabela mas mantém a estrutura — e é muito mais rápido que <code>DELETE</code> sem WHERE porque não gera registros de undo linha a linha.</p>
+
+        <div class="code-wrap">
+          <div class="code-label">SQL — DDL: CREATE TABLE, ALTER TABLE, DROP TABLE
+            <button class="code-copy" onclick="copyCode(this)">copiar</button>
+          </div>
+          <pre class="code-block"><code><span class="hl-cmt">-- Cria a tabela de usuários com tipos e constraints</span>
+<span class="hl-kw">CREATE TABLE</span> <span class="hl-typ">usuarios</span> (
+  id         <span class="hl-typ">SERIAL</span>       <span class="hl-kw">PRIMARY KEY</span>,
+  nome       <span class="hl-typ">VARCHAR</span>(<span class="hl-num">100</span>) <span class="hl-kw">NOT NULL</span>,
+  email      <span class="hl-typ">VARCHAR</span>(<span class="hl-num">200</span>) <span class="hl-kw">UNIQUE NOT NULL</span>,
+  ativo      <span class="hl-typ">BOOLEAN</span>      <span class="hl-kw">DEFAULT</span> <span class="hl-kw">TRUE</span>,
+  criado_em  <span class="hl-typ">TIMESTAMP</span>    <span class="hl-kw">DEFAULT</span> <span class="hl-fn">NOW</span>()
+);
+
+<span class="hl-cmt">-- Cria a tabela de pedidos referenciando usuarios</span>
+<span class="hl-kw">CREATE TABLE</span> <span class="hl-typ">pedidos</span> (
+  id          <span class="hl-typ">SERIAL</span>      <span class="hl-kw">PRIMARY KEY</span>,
+  cliente_id  <span class="hl-typ">INTEGER</span>     <span class="hl-kw">NOT NULL REFERENCES</span> <span class="hl-typ">usuarios</span>(id),
+  status      <span class="hl-typ">VARCHAR</span>(<span class="hl-num">20</span>) <span class="hl-kw">NOT NULL DEFAULT</span> <span class="hl-str">'pendente'</span>,
+  criado_em   <span class="hl-typ">TIMESTAMP</span>   <span class="hl-kw">DEFAULT</span> <span class="hl-fn">NOW</span>()
+);
+
+<span class="hl-cmt">-- Adiciona coluna a tabela existente</span>
+<span class="hl-kw">ALTER TABLE</span> <span class="hl-typ">usuarios</span> <span class="hl-kw">ADD COLUMN</span> telefone <span class="hl-typ">VARCHAR</span>(<span class="hl-num">20</span>);
+
+<span class="hl-cmt">-- Remove tabela (irreversível!)</span>
+<span class="hl-kw">DROP TABLE</span> <span class="hl-kw">IF EXISTS</span> <span class="hl-typ">pedidos</span>;</code></pre>
+        </div>
+      </section>
+
+      <!-- ════════ 7. CONSTRAINTS ════════ -->
+      <section class="mat-section" id="sec-constraints">
+        <h2>7. Constraints — Garantindo a Integridade dos Dados</h2>
+
+        <p>As <strong>constraints</strong> (restrições) são regras que o SGBD aplica automaticamente a cada operação de escrita para garantir que os dados permaneçam válidos. Elas são a primeira linha de defesa contra dados inválidos — anteriores à validação na camada de aplicação. Se o SGBD rejeitar uma operação por violação de constraint, isso é um comportamento correto: é preferível um erro explícito a dados silenciosamente incorretos no banco.</p>
+
+        <p>As constraints mais comuns em PostgreSQL são: <strong>NOT NULL</strong> — a coluna não pode ter valor nulo; <strong>UNIQUE</strong> — nenhuma duplicata é permitida na coluna (ou combinação de colunas); <strong>DEFAULT</strong> — valor padrão caso nenhum seja fornecido na inserção; <strong>CHECK</strong> — expressão booleana que deve ser verdadeira para a linha ser aceita; <strong>PRIMARY KEY</strong> — combinação de NOT NULL e UNIQUE, define a PK da tabela; <strong>FOREIGN KEY</strong> — referência à PK de outra tabela, garante integridade referencial. Constraints podem ser definidas inline (junto à coluna) ou como constraints de tabela (ao final do CREATE TABLE), o que permite constraints sobre múltiplas colunas ao mesmo tempo.</p>
+
+        <p>Um detalhe importante: <code>NULL</code> é diferente de zero ou string vazia — NULL significa ausência de valor. Dois NULLs não são iguais entre si (NULL diferente de NULL em SQL). Isso tem implicações em consultas com <code>WHERE coluna = NULL</code> (que nunca retorna resultados — use <code>WHERE coluna IS NULL</code>) e no comportamento de constraints UNIQUE (em muitos SGBDs, múltiplos NULLs são permitidos mesmo com UNIQUE, porque NULL é considerado diferente de NULL). PostgreSQL segue esse comportamento padrão do SQL ANSI.</p>
+
+        <div class="code-wrap">
+          <div class="code-label">SQL — Constraints em ação
+            <button class="code-copy" onclick="copyCode(this)">copiar</button>
+          </div>
+          <pre class="code-block"><code><span class="hl-kw">CREATE TABLE</span> <span class="hl-typ">produtos</span> (
+  id          <span class="hl-typ">SERIAL</span>          <span class="hl-kw">PRIMARY KEY</span>,
+  nome        <span class="hl-typ">VARCHAR</span>(<span class="hl-num">150</span>)     <span class="hl-kw">NOT NULL</span>,
+  sku         <span class="hl-typ">VARCHAR</span>(<span class="hl-num">50</span>)      <span class="hl-kw">UNIQUE NOT NULL</span>,
+  preco       <span class="hl-typ">NUMERIC</span>(<span class="hl-num">10</span>,<span class="hl-num">2</span>)    <span class="hl-kw">NOT NULL</span> <span class="hl-kw">CHECK</span> (preco &gt; <span class="hl-num">0</span>),
+  estoque     <span class="hl-typ">INTEGER</span>          <span class="hl-kw">NOT NULL DEFAULT</span> <span class="hl-num">0</span>
+                                 <span class="hl-kw">CHECK</span> (estoque &gt;= <span class="hl-num">0</span>),
+  categoria   <span class="hl-typ">VARCHAR</span>(<span class="hl-num">50</span>)      <span class="hl-kw">CHECK</span> (categoria <span class="hl-kw">IN</span> (
+                                   <span class="hl-str">'eletronico'</span>,
+                                   <span class="hl-str">'vestuario'</span>,
+                                   <span class="hl-str">'alimento'</span>
+                                 )),
+  ativo       <span class="hl-typ">BOOLEAN</span>          <span class="hl-kw">NOT NULL DEFAULT</span> <span class="hl-kw">TRUE</span>
+);
+
+<span class="hl-cmt">-- Constraint de tabela: PK composta (tabela associativa N:M)</span>
+<span class="hl-kw">CREATE TABLE</span> <span class="hl-typ">item_pedido</span> (
+  pedido_id   <span class="hl-typ">INTEGER</span> <span class="hl-kw">NOT NULL REFERENCES</span> <span class="hl-typ">pedidos</span>(id) <span class="hl-kw">ON DELETE CASCADE</span>,
+  produto_id  <span class="hl-typ">INTEGER</span> <span class="hl-kw">NOT NULL REFERENCES</span> <span class="hl-typ">produtos</span>(id),
+  quantidade  <span class="hl-typ">INTEGER</span> <span class="hl-kw">NOT NULL CHECK</span> (quantidade &gt; <span class="hl-num">0</span>),
+  preco_unit  <span class="hl-typ">NUMERIC</span>(<span class="hl-num">10</span>,<span class="hl-num">2</span>) <span class="hl-kw">NOT NULL</span>,
+  <span class="hl-kw">PRIMARY KEY</span> (pedido_id, produto_id)
+);</code></pre>
+        </div>
+
+        <div class="callout callout-danger sr">
+          <div class="callout-label">Nunca use FLOAT para dinheiro</div>
+          <p>Tipos de ponto flutuante (<code>FLOAT</code>, <code>DOUBLE PRECISION</code>, <code>REAL</code>) têm representação binária que introduz erros de arredondamento. Para valores monetários, use sempre <code>NUMERIC(precision, scale)</code> — por exemplo <code>NUMERIC(15,2)</code> para valores em reais com centavos. Esse é um erro clássico que causa prejuízo real em sistemas financeiros.</p>
+        </div>
+      </section>
+
+      <!-- ════════ 8. DML ════════ -->
+      <section class="mat-section" id="sec-dml">
+        <h2>8. DML — Manipulando Dados</h2>
+
+        <p>Com a estrutura criada pelo DDL, passamos a manipular os dados com os comandos DML: <code>INSERT</code>, <code>UPDATE</code> e <code>DELETE</code>. Ao contrário dos comandos DDL, os comandos DML fazem parte de transações e podem ser revertidos com <code>ROLLBACK</code> se algo der errado. Isso é especialmente importante em operações que modificam múltiplas tabelas relacionadas, como uma transferência bancária ou um checkout de e-commerce.</p>
+
+        <p>O comando <code>INSERT</code> adiciona novas linhas a uma tabela. A forma básica insere uma linha por vez; a forma multi-linha insere várias linhas num único comando, o que é muito mais eficiente porque reduz o número de round-trips ao banco. PostgreSQL oferece a cláusula <code>RETURNING</code>, que retorna os valores das colunas inseridas — incluindo o <code>id</code> gerado pelo SERIAL — sem precisar de uma segunda consulta. Isso elimina a necessidade de um <code>SELECT MAX(id)</code> (que seria incorreto em ambiente concorrente) ou uma segunda busca após o INSERT.</p>
+
+        <p>Os comandos <code>UPDATE</code> e <code>DELETE</code> são poderosos e, portanto, perigosos sem a cláusula <code>WHERE</code>. Um <code>UPDATE usuarios SET ativo = FALSE</code> sem WHERE desativa <em>todos</em> os usuários. Um <code>DELETE FROM pedidos</code> sem WHERE apaga <em>todos</em> os pedidos permanentemente. Em PostgreSQL, você pode configurar a sessão para exigir WHERE em operações destrutivas, e muitas ferramentas como DBeaver e psql avisam antes de executar tais comandos. A regra prática: antes de executar qualquer UPDATE ou DELETE, primeiro rode um SELECT com o mesmo WHERE para verificar quantas e quais linhas serão afetadas.</p>
+
+        <div class="code-wrap">
+          <div class="code-label">SQL — DML: INSERT, UPDATE, DELETE
+            <button class="code-copy" onclick="copyCode(this)">copiar</button>
+          </div>
+          <pre class="code-block"><code><span class="hl-cmt">-- INSERT básico (uma linha)</span>
+<span class="hl-kw">INSERT INTO</span> <span class="hl-typ">usuarios</span> (nome, email)
+<span class="hl-kw">VALUES</span> (<span class="hl-str">'Ana Silva'</span>, <span class="hl-str">'ana@email.com'</span>);
+
+<span class="hl-cmt">-- INSERT múltiplo (mais eficiente)</span>
+<span class="hl-kw">INSERT INTO</span> <span class="hl-typ">produtos</span> (nome, sku, preco)
+<span class="hl-kw">VALUES</span>
+  (<span class="hl-str">'Camiseta Inteli'</span>, <span class="hl-str">'CAM-001'</span>, <span class="hl-num">59.90</span>),
+  (<span class="hl-str">'Caderno A4'</span>,      <span class="hl-str">'CAD-001'</span>, <span class="hl-num">24.90</span>),
+  (<span class="hl-str">'Caneca Preta'</span>,    <span class="hl-str">'CAN-001'</span>, <span class="hl-num">39.90</span>);
+
+<span class="hl-cmt">-- INSERT com RETURNING (retorna o id gerado)</span>
+<span class="hl-kw">INSERT INTO</span> <span class="hl-typ">pedidos</span> (cliente_id, status)
+<span class="hl-kw">VALUES</span> (<span class="hl-num">1</span>, <span class="hl-str">'pendente'</span>)
+<span class="hl-kw">RETURNING</span> id, criado_em;
+
+<span class="hl-cmt">-- UPDATE com WHERE (sempre use WHERE!)</span>
+<span class="hl-kw">UPDATE</span> <span class="hl-typ">usuarios</span>
+<span class="hl-kw">SET</span> nome = <span class="hl-str">'Ana Costa'</span>, ativo = <span class="hl-kw">TRUE</span>
+<span class="hl-kw">WHERE</span> id = <span class="hl-num">1</span>;
+
+<span class="hl-cmt">-- DELETE com WHERE (sempre use WHERE!)</span>
+<span class="hl-kw">DELETE FROM</span> <span class="hl-typ">usuarios</span>
+<span class="hl-kw">WHERE</span> id = <span class="hl-num">1</span>;</code></pre>
+        </div>
+
+        <div class="callout callout-danger sr">
+          <div class="callout-label">Nunca execute UPDATE ou DELETE sem WHERE em produção</div>
+          <p>Antes de qualquer UPDATE ou DELETE, rode primeiro o SELECT correspondente: <code>SELECT * FROM usuarios WHERE id = 1</code>. Confirme que as linhas retornadas são exatamente as que você quer modificar. Só então converta para UPDATE ou DELETE. Muitos acidentes em produção poderiam ser evitados com esse hábito simples.</p>
+        </div>
+      </section>
+
+      <!-- ════════ 9. DQL ════════ -->
+      <section class="mat-section" id="sec-dql">
+        <h2>9. DQL — Consultando Dados</h2>
+
+        <p>O comando <code>SELECT</code> é, de longe, o mais utilizado em um banco de dados — aplicações leem dados muito mais frequentemente do que escrevem. O SELECT tem uma sintaxe rica e um motor de execução sofisticado que permite desde buscas simples até análises complexas com múltiplas agregações, filtros e ordenações. Dominar o SELECT é essencial para qualquer desenvolvedor backend.</p>
+
+        <p>A estrutura básica de um SELECT é: <code>SELECT colunas FROM tabela WHERE condição ORDER BY coluna LIMIT n</code>. O <strong>WHERE</strong> filtra linhas com base em condições booleanas — você pode combinar condições com <code>AND</code>, <code>OR</code> e <code>NOT</code>, usar operadores de comparação (<code>=</code>, <code>&lt;</code>, <code>&gt;</code>, <code>&lt;&gt;</code>), <code>BETWEEN</code> para intervalos, <code>IN</code> para listas de valores, <code>LIKE</code> para padrões de texto e <code>IS NULL</code> / <code>IS NOT NULL</code> para valores ausentes. O <strong>ORDER BY</strong> ordena o resultado por uma ou mais colunas em ordem ascendente (<code>ASC</code>, padrão) ou descendente (<code>DESC</code>). O <strong>LIMIT</strong> restringe o número de linhas retornadas — crucial para paginação e para evitar retornar milhões de linhas acidentalmente em tabelas grandes.</p>
+
+        <p>As <strong>funções de agregação</strong> calculam um único valor a partir de múltiplas linhas: <code>COUNT(*)</code> conta o total de linhas, <code>COUNT(coluna)</code> conta linhas onde a coluna não é NULL, <code>SUM</code> soma valores numéricos, <code>AVG</code> calcula a média aritmética, <code>MIN</code> e <code>MAX</code> retornam o menor e o maior valor. Funções de agregação normalmente são usadas junto com <code>GROUP BY</code>, que agrupa as linhas por uma ou mais colunas antes de aplicar a função. O <code>HAVING</code> filtra <em>grupos</em> (assim como WHERE filtra linhas individuais — HAVING só pode ser usado com GROUP BY).</p>
+
+        <div class="code-wrap">
+          <div class="code-label">SQL — DQL: SELECT com filtros, ordenação e agregações
+            <button class="code-copy" onclick="copyCode(this)">copiar</button>
+          </div>
+          <pre class="code-block"><code><span class="hl-cmt">-- SELECT básico com WHERE, ORDER BY e LIMIT</span>
+<span class="hl-kw">SELECT</span> nome, email
+<span class="hl-kw">FROM</span> <span class="hl-typ">usuarios</span>
+<span class="hl-kw">WHERE</span> ativo = <span class="hl-kw">TRUE</span>
+  <span class="hl-kw">AND</span> criado_em &gt; <span class="hl-str">'2024-01-01'</span>
+<span class="hl-kw">ORDER BY</span> nome <span class="hl-kw">ASC</span>
+<span class="hl-kw">LIMIT</span> <span class="hl-num">10</span>;
+
+<span class="hl-cmt">-- DISTINCT: remove duplicatas no resultado</span>
+<span class="hl-kw">SELECT DISTINCT</span> status
+<span class="hl-kw">FROM</span> <span class="hl-typ">pedidos</span>;
+
+<span class="hl-cmt">-- Funções de agregação</span>
+<span class="hl-kw">SELECT</span>
+  <span class="hl-fn">COUNT</span>(*) <span class="hl-kw">AS</span> total_pedidos,
+  <span class="hl-fn">SUM</span>(preco_unit * quantidade) <span class="hl-kw">AS</span> receita_total,
+  <span class="hl-fn">AVG</span>(preco_unit) <span class="hl-kw">AS</span> ticket_medio,
+  <span class="hl-fn">MIN</span>(criado_em) <span class="hl-kw">AS</span> primeiro_pedido,
+  <span class="hl-fn">MAX</span>(criado_em) <span class="hl-kw">AS</span> ultimo_pedido
+<span class="hl-kw">FROM</span> <span class="hl-typ">pedidos</span>
+<span class="hl-kw">WHERE</span> status = <span class="hl-str">'confirmado'</span>;
+
+<span class="hl-cmt">-- GROUP BY com HAVING: agrupa e filtra grupos</span>
+<span class="hl-kw">SELECT</span> status, <span class="hl-fn">COUNT</span>(*) <span class="hl-kw">AS</span> qtd
+<span class="hl-kw">FROM</span> <span class="hl-typ">pedidos</span>
+<span class="hl-kw">GROUP BY</span> status
+<span class="hl-kw">HAVING</span> <span class="hl-fn">COUNT</span>(*) &gt; <span class="hl-num">5</span>
+<span class="hl-kw">ORDER BY</span> qtd <span class="hl-kw">DESC</span>;</code></pre>
+        </div>
+
+        <div class="deep-dive">
+          <div class="deep-header" onclick="toggleDeep(this)">
+            <h4>Aprofundamento: LIKE, ILIKE e padrões de texto</h4>
+            <span class="deep-arrow">&#9660;</span>
+          </div>
+          <div class="deep-body">
+            <p>O operador <code>LIKE</code> realiza busca por padrão em strings. O caractere <code>%</code> representa qualquer sequência de caracteres (incluindo nenhum), e <code>_</code> representa exatamente um caractere. Exemplos:</p>
+            <ul>
+              <li><code>WHERE nome LIKE 'Ana%'</code> — começa com "Ana"</li>
+              <li><code>WHERE email LIKE '%@inteli.edu.br'</code> — termina com o domínio</li>
+              <li><code>WHERE nome LIKE '%Silva%'</code> — contém "Silva" em qualquer posição</li>
+              <li><code>WHERE nome LIKE 'A__'</code> — começa com A e tem exatamente 3 caracteres</li>
+            </ul>
+            <p>Para busca case-insensitive, use <code>ILIKE</code> (específico do PostgreSQL). Para buscas mais sofisticadas de texto completo (full-text search), PostgreSQL possui o operador <code>@@</code> com vetores <code>tsvector</code> e queries <code>tsquery</code> — muito mais poderoso que LIKE para conteúdo extenso.</p>
+          </div>
+        </div>
+
+        <div class="callout callout-tip sr">
+          <div class="callout-label">LIMIT e paginação</div>
+          <p>Para paginação, combine <code>LIMIT</code> e <code>OFFSET</code>: <code>LIMIT 20 OFFSET 40</code> retorna as linhas 41 a 60 (página 3 com 20 itens por página). Mas em tabelas muito grandes, OFFSET alto é lento — o banco ainda precisa processar e descartar as primeiras N linhas. Para paginação de alta performance, prefira a técnica de "keyset pagination" (cursor pagination) usando a PK como referência da última linha vista.</p>
+        </div>
+      </section>
+
+      <!-- ════════ 10. DCL e TCL ════════ -->
+      <section class="mat-section" id="sec-dcl-tcl">
+        <h2>10. DCL e TCL — Controle de Acesso e Transações</h2>
+
+        <p>Os comandos DCL controlam <strong>quem pode fazer o quê</strong> no banco de dados. <code>GRANT</code> concede privilégios a usuários ou roles; <code>REVOKE</code> remove privilégios. Os privilégios podem ser granulares: <code>SELECT</code>, <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code>, <code>REFERENCES</code> (para criar FKs). O princípio do menor privilégio diz que cada usuário ou aplicação deve ter apenas os privilégios mínimos necessários para sua função. Uma API que só lê dados deve ter apenas <code>SELECT</code>; uma API que escreve deve ter <code>SELECT, INSERT, UPDATE, DELETE</code> nas tabelas relevantes — mas nunca <code>DROP TABLE</code> ou acesso ao schema de sistema.</p>
+
+        <p>Os comandos TCL controlam <strong>transações</strong>. Uma transação é um grupo de operações que deve ser executado de forma atômica: ou todas têm sucesso, ou nenhuma é persistida. <code>BEGIN</code> inicia a transação; <code>COMMIT</code> persiste todas as mudanças; <code>ROLLBACK</code> desfaz tudo desde o BEGIN. O exemplo clássico é a transferência bancária: você precisa debitar de uma conta E creditar em outra — se o crédito falhar após o débito ter sido realizado, o dinheiro simplesmente desapareceria. A transação garante que isso não aconteça.</p>
+
+        <p>As transações em bancos relacionais seguem as propriedades <strong>ACID</strong>: <strong>Atomicidade</strong> — a transação é indivisível (tudo ou nada); <strong>Consistência</strong> — a transação leva o banco de um estado válido a outro estado válido, respeitando todas as constraints; <strong>Isolamento</strong> — transações concorrentes não interferem entre si (o nível de isolamento pode ser configurado); <strong>Durabilidade</strong> — após o COMMIT, os dados são persistidos mesmo em caso de falha de hardware (o SGBD escreve em um WAL — Write-Ahead Log — antes de qualquer outra coisa).</p>
+
+        <div class="code-wrap">
+          <div class="code-label">SQL — DCL: GRANT/REVOKE e TCL: BEGIN/COMMIT/ROLLBACK
+            <button class="code-copy" onclick="copyCode(this)">copiar</button>
+          </div>
+          <pre class="code-block"><code><span class="hl-cmt">-- DCL: conceder e revogar privilégios</span>
+<span class="hl-kw">GRANT</span> <span class="hl-kw">SELECT</span> <span class="hl-kw">ON</span> <span class="hl-typ">usuarios</span> <span class="hl-kw">TO</span> leitor;
+<span class="hl-kw">GRANT</span> <span class="hl-kw">SELECT</span>, <span class="hl-kw">INSERT</span>, <span class="hl-kw">UPDATE</span>, <span class="hl-kw">DELETE</span> <span class="hl-kw">ON</span> <span class="hl-typ">pedidos</span> <span class="hl-kw">TO</span> api_app;
+<span class="hl-kw">REVOKE</span> <span class="hl-kw">DELETE</span> <span class="hl-kw">ON</span> <span class="hl-typ">usuarios</span> <span class="hl-kw">FROM</span> api_app;
+
+<span class="hl-cmt">-- TCL: transferência bancária atômica</span>
+<span class="hl-kw">BEGIN</span>;
+
+<span class="hl-kw">UPDATE</span> <span class="hl-typ">contas</span>
+<span class="hl-kw">SET</span> saldo = saldo - <span class="hl-num">100.00</span>
+<span class="hl-kw">WHERE</span> id = <span class="hl-num">1</span> <span class="hl-kw">AND</span> saldo &gt;= <span class="hl-num">100.00</span>;
+
+<span class="hl-kw">UPDATE</span> <span class="hl-typ">contas</span>
+<span class="hl-kw">SET</span> saldo = saldo + <span class="hl-num">100.00</span>
+<span class="hl-kw">WHERE</span> id = <span class="hl-num">2</span>;
+
+<span class="hl-cmt">-- Se tudo correu bem, persiste as mudanças:</span>
+<span class="hl-kw">COMMIT</span>;
+
+<span class="hl-cmt">-- Se algo deu errado, desfaz tudo:</span>
+<span class="hl-cmt">-- ROLLBACK;</span></code></pre>
+        </div>
+
+        <table class="mat-table sr">
+          <thead><tr><th>Propriedade ACID</th><th>O que garante</th><th>Mecanismo no PostgreSQL</th></tr></thead>
+          <tbody>
+            <tr><td><span class="tag tag-blue">Atomicidade</span></td><td>Tudo ou nada — sem estados parciais</td><td>Write-Ahead Log (WAL) + ROLLBACK automático em erro</td></tr>
+            <tr><td><span class="tag tag-green">Consistência</span></td><td>Constraints sempre respeitadas</td><td>Verificação de constraints em cada operação de escrita</td></tr>
+            <tr><td><span class="tag tag-amber">Isolamento</span></td><td>Transações não se veem mutuamente até COMMIT</td><td>MVCC — Multi-Version Concurrency Control</td></tr>
+            <tr><td><span class="tag tag-purple">Durabilidade</span></td><td>COMMIT persiste mesmo após falha de hardware</td><td>WAL escrito em disco antes do COMMIT retornar</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ════════ 11. RM-ODP ════════ -->
+      <section class="mat-section" id="sec-rmodp">
+        <h2>11. RM-ODP — Viewpoint Information</h2>
+
+        <p>O <strong>RM-ODP</strong> (Reference Model for Open Distributed Processing, ISO/IEC 10746) estrutura a descrição de sistemas distribuídos em cinco viewpoints (visões). Cada visão captura os interesses de um grupo específico de stakeholders, usando uma linguagem e nível de abstração adequados a esses interesses. As cinco visões são: <em>Enterprise</em> (propósito e regras de negócio), <em>Information</em> (estrutura e fluxo de dados), <em>Computational</em> (decomposição funcional em componentes), <em>Engineering</em> (distribuição e comunicação) e <em>Technology</em> (escolhas concretas de tecnologia).</p>
+
+        <p>Esta aula foca no <strong>Viewpoint Information</strong> — a visão de informação. Esse viewpoint descreve como a informação é estruturada, como muda ao longo do tempo e quais invariantes (regras permanentes) ela deve obedecer. No contexto de banco de dados, o viewpoint de informação se traduz diretamente no modelo ER e no esquema relacional: as entidades são os objetos de informação, os atributos são suas propriedades, os relacionamentos são as associações entre eles, e as constraints são os invariantes que o sistema deve preservar em toda operação.</p>
+
+        <p>Quando você escreve um diagrama ER, você está produzindo a visão de informação do sistema. Quando você define as constraints na DDL (NOT NULL, UNIQUE, CHECK, FOREIGN KEY), você está codificando os invariantes de informação diretamente no SGBD. Isso é poderoso: as regras de negócio relacionadas à estrutura de dados ficam centralizadas no banco, não espalhadas pela lógica da aplicação onde podem ser esquecidas ou inconsistentes entre diferentes endpoints da API.</p>
+
+        <div class="odp-stack" id="odp-stack">
+          <div class="odp-layer" style="background:#dbeafe;">
+            <div class="odp-icon">&#127970;</div>
+            <div>
+              <div class="odp-name">Enterprise (Empresarial)</div>
+              <div class="odp-desc">Propósito, escopo e regras de negócio. Quem são os stakeholders? Qual o objetivo do sistema? Quais processos de negócio ele suporta?</div>
+              <span class="odp-focus" style="background:#dbeafe;color:#1d4ed8;">Aula 1 — Minimundo, RF e RNF iniciais</span>
+            </div>
+          </div>
+          <div class="odp-layer" style="background:#dcfce7; border:2px solid #15803d;">
+            <div class="odp-icon">&#128203;</div>
+            <div>
+              <div class="odp-name">Information (Informação) — FOCO DESTA AULA</div>
+              <div class="odp-desc">Estrutura, invariantes e fluxo da informação. Entidades, atributos, relacionamentos, cardinalidades e constraints. O modelo ER e o esquema SQL pertencem a esta visão.</div>
+              <span class="odp-focus" style="background:#dcfce7;color:#15803d;">Aulas 2, 3, 4 — Modelagem ER, SQL, JOINs</span>
+            </div>
+          </div>
+          <div class="odp-layer" style="background:#ede9fe;">
+            <div class="odp-icon">&#9881;&#65039;</div>
+            <div>
+              <div class="odp-name">Computational (Computacional)</div>
+              <div class="odp-desc">Decomposição em componentes com interfaces: Models, Controllers, Services, rotas. Arquitetura MVC e contratos de API.</div>
+              <span class="odp-focus" style="background:#ede9fe;color:#7c3aed;">Aulas 5, 6 — Back-end, MVC, Endpoints</span>
+            </div>
+          </div>
+          <div class="odp-layer" style="background:#fef3c7;">
+            <div class="odp-icon">&#128295;</div>
+            <div>
+              <div class="odp-name">Engineering (Engenharia)</div>
+              <div class="odp-desc">Distribuição física: nós, canais, protocolos, binding. Como cliente, servidor e banco se comunicam em tempo de execução.</div>
+              <span class="odp-focus" style="background:#fef3c7;color:#92400e;">Aulas 7, 8, 10 — Front-end, fetch, Testes</span>
+            </div>
+          </div>
+          <div class="odp-layer" style="background:#fee2e2;">
+            <div class="odp-icon">&#128187;</div>
+            <div>
+              <div class="odp-name">Technology (Tecnologia)</div>
+              <div class="odp-desc">Escolhas concretas: PostgreSQL 16, Node.js 20, Express 4. Versões, padrões de interoperabilidade e dependências explícitas.</div>
+              <span class="odp-focus" style="background:#fee2e2;color:#b91c1c;">Aulas 9, 11 — CSS, Redes, Deploy</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-deep sr">
+          <div class="callout-label">Viewpoint Information na documentação do projeto</div>
+          <p>Na documentação do seu projeto Inteli, a seção de viewpoint Information deve conter: o diagrama ER completo, a descrição de cada entidade e seus atributos, a justificativa das cardinalidades dos relacionamentos, e a listagem de invariantes (constraints) críticos. Isso demonstra que a modelagem foi pensada antes da implementação — e não descoberta durante o código.</p>
+        </div>
+      </section>
+
+      <!-- ════════ 12. RF, RN e RNF ════════ -->
+      <section class="mat-section" id="sec-req">
+        <h2>12. RF, RN e RNF aplicados a Banco de Dados</h2>
+
+        <p>Toda funcionalidade que precisa persistir dados possui <strong>Requisitos Funcionais</strong> (RF) que dependem do banco de dados. Identificar essa dependência é o primeiro passo para modelar corretamente. Um RF como "o usuário deve poder visualizar seu histórico de pedidos" implica que os pedidos precisam ser armazenados com referência ao usuário, com data, status e itens — e que a consulta deve ser eficiente o suficiente para retornar em tempo aceitável mesmo com milhares de pedidos por usuário. Esse RF, ao ser implementado, exige decisões de modelagem (quais tabelas, quais colunas), de DDL (tipos e constraints) e de DQL (qual SELECT e quais índices).</p>
+
+        <p>As <strong>Regras de Negócio</strong> (RN) que envolvem dados frequentemente se traduzem em constraints no banco. "Um produto não pode ter estoque negativo" vira <code>CHECK (estoque &gt;= 0)</code>. "Um email de usuário deve ser único no sistema" vira <code>UNIQUE NOT NULL</code>. "Um pedido só pode ter status 'confirmado', 'pendente' ou 'cancelado'" vira um <code>CHECK (status IN (...))</code>. Quando a RN é simples o suficiente para ser expressa como constraint SQL, prefira o banco à aplicação — o banco a aplicará em todo acesso, de qualquer origem, incluindo scripts de manutenção e migrações.</p>
+
+        <p>Os <strong>Requisitos Não Funcionais</strong> (RNF) mais diretamente impactados pelo banco de dados são os de Confiabilidade, Desempenho, Segurança e Suportabilidade. A escolha de usar transações ACID (TCL) é uma decisão de RNF de Confiabilidade. A criação de índices para acelerar consultas frequentes é um RNF de Desempenho. O uso de roles com menor privilégio (DCL) é um RNF de Segurança. A estruturação das migrações de banco com ferramentas como Flyway ou Knex é um RNF de Suportabilidade que garante que o esquema possa evoluir de forma controlada e rastreável.</p>
+
+        <h3>Os 8 eixos de RNF relevantes para Banco de Dados</h3>
+
+        <div class="eixo-grid" id="eixo-grid">
+          <div class="eixo-card" style="border-color:#4b5563;">
+            <span class="eixo-tag" style="color:#4b5563;">CONF</span>
+            <div class="eixo-title">Confiabilidade</div>
+            <div class="eixo-q">O banco garante consistência e durabilidade dos dados?</div>
+            <div class="eixo-example">"Toda transferência financeira ocorre em transação ACID com rollback automático em caso de erro."</div>
+          </div>
+          <div class="eixo-card" style="border-color:#f59e0b;">
+            <span class="eixo-tag" style="color:#f59e0b;">DESEMP</span>
+            <div class="eixo-title">Desempenho</div>
+            <div class="eixo-q">Consultas retornam dentro do tempo aceitável sob carga real?</div>
+            <div class="eixo-example">"Busca de pedidos por cliente_id retorna em menos de 50ms com até 1 milhão de linhas (índice em cliente_id)."</div>
+          </div>
+          <div class="eixo-card" style="border-color:#ef4444;">
+            <span class="eixo-tag" style="color:#ef4444;">SEG</span>
+            <div class="eixo-title">Segurança</div>
+            <div class="eixo-q">Apenas usuários autorizados acessam dados sensíveis?</div>
+            <div class="eixo-example">"API usa role db_api com SELECT/INSERT/UPDATE apenas; nenhum acesso a tabelas de auditoria ou schema pg_catalog."</div>
+          </div>
+          <div class="eixo-card" style="border-color:#8b5cf6;">
+            <span class="eixo-tag" style="color:#8b5cf6;">SUPORT</span>
+            <div class="eixo-title">Suportabilidade</div>
+            <div class="eixo-q">O banco pode ser evoluído sem downtime ou perda de dados?</div>
+            <div class="eixo-example">"Alterações de schema são feitas via migrations versionadas com rollback. Zero downtime com adição de colunas nullable."</div>
+          </div>
+          <div class="eixo-card" style="border-color:#0d9488;">
+            <span class="eixo-tag" style="color:#0d9488;">INT</span>
+            <div class="eixo-title">Integridade de Dados</div>
+            <div class="eixo-q">O banco rejeita dados inválidos antes de persistir?</div>
+            <div class="eixo-example">"Todas as FKs têm constraint declarada. Campos obrigatórios têm NOT NULL. Valores monetários usam NUMERIC(15,2)."</div>
+          </div>
+          <div class="eixo-card" style="border-color:#f97316;">
+            <span class="eixo-tag" style="color:#f97316;">ESCAL</span>
+            <div class="eixo-title">Escalabilidade</div>
+            <div class="eixo-q">O banco suporta crescimento de dados e usuários sem refatoração?</div>
+            <div class="eixo-example">"Esquema normalizado em 3FN. Índices compostos para as queries mais frequentes. Particionamento planejado para logs."</div>
+          </div>
+          <div class="eixo-card" style="border-color:#64748b;">
+            <span class="eixo-tag" style="color:#64748b;">DISP</span>
+            <div class="eixo-title">Disponibilidade</div>
+            <div class="eixo-q">O banco fica disponível mesmo sob manutenção ou falha?</div>
+            <div class="eixo-example">"Backup automático diário com retenção de 7 dias. Réplica de leitura para relatórios. RTO de 1h documentado."</div>
+          </div>
+          <div class="eixo-card" style="border-color:#059669;">
+            <span class="eixo-tag" style="color:#059669;">AUDIT</span>
+            <div class="eixo-title">Auditabilidade</div>
+            <div class="eixo-q">É possível rastrear quem fez o quê e quando?</div>
+            <div class="eixo-example">"Tabela de auditoria registra INSERT/UPDATE/DELETE via triggers. Campos criado_em e atualizado_em em todas as entidades."</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════ 13. CHECKLIST ════════ -->
+      <section class="mat-section" id="sec-checklist">
+        <h2>13. Checklist de Estudo</h2>
+        <p>Clique nos itens à medida que você dominar cada conceito:</p>
+        <ul class="checklist" id="checklist">
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo explicar a diferença entre banco de dados e SGBD, e citar exemplos de cada categoria.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo desenhar um diagrama ER com entidades, atributos, relacionamentos e cardinalidades.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo identificar quando um relacionamento é 1:1, 1:N ou N:M e o que cada um implica em termos de tabelas.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo explicar o papel da PK e da FK e o que é integridade referencial.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo descrever as 3 primeiras formas normais com exemplos de violação e de solução para cada uma.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo nomear as 5 sublinguagens SQL e citar ao menos um comando de cada.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo escrever um CREATE TABLE com tipos corretos e ao menos 4 tipos de constraint diferentes.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo escrever INSERT (simples e múltiplo com RETURNING), UPDATE e DELETE com WHERE corretos.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo escrever um SELECT com WHERE, ORDER BY, LIMIT e pelo menos uma função de agregação com GROUP BY.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo explicar as 4 propriedades ACID e dar um exemplo concreto de por que cada uma é necessária.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo escrever um bloco BEGIN/COMMIT/ROLLBACK para uma operação atômica envolvendo duas tabelas.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo relacionar o Viewpoint Information do RM-ODP com o diagrama ER e as constraints SQL.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo mapear RFs do sistema para entidades de banco e RNs para constraints SQL.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo redigir RNFs de Confiabilidade, Desempenho e Segurança específicos para banco de dados, com métricas mensuráveis.</span></li>
+        </ul>
+      </section>
+
+      <!-- ════════ REFERÊNCIAS ════════ -->
+      <section class="mat-section" id="sec-refs">
+        <h2>Referências</h2>
+        <ul>
+          <li><a href="https://www.postgresql.org/docs/current/" target="_blank" rel="noopener noreferrer">PostgreSQL Documentation</a> — documentação oficial completa do PostgreSQL</li>
+          <li><a href="https://www.postgresql.org/docs/current/sql-createtable.html" target="_blank" rel="noopener noreferrer">PostgreSQL — CREATE TABLE</a> — referência completa de sintaxe DDL e constraints</li>
+          <li><a href="https://www.postgresql.org/docs/current/transaction-iso.html" target="_blank" rel="noopener noreferrer">PostgreSQL — Transaction Isolation</a> — níveis de isolamento e propriedades ACID</li>
+          <li><a href="https://www.iso.org/standard/20696.html" target="_blank" rel="noopener noreferrer">ISO/IEC 10746 — RM-ODP</a> — especificação do Reference Model for Open Distributed Processing</li>
+          <li><a href="https://iso25000.com/index.php/en/iso-25000-standards/iso-25010" target="_blank" rel="noopener noreferrer">ISO/IEC 25010 — SQuaRE Quality Model</a> — modelo de qualidade com os eixos de RNF</li>
+          <li><a href="https://dl.acm.org/doi/10.1145/362384.362685" target="_blank" rel="noopener noreferrer">E.F. Codd — A Relational Model of Data for Large Shared Data Banks (1970)</a> — artigo original do modelo relacional</li>
+          <li><a href="https://dl.acm.org/doi/10.1145/320251.320277" target="_blank" rel="noopener noreferrer">Peter Chen — The Entity-Relationship Model (1976)</a> — artigo original do modelo ER</li>
+          <li><a href="https://www.amazon.com.br/Database-Management-Systems-Ramakrishnan/dp/0072465638" target="_blank" rel="noopener noreferrer">Ramakrishnan &amp; Gehrke — Database Management Systems, 3ª ed.</a></li>
+        </ul>
+      </section>
+
+    </article>
+  </div>
+
+  <div class="text-center py-4">
+    <img src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli Logo" style="max-width:140px;">
+  </div>
+  <footer class="py-4 bg-light border-top">
+    <div class="container text-center">
+      <p class="mb-1">Material criado pelo professor <strong>Afonso Brandão</strong> para o <strong>Inteli</strong>.</p>
+      <small class="text-muted">Licença de leitura aberta</small>
+    </div>
+  </footer>
+
+  <script>
+    // ── Progress bar + floating nav ───────────────────────────────────────
+    const floatNav = document.getElementById('float-nav');
+    const matHeader = document.querySelector('.mat-header');
+    window.addEventListener('scroll', () => {
+      const h = document.documentElement;
+      const pct = (h.scrollTop / (h.scrollHeight - h.clientHeight)) * 100;
+      document.getElementById('progress-bar').style.width = pct + '%';
+      const headerBottom = matHeader.getBoundingClientRect().bottom;
+      if (headerBottom < 0) { floatNav.classList.add('visible'); }
+      else { floatNav.classList.remove('visible'); }
+    });
+
+    // ── Scroll reveal (IntersectionObserver) ─────────────────────────────
+    const srObserver = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) { e.target.classList.add('vis'); srObserver.unobserve(e.target); }
+      });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.sr').forEach(el => srObserver.observe(el));
+
+    // ── ER Diagram animation ──────────────────────────────────────────────
+    const erObserver = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        const ids = ['er0', 'er-rel0', 'er1', 'er-rel1', 'er2'];
+        ids.forEach((id, i) => setTimeout(() => {
+          const el = document.getElementById(id);
+          if (el) el.classList.add('reveal');
+        }, i * 280));
+        erObserver.disconnect();
+      }
+    }, { threshold: 0.3 });
+    const erDiagram = document.getElementById('er-diagram');
+    if (erDiagram) erObserver.observe(erDiagram);
+
+    // ── Normalização steps animation ─────────────────────────────────────
+    const normObserver = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        document.querySelectorAll('.norm-step').forEach((el, i) => {
+          setTimeout(() => el.classList.add('reveal'), i * 200);
+        });
+        normObserver.disconnect();
+      }
+    }, { threshold: 0.1 });
+    const normStack = document.getElementById('norm-stack');
+    if (normStack) normObserver.observe(normStack);
+
+    // ── Eixos animation ───────────────────────────────────────────────────
+    const eixoObserver = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        document.querySelectorAll('.eixo-card').forEach((el, i) => {
+          setTimeout(() => el.classList.add('reveal'), i * 120);
+        });
+        eixoObserver.disconnect();
+      }
+    }, { threshold: 0.1 });
+    const eixoGrid = document.getElementById('eixo-grid');
+    if (eixoGrid) eixoObserver.observe(eixoGrid);
+
+    // ── RM-ODP layers animation ───────────────────────────────────────────
+    const odpObserver = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        document.querySelectorAll('.odp-layer').forEach((el, i) => {
+          setTimeout(() => el.classList.add('reveal'), i * 220);
+        });
+        odpObserver.disconnect();
+      }
+    }, { threshold: 0.1 });
+    const odpStack = document.getElementById('odp-stack');
+    if (odpStack) odpObserver.observe(odpStack);
+
+    // ── Deep dive toggle ─────────────────────────────────────────────────
+    function toggleDeep(header) {
+      header.classList.toggle('open');
+      const body = header.nextElementSibling;
+      body.classList.toggle('open');
+    }
+
+    // ── Checklist ────────────────────────────────────────────────────────
+    function toggleCk(li) {
+      li.classList.toggle('done');
+    }
+
+    // ── Copy code ────────────────────────────────────────────────────────
+    function copyCode(btn) {
+      const pre = btn.closest('.code-wrap').querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(() => {
+        btn.textContent = 'copiado ✓';
+        setTimeout(() => btn.textContent = 'copiar', 2000);
+      });
+    }
+
+    // ── Active TOC on scroll ─────────────────────────────────────────────
+    const sections = document.querySelectorAll('.mat-section[id]');
+    const tocLinks = document.querySelectorAll('.mat-toc a');
+    const tocObserver = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          const id = e.target.id;
+          tocLinks.forEach(a => {
+            a.classList.toggle('active', a.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    sections.forEach(s => tocObserver.observe(s));
+  </script>
+</body>
+</html>

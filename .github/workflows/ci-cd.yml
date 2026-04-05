@@ -1,0 +1,133 @@
+name: CI/CD - Test & Deploy to Pages
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+      
+      - name: Run tests
+        run: npm test
+      
+      - name: Upload test report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+      
+      - name: Comment test results on PR
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Check if tests passed
+            const testResultPath = './test-results';
+            let summary = '✅ All tests passed!';
+            let details = '';
+            
+            try {
+              if (fs.existsSync(testResultPath)) {
+                const files = fs.readdirSync(testResultPath);
+                const jsonFiles = files.filter(f => f.endsWith('.json'));
+                
+                if (jsonFiles.length > 0) {
+                  const firstResult = JSON.parse(fs.readFileSync(path.join(testResultPath, jsonFiles[0]), 'utf-8'));
+                  
+                  if (firstResult.stats) {
+                    const { expected, passed, failed, skipped } = firstResult.stats;
+                    
+                    if (failed > 0) {
+                      summary = `❌ Tests failed: ${failed}/${expected}`;
+                      details = `\n- Passed: ${passed}\n- Failed: ${failed}\n- Skipped: ${skipped}`;
+                    } else {
+                      summary = `✅ All tests passed: ${passed}/${expected}`;
+                      if (skipped > 0) {
+                        details = `\n- Skipped: ${skipped}`;
+                      }
+                    }
+                  }
+                }
+              }
+            } catch (error) {
+              console.log('Could not parse test results:', error.message);
+            }
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## Test Results\n\n${summary}${details}\n\n📊 [View detailed report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`
+            });
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+      
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+      
+      - name: Create deployment status comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const deploymentUrl = '${{ steps.deployment.outputs.page_url }}';
+            console.log('✅ Deployment successful!');
+            console.log('URL:', deploymentUrl);
