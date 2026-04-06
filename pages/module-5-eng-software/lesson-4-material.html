@@ -167,8 +167,11 @@
       <a href="#devsecops" class="toc-h2">6. DevSecOps</a>
       <a href="#shift-left" class="toc-h3">Shift Left</a>
       <a href="#headers" class="toc-h2">7. Security Headers</a>
-      <a href="#rm-odp" class="toc-h2">8. RM-ODP Viewpoints</a>
-      <a href="#checklist" class="toc-h2">9. Checklist</a>
+      <a href="#bff" class="toc-h2">8. Backend for Frontend (BFF)</a>
+      <a href="#bff-security" class="toc-h3">BFF & Security</a>
+      <a href="#bff-seo" class="toc-h3">BFF & SEO</a>
+      <a href="#rm-odp" class="toc-h2">9. RM-ODP Viewpoints</a>
+      <a href="#checklist" class="toc-h2">10. Checklist</a>
     </nav>
   </aside>
 
@@ -431,6 +434,11 @@
 
       <p>The DevSecOps pipeline includes several automated security tools at different stages. During coding, <strong>SAST (Static Application Security Testing)</strong> tools like SonarQube and Semgrep analyze source code for known vulnerability patterns. During the build phase, <strong>SCA (Software Composition Analysis)</strong> tools like <code>npm audit</code> and Snyk check dependencies for known CVEs and generate a <strong>Software Bill of Materials (SBOM)</strong>. During testing, <strong>DAST (Dynamic Application Security Testing)</strong> tools like OWASP ZAP test the running application for vulnerabilities. In production, <strong>WAFs (Web Application Firewalls)</strong> and <strong>SIEM</strong> systems provide continuous monitoring.</p>
 
+      <div class="sr" style="margin:20px 0; text-align:center;">
+        <img src="https://gdm-catalog-fmapi-prod.imgix.net/ProductScreenshot/0a74e87c-fb22-4e4b-a04b-b6eeb696826a.png?auto=format&q=50" alt="SonarQube dashboard showing code quality metrics, vulnerabilities, code smells, and coverage analysis for a project" style="max-width:100%; border-radius:12px; box-shadow:0 8px 32px rgba(31,38,135,0.15); border:1px solid var(--border);">
+        <p style="font-size:.82rem; color:var(--muted); margin-top:8px;">SonarQube — SAST dashboard with vulnerability detection, code smells, and coverage metrics.</p>
+      </div>
+
       <h3 id="shift-left">Shift Left in Practice</h3>
       <div class="code-wrap">
         <div class="code-label">Bash — Security in CI/CD <button class="code-copy" onclick="copyCode(this)">Copy</button></div>
@@ -485,9 +493,131 @@
       </div>
     </section>
 
-    <!-- SECTION 8: RM-ODP -->
+    <!-- SECTION 8: BFF -->
+    <section class="mat-section" id="bff">
+      <h2>8. Backend for Frontend (BFF) — Security and SEO</h2>
+      <p>The <strong>Backend for Frontend (BFF)</strong> pattern introduces a dedicated server-side layer between the client application (browser, mobile) and the backend microservices. Instead of the browser calling multiple APIs directly, a BFF server aggregates, transforms, and delivers data tailored to the specific frontend's needs. This pattern, popularized by Sam Newman and widely adopted at companies like Netflix, Spotify, and SoundCloud, has significant implications for both <strong>security</strong> and <strong>SEO</strong>.</p>
+
+      <p>In a traditional SPA (Single Page Application) architecture, the browser receives a minimal HTML shell and relies on JavaScript to fetch data from APIs and render content client-side. This creates two fundamental problems: search engines may not index JavaScript-rendered content effectively, and the browser becomes a trusted client that handles API keys, tokens, and business logic — all of which are exposed in the browser's DevTools.</p>
+
+      <div class="sr diagram-grid" style="grid-template-columns:1fr 1fr;" id="bff-diagram">
+        <div class="diagram-card" style="border-top-color:#dc2626;">
+          <strong>Without BFF (SPA)</strong>
+          <small>Browser calls APIs directly, renders client-side, exposes tokens</small>
+        </div>
+        <div class="diagram-card" style="border-top-color:#0d9488;">
+          <strong>With BFF</strong>
+          <small>Server aggregates APIs, renders HTML, secrets stay server-side</small>
+        </div>
+      </div>
+
+      <h3 id="bff-security">BFF and Security</h3>
+      <p>The BFF pattern provides several security advantages that map directly to CyBOK Knowledge Areas on <strong>Web & Mobile Security</strong> and <strong>Authentication, Authorization & Accountability</strong>:</p>
+
+      <p><strong>1. Secrets never reach the browser.</strong> API keys, service tokens, and credentials for internal microservices are stored on the BFF server. The browser never sees them. In a traditional SPA, API keys embedded in JavaScript bundles are trivially extractable — even "hidden" in environment variables at build time, they end up in the final bundle. With a BFF, the browser communicates only with the BFF, and the BFF communicates with internal services using credentials stored securely on the server.</p>
+
+      <p><strong>2. Reduced attack surface.</strong> Instead of exposing multiple microservice endpoints to the public internet, only the BFF is publicly accessible. Internal services can live in private subnets with no public IP addresses. This follows the <strong>principle of least exposure</strong> — if an attacker cannot reach a service, they cannot exploit it.</p>
+
+      <p><strong>3. Centralized authentication and authorization.</strong> The BFF becomes a single enforcement point for session management, token validation, and access control. It can handle OAuth flows, validate JWTs, enforce CSRF protection, and manage secure cookies (httpOnly, SameSite, Secure) — all in one place rather than scattered across multiple client-side implementations.</p>
+
+      <p><strong>4. Input validation and output sanitization.</strong> The BFF can validate and sanitize all incoming requests before forwarding them to internal services, and sanitize all outgoing responses before sending them to the browser. This creates a security boundary that protects both sides.</p>
+
+      <div class="code-wrap">
+        <div class="code-label">JavaScript — BFF Security Pattern (Express.js) <button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre class="code-block"><code><span class="hl-kw">const</span> express = <span class="hl-fn">require</span>(<span class="hl-str">'express'</span>);
+<span class="hl-kw">const</span> app = <span class="hl-fn">express</span>();
+
+<span class="hl-cmt">// Secrets stay on the server — never sent to the browser</span>
+<span class="hl-kw">const</span> INTERNAL_API_KEY = process.env.<span class="hl-typ">INTERNAL_API_KEY</span>;
+<span class="hl-kw">const</span> PAYMENT_SERVICE = <span class="hl-str">'http://payment.internal:3001'</span>; <span class="hl-cmt">// private subnet</span>
+
+<span class="hl-cmt">// BFF aggregates multiple internal APIs into one response</span>
+app.<span class="hl-fn">get</span>(<span class="hl-str">'/api/dashboard'</span>, <span class="hl-fn">authMiddleware</span>, <span class="hl-kw">async</span> (req, res) => {
+  <span class="hl-cmt">// Browser only calls the BFF — never internal services</span>
+  <span class="hl-kw">const</span> [user, orders, notifications] = <span class="hl-kw">await</span> Promise.<span class="hl-fn">all</span>([
+    <span class="hl-fn">fetch</span>(<span class="hl-str">'http://users.internal:3002/me'</span>, {
+      headers: { <span class="hl-str">'X-API-Key'</span>: INTERNAL_API_KEY }  <span class="hl-cmt">// secret stays server-side</span>
+    }),
+    <span class="hl-fn">fetch</span>(<span class="hl-str">`http://orders.internal:3003/user/${req.userId}`</span>, {
+      headers: { <span class="hl-str">'X-API-Key'</span>: INTERNAL_API_KEY }
+    }),
+    <span class="hl-fn">fetch</span>(<span class="hl-str">`http://notifications.internal:3004/user/${req.userId}`</span>, {
+      headers: { <span class="hl-str">'X-API-Key'</span>: INTERNAL_API_KEY }
+    })
+  ]);
+  <span class="hl-cmt">// Return only what the frontend needs — no internal details leaked</span>
+  res.<span class="hl-fn">json</span>({ user, orders, notifications });
+});</code></pre>
+      </div>
+
+      <div class="callout callout-danger">
+        <div class="callout-label">Critical Insight</div>
+        <p>In a SPA without BFF, if you use <code>fetch('https://api.stripe.com/...', { headers: { Authorization: 'sk_live_...' } })</code> from the browser, your secret key is visible to anyone who opens DevTools. A BFF eliminates this entire class of vulnerability by keeping all service-to-service communication server-side.</p>
+      </div>
+
+      <h3 id="bff-seo">BFF and SEO</h3>
+      <p>Search Engine Optimization depends on search engine crawlers being able to read and index your page content. While Google's crawler can execute JavaScript (using a headless Chromium instance), it does so with significant limitations: there is a <strong>rendering delay</strong> (sometimes days), a <strong>computational budget</strong> per page, and pages that fail to render within the budget are indexed with their empty HTML shell. Other search engines (Bing, DuckDuckGo, Baidu) have even less JavaScript rendering capability.</p>
+
+      <p>A BFF enables <strong>Server-Side Rendering (SSR)</strong> — the server generates complete HTML before sending it to the browser. This means:</p>
+
+      <div class="sr" id="bff-seo-table">
+        <table class="comp-table">
+          <thead><tr><th>Aspect</th><th>SPA (Client-Side Rendering)</th><th>BFF with SSR</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Initial HTML</strong></td><td>Empty <code>&lt;div id="root"&gt;&lt;/div&gt;</code></td><td>Full content rendered in HTML</td></tr>
+            <tr><td><strong>Crawler indexing</strong></td><td>Depends on JS execution (unreliable)</td><td>Immediate — content is in the HTML</td></tr>
+            <tr><td><strong>Time to First Byte</strong></td><td>Fast (empty shell)</td><td>Slightly slower, but meaningful content</td></tr>
+            <tr><td><strong>First Contentful Paint</strong></td><td>Slow (download JS, fetch API, render)</td><td>Fast (HTML already has content)</td></tr>
+            <tr><td><strong>Meta tags / Open Graph</strong></td><td>Static or requires prerendering</td><td>Dynamic, per-page, server-generated</td></tr>
+            <tr><td><strong>Social media previews</strong></td><td>Often broken (crawlers don't run JS)</td><td>Correct titles, descriptions, images</td></tr>
+            <tr><td><strong>Core Web Vitals (LCP)</strong></td><td>Penalized by slow rendering</td><td>Improved — content arrives in first response</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p><strong>Dynamic meta tags</strong> are a particularly important benefit. When a user shares a product page on social media, the platform's crawler fetches the URL and reads the <code>&lt;meta&gt;</code> tags (<code>og:title</code>, <code>og:description</code>, <code>og:image</code>) to generate a preview card. If these tags are rendered by JavaScript, the crawler will not see them. A BFF can generate the correct meta tags server-side for every page, ensuring that shared links display properly on Twitter, LinkedIn, WhatsApp, and other platforms.</p>
+
+      <div class="code-wrap">
+        <div class="code-label">JavaScript — BFF with SSR for SEO (Next.js-style) <button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre class="code-block"><code><span class="hl-cmt">// BFF route that renders HTML with SEO meta tags</span>
+app.<span class="hl-fn">get</span>(<span class="hl-str">'/products/:id'</span>, <span class="hl-kw">async</span> (req, res) => {
+  <span class="hl-kw">const</span> product = <span class="hl-kw">await</span> <span class="hl-fn">fetch</span>(
+    <span class="hl-str">`http://catalog.internal:3005/products/${req.params.id}`</span>,
+    { headers: { <span class="hl-str">'X-API-Key'</span>: INTERNAL_API_KEY } }
+  ).<span class="hl-fn">then</span>(r => r.<span class="hl-fn">json</span>());
+
+  <span class="hl-cmt">// Server generates full HTML — crawlers see real content</span>
+  res.<span class="hl-fn">send</span>(<span class="hl-str">`&lt;!DOCTYPE html&gt;
+    &lt;html&gt;
+    &lt;head&gt;
+      &lt;title&gt;${product.name} | My Store&lt;/title&gt;
+      &lt;meta name="description" content="${product.description}"&gt;
+      &lt;meta property="og:title" content="${product.name}"&gt;
+      &lt;meta property="og:image" content="${product.imageUrl}"&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+      &lt;h1&gt;${product.name}&lt;/h1&gt;
+      &lt;p&gt;${product.description}&lt;/p&gt;
+      &lt;p&gt;Price: $${product.price}&lt;/p&gt;
+    &lt;/body&gt;
+    &lt;/html&gt;`</span>);
+});</code></pre>
+      </div>
+
+      <div class="callout callout-tip">
+        <div class="callout-label">Frameworks with Built-in BFF</div>
+        <p>Modern frameworks like <strong>Next.js</strong> (React), <strong>Nuxt</strong> (Vue), and <strong>SvelteKit</strong> implement the BFF pattern natively. Their server-side functions (<code>getServerSideProps</code>, <code>server loaders</code>) act as a BFF layer: they fetch data from internal APIs on the server, render HTML for SEO, and keep secrets out of the browser — all without you having to build a separate BFF service.</p>
+      </div>
+
+      <div class="callout callout-info">
+        <div class="callout-label">Architecture Tradeoff</div>
+        <p>A BFF adds a server layer, which means more infrastructure to manage (deployment, scaling, monitoring). For simple public sites with no sensitive APIs, a static site generator (SSG) may provide SEO benefits without the complexity. Use a BFF when you have: (1) sensitive API keys or internal services to protect, (2) dynamic content that must be indexed, or (3) multiple frontends (web, mobile, TV) that need different API shapes.</p>
+      </div>
+    </section>
+
+    <!-- SECTION 9: RM-ODP -->
     <section class="mat-section" id="rm-odp">
-      <h2>8. RM-ODP — Security Across Viewpoints</h2>
+      <h2>9. RM-ODP — Security Across Viewpoints</h2>
       <p>The RM-ODP (Reference Model for Open Distributed Processing) framework provides five viewpoints for analyzing distributed systems. Security is a cross-cutting concern that appears in every viewpoint. Here is how security maps to each perspective in the context of a web/cloud application:</p>
 
       <div class="sr" id="rmodp-diagram">
@@ -509,9 +639,9 @@
       </div>
     </section>
 
-    <!-- SECTION 9: CHECKLIST -->
+    <!-- SECTION 10: CHECKLIST -->
     <section class="mat-section" id="checklist">
-      <h2>9. Security Checklist</h2>
+      <h2>10. Security Checklist</h2>
       <p>Use this interactive checklist to verify that your project implements the essential security controls covered in this lesson. Click each item to mark it as completed.</p>
 
       <h3>Application Security</h3>
