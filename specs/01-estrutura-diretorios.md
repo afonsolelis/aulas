@@ -105,8 +105,8 @@ Cada módulo deve seguir esta estrutura obrigatória:
 ```
 pages/module-<NUMERO>-<CURSO>/
 ├── slides/                             # Formato atual: Slides Reveal.js
-│   ├── slide_lesson-1.html
-│   ├── slide_lesson-2.html
+│   ├── slide-lesson-1.html
+│   ├── slide-lesson-2.html
 │   └── ...
 │
 ├── materials/                          # Materiais de leitura em HTML
@@ -116,7 +116,7 @@ pages/module-<NUMERO>-<CURSO>/
 │
 ├── lesson-1.html                       # ⚠️ LEGADO: antigos slides (não remover)
 ├── lesson-2.html                       # Contém conteúdo não migrado ainda
-│   ├── slide_lesson-*.html             # Formato atual (usar este)
+│   ├── slide-lesson-*.html             # Formato atual (usar este)
 │
 ├── lesson-3.ipynb                      # Opcional: notebooks Jupyter
 ├── lesson-3-requirements.txt           # Opcional: dependências Python
@@ -127,7 +127,7 @@ pages/module-<NUMERO>-<CURSO>/
 
 | Arquivo | Status | Descrição |
 |---------|--------|-----------|
-| `slides/slide_lesson-*.html` | ✅ **ATIVO** | Slides no formato Reveal.js (padrão atual) |
+| `slides/slide-lesson-*.html` | ✅ **ATIVO** | Slides no formato Reveal.js (padrão atual) |
 | `materials/lesson-*-material.html` | ✅ **ATIVO** | Materiais de leitura em HTML |
 | `lesson-*.html` (raiz) | ⚠️ **LEGADO** | Antigos slides em migração - **não remover** |
 | `lesson-*.ipynb` | ✅ **ATIVO** | Notebooks Jupyter (quando aplicável) |
@@ -137,15 +137,15 @@ pages/module-<NUMERO>-<CURSO>/
 Os arquivos `lesson-*.html` na raiz de cada módulo são **legado do formato antigo** de slides e devem:
 
 1. **Permanecer no repositório** até que o conteúdo seja migrado
-2. **Não ser removidos** sem verificar se todo conteúdo foi portado para `slides/slide_lesson-*.html`
-3. **Ser ignorados** como fonte primária - usar sempre `slides/slide_lesson-*.html`
+2. **Não ser removidos** sem verificar se todo conteúdo foi portado para `slides/slide-lesson-*.html`
+3. **Ser ignorados** como fonte primária - usar sempre `slides/slide-lesson-*.html`
 
 **Fluxo de migração:**
 
 ```
 lesson-1.html (legado)
     ↓
-slide_lesson-1.html (novo formato Reveal.js)
+slide-lesson-1.html (novo formato Reveal.js)
 ```
 
 Quando um módulo estiver totalmente migrado, os arquivos `lesson-*.html` podem ser removidos.
@@ -167,7 +167,7 @@ Quando um módulo estiver totalmente migrado, os arquivos `lesson-*.html` podem 
 
 | Padrão | Exemplo | Descrição |
 |--------|---------|-----------|
-| `slide_lesson-<N>.html` | `slide_lesson-1.html` | Slide da aula N |
+| `slide-lesson-<N>.html` | `slide-lesson-1.html` | Slide da aula N |
 | `template_reveal.html` | `template_reveal.html` | Template base Reveal.js |
 
 ### Materiais de Leitura
@@ -215,10 +215,10 @@ Todos os links devem ser relativos e seguir:
 
 ```
 # De slides para home
-<a href="../../home_module-5-adm-tech.html">
+<a href="../../home-module-5-adm-tech.html">
 
 # De materials para slides
-<a href="../slides/slide_lesson-1.html">
+<a href="../slides/slide-lesson-1.html">
 
 # De lesson-X.html para materials
 <a href="materials/lesson-1-material.html">

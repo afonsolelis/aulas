@@ -534,7 +534,7 @@ Ao criar um novo módulo:
             <h5>${lesson.title}</h5>
             <p>${lesson.description}</p>
             <div class="lesson-actions">
-              <a href="module-5-adm-tech/slides/slide_lesson-${lesson.number}.html" class="btn btn-slides">🖥️ Slides</a>
+              <a href="module-5-adm-tech/slides/slide-lesson-${lesson.number}.html" class="btn btn-slides">🖥️ Slides</a>
               <a href="module-5-adm-tech/materials/lesson-${lesson.number}-material.html" class="btn btn-material">📖 Material</a>
             </div>
           </div>

@@ -88,7 +88,7 @@ Esta especificação define os padrões para criação de materiais de leitura e
         <div>Título da Aula</div>
       </div>
       <div class="d-flex gap-2 flex-wrap">
-        <a href="../slides/slide_lesson-N.html" class="btn btn-light">🎞️ Ver Slides</a>
+        <a href="../slides/slide-lesson-N.html" class="btn btn-light">🎞️ Ver Slides</a>
         <a href="../../home_module-X-CURSO.html" class="btn btn-outline-light">← Voltar ao Módulo</a>
       </div>
     </div>
@@ -455,7 +455,7 @@ Use `pages/module-X/materials/lesson-1-material.html` como referência para novo
         <div>Estatística e Análise de Dados em Planilhas</div>
       </div>
       <div class="d-flex gap-2 flex-wrap">
-        <a href="../slides/slide_lesson-1.html" class="btn btn-light">🎞️ Ver Slides</a>
+        <a href="../slides/slide-lesson-1.html" class="btn btn-light">🎞️ Ver Slides</a>
         <a href="../../home_module-5-adm-tech.html" class="btn btn-outline-light">← Voltar</a>
       </div>
     </div>

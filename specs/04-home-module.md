@@ -185,7 +185,7 @@ Esta especificação define os padrões para criação das páginas home de cada
               <h5 class="card-title">Estatística e Análise de Dados em Planilhas</h5>
               <p class="card-text">Dominando cálculos estatísticos, previsões e valuation com Excel/Google Sheets.</p>
               <div class="d-flex gap-2 mt-2">
-                <a href="slides/slide_lesson-1.html" class="btn btn-slides btn-adm">🖥️ Slides</a>
+                <a href="slides/slide-lesson-1.html" class="btn btn-slides btn-adm">🖥️ Slides</a>
                 <a href="materials/lesson-1-material.html" class="btn btn-material btn-outline-adm">📖 Material</a>
               </div>
             </div>
@@ -257,7 +257,7 @@ Para módulos com múltiplas disciplinas:
         </div>
         
         <div class="d-flex gap-2">
-          <a href="slides/slide_lesson-3.html" class="btn btn-slides btn-si">🖥️ Slides</a>
+          <a href="slides/slide-lesson-3.html" class="btn btn-slides btn-si">🖥️ Slides</a>
           <a href="materials/lesson-3-material.html" class="btn btn-material btn-outline-si">📖 Material</a>
         </div>
       </div>

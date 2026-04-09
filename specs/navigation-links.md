@@ -33,11 +33,11 @@ home-module-X.html
 ### Nível 3: Slides e Materiais
 
 ```
-slides/slide_lesson-N.html
+slides/slide-lesson-N.html
 ├── 🏠 Home → home-module-*.html
 ├── 📖 Material → materials/lesson-N-material.html
-├── ← Anterior → slide_lesson-(N-1).html
-└── Próximo → → slide_lesson-(N+1).html
+├── ← Anterior → slide-lesson-(N-1).html
+└── Próximo → → slide-lesson-(N+1).html
 ```
 
 ## Padrões de Link
@@ -47,12 +47,12 @@ slides/slide_lesson-N.html
 1. **Formato**
    - Usar caminhos relativos quando possível
    - Usar kebab-case em todos os nomes de arquivo
-   - Não usar underscores (exceto em `slide_lesson-*`)
+   - Não usar underscores (exceto em arquivos legados)
 
 2. **Exemplos Válidos**
    - `../index.html`
    - `home-module-2-common.html`
-   - `slides/slide_lesson-1.html`
+   - `slides/slide-lesson-1.html`
    - `materials/lesson-1-material.html`
 
 3. **Exemplos Inválidos**
@@ -201,9 +201,9 @@ slides/slide_lesson-N.html
 <footer class="slide-footer">
   <a href="home-module-2.html">🏠 Home</a>
   <a href="lesson-1-material.html">📖 Material</a>
-  <a href="slide_lesson-1.html">← Anterior</a>
+  <a href="slide-lesson-1.html">← Anterior</a>
   <span>3 / 10</span>
-  <a href="slide_lesson-3.html">Próximo →</a>
+  <a href="slide-lesson-3.html">Próximo →</a>
 </footer>
 ```
 
@@ -213,7 +213,7 @@ slides/slide_lesson-N.html
 <div class="card lesson-card">
   <h3>Aula 1: Introdução</h3>
   <div class="lesson-buttons">
-    <a href="slides/slide_lesson-1.html" class="btn-slides">
+    <a href="slides/slide-lesson-1.html" class="btn-slides">
       🎞️ Slides
     </a>
     <a href="materials/lesson-1-material.html" class="btn-material">

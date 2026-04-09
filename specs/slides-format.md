@@ -19,5 +19,5 @@ Padronizar a estrutura dos arquivos de slides do portal.
 ## Organização de arquivos
 
 1. Slides antigos podem existir como `lesson-N.html`.
-2. Slides de módulos com estrutura nova podem existir como `slides/slide_lesson-N.html`.
+2. Slides de módulos com estrutura nova podem existir como `slides/slide-lesson-N.html`.
 3. Em ambos os casos, a navegação e o footer devem seguir a spec de footer.

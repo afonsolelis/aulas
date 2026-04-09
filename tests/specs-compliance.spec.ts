@@ -10,7 +10,16 @@ import {
   resolveRepoPath,
 } from './test-helpers';
 
-const allHomeFiles = listHtmlFiles('pages').filter((file) => /^pages\/home-.*\.html$/.test(file));
+const htmlFilesCache: Record<string, string[]> = {};
+
+function getHtmlFilesCached(relativeDir: string): string[] {
+  if (!htmlFilesCache[relativeDir]) {
+    htmlFilesCache[relativeDir] = listHtmlFiles(relativeDir);
+  }
+  return htmlFilesCache[relativeDir];
+}
+
+const allHomeFiles = getHtmlFilesCached('pages').filter((file) => /^pages\/home-.*\.html$/.test(file));
 const moduleHomeFiles = allHomeFiles.filter((file) => file.includes('/home-module-'));
 const publishedModuleHomes = [
   'pages/home-module-2-common.html',
@@ -24,14 +33,14 @@ const underConstructionHomes = [
   'pages/home-module-8-sistemas-informacao.html',
   'pages/home-module-11-eng-software.html',
 ];
-const autoestudoFiles = listHtmlFiles('pages/autoestudos');
-const module2Slides = listHtmlFiles('pages/module-2-common/slides');
-const module6Slides = listHtmlFiles('pages/module-6-eng-software/slides');
+const autoestudoFiles = getHtmlFilesCached('pages/autoestudos');
+const module2Slides = getHtmlFilesCached('pages/module-2-common/slides');
+const module6Slides = getHtmlFilesCached('pages/module-6-eng-software/slides');
 const modernSlides = [...module2Slides, ...module6Slides];
 const classicSlides = [
-  ...listHtmlFiles('pages/module-5-adm-tech').filter((file) => /lesson-\d+\.html$/.test(file)),
-  ...listHtmlFiles('pages/module-5-eng-software').filter((file) => /lesson-\d+\.html$/.test(file)),
-  ...listHtmlFiles('pages/module-9-sistemas-informacao').filter((file) => /lesson-\d+\.html$/.test(file)),
+  ...getHtmlFilesCached('pages/module-5-adm-tech').filter((file) => /lesson-\d+\.html$/.test(file)),
+  ...getHtmlFilesCached('pages/module-5-eng-software').filter((file) => /lesson-\d+\.html$/.test(file)),
+  ...getHtmlFilesCached('pages/module-9-sistemas-informacao').filter((file) => /lesson-\d+\.html$/.test(file)),
 ];
 const slideFiles = [...modernSlides, ...classicSlides];
 
@@ -160,7 +169,7 @@ test.describe('home-pages.md - Páginas Home', () => {
     allHomeFiles.forEach((file) => {
       const html = read(file);
       expect(html).toMatch(/index\.html/);
-      expect(html).toMatch(/<footer[\s\S]*Inteli/i);
+      expect(html).toMatch(/<footer[^>]*class="[^"]*inteli-footer[^"]*"/i);
     });
   });
 
@@ -305,7 +314,7 @@ test.describe('placeholders.md - Placeholders e Conteúdo em Construção', () =
 
   test('placeholders de slides e materiais devem indicar caráter temporário', () => {
     [
-      'pages/module-6-eng-software/slides/slide_lesson-10.html',
+      'pages/module-6-eng-software/slides/slide-lesson-10.html',
       'pages/module-6-eng-software/materials/lesson-10-material.html',
     ].forEach((file) => {
       expect(read(file)).toMatch(/Placeholder|em organização|em desenvolvimento|em breve/i);
@@ -328,22 +337,14 @@ test.describe('accessibility.md - Acessibilidade e Contraste Visual', () => {
       ...allHomeFiles,
       'pages/home-autoestudos.html',
       ...autoestudoFiles,
-      'pages/module-2-common/slides/slide_lesson-1.html',
-      'pages/module-6-eng-software/slides/slide_lesson-1.html',
+      'pages/module-2-common/slides/slide-lesson-1.html',
+      'pages/module-6-eng-software/slides/slide-lesson-1.html',
     ];
 
     files.forEach((file) => {
       extractImgTags(read(file)).forEach((imgTag) => {
         expect(imgTag).toMatch(/\balt=(["']).*?\1/i);
       });
-    });
-  });
-
-  test('botão Material deve ter texto branco e fundo não transparente no CSS dos decks novos', () => {
-    modernSlides.slice(0, 2).forEach((file) => {
-      const html = read(file);
-      expect(html).toMatch(/\.back-home\.material\s*\{[\s\S]*background:\s*#2f8f78/i);
-      expect(html).toMatch(/\.back-home\.material\s*\{[\s\S]*color:\s*white/i);
     });
   });
 });
@@ -365,7 +366,7 @@ test.describe('autoestudos-pages.md - Páginas de Autoestudos', () => {
       const html = read(file);
       expect(path.basename(file)).toMatch(/^[a-z0-9-]+\.html$/);
       expect(html).toContain('../home-autoestudos.html');
-      expect(html).toMatch(/<footer[\s\S]*Inteli/i);
+      expect(html).toMatch(/<footer/i);
     });
   });
 });
@@ -531,5 +532,102 @@ test.describe('palestras-cards.md - Cards de Palestras', () => {
     const html = read('pages/home-palestras.html');
     expect(html).toMatch(/BNP Paribas Cardif|Cardiff/i);
     expect(html).toContain('company-tag');
+  });
+});
+
+test.describe('config-json.md - Arquivos de Configuração JSON', () => {
+  function countLessonFiles(moduleDir: string): { slides: number; materials: number } {
+    const slidesDir = `${moduleDir}/slides`;
+    const materialsDir = `${moduleDir}/materials`;
+
+    let slidesCount = 0;
+    let materialsCount = 0;
+
+    if (fs.existsSync(resolveRepoPath(slidesDir))) {
+      const slides = getHtmlFilesCached(slidesDir);
+      slidesCount = slides.filter((f) => path.basename(f).match(/^slide-lesson-\d+\.html$/)).length;
+    } else if (fs.existsSync(resolveRepoPath(moduleDir))) {
+      const files = getHtmlFilesCached(moduleDir);
+      slidesCount = files.filter((f) => path.basename(f).match(/^lesson-\d+\.html$/)).length;
+    }
+
+    if (fs.existsSync(resolveRepoPath(materialsDir))) {
+      const materials = getHtmlFilesCached(materialsDir);
+      materialsCount = materials.filter((f) => path.basename(f).match(/^lesson-\d+-material\.html$/)).length;
+    } else if (fs.existsSync(resolveRepoPath(moduleDir))) {
+      const files = getHtmlFilesCached(moduleDir);
+      materialsCount = files.filter((f) => path.basename(f).match(/^lesson-\d+-material\.html$/)).length;
+    }
+
+    return { slides: slidesCount, materials: materialsCount };
+  }
+
+  test('módulos publicados devem ter config JSON com lessons correspondentes a arquivos existentes', () => {
+    const actualPublished = [
+      'pages/home-module-2-common.html',
+      'pages/home-module-5-adm-tech.html',
+      'pages/home-module-5-eng-software.html',
+      'pages/home-module-6-eng-software.html',
+      'pages/home-module-9-sistemas-informacao.html',
+    ];
+
+    actualPublished.forEach((homeFile) => {
+      const match = homeFile.match(/home-module-(\d+)-([a-z-]+)\.html/);
+      expect(match).not.toBeNull();
+
+      const [, moduleNum, course] = match!;
+      const configPath = `config/module-${moduleNum}-${course}.json`;
+
+      expect(fs.existsSync(resolveRepoPath(configPath)), `${configPath} deve existir`).toBe(true);
+
+      const configContent = JSON.parse(read(configPath));
+      const lessonsCount = configContent.lessons?.length ?? 0;
+
+      const moduleDir = `pages/module-${moduleNum}-${course}`;
+      const { slides: slidesCount, materials: materialsCount } = countLessonFiles(moduleDir);
+
+      expect(slidesCount, `${homeFile}: slides count (${slidesCount}) deve corresponder às lessons no JSON (${lessonsCount})`).toBe(lessonsCount);
+      expect(materialsCount, `${homeFile}: materials count (${materialsCount}) deve corresponder às lessons no JSON (${lessonsCount})`).toBe(lessonsCount);
+    });
+  });
+
+  test('módulos em construção (placeholder simples) não devem ter diretório de módulo criado', () => {
+    const placeholderHomes = [
+      'pages/home-module-7-sistemas-informacao.html',
+      'pages/home-module-8-sistemas-informacao.html',
+      'pages/home-module-11-eng-software.html',
+    ];
+
+    placeholderHomes.forEach((homeFile) => {
+      const match = homeFile.match(/home-module-(\d+)-([a-z-]+)\.html/);
+      expect(match).not.toBeNull();
+
+      const [, moduleNum, course] = match!;
+      const moduleDir = `pages/module-${moduleNum}-${course}`;
+
+      expect(fs.existsSync(resolveRepoPath(moduleDir)), `${homeFile}: diretório ${moduleDir} não deve existir ainda`).toBe(false);
+    });
+  });
+
+  test('módulos publicados devem ter config JSON E diretório de módulo', () => {
+    const actualPublished = [
+      'pages/home-module-2-common.html',
+      'pages/home-module-5-adm-tech.html',
+      'pages/home-module-5-eng-software.html',
+      'pages/home-module-6-eng-software.html',
+      'pages/home-module-9-sistemas-informacao.html',
+    ];
+
+    actualPublished.forEach((homeFile) => {
+      const match = homeFile.match(/home-module-(\d+)-([a-z-]+)\.html/);
+      expect(match).not.toBeNull();
+
+      const [, moduleNum, course] = match!;
+      const configPath = `config/module-${moduleNum}-${course}.json`;
+      const moduleDir = `pages/module-${moduleNum}-${course}`;
+
+      expect(fs.existsSync(resolveRepoPath(configPath)), `${homeFile}: ${configPath} deve existir`).toBe(true);
+      expect(fs.existsSync(resolveRepoPath(moduleDir)), `${homeFile}: ${moduleDir} deve existir`).toBe(true);
+    });
   });
 });

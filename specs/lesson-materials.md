@@ -46,7 +46,7 @@ Dois botões fixos no canto inferior direito que aparecem apenas após o usuári
 
 ```html
 <div id="float-nav">
-  <a href="../slides/slide_lesson-N.html" class="fn-btn fn-btn-slides">▶ Slides</a>
+  <a href="../slides/slide-lesson-N.html" class="fn-btn fn-btn-slides">▶ Slides</a>
   <a href="../../home-module-X-curso.html" class="fn-btn fn-btn-back">← Módulo</a>
 </div>
 ```
@@ -86,7 +86,7 @@ else { floatNav.classList.remove('visible'); }
     <h1>Título da Aula</h1>
     <p class="subtitle">Aula N — Material de Leitura Aprofundado</p>
     <div class="d-flex gap-2 flex-wrap">
-      <a href="../slides/slide_lesson-N.html" class="btn btn-light btn-sm">▶ Slides</a>
+      <a href="../slides/slide-lesson-N.html" class="btn btn-light btn-sm">▶ Slides</a>
       <a href="../../home-module-X-curso.html" class="btn btn-outline-light btn-sm">← Voltar ao Módulo</a>
     </div>
   </div>
