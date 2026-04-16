@@ -73,6 +73,19 @@
     .back-cta { text-align:center; padding:30px 0 10px; }
     .back-cta a { color:var(--dk); font-weight:700; text-decoration:none; border:2px solid var(--dk); padding:10px 22px; border-radius:999px; transition:all .2s; }
     .back-cta a:hover { background:var(--dk); color:white; }
+
+    .ref-table { width:100%; border-collapse:collapse; margin:16px 0 22px; font-size:.9rem; background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+    .ref-table th, .ref-table td { padding:10px 14px; text-align:left; vertical-align:top; border-bottom:1px solid var(--border); line-height:1.55; }
+    .ref-table th { background:#f1f5f9; font-size:.78rem; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+    .ref-table tr:last-child td { border-bottom:none; }
+    .ref-table code { font-size:.82em; }
+    .sev-pill { display:inline-block; padding:2px 10px; border-radius:999px; font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; white-space:nowrap; }
+    .sev-critica { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; }
+    .sev-alta    { background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; }
+    .sev-media   { background:#fffbeb; color:#b45309; border:1px solid #fde68a; }
+    .sev-baixa   { background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; }
+    .sprint-pill { display:inline-block; padding:2px 8px; border-radius:6px; font-size:.72rem; font-weight:800; background:#eef2f7; color:var(--dk); white-space:nowrap; }
+    @media(max-width:700px){ .ref-table, .ref-table thead, .ref-table tbody, .ref-table tr, .ref-table th, .ref-table td { display:block; } .ref-table thead { display:none; } .ref-table td { border-bottom:none; padding:6px 14px; } .ref-table tr { border-bottom:1px solid var(--border); padding:10px 0; } }
   </style>
 </head>
 <body>
@@ -108,6 +121,8 @@
         <a href="#sec-10">10. Dependências e autoria</a>
         <a href="#sec-11">11. RNFs e rastreabilidade</a>
         <a href="#sec-12">12. Organização do artefato</a>
+        <a href="#sec-13">13. Aplicabilidade por sprint</a>
+        <a href="#sec-14">14. Severidade e consequências</a>
         <a href="#sec-resumo">Resumo operacional</a>
       </div>
     </aside>
@@ -117,6 +132,7 @@
       <div class="intro-card">
         <p>Este documento define o <strong>piso de qualidade</strong> exigido em <strong>todas as entregas</strong> da disciplina, do <strong>Artefato 1 ao Artefato 5</strong>. Não é rubrica de nota — é o mínimo aceitável para que a entrega seja considerada válida. Entregas que não cumprirem este baseline podem ser devolvidas sem correção de mérito.</p>
         <p>A lógica é simples: o aluno está aqui para <strong>aprender a construir software do zero</strong>, não para orquestrar ferramentas que escondem o que ele deveria estar entendendo. Cada critério abaixo existe para forçar contato direto com o problema.</p>
+        <p><strong>Sobre uso de IA:</strong> é esperado e aceito como apoio na produção dos artefatos. Mas os critérios deste documento são <strong>baseline técnico</strong> — erros como senha em texto plano, <code>.env</code> commitado, stack trace vazando para o cliente ou código que o aluno não sabe explicar <strong>não são mitigados pelo uso de IA</strong>. A responsabilidade permanece integralmente do aluno, e o uso de IA <strong>eleva</strong> a expectativa de que o baseline seja atendido — não reduz.</p>
       </div>
 
       <section class="mat-section" id="sec-1">
@@ -166,6 +182,7 @@
           </li>
           <li><strong>Funções curtas, responsabilidade única</strong>. Método de Service com mais de ~20 linhas é sinal de que precisa ser quebrado.</li>
           <li><strong>Sem código morto</strong>, sem <code>console.log</code> esquecido, sem <code>TODO</code> sem issue associada, sem imports não usados.</li>
+          <li><strong>Logging estruturado a partir da Sprint 4</strong>: <code>console.log</code>/<code>console.error</code> no código entregue são proibidos. Usar logger configurável (<code>pino</code>, <code>winston</code> ou equivalente) com níveis (<code>info</code>, <code>warn</code>, <code>error</code>), formato JSON em produção e nível controlado por variável de ambiente. Debug local pode usar <code>console</code>, mas não pode sobreviver ao commit.</li>
           <li><strong>Indentação e formatação consistentes</strong>. Use formatador (Prettier, equivalente) configurado no projeto.</li>
           <li><strong>Sem duplicação</strong>: três linhas iguais repetidas viram função. Mas não crie abstração para uso único.</li>
           <li><strong>Tratamento de erro nas fronteiras</strong> (entrada de API, I/O, rede). Não espalhe <code>try/catch</code> defensivo em código interno que não pode falhar.</li>
@@ -176,8 +193,14 @@
         <h2>4. Persistência e banco de dados</h2>
         <ul>
           <li><strong>Proibido o uso de ORM</strong>: Sequelize, Prisma, TypeORM, Mongoose, Eloquent, Hibernate, Active Record, etc. O aluno escreve <strong>SQL cru</strong> via driver nativo (<code>pg</code>, <code>mysql2</code>, <code>better-sqlite3</code>, <code>sqlite3</code>).</li>
-          <li><strong>Proibido query builder mágico</strong>: Knex, Drizzle no modo ORM-like. Se usar Knex, apenas para conexão/migration — consultas à mão.</li>
-          <li><strong>Migrations em SQL versionado</strong>, numeradas, reproduzíveis, em ordem explícita. Nada de "sync automático do schema".</li>
+          <li><strong>Proibido query builder</strong>: Knex, Drizzle, Kysely, MikroORM no modo query builder, ou qualquer camada que gere SQL por encadeamento de métodos. Sem exceções — nem para conexão, nem para migration, nem para queries. O acesso ao banco acontece <strong>sempre</strong> via driver nativo.</li>
+          <li><strong>Migrations em SQL puro e versionado</strong>: arquivos <code>.sql</code> numerados (<code>001_create_users.sql</code>, <code>002_add_sessions.sql</code>), aplicados em ordem explícita. Duas formas aceitas:
+            <ol>
+              <li>Script próprio do aluno (Node.js ~40 linhas) que lê a pasta, executa via driver nativo e registra o estado em uma tabela <code>_migrations(filename, applied_at)</code>.</li>
+              <li>Ferramenta que leia <code>.sql</code> cru sem camada de abstração (ex.: <code>node-pg-migrate</code> em modo SQL, <code>postgrator</code>). Ferramentas cuja migration é escrita em JS/TS com DSL próprio (Knex migrations, Prisma migrate) estão fora.</li>
+            </ol>
+          </li>
+          <li><strong>Nada de "sync automático do schema"</strong>. O estado do banco é sempre resultado de migrations aplicadas em ordem.</li>
           <li><strong>Modelo físico escrito à mão</strong>, revisado contra o DER. Constraints explícitas (<code>NOT NULL</code>, <code>UNIQUE</code>, <code>FOREIGN KEY</code>, <code>CHECK</code>).</li>
           <li><strong>Consultas principais formalizadas logicamente</strong> (Sprint 2): o aluno deve conseguir explicar a consulta em álgebra relacional ou cálculo, não só copiar-colar.</li>
           <li>Senhas, tokens e dados sensíveis <strong>nunca armazenados em texto plano</strong>. Ver seção 5.</li>
@@ -195,12 +218,15 @@
               <p>Senha em texto plano no banco é reprovação imediata do artefato.</p>
             </div>
           </li>
-          <li><strong>Sessão por <code>session id</code></strong> persistido em tabela própria, com expiração. JWT só é aceito se o aluno souber explicar por que escolheu e souber os trade-offs (stateless, não-revogável, payload exposto).</li>
+          <li><strong>Sessão por <code>session id</code></strong> persistido em tabela própria, com expiração. JWT só é aceito se o aluno souber explicar por que escolheu e souber os trade-offs (stateless, não-revogável, payload exposto) — e a justificativa deve estar documentada explicitamente na seção de <strong>decisões arquiteturais</strong> do artefato, não no README nem implícita no código.</li>
           <li><strong>Autorização por rota e por operação</strong>, baseada no perfil do usuário autenticado. Verificação no backend — nunca confiar no frontend.</li>
           <li><strong>Validação de entrada</strong> em toda rota: tipos, obrigatoriedade, tamanho, formato. Inputs inválidos retornam <code>400</code>/<code>422</code>, não <code>500</code>.</li>
           <li><strong>Nenhum campo de senha/hash/token retornado em resposta</strong> de API. Nunca. Inspecionar JSON nos testes.</li>
           <li><strong>Proteção contra SQL injection</strong>: sempre <em>prepared statements</em> / <em>parameterized queries</em>. Nunca concatenar string com input do usuário.</li>
           <li><strong>Segredos fora do código</strong>: variáveis de ambiente. <code>.env</code> em <code>.gitignore</code>. Repositório com credenciais exposta = entrega inválida.</li>
+          <li><strong>CORS configurado com origens explícitas</strong>. <code>Access-Control-Allow-Origin: *</code> em API que autentica usuários é falha de baseline. Liste os hosts permitidos explicitamente (ambientes de dev e produção separados) e restrinja métodos/headers ao mínimo necessário.</li>
+          <li><strong>Headers HTTP de segurança</strong>: <code>X-Content-Type-Options: nosniff</code>, <code>X-Frame-Options: DENY</code> (ou <code>SAMEORIGIN</code> com justificativa) e um <code>Content-Security-Policy</code> mínimo. Middleware como <code>helmet</code> é aceito — a configuração é o que importa, não a origem.</li>
+          <li><strong>Rate limiting no login a partir da Sprint 4</strong>: limite por IP e/ou identificador (e-mail), com resposta <code>429 Too Many Requests</code> quando excedido. Implementação em memória já atende ao baseline; a ausência total de limite é falha.</li>
         </ul>
       </section>
 
@@ -235,6 +261,7 @@
           <li><strong>REST com status codes corretos</strong>: <code>200</code>, <code>201</code>, <code>204</code>, <code>400</code>, <code>401</code>, <code>403</code>, <code>404</code>, <code>409</code>, <code>422</code>, <code>500</code>. <code>500</code> só para erro genuíno do servidor — nunca para validação.</li>
           <li><strong>Contrato documentado</strong>: método, rota, parâmetros, body, resposta de sucesso, respostas de erro com formato.</li>
           <li><strong>Respostas de erro com corpo consistente</strong> (<code>{ "mensagem": "..." }</code> ou equivalente), legível ao usuário final.</li>
+          <li><strong>Nenhum detalhe interno vaza em resposta de erro</strong>. <em>Stack traces</em>, mensagens brutas de driver de banco, caminhos absolutos de arquivo, nomes de tabela/coluna e versão de framework <strong>nunca</strong> chegam ao cliente. A mensagem pública é genérica; o detalhe técnico vai para o log do servidor (via logger estruturado, seção 3).</li>
           <li><strong>Convenção REST consistente</strong>: substantivos no plural para recursos, verbos HTTP com semântica correta (<code>GET</code> não muta estado).</li>
           <li><strong>Idempotência</strong> respeitada em <code>PUT</code> e <code>DELETE</code>. <code>POST</code> não idempotente é esperado.</li>
         </ul>
@@ -299,6 +326,170 @@
         </ul>
       </section>
 
+      <section class="mat-section" id="sec-13">
+        <h2>13. Aplicabilidade por sprint</h2>
+        <p>Nem todo critério é cobrado desde a Sprint 1. A tabela abaixo consolida quando cada item do baseline passa a ser exigido — antes disso, é recomendação; a partir disso, é falha de baseline.</p>
+        <table class="ref-table">
+          <thead>
+            <tr>
+              <th style="width:38%">Critério</th>
+              <th style="width:18%">A partir de</th>
+              <th>Observação</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Português impecável, conventional commits, notação correta de diagramas</td><td><span class="sprint-pill">Sprint 1</span></td><td>Vale desde a primeira entrega.</td></tr>
+            <tr><td>SQL cru via driver nativo, migrations em <code>.sql</code> versionado, modelo físico à mão — sem ORM nem query builder</td><td><span class="sprint-pill">Sprint 2</span></td><td>Quando a persistência entra.</td></tr>
+            <tr><td>Consultas formalizadas em álgebra relacional</td><td><span class="sprint-pill">Sprint 2</span></td><td>Aluno deve saber explicar a consulta.</td></tr>
+            <tr><td>Evolução visível da modelagem estática e dinâmica</td><td><span class="sprint-pill">Sprint 3</span></td><td>Diagramas repetidos = ausência de evolução.</td></tr>
+            <tr><td>Pelo menos um teste por RN, padrão AAA, determinístico</td><td><span class="sprint-pill">Sprint 3</span></td><td>RN sem teste = RN não implementada.</td></tr>
+            <tr><td>RTM sem lacunas (Persona → RF → RN → Endpoint → Teste → Evidência)</td><td><span class="sprint-pill">Sprint 3</span></td><td>Elo quebrado invalida rastreabilidade.</td></tr>
+            <tr><td>Autenticação construída do zero, hash <code>bcrypt</code>/<code>argon2</code>, sessão com expiração</td><td><span class="sprint-pill">Sprint 3</span></td><td>Quando autenticação entra no escopo.</td></tr>
+            <tr><td>Cobertura ≥80% na camada de Service</td><td><span class="sprint-pill">Sprint 4</span></td><td>Medida com <code>--coverage</code>, relatório versionado.</td></tr>
+            <tr><td>Complexidade ciclomática e linters (ESLint, SonarJS)</td><td><span class="sprint-pill">Sprint 4</span></td><td>Config versionada no repositório.</td></tr>
+            <tr><td>Logger estruturado (<code>pino</code>/<code>winston</code>), sem <code>console.log</code> no código</td><td><span class="sprint-pill">Sprint 4</span></td><td>Debug local não sobrevive ao commit.</td></tr>
+            <tr><td>CORS com origens explícitas, headers de segurança, rate limiting no login</td><td><span class="sprint-pill">Sprint 4</span></td><td>Helmet ou equivalente aceito.</td></tr>
+            <tr><td>Frontend: estados <code>loading</code>/<code>success</code>/<code>error</code>, Nielsen, acessibilidade mínima</td><td><span class="sprint-pill">Sprint 4</span></td><td>Quando frontend entra.</td></tr>
+            <tr><td>RNFs técnicos mensuráveis nos 8 eixos</td><td><span class="sprint-pill">Sprint 5</span></td><td>Evolução conceitual → mensurável.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="mat-section" id="sec-14">
+        <h2>14. Severidade e consequências</h2>
+        <p>Consolida, em um único lugar, as infrações ao baseline e suas consequências. Serve tanto para o aluno calibrar o que é crítico quanto para fundamentar devoluções objetivas. A coluna <strong>Evidência esperada</strong> indica o que o avaliador deve anexar na devolução.</p>
+        <table class="ref-table">
+          <thead>
+            <tr>
+              <th style="width:34%">Infração</th>
+              <th style="width:16%">Severidade</th>
+              <th style="width:22%">Consequência</th>
+              <th>Evidência esperada</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Senha armazenada em texto plano no banco</td>
+              <td><span class="sev-pill sev-critica">Crítica</span></td>
+              <td>Entrega inválida / devolvida sem correção de mérito</td>
+              <td>Print do <code>SELECT</code> na tabela de usuários</td>
+            </tr>
+            <tr>
+              <td><code>.env</code> com credenciais reais commitado (mesmo que removido depois)</td>
+              <td><span class="sev-pill sev-critica">Crítica</span></td>
+              <td>Entrega inválida; exige rotação de credenciais</td>
+              <td>Link do commit + <code>git log -- .env</code></td>
+            </tr>
+            <tr>
+              <td>Credenciais de produção expostas no repositório (chaves, tokens)</td>
+              <td><span class="sev-pill sev-critica">Crítica</span></td>
+              <td>Entrega inválida</td>
+              <td>Trecho do arquivo com a credencial (redigida)</td>
+            </tr>
+            <tr>
+              <td>Código copiado de colega ou IA sem compreensão/atribuição</td>
+              <td><span class="sev-pill sev-critica">Crítica</span></td>
+              <td>Desonestidade acadêmica; tratamento conforme regulamento</td>
+              <td>Trechos comparados + arguição ao aluno</td>
+            </tr>
+            <tr>
+              <td>ORM ou query builder em uso (Prisma, Sequelize, TypeORM, Mongoose, Knex, Drizzle, Kysely, etc.) — inclusive só para conexão ou migration</td>
+              <td><span class="sev-pill sev-alta">Alta</span></td>
+              <td>Reprovação do artefato na dimensão de persistência</td>
+              <td>Trecho do <code>package.json</code> + import no código</td>
+            </tr>
+            <tr>
+              <td>Biblioteca pronta de autenticação (<code>passport</code>, <code>next-auth</code>, <code>auth0</code>, etc.)</td>
+              <td><span class="sev-pill sev-alta">Alta</span></td>
+              <td>Reprovação do artefato na dimensão de segurança</td>
+              <td>Trecho do <code>package.json</code> + import no código</td>
+            </tr>
+            <tr>
+              <td>SQL injection explorável (concatenação de input em query)</td>
+              <td><span class="sev-pill sev-alta">Alta</span></td>
+              <td>Reprovação do artefato na dimensão de segurança</td>
+              <td>Trecho do código com a query vulnerável</td>
+            </tr>
+            <tr>
+              <td>Nenhum teste presente na Sprint 3+</td>
+              <td><span class="sev-pill sev-alta">Alta</span></td>
+              <td>Reprovação do artefato na dimensão de testes</td>
+              <td>Resultado de <code>npm test</code> + listagem de <code>/tests</code></td>
+            </tr>
+            <tr>
+              <td>Senha ou token retornado em resposta de API</td>
+              <td><span class="sev-pill sev-alta">Alta</span></td>
+              <td>Reprovação do artefato na dimensão de segurança</td>
+              <td>Print do corpo da resposta JSON</td>
+            </tr>
+            <tr>
+              <td>Stack trace / detalhe interno vazando em resposta de erro</td>
+              <td><span class="sev-pill sev-media">Média</span></td>
+              <td>Desconto significativo na dimensão de API/segurança</td>
+              <td>Print do corpo da resposta de erro</td>
+            </tr>
+            <tr>
+              <td>Ausência de validação de entrada em rotas críticas</td>
+              <td><span class="sev-pill sev-media">Média</span></td>
+              <td>Desconto significativo na dimensão de API</td>
+              <td>Requisição com payload inválido retornando <code>500</code></td>
+            </tr>
+            <tr>
+              <td>CORS permissivo, sem headers de segurança, sem rate limiting (Sprint 4+)</td>
+              <td><span class="sev-pill sev-media">Média</span></td>
+              <td>Desconto na dimensão de segurança</td>
+              <td>Headers da resposta + ausência de middleware</td>
+            </tr>
+            <tr>
+              <td>Cobertura de Service &lt;80% na Sprint 4</td>
+              <td><span class="sev-pill sev-media">Média</span></td>
+              <td>Desconto na dimensão de testes</td>
+              <td>Relatório de cobertura versionado no repo</td>
+            </tr>
+            <tr>
+              <td>README não permite rodar o projeto do zero</td>
+              <td><span class="sev-pill sev-media">Média</span></td>
+              <td>Desconto na dimensão de organização</td>
+              <td>Log da tentativa de execução seguindo o README</td>
+            </tr>
+            <tr>
+              <td>Diagramas idênticos entre sprints (Sprint 3+)</td>
+              <td><span class="sev-pill sev-media">Média</span></td>
+              <td>Desconto na dimensão de modelagem</td>
+              <td>Diff entre diagramas das sprints consecutivas</td>
+            </tr>
+            <tr>
+              <td><code>console.log</code> esquecido no código (Sprint 4+)</td>
+              <td><span class="sev-pill sev-baixa">Baixa</span></td>
+              <td>Observação / desconto leve</td>
+              <td><code>grep -rn "console\." src/</code></td>
+            </tr>
+            <tr>
+              <td>Commits fora de Conventional Commits, mensagens vagas</td>
+              <td><span class="sev-pill sev-baixa">Baixa</span></td>
+              <td>Observação / desconto leve</td>
+              <td><code>git log --oneline</code></td>
+            </tr>
+            <tr>
+              <td>Comentários descritivos desnecessários, imports não usados</td>
+              <td><span class="sev-pill sev-baixa">Baixa</span></td>
+              <td>Observação / desconto leve</td>
+              <td>Trecho do arquivo com o problema</td>
+            </tr>
+            <tr>
+              <td>Diagrama sem título/legenda, português com pequenos erros</td>
+              <td><span class="sev-pill sev-baixa">Baixa</span></td>
+              <td>Observação / desconto leve</td>
+              <td>Print do diagrama + linha do texto</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="callout callout-warn">
+          <div class="callout-label">Como ler esta tabela</div>
+          <p>Severidade é cumulativa: múltiplas infrações <strong>médias</strong> na mesma dimensão podem escalar para <strong>alta</strong>. E uma infração <strong>crítica</strong> não é compensada por acertos em outras dimensões — baseline é piso, não média.</p>
+        </div>
+      </section>
+
       <section class="mat-section" id="sec-resumo">
         <h2>Resumo operacional</h2>
         <p>Antes de submeter qualquer artefato, o aluno deve conseguir responder <strong>sim</strong> a todas estas perguntas:</p>
@@ -308,12 +499,17 @@
             <li><span class="ck-box">✓</span><span class="ck-text">Os diagramas usam a notação correta da ferramenta proposta?</span></li>
             <li><span class="ck-box">✓</span><span class="ck-text">A modelagem estática e dinâmica evoluiu em relação à sprint anterior (a partir da Sprint 3)?</span></li>
             <li><span class="ck-box">✓</span><span class="ck-text">O código se lê sozinho, sem comentários descritivos desnecessários?</span></li>
-            <li><span class="ck-box">✓</span><span class="ck-text">Estou usando SQL cru, sem ORM ou query builder mágico?</span></li>
+            <li><span class="ck-box">✓</span><span class="ck-text">Estou usando SQL cru via driver nativo, sem ORM e sem query builder (nem para conexão, nem para migration)?</span></li>
+            <li><span class="ck-box">✓</span><span class="ck-text">As migrations são arquivos <code>.sql</code> numerados, aplicados por script próprio ou ferramenta que lê SQL puro?</span></li>
             <li><span class="ck-box">✓</span><span class="ck-text">Senhas estão com hash bcrypt/argon2, nunca em texto plano?</span></li>
+            <li><span class="ck-box">✓</span><span class="ck-text"><code>.env</code> está no <code>.gitignore</code> e nunca foi commitado em nenhum ponto do histórico?</span></li>
             <li><span class="ck-box">✓</span><span class="ck-text">Autenticação e sessão foram construídas à mão, sem biblioteca pronta de auth?</span></li>
             <li><span class="ck-box">✓</span><span class="ck-text">Toda RN tem teste associado, padrão AAA, determinístico?</span></li>
             <li><span class="ck-box">✓</span><span class="ck-text">Na Sprint 4: cobertura ≥80% na camada de Service, complexidade ciclomática e linters configurados?</span></li>
+            <li><span class="ck-box">✓</span><span class="ck-text">Na Sprint 4: logger estruturado configurado, sem <code>console.log</code> no código entregue?</span></li>
+            <li><span class="ck-box">✓</span><span class="ck-text">Na Sprint 4: CORS com origens explícitas, headers de segurança e rate limiting no login?</span></li>
             <li><span class="ck-box">✓</span><span class="ck-text">Status codes HTTP estão corretos em todos os endpoints?</span></li>
+            <li><span class="ck-box">✓</span><span class="ck-text">Nenhum <em>stack trace</em> ou detalhe interno vaza em respostas de erro?</span></li>
             <li><span class="ck-box">✓</span><span class="ck-text">Os 8 eixos de RNF estão presentes e mensuráveis?</span></li>
             <li><span class="ck-box">✓</span><span class="ck-text">A RTM está sem lacunas (Persona → RF → RN → Endpoint → Teste → Evidência)?</span></li>
             <li><span class="ck-box">✓</span><span class="ck-text">Consigo explicar <strong>cada linha</strong> do que entreguei?</span></li>
