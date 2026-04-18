@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Documentar o padrão obrigatório para slides do Módulo 2 e módulos modernos. Estes slides usam sistema de navegação próprio em JS vanilla — **nunca Reveal.js**.
+Documentar o padrão obrigatório para slides do Módulo 2 e módulos modernos. Estes slides usam HTML padronizado com sistema de navegação próprio em JS vanilla.
 
 ## Estrutura HTML Obrigatória
 
@@ -192,7 +192,7 @@ USAB (Usabilidade), CONF (Confiabilidade), DES (Desempenho), SUP (Suportabilidad
 
 ## Regras
 
-1. **Nunca usar Reveal.js** — sistema próprio apenas.
+1. **HTML padronizado** — sistema de navegação próprio apenas, sem libs externas de apresentação.
 2. **Slide container** com classe `slide-container`; cada slide com classe `slide`.
 3. **Footer fixo** com `Home`, `Anterior/Próximo`, contador e `Material` (verde `#2f8f78`).
 4. **animMap** deve ter exatamente `slides.length` entradas (null para slides sem animação).
@@ -203,7 +203,7 @@ USAB (Usabilidade), CONF (Confiabilidade), DES (Desempenho), SUP (Suportabilidad
 
 ## Checklist de Criação
 
-- [ ] Sistema de navegação JS próprio (sem Reveal.js)
+- [ ] Sistema de navegação JS próprio (HTML padronizado)
 - [ ] Footer com Home, nav, contador, Material (verde)
 - [ ] animMap com entrada para cada slide
 - [ ] Timer helpers `T()` e `clearT()` presentes

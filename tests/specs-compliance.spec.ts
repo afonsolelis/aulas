@@ -235,7 +235,7 @@ test.describe('slides-footer.md - Footer dos Slides', () => {
 });
 
 test.describe('slides-format.md - Formato dos Slides', () => {
-  test('slides modernos não devem usar Reveal.js e devem manter estrutura própria', () => {
+  test('slides modernos devem manter estrutura HTML padronizada própria', () => {
     modernSlides.forEach((file) => {
       const html = read(file);
       expect(html).not.toMatch(/Reveal\.initialize|reveal\.js|new Reveal/i);
@@ -453,7 +453,7 @@ test.describe('module2-slide-structure.md - Estrutura Obrigatória dos Slides do
 });
 
 test.describe('module2-slides.md - Slides do Módulo 2', () => {
-  test('slides do módulo 2 devem usar sistema próprio de navegação (sem Reveal.js)', () => {
+  test('slides do módulo 2 devem usar sistema próprio de navegação (HTML padronizado)', () => {
     module2Slides.forEach((file) => {
       const html = read(file);
       expect(html).not.toMatch(/Reveal\.initialize|reveal\.js/i);

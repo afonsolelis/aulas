@@ -46,7 +46,7 @@ aulas/
 │   ├── home_tutorial-gitlab.html       # Tutorial GitLab
 │   │
 │   ├── module-5-adm-tech/              # Módulo específico
-│   │   ├── slides/                     # Slides Reveal.js (formato atual)
+│   │   ├── slides/                     # Slides HTML padronizado (formato atual)
 │   │   ├── materials/                  # Materiais de leitura
 │   │   ├── lesson-1.html               # ⚠️ LEGADO: antigos slides (em migração)
 │   │   ├── lesson-2.html
@@ -104,7 +104,7 @@ Cada módulo deve seguir esta estrutura obrigatória:
 
 ```
 pages/module-<NUMERO>-<CURSO>/
-├── slides/                             # Formato atual: Slides Reveal.js
+├── slides/                             # Formato atual: Slides HTML padronizado
 │   ├── slide-lesson-1.html
 │   ├── slide-lesson-2.html
 │   └── ...
@@ -127,7 +127,7 @@ pages/module-<NUMERO>-<CURSO>/
 
 | Arquivo | Status | Descrição |
 |---------|--------|-----------|
-| `slides/slide-lesson-*.html` | ✅ **ATIVO** | Slides no formato Reveal.js (padrão atual) |
+| `slides/slide-lesson-*.html` | ✅ **ATIVO** | Slides em HTML padronizado (padrão atual) |
 | `materials/lesson-*-material.html` | ✅ **ATIVO** | Materiais de leitura em HTML |
 | `lesson-*.html` (raiz) | ⚠️ **LEGADO** | Antigos slides em migração - **não remover** |
 | `lesson-*.ipynb` | ✅ **ATIVO** | Notebooks Jupyter (quando aplicável) |
@@ -145,7 +145,7 @@ Os arquivos `lesson-*.html` na raiz de cada módulo são **legado do formato ant
 ```
 lesson-1.html (legado)
     ↓
-slide-lesson-1.html (novo formato Reveal.js)
+slide-lesson-1.html (HTML padronizado)
 ```
 
 Quando um módulo estiver totalmente migrado, os arquivos `lesson-*.html` podem ser removidos.
@@ -168,7 +168,6 @@ Quando um módulo estiver totalmente migrado, os arquivos `lesson-*.html` podem 
 | Padrão | Exemplo | Descrição |
 |--------|---------|-----------|
 | `slide-lesson-<N>.html` | `slide-lesson-1.html` | Slide da aula N |
-| `template_reveal.html` | `template_reveal.html` | Template base Reveal.js |
 
 ### Materiais de Leitura
 

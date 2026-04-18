@@ -313,7 +313,7 @@ function buildMaterialHtml({ lesson, lessonTitle, markdownTitle, markdownBodyHtm
         <div>${lessonTitle}</div>
       </div>
       <div class="d-flex gap-2 flex-wrap">
-        <a href="../slides/slide_lesson-${lesson}.html" class="btn btn-light">Slides</a>
+        <a href="../slides/slide-lesson-${lesson}.html" class="btn btn-light">Slides</a>
         <a href="../../home-module-2-common.html" class="btn btn-outline-light">← Voltar ao Módulo</a>
       </div>
     </div>

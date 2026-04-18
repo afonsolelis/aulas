@@ -470,7 +470,6 @@ pages/module-5-adm-tech/
 | Recurso | URL | Versão |
 |---------|-----|--------|
 | Bootstrap CSS | `cdn.jsdelivr.net/npm/bootstrap` | 5.3.0 |
-| Reveal.js | `cdnjs.cloudflare.com/ajax/libs/reveal.js` | 4.5.0 |
 | Google Fonts | `fonts.googleapis.com` | - |
 | Prism.js | `cdnjs.cloudflare.com/ajax/libs/prism` | 1.29.0 |
 

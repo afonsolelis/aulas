@@ -350,14 +350,14 @@ test('deve possuir um link de "Voltar" funcional', async ({ page }) => {
 
 **Arquivo:** `tests/lesson_structure.spec.ts`
 
-#### Teste: Estrutura de Slides Reveal.js
+#### Teste: Estrutura de Slides HTML
 
 ```typescript
 test('Módulo X - Slide Y: Capa e Agenda', async ({ page }) => {
-  await page.goto(toFileUrl(`pages/module-X/slides/slide_lesson-Y.html`));
+  await page.goto(toFileUrl(`pages/module-X/slides/slide-lesson-Y.html`));
 
   // 1. Validação do Slide 1: Capa
-  const firstSlide = page.locator('.reveal .slides section').first();
+  const firstSlide = page.locator('.slide-container .slide').first();
   await expect(firstSlide).toBeVisible();
 
   const logoCover = firstSlide.locator('img[src*="cloudinary"], .logo-cover');
@@ -372,7 +372,7 @@ test('Módulo X - Slide Y: Capa e Agenda', async ({ page }) => {
   // 2. Validação do Slide 2: Agenda
   await page.keyboard.press('ArrowRight');
 
-  const secondSlide = page.locator('.reveal .slides section').nth(1);
+  const secondSlide = page.locator('.slide-container .slide').nth(1);
   await expect(secondSlide).toBeVisible();
 
   const agendaTitle = secondSlide.locator('h2, h1');

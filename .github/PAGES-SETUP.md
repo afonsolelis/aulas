@@ -125,7 +125,7 @@ Se todos os testes passarem localmente, pode fazer push com segurança!
 
 **Solução:**
 - Usar caminhos relativos em todos os links
-- Ex: `pages/module-5-adm-tech/slides/slide_lesson-1.html`
+- Ex: `pages/module-5-adm-tech/slides/slide-lesson-1.html`
 - NÃO: `https://example.com/pages/...`
 
 ## Configurações Avançadas (Opcional)

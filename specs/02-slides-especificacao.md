@@ -2,7 +2,7 @@
 
 ## Visão Geral
 
-Esta especificação define o padrão atual para criação de slides no projeto Aulas. O novo design system utiliza JavaScript nativo para navegação (sem Reveal.js), com animações CSS e JavaScript integradas diretamente no HTML.
+Esta especificação define o padrão atual para criação de slides no projeto Aulas. O design system utiliza HTML padronizado com JavaScript nativo para navegação e animações CSS/JavaScript integradas diretamente no arquivo.
 
 ## Estrutura Obrigatória do HTML
 

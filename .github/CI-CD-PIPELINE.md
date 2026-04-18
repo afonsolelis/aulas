@@ -52,7 +52,7 @@ This repository uses GitHub Actions to automatically test and deploy the educati
 #### Lint Job
 Validates structure and conventions:
 - ✓ JSON files in `/config/` are valid
-- ✓ HTML slide files follow naming: `slide_lesson-<n>.html`
+- ✓ HTML slide files follow naming: `slide-lesson-<n>.html`
 - ✓ Module directories have `slides/` and `materials/` subdirectories
 - ✓ Checks for hardcoded absolute URLs (should be relative)
 
@@ -209,7 +209,7 @@ Currently, no secrets are required for this pipeline. If adding external APIs or
 
 #### Quality Checks Failing
 - **JSON validation:** Check syntax in `/config/*.json` files
-- **Naming conventions:** Verify slide files are `slide_lesson-<n>.html`
+- **Naming conventions:** Verify slide files are `slide-lesson-<n>.html`
 - **Security scan:** Remove hardcoded credentials if found
 
 ---

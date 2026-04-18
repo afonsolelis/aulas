@@ -7,7 +7,7 @@ This repository is a static educational platform hosting didactic materials for 
 - **Engenharia de Software (Eng. Software)**
 - **Sistemas de Informação (SI)**
 
-The platform is built with vanilla HTML/CSS/JavaScript, Bootstrap 5, and Reveal.js for interactive slide presentations.
+The platform is built with vanilla HTML/CSS/JavaScript and Bootstrap 5. Slides são HTML padronizado standalone (sem libs de apresentação externas).
 
 ## Build, Test, and Development Commands
 
@@ -41,7 +41,7 @@ aulas/
 ├── pages/
 │   ├── home_module-[n]-[course].html   # Module home pages
 │   ├── module-[n]-[course]/
-│   │   ├── slides/               # Reveal.js slide presentations
+│   │   ├── slides/               # HTML slide presentations
 │   │   └── materials/            # Reading materials (HTML)
 │   └── autoestudos/              # Self-study articles
 ├── assets/
@@ -56,7 +56,7 @@ aulas/
 **Strict and test-driven.** Files must follow these exact patterns:
 
 - **Modules:** `module-[n]-[course]` (e.g., `module-5-adm-tech`)
-- **Slides:** `slide_lesson-[n].html` (lesson numbering starts at 1)
+- **Slides:** `slide-lesson-[n].html` (lesson numbering starts at 1)
 - **Materials:** `lesson-[n]-material.html`
 - **Module homes:** `home_module-[n]-[course].html`
 - **All files:** kebab-case
@@ -79,9 +79,9 @@ Treat `specs/` (especially `01-estrutura-diretorios.md`) as the source of truth 
 - Glassmorphism effects for cards (see existing CSS)
 - All relative links; no hardcoded absolute paths
 
-### Reveal.js Slides
+### Slides (HTML padronizado)
 
-Slides use Reveal.js 4.5+ with a custom layout integrated into the project:
+Slides são HTML standalone com navegação custom (`.slide`/`.slide.active` controlado por JS próprio):
 - Slides must fill the viewport correctly: avoid vertical overflow and excessive empty space
 - Keyboard navigation: arrow keys, space, Escape
 - Check dense slides visually and adjust typography, grid, padding, and card heights for proper distribution
@@ -98,7 +98,7 @@ Tests use **Playwright with TypeScript** and run against local HTML files (no se
 - `test-helpers.ts` – Shared test utilities (file resolution, URL conversion)
 
 **Test Strategy:**
-- Add or update tests whenever changing shared layouts, module homes, or Reveal.js structures
+- Add or update tests whenever changing shared layouts, module homes, or slide structures
 - Always validate course colors and naming patterns (test checks for exact naming in file paths)
 - Before PR: run `npm test` and verify targeted specs if you modified navigation, naming, or colors
 
@@ -108,7 +108,7 @@ Tests use **Playwright with TypeScript** and run against local HTML files (no se
 1. Create `config/module-X-[course].json` with module metadata
 2. Create `pages/home_module-X-[course].html` with module landing page
 3. Create folder `pages/module-X-[course]/` with subfolders: `slides/` and `materials/`
-4. Add lesson files: `pages/module-X-[course]/slides/slide_lesson-[n].html`
+4. Add lesson files: `pages/module-X-[course]/slides/slide-lesson-[n].html`
 5. Add material files: `pages/module-X-[course]/materials/lesson-[n]-material.html`
 6. Add card link on `index.html`
 
@@ -136,7 +136,7 @@ Tests use **Playwright with TypeScript** and run against local HTML files (no se
 
 - **Specifications:** `/specs/` contains authoritative rules for structure, slides, materials, assets, and testing
   - `01-estrutura-diretorios.md` – Directory structure rules
-  - `02-slides-especificacao.md` – Reveal.js slide patterns
+  - `02-slides-especificacao.md` – HTML slide patterns
   - `03-materiais-leitura.md` – Reading material HTML structure
   - `04-home-module.md` – Module home page structure
   - `05-casos-teste.md` – Test cases and validation rules
@@ -196,11 +196,11 @@ Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
 - Verify Bootstrap 5 class names if using Bootstrap components
 
 **Slides not rendering:**
-- Check Reveal.js HTML structure (see `02-slides-especificacao.md`)
+- Check slide HTML structure (see `02-slides-especificacao.md`)
 - Verify all closing tags and proper nesting
 - Test locally with `npx http-server .` and check browser console for errors
 
 **Link issues in tests:**
-- Always use relative paths (e.g., `pages/module-5-adm-tech/slides/slide_lesson-1.html`)
+- Always use relative paths (e.g., `pages/module-5-adm-tech/slides/slide-lesson-1.html`)
 - Avoid hardcoded domains or protocols
 - Test helpers provide URL conversion utilities

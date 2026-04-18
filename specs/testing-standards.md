@@ -180,7 +180,7 @@ test('arquivos não devem usar underscore', () => {
   const files = fs.readdirSync(pagesDir, { recursive: true });
   
   const filesWithUnderscore = files.filter(f => 
-    f.endsWith('.html') && f.includes('_') && !f.includes('slide_lesson-')
+    f.endsWith('.html') && f.includes('_')
   );
   
   expect(filesWithUnderscore).toHaveLength(0);
@@ -260,7 +260,7 @@ test('todas as homes devem ter footer', async ({ page }) => {
 
 ```typescript
 test('slides devem ter navegação', async ({ page }) => {
-  const slideFiles = ['pages/module-2-common/slides/slide_lesson-1.html'];
+  const slideFiles = ['pages/module-2-common/slides/slide-lesson-1.html'];
   
   for (const slideFile of slideFiles) {
     if (fs.existsSync(resolveRepoPath(slideFile))) {

@@ -419,10 +419,11 @@ Checklist para validar configs:
 fetch('config/template_aula.json')
   .then(res => res.json())
   .then(aula => {
-    const slidesContainer = document.querySelector('.reveal .slides');
+    const slidesContainer = document.querySelector('.slide-container');
     
-    aula.slides_structure.forEach(slide => {
+    aula.slides_structure.forEach((slide, i) => {
       const section = document.createElement('section');
+      section.className = i === 0 ? 'slide active' : 'slide';
       
       if (slide.type === 'agenda') {
         section.innerHTML = `
@@ -442,8 +443,6 @@ fetch('config/template_aula.json')
       
       slidesContainer.appendChild(section);
     });
-    
-    Reveal.initialize();
   });
 ```
 

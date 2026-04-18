@@ -42,9 +42,9 @@ jobs:
           find pages -name "*.html" -type f | while read file; do
             if [[ $file =~ module-[0-9]+-[a-z\-]+/slides/ ]]; then
               filename=$(basename "$file")
-              if [[ ! $filename =~ ^slide_lesson-[0-9]+\.html$ ]]; then
+              if [[ ! $filename =~ ^slide-lesson-[0-9]+\.html$ ]]; then
                 echo "✗ Invalid slide naming: $file"
-                echo "  Expected: slide_lesson-<n>.html"
+                echo "  Expected: slide-lesson-<n>.html"
                 exit 1
               fi
             fi
@@ -54,14 +54,24 @@ jobs:
       - name: Verify module directory structure
         run: |
           echo "Verifying module directory structure..."
-          
+
+          # Cada módulo precisa ter pelo menos um slide e um material, em qualquer layout:
+          # - subdirectory: slides/*.html + materials/*.html
+          # - flat: lesson-N.html + lesson-N-material.html na raiz do módulo
+          # - híbrido: combinação dos dois
           for dir in pages/module-*; do
             if [ -d "$dir" ]; then
-              if [ ! -d "$dir/slides" ] || [ ! -d "$dir/materials" ]; then
-                echo "✗ Missing slides/ or materials/ directory in $dir"
+              slide_count=$(find "$dir" -maxdepth 2 -type f -name '*.html' ! -name '*-material.html' 2>/dev/null | wc -l)
+              material_count=$(find "$dir" -maxdepth 2 -type f -name '*-material.html' 2>/dev/null | wc -l)
+              if [ "$slide_count" -eq 0 ]; then
+                echo "✗ $dir has no slide files"
                 exit 1
               fi
-              echo "✓ $(basename $dir) structure is valid"
+              if [ "$material_count" -eq 0 ]; then
+                echo "✗ $dir has no material files"
+                exit 1
+              fi
+              echo "✓ $(basename $dir) structure is valid (slides=$slide_count, materials=$material_count)"
             fi
           done
       
@@ -88,12 +98,12 @@ jobs:
         run: |
           echo "Scanning for potentially exposed credentials..."
           
-          # Basic check for common credential patterns
-          if grep -r "password\s*=" pages/ config/ 2>/dev/null | grep -v "placeholder"; then
+          # Exclude material files (educational examples)
+          if grep -r "password\s*=" pages/ config/ 2>/dev/null | grep -v "placeholder" | grep -v "material.html"; then
             echo "⚠ Warning: Found potential hardcoded credentials"
           fi
           
-          if grep -r "API_KEY\|SECRET_KEY\|PRIVATE_KEY" pages/ config/ 2>/dev/null; then
+          if grep -r "API_KEY\|SECRET_KEY\|PRIVATE_KEY" pages/ config/ 2>/dev/null | grep -v "material.html"; then
             echo "✗ Error: Found hardcoded credentials"
             exit 1
           fi

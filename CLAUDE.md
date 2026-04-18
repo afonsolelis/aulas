@@ -34,7 +34,7 @@ pages/
   home-autoestudos.html
   home-tutorial-gitlab.html
   module-[N]-[curso]/
-    slides/slide_lesson-[N].html    # Reveal.js slide presentation
+    slides/slide-lesson-[N].html    # HTML slide presentation
     materials/lesson-[N]-material.html  # Reading material (long-form HTML)
   autoestudos/                      # Self-study articles
 config/
@@ -45,40 +45,23 @@ css/
 
 **Important naming rule:** Module home pages use kebab-case with `home-` prefix (e.g. `home-module-9-sistemas-informacao.html`), not `module-*.html` and never with underscore. Index card links must point to `pages/home-*.html` — the Playwright test enforces this.
 
-### Slide System (Reveal.js — required for all new slides)
+### Slide System (HTML padronizado)
 
-All slides use **Reveal.js 5.0.4** from CDN. The old custom `.slide/.active` JS navigation system exists in older lessons but must not be used for new content.
+Slides são HTML standalone — **sem** bibliotecas de apresentação externas. Cada arquivo `slide-lesson-[N].html` traz seu próprio CSS/JS inline para navegação.
 
-Required Reveal.js setup:
+Estrutura base:
 ```html
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.4/reveal.min.css">
-
-<div class="reveal">
-  <div class="slides">
-    <section class="custom-slide cover-slide-bg">
-      <div class="slide-inner"><!-- content --></div>
-    </section>
-  </div>
+<div class="slide-container">
+  <section class="slide active">
+    <!-- conteúdo do slide 1 -->
+  </section>
+  <section class="slide">
+    <!-- conteúdo do slide 2 -->
+  </section>
 </div>
-
-<!-- Top nav (outside .reveal, before </body>) -->
-<div class="top-nav">
-  <a href="javascript:history.back()" class="nav-btn">← Voltar</a>
-  <a href="../home-module-X-curso.html" class="nav-btn">Material</a>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.4/reveal.js"></script>
-<script>
-  Reveal.initialize({
-    controls: true, progress: true,
-    slideNumber: 'h.v', center: false, hash: true,
-    transition: 'convex', width: '100%', height: '100%',
-    margin: 0, disableLayout: true
-  });
-</script>
 ```
 
-Do **not** add a custom slide-footer with manual prev/next buttons — Reveal.js handles navigation natively.
+Navegação: use o padrão `.slide/.active` com JS próprio (setas do teclado + botões prev/next). Inclua também um `.top-nav` com link para o material da aula e "← Voltar". Importe `css/inteli-styles.css` via caminho relativo e a fonte Manrope do Google Fonts.
 
 ### CSS Design System
 
