@@ -233,9 +233,15 @@
         <a href="#sec-stack">7. Nossa stack</a>
         <a href="#sec-req">8. RF, RN e RNF</a>
         <a href="#sec-eixos" class="toc-h3">9. Os 8 eixos de RNF</a>
+        <a href="#sec-eixos-tradeoffs" class="toc-h3">9.1 Trade-offs entre eixos</a>
+        <a href="#sec-eixos-redacao" class="toc-h3">9.2 Redigindo RNF mensuráveis</a>
+        <a href="#sec-eixos-priorizacao" class="toc-h3">9.3 Priorização por tipo de sistema</a>
         <a href="#sec-minimundo">10. Minimundo</a>
         <a href="#sec-rmodp">11. RM-ODP</a>
-        <a href="#sec-checklist">12. Checklist</a>
+        <a href="#sec-rmodp-aplicado" class="toc-h3">11.1 RM-ODP aplicado</a>
+        <a href="#sec-rmodp-compara" class="toc-h3">11.2 Comparação com outros frameworks</a>
+        <a href="#sec-convergencia">12. Convergência RNF ↔ RM-ODP</a>
+        <a href="#sec-checklist">13. Checklist</a>
         <a href="#sec-refs">Referências</a>
       </div>
     </aside>
@@ -664,9 +670,14 @@ console.log(pedido.itens.length); <span class="hl-cmt">// 2</span></code></pre>
         <!-- ── 9. OS 8 EIXOS ── -->
         <h2 id="sec-eixos" style="margin-top:48px;">9. Os 8 Eixos de RNF (ISO/IEC 25010)</h2>
 
-        <p>Nesta disciplina, usamos uma decomposição de qualidade em 8 eixos, baseada na norma ISO/IEC 25010 (SQuaRE — Systems and Software Quality Requirements and Evaluation). Essa norma é a referência internacional para qualidade de software e está presente em SWEBOK v3, o corpo de conhecimento de engenharia de software.</p>
+        <p>Nesta disciplina, usamos uma decomposição de qualidade em 8 eixos, baseada na norma <strong>ISO/IEC 25010</strong> (SQuaRE — <em>Systems and Software Quality Requirements and Evaluation</em>). Essa norma é a referência internacional para qualidade de software e aparece no <strong>SWEBOK v4</strong>, o corpo de conhecimento oficial da engenharia de software. Ela evoluiu da ISO/IEC 9126 (1991) e expande o escopo para considerar não só o produto, mas o sistema operando em seu contexto real.</p>
 
-        <p>Ao documentar RNF do seu projeto, você deve explicitar em qual eixo está trabalhando. Dizer apenas "qualidade" não é suficiente — cada eixo tem características e métricas próprias.</p>
+        <p>Os eixos não são silos independentes: eles se <strong>cruzam, se reforçam e frequentemente conflitam entre si</strong>. Uma decisão arquitetural que melhora um eixo pode piorar outro — e reconhecer isso é o que separa o engenheiro que escreve requisitos do que apenas lista desejos. Ao documentar RNF do seu projeto, você deve sempre explicitar <em>em qual eixo</em> está trabalhando, <em>qual métrica</em> será medida e <em>qual limite</em> é aceitável.</p>
+
+        <div class="callout callout-deep sr">
+          <div class="callout-label">🎯 Por que RNF é decisivo na engenharia</div>
+          <p>RFs definem se o sistema <em>faz</em> o que deveria. RNFs definem se o sistema <em>sobrevive</em> em produção. A maioria das falhas pós-deploy — quedas sob pico de acesso, vazamento de dados, indisponibilidade em black friday, bug que não pôde ser corrigido em tempo — são falhas de RNF, não de RF. Tratar RNF como "detalhe técnico" é o maior risco arquitetural de um projeto.</p>
+        </div>
 
         <div class="eixo-grid" id="eixo-grid">
           <div class="eixo-card" style="border-color:#4b5563;">
@@ -718,6 +729,137 @@ console.log(pedido.itens.length); <span class="hl-cmt">// 2</span></code></pre>
             <div class="eixo-example">"Entrega em sprint de 2 semanas. CI obrigatório. Code review por par."</div>
           </div>
         </div>
+
+        <h3>Métricas e ferramentas típicas por eixo</h3>
+        <p>Para cada eixo, existem métricas reconhecidas e ferramentas que geram evidência objetiva. Essa tabela é seu ponto de partida — memorize a relação entre eixo, métrica e ferramenta, porque é isso que torna um RNF <em>auditável</em>.</p>
+
+        <table class="mat-table sr">
+          <thead><tr><th>Eixo</th><th>Métricas típicas</th><th>Ferramentas de evidência</th><th>Anti-padrão comum</th></tr></thead>
+          <tbody>
+            <tr><td><span class="tag" style="background:#e5e7eb;color:#4b5563;">USAB</span></td><td>Tempo de tarefa, taxa de sucesso, SUS score, cliques para concluir</td><td>Maze, Lookback, testes de usabilidade moderados, heurísticas de Nielsen</td><td>"Interface amigável" — sem métrica nem critério objetivo</td></tr>
+            <tr><td><span class="tag" style="background:#ccfbf1;color:#0d9488;">CONF</span></td><td>MTBF, MTTR, uptime, taxa de sucesso de retries, error rate</td><td>Pingdom, UptimeRobot, alertas de SLO no Grafana, chaos testing</td><td>"Sistema robusto" — sem definir tolerância a falhas</td></tr>
+            <tr><td><span class="tag" style="background:#e5e7eb;color:#6b7280;">DES</span></td><td>p50/p95/p99 de latência, throughput (req/s), tempo de resposta</td><td>k6, JMeter, Artillery, Apache Bench, dashboards APM (Datadog, New Relic)</td><td>"Rápido" sem especificar sob qual carga nem em qual percentil</td></tr>
+            <tr><td><span class="tag" style="background:#fed7aa;color:#c2410c;">SUP</span></td><td>Cobertura de testes, tempo médio para corrigir bug, cyclomatic complexity</td><td>Jest coverage, SonarQube, ESLint, git log de hotfixes</td><td>"Código limpo" sem métrica objetiva de qualidade</td></tr>
+            <tr><td><span class="tag tag-red">SEG</span></td><td>CVSS score, tempo até patch, taxa de logs de acesso indevido, OWASP coverage</td><td>OWASP ZAP, Snyk, bcrypt, auditoria manual, SAST/DAST</td><td>"Sistema seguro" — sem threat model documentado</td></tr>
+            <tr><td><span class="tag" style="background:#cbd5e1;color:#334155;">CAP</span></td><td>Volume máximo de dados, nº máximo de usuários concorrentes, taxa de crescimento</td><td>Análise de consultas no banco, EXPLAIN, benchmarks de carga progressiva</td><td>Não planejar para crescimento 10x do volume atual</td></tr>
+            <tr><td><span class="tag tag-green">REST</span></td><td>Lista fechada de tecnologias aceitas, versões mínimas exigidas</td><td>Validação em CI (check de dependências), revisão arquitetural</td><td>Não documentar o que é <em>obrigatório</em> vs <em>permitido</em></td></tr>
+            <tr><td><span class="tag tag-purple">ORG</span></td><td>Duração da sprint, tamanho da equipe, SLA de code review, orçamento</td><td>Ferramentas de gestão (Jira, Linear), políticas de repositório</td><td>Misturar restrições de processo com requisitos técnicos</td></tr>
+          </tbody>
+        </table>
+
+        <!-- ── 9.1 TRADE-OFFS ── -->
+        <h3 id="sec-eixos-tradeoffs" style="margin-top:40px;">9.1 Trade-offs entre Eixos — quando qualidade é escolha</h3>
+
+        <p>Nenhum sistema maximiza todos os 8 eixos simultaneamente. Cada decisão arquitetural troca <em>um eixo por outro</em>, e reconhecer essas tensões é o que separa o projeto viável do projeto utópico. Abaixo, as tensões mais frequentes em sistemas web — e como elas se manifestam no seu código.</p>
+
+        <table class="mat-table sr">
+          <thead><tr><th>Tensão</th><th>Decisão que favorece o primeiro</th><th>O que o segundo perde</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Segurança × Desempenho</strong></td><td>Hash bcrypt caro em login</td><td>Latência de autenticação aumenta; pode exigir cache de sessão</td></tr>
+            <tr><td><strong>Segurança × Usabilidade</strong></td><td>MFA obrigatório e timeout curto de sessão</td><td>Mais fricção, queda na taxa de conclusão de tarefas</td></tr>
+            <tr><td><strong>Desempenho × Confiabilidade</strong></td><td>Cache agressivo em memória</td><td>Dados desatualizados em caso de falha do cache</td></tr>
+            <tr><td><strong>Desempenho × Suportabilidade</strong></td><td>Otimização manual, queries complexas</td><td>Código mais difícil de ler, testar e alterar</td></tr>
+            <tr><td><strong>Capacidade × Custo (ORG)</strong></td><td>Banco com réplicas e sharding desde o início</td><td>Custo de infraestrutura sobe; time precisa operar mais peças</td></tr>
+            <tr><td><strong>Restrições × Suportabilidade</strong></td><td>Stack fixada em tecnologias legadas</td><td>Menos bibliotecas modernas, onboarding mais difícil</td></tr>
+            <tr><td><strong>Usabilidade × Confiabilidade</strong></td><td>Auto-save frequente, feedback em tempo real</td><td>Mais requisições, mais pontos de falha</td></tr>
+          </tbody>
+        </table>
+
+        <div class="callout callout-tip sr">
+          <div class="callout-label">💡 Princípio da decisão explícita</div>
+          <p>Quando um eixo conflita com outro, <strong>documente a escolha</strong>. Em vez de "o sistema será seguro e rápido", escreva: <em>"priorizamos SEG sobre DES — login com bcrypt (custo 12). Aceitamos latência de autenticação até 400ms p95."</em>. A decisão explícita protege o projeto de regressões acidentais e alinha a equipe.</p>
+        </div>
+
+        <!-- ── 9.2 REDIGINDO RNF ── -->
+        <h3 id="sec-eixos-redacao" style="margin-top:40px;">9.2 Redigindo RNF Mensuráveis — o esqueleto SMART-E</h3>
+
+        <p>Um RNF mal redigido é pior que um RNF ausente: ele cria a ilusão de que o atributo foi tratado, quando na verdade não há como verificar. Use o esqueleto <strong>SMART-E</strong> — <em>Specific, Measurable, Achievable, Relevant, Time-bound + Evidence</em> — adaptado para requisitos de qualidade.</p>
+
+        <div class="code-wrap sr">
+          <div class="code-label">Esqueleto SMART-E para RNF</div>
+          <pre class="code-block"><code><span class="hl-cmt">[1] EIXO         →</span> Qual dos 8 eixos de qualidade é o alvo?
+<span class="hl-cmt">[2] ESPECIFICAÇÃO→</span> Qual operação / componente / fluxo está sendo qualificado?
+<span class="hl-cmt">[3] CONDIÇÃO     →</span> Sob qual carga, ambiente ou cenário?
+<span class="hl-cmt">[4] MÉTRICA      →</span> O que é medido? (latência, taxa, tempo, volume)
+<span class="hl-cmt">[5] LIMIAR       →</span> Qual valor numérico define passa/falha?
+<span class="hl-cmt">[6] EVIDÊNCIA    →</span> Qual ferramenta ou teste gera a prova?
+<span class="hl-cmt">[7] PRAZO        →</span> Quando o limite passa a valer? (sprint atual, release X)
+
+<span class="hl-cmt">─── Exemplo aplicado ───</span>
+<span class="hl-str">"No eixo DESEMPENHO [1], o endpoint POST /pedidos [2]</span>
+<span class="hl-str"> sob 50 req/s concorrentes em staging [3] deve ter</span>
+<span class="hl-str"> latência p95 [4] abaixo de 500 ms [5], validada por</span>
+<span class="hl-str"> teste k6 na pipeline de CI [6], a partir da Sprint 3 [7]."</span></code></pre>
+        </div>
+
+        <h4>Da frase vaga ao RNF auditável — três exemplos</h4>
+
+        <table class="mat-table sr">
+          <thead><tr><th>Frase vaga do stakeholder</th><th>Eixo</th><th>RNF redigido (auditável)</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>"O sistema não pode cair"</td>
+              <td><span class="tag" style="background:#ccfbf1;color:#0d9488;">CONF</span></td>
+              <td>"O endpoint <code>GET /produtos</code> deve manter disponibilidade ≥99,5% em janela mensal, medida por UptimeRobot com probes a cada 60s, aplicável a partir do release 1.0."</td>
+            </tr>
+            <tr>
+              <td>"Tem que ser seguro"</td>
+              <td><span class="tag tag-red">SEG</span></td>
+              <td>"Rotas sob <code>/admin</code> devem exigir token JWT válido e role=admin, retornando 401/403. Validado por testes automatizados de autorização em CI. Patch de CVEs críticas (CVSS ≥7) em até 5 dias úteis."</td>
+            </tr>
+            <tr>
+              <td>"Tem que suportar muita gente"</td>
+              <td><span class="tag" style="background:#cbd5e1;color:#334155;">CAP</span></td>
+              <td>"O banco deve suportar 100k pedidos por dia mantendo p95 de <code>SELECT</code> abaixo de 200ms. Validado por seed + EXPLAIN ANALYZE em staging. Índice obrigatório em <code>(cliente_id, criado_em)</code>."</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="callout callout-warn sr">
+          <div class="callout-label">⚠️ Sinais de RNF mal redigido</div>
+          <p>
+            • Usa adjetivos sem métrica: <em>rápido, seguro, amigável, robusto, escalável</em>.<br>
+            • Não cita a ferramenta ou teste que gera evidência.<br>
+            • Não especifica a carga/condição sob a qual o limite vale.<br>
+            • Mistura dois eixos na mesma frase (quebre em dois RNF).<br>
+            • É uma opinião sem operador de comparação (<code>≤, ≥, &lt;, &gt;, =</code>).
+          </p>
+        </div>
+
+        <!-- ── 9.3 PRIORIZAÇÃO ── -->
+        <h3 id="sec-eixos-priorizacao" style="margin-top:40px;">9.3 Priorização de Eixos por Tipo de Sistema</h3>
+
+        <p>Nem todo sistema precisa ser ótimo em todos os 8 eixos. A priorização depende do <strong>contexto</strong> — tipo de negócio, volume de usuários, maturidade da equipe, regulação. A tabela abaixo sugere eixos <em>críticos</em> (onde falha é inaceitável) e <em>importantes</em> (onde se deve investir) em perfis comuns de sistema web.</p>
+
+        <table class="mat-table sr">
+          <thead><tr><th>Tipo de sistema</th><th>Eixos críticos</th><th>Eixos importantes</th><th>Eixos secundários</th></tr></thead>
+          <tbody>
+            <tr><td><strong>E-commerce B2C</strong></td><td>DES, CONF, SEG</td><td>USAB, CAP</td><td>SUP, REST, ORG</td></tr>
+            <tr><td><strong>Sistema bancário / financeiro</strong></td><td>SEG, CONF, CAP</td><td>DES, REST</td><td>USAB, SUP, ORG</td></tr>
+            <tr><td><strong>Aplicação médica / saúde</strong></td><td>SEG, CONF, REST (LGPD/HIPAA)</td><td>USAB, SUP</td><td>DES, CAP, ORG</td></tr>
+            <tr><td><strong>Ferramenta interna / B2B</strong></td><td>SUP, USAB</td><td>CONF, SEG</td><td>DES, CAP, REST, ORG</td></tr>
+            <tr><td><strong>Sistema educacional</strong></td><td>USAB, DES</td><td>CONF, SUP</td><td>SEG, CAP, REST, ORG</td></tr>
+            <tr><td><strong>API pública</strong></td><td>DES, SEG, CONF</td><td>CAP, SUP</td><td>USAB, REST, ORG</td></tr>
+            <tr><td><strong>Pipeline de dados / ETL</strong></td><td>CONF, CAP, DES</td><td>SUP, REST</td><td>USAB, SEG, ORG</td></tr>
+          </tbody>
+        </table>
+
+        <div class="callout callout-info sr">
+          <div class="callout-label">📌 Como aplicar no seu projeto do módulo</div>
+          <p>Na sprint 1, você entrega RNF mínimos: <strong>pelo menos 1 por eixo crítico</strong> e <strong>1 por eixo importante</strong>. Os demais podem ser "não se aplica nesta fase" — mas documente isso explicitamente. Um projeto que entrega só <em>"funciona localmente"</em> e ignora os eixos não tem RNF; tem esperança.</p>
+        </div>
+
+        <div class="deep-dive sr">
+          <div class="deep-header" onclick="toggleDeep(this)">
+            <h4>🔬 Aprofundamento: Como a ISO/IEC 25010 organiza qualidade</h4>
+            <span class="deep-arrow">▼</span>
+          </div>
+          <div class="deep-body">
+            <p>A ISO/IEC 25010 decompõe qualidade de software em <strong>8 características principais</strong>, cada uma com sub-características. Por exemplo, <em>Desempenho</em> (Performance Efficiency) se decompõe em <em>Time Behavior, Resource Utilization, Capacity</em>. <em>Segurança</em> se decompõe em <em>Confidentiality, Integrity, Non-repudiation, Authenticity, Accountability</em>.</p>
+            <p>Nesta disciplina, usamos uma adaptação pedagógica com 8 eixos (as 8 características + REST e ORG como eixos de contexto). A decomposição mais granular da norma é útil quando você precisa detalhar um RNF em múltiplos testes — por exemplo, um RNF de <em>Segurança</em> geralmente produz 3-5 RNFs menores (um para autenticação, um para autorização, um para auditoria, um para criptografia em trânsito).</p>
+            <p>Além das 8 características de qualidade <strong>do produto</strong>, a ISO/IEC 25010 define 5 características de qualidade <strong>em uso</strong>: <em>Effectiveness, Efficiency, Satisfaction, Freedom from Risk, Context Coverage</em>. Essas são medidas no usuário real, não no código — são usadas em validação pós-deploy, não em critérios de aceite de sprint.</p>
+          </div>
+        </div>
       </section>
 
       <!-- ════════ 10. MINIMUNDO ════════ -->
@@ -760,9 +902,14 @@ console.log(pedido.itens.length); <span class="hl-cmt">// 2</span></code></pre>
       <section class="mat-section" id="sec-rmodp">
         <h2>11. RM-ODP — As 5 Visões do Sistema</h2>
 
-        <p>O <strong>RM-ODP</strong> (Reference Model for Open Distributed Processing), definido pela ISO/IEC 10746, é um framework para descrever sistemas distribuídos a partir de múltiplas perspectivas. Cada perspectiva — chamada de <em>viewpoint</em> ou visão — captura os interesses de um grupo específico de stakeholders e usa uma linguagem adequada a esses interesses.</p>
+        <p>O <strong>RM-ODP</strong> (<em>Reference Model for Open Distributed Processing</em>) foi padronizado conjuntamente pela <strong>ISO/IEC 10746</strong> e pelo <strong>ITU-T X.901–X.904</strong> no final dos anos 1990. Surgiu de uma necessidade concreta: nos anos 80–90, sistemas distribuídos estavam se multiplicando (CORBA, DCE, cliente-servidor corporativo), e cada fornecedor documentava seus sistemas de uma forma diferente. O RM-ODP propôs uma linguagem comum — <strong>5 visões padronizadas</strong> — para descrever qualquer sistema distribuído de forma consistente.</p>
 
-        <p>Por que isso importa em IN02? Porque sistemas web são, por definição, sistemas distribuídos: cliente, servidor e banco rodam em processos separados, frequentemente em máquinas diferentes. Descrever esse sistema a partir de uma única perspectiva (só o código, só o banco, só a interface) é incompleto.</p>
+        <p>Por que isso importa em IN02? Porque sistemas web são, por definição, sistemas distribuídos: cliente, servidor e banco rodam em processos separados, frequentemente em máquinas diferentes, e a aplicação só funciona quando as partes se comunicam corretamente. Descrever esse sistema a partir de uma única perspectiva (só o código, só o banco, só a interface) é <em>incompleto</em> — gera projetos com bugs arquiteturais que só aparecem em produção.</p>
+
+        <div class="callout callout-info sr">
+          <div class="callout-label">📌 A ideia central do RM-ODP</div>
+          <p>Nenhuma descrição única de um sistema distribuído é suficiente. Cada <em>viewpoint</em> é uma <strong>projeção</strong> do sistema que responde às perguntas de um tipo específico de stakeholder. O sistema real é a <strong>superposição coerente</strong> das 5 projeções — e inconsistências entre visões são defeitos que precisam ser resolvidos antes da implementação.</p>
+        </div>
 
         <div class="odp-stack" id="odp-stack">
           <div class="odp-layer" style="background:#dbeafe;">
@@ -808,11 +955,276 @@ console.log(pedido.itens.length); <span class="hl-cmt">// 2</span></code></pre>
         </div>
 
         <p>Ao longo do módulo, você vai revisitar essas visões a cada aula. O objetivo não é preencher formulários burocráticos — é desenvolver o hábito de <strong>pensar o sistema a partir de múltiplas perspectivas</strong> antes de escrever código.</p>
+
+        <h3>O que cada visão produz — perguntas, artefatos e stakeholders</h3>
+        <p>Cada <em>viewpoint</em> responde a um conjunto característico de perguntas e produz artefatos que são consumidos por um público específico. A tabela abaixo amarra tudo: pergunta central, artefato típico de sprint, stakeholders que validam e conexão com os eixos de RNF.</p>
+
+        <table class="mat-table sr">
+          <thead><tr><th>Visão</th><th>Pergunta central</th><th>Artefato de sprint</th><th>Stakeholder</th><th>Eixos RNF relevantes</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="tag tag-blue">Enterprise</span></td>
+              <td>Por que o sistema existe? Para quem?</td>
+              <td>Minimundo, lista de RF, objetivos de negócio, políticas</td>
+              <td>PO, cliente, usuário final</td>
+              <td>USAB, ORG</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-green">Information</span></td>
+              <td>Que informações o sistema armazena e manipula?</td>
+              <td>Modelo ER, dicionário de dados, invariantes, regras de negócio (RN)</td>
+              <td>Arquiteto de dados, DBA, especialista de domínio</td>
+              <td>CAP, SEG (integridade), CONF</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-purple">Computational</span></td>
+              <td>Como o sistema é decomposto em componentes com contratos?</td>
+              <td>Arquitetura MVC, contratos de API, diagramas de sequência</td>
+              <td>Arquiteto de software, equipe de desenvolvimento</td>
+              <td>SUP, DES, SEG (autorização)</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-amber">Engineering</span></td>
+              <td>Como os componentes se conectam em processos, nós e redes?</td>
+              <td>Diagrama de deploy, protocolos, bindings, estratégia de rede</td>
+              <td>DevOps, SRE, arquiteto de infraestrutura</td>
+              <td>DES, CONF, CAP, SEG (em trânsito)</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-red">Technology</span></td>
+              <td>Quais tecnologias, versões e padrões concretos são usados?</td>
+              <td>Stack documentada, versões pinadas, padrões de interoperabilidade</td>
+              <td>Tech lead, arquiteto, time técnico</td>
+              <td>REST, SUP</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="callout callout-warn sr">
+          <div class="callout-label">⚠️ As 5 visões não são camadas</div>
+          <p>Um erro frequente é tratar RM-ODP como um diagrama em camadas (Enterprise em cima, Technology embaixo). <strong>Não é.</strong> As 5 visões são <em>projeções ortogonais</em> do mesmo sistema — cada uma enxerga o todo, mas filtrando pelos interesses daquela perspectiva. Você pode (e deve) começar por qualquer uma delas, desde que eventualmente todas estejam descritas e consistentes entre si.</p>
+        </div>
+
+        <!-- ── 11.1 APLICADO ── -->
+        <h3 id="sec-rmodp-aplicado" style="margin-top:40px;">11.1 RM-ODP Aplicado — Loja Universitária nas 5 Visões</h3>
+
+        <p>Vamos aplicar as 5 visões ao minimundo da Loja Universitária da seção 10. O objetivo é mostrar que cada visão produz <em>um artefato diferente do mesmo sistema</em>, e que a coerência entre elas é o que permite começar a implementar com confiança.</p>
+
+        <div class="callout callout-deep sr">
+          <div class="callout-label">🏢 Enterprise — propósito e escopo</div>
+          <p><strong>Propósito:</strong> apoiar vendas balcão de uma loja de campus, reduzindo erros em estoque e dando visibilidade gerencial.<br>
+          <strong>Atores:</strong> atendentes (operam pedidos), gerente (consulta relatórios), clientes (identificados por nome/e-mail).<br>
+          <strong>Políticas:</strong> vendas só com estoque disponível; pedido cancelável em até 1 hora após criação; relatórios acessíveis só a gerentes.<br>
+          <strong>Fora de escopo:</strong> pagamento online, entrega, nota fiscal.</p>
+        </div>
+
+        <div class="callout callout-deep sr" style="border-color:#22c55e;background:#f0fdf4;">
+          <div class="callout-label" style="color:#15803d;">📋 Information — entidades e invariantes</div>
+          <p><strong>Entidades:</strong> <code>Cliente</code>, <code>Produto</code>, <code>Pedido</code>, <code>ItemPedido</code>, <code>Usuario</code> (atendente/gerente).<br>
+          <strong>Invariantes (RN):</strong><br>
+          • RN-01: <code>Produto.estoque_atual ≥ 0</code> sempre.<br>
+          • RN-02: <code>Pedido.status ∈ {pendente, confirmado, cancelado}</code>.<br>
+          • RN-03: <code>ItemPedido.quantidade ≥ 1</code> e preço congelado no momento da compra.<br>
+          • RN-04: <code>Cliente.email</code> único em toda a base.</p>
+        </div>
+
+        <div class="callout callout-deep sr">
+          <div class="callout-label">⚙️ Computational — componentes e contratos</div>
+          <p><strong>Controllers:</strong> <code>PedidoController</code>, <code>ProdutoController</code>, <code>RelatorioController</code>.<br>
+          <strong>Services:</strong> <code>EstoqueService</code> (valida disponibilidade), <code>PedidoService</code> (cria, cancela), <code>AuthService</code> (login, roles).<br>
+          <strong>Endpoints:</strong> <code>POST /pedidos</code>, <code>PATCH /pedidos/:id/cancelar</code>, <code>GET /relatorios/vendas-diarias</code> (role=gerente).<br>
+          <strong>Contrato de erro:</strong> 409 Conflict quando estoque insuficiente; 403 quando role inválida.</p>
+        </div>
+
+        <div class="callout callout-deep sr" style="border-color:#f59e0b;background:#fffbeb;">
+          <div class="callout-label" style="color:#92400e;">🔧 Engineering — distribuição e comunicação</div>
+          <p><strong>Nós:</strong> navegador (cliente), container Node.js (API), container PostgreSQL (dados).<br>
+          <strong>Canais:</strong> HTTPS cliente↔API (JSON sobre HTTP/1.1), TCP API↔banco (protocolo PostgreSQL).<br>
+          <strong>Bindings:</strong> JWT no header <code>Authorization</code> para auth; pool de conexões no banco (máx 20).<br>
+          <strong>Falhas previstas:</strong> timeout de banco retorna 503 com <code>Retry-After</code>; erro de rede no cliente mostra toast e permite retry manual.</p>
+        </div>
+
+        <div class="callout callout-deep sr" style="border-color:#ef4444;background:#fef2f2;">
+          <div class="callout-label" style="color:#b91c1c;">💻 Technology — stack concreta</div>
+          <p>Node.js 20 LTS · Express 4.18 · PostgreSQL 16 · pg 8.x como driver · jsonwebtoken 9 · bcrypt 5 · Jest 29 para testes · Docker Compose para ambiente local. Front-end em HTML/CSS/JS vanilla com <code>fetch</code>. Padrões: REST para API, ISO 8601 para datas, UTF-8 em toda a base.</p>
+        </div>
+
+        <div class="callout callout-tip sr">
+          <div class="callout-label">✅ Como saber se as visões estão coerentes</div>
+          <p>Faça perguntas cruzadas entre visões. Exemplo: a RN-01 de <em>Information</em> ("estoque ≥ 0") aparece na <em>Computational</em> (validação no <code>EstoqueService</code>) e na <em>Engineering</em> (o banco retorna erro se constraint for violada)? Se sim, há rastreabilidade. Se não, há um <strong>buraco arquitetural</strong> — alguém vai implementar apenas no banco, ou apenas no service, e a regra não vai valer em todos os caminhos.</p>
+        </div>
+
+        <!-- ── 11.2 COMPARAÇÃO ── -->
+        <h3 id="sec-rmodp-compara" style="margin-top:40px;">11.2 Comparação com Outros Frameworks de Arquitetura</h3>
+
+        <p>RM-ODP não é o único framework que propõe múltiplas visões de um sistema. Conhecer os vizinhos ajuda a entender o que é específico do RM-ODP e quando outro framework pode ser mais adequado ao contexto.</p>
+
+        <table class="mat-table sr">
+          <thead><tr><th>Framework</th><th>Origem</th><th>Nº de visões</th><th>Foco principal</th><th>Quando usar</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>RM-ODP</strong></td>
+              <td>ISO/IEC 10746 (1998)</td>
+              <td>5 (Enterprise, Information, Computational, Engineering, Technology)</td>
+              <td>Sistemas distribuídos</td>
+              <td>Projetos com forte componente de distribuição e heterogeneidade</td>
+            </tr>
+            <tr>
+              <td><strong>4+1 View Model</strong></td>
+              <td>Kruchten / Rational (1995)</td>
+              <td>5 (Logical, Development, Process, Physical + Scenarios)</td>
+              <td>Sistemas de software em geral</td>
+              <td>Documentação com UML em torno de casos de uso</td>
+            </tr>
+            <tr>
+              <td><strong>TOGAF (ADM)</strong></td>
+              <td>The Open Group (1995)</td>
+              <td>4 (Business, Data, Application, Technology)</td>
+              <td>Arquitetura corporativa (enterprise architecture)</td>
+              <td>Grandes organizações alinhando TI ao negócio</td>
+            </tr>
+            <tr>
+              <td><strong>C4 Model</strong></td>
+              <td>Simon Brown (2011)</td>
+              <td>4 níveis (Context, Container, Component, Code)</td>
+              <td>Zoom hierárquico, comunicação visual</td>
+              <td>Documentar arquitetura de forma leve e incremental</td>
+            </tr>
+            <tr>
+              <td><strong>arc42</strong></td>
+              <td>Starke / Hruschka</td>
+              <td>12 seções (template)</td>
+              <td>Estrutura pronta de documentação</td>
+              <td>Equipes que querem um template pronto para arquitetura</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="callout callout-info sr">
+          <div class="callout-label">📌 Qual framework escolher?</div>
+          <p>RM-ODP brilha quando há <strong>distribuição</strong> explícita e heterogeneidade de componentes. 4+1 brilha quando há forte uso de UML e casos de uso. TOGAF brilha em contexto corporativo. C4 brilha quando a documentação precisa ser comunicada visualmente e iterativamente. Nesta disciplina, usamos RM-ODP porque o módulo trata especificamente de sistemas web distribuídos — mas as mesmas ideias vão reaparecer em outros formatos ao longo do curso.</p>
+        </div>
+
+        <div class="deep-dive sr">
+          <div class="deep-header" onclick="toggleDeep(this)">
+            <h4>🔬 Aprofundamento: O conceito de <em>viewpoint</em> formal no RM-ODP</h4>
+            <span class="deep-arrow">▼</span>
+          </div>
+          <div class="deep-body">
+            <p>No RM-ODP formal, um <em>viewpoint</em> é mais do que uma "perspectiva" — é uma <strong>abstração</strong> que define um conjunto de conceitos, regras e linguagens apropriadas para tratar um grupo de preocupações. A norma ISO/IEC 10746-2 define as <em>foundations</em> (conceitos básicos), 10746-3 define a <em>architecture</em> (os 5 viewpoints), 10746-4 define o <em>architectural semantics</em> e 10746-5 define <em>arquitetura de transparências</em> (como esconder a distribuição do desenvolvedor de aplicação).</p>
+            <p>Cada viewpoint tem uma <em>linguagem</em> própria — um vocabulário de conceitos que você pode usar ao descrever o sistema naquela visão. Por exemplo, a linguagem da visão <em>Information</em> inclui <em>objects, invariants, dynamic schemas</em>. A linguagem da visão <em>Engineering</em> inclui <em>capsules, nucleus, channels, stubs, binders</em>. Em uso prático, você não precisa conhecer todos os conceitos formais — basta saber que cada visão fala uma linguagem diferente e que misturá-las indevidamente gera especificações confusas.</p>
+            <p>O RM-ODP também define <em>transparências</em>: propriedades que o sistema garante para o desenvolvedor de aplicação (acesso, localização, migração, replicação, falha, persistência, relocação, transação). Muitos frameworks modernos — Kubernetes, service mesh, ORMs — implementam essas transparências sem que o desenvolvedor saiba que existem como conceito formal.</p>
+          </div>
+        </div>
       </section>
 
-      <!-- ════════ 12. CHECKLIST ════════ -->
+      <!-- ════════ 12. CONVERGÊNCIA RNF ↔ RM-ODP ════════ -->
+      <section class="mat-section" id="sec-convergencia">
+        <h2>12. Convergência RNF ↔ RM-ODP — A Matriz de Qualidade</h2>
+
+        <p>RNF e RM-ODP parecem dois tópicos separados, mas se cruzam em todo projeto real. Cada eixo de RNF <strong>vive em uma ou mais visões</strong> do RM-ODP — e saber onde cada um vive é o que permite que o requisito seja <em>implementável</em> e não apenas declarado. Esta seção sistematiza essa ponte.</p>
+
+        <h3>Onde cada eixo de RNF se manifesta nas 5 visões</h3>
+
+        <table class="mat-table sr">
+          <thead><tr><th>Eixo RNF</th><th>Enterprise</th><th>Information</th><th>Computational</th><th>Engineering</th><th>Technology</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>USAB</strong></td>
+              <td>✅ Público-alvo, jornada</td>
+              <td>—</td>
+              <td>✅ Contratos de UI, feedback</td>
+              <td>—</td>
+              <td>✅ Framework de UI</td>
+            </tr>
+            <tr>
+              <td><strong>CONF</strong></td>
+              <td>✅ SLAs de negócio</td>
+              <td>✅ Integridade, constraints</td>
+              <td>✅ Tratamento de erro</td>
+              <td>✅ Retry, circuit breaker</td>
+              <td>✅ Biblioteca de resiliência</td>
+            </tr>
+            <tr>
+              <td><strong>DES</strong></td>
+              <td>—</td>
+              <td>✅ Índices, normalização</td>
+              <td>✅ Algoritmos, caching</td>
+              <td>✅ Latência de rede</td>
+              <td>✅ Versão otimizada do runtime</td>
+            </tr>
+            <tr>
+              <td><strong>SUP</strong></td>
+              <td>—</td>
+              <td>—</td>
+              <td>✅ Arquitetura limpa, testes</td>
+              <td>✅ Observabilidade, logs</td>
+              <td>✅ Ferramentas de análise</td>
+            </tr>
+            <tr>
+              <td><strong>SEG</strong></td>
+              <td>✅ Política de acesso</td>
+              <td>✅ Dados sensíveis, LGPD</td>
+              <td>✅ AuthZ, validação</td>
+              <td>✅ TLS, firewall, WAF</td>
+              <td>✅ Libs de criptografia</td>
+            </tr>
+            <tr>
+              <td><strong>CAP</strong></td>
+              <td>✅ Projeção de crescimento</td>
+              <td>✅ Volume de dados, partições</td>
+              <td>—</td>
+              <td>✅ Escala horizontal</td>
+              <td>✅ Banco com sharding</td>
+            </tr>
+            <tr>
+              <td><strong>REST</strong></td>
+              <td>✅ Restrições corporativas</td>
+              <td>✅ Modelo de dados mandatório</td>
+              <td>—</td>
+              <td>—</td>
+              <td>✅ Stack obrigatória</td>
+            </tr>
+            <tr>
+              <td><strong>ORG</strong></td>
+              <td>✅ Prazo, orçamento, equipe</td>
+              <td>—</td>
+              <td>—</td>
+              <td>—</td>
+              <td>—</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="callout callout-tip sr">
+          <div class="callout-label">💡 Como ler esta matriz</div>
+          <p>Cada ✅ é um lugar onde o eixo precisa aparecer <em>concretamente</em>. Um RNF de <strong>Segurança</strong> não pode viver só em Enterprise ("o sistema é seguro") — precisa descer para Information (dados sensíveis identificados), Computational (rotas protegidas), Engineering (TLS no canal) e Technology (libs auditadas). Se alguma célula fica vazia sem justificativa, há risco de lacuna arquitetural.</p>
+        </div>
+
+        <h3>Do minimundo ao artefato de sprint — fluxo unificado</h3>
+        <ol>
+          <li><strong>Minimundo</strong> → define escopo e atores (visão <span class="tag tag-blue">Enterprise</span>).</li>
+          <li><strong>RF priorizados</strong> → derivados do minimundo, descrevem funcionalidades observáveis.</li>
+          <li><strong>RN numeradas</strong> → invariantes e restrições, vivem em <span class="tag tag-green">Information</span>.</li>
+          <li><strong>RNF por eixo</strong> → distribuídos nas 5 visões conforme a matriz acima.</li>
+          <li><strong>Matriz de rastreabilidade</strong> → cada RF aponta para ≥1 RN e ≥1 critério de aceite técnico.</li>
+          <li><strong>Artefato de entrega</strong> → o conjunto coerente: minimundo + RF + RN + RNF + matriz, com evidência de teste.</li>
+        </ol>
+
+        <div class="callout callout-warn sr">
+          <div class="callout-label">⚠️ Checagem de qualidade da entrega</div>
+          <p>Antes de submeter o artefato, responda:<br>
+          1. Todo RF tem pelo menos um critério de aceite técnico?<br>
+          2. Toda RN está numerada e é implementável/testável?<br>
+          3. A matriz RF → RN cobre todos os fluxos priorizados, sem lacunas?<br>
+          4. RNF foram escritos por eixo (não genéricos) e cobrem os eixos críticos do tipo de sistema?<br>
+          5. Cada RNF crítico tem manifestação explícita em pelo menos 2 das 5 visões do RM-ODP?</p>
+        </div>
+      </section>
+
+      <!-- ════════ 13. CHECKLIST ════════ -->
       <section class="mat-section" id="sec-checklist">
-        <h2>12. Checklist de Estudo</h2>
+        <h2>13. Checklist de Estudo</h2>
         <p>Clique nos itens à medida que você dominar cada conceito:</p>
         <ul class="checklist" id="checklist">
           <li onclick="toggleCk(this)"><div class="ck-box">✓</div><span class="ck-text">Consigo explicar a diferença entre Internet e Web, e o que é um sistema web.</span></li>
@@ -824,8 +1236,14 @@ console.log(pedido.itens.length); <span class="hl-cmt">// 2</span></code></pre>
           <li onclick="toggleCk(this)"><div class="ck-box">✓</div><span class="ck-text">Consigo distinguir RF, RN e RNF e dar exemplos de cada um para um sistema real.</span></li>
           <li onclick="toggleCk(this)"><div class="ck-box">✓</div><span class="ck-text">Consigo transformar "o sistema é rápido" em um RNF com eixo, métrica, carga e evidência.</span></li>
           <li onclick="toggleCk(this)"><div class="ck-box">✓</div><span class="ck-text">Consigo nomear e descrever os 8 eixos de RNF usados na disciplina.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">✓</div><span class="ck-text">Consigo citar pelo menos 3 trade-offs clássicos entre eixos (ex: SEG × DES) e explicar em que ponto eles aparecem no código.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">✓</div><span class="ck-text">Consigo aplicar o esqueleto SMART-E para escrever um RNF auditável com eixo, condição, métrica, limiar, evidência e prazo.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">✓</div><span class="ck-text">Consigo priorizar eixos de RNF de acordo com o tipo de sistema (e-commerce, banco, interno, pipeline de dados).</span></li>
           <li onclick="toggleCk(this)"><div class="ck-box">✓</div><span class="ck-text">Consigo redigir um minimundo sem misturar problema e solução técnica.</span></li>
-          <li onclick="toggleCk(this)"><div class="ck-box">✓</div><span class="ck-text">Consigo identificar as 5 visões do RM-ODP e qual aula do módulo trabalha cada uma.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">✓</div><span class="ck-text">Consigo identificar as 5 visões do RM-ODP, a pergunta central de cada uma e o artefato que produzem.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">✓</div><span class="ck-text">Consigo aplicar as 5 visões a um minimundo concreto e verificar coerência cruzando informações entre elas.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">✓</div><span class="ck-text">Consigo comparar RM-ODP com 4+1, TOGAF e C4 e explicar quando usar cada um.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">✓</div><span class="ck-text">Consigo preencher a matriz de convergência RNF × RM-ODP para um projeto concreto e identificar lacunas.</span></li>
         </ul>
       </section>
 
