@@ -13,7 +13,7 @@
     :root { --ac:#dc2626; --hi:#f87171; --dk:#2e2640; --gr:#0d9488; --re:#dc2626; --am:#d97706; --bl:#1d4ed8; }
     body { margin:0; padding:0; overflow:hidden; font-family:'Manrope',sans-serif; background:#f5f7fb; color:var(--dk); }
     .slide-container { width:100vw; height:100vh; position:relative; overflow:hidden; }
-    .slide { width:100%; height:100%; display:none; padding:44px 52px 88px; box-sizing:border-box; position:absolute; }
+    .slide { width:100%; height:100%; display:none; padding:44px 52px 88px; box-sizing:border-box; position:absolute; top:0; left:0; overflow:hidden; }
     .slide.active { display:flex; flex-direction:column; justify-content:center; animation:slideIn 0.35s ease-in-out; }
     @keyframes slideIn { from{opacity:0;transform:translateX(36px)} to{opacity:1;transform:translateX(0)} }
     .sc { width:min(1140px,100%); margin:0 auto; font-size:1.05rem; line-height:1.55; }
@@ -162,7 +162,33 @@
     .daily-timer { font-size:3.5rem; font-weight:800; font-family:monospace; background:rgba(255,255,255,.15); border-radius:16px; padding:10px 28px; display:inline-block; margin-bottom:16px; letter-spacing:4px; color:white; }
     .daily-tag { background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.3); padding:6px 16px; border-radius:8px; font-weight:700; font-size:.85rem; color:white; opacity:0; transform:translateY(14px); transition:all .45s cubic-bezier(.34,1.3,.64,1); display:inline-block; margin:4px; }
     .daily-tag.vis { opacity:1; transform:translateY(0); }
+
+    /* ===== ANIME.JS ENHANCEMENTS ===== */
+    .cover-bg { position:relative; overflow:hidden; }
+    .cover-particles { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:0; display:block; }
+    .cover-bg .sc { position:relative; z-index:1; }
+    .cover-particles circle { fill:rgba(255,255,255,.35); }
+
+    /* Desativa transitions CSS quando anime.js assume o controle */
+    body.anime-ready .alayer,
+    body.anime-ready .cv-tag,
+    body.anime-ready .daily-tag,
+    body.anime-ready .stat,
+    body.anime-ready .mx-cell,
+    body.anime-ready .scc,
+    body.anime-ready .ps.an .pn,
+    body.anime-ready .ps.an .pl,
+    body.anime-ready .ps.an .ps2,
+    body.anime-ready .ps.an .pcb { transition:none !important; }
   </style>
+
+  <!-- anime.js v4 — módulo ESM via CDN (slides standalone, sem bundler) -->
+  <script type="module">
+    import { animate, stagger, createTimeline, svg, utils, createDraggable, eases } from 'https://cdn.jsdelivr.net/npm/animejs@4/+esm';
+    window.__anime = { animate, stagger, createTimeline, svg, utils, createDraggable, eases };
+    document.body && document.body.classList.add('anime-ready');
+    window.dispatchEvent(new CustomEvent('anime-ready'));
+  </script>
 </head>
 <body>
 
@@ -1251,6 +1277,16 @@ function resetDaily() {
   document.getElementById('daily-start-btn').textContent = '▶ Iniciar';
 }
 
+// ── ANIME.JS BOOTSTRAP ────────────────────────────────────────────────────
+function whenAnime(cb) {
+  if (window.__anime) { cb(window.__anime); return; }
+  window.addEventListener('anime-ready', function onReady(){
+    window.removeEventListener('anime-ready', onReady);
+    cb(window.__anime);
+  });
+}
+function A() { return window.__anime || null; }
+
 // ── NAVIGATION ──────────────────────────────────────────────────────────────
 var currentSlide = 0;
 var slides = document.querySelectorAll('.slide');
@@ -1275,114 +1311,498 @@ document.addEventListener('keydown', function(e) {
   else if (e.key.toLowerCase() === 'f') toggleFullScreen();
 });
 
-// ── TIMER SYSTEM ──────────────────────────────────────────────────────────
-var _ts = [], _run = false;
-function clearT() { _run = false; _ts.forEach(clearTimeout); _ts = []; }
-function T(fn, d)  { _ts.push(setTimeout(fn, d)); }
+// ── ANIME STATE & LIFECYCLE ───────────────────────────────────────────────
+var _fx = [];
+var _ts = [];
+function clearT() {
+  _ts.forEach(clearTimeout); _ts = [];
+  _fx.forEach(function(fx){ try { fx.pause && fx.pause(); fx.cancel && fx.cancel(); } catch(_){} });
+  _fx = [];
+}
+function T(fn, d) { var id = setTimeout(fn, d); _ts.push(id); return id; }
+function track(fx) { if (fx) _fx.push(fx); return fx; }
 
-function staggerVis(ids, base, step) {
-  ids.forEach(function(id){ var el=document.getElementById(id); if(el) el.classList.remove('vis'); });
-  ids.forEach(function(id,i){
-    T(function(){ var el=document.getElementById(id); if(el && _run) el.classList.add('vis'); }, base + i*step);
+// ── SVG PARTICLES BACKDROP (covers) ───────────────────────────────────────
+function ensureParticles(slideEl) {
+  var existing = slideEl.querySelector('.cover-particles');
+  if (existing) return existing;
+  var svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svgEl.setAttribute('class', 'cover-particles');
+  svgEl.setAttribute('viewBox', '0 0 1200 800');
+  svgEl.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+  for (var i = 0; i < 28; i++) {
+    var c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('cx', Math.random() * 1200);
+    c.setAttribute('cy', Math.random() * 800);
+    c.setAttribute('r', (Math.random() * 2.4 + 0.6).toFixed(2));
+    c.style.opacity = (Math.random() * 0.45 + 0.15).toFixed(2);
+    svgEl.appendChild(c);
+  }
+  slideEl.insertBefore(svgEl, slideEl.firstChild);
+  return svgEl;
+}
+function animateParticles(slideEl) {
+  var lib = A(); if (!lib || !slideEl) return;
+  var svgEl = ensureParticles(slideEl);
+  var circles = svgEl.querySelectorAll('circle');
+  track(lib.animate(circles, {
+    translateX: function(){ return (Math.random() * 80 - 40); },
+    translateY: function(){ return (Math.random() * 80 - 40); },
+    opacity: [{ to: 0.8, duration: 2000 }, { to: 0.15, duration: 2000 }],
+    duration: 4000,
+    delay: lib.stagger(60),
+    loop: true,
+    alternate: true,
+    ease: 'inOutQuad'
+  }));
+}
+
+// ── SLIDE 0: COVER ───────────────────────────────────────────────────────
+function animCover() {
+  var lib = A(); if (!lib) return;
+  var slide = slides[0];
+  animateParticles(slide);
+  lib.utils.set('.cv-badge', { opacity: 0, translateY: 24 });
+  lib.utils.set('.cv-title', { opacity: 0, translateY: 24 });
+  lib.utils.set('.cv-sub',   { opacity: 0, translateY: 18 });
+  lib.utils.set('#ct0,#ct1,#ct2,#ct3,#ct4', { opacity: 0, translateY: 22, scale: 0.88 });
+
+  var tl = lib.createTimeline({ defaults: { ease: 'outExpo', duration: 600 } });
+  tl.add('.cv-badge', { opacity: [0,1], translateY: [24,0] })
+    .add('.cv-title', { opacity: [0,1], translateY: [24,0], duration: 750 }, '-=300')
+    .add('.cv-sub',   { opacity: [0,1], translateY: [18,0] }, '-=450')
+    .add('#ct0,#ct1,#ct2,#ct3,#ct4', {
+      opacity: [0,1], translateY: [22,0], scale: [0.88,1],
+      duration: 620, ease: 'outBack(1.6)',
+      delay: lib.stagger(100)
+    }, '-=250');
+  track(tl);
+}
+
+// ── SLIDE 1: DAILY ───────────────────────────────────────────────────────
+function animDaily() {
+  var lib = A(); if (!lib) return;
+  var slide = slides[1];
+  animateParticles(slide);
+
+  lib.utils.set('#dt0,#dt1,#dt2,#dt3', { opacity: 0, translateY: 14, scale: 0.92 });
+  track(lib.animate('#dt0,#dt1,#dt2,#dt3', {
+    opacity: [0,1], translateY: [14,0], scale: [0.92,1],
+    duration: 520, ease: 'outBack(1.7)',
+    delay: lib.stagger(150, { start: 280 })
+  }));
+
+  var timer = document.getElementById('daily-timer');
+  if (timer) {
+    lib.utils.set(timer, { scale: 1 });
+    track(lib.animate(timer, {
+      scale: [{ to: 1.015 }, { to: 1 }],
+      duration: 1400,
+      loop: true,
+      alternate: true,
+      ease: 'inOutSine'
+    }));
+  }
+}
+
+// ── SLIDE 2: AUTOESTUDOS ─────────────────────────────────────────────────
+function animAutoestudos() {
+  var lib = A(); if (!lib) return;
+  lib.utils.set('#ae0,#ae1,#ae2', { opacity: 0, translateY: 24, rotateX: -8 });
+  track(lib.animate('#ae0,#ae1,#ae2', {
+    opacity: [0,1], translateY: [24,0], rotateX: [-8,0],
+    duration: 680, ease: 'outExpo',
+    delay: lib.stagger(180, { start: 120 })
+  }));
+}
+
+// ── SLIDE 3: AGENDA ──────────────────────────────────────────────────────
+function animAgenda() {
+  var lib = A(); if (!lib) return;
+  lib.utils.set('#ag0,#ag1,#ag2,#ag3', { opacity: 0, translateY: 22, scale: 0.94 });
+  track(lib.animate('#ag0,#ag1,#ag2,#ag3', {
+    opacity: [0,1], translateY: [22,0], scale: [0.94,1],
+    duration: 560, ease: 'outBack(1.6)',
+    delay: lib.stagger(130, { start: 80 })
+  }));
+}
+
+// ── SLIDE 4: MOTIVAÇÃO — stat cards ──────────────────────────────────────
+function animMotivacao() {
+  var lib = A(); if (!lib) return;
+  lib.utils.set('#s0,#s1,#s2,#s3', { opacity: 0, translateY: 22, scale: 0.88 });
+  track(lib.animate('#s0,#s1,#s2,#s3', {
+    opacity: [0,1], translateY: [22,0], scale: [0.88,1],
+    duration: 640, ease: 'outBack(1.8)',
+    delay: lib.stagger(160, { start: 120 })
+  }));
+
+  // Counter animado nos números (300M+, 17k+, 100M+, 35%)
+  var stats = [
+    { sel: '#s0 .stat-n', from: 0, to: 300, suffix: 'M+' },
+    { sel: '#s1 .stat-n', from: 0, to: 17,  suffix: 'k+' },
+    { sel: '#s2 .stat-n', from: 0, to: 100, suffix: 'M+' },
+    { sel: '#s3 .stat-n', from: 0, to: 35,  suffix: '%'  }
+  ];
+  stats.forEach(function(st, i){
+    var el = document.querySelector(st.sel);
+    if (!el) return;
+    var state = { v: st.from };
+    track(lib.animate(state, {
+      v: [st.from, st.to],
+      duration: 900,
+      ease: 'outQuart',
+      delay: 200 + i * 160,
+      onUpdate: function(){ el.textContent = Math.round(state.v) + st.suffix; }
+    }));
   });
 }
 
-function staggerStyle(ids, base, step) {
-  ids.forEach(function(id){
-    var el=document.getElementById(id);
-    if(el){ el.style.opacity='0'; el.style.transform='translateY(14px)'; }
-  });
-  ids.forEach(function(id,i){
-    T(function(){
-      var el=document.getElementById(id);
-      if(el && _run){ el.style.opacity='1'; el.style.transform='translateY(0)'; }
-    }, base + i*step);
-  });
+// ── SLIDE 5: TIPOS ───────────────────────────────────────────────────────
+function animTipos() {
+  var lib = A(); if (!lib) return;
+  lib.utils.set('#tr0,#tr1,#tr2,#tr3', { opacity: 0, translateY: 20, scale: 0.94 });
+  track(lib.animate('#tr0,#tr1,#tr2,#tr3', {
+    opacity: [0,1], translateY: [20,0], scale: [0.94,1],
+    duration: 540, ease: 'outBack(1.7)',
+    delay: lib.stagger(140, { start: 100 })
+  }));
 }
 
-// ── SLIDE 1: Cover ────────────────────────────────────────────────────────
-function animCover() { staggerVis(['ct0','ct1','ct2','ct3','ct4'], 300, 160); }
+// ── SLIDE 6: COMPARAÇÃO USER × ITEM ──────────────────────────────────────
+function animCmp() {
+  var lib = A(); if (!lib) return;
+  var cols = document.querySelectorAll('.slide')[6].querySelectorAll('.cmp-col');
+  if (!cols.length) return;
+  lib.utils.set(cols, { opacity: 0, translateX: function(el, i){ return i === 0 ? -32 : 32; }, rotateY: function(el, i){ return i === 0 ? -10 : 10; } });
+  track(lib.animate(cols, {
+    opacity: [0,1],
+    translateX: [function(el, i){ return i === 0 ? -32 : 32; }, 0],
+    rotateY: [function(el, i){ return i === 0 ? -10 : 10; }, 0],
+    duration: 720, ease: 'outExpo',
+    delay: lib.stagger(180, { start: 120 })
+  }));
+}
 
-// ── SLIDE 2: Daily ────────────────────────────────────────────────────────
-function animDaily() { staggerVis(['dt0','dt1','dt2','dt3'], 300, 200); }
-
-// ── SLIDE 3: Autoestudos ──────────────────────────────────────────────────
-function animAutoestudos() { staggerStyle(['ae0','ae1','ae2'], 180, 200); }
-
-// ── SLIDE 4: Agenda ───────────────────────────────────────────────────────
-function animAgenda() { staggerStyle(['ag0','ag1','ag2','ag3'], 140, 130); }
-
-// ── SLIDE 4: Motivação ────────────────────────────────────────────────────
-function animMotivacao() { staggerVis(['s0','s1','s2','s3'], 160, 180); }
-
-// ── SLIDE 5: Tipos ────────────────────────────────────────────────────────
-function animTipos() { staggerStyle(['tr0','tr1','tr2','tr3'], 140, 150); }
-
-// ── SLIDE 6: Comparação ───────────────────────────────────────────────────
-function animCmp() { /* boxes já visíveis */ }
-
-// ── SLIDE 7: Matriz R ─────────────────────────────────────────────────────
+// ── SLIDE 7: MATRIZ R (4×5 ratings) ──────────────────────────────────────
 function animMatrizR() {
-  var ids=[];
-  for(var r=0;r<=4;r++){ for(var c=0;c<=5;c++){ ids.push('m'+r+c); } }
-  staggerVis(ids, 80, 35);
+  var lib = A(); if (!lib) return;
+  var cells = [];
+  for (var r = 0; r <= 4; r++) {
+    for (var c = 0; c <= 5; c++) {
+      var el = document.getElementById('m' + r + c);
+      if (el) cells.push(el);
+    }
+  }
+  lib.utils.set(cells, { opacity: 0, scale: 0.85 });
+  track(lib.animate(cells, {
+    opacity: [0,1], scale: [0.85,1],
+    duration: 360, ease: 'outBack(1.8)',
+    delay: lib.stagger(30, { grid: [6, 5], from: 'first' })
+  }));
 }
 
-// ── SLIDE 8: Métricas ─────────────────────────────────────────────────────
-function animMetricas() { /* boxes já visíveis */ }
+// ── SLIDE 8: MÉTRICAS DE SIMILARIDADE ────────────────────────────────────
+function animMetricas() {
+  var lib = A(); if (!lib) return;
+  lib.utils.set('#sm0,#sm1,#sm2', { opacity: 0, translateY: 22, scale: 0.93 });
+  track(lib.animate('#sm0,#sm1,#sm2', {
+    opacity: [0,1], translateY: [22,0], scale: [0.93,1],
+    duration: 560, ease: 'outBack(1.7)',
+    delay: lib.stagger(160, { start: 100 })
+  }));
+}
 
-// ── SLIDE 9a: Geometria da similaridade (SVG estático) ───────────────────
-function animAdjCosGeo() { /* SVG estático */ }
+// ── SLIDE 9: GEOMETRIA (SVG) — desenha os vetores ───────────────────────
+function animAdjCosGeo() {
+  var lib = A(); if (!lib) return;
+  var slide = document.querySelectorAll('.slide')[9];
+  if (!slide) return;
+  var lines = slide.querySelectorAll('svg line[marker-end]');
+  lines.forEach(function(ln){
+    var l = ln.getTotalLength ? ln.getTotalLength() : 260;
+    ln.style.strokeDasharray = l;
+    ln.style.strokeDashoffset = l;
+  });
+  track(lib.animate(Array.from(lines), {
+    strokeDashoffset: [function(el){ return el.getTotalLength ? el.getTotalLength() : 260; }, 0],
+    duration: 720, ease: 'outQuart',
+    delay: lib.stagger(180, { start: 180 })
+  }));
+  var boxes = slide.querySelectorAll('.box');
+  lib.utils.set(boxes, { opacity: 0, translateX: 20 });
+  track(lib.animate(boxes, {
+    opacity: [0,1], translateX: [20,0],
+    duration: 520, ease: 'outCubic',
+    delay: lib.stagger(140, { start: 500 })
+  }));
+}
 
-// ── SLIDE 9b: Viés (SVG estático) ────────────────────────────────────────
-function animAdjCosBias() { /* SVG estático */ }
+// ── SLIDE 10: VIÉS — antes vs depois ─────────────────────────────────────
+function animAdjCosBias() {
+  var lib = A(); if (!lib) return;
+  var slide = document.querySelectorAll('.slide')[10];
+  if (!slide) return;
+  var lines = slide.querySelectorAll('svg line[marker-end]');
+  lines.forEach(function(ln){
+    var l = ln.getTotalLength ? ln.getTotalLength() : 240;
+    ln.style.strokeDasharray = l;
+    ln.style.strokeDashoffset = l;
+  });
+  track(lib.animate(Array.from(lines), {
+    strokeDashoffset: [function(el){ return el.getTotalLength ? el.getTotalLength() : 240; }, 0],
+    duration: 700, ease: 'outQuart',
+    delay: lib.stagger(180, { start: 150 })
+  }));
+  var boxes = slide.querySelectorAll('.box');
+  lib.utils.set(boxes, { opacity: 0, translateY: 18 });
+  track(lib.animate(boxes, {
+    opacity: [0,1], translateY: [18,0],
+    duration: 520, ease: 'outCubic',
+    delay: lib.stagger(120, { start: 700 })
+  }));
+}
 
-// ── SLIDE 9c: Adjusted Cosine numérico ───────────────────────────────────
+// ── SLIDE 11: ADJUSTED COSINE — pipeline 4 passos ────────────────────────
 function animAdjCos() {
+  var lib = A(); if (!lib) return;
   var steps = document.querySelectorAll('#ac0,#ac1,#ac2,#ac3');
-  steps.forEach(function(s){ s.classList.remove('sv'); });
-  steps.forEach(function(s,i){ T(function(el){ if(_run) el.classList.add('sv'); }.bind(null,s), 180+i*320); });
+  if (!steps.length) return;
+  var nodes = [], labels = [], subs = [], bars = [];
+  steps.forEach(function(s){
+    s.classList.remove('sv');
+    var n = s.querySelector('.pn'); if (n) nodes.push(n);
+    var l = s.querySelector('.pl'); if (l) labels.push(l);
+    var s2 = s.querySelector('.ps2'); if (s2) subs.push(s2);
+    var b = s.querySelector('.pcb'); if (b) bars.push(b);
+  });
+  lib.utils.set(nodes,  { opacity: 0, scale: 0.3 });
+  lib.utils.set(labels, { opacity: 0, translateY: 8 });
+  lib.utils.set(subs,   { opacity: 0, translateY: 8 });
+  lib.utils.set(bars,   { scaleX: 0, transformOrigin: '0 50%' });
+
+  var tl = lib.createTimeline({ defaults: { ease: 'outBack(1.8)' } });
+  tl.add(nodes,  { opacity: [0,1], scale: [0.3,1], duration: 520, delay: lib.stagger(280, { start: 80 }) });
+  tl.add(labels, { opacity: [0,1], translateY: [8,0], duration: 360, ease: 'outCubic', delay: lib.stagger(280, { start: 0 }) }, '-=420');
+  tl.add(subs,   { opacity: [0,1], translateY: [8,0], duration: 360, ease: 'outCubic', delay: lib.stagger(280, { start: 60 }) }, '-=480');
+  if (bars.length) {
+    tl.add(bars, { scaleX: [0,1], duration: 520, ease: 'outQuart', delay: lib.stagger(280, { start: 140 }) }, '-=440');
+  }
+  track(tl);
+
+  // Reveal do box de confirmação + fórmula
+  var slide = document.querySelectorAll('.slide')[11];
+  if (slide) {
+    var boxes = slide.querySelectorAll('.box, .fx');
+    lib.utils.set(boxes, { opacity: 0, translateY: 16 });
+    track(lib.animate(boxes, {
+      opacity: [0,1], translateY: [16,0],
+      duration: 520, ease: 'outCubic',
+      delay: lib.stagger(140, { start: 1100 })
+    }));
+  }
 }
 
-// ── SLIDE 10: Matriz S ────────────────────────────────────────────────────
+// ── SLIDE 12: MATRIZ S (6×6) ─────────────────────────────────────────────
 function animMatrizS() {
-  var ids=[];
-  for(var r=0;r<=5;r++){ for(var c=0;c<=5;c++){ ids.push('sm_'+r+c); } }
-  staggerVis(ids, 60, 28);
+  var lib = A(); if (!lib) return;
+  var cells = [];
+  for (var r = 0; r <= 5; r++) {
+    for (var c = 0; c <= 5; c++) {
+      var el = document.getElementById('sm_' + r + c);
+      if (el) cells.push(el);
+    }
+  }
+  lib.utils.set(cells, { opacity: 0, scale: 0.85 });
+  track(lib.animate(cells, {
+    opacity: [0,1], scale: [0.85,1],
+    duration: 340, ease: 'outBack(1.8)',
+    delay: lib.stagger(25, { grid: [6, 6], from: 'first' })
+  }));
+
+  var slide = document.querySelectorAll('.slide')[12];
+  if (slide) {
+    var boxes = slide.querySelectorAll('.box');
+    lib.utils.set(boxes, { opacity: 0, translateX: 24 });
+    track(lib.animate(boxes, {
+      opacity: [0,1], translateX: [24,0],
+      duration: 540, ease: 'outCubic',
+      delay: lib.stagger(140, { start: 800 })
+    }));
+  }
 }
 
-// ── SLIDE 11: Predição ────────────────────────────────────────────────────
-function animPredicao() { /* fórmula estática */ }
+// ── SLIDE 13: PREDIÇÃO — fórmula + boxes ─────────────────────────────────
+function animPredicao() {
+  var lib = A(); if (!lib) return;
+  var slide = document.querySelectorAll('.slide')[13];
+  if (!slide) return;
+  var fx = slide.querySelector('.fx');
+  var boxes = slide.querySelectorAll('.box');
+  if (fx) {
+    lib.utils.set(fx, { opacity: 0, translateX: -24, rotateY: -6 });
+    track(lib.animate(fx, {
+      opacity: [0,1], translateX: [-24,0], rotateY: [-6,0],
+      duration: 640, ease: 'outExpo'
+    }));
+  }
+  lib.utils.set(boxes, { opacity: 0, translateX: 20 });
+  track(lib.animate(boxes, {
+    opacity: [0,1], translateX: [20,0],
+    duration: 520, ease: 'outCubic',
+    delay: lib.stagger(140, { start: 280 })
+  }));
+}
 
-// ── SLIDE 12: Exemplo ─────────────────────────────────────────────────────
-function animExemplo() { /* estático */ }
+// ── SLIDE 14: EXEMPLO NUMÉRICO ───────────────────────────────────────────
+function animExemplo() {
+  var lib = A(); if (!lib) return;
+  var slide = document.querySelectorAll('.slide')[14];
+  if (!slide) return;
+  var boxes = slide.querySelectorAll('.box');
+  var fx = slide.querySelector('.fx');
+  lib.utils.set(boxes, { opacity: 0, translateY: 18 });
+  track(lib.animate(boxes, {
+    opacity: [0,1], translateY: [18,0],
+    duration: 520, ease: 'outCubic',
+    delay: lib.stagger(140, { start: 100 })
+  }));
+  if (fx) {
+    lib.utils.set(fx, { opacity: 0, translateX: 24, scale: 0.96 });
+    track(lib.animate(fx, {
+      opacity: [0,1], translateX: [24,0], scale: [0.96,1],
+      duration: 700, ease: 'outExpo', delay: 300
+    }));
+  }
+}
 
-// ── SLIDE 13: Amazon ──────────────────────────────────────────────────────
-function animAmazon() { /* estático */ }
+// ── SLIDE 15: AMAZON 2003 ────────────────────────────────────────────────
+function animAmazon() {
+  var lib = A(); if (!lib) return;
+  var slide = document.querySelectorAll('.slide')[15];
+  if (!slide) return;
+  var quote = slide.querySelector('.quote');
+  var boxes = slide.querySelectorAll('.box');
+  if (quote) {
+    lib.utils.set(quote, { opacity: 0, translateY: 20, scale: 0.96 });
+    track(lib.animate(quote, {
+      opacity: [0,1], translateY: [20,0], scale: [0.96,1],
+      duration: 720, ease: 'outExpo'
+    }));
+  }
+  lib.utils.set(boxes, { opacity: 0, translateY: 18 });
+  track(lib.animate(boxes, {
+    opacity: [0,1], translateY: [18,0],
+    duration: 520, ease: 'outCubic',
+    delay: lib.stagger(160, { start: 280 })
+  }));
+}
 
-// ── SLIDE 14: Limitações ──────────────────────────────────────────────────
-function animLimitacoes() { /* boxes já visíveis */ }
+// ── SLIDE 16: LIMITAÇÕES (4 cards com spring grid) ──────────────────────
+function animLimitacoes() {
+  var lib = A(); if (!lib) return;
+  var cards = document.querySelectorAll('#lm0,#lm1,#lm2,#lm3');
+  if (!cards.length) return;
+  lib.utils.set(cards, { opacity: 0, translateY: 22, scale: 0.9 });
+  track(lib.animate(cards, {
+    opacity: [0,1], translateY: [22,0], scale: [0.9,1],
+    duration: 600, ease: 'outBack(1.8)',
+    delay: lib.stagger(130, { grid: [4, 1], from: 'first' })
+  }));
+}
 
-// ── SLIDE 15: Avaliação ───────────────────────────────────────────────────
-function animAvaliacao() { /* estático */ }
+// ── SLIDE 17: AVALIAÇÃO ──────────────────────────────────────────────────
+function animAvaliacao() {
+  var lib = A(); if (!lib) return;
+  var slide = document.querySelectorAll('.slide')[17];
+  if (!slide) return;
+  var boxes = slide.querySelectorAll('.box');
+  lib.utils.set(boxes, { opacity: 0, translateX: function(el, i){ return i % 2 === 0 ? -24 : 24; } });
+  track(lib.animate(boxes, {
+    opacity: [0,1],
+    translateX: [function(el, i){ return i % 2 === 0 ? -24 : 24; }, 0],
+    duration: 560, ease: 'outCubic',
+    delay: lib.stagger(130, { start: 100 })
+  }));
+}
 
-// ── SLIDE 16: RM-ODP ──────────────────────────────────────────────────────
-function animRmOdp() { staggerVis(['odp0','odp1','odp2','odp3','odp4'], 150, 260); }
+// ── SLIDE 18: RM-ODP (5 camadas 3D sequencial) ──────────────────────────
+function animRmOdp() {
+  var lib = A(); if (!lib) return;
+  var layers = ['#odp0','#odp1','#odp2','#odp3','#odp4'].join(',');
+  lib.utils.set(layers, { opacity: 0, translateX: -38, rotateX: -12 });
+  var tl = lib.createTimeline({ defaults: { ease: 'outExpo' } });
+  ['#odp0','#odp1','#odp2','#odp3','#odp4'].forEach(function(sel, i){
+    tl.add(sel, { opacity: [0,1], translateX: [-38,0], rotateX: [-12,0], duration: 540 }, i === 0 ? 0 : '-=360');
+  });
+  track(tl);
+}
 
-// ── SLIDE 17: Projeto ─────────────────────────────────────────────────────
-function animProjeto() { /* estático */ }
+// ── SLIDE 19: PROJETO ────────────────────────────────────────────────────
+function animProjeto() {
+  var lib = A(); if (!lib) return;
+  var slide = document.querySelectorAll('.slide')[19];
+  if (!slide) return;
+  var boxes = slide.querySelectorAll('.box');
+  lib.utils.set(boxes, { opacity: 0, translateY: 20, scale: 0.94 });
+  track(lib.animate(boxes, {
+    opacity: [0,1], translateY: [20,0], scale: [0.94,1],
+    duration: 560, ease: 'outBack(1.6)',
+    delay: lib.stagger(130, { start: 100 })
+  }));
+}
 
-// ── SLIDE 20: Entregas (reveal dos 4 cards) ──────────────────────────────
-function animArtefato() { staggerStyle(['en_0','en_1','en_2','en_3'], 160, 160); }
+// ── SLIDE 20: ENTREGAS — cards numerados ────────────────────────────────
+function animArtefato() {
+  var lib = A(); if (!lib) return;
+  lib.utils.set('#en_0,#en_1,#en_2,#en_3', { opacity: 0, translateY: 22, scale: 0.92 });
+  track(lib.animate('#en_0,#en_1,#en_2,#en_3', {
+    opacity: [0,1], translateY: [22,0], scale: [0.92,1],
+    duration: 560, ease: 'outBack(1.8)',
+    delay: lib.stagger(140, { start: 100 })
+  }));
+}
 
-// ── SLIDE 22: Mão na massa ────────────────────────────────────────────────
-function animMaoNaMassa() { staggerVis(['mm0','mm1','mm2','mm3','mm4','mm5','mm6'], 160, 150); }
+// ── SLIDE 21: MÃO NA MASSA (cover + partículas) ─────────────────────────
+function animMaoNaMassa() {
+  var lib = A(); if (!lib) return;
+  var slide = slides[21];
+  if (slide) animateParticles(slide);
 
-// ── SLIDE 23: Horário de Desenvolvimento (workshop) ──────────────────────
-function animHorarioDev() { staggerStyle(['hd0','hd1','hd2','hd3'], 160, 160); }
+  var sel = '#mm0,#mm1,#mm2,#mm3,#mm4,#mm5,#mm6';
+  lib.utils.set(sel, { opacity: 0, translateY: 20, scale: 0.88 });
+  track(lib.animate(sel, {
+    opacity: [0,1], translateY: [20,0], scale: [0.88,1],
+    duration: 520, ease: 'outBack(1.9)',
+    delay: lib.stagger(130, { start: 150 })
+  }));
+}
 
-// ── SLIDE 24: Encerramento ────────────────────────────────────────────────
-function animEncerramento() { staggerVis(['en0','en1','en2','en3','en4','en5','en6','en7','en8'], 160, 130); }
+// ── SLIDE 22: HORÁRIO DE DEV (4 passos) ─────────────────────────────────
+function animHorarioDev() {
+  var lib = A(); if (!lib) return;
+  lib.utils.set('#hd0,#hd1,#hd2,#hd3', { opacity: 0, translateY: 22, scale: 0.94 });
+  track(lib.animate('#hd0,#hd1,#hd2,#hd3', {
+    opacity: [0,1], translateY: [22,0], scale: [0.94,1],
+    duration: 540, ease: 'outBack(1.7)',
+    delay: lib.stagger(140, { start: 100 })
+  }));
+}
+
+// ── SLIDE 23: ENCERRAMENTO (cover + partículas) ─────────────────────────
+function animEncerramento() {
+  var lib = A(); if (!lib) return;
+  var slide = slides[23];
+  if (slide) animateParticles(slide);
+
+  var sel = '#en0,#en1,#en2,#en3,#en4,#en5,#en6,#en7,#en8';
+  lib.utils.set(sel, { opacity: 0, translateY: 18, scale: 0.88 });
+  track(lib.animate(sel, {
+    opacity: [0,1], translateY: [18,0], scale: [0.88,1],
+    duration: 520, ease: 'outBack(1.9)',
+    delay: lib.stagger(110, { start: 180 })
+  }));
+}
 
 // ── DISPATCH ─────────────────────────────────────────────────────────────
 var animMap = [
@@ -1394,9 +1814,9 @@ var animMap = [
 
 function runAnim(idx) {
   clearT();
-  _run = true;
   var fn = animMap[idx];
-  if (fn) T(fn, 150);
+  if (!fn) return;
+  whenAnime(function(){ T(fn, 120); });
 }
 
 showSlide(0);
