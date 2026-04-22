@@ -185,10 +185,14 @@
         <a href="#sec-amazon">12. Amazon 2003 · o paper</a>
         <a href="#sec-limitacoes">13. Limitações</a>
         <a href="#sec-avaliacao">14. Avaliação</a>
-        <a href="#sec-rmodp">15. RM-ODP aplicado</a>
-        <a href="#sec-projeto">16. Conexão com o projeto</a>
-        <a href="#sec-entregas">17. Entregas da sprint 1</a>
-        <a href="#sec-checklist">18. Checklist</a>
+        <a href="#sec-mlnet">15. ML.NET em C#</a>
+        <a href="#sec-mlnet-pipeline" class="toc-h3">15.1 Pipeline de treino</a>
+        <a href="#sec-mlnet-predict" class="toc-h3">15.2 Predição e Top-N</a>
+        <a href="#sec-mlnet-similarity" class="toc-h3">15.3 Similaridade item↔item</a>
+        <a href="#sec-rmodp">16. RM-ODP aplicado</a>
+        <a href="#sec-projeto">17. Conexão com o projeto</a>
+        <a href="#sec-entregas">18. Entregas da sprint 1</a>
+        <a href="#sec-checklist">19. Checklist</a>
         <a href="#sec-refs">Referências</a>
       </div>
     </aside>
@@ -801,9 +805,179 @@ P̂(Davi, Interstellar) ≈ <span class="hl-num">4.6</span>    <span class="hl-c
         </div>
       </section>
 
-      <!-- ════════ 15. RM-ODP ════════ -->
+      <!-- ════════ 15. ML.NET ════════ -->
+      <section class="mat-section" id="sec-mlnet">
+        <h2>15. ML.NET em C# · Do Algoritmo ao Código que Roda</h2>
+
+        <p>Até aqui, a aula foi sobre a <em>mecânica</em> da filtragem colaborativa baseada em item: matriz R, similaridade entre colunas, matriz S e fórmula de predição. Esta seção é a ponte da teoria para o código que vai rodar no seu projeto. O stack da turma é <strong>.NET</strong>, e a Microsoft mantém uma biblioteca oficial de machine learning — <strong>ML.NET</strong> — que implementa exatamente esse algoritmo via <em>Matrix Factorization</em>, sem precisar de Python, Docker ou serviços externos.</p>
+
+        <p>ML.NET pode ser chamada de dentro de uma API ASP.NET Core com injeção de dependência padrão, o que significa que você vai tratar o recomendador como um <strong>serviço a mais</strong> na arquitetura — com os mesmos princípios de contratos, testabilidade e observabilidade que qualquer outro serviço do seu backend.</p>
+
+        <div class="callout callout-info sr">
+          <div class="callout-label">📦 Pacotes NuGet necessários</div>
+          <p><code>Microsoft.ML</code> — núcleo da biblioteca (pipelines, MLContext, trainers básicos).<br>
+          <code>Microsoft.ML.Recommender</code> — traz o <code>MatrixFactorizationTrainer</code> (wrapper do LIBMF da NTU).<br>
+          <code>Microsoft.Extensions.ML</code> — integração com ASP.NET Core (<code>PredictionEnginePool</code>).</p>
+        </div>
+
+        <h3>Mapeamento entre a teoria e a implementação</h3>
+        <p>Matrix Factorization aprende, para cada usuário e cada item, um vetor de <strong>k fatores latentes</strong> — uma espécie de "DNA" do item que captura temas/gêneros implícitos. A predição de rating é o <strong>produto escalar</strong> entre o vetor do usuário e o vetor do item: <code>r̂ᵤᵢ = uᵤ · vᵢ</code>. E a similaridade item↔item (a matriz S da seção 9) é o <strong>cosseno entre dois vetores de item</strong> — quanto maior o cosseno, mais "parecidos" em termos de padrões de consumo.</p>
+
+        <table class="mat-table sr">
+          <thead><tr><th>Conceito teórico</th><th>Implementação em ML.NET</th></tr></thead>
+          <tbody>
+            <tr><td>Matriz R (user × item)</td><td><code>IDataView</code> com colunas <code>UserId, ItemId, Label</code></td></tr>
+            <tr><td>Vetores latentes de item/user</td><td><code>ApproximationRank</code> (k) no Trainer</td></tr>
+            <tr><td>Predição <code>r̂ᵤᵢ</code> (seção 10)</td><td><code>PredictionEngine.Predict()</code> → <code>Score</code></td></tr>
+            <tr><td>Similaridade item↔item (seção 9)</td><td><code>GetItemMatrix()</code> + cosseno entre linhas</td></tr>
+            <tr><td>Avaliação (seção 14)</td><td><code>ctx.Recommendation().Evaluate()</code> → RMSE, R²</td></tr>
+          </tbody>
+        </table>
+
+        <h3 id="sec-mlnet-pipeline" style="margin-top:40px;">15.1 Pipeline de Treino · do CSV ao Modelo</h3>
+        <p>O código abaixo é o esqueleto completo de um pipeline de treinamento. Note como ML.NET é <strong>declarativo</strong>: você descreve <em>o que</em> quer (carregar, transformar, treinar), não <em>como</em> implementar cada passo. O <code>pipeline.Fit(data)</code> devolve um <code>ITransformer</code> — o modelo treinado, pronto para prever.</p>
+
+        <div class="code-wrap sr">
+          <div class="code-label">Program.cs — treino do recomendador <button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+<pre class="code-block"><code><span class="hl-kw">using</span> <span class="hl-typ">Microsoft.ML</span>;
+<span class="hl-kw">using</span> <span class="hl-typ">Microsoft.ML.Trainers</span>;
+
+<span class="hl-cmt">// Schema de cada linha do CSV: (user, item, nota)</span>
+<span class="hl-kw">public record</span> <span class="hl-typ">Rating</span>(<span class="hl-kw">float</span> UserId, <span class="hl-kw">float</span> ItemId, <span class="hl-kw">float</span> Label);
+
+<span class="hl-kw">var</span> ctx = <span class="hl-kw">new</span> <span class="hl-typ">MLContext</span>(seed: <span class="hl-num">42</span>);
+
+<span class="hl-cmt">// 1 · Carregar ratings.csv → IDataView</span>
+<span class="hl-kw">var</span> data = ctx.Data.<span class="hl-fn">LoadFromTextFile</span>&lt;<span class="hl-typ">Rating</span>&gt;(
+    path: <span class="hl-str">"ratings.csv"</span>,
+    hasHeader: <span class="hl-kw">true</span>,
+    separatorChar: <span class="hl-str">','</span>);
+
+<span class="hl-cmt">// 2 · Split 80/20 para validação offline (RMSE, R²)</span>
+<span class="hl-kw">var</span> split = ctx.Data.<span class="hl-fn">TrainTestSplit</span>(data, testFraction: <span class="hl-num">0.2</span>);
+
+<span class="hl-cmt">// 3 · Pipeline: mapear IDs → chaves contíguas + Matrix Factorization</span>
+<span class="hl-kw">var</span> pipeline = ctx.Transforms.Conversion
+    .<span class="hl-fn">MapValueToKey</span>(outputColumnName: <span class="hl-str">"UserIdEnc"</span>, inputColumnName: <span class="hl-str">"UserId"</span>)
+    .<span class="hl-fn">Append</span>(ctx.Transforms.Conversion
+        .<span class="hl-fn">MapValueToKey</span>(outputColumnName: <span class="hl-str">"ItemIdEnc"</span>, inputColumnName: <span class="hl-str">"ItemId"</span>))
+    .<span class="hl-fn">Append</span>(ctx.<span class="hl-fn">Recommendation</span>().Trainers
+        .<span class="hl-fn">MatrixFactorization</span>(<span class="hl-kw">new</span> <span class="hl-typ">MatrixFactorizationTrainer.Options</span> {
+            MatrixColumnIndexColumnName = <span class="hl-str">"UserIdEnc"</span>,
+            MatrixRowIndexColumnName    = <span class="hl-str">"ItemIdEnc"</span>,
+            LabelColumnName             = <span class="hl-str">"Label"</span>,
+            ApproximationRank           = <span class="hl-num">16</span>,    <span class="hl-cmt">// k fatores latentes</span>
+            NumberOfIterations          = <span class="hl-num">20</span>,
+            LearningRate                = <span class="hl-num">0.05</span>,
+            Lambda                      = <span class="hl-num">0.1</span>     <span class="hl-cmt">// regularização L2</span>
+        }));
+
+<span class="hl-cmt">// 4 · Fit e Avaliar</span>
+<span class="hl-kw">var</span> model  = pipeline.<span class="hl-fn">Fit</span>(split.TrainSet);
+<span class="hl-kw">var</span> preds  = model.<span class="hl-fn">Transform</span>(split.TestSet);
+<span class="hl-kw">var</span> metrics = ctx.<span class="hl-fn">Recommendation</span>().<span class="hl-fn">Evaluate</span>(preds, labelColumnName: <span class="hl-str">"Label"</span>, scoreColumnName: <span class="hl-str">"Score"</span>);
+<span class="hl-typ">Console</span>.<span class="hl-fn">WriteLine</span>($<span class="hl-str">"RMSE = {metrics.RootMeanSquaredError:F3} · R² = {metrics.RSquared:F3}"</span>);
+
+<span class="hl-cmt">// 5 · Salvar modelo para uso em API</span>
+ctx.Model.<span class="hl-fn">Save</span>(model, split.TrainSet.Schema, <span class="hl-str">"model.zip"</span>);</code></pre>
+        </div>
+
+        <div class="callout callout-tip sr">
+          <div class="callout-label">🎛️ Como calibrar os hiperparâmetros</div>
+          <p><strong>ApproximationRank (k):</strong> comece em 8–16. Aumentar dá mais capacidade, mas pode causar overfit em datasets pequenos. <strong>NumberOfIterations:</strong> 15–40 costuma bastar — use o RMSE no holdout como critério de parada. <strong>LearningRate:</strong> <code>0.05</code> é seguro; se o RMSE estagnar alto, aumente para <code>0.1</code>. <strong>Lambda:</strong> regularização L2 — suba se houver overfit (RMSE treino &lt;&lt; RMSE teste).</p>
+        </div>
+
+        <h3 id="sec-mlnet-predict" style="margin-top:40px;">15.2 Predição Pontual e Top-N</h3>
+        <p>Com o modelo em mãos, você tem duas operações centrais: <strong>prever rating</strong> de um par (u, i) — útil para exibir "probabilidade de gostar" — e <strong>gerar Top-N</strong> para um usuário — o que efetivamente aparece na home do app.</p>
+
+        <div class="code-wrap sr">
+          <div class="code-label">Predição individual + ranking Top-N <button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+<pre class="code-block"><code><span class="hl-cmt">// Classe de saída: o Score do MatrixFactorization</span>
+<span class="hl-kw">public class</span> <span class="hl-typ">Prediction</span> {
+    <span class="hl-kw">public float</span> Score;
+}
+
+<span class="hl-cmt">// A · Predição pontual — "qual rating Davi daria a Interstellar?"</span>
+<span class="hl-kw">var</span> engine = ctx.Model.<span class="hl-fn">CreatePredictionEngine</span>&lt;<span class="hl-typ">Rating</span>, <span class="hl-typ">Prediction</span>&gt;(model);
+<span class="hl-kw">var</span> score = engine.<span class="hl-fn">Predict</span>(<span class="hl-kw">new</span> <span class="hl-typ">Rating</span> {
+    UserId = <span class="hl-num">4f</span>,   <span class="hl-cmt">// Davi</span>
+    ItemId = <span class="hl-num">7f</span>    <span class="hl-cmt">// Interstellar</span>
+}).Score;
+<span class="hl-typ">Console</span>.<span class="hl-fn">WriteLine</span>($<span class="hl-str">"Rating previsto: {score:F2}"</span>);   <span class="hl-cmt">// ex.: 4.31</span>
+
+<span class="hl-cmt">// B · Top-N para um usuário — percorre o catálogo e ordena</span>
+<span class="hl-kw">float</span> userId = <span class="hl-num">4f</span>;
+<span class="hl-kw">var</span> catalogo = <span class="hl-typ">Enumerable</span>.<span class="hl-fn">Range</span>(<span class="hl-num">1</span>, <span class="hl-num">100</span>).<span class="hl-fn">Select</span>(i =&gt; (<span class="hl-kw">float</span>)i);
+
+<span class="hl-kw">var</span> topN = catalogo
+    .<span class="hl-fn">Select</span>(itemId =&gt; (
+        itemId,
+        score: engine.<span class="hl-fn">Predict</span>(<span class="hl-kw">new</span> <span class="hl-typ">Rating</span> {
+            UserId = userId, ItemId = itemId
+        }).Score))
+    .<span class="hl-fn">OrderByDescending</span>(x =&gt; x.score)
+    .<span class="hl-fn">Take</span>(<span class="hl-num">10</span>);
+
+<span class="hl-kw">foreach</span> (<span class="hl-kw">var</span> (item, rating) <span class="hl-kw">in</span> topN)
+    <span class="hl-typ">Console</span>.<span class="hl-fn">WriteLine</span>($<span class="hl-str">"Item {item} → {rating:F2}"</span>);</code></pre>
+        </div>
+
+        <div class="callout callout-warn sr">
+          <div class="callout-label">⚠️ PredictionEngine não é thread-safe</div>
+          <p>Em uma API ASP.NET Core com múltiplas requisições concorrentes, criar um <code>PredictionEngine</code> por request é lento, e compartilhar um único entre threads causa <em>race condition</em>. A solução idiomática é usar <code>PredictionEnginePool</code> do pacote <code>Microsoft.Extensions.ML</code>: ele mantém um pool de engines e expõe via DI — registre com <code>services.AddPredictionEnginePool&lt;Rating, Prediction&gt;().FromFile("model.zip")</code>.</p>
+        </div>
+
+        <h3 id="sec-mlnet-similarity" style="margin-top:40px;">15.3 Similaridade Item↔Item · Reconstruindo a Matriz S</h3>
+        <p>O Matrix Factorization aprende, como efeito colateral do treino, uma matriz <code>V[itemCount, k]</code> com o vetor latente de cada item. Isso é exatamente o que precisamos para reconstruir a <strong>matriz S</strong> da seção 9 — o cosseno entre duas linhas dessa matriz é o valor de <code>sim(i, j)</code>. Essa operação é útil para páginas como "itens parecidos com este", que não exigem conhecer o usuário.</p>
+
+        <div class="code-wrap sr">
+          <div class="code-label">Extração de fatores + similaridade item↔item <button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+<pre class="code-block"><code><span class="hl-cmt">// Recuperar o trainer parameters do último transformer do pipeline</span>
+<span class="hl-kw">var</span> mf = (<span class="hl-typ">MatrixFactorizationModelParameters</span>)
+    ((<span class="hl-typ">TransformerChain</span>&lt;<span class="hl-typ">ITransformer</span>&gt;)model).LastTransformer;
+
+<span class="hl-cmt">// Extrair matriz de itens: V[itemCount, k]</span>
+mf.<span class="hl-fn">GetItemMatrix</span>(<span class="hl-kw">out var</span> items, <span class="hl-kw">out var</span> _);   <span class="hl-cmt">// items é float[]</span>
+
+<span class="hl-kw">int</span> k = mf.ApproximationRank;
+<span class="hl-kw">int</span> nItems = items.Length / k;
+
+<span class="hl-cmt">// Helper: cosseno entre dois vetores float[]</span>
+<span class="hl-kw">static float</span> <span class="hl-fn">Cos</span>(<span class="hl-kw">float</span>[] v, <span class="hl-kw">int</span> a, <span class="hl-kw">int</span> b, <span class="hl-kw">int</span> k) {
+    <span class="hl-kw">float</span> dot = <span class="hl-num">0</span>, na = <span class="hl-num">0</span>, nb = <span class="hl-num">0</span>;
+    <span class="hl-kw">for</span> (<span class="hl-kw">int</span> t = <span class="hl-num">0</span>; t &lt; k; t++) {
+        <span class="hl-kw">float</span> va = v[a * k + t], vb = v[b * k + t];
+        dot += va * vb; na += va * va; nb += vb * vb;
+    }
+    <span class="hl-kw">return</span> dot / (<span class="hl-typ">MathF</span>.<span class="hl-fn">Sqrt</span>(na) * <span class="hl-typ">MathF</span>.<span class="hl-fn">Sqrt</span>(nb));
+}
+
+<span class="hl-cmt">// Top-K itens mais similares ao item-alvo</span>
+<span class="hl-kw">int</span> alvo = <span class="hl-num">3</span>;
+<span class="hl-kw">var</span> vizinhos = <span class="hl-typ">Enumerable</span>.<span class="hl-fn">Range</span>(<span class="hl-num">0</span>, nItems)
+    .<span class="hl-fn">Where</span>(i =&gt; i != alvo)
+    .<span class="hl-fn">Select</span>(i =&gt; (item: i, sim: <span class="hl-fn">Cos</span>(items, alvo, i, k)))
+    .<span class="hl-fn">OrderByDescending</span>(x =&gt; x.sim)
+    .<span class="hl-fn">Take</span>(<span class="hl-num">5</span>);
+
+<span class="hl-kw">foreach</span> (<span class="hl-kw">var</span> (item, sim) <span class="hl-kw">in</span> vizinhos)
+    <span class="hl-typ">Console</span>.<span class="hl-fn">WriteLine</span>($<span class="hl-str">"Item {item} → sim = {sim:F3}"</span>);</code></pre>
+        </div>
+
+        <div class="callout callout-tip sr">
+          <div class="callout-label">🚀 Otimização para catálogos grandes</div>
+          <p>Calcular Top-N varrendo todo o catálogo a cada requisição é <em>O(n · k)</em> por chamada. Em produção, pré-calcule a matriz S offline (batch job noturno) e armazene as <code>topK</code> por item em Redis/Postgres. Para busca aproximada em alta escala, use <strong>ANN</strong> (<em>Approximate Nearest Neighbors</em>) com FAISS ou HNSW — reduz a consulta a milissegundos mesmo com milhões de itens.</p>
+        </div>
+
+        <div class="callout callout-deep sr">
+          <div class="callout-label">🔬 LIBMF por baixo do capô</div>
+          <p>O <code>MatrixFactorizationTrainer</code> do ML.NET é um wrapper do <strong>LIBMF</strong>, biblioteca C++ desenvolvida na National Taiwan University por Yu, Hsieh, Chin et al. Ela usa <em>Stochastic Gradient Descent paralelo</em> com <em>lock-free updates</em> — cada thread atualiza blocos da matriz sem mutex. Isso significa que, apesar de ML.NET rodar em CPU, o treino é surpreendentemente rápido para matrizes esparsas. Referência: <a href="https://www.csie.ntu.edu.tw/~cjlin/libmf/" target="_blank" rel="noopener noreferrer">csie.ntu.edu.tw/~cjlin/libmf</a>.</p>
+        </div>
+      </section>
+
+      <!-- ════════ 16. RM-ODP ════════ -->
       <section class="mat-section" id="sec-rmodp">
-        <h2>15. RM-ODP Aplicado · Este Sistema em 5 Visões</h2>
+        <h2>16. RM-ODP Aplicado · Este Sistema em 5 Visões</h2>
         <p>Um recomendador não é um algoritmo — é um sistema distribuído. Ver apenas o lado do algoritmo é perder metade do problema. As 5 visões do RM-ODP (ISO/IEC 10746) ajudam a enxergar o sistema inteiro.</p>
 
         <table class="mat-table sr">
@@ -847,7 +1021,7 @@ P̂(Davi, Interstellar) ≈ <span class="hl-num">4.6</span>    <span class="hl-c
 
       <!-- ════════ 16. PROJETO ════════ -->
       <section class="mat-section" id="sec-projeto">
-        <h2>16. Conexão com o Projeto do Módulo</h2>
+        <h2>17. Conexão com o Projeto do Módulo</h2>
         <p>Ao longo do módulo 6, você vai construir um app de recomendação completo. A aula de hoje fornece o fundamento matemático de uma das duas abordagens que o app vai usar. As demais aulas completam o quebra-cabeça:</p>
 
         <table class="mat-table sr">
@@ -882,7 +1056,7 @@ P̂(Davi, Interstellar) ≈ <span class="hl-num">4.6</span>    <span class="hl-c
 
       <!-- ════════ 17. ENTREGAS ════════ -->
       <section class="mat-section" id="sec-entregas">
-        <h2>17. Entregas da Sprint 1</h2>
+        <h2>18. Entregas da Sprint 1</h2>
         <p>Quatro artefatos obrigatórios, todos com prazo na <strong>Semana 02</strong>. Cada um com responsáveis explícitos no grupo e issues abertas no repositório.</p>
 
         <table class="mat-table sr">
@@ -943,7 +1117,7 @@ P̂(Davi, Interstellar) ≈ <span class="hl-num">4.6</span>    <span class="hl-c
 
       <!-- ════════ 18. CHECKLIST ════════ -->
       <section class="mat-section" id="sec-checklist">
-        <h2>18. Checklist de Estudo</h2>
+        <h2>19. Checklist de Estudo</h2>
         <p>Marque cada item conforme dominar o conceito:</p>
         <ul class="checklist" id="checklist">
           <li onclick="toggleCk(this)"><div class="ck-box">✓</div><span class="ck-text">Consigo explicar por que sistemas de recomendação são críticos em catálogos grandes.</span></li>

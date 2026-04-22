@@ -1014,6 +1014,167 @@
     </div>
   </div>
 
+  <!-- ====== SLIDE: ML.NET · INTRO ====== -->
+  <div class="slide">
+    <div class="sc">
+      <div class="sh blue"><div class="st">ML.NET · Do Algoritmo ao Código</div><div class="ss">Microsoft.ML.Recommender — o algoritmo da aula, agora executável em C# sem sair do .NET</div></div>
+
+      <div class="g2" style="gap:12px;align-items:stretch;">
+        <div class="box blu" id="mln-a" style="opacity:0;transform:translateY(18px);">
+          <h3>⚙️ ML.NET em um parágrafo</h3>
+          <p style="font-size:.84rem;">Biblioteca <strong>oficial</strong> de machine learning da Microsoft, 100% nativa do .NET. Roda em CPU, sem Python, sem Docker, integrando direto em APIs ASP.NET Core.</p>
+          <div class="fx" style="padding:9px 12px;font-size:.78rem;margin-top:6px;">
+            <span class="fx-cmt"># Pacotes NuGet</span><br>
+            <span class="fx-fn">dotnet</span> add package <span class="fx-str">Microsoft.ML</span><br>
+            <span class="fx-fn">dotnet</span> add package <span class="fx-str">Microsoft.ML.Recommender</span>
+          </div>
+        </div>
+        <div class="box acc" id="mln-b" style="opacity:0;transform:translateY(18px);">
+          <h3>🧭 Mapeamento da teoria</h3>
+          <p style="font-size:.84rem;margin-bottom:5px;">ML.NET resolve colaborativa via <strong>Matrix Factorization</strong> (LIBMF): aprende vetores latentes de dimensão <code>k</code> para cada user e cada item.</p>
+          <ul style="font-size:.8rem;">
+            <li><strong>Predição</strong> (slide 11) ≈ <code>u · i</code> (produto escalar dos vetores)</li>
+            <li><strong>Similaridade item-item</strong> (slide 12) ≈ <code>cos(i₁, i₂)</code> dos vetores aprendidos</li>
+            <li><strong>k fatores</strong> ≈ gêneros/temas latentes que emergem do treino</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="stat-grid" style="margin-top:10px;grid-template-columns:repeat(4,1fr);">
+        <div class="stat" id="mln-s0" style="--mc:#1d4ed8;"><div class="stat-n">1</div><div class="stat-l">Load</div><div class="stat-d">CSV → <code>IDataView</code></div></div>
+        <div class="stat" id="mln-s1" style="--mc:#7c3aed;"><div class="stat-n">2</div><div class="stat-l">Transform</div><div class="stat-d">IDs → chaves numéricas</div></div>
+        <div class="stat" id="mln-s2" style="--mc:#0d9488;"><div class="stat-n">3</div><div class="stat-l">Train</div><div class="stat-d"><code>MatrixFactorizationTrainer</code></div></div>
+        <div class="stat" id="mln-s3" style="--mc:#dc2626;"><div class="stat-n">4</div><div class="stat-l">Predict</div><div class="stat-d">Rating + Top-N</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== SLIDE: ML.NET · CÓDIGO DE TREINO ====== -->
+  <div class="slide">
+    <div class="sc">
+      <div class="sh dark"><div class="st">C# · Treino do Recomendador</div><div class="ss">Do CSV ao modelo treinado em ~30 linhas — um único pipeline declarativo</div></div>
+
+      <div style="display:grid;grid-template-columns:1.6fr .8fr;gap:12px;align-items:start;">
+
+        <div class="fx" id="mln2-code" style="padding:14px 18px;font-size:.78rem;line-height:1.55;opacity:0;transform:translateY(14px);white-space:pre;overflow:auto;max-height:460px;">
+<span class="fx-kw">using</span> <span class="fx-vb">Microsoft.ML</span>;
+<span class="fx-kw">using</span> <span class="fx-vb">Microsoft.ML.Trainers</span>;
+
+<span class="fx-cmt">// 1 · Esquema: cada linha do CSV é (user, item, nota)</span>
+<span class="fx-kw">public record</span> <span class="fx-fn">Rating</span>(<span class="fx-kw">float</span> UserId, <span class="fx-kw">float</span> ItemId, <span class="fx-kw">float</span> Label);
+
+<span class="fx-kw">var</span> ctx = <span class="fx-kw">new</span> <span class="fx-fn">MLContext</span>(seed: <span class="fx-num">42</span>);
+
+<span class="fx-cmt">// 2 · Load ratings.csv → IDataView</span>
+<span class="fx-kw">var</span> data = ctx.Data.<span class="fx-fn">LoadFromTextFile</span>&lt;Rating&gt;(
+    <span class="fx-str">"ratings.csv"</span>, hasHeader: <span class="fx-kw">true</span>, separatorChar: <span class="fx-str">','</span>);
+
+<span class="fx-cmt">// 3 · Pipeline: mapear IDs → chaves + Matrix Factorization</span>
+<span class="fx-kw">var</span> pipeline = ctx.Transforms.Conversion
+  .<span class="fx-fn">MapValueToKey</span>(<span class="fx-str">"UserIdEnc"</span>, <span class="fx-str">"UserId"</span>)
+  .<span class="fx-fn">Append</span>(ctx.Transforms.Conversion
+      .<span class="fx-fn">MapValueToKey</span>(<span class="fx-str">"ItemIdEnc"</span>, <span class="fx-str">"ItemId"</span>))
+  .<span class="fx-fn">Append</span>(ctx.<span class="fx-fn">Recommendation</span>().Trainers
+      .<span class="fx-fn">MatrixFactorization</span>(<span class="fx-kw">new</span> MatrixFactorizationTrainer.Options {
+          MatrixColumnIndexColumnName = <span class="fx-str">"UserIdEnc"</span>,
+          MatrixRowIndexColumnName    = <span class="fx-str">"ItemIdEnc"</span>,
+          LabelColumnName             = <span class="fx-str">"Label"</span>,
+          ApproximationRank           = <span class="fx-num">16</span>,   <span class="fx-cmt">// k fatores latentes</span>
+          NumberOfIterations          = <span class="fx-num">20</span>,
+          LearningRate                = <span class="fx-num">0.05</span>
+      }));
+
+<span class="fx-cmt">// 4 · Fit → ITransformer (modelo treinado)</span>
+<span class="fx-kw">var</span> model = pipeline.<span class="fx-fn">Fit</span>(data);
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:9px;">
+          <div class="box blu" id="mln2-n0" style="padding:10px 13px;opacity:0;transform:translateX(18px);">
+            <h3 style="font-size:.86rem;">🔢 MapValueToKey</h3>
+            <p style="font-size:.76rem;margin:0;">IDs arbitrários (strings ou ints esparsos) viram <strong>chaves contíguas</strong>. É requisito do LIBMF.</p>
+          </div>
+          <div class="box acc" id="mln2-n1" style="padding:10px 13px;opacity:0;transform:translateX(18px);">
+            <h3 style="font-size:.86rem;">🎛️ ApproximationRank</h3>
+            <p style="font-size:.76rem;margin:0;">Quantos <strong>fatores latentes</strong> (k). 8–32 cobre a maioria dos casos. Mais rank = mais capacidade + risco de overfit.</p>
+          </div>
+          <div class="box grn" id="mln2-n2" style="padding:10px 13px;opacity:0;transform:translateX(18px);">
+            <h3 style="font-size:.86rem;">⏱️ NumberOfIterations</h3>
+            <p style="font-size:.76rem;margin:0;">Passos de SGD. Use <code>model.Evaluate()</code> num holdout para ajustar. Típico: 15–40.</p>
+          </div>
+          <div class="box amb" id="mln2-n3" style="padding:10px 13px;opacity:0;transform:translateX(18px);">
+            <h3 style="font-size:.86rem;">🎚️ LearningRate</h3>
+            <p style="font-size:.76rem;margin:0;">Passo do SGD. <code>0.05</code> é default seguro. Se RMSE estagna alto, aumente; se oscila, diminua.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== SLIDE: ML.NET · PREDIÇÃO + TOP-N ====== -->
+  <div class="slide">
+    <div class="sc">
+      <div class="sh amber"><div class="st">C# · Prever Rating, Top-N e Similaridade Item↔Item</div><div class="ss">Modelo treinado → 3 operações que o app mobile vai consumir via API</div></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;">
+
+        <div class="fx" id="mln3-c1" style="padding:13px 16px;font-size:.74rem;line-height:1.55;opacity:0;transform:translateY(14px);white-space:pre;overflow:auto;max-height:440px;">
+<span class="fx-cmt">// A · Predição pontual
+//   "Qual rating Davi daria a Interstellar?"</span>
+<span class="fx-kw">public class</span> <span class="fx-fn">Prediction</span> {
+  <span class="fx-kw">public float</span> Score;
+}
+
+<span class="fx-kw">var</span> engine = ctx.Model
+  .<span class="fx-fn">CreatePredictionEngine</span>&lt;Rating, Prediction&gt;(model);
+
+<span class="fx-kw">var</span> p = engine.<span class="fx-fn">Predict</span>(<span class="fx-kw">new</span> Rating {
+  UserId = <span class="fx-num">4f</span>,   <span class="fx-cmt">// Davi</span>
+  ItemId = <span class="fx-num">7f</span>    <span class="fx-cmt">// Interstellar</span>
+});
+Console.<span class="fx-fn">WriteLine</span>($<span class="fx-str">"Rating previsto: {p.Score:F2}"</span>);
+
+<span class="fx-cmt">// B · Top-N para um usuário</span>
+<span class="fx-kw">float</span> userId = <span class="fx-num">4f</span>;
+<span class="fx-kw">var</span> ranking = catalogoItens
+  .<span class="fx-fn">Select</span>(id =&gt; (id, engine.<span class="fx-fn">Predict</span>(
+      <span class="fx-kw">new</span> Rating { UserId = userId, ItemId = id }).Score))
+  .<span class="fx-fn">OrderByDescending</span>(x =&gt; x.Score)
+  .<span class="fx-fn">Take</span>(<span class="fx-num">10</span>);
+        </div>
+
+        <div class="fx" id="mln3-c2" style="padding:13px 16px;font-size:.74rem;line-height:1.55;opacity:0;transform:translateY(14px);white-space:pre;overflow:auto;max-height:440px;">
+<span class="fx-cmt">// C · Extrair fatores latentes dos itens
+//   → recupera a matriz S do slide 12</span>
+<span class="fx-kw">var</span> mf = (MatrixFactorizationModelParameters)
+  ((TransformerChain&lt;ITransformer&gt;)model)
+    .LastTransformer;
+
+mf.<span class="fx-fn">GetItemMatrix</span>(
+  <span class="fx-kw">out var</span> items,     <span class="fx-cmt">// float[itemCount, k]</span>
+  <span class="fx-kw">out var</span> _);
+
+<span class="fx-cmt">// Cosseno entre linhas = similaridade item↔item</span>
+<span class="fx-kw">static float</span> <span class="fx-fn">Cos</span>(<span class="fx-kw">float</span>[] a, <span class="fx-kw">float</span>[] b) {
+  <span class="fx-kw">float</span> dot=<span class="fx-num">0</span>, na=<span class="fx-num">0</span>, nb=<span class="fx-num">0</span>;
+  <span class="fx-kw">for</span> (<span class="fx-kw">int</span> i=<span class="fx-num">0</span>; i&lt;a.Length; i++) {
+    dot += a[i]*b[i]; na += a[i]*a[i]; nb += b[i]*b[i];
+  }
+  <span class="fx-kw">return</span> dot / (MathF.<span class="fx-fn">Sqrt</span>(na)*MathF.<span class="fx-fn">Sqrt</span>(nb));
+}
+
+<span class="fx-cmt">// Vizinhos mais parecidos de um item i</span>
+<span class="fx-kw">var</span> vizinhos = <span class="fx-fn">TopKSimilar</span>(items, itemIdx: <span class="fx-num">3</span>, k: <span class="fx-num">5</span>);
+        </div>
+
+      </div>
+
+      <div class="box" id="mln3-warn" style="margin-top:10px;border-left-color:var(--am);padding:10px 14px;opacity:0;transform:translateY(14px);">
+        <p style="font-size:.82rem;margin:0;"><strong>💡 Dica arquitetural:</strong> o <code>PredictionEngine</code> <em>não é thread-safe</em>. Em APIs ASP.NET Core, use <code>PredictionEnginePool</code> (pacote <code>Microsoft.Extensions.ML</code>) para injeção de dependência e escala. Modelo pode ser salvo com <code>ctx.Model.Save(model, schema, "model.zip")</code> e recarregado sem retreinar.</p>
+      </div>
+    </div>
+  </div>
+
   <!-- ====== SLIDE 16: RM-ODP APLICADO ====== -->
   <div class="slide">
     <div class="sc">
@@ -1727,6 +1888,49 @@ function animAvaliacao() {
 }
 
 // ── SLIDE 18: RM-ODP (5 camadas 3D sequencial) ──────────────────────────
+function animMLNet1() {
+  var lib = A(); if (!lib) return;
+  lib.utils.set('#mln-a,#mln-b', { opacity: 0, translateY: 18, scale: 0.96 });
+  lib.utils.set('#mln-s0,#mln-s1,#mln-s2,#mln-s3', { opacity: 0, translateY: 18, scale: 0.88 });
+  var tl = lib.createTimeline({ defaults: { ease: 'outBack(1.6)' } });
+  tl.add('#mln-a,#mln-b', {
+    opacity: [0,1], translateY: [18,0], scale: [0.96,1],
+    duration: 540,
+    delay: lib.stagger(160)
+  })
+  .add('#mln-s0,#mln-s1,#mln-s2,#mln-s3', {
+    opacity: [0,1], translateY: [18,0], scale: [0.88,1],
+    duration: 460, ease: 'outBack(1.8)',
+    delay: lib.stagger(110)
+  }, '-=120');
+  track(tl);
+}
+
+function animMLNet2() {
+  var lib = A(); if (!lib) return;
+  lib.utils.set('#mln2-code', { opacity: 0, translateY: 14 });
+  lib.utils.set('#mln2-n0,#mln2-n1,#mln2-n2,#mln2-n3', { opacity: 0, translateX: 18 });
+  var tl = lib.createTimeline({ defaults: { ease: 'outQuart' } });
+  tl.add('#mln2-code', { opacity: [0,1], translateY: [14,0], duration: 560 })
+    .add('#mln2-n0,#mln2-n1,#mln2-n2,#mln2-n3', {
+      opacity: [0,1], translateX: [18,0],
+      duration: 460, ease: 'outBack(1.5)',
+      delay: lib.stagger(140)
+    }, '-=260');
+  track(tl);
+}
+
+function animMLNet3() {
+  var lib = A(); if (!lib) return;
+  lib.utils.set('#mln3-c1,#mln3-c2', { opacity: 0, translateY: 14 });
+  lib.utils.set('#mln3-warn', { opacity: 0, translateY: 14 });
+  var tl = lib.createTimeline({ defaults: { ease: 'outQuart' } });
+  tl.add('#mln3-c1', { opacity: [0,1], translateY: [14,0], duration: 520 })
+    .add('#mln3-c2', { opacity: [0,1], translateY: [14,0], duration: 520 }, '-=340')
+    .add('#mln3-warn', { opacity: [0,1], translateY: [14,0], duration: 440 }, '-=140');
+  track(tl);
+}
+
 function animRmOdp() {
   var lib = A(); if (!lib) return;
   var layers = ['#odp0','#odp1','#odp2','#odp3','#odp4'].join(',');
@@ -1741,7 +1945,7 @@ function animRmOdp() {
 // ── SLIDE 19: PROJETO ────────────────────────────────────────────────────
 function animProjeto() {
   var lib = A(); if (!lib) return;
-  var slide = document.querySelectorAll('.slide')[19];
+  var slide = document.querySelectorAll('.slide')[22];
   if (!slide) return;
   var boxes = slide.querySelectorAll('.box');
   lib.utils.set(boxes, { opacity: 0, translateY: 20, scale: 0.94 });
@@ -1766,7 +1970,7 @@ function animArtefato() {
 // ── SLIDE 21: MÃO NA MASSA (cover + partículas) ─────────────────────────
 function animMaoNaMassa() {
   var lib = A(); if (!lib) return;
-  var slide = slides[21];
+  var slide = slides[24];
   if (slide) animateParticles(slide);
 
   var sel = '#mm0,#mm1,#mm2,#mm3,#mm4,#mm5,#mm6';
@@ -1792,7 +1996,7 @@ function animHorarioDev() {
 // ── SLIDE 23: ENCERRAMENTO (cover + partículas) ─────────────────────────
 function animEncerramento() {
   var lib = A(); if (!lib) return;
-  var slide = slides[23];
+  var slide = slides[26];
   if (slide) animateParticles(slide);
 
   var sel = '#en0,#en1,#en2,#en3,#en4,#en5,#en6,#en7,#en8';
@@ -1809,6 +2013,7 @@ var animMap = [
   animCover, animDaily, animAutoestudos, animAgenda, animMotivacao, animTipos,
   animCmp, animMatrizR, animMetricas, animAdjCosGeo, animAdjCosBias, animAdjCos, animMatrizS,
   animPredicao, animExemplo, animAmazon, animLimitacoes, animAvaliacao,
+  animMLNet1, animMLNet2, animMLNet3,
   animRmOdp, animProjeto, animArtefato, animMaoNaMassa, animHorarioDev, animEncerramento
 ];
 
