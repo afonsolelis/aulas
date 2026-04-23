@@ -14,7 +14,7 @@ npx playwright test tests/index.spec.ts
 # Serve locally for manual testing
 npx http-server . -p 8080
 # or
-python -m http.server 8000
+python -m http.server 8000 -p
 
 # View test report after run
 npx playwright show-report
