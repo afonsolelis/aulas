@@ -247,7 +247,7 @@ test.describe('slides-format.md - Formato dos Slides', () => {
 
   test('decks modernos devem existir como HTML versionado', () => {
     expect(module2Slides).toHaveLength(11);
-    expect(module6Slides).toHaveLength(14);
+    expect(module6Slides).toHaveLength(10);
     [...module2Slides, ...module6Slides].forEach((file) => {
       expect(fs.existsSync(resolveRepoPath(file))).toBe(true);
     });
