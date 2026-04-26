@@ -211,9 +211,11 @@
         <a href="#sec-dml">8. DML — Manipulando dados</a>
         <a href="#sec-dql">9. DQL — Consultando dados</a>
         <a href="#sec-dcl-tcl">10. DCL e TCL</a>
-        <a href="#sec-rmodp">11. RM-ODP — Viewpoint Information</a>
-        <a href="#sec-req">12. RF, RN e RNF em BD</a>
-        <a href="#sec-checklist">13. Checklist</a>
+        <a href="#sec-sgbds-comparativo">11. Comparativo entre SGBDs</a>
+        <a href="#sec-rmodp">12. RM-ODP — Viewpoint Information</a>
+        <a href="#sec-req">13. RF, RN e RNF em BD</a>
+        <a href="#sec-pratica">14. Prática Hands-on (Supabase)</a>
+        <a href="#sec-checklist">15. Checklist</a>
         <a href="#sec-refs">Referências</a>
       </div>
     </aside>
@@ -247,6 +249,22 @@
             <tr><td><strong>Spotify</strong></td><td>Músicas, artistas, playlists, histórico de escuta, preferências</td><td>Recomendação personalizada, busca full-text, streaming adaptativo</td></tr>
           </tbody>
         </table>
+
+        <h3>Evolução do armazenamento de dados</h3>
+        <p>Para entender por que precisamos de bancos de dados, é instrutivo olhar para a evolução das formas de armazenar informação em sistemas computacionais. Cada salto resolveu uma limitação concreta da geração anterior — e cada solução trouxe trade-offs próprios. Compreender esse histórico ajuda a escolher a ferramenta certa para o problema atual e a evitar a tentação de "improvisar com arquivos" quando o caso pede um SGBD de verdade.</p>
+        <table class="mat-table sr">
+          <thead><tr><th>Etapa</th><th>Tecnologia</th><th>Limitação superada</th><th>Limitação remanescente</th></tr></thead>
+          <tbody>
+            <tr><td><strong>📄 Arquivo de texto</strong></td><td><code>.txt</code>, <code>.csv</code>, logs em disco</td><td>Persistência simples — os dados sobrevivem ao desligamento</td><td>Sem estrutura, sem índices, sem concorrência, sem integridade</td></tr>
+            <tr><td><strong>📊 Planilha</strong></td><td>Excel, Google Sheets</td><td>Estrutura tabular, fórmulas, filtros, ordenação</td><td>Limite prático de ~1M linhas, edição manual, sem concorrência confiável, sem garantias ACID</td></tr>
+            <tr><td><strong>🐘 BD relacional</strong></td><td>PostgreSQL, MySQL, Oracle</td><td>SQL declarativo, transações ACID, integridade, milhões de linhas, múltiplos usuários simultâneos</td><td>Escala vertical, esquema rígido, custo de JOINs em escala extrema</td></tr>
+            <tr><td><strong>☁️ Banco em cloud</strong></td><td>Supabase, RDS, Cloud SQL, Aurora</td><td>Escala horizontal, alta disponibilidade, replicação geográfica, backups automáticos</td><td>Custo proporcional ao uso, dependência do provedor, latência por região</td></tr>
+          </tbody>
+        </table>
+        <div class="callout callout-tip sr">
+          <div class="callout-label">Quando ainda faz sentido um arquivo .txt ou .csv?</div>
+          <p>Para dados imutáveis, pequenos e processados em lote (logs históricos, exports semanais, configurações estáticas), arquivos ainda são apropriados. O ponto de virada é quando você precisa de <em>consultas concorrentes</em>, <em>integridade referencial</em> ou <em>consultas seletivas eficientes</em>. Nesse momento, mover para um SGBD economiza muito mais código de validação do que custa em complexidade operacional.</p>
+        </div>
       </section>
 
       <!-- ════════ 2. SGBD ════════ -->
@@ -266,6 +284,26 @@
 
         <h3>Como o SGBD garante integridade</h3>
         <p>Uma das responsabilidades mais importantes do SGBD é garantir que os dados permaneçam <strong>íntegros</strong> — consistentes com as regras do negócio. Isso é feito por meio de <em>constraints</em> (restrições) definidas no esquema, que o SGBD verifica a cada operação de escrita. Se uma constraint for violada, a operação é rejeitada com um erro antes de qualquer dado ser persistido. Esse mecanismo evita que a responsabilidade de validação fique 100% na camada da aplicação — que pode ter bugs ou ser bypassada diretamente via SQL por alguém com acesso ao banco.</p>
+
+        <h3>Pipeline interno: o que acontece quando você executa uma query</h3>
+        <p>Quando sua aplicação envia <code>SELECT * FROM usuarios WHERE id = 1;</code> ao banco, o SGBD não interpreta o texto literalmente — ele passa a query por uma sequência de estágios bem definidos. Compreender esse pipeline torna explicável por que algumas queries são rápidas e outras não, e o que tuning de banco realmente significa.</p>
+        <table class="mat-table sr">
+          <thead><tr><th>Estágio</th><th>O que faz</th><th>Saída</th></tr></thead>
+          <tbody>
+            <tr><td><strong>1. Parser</strong></td><td>Lê o texto SQL, valida sintaxe e converte em uma árvore de análise (AST).</td><td>Erro de sintaxe ou árvore válida</td></tr>
+            <tr><td><strong>2. Analyzer / Rewriter</strong></td><td>Resolve nomes de tabelas e colunas, aplica regras (views, RLS), checa permissões DCL.</td><td>Plano lógico</td></tr>
+            <tr><td><strong>3. Planner / Optimizer</strong></td><td>Avalia múltiplos planos de execução (sequential scan, index scan, hash join, nested loop) e escolhe o de menor custo estimado com base em estatísticas das tabelas.</td><td>Plano físico</td></tr>
+            <tr><td><strong>4. Executor</strong></td><td>Executa o plano físico em pipeline, lendo páginas do disco (ou do cache em memória), aplicando filtros e devolvendo linhas.</td><td>Resultado para o cliente</td></tr>
+            <tr><td><strong>5. Storage layer</strong></td><td>Lê e escreve <em>páginas</em> de 8 KB (no PostgreSQL) em arquivos no disco. O <strong>WAL</strong> (Write-Ahead Log) registra cada alteração antes de tocar a tabela.</td><td>Dados persistidos com durabilidade</td></tr>
+          </tbody>
+        </table>
+
+        <p>Ao escrever (INSERT, UPDATE, DELETE), o SGBD primeiro grava a operação no <strong>WAL — Write-Ahead Log</strong> e só depois aplica a mudança nas páginas de dados. Esse log sequencial é o que garante a <em>Durabilidade</em> do ACID: se a máquina cair logo após o <code>COMMIT</code>, ao reiniciar o SGBD relê o WAL e reaplica as operações que ainda não tinham chegado às páginas em disco. Backups incrementais e replicação física também usam o WAL como fonte da verdade — por isso ele é central tanto para confiabilidade quanto para alta disponibilidade.</p>
+
+        <div class="callout callout-info sr">
+          <div class="callout-label">Investigando o plano: EXPLAIN</div>
+          <p>No PostgreSQL, o comando <code>EXPLAIN ANALYZE SELECT ...</code> mostra o plano físico escolhido pelo planner e o tempo real de cada operação. É a primeira ferramenta de tuning de query: se você ver <code>Seq Scan</code> em uma tabela grande sendo filtrada por uma coluna, falta um índice ali.</p>
+        </div>
       </section>
 
       <!-- ════════ 3. MODELO ENTIDADE-RELACIONAMENTO ════════ -->
@@ -322,6 +360,55 @@
           <p>O relacionamento N:M entre Pedido e Produto não pode ser implementado diretamente com duas tabelas. É necessário criar uma tabela associativa <code>item_pedido</code> com as chaves estrangeiras de ambos os lados, mais atributos do relacionamento como <code>quantidade</code> e <code>preco_unit</code>. Esquecer essa tabela é um dos erros mais comuns de modelagem.</p>
         </div>
 
+        <h3>Notação de Chen — símbolos gráficos formais</h3>
+        <p>A notação proposta por Peter Chen no artigo original de 1976 estabelece uma gramática visual simples e ainda hoje a referência didática para diagramas ER. Cada elemento do modelo tem uma forma geométrica específica, e linhas conectam essas formas com rótulos de cardinalidade. Conhecer a notação canônica torna você capaz de ler qualquer diagrama ER em livros, papers acadêmicos e documentação corporativa — independentemente da ferramenta usada para desenhá-lo.</p>
+        <table class="mat-table sr">
+          <thead><tr><th>Símbolo</th><th>Representa</th><th>Categoria gramatical</th><th>Exemplo</th></tr></thead>
+          <tbody>
+            <tr><td><strong>▭ Retângulo</strong></td><td>Entidade</td><td>Substantivo</td><td><code>USUARIO</code>, <code>PEDIDO</code>, <code>PRODUTO</code></td></tr>
+            <tr><td><strong>◇ Losango</strong></td><td>Relacionamento</td><td>Verbo</td><td><code>faz</code>, <code>contém</code>, <code>pertence a</code></td></tr>
+            <tr><td><strong>◯ Elipse / oval</strong></td><td>Atributo</td><td>Adjetivo / propriedade</td><td><code>nome</code>, <code>email</code>, <code>preço</code></td></tr>
+            <tr><td><strong>◯ sublinhada</strong></td><td>Atributo identificador (PK)</td><td>Identificador único</td><td><code>id</code></td></tr>
+            <tr><td><strong>— linha</strong></td><td>Conexão entre entidade e relacionamento, ou entidade e atributo</td><td>Predicação</td><td>rotulada com cardinalidade <code>1</code>, <code>N</code> ou <code>M</code></td></tr>
+          </tbody>
+        </table>
+
+        <div class="callout callout-warn sr">
+          <div class="callout-label">A regra do "quadrado em volta do losango" — relacionamentos N:M</div>
+          <p>Quando o relacionamento é <strong>muitos-para-muitos</strong> (N:M) e <em>carrega atributos próprios</em> — por exemplo, <code>quantidade</code> e <code>preco_unit</code> em "PEDIDO contém PRODUTO" —, a notação de Chen desenha um <strong>retângulo tracejado em volta do losango</strong>. Isso sinaliza que esse relacionamento, ao ser implementado no modelo lógico, vai virar uma <em>tabela associativa</em> com chave primária composta. Atributos do relacionamento (como <code>quantidade</code>) são desenhados como elipses ligadas ao losango.</p>
+        </div>
+
+        <h3>Modelagem em 3 etapas: Conceitual, Lógico, Físico</h3>
+        <p>Modelar um banco de dados não é uma atividade única — é um processo de refinamento progressivo do <em>O QUE</em> existe no domínio até o <em>COMO</em> implementar em um SGBD específico. A literatura clássica organiza esse processo em três níveis sucessivos, cada um com um artefato próprio e uma audiência distinta.</p>
+        <div id="model-stack-3">
+          <div class="norm-step reveal" style="border-color:#4b5563;">
+            <div class="norm-step-title" style="color:#4b5563;">📦 1. Modelo Conceitual — O QUE</div>
+            <p><strong>Artefato:</strong> diagrama ER (notação de Chen ou Crow's Foot).<br>
+            <strong>Foco:</strong> entidades, atributos e relacionamentos do domínio. Independente de SGBD, linguagem de programação ou tecnologia.<br>
+            <strong>Audiência:</strong> stakeholders de negócio, product owners, especialistas do domínio.<br>
+            <strong>Pergunta-chave:</strong> "Quais são as coisas que o sistema precisa lembrar e como elas se relacionam?"</p>
+          </div>
+          <div class="norm-step reveal" style="border-color:#0d9488;">
+            <div class="norm-step-title" style="color:#0d9488;">🗂️ 2. Modelo Lógico — COMO</div>
+            <p><strong>Artefato:</strong> esquema relacional com tabelas, colunas, tipos genéricos, PKs e FKs.<br>
+            <strong>Foco:</strong> tradução das entidades em tabelas, dos relacionamentos 1:N em FKs e dos N:M em tabelas associativas. Ainda independente do SGBD escolhido.<br>
+            <strong>Audiência:</strong> engenheiros de software, DBAs, arquitetos de dados.<br>
+            <strong>Pergunta-chave:</strong> "Como organizo essas informações em tabelas para que sejam consistentes e consultáveis?"</p>
+          </div>
+          <div class="norm-step reveal" style="border-color:#d97706;">
+            <div class="norm-step-title" style="color:#d97706;">⚙️ 3. Modelo Físico — EM QUAL BANCO</div>
+            <p><strong>Artefato:</strong> SQL DDL específico do SGBD — <code>CREATE TABLE</code>, índices, partições, tablespaces.<br>
+            <strong>Foco:</strong> tipos concretos do SGBD (<code>SERIAL</code> vs <code>AUTO_INCREMENT</code> vs <code>IDENTITY</code>), <code>JSONB</code>, índices, particionamento, tuning específico.<br>
+            <strong>Audiência:</strong> desenvolvedores que vão escrever migrations e DBAs.<br>
+            <strong>Pergunta-chave:</strong> "Que código SQL exato vou rodar no PostgreSQL 16 (ou no banco de produção)?"</p>
+          </div>
+        </div>
+
+        <div class="callout callout-tip sr">
+          <div class="callout-label">Por que separar as 3 etapas?</div>
+          <p>A separação evita acoplar decisões de domínio (que são duradouras) com decisões de tecnologia (que mudam). Se amanhã você precisar migrar de PostgreSQL para Oracle, o modelo conceitual e o lógico permanecem válidos — só o físico precisa ser reescrito. Inverter a ordem (codar primeiro o SQL, "modelar" depois) é um anti-padrão clássico que produz esquemas tortos e migrations dolorosas.</p>
+        </div>
+
         <h3>Por que modelar antes de criar tabelas?</h3>
         <p>Modelar em ER antes de escrever DDL tem dois benefícios principais. Primeiro, permite identificar problemas de design — entidades esquecidas, relacionamentos ambíguos, atributos mal posicionados — antes que qualquer código seja escrito. Corrigir um diagrama leva minutos; corrigir um banco de dados em produção com dados reais pode levar horas e exigir migrações complexas. Segundo, o diagrama ER é uma linguagem comum entre técnicos e não técnicos: um gerente de produto consegue entender e validar um diagrama ER mesmo sem saber SQL.</p>
       </section>
@@ -335,6 +422,59 @@
         <p>A <strong>chave primária</strong> (Primary Key, PK) é uma coluna (ou conjunto de colunas) que identifica unicamente cada linha da tabela. Toda tabela deve ter uma PK. O SGBD cria automaticamente um índice na PK, tornando buscas por esse campo extremamente rápidas. Em PostgreSQL, o tipo <code>SERIAL</code> (ou <code>BIGSERIAL</code> para tabelas maiores) é a forma mais comum de criar PKs numéricas auto-incrementais. Para sistemas que precisam de IDs globalmente únicos sem coordenação central, usa-se <code>UUID</code>.</p>
 
         <p>A <strong>chave estrangeira</strong> (Foreign Key, FK) é uma coluna que referencia a PK de outra tabela, estabelecendo o <em>relacionamento</em> entre elas no nível físico. Quando você define uma FK no SGBD, ele passa a verificar automaticamente a integridade referencial: você não pode inserir uma linha com <code>cliente_id = 99</code> em <code>pedidos</code> se não existir um cliente com <code>id = 99</code> na tabela <code>clientes</code>. Também não pode deletar um cliente que ainda tem pedidos associados — a menos que configure um comportamento de cascata (<code>ON DELETE CASCADE</code>).</p>
+
+        <h3>Da ER às tabelas — regras formais de tradução</h3>
+        <p>A passagem do modelo conceitual (ER) para o modelo lógico (relacional) segue um conjunto compacto de regras mecânicas. Aplicá-las disciplinadamente evita os dois erros mais comuns de iniciantes: (1) esquecer a tabela associativa em N:M e (2) colocar a FK do lado errado em 1:N. Memorize essas quatro regras — elas resolvem 95% dos casos práticos.</p>
+        <table class="mat-table sr">
+          <thead><tr><th>Construção ER</th><th>Tradução para o modelo relacional</th><th>Exemplo</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Entidade</strong></td><td>Vira uma <strong>tabela</strong> com mesmo nome (no plural, em snake_case).</td><td><code>USUARIO</code> → tabela <code>usuarios</code></td></tr>
+            <tr><td><strong>Atributo</strong></td><td>Vira uma <strong>coluna</strong> com tipo apropriado. O atributo identificador vira <code>PRIMARY KEY</code>.</td><td><code>email</code> → coluna <code>email VARCHAR(200)</code></td></tr>
+            <tr><td><strong>Relacionamento 1:1</strong></td><td>Vira uma <strong>FK em uma das duas tabelas</strong> (geralmente na obrigatória), marcada com <code>UNIQUE</code> para impedir duplicação.</td><td>Pessoa ↔ CPF: <code>pessoas.cpf_id INTEGER UNIQUE REFERENCES cpfs(id)</code></td></tr>
+            <tr><td><strong>Relacionamento 1:N</strong></td><td>Vira uma <strong>FK no lado N</strong> (o "muitos") apontando para a PK do lado 1.</td><td>USUARIO 1—N PEDIDO: <code>pedidos.usuario_id INTEGER REFERENCES usuarios(id)</code></td></tr>
+            <tr><td><strong>Relacionamento N:M</strong></td><td>Vira uma <strong>tabela associativa</strong> com PK composta (FK_lado_a, FK_lado_b) e absorve atributos do relacionamento.</td><td>PEDIDO N—M PRODUTO: tabela <code>pedido_produto(pedido_id, produto_id, quantidade)</code> com <code>PRIMARY KEY (pedido_id, produto_id)</code></td></tr>
+          </tbody>
+        </table>
+
+        <div class="code-wrap">
+          <div class="code-label">SQL — exemplo completo: as 4 tabelas do diagrama ER USUARIO/PEDIDO/PRODUTO
+            <button class="code-copy" onclick="copyCode(this)">copiar</button>
+          </div>
+          <pre class="code-block"><code><span class="hl-cmt">-- Entidade USUARIO → tabela usuarios</span>
+<span class="hl-kw">CREATE TABLE</span> <span class="hl-typ">usuarios</span> (
+  id     <span class="hl-typ">SERIAL</span>       <span class="hl-kw">PRIMARY KEY</span>,
+  nome   <span class="hl-typ">VARCHAR</span>(<span class="hl-num">100</span>) <span class="hl-kw">NOT NULL</span>,
+  email  <span class="hl-typ">VARCHAR</span>(<span class="hl-num">200</span>) <span class="hl-kw">UNIQUE NOT NULL</span>
+);
+
+<span class="hl-cmt">-- Entidade PRODUTO → tabela produtos</span>
+<span class="hl-kw">CREATE TABLE</span> <span class="hl-typ">produtos</span> (
+  id     <span class="hl-typ">SERIAL</span>          <span class="hl-kw">PRIMARY KEY</span>,
+  nome   <span class="hl-typ">VARCHAR</span>(<span class="hl-num">100</span>)    <span class="hl-kw">NOT NULL</span>,
+  preco  <span class="hl-typ">NUMERIC</span>(<span class="hl-num">10</span>,<span class="hl-num">2</span>)    <span class="hl-kw">NOT NULL</span>
+);
+
+<span class="hl-cmt">-- Relacionamento 1:N "USUARIO faz PEDIDO" → FK no lado N (pedidos)</span>
+<span class="hl-kw">CREATE TABLE</span> <span class="hl-typ">pedidos</span> (
+  id          <span class="hl-typ">SERIAL</span>    <span class="hl-kw">PRIMARY KEY</span>,
+  data        <span class="hl-typ">TIMESTAMP</span> <span class="hl-kw">DEFAULT</span> <span class="hl-fn">NOW</span>(),
+  usuario_id  <span class="hl-typ">INTEGER</span>   <span class="hl-kw">NOT NULL REFERENCES</span> <span class="hl-typ">usuarios</span>(id)
+);
+
+<span class="hl-cmt">-- Relacionamento N:M "PEDIDO contém PRODUTO" → tabela associativa</span>
+<span class="hl-cmt">-- PK composta = (pedido_id, produto_id) — ambas FKs</span>
+<span class="hl-kw">CREATE TABLE</span> <span class="hl-typ">pedido_produto</span> (
+  pedido_id   <span class="hl-typ">INTEGER</span> <span class="hl-kw">NOT NULL REFERENCES</span> <span class="hl-typ">pedidos</span>(id),
+  produto_id  <span class="hl-typ">INTEGER</span> <span class="hl-kw">NOT NULL REFERENCES</span> <span class="hl-typ">produtos</span>(id),
+  quantidade  <span class="hl-typ">INTEGER</span> <span class="hl-kw">NOT NULL CHECK</span> (quantidade &gt; <span class="hl-num">0</span>),
+  <span class="hl-kw">PRIMARY KEY</span> (pedido_id, produto_id)
+);</code></pre>
+        </div>
+
+        <div class="callout callout-info sr">
+          <div class="callout-label">Por que a PK composta na tabela associativa?</div>
+          <p>A combinação <code>(pedido_id, produto_id)</code> é única por definição: o pedido 42 só pode conter o produto 7 <em>uma vez</em> — se quiser duas unidades, isso vira <code>quantidade = 2</code>. Marcar a PK como composta impede acidentalmente inserir a mesma combinação duplicada e ainda cria o índice composto que acelera buscas em ambas as direções.</p>
+        </div>
 
         <h3>Normalização — organizando para evitar redundância</h3>
         <p>A <strong>normalização</strong> é um processo de organizar as tabelas de um banco relacional para eliminar redundância e dependências anômalas. Cada <em>forma normal</em> estabelece um conjunto de regras que a tabela deve obedecer. As três primeiras são as mais importantes na prática:</p>
@@ -649,9 +789,138 @@
         </table>
       </section>
 
-      <!-- ════════ 11. RM-ODP ════════ -->
+      <!-- ════════ 11. COMPARATIVO ENTRE SGBDs ════════ -->
+      <section class="mat-section" id="sec-sgbds-comparativo">
+        <h2>11. Comparativo entre SGBDs Relacionais</h2>
+
+        <p>Embora todos os SGBDs relacionais sigam o padrão SQL ANSI, cada um implementa extensões e dialetos próprios. Quando você se acostuma com um SGBD e migra para outro, os primeiros tropeços são quase sempre nos detalhes de DDL: como declarar uma chave auto-incremental, como tipar texto Unicode, como armazenar JSON. Esta seção lado a lado existe para deixar claro que o <em>conceito</em> (PK auto-incremental, texto, booleano, data) é universal, mas a <em>sintaxe</em> muda. Reconhecer essas diferenças torna você capaz de ler código de qualquer projeto sem entrar em pânico.</p>
+
+        <table class="mat-table sr">
+          <thead><tr><th>Recurso</th><th>PostgreSQL</th><th>MySQL / MariaDB</th><th>SQLite</th><th>SQL Server (T-SQL)</th><th>Oracle</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>PK auto-incremental</strong></td>
+              <td><code>SERIAL</code> ou <code>GENERATED AS IDENTITY</code></td>
+              <td><code>INT AUTO_INCREMENT</code></td>
+              <td><code>INTEGER PRIMARY KEY AUTOINCREMENT</code></td>
+              <td><code>INT IDENTITY(1,1)</code></td>
+              <td><code>NUMBER GENERATED ALWAYS AS IDENTITY</code></td>
+            </tr>
+            <tr>
+              <td><strong>Texto curto</strong></td>
+              <td><code>VARCHAR(n)</code> / <code>TEXT</code></td>
+              <td><code>VARCHAR(n)</code></td>
+              <td><code>TEXT</code> (tipagem dinâmica)</td>
+              <td><code>NVARCHAR(n)</code> (Unicode)</td>
+              <td><code>VARCHAR2(n)</code></td>
+            </tr>
+            <tr>
+              <td><strong>Booleano</strong></td>
+              <td><code>BOOLEAN</code></td>
+              <td><code>TINYINT(1)</code></td>
+              <td><code>INTEGER</code> (0/1)</td>
+              <td><code>BIT</code></td>
+              <td><strong>não tem</strong> — usa <code>NUMBER(1)</code></td>
+            </tr>
+            <tr>
+              <td><strong>Data &amp; hora padrão</strong></td>
+              <td><code>TIMESTAMP DEFAULT NOW()</code></td>
+              <td><code>DATETIME DEFAULT CURRENT_TIMESTAMP</code></td>
+              <td><code>TEXT DEFAULT CURRENT_TIMESTAMP</code></td>
+              <td><code>DATETIME2 DEFAULT GETDATE()</code></td>
+              <td><code>TIMESTAMP DEFAULT SYSTIMESTAMP</code></td>
+            </tr>
+            <tr>
+              <td><strong>JSON</strong></td>
+              <td><code>JSONB</code> (binário, indexável)</td>
+              <td><code>JSON</code></td>
+              <td><code>TEXT</code> + extensão JSON1</td>
+              <td><code>NVARCHAR(MAX)</code> + funções <code>JSON_VALUE</code></td>
+              <td><code>CLOB CHECK (... IS JSON)</code></td>
+            </tr>
+            <tr>
+              <td><strong>Engine de armazenamento</strong></td>
+              <td>Único (heap + WAL + MVCC)</td>
+              <td><code>InnoDB</code> (FK, transações) ou <code>MyISAM</code> (sem FK)</td>
+              <td>B-tree único embutido</td>
+              <td>Único (rowstore + columnstore opcional)</td>
+              <td>Único (multi-tenant CDB/PDB)</td>
+            </tr>
+            <tr>
+              <td><strong>Quando escolher</strong></td>
+              <td>SaaS modernos, dados complexos, máxima conformidade SQL</td>
+              <td>Web apps clássicos, hospedagem PHP, ecossistema WordPress</td>
+              <td>Apps mobile/desktop, protótipos, banco embarcado</td>
+              <td>Empresas Microsoft, Power BI, integração com .NET</td>
+              <td>Bancos, telecom, sistemas legados de missão crítica</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="code-wrap">
+          <div class="code-label">Comparativo prático: o "mesmo" CREATE TABLE em 5 SGBDs
+            <button class="code-copy" onclick="copyCode(this)">copiar</button>
+          </div>
+          <pre class="code-block"><code><span class="hl-cmt">-- ═══ PostgreSQL 16 ═══</span>
+<span class="hl-kw">CREATE TABLE</span> <span class="hl-typ">usuarios</span> (
+  id         <span class="hl-typ">SERIAL</span>       <span class="hl-kw">PRIMARY KEY</span>,
+  nome       <span class="hl-typ">VARCHAR</span>(<span class="hl-num">100</span>) <span class="hl-kw">NOT NULL</span>,
+  email      <span class="hl-typ">VARCHAR</span>(<span class="hl-num">200</span>) <span class="hl-kw">UNIQUE NOT NULL</span>,
+  ativo      <span class="hl-typ">BOOLEAN</span>      <span class="hl-kw">DEFAULT</span> <span class="hl-kw">TRUE</span>,
+  metadata   <span class="hl-typ">JSONB</span>,
+  criado_em  <span class="hl-typ">TIMESTAMP</span>    <span class="hl-kw">DEFAULT</span> <span class="hl-fn">NOW</span>()
+);
+
+<span class="hl-cmt">-- ═══ MySQL 8 / MariaDB ═══</span>
+<span class="hl-kw">CREATE TABLE</span> <span class="hl-typ">usuarios</span> (
+  id         <span class="hl-typ">INT</span>           <span class="hl-kw">AUTO_INCREMENT PRIMARY KEY</span>,
+  nome       <span class="hl-typ">VARCHAR</span>(<span class="hl-num">100</span>)  <span class="hl-kw">NOT NULL</span>,
+  email      <span class="hl-typ">VARCHAR</span>(<span class="hl-num">200</span>)  <span class="hl-kw">NOT NULL UNIQUE</span>,
+  ativo      <span class="hl-typ">TINYINT</span>(<span class="hl-num">1</span>)    <span class="hl-kw">DEFAULT</span> <span class="hl-num">1</span>,
+  metadata   <span class="hl-typ">JSON</span>,
+  criado_em  <span class="hl-typ">DATETIME</span>      <span class="hl-kw">DEFAULT</span> <span class="hl-fn">CURRENT_TIMESTAMP</span>
+) <span class="hl-kw">ENGINE</span>=<span class="hl-typ">InnoDB</span> <span class="hl-kw">DEFAULT CHARSET</span>=<span class="hl-typ">utf8mb4</span>;
+
+<span class="hl-cmt">-- ═══ SQLite 3 ═══</span>
+<span class="hl-kw">CREATE TABLE</span> <span class="hl-typ">usuarios</span> (
+  id         <span class="hl-typ">INTEGER</span>       <span class="hl-kw">PRIMARY KEY AUTOINCREMENT</span>,
+  nome       <span class="hl-typ">TEXT</span>          <span class="hl-kw">NOT NULL</span>,
+  email      <span class="hl-typ">TEXT</span>          <span class="hl-kw">NOT NULL UNIQUE</span>,
+  ativo      <span class="hl-typ">INTEGER</span>       <span class="hl-kw">DEFAULT</span> <span class="hl-num">1</span>,
+  metadata   <span class="hl-typ">TEXT</span>,                       <span class="hl-cmt">-- JSON via JSON1</span>
+  criado_em  <span class="hl-typ">TEXT</span>          <span class="hl-kw">DEFAULT</span> <span class="hl-fn">CURRENT_TIMESTAMP</span>
+);
+
+<span class="hl-cmt">-- ═══ SQL Server 2022 (T-SQL) ═══</span>
+<span class="hl-kw">CREATE TABLE</span> <span class="hl-typ">usuarios</span> (
+  id         <span class="hl-typ">INT</span>            <span class="hl-kw">IDENTITY</span>(<span class="hl-num">1</span>,<span class="hl-num">1</span>) <span class="hl-kw">PRIMARY KEY</span>,
+  nome       <span class="hl-typ">NVARCHAR</span>(<span class="hl-num">100</span>) <span class="hl-kw">NOT NULL</span>,
+  email      <span class="hl-typ">NVARCHAR</span>(<span class="hl-num">200</span>) <span class="hl-kw">NOT NULL UNIQUE</span>,
+  ativo      <span class="hl-typ">BIT</span>            <span class="hl-kw">DEFAULT</span> <span class="hl-num">1</span>,
+  metadata   <span class="hl-typ">NVARCHAR</span>(<span class="hl-kw">MAX</span>),
+  criado_em  <span class="hl-typ">DATETIME2</span>      <span class="hl-kw">DEFAULT</span> <span class="hl-fn">GETDATE</span>()
+);
+
+<span class="hl-cmt">-- ═══ Oracle 23ai ═══</span>
+<span class="hl-kw">CREATE TABLE</span> <span class="hl-typ">usuarios</span> (
+  id         <span class="hl-typ">NUMBER</span>         <span class="hl-kw">GENERATED ALWAYS AS IDENTITY PRIMARY KEY</span>,
+  nome       <span class="hl-typ">VARCHAR2</span>(<span class="hl-num">100</span>) <span class="hl-kw">NOT NULL</span>,
+  email      <span class="hl-typ">VARCHAR2</span>(<span class="hl-num">200</span>) <span class="hl-kw">NOT NULL UNIQUE</span>,
+  ativo      <span class="hl-typ">NUMBER</span>(<span class="hl-num">1</span>)      <span class="hl-kw">DEFAULT</span> <span class="hl-num">1</span>,
+  metadata   <span class="hl-typ">CLOB</span>           <span class="hl-kw">CHECK</span> (metadata <span class="hl-kw">IS JSON</span>),
+  criado_em  <span class="hl-typ">TIMESTAMP</span>      <span class="hl-kw">DEFAULT</span> <span class="hl-fn">SYSTIMESTAMP</span>
+);</code></pre>
+        </div>
+
+        <div class="callout callout-tip sr">
+          <div class="callout-label">Padronizar com camadas de abstração?</div>
+          <p>Frameworks ORM (Sequelize, TypeORM, Prisma, Hibernate) e query builders (Knex.js, jOOQ) escondem essas diferenças sintáticas. Eles são úteis em projetos que precisam ser portáveis entre SGBDs — mas custam em performance e em controle fino. Em projetos onde o SGBD é uma decisão de arquitetura estável, escrever SQL puro do dialeto escolhido costuma ser mais legível e mais auditável. Não há resposta universal: avalie seu contexto.</p>
+        </div>
+      </section>
+
+      <!-- ════════ 12. RM-ODP ════════ -->
       <section class="mat-section" id="sec-rmodp">
-        <h2>11. RM-ODP — Viewpoint Information</h2>
+        <h2>12. RM-ODP — Viewpoint Information</h2>
 
         <p>O <strong>RM-ODP</strong> (Reference Model for Open Distributed Processing, ISO/IEC 10746) estrutura a descrição de sistemas distribuídos em cinco viewpoints (visões). Cada visão captura os interesses de um grupo específico de stakeholders, usando uma linguagem e nível de abstração adequados a esses interesses. As cinco visões são: <em>Enterprise</em> (propósito e regras de negócio), <em>Information</em> (estrutura e fluxo de dados), <em>Computational</em> (decomposição funcional em componentes), <em>Engineering</em> (distribuição e comunicação) e <em>Technology</em> (escolhas concretas de tecnologia).</p>
 
@@ -708,9 +977,9 @@
         </div>
       </section>
 
-      <!-- ════════ 12. RF, RN e RNF ════════ -->
+      <!-- ════════ 13. RF, RN e RNF ════════ -->
       <section class="mat-section" id="sec-req">
-        <h2>12. RF, RN e RNF aplicados a Banco de Dados</h2>
+        <h2>13. RF, RN e RNF aplicados a Banco de Dados</h2>
 
         <p>Toda funcionalidade que precisa persistir dados possui <strong>Requisitos Funcionais</strong> (RF) que dependem do banco de dados. Identificar essa dependência é o primeiro passo para modelar corretamente. Um RF como "o usuário deve poder visualizar seu histórico de pedidos" implica que os pedidos precisam ser armazenados com referência ao usuário, com data, status e itens — e que a consulta deve ser eficiente o suficiente para retornar em tempo aceitável mesmo com milhares de pedidos por usuário. Esse RF, ao ser implementado, exige decisões de modelagem (quais tabelas, quais colunas), de DDL (tipos e constraints) e de DQL (qual SELECT e quais índices).</p>
 
@@ -772,9 +1041,70 @@
         </div>
       </section>
 
-      <!-- ════════ 13. CHECKLIST ════════ -->
+      <!-- ════════ 14. PRÁTICA HANDS-ON ════════ -->
+      <section class="mat-section" id="sec-pratica">
+        <h2>14. Prática Hands-on — Crie sua primeira tabela no Supabase</h2>
+
+        <p>Toda a teoria deste material só vira competência real quando você executa SQL contra um banco de dados de verdade. Esta seção propõe uma prática <strong>curta (~10 min)</strong> usando o Supabase — uma plataforma cloud que oferece PostgreSQL gerenciado com SQL Editor embutido no navegador. Você vai modelar uma entidade pequena do projeto e ver, no Table Editor, a tabela aparecer com os tipos e constraints que escreveu.</p>
+
+        <div class="callout callout-tip sr">
+          <div class="callout-label">Por que Supabase?</div>
+          <p>Supabase é PostgreSQL puro, sem dialeto próprio. Tudo que você aprende lá funciona em qualquer PostgreSQL self-hosted, RDS ou Cloud SQL. A interface elimina o atrito de instalação local — basta um login com GitHub/Google e você está dentro de um SQL Editor totalmente funcional, com autocomplete, execução por <kbd>Ctrl</kbd>+<kbd>Enter</kbd> e o resultado aparecendo lado a lado.</p>
+        </div>
+
+        <h3>Passo a passo</h3>
+        <ol>
+          <li><strong>Acesse</strong> <a href="https://supabase.com" target="_blank" rel="noopener noreferrer">supabase.com</a> e faça login (GitHub, Google ou e-mail).</li>
+          <li><strong>Crie um projeto novo</strong> ou abra o projeto da sua squad. Anote a senha do banco de dados — Supabase só mostra uma vez.</li>
+          <li><strong>Abra o SQL Editor</strong> no menu lateral (ícone <code>&lt;/&gt;</code>).</li>
+          <li><strong>Identifique uma entidade pequena</strong> do problema que sua dupla está modelando — algo como <code>cliente</code>, <code>agendamento</code>, <code>tarefa</code> ou <code>produto</code>. Não precisa modelar o domínio inteiro.</li>
+          <li><strong>Modele 3 a 5 colunas</strong>: uma PK, dois ou três campos descritivos e ao menos uma constraint útil (<code>UNIQUE</code>, <code>NOT NULL</code> ou <code>CHECK</code>).</li>
+          <li><strong>Escreva o <code>CREATE TABLE</code></strong> em PostgreSQL no editor.</li>
+          <li><strong>Execute</strong> com <kbd>Ctrl</kbd>+<kbd>Enter</kbd> (ou clique em <em>Run</em>). Você deve ver "Success. No rows returned." se tudo deu certo.</li>
+          <li><strong>Confirme</strong> em <em>Table Editor</em> (ícone de tabela no menu lateral) que a tabela apareceu com as colunas e tipos corretos.</li>
+          <li><strong>Bônus:</strong> insira uma linha com <code>INSERT INTO ...</code> e rode <code>SELECT * FROM ...</code> para ver o registro aparecer.</li>
+        </ol>
+
+        <div class="code-wrap">
+          <div class="code-label">SQL — exemplo de referência (ajuste para a entidade do seu projeto)
+            <button class="code-copy" onclick="copyCode(this)">copiar</button>
+          </div>
+          <pre class="code-block"><code><span class="hl-cmt">-- Exemplo: tabela de clientes para uma loja universitária</span>
+<span class="hl-kw">CREATE TABLE</span> <span class="hl-typ">clientes</span> (
+  id         <span class="hl-typ">SERIAL</span>       <span class="hl-kw">PRIMARY KEY</span>,
+  nome       <span class="hl-typ">VARCHAR</span>(<span class="hl-num">120</span>) <span class="hl-kw">NOT NULL</span>,
+  email      <span class="hl-typ">VARCHAR</span>(<span class="hl-num">200</span>) <span class="hl-kw">UNIQUE NOT NULL</span>,
+  curso      <span class="hl-typ">VARCHAR</span>(<span class="hl-num">50</span>)  <span class="hl-kw">CHECK</span> (curso <span class="hl-kw">IN</span> (<span class="hl-str">'CC'</span>, <span class="hl-str">'EC'</span>, <span class="hl-str">'SI'</span>, <span class="hl-str">'ES'</span>, <span class="hl-str">'AT'</span>)),
+  criado_em  <span class="hl-typ">TIMESTAMP</span>    <span class="hl-kw">DEFAULT</span> <span class="hl-fn">NOW</span>()
+);
+
+<span class="hl-cmt">-- Bônus: insere uma linha e consulta o resultado</span>
+<span class="hl-kw">INSERT INTO</span> <span class="hl-typ">clientes</span> (nome, email, curso)
+<span class="hl-kw">VALUES</span> (<span class="hl-str">'Ana Lima'</span>, <span class="hl-str">'ana@inteli.edu.br'</span>, <span class="hl-str">'SI'</span>)
+<span class="hl-kw">RETURNING</span> id, nome, criado_em;
+
+<span class="hl-kw">SELECT</span> * <span class="hl-kw">FROM</span> <span class="hl-typ">clientes</span>;</code></pre>
+        </div>
+
+        <h3>Critério de sucesso</h3>
+        <ul>
+          <li>✅ A tabela aparece no <em>Table Editor</em> com as colunas e tipos esperados.</li>
+          <li>✅ A constraint <code>UNIQUE</code> bloqueia uma segunda inserção com o mesmo email (teste e veja o erro do PostgreSQL).</li>
+          <li>✅ A constraint <code>CHECK</code> rejeita um valor de curso fora da lista permitida.</li>
+          <li>✅ Você consegue explicar para sua dupla, em uma frase, por que cada constraint foi escolhida.</li>
+        </ul>
+
+        <div class="callout callout-warn sr">
+          <div class="callout-label">Erros mais comuns</div>
+          <p><strong>Senha do banco esquecida:</strong> dá para resetar em <em>Project Settings → Database</em>, mas isso desconecta clientes existentes — fique atento.<br>
+          <strong>Tabela duplicada:</strong> use <code>CREATE TABLE IF NOT EXISTS</code> ou rode <code>DROP TABLE clientes;</code> antes do CREATE para reexecutar o script sem erro.<br>
+          <strong>Schema "public":</strong> Supabase coloca tudo em <code>public</code> por padrão — não é problema, mas em produção real você organizaria por schema (<code>auth</code>, <code>billing</code>, etc.).</p>
+        </div>
+      </section>
+
+      <!-- ════════ 15. CHECKLIST ════════ -->
       <section class="mat-section" id="sec-checklist">
-        <h2>13. Checklist de Estudo</h2>
+        <h2>15. Checklist de Estudo</h2>
         <p>Clique nos itens à medida que você dominar cada conceito:</p>
         <ul class="checklist" id="checklist">
           <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo explicar a diferença entre banco de dados e SGBD, e citar exemplos de cada categoria.</span></li>
@@ -791,6 +1121,10 @@
           <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo relacionar o Viewpoint Information do RM-ODP com o diagrama ER e as constraints SQL.</span></li>
           <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo mapear RFs do sistema para entidades de banco e RNs para constraints SQL.</span></li>
           <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo redigir RNFs de Confiabilidade, Desempenho e Segurança específicos para banco de dados, com métricas mensuráveis.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo aplicar as 4 regras de tradução ER → tabelas (entidade → tabela; 1:1 → FK única; 1:N → FK no lado N; N:M → tabela associativa com PK composta).</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo desenhar um diagrama ER usando a notação de Chen (retângulo, losango, oval) e identificar quando o losango precisa do retângulo tracejado em volta para sinalizar N:M com atributos.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo reconhecer pelo menos 3 diferenças sintáticas entre PostgreSQL, MySQL, SQLite, SQL Server e Oracle (PK auto-incremental, booleano, JSON).</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Criei uma tabela no Supabase com PK, ao menos uma constraint útil, e validei o resultado no Table Editor.</span></li>
         </ul>
       </section>
 
