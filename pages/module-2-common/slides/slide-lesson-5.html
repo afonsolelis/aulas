@@ -4,27 +4,30 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aula 5 - Back-End I - Inteli</title>
+  <title>Aula 5 — Back-End I — TDD top-down — Inteli</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="../../../css/inteli-styles.css" rel="stylesheet">
   <style>
-    :root { --ac:#4b5563; --hi:#b2b6bf; --dk:#2e2640; --gr:#0d9488; --re:#dc2626; --am:#d97706; }
+    :root { --ac:#4b5563; --hi:#b2b6bf; --dk:#2e2640; --gr:#0d9488; --re:#dc2626; --am:#d97706; --bl:#1863dc; --ts:#3178c6; }
     body { margin:0; padding:0; overflow:hidden; font-family:'Manrope',sans-serif; background:#f5f7fb; color:var(--dk); }
     .slide-container { width:100vw; height:100vh; position:relative; overflow:hidden; }
     .slide { width:100%; height:100%; display:none; padding:44px 52px 88px; box-sizing:border-box; position:absolute; }
     .slide.active { display:flex; flex-direction:column; justify-content:center; animation:slideIn 0.35s ease-in-out; }
     @keyframes slideIn { from{opacity:0;transform:translateX(36px)} to{opacity:1;transform:translateX(0)} }
     .sc { width:min(1140px,100%); margin:0 auto; font-size:1.05rem; line-height:1.55; }
-    /* slide header */
+
     .sh { color:white; padding:16px 22px; border-radius:14px; margin-bottom:14px; }
     .sh.blue  { background:linear-gradient(135deg,#374151,#b2b6bf); }
     .sh.dark  { background:linear-gradient(135deg,var(--dk),#4a3d6b); }
     .sh.green { background:linear-gradient(135deg,var(--gr),#10b981); }
+    .sh.red   { background:linear-gradient(135deg,#dc2626,#f87171); }
+    .sh.amber { background:linear-gradient(135deg,#d97706,#f59e0b); }
+    .sh.ts    { background:linear-gradient(135deg,#3178c6,#1e40af); }
     .st { font-size:1.9rem; font-weight:800; margin:0 0 4px; line-height:1.15; }
     .ss { font-size:0.95rem; opacity:.9; margin:0; }
-    /* boxes */
+
     .box { background:white; border:1px solid #dfe5ec; border-left:5px solid var(--hi); border-radius:12px; padding:14px 18px; box-shadow:0 4px 14px rgba(46,38,64,.06); }
     .box h3 { font-size:1rem; font-weight:700; margin:0 0 6px; color:var(--dk); }
     .box p  { margin:0 0 5px; font-size:.88rem; line-height:1.5; color:#374151; }
@@ -32,109 +35,67 @@
     .box li { font-size:.87rem; margin-bottom:3px; line-height:1.4; color:#374151; }
     .box.acc { border-left-color:var(--ac); }
     .box.grn { border-left-color:var(--gr); }
-    code { background:#f1f5f9; color:var(--dk); padding:1px 6px; border-radius:5px; font-size:.86em; }
-    /* grids */
+    .box.amr { border-left-color:var(--am); }
+    .box.red { border-left-color:var(--re); }
+    .box.blu { border-left-color:var(--bl); }
+    .box.ts  { border-left-color:var(--ts); }
+    code { background:#f1f5f9; color:var(--dk); padding:1px 6px; border-radius:5px; font-size:.86em; font-family:'Courier New',monospace; }
+
     .g2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
     .g3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
-    .g5 { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
+    .g4 { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; }
 
-    /* ===== COVER ===== */
-    .cover-bg { background:linear-gradient(135deg,#1f2937 0%,#4b5563 50%,#b2b6bf 100%) !important; }
+    /* COVER */
+    .cover-bg { background:linear-gradient(135deg,#0b1d3a 0%,#3178c6 50%,#5fa9e8 100%) !important; }
     .cv-badge { background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.28); color:white; padding:5px 16px; border-radius:999px; font-size:.82rem; font-weight:600; display:inline-block; margin-bottom:18px; }
     .cv-title { font-size:3rem; font-weight:800; color:white; line-height:1.15; margin:0 0 14px; }
-    .cv-sub   { font-size:1.1rem; color:rgba(255,255,255,.82); margin:0 0 28px; }
+    .cv-sub   { font-size:1.1rem; color:rgba(255,255,255,.86); margin:0 0 28px; }
     .cv-tags  { display:flex; flex-wrap:wrap; gap:8px; }
     .cv-tag { background:rgba(255,255,255,.13); border:1px solid rgba(255,255,255,.28); backdrop-filter:blur(8px); color:white; padding:7px 16px; border-radius:10px; font-weight:700; font-size:.84rem; opacity:0; transform:translateY(18px); transition:all .5s cubic-bezier(.34,1.3,.64,1); }
     .cv-tag.vis { opacity:1; transform:translateY(0); }
 
-    /* ===== PIPELINE ===== */
-    .pipe { display:flex; align-items:flex-start; justify-content:center; gap:0; margin:14px 0; }
-    .ps { flex:1; display:flex; flex-direction:column; align-items:center; text-align:center; position:relative; }
-    .pn { width:52px; height:52px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.3rem; color:white; font-weight:800; z-index:2; box-shadow:0 4px 14px rgba(0,0,0,.18); flex-shrink:0; }
-    .pl { font-size:.8rem; font-weight:700; color:var(--dk); margin-top:7px; }
-    .ps2 { font-size:.68rem; color:#64748b; margin-top:2px; }
-    .pc { position:absolute; top:26px; left:calc(50% + 26px); width:calc(100% - 52px); height:4px; z-index:1; }
-    .pcb { width:100%; height:100%; border-radius:2px; background:linear-gradient(90deg,var(--fc,#4b5563),var(--tc,#b2b6bf)); }
-    .ps:last-child .pc { display:none; }
-    .pcl { position:absolute; top:-14px; left:50%; transform:translateX(-50%); font-size:.6rem; font-weight:700; color:#64748b; white-space:nowrap; }
-    /* pipeline anim */
-    .ps.an .pn { opacity:0; transform:scale(.3); transition:all .5s cubic-bezier(.34,1.56,.64,1); }
-    .ps.an .pl,.ps.an .ps2 { opacity:0; transform:translateY(7px); transition:all .4s ease .18s; }
-    .ps.an .pcb { transform:scaleX(0); transform-origin:left; transition:transform .6s cubic-bezier(.22,1,.36,1); }
-    .ps.an.sv .pn { opacity:1; transform:scale(1); box-shadow:0 4px 14px rgba(0,0,0,.18),0 0 20px rgba(24,99,220,.25); }
-    .ps.an.sv .pl,.ps.an.sv .ps2 { opacity:1; transform:translateY(0); }
-    .ps.an.sv .pcb { transform:scaleX(1); }
-
-    /* ===== TERMINAL ===== */
+    /* TERMINAL */
     .term { background:#1e1e2e; border-radius:14px; overflow:hidden; box-shadow:0 8px 32px rgba(0,0,0,.3); display:flex; flex-direction:column; }
     .term-bar { background:#313244; padding:7px 12px; display:flex; align-items:center; gap:6px; }
     .dot { width:10px; height:10px; border-radius:50%; }
     .dot.r{background:#f38ba8;} .dot.y{background:#f9e2af;} .dot.g{background:#a6e3a1;}
     .term-ttl { color:#6c7086; font-size:.7rem; font-weight:600; margin-left:7px; font-family:monospace; }
-    .term-body { padding:12px 14px; font-family:'Courier New',monospace; font-size:.8rem; line-height:1.65; flex:1; overflow:hidden; }
-    .tl { white-space:pre; min-height:1.65em; opacity:0; transform:translateY(3px); transition:opacity .25s ease,transform .25s ease; }
+    .term-body { padding:12px 14px; font-family:'Courier New',monospace; font-size:.78rem; line-height:1.6; flex:1; overflow:hidden; }
+    .tl { white-space:pre; min-height:1.6em; opacity:0; transform:translateY(3px); transition:opacity .25s ease,transform .25s ease; }
     .tl.vis { opacity:1; transform:translateY(0); }
-    .kw{color:#89b4fa;font-weight:700;} .pth{color:#a6e3a1;} .ver{color:#f9e2af;}
-    .hn{color:#cba6f7;} .hv{color:#cdd6f4;} .hok{color:#a6e3a1;font-weight:700;}
-    .jk{color:#cba6f7;} .js{color:#a6e3a1;} .jn{color:#fab387;} .jb{color:#89b4fa;}
-    .cmt{color:#6c7086;font-style:italic;} .txt{color:#cdd6f4;}
-    .tcur{display:inline-block;width:7px;height:1.1em;background:#89b4fa;vertical-align:text-bottom;animation:tblink .7s step-end infinite;}
-    @keyframes tblink{0%,100%{opacity:1}50%{opacity:0}}
-    .tdiv { border:none; border-top:1px solid #313244; margin:8px 0; }
+    .kw{color:#cba6f7;font-weight:700;} .typ{color:#89b4fa;font-weight:600;} .fn{color:#f9e2af;}
+    .str{color:#a6e3a1;} .num{color:#fab387;} .cmt{color:#6c7086;font-style:italic;}
+    .txt{color:#cdd6f4;} .red{color:#f38ba8;font-weight:700;} .grn{color:#a6e3a1;font-weight:700;}
 
-    /* ===== METHOD CARDS ===== */
-    .mc { background:white; border-radius:11px; padding:12px 14px; border-top:4px solid var(--mc,var(--ac)); box-shadow:0 4px 14px rgba(46,38,64,.08); opacity:0; transform:translateY(18px) scale(.93); transition:all .5s cubic-bezier(.34,1.3,.64,1); }
-    .mc.vis { opacity:1; transform:translateY(0) scale(1); }
-    .mb { font-size:.74rem; font-weight:800; padding:2px 9px; border-radius:5px; background:var(--mc,var(--ac)); color:white; display:inline-block; margin-bottom:6px; font-family:monospace; }
-    .mt { font-size:.84rem; font-weight:700; color:var(--dk); margin-bottom:3px; }
-    .md { font-size:.76rem; color:#64748b; line-height:1.35; }
-    .mex{ font-family:monospace; font-size:.68rem; color:#475569; background:#f8fafc; padding:3px 7px; border-radius:5px; margin-top:5px; }
-
-    /* ===== STATUS BARS ===== */
-    .sbr { display:flex; align-items:center; gap:10px; opacity:0; transform:translateX(-18px); transition:all .5s cubic-bezier(.34,1.56,.64,1); margin-bottom:7px; }
-    .sbr.vis { opacity:1; transform:translateX(0); }
-    .scg { width:48px; font-size:.78rem; font-weight:800; font-family:monospace; color:var(--dk); text-align:right; flex-shrink:0; }
-    .str { flex:1; height:26px; background:#f1f5f9; border-radius:8px; overflow:hidden; }
-    .sf  { height:100%; border-radius:8px; display:flex; align-items:center; padding-left:10px; transition:width .85s cubic-bezier(.34,1.56,.64,1); }
-    .sfl { font-size:.74rem; font-weight:700; color:white; }
-    .sds { font-size:.76rem; color:#64748b; width:200px; flex-shrink:0; line-height:1.3; }
-
-    /* ===== STORY TABLE ===== */
-    .stbl { width:100%; border-collapse:separate; border-spacing:0 5px; }
-    .stbl th { padding:9px 12px; font-size:.86rem; font-weight:800; text-align:left; border-radius:9px; }
-    .stbl th:nth-child(1){background:var(--dk);color:white;width:22%;}
-    .stbl th:nth-child(2){background:linear-gradient(135deg,#4b5563,#6b7280);color:white;}
-    .stbl th:nth-child(3){background:linear-gradient(135deg,var(--gr),#10b981);color:white;}
-    .stbl td { padding:9px 12px; font-size:.86rem; vertical-align:top; border-radius:8px; }
-    .stbl td:nth-child(1){background:var(--dk);color:white;font-weight:700;}
-    .stbl td:nth-child(2){background:rgba(24,99,220,.07);color:var(--dk);}
-    .stbl td:nth-child(3){background:rgba(13,148,136,.07);color:var(--dk);}
-    .scc { opacity:0; transform:translateY(8px); transition:all .4s cubic-bezier(.34,1.3,.64,1); display:inline-block; }
-    .scc.vis { opacity:1; transform:translateY(0); }
-    .scc.pop { animation:scpop .5s ease; }
-    @keyframes scpop { 0%{transform:scale(.85) translateY(10px);opacity:0} 60%{transform:scale(1.04) translateY(-2px);opacity:1} 100%{transform:scale(1) translateY(0);opacity:1} }
-
-    /* ===== LAYERS ===== */
-    .lstack { display:flex; flex-direction:column; gap:8px; margin:8px 0; }
-    .alayer { border-radius:12px; padding:13px 18px; display:flex; align-items:center; gap:14px; opacity:0; transform:translateX(-28px) scale(.95); transition:all .6s cubic-bezier(.34,1.3,.64,1); }
-    .alayer.vis { opacity:1; transform:translateX(0) scale(1); }
-    .li { font-size:1.9rem; flex-shrink:0; }
-    .ln { font-size:1rem; font-weight:800; color:white; margin-bottom:2px; }
-    .lt { font-size:.78rem; color:rgba(255,255,255,.88); }
-    .ld { font-size:.76rem; color:rgba(255,255,255,.72); margin-top:2px; }
-    .larr { text-align:center; font-size:1rem; color:#94a3b8; opacity:0; transition:opacity .4s ease; line-height:1; padding:2px 0; }
-    .larr.vis { opacity:1; }
-
-    /* ===== ROADMAP ITEMS ===== */
-    .ri { display:flex; align-items:flex-start; gap:10px; padding:9px 12px; border-radius:10px; background:white; border:1px solid #e2e8f0; opacity:0; transform:translateX(-14px); transition:all .4s ease; margin-bottom:5px; }
+    /* ROADMAP ITEMS */
+    .ri { display:flex; align-items:flex-start; gap:10px; padding:8px 12px; border-radius:10px; background:white; border:1px solid #e2e8f0; opacity:0; transform:translateX(-14px); transition:all .4s ease; margin-bottom:5px; }
     .ri.vis { opacity:1; transform:translateX(0); }
-    .ri.cur { background:linear-gradient(135deg,rgba(75,85,99,.09),rgba(107,114,128,.09)); border-color:var(--ac); }
+    .ri.cur { background:linear-gradient(135deg,rgba(49,120,198,.12),rgba(95,169,232,.12)); border-color:var(--ts); }
     .rn { width:26px; height:26px; border-radius:50%; background:var(--dk); color:white; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:.78rem; flex-shrink:0; margin-top:1px; }
-    .ri.cur .rn { background:linear-gradient(135deg,#374151,#b2b6bf); }
+    .ri.cur .rn { background:linear-gradient(135deg,#3178c6,#1e40af); }
     .rtl { font-size:.86rem; font-weight:700; color:var(--dk); margin-bottom:1px; }
     .rds { font-size:.76rem; color:#64748b; }
 
-    /* ===== FOOTER ===== */
+    /* CYCLE TDD */
+    .tdd-cycle { display:flex; align-items:stretch; justify-content:center; gap:18px; margin:14px 0; }
+    .tdd-step { flex:1; padding:14px 16px; border-radius:14px; color:white; text-align:center; opacity:0; transform:translateY(14px) scale(.92); transition:all .5s cubic-bezier(.34,1.3,.64,1); }
+    .tdd-step.vis { opacity:1; transform:translateY(0) scale(1); }
+    .tdd-step.red { background:linear-gradient(135deg,#dc2626,#f87171); }
+    .tdd-step.green { background:linear-gradient(135deg,#0d9488,#10b981); }
+    .tdd-step.refac { background:linear-gradient(135deg,#1863dc,#3b82f6); }
+    .tdd-emoji { font-size:1.8rem; }
+    .tdd-name { font-size:1rem; font-weight:800; margin-top:4px; }
+    .tdd-desc { font-size:.78rem; opacity:.92; margin-top:4px; line-height:1.4; }
+
+    /* LAYERS (6 camadas MVC) */
+    .lstack { display:flex; flex-direction:column; gap:6px; margin:8px 0; }
+    .alayer { border-radius:10px; padding:10px 16px; display:flex; align-items:center; gap:14px; opacity:0; transform:translateX(-28px) scale(.95); transition:all .55s cubic-bezier(.34,1.3,.64,1); color:white; }
+    .alayer.vis { opacity:1; transform:translateX(0) scale(1); }
+    .li { font-size:1.4rem; flex-shrink:0; }
+    .ln { font-size:.92rem; font-weight:800; margin-bottom:1px; }
+    .lt { font-size:.74rem; opacity:.9; }
+
+    /* FOOTER */
     .slide-footer { position:fixed; bottom:0; left:0; right:0; background:rgba(255,255,255,.97); border-top:1px solid #dfe5ec; padding:10px 24px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 -2px 10px rgba(46,38,64,.06); z-index:100; gap:12px; }
     .footer-links { display:flex; gap:10px; }
     .back-home { color:var(--dk); text-decoration:none; font-weight:700; display:inline-flex; align-items:center; gap:5px; padding:8px 14px; border-radius:10px; background:#f1f4f8; font-size:.9rem; }
@@ -147,33 +108,31 @@
     .slide-counter { font-weight:700; color:var(--dk); min-width:70px; text-align:center; }
     .fullscreen-btn { background:#f1f4f8; border:none; font-size:1.1rem; cursor:pointer; padding:8px 12px; border-radius:8px; }
 
-    /* ===== DAILY SLIDE ===== */
-    .daily-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; margin-top:4px; }
-    .daily-card { background:white; border-radius:14px; padding:16px 18px; border-top:4px solid var(--mc,var(--ac)); box-shadow:0 4px 14px rgba(46,38,64,.08); opacity:0; transform:translateY(16px) scale(.95); transition:all .5s cubic-bezier(.34,1.3,.64,1); }
-    .daily-card.vis { opacity:1; transform:translateY(0) scale(1); }
-    .daily-card .dc-icon { font-size:1.8rem; margin-bottom:8px; }
-    .daily-card .dc-title { font-size:.92rem; font-weight:800; color:var(--dk); margin-bottom:6px; }
-    .daily-card .dc-body { font-size:.8rem; color:#475569; line-height:1.45; }
+    /* Tree (folders) */
+    .tree { background:#1e1e2e; border-radius:12px; padding:14px 18px; font-family:'Courier New',monospace; font-size:.78rem; color:#cdd6f4; line-height:1.6; box-shadow:0 6px 20px rgba(0,0,0,.18); white-space:pre; }
+    .tree .dir { color:#89b4fa; font-weight:700; }
+    .tree .file { color:#cdd6f4; }
+    .tree .spec { color:#a6e3a1; font-weight:700; }
+    .tree .cm { color:#6c7086; font-style:italic; }
 
-    /* ===== EVENT LOOP DIAGRAM ===== */
-    .el-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:10px 0; }
-    .el-box { border-radius:12px; padding:14px 16px; opacity:0; transform:scale(.88); transition:all .55s cubic-bezier(.34,1.3,.64,1); }
-    .el-box.vis { opacity:1; transform:scale(1); }
-    .el-icon { font-size:1.6rem; margin-bottom:6px; }
-    .el-title { font-size:.9rem; font-weight:800; margin-bottom:4px; }
-    .el-desc { font-size:.75rem; line-height:1.4; }
-
-    /* ===== CHECKLIST ===== */
-    .ck-list { list-style:none; margin:0; padding:0; }
-    .ck-item { display:flex; align-items:flex-start; gap:10px; padding:9px 12px; border-radius:10px; background:white; border:1px solid #e2e8f0; margin-bottom:6px; opacity:0; transform:translateX(-14px); transition:all .4s ease; }
-    .ck-item.vis { opacity:1; transform:translateX(0); }
-    .ck-icon { font-size:1.1rem; flex-shrink:0; margin-top:1px; }
-    .ck-text { font-size:.88rem; font-weight:600; color:var(--dk); line-height:1.4; }
-    .ck-sub  { font-size:.76rem; color:#64748b; font-weight:400; }
+    /* RM-ODP layers */
+    .odp-pipe { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:14px 0; align-items:center; }
+    .odp-card { padding:10px 16px; border-radius:10px; color:white; min-width:130px; text-align:center; opacity:0; transform:translateY(16px); transition:all .5s cubic-bezier(.34,1.3,.64,1); font-size:.78rem; }
+    .odp-card.vis { opacity:1; transform:translateY(0); }
+    .odp-arrow { color:#94a3b8; opacity:0; transition:opacity .3s; align-self:center; font-weight:800; }
+    .odp-arrow.vis { opacity:1; }
 
     .daily-timer { font-size:3.5rem; font-weight:800; font-family:monospace; background:rgba(255,255,255,.15); border-radius:16px; padding:10px 28px; display:inline-block; margin-bottom:16px; letter-spacing:4px; color:white; }
     .daily-tag { background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.3); padding:6px 16px; border-radius:8px; font-weight:700; font-size:.85rem; color:white; opacity:0; transform:translateY(14px); transition:all .45s cubic-bezier(.34,1.3,.64,1); display:inline-block; margin:4px; }
     .daily-tag.vis { opacity:1; transform:translateY(0); }
+
+    /* Stage badge */
+    .stage { display:inline-block; font-family:monospace; font-size:.72rem; font-weight:800; padding:3px 10px; border-radius:6px; color:white; margin-right:8px; vertical-align:middle; }
+    .stage.red   { background:#dc2626; }
+    .stage.green { background:#0d9488; }
+    .stage.ref   { background:#1863dc; }
+
+    .inline-pre { background:#1e1e2e; color:#cdd6f4; border-radius:8px; padding:10px 12px; font-family:'Courier New',monospace; font-size:.75rem; line-height:1.5; margin:0; white-space:pre; }
   </style>
 </head>
 <body>
@@ -183,20 +142,20 @@
   <div class="slide cover-bg">
     <div class="sc">
       <div class="cv-badge">Módulo 2 · Ciclo Comum · IN02 · Aula 5 de 11</div>
-      <div class="cv-title">Back-End I<br><span style="font-size:2rem;font-weight:700;opacity:.9;">Node.js, Models e Controllers</span></div>
-      <div class="cv-sub">Do JavaScript do browser ao servidor — arquitetura MVC na prática</div>
+      <div class="cv-title">Back-End I — TDD top-down</div>
+      <div class="cv-sub">Do controller à camada física — escrevemos os testes primeiro, do topo para a base, e implementamos o mínimo para passar.</div>
       <div class="cv-tags">
-        <div class="cv-tag" id="ct0">🟢 Node.js</div>
-        <div class="cv-tag" id="ct1">🚂 Express.js</div>
-        <div class="cv-tag" id="ct2">🏗️ Padrão MVC</div>
-        <div class="cv-tag" id="ct3">📦 NPM</div>
-        <div class="cv-tag" id="ct4">🗄️ Model</div>
-        <div class="cv-tag" id="ct5">🎮 Controller</div>      </div>
+        <div class="cv-tag" id="ct0">🔷 TypeScript</div>
+        <div class="cv-tag" id="ct1">🚂 Express</div>
+        <div class="cv-tag" id="ct2">🧪 Jest+supertest</div>
+        <div class="cv-tag" id="ct3">🔴🟢♻️ TDD</div>
+        <div class="cv-tag" id="ct4">🏗️ MVC 6 camadas</div>
+      </div>
     </div>
   </div>
 
   <!-- ====== SLIDE 2: DAILY ====== -->
-  <div class="slide cover-bg" style="background:linear-gradient(135deg,#1f2937 0%,#4b5563 50%,#b2b6bf 100%)!important;">
+  <div class="slide cover-bg">
     <div class="sc" style="text-align:center;">
       <div style="background:rgba(255,255,255,.12);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.22);border-radius:20px;padding:28px 32px;">
         <div style="font-size:2rem;font-weight:800;color:white;margin-bottom:6px;">⏱️ Daily — 15 Minutos</div>
@@ -216,244 +175,275 @@
     </div>
   </div>
 
-    <!-- ====== SLIDE 3: AGENDA ====== -->
+  <!-- ====== SLIDE 2.5: AGENDA ====== -->
   <div class="slide">
     <div class="sc">
       <div class="sh dark"><div class="st">📋 Agenda da Aula 5</div><div class="ss">Estrutura e objetivos da aula de hoje</div></div>
       <div class="g2" style="gap:12px;">
         <div id="ag0" class="box" style="opacity:0;">
-          <h3>🕐 Bloco 1 — Node.js, Event Loop e MVC (25 min)</h3>
-          <p>Modelo assíncrono, Express.js e padrão MVC com controllers e models.</p>
+          <h3>🕐 Bloco 1 — Autoestudo (revisão e dúvidas)</h3>
+          <p>Recap dos principais pontos do material lido — TS, Jest, supertest, TDD top-down.</p>
         </div>
         <div id="ag1" class="box" style="opacity:0;">
-          <h3>🕑 Bloco 2 — Estrutura de Pastas e .env (20 min)</h3>
-          <p>Organização do projeto, variáveis de ambiente e boas práticas.</p>
+          <h3>🕑 Bloco 2 — Instrução (Professor)</h3>
+          <p>Setup TS + Jest, RED → GREEN → REFACTOR aplicado a controller, service, repository e helpers.</p>
         </div>
         <div id="ag2" class="box" style="opacity:0;">
-          <h3>🕒 Bloco 3 — Spec-Driven: RM-ODP → Test → Code (25 min)</h3>
-          <p>White Box Testing, TDD e como os 5 viewpoints RM-ODP guiam o que testar.</p>
+          <h3>🕒 Bloco 3 — Almoço</h3>
+          <p>Pausa para descansar a cabeça e recarregar para o desenvolvimento da tarde.</p>
         </div>
         <div id="ag3" class="box acc" style="opacity:0;">
-          <h3>🎯 Objetivo da Aula</h3>
-          <p>Ao final, o aluno deve criar uma API Express com MVC <strong>e escrever os primeiros testes spec-driven</strong>.</p>
+          <h3>🎯 Bloco 4 — Desenvolvimento (Projeto)</h3>
+          <p>Aplicar o ciclo TDD na entidade do projeto até obter a casca verde do back-end.</p>
         </div>
       </div>
     </div>
   </div>
-<!-- ==== SLIDE 3: O QUE É NODE.JS ====== -->
+
+  <!-- ====== SLIDE 3: ROADMAP ====== -->
   <div class="slide">
     <div class="sc">
-      <div class="sh blue"><div class="st">O que é Node.js?</div><div class="ss">JavaScript liberado do browser — agora ele roda no servidor</div></div>
-      <div id="pipe-node" class="pipe" style="margin:16px 0;">
-        <div class="ps an">
-          <div class="pn" style="background:linear-gradient(135deg,#f0db4f,#c8b800);">⚡</div>
-          <div class="pl">JavaScript</div><div class="ps2">Browser / código</div>
-          <div class="pc"><div class="pcb" style="--fc:#f0db4f;--tc:#4b5563;"><div class="pcl">interpreta</div></div></div>
-        </div>
-        <div class="ps an">
-          <div class="pn" style="background:linear-gradient(135deg,#374151,#b2b6bf);">V8</div>
-          <div class="pl">V8 Engine</div><div class="ps2">Motor do Chrome</div>
-          <div class="pc"><div class="pcb" style="--fc:#4b5563;--tc:#8cc84b;"><div class="pcl">alimenta</div></div></div>
-        </div>
-        <div class="ps an">
-          <div class="pn" style="background:linear-gradient(135deg,#8cc84b,#4a8c3f);">🟢</div>
-          <div class="pl">Node.js</div><div class="ps2">Servidor / terminal</div>
-        </div>
-      </div>
-      <div class="g2" style="gap:12px;">
+      <div class="sh dark"><div class="st">🗺️ Roadmap do Módulo 2 — onde estamos</div><div class="ss">Saímos do banco e entramos no back-end. Hoje a casca; nas próximas, o miolo.</div></div>
+      <div class="g2">
         <div>
-          <div class="box acc" style="margin-bottom:10px;">
-            <h3>🌐 JavaScript fora do browser</h3>
-            <p>Node.js usa o motor V8 do Chrome para executar JavaScript no servidor, sem precisar de navegador.</p>
-          </div>
-          <div class="box" style="margin-bottom:10px;">
-            <h3>⚡ Event-driven, non-blocking I/O</h3>
-            <p>Nunca fica parado esperando: enquanto aguarda resposta do banco, já atende outra requisição.</p>
-          </div>
+          <div class="ri" id="rm0"><div class="rn">1</div><div><div class="rtl">Dev Web — Frontend Básico</div><div class="rds">HTML, CSS, primeiras telas</div></div></div>
+          <div class="ri" id="rm1"><div class="rn">2</div><div><div class="rtl">Banco de Dados I</div><div class="rds">Relacional, normalização, DDL</div></div></div>
+          <div class="ri" id="rm2"><div class="rn">3</div><div><div class="rtl">Banco de Dados II</div><div class="rds">CRUD, transações</div></div></div>
+          <div class="ri" id="rm3"><div class="rn">4</div><div><div class="rtl">Banco de Dados III</div><div class="rds">JOINs, agregações, EXPLAIN</div></div></div>
         </div>
         <div>
-          <div class="box grn" style="margin-bottom:10px;">
-            <h3>📅 Criado por Ryan Dahl em 2009</h3>
-            <p>Open-source, mantido pela OpenJS Foundation. Versão LTS atual: Node 20+.</p>
-          </div>
-          <div class="box" style="border-left-color:var(--am);">
-            <h3>🏢 Usado por Netflix, Uber, LinkedIn</h3>
-            <p>Alta performance em APIs com muitas conexões simultâneas e baixa latência.</p>
-          </div>
+          <div class="ri cur" id="rm4"><div class="rn">5</div><div><div class="rtl">Back-End I — TDD top-down ◀ você está aqui</div><div class="rds">TS + Jest + supertest, controller → service → repository → helpers</div></div></div>
+          <div class="ri" id="rm5"><div class="rn">6</div><div><div class="rtl">Back-End II</div><div class="rds">CRUD HTTP completo, validações, erros</div></div></div>
+          <div class="ri" id="rm6"><div class="rn">7</div><div><div class="rtl">Front + Back I (SSR EJS)</div><div class="rds">Renderização no servidor</div></div></div>
+          <div class="ri" id="rm7"><div class="rn">8–11</div><div><div class="rtl">Integrações, deploy, encerramento</div><div class="rds">CI, métricas, qualidade</div></div></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ====== SLIDE 4: EVENT LOOP ====== -->
+  <!-- ====== SLIDE 4: POR QUE TS E TDD TOP-DOWN? ====== -->
   <div class="slide">
     <div class="sc">
-      <div class="sh dark"><div class="st">O Event Loop</div><div class="ss">Como Node.js processa tudo sem travar</div></div>
-      <div class="el-grid">
-        <div class="el-box" id="el0" style="background:linear-gradient(135deg,#374151,#b2b6bf);color:white;">
-          <div class="el-icon">📚</div>
-          <div class="el-title">Call Stack</div>
-          <div class="el-desc" style="color:rgba(255,255,255,.85);">Onde o código JavaScript executa, linha por linha. Apenas uma operação por vez.</div>
+      <div class="sh ts"><div class="st">Por que sair do SQL puro? Por que TDD top-down?</div><div class="ss">Da query para o servidor — com testes guiando cada linha de código</div></div>
+      <div class="g2">
+        <div class="box ts">
+          <h3>🔷 Por que TypeScript no back-end?</h3>
+          <ul>
+            <li><strong>Tipagem estática</strong> — erros pegos antes de rodar.</li>
+            <li><strong>Modelos como contratos</strong> — <code>interface User</code> é a verdade compartilhada entre camadas.</li>
+            <li><strong>Refactor seguro</strong> — renomear um campo quebra a compilação onde estiver errado.</li>
+            <li><strong>DX</strong> — autocomplete preciso, sem adivinhação.</li>
+          </ul>
         </div>
-        <div class="el-box" id="el1" style="background:linear-gradient(135deg,#0d9488,#10b981);color:white;">
-          <div class="el-icon">🌐</div>
-          <div class="el-title">Web APIs / I/O</div>
-          <div class="el-desc" style="color:rgba(255,255,255,.85);">Operações assíncronas: leitura de arquivo, consulta ao banco, chamadas de rede.</div>
-        </div>
-        <div class="el-box" id="el2" style="background:linear-gradient(135deg,#d97706,#f59e0b);color:white;">
-          <div class="el-icon">📬</div>
-          <div class="el-title">Event Queue</div>
-          <div class="el-desc" style="color:rgba(255,255,255,.85);">Fila de callbacks prontos para executar. O Event Loop os busca aqui quando a Call Stack esvazia.</div>
-        </div>
-        <div class="el-box" id="el3" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:white;">
-          <div class="el-icon">🔄</div>
-          <div class="el-title">Event Loop</div>
-          <div class="el-desc" style="color:rgba(255,255,255,.85);">O maestro: verifica se a Call Stack está vazia e move callbacks da fila para execução.</div>
+        <div class="box red">
+          <h3>🔴 Por que TDD top-down?</h3>
+          <ul>
+            <li>Começamos pelo <strong>uso real</strong> (HTTP) e descemos até a base.</li>
+            <li>Cada teste falhando é uma <strong>especificação executável</strong>.</li>
+            <li>Implementamos o <strong>mínimo</strong> para passar — sem invenção.</li>
+            <li>Feedback de segundos com o ciclo <strong>RED → GREEN → REFACTOR</strong>.</li>
+          </ul>
         </div>
       </div>
-      <div class="box" style="margin-top:12px;">
-        <h3>💡 Regra de ouro</h3>
-        <p>Node processa <strong>1 coisa por vez</strong>, mas nunca bloqueia esperando I/O — por isso consegue atender <strong>milhares de conexões simultâneas</strong> com um único processo.</p>
+      <div class="box acc" style="margin-top:10px;">
+        <h3>🎯 A meta de hoje</h3>
+        <p>Sair do dia com um servidor Express em TypeScript respondendo <code>GET /users/:id</code>, com testes verdes em <strong>todas as camadas</strong> — controller, service, repository, helper.</p>
       </div>
     </div>
   </div>
 
-  <!-- ====== SLIDE 5: NPM e package.json ====== -->
+  <!-- ====== SLIDE 5: SETUP DO PROJETO TS ====== -->
   <div class="slide">
     <div class="sc">
-      <div class="sh green"><div class="st">NPM e package.json</div><div class="ss">O gerenciador de pacotes e o manifesto do seu projeto</div></div>
-      <div class="g2" style="gap:12px;height:340px;">
-        <div class="term">
-          <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="term-ttl">terminal — setup do projeto</div></div>
+      <div class="sh blue"><div class="st">⚙️ Setup do projeto TypeScript</div><div class="ss">npm init, deps, tsconfig, scripts — tudo declarativo</div></div>
+      <div class="g2" style="gap:12px;align-items:start;">
+        <div class="term" style="height:340px;">
+          <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="term-ttl">terminal — bootstrap</div></div>
           <div class="term-body">
-            <div class="tl" id="nl0"></div><div class="tl" id="nl1"></div><div class="tl" id="nl2"></div>
-            <div class="tl" id="nl3"></div><div class="tl" id="nl4"></div><div class="tl" id="nl5"></div>
-            <div class="tl" id="nl6"></div><div class="tl" id="nl7"></div><div class="tl" id="nl8"></div>
+            <div class="tl" id="su0"></div><div class="tl" id="su1"></div><div class="tl" id="su2"></div>
+            <div class="tl" id="su3"></div><div class="tl" id="su4"></div><div class="tl" id="su5"></div>
+            <div class="tl" id="su6"></div><div class="tl" id="su7"></div><div class="tl" id="su8"></div>
+            <div class="tl" id="su9"></div><div class="tl" id="su10"></div>
           </div>
         </div>
-        <div class="term">
-          <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="term-ttl">package.json</div></div>
+        <div>
+          <div class="box ts" style="margin-bottom:8px;">
+            <h3>📦 Dependências</h3>
+            <p><strong>Runtime:</strong> <code>express</code>, <code>pg</code>, <code>dotenv</code>.</p>
+            <p><strong>Dev:</strong> <code>typescript</code>, <code>tsx</code>, <code>@types/*</code>, <code>jest</code>, <code>ts-jest</code>, <code>supertest</code>.</p>
+          </div>
+          <div class="box acc">
+            <h3>🧾 Scripts npm</h3>
+            <ul>
+              <li><code>dev</code> — <code>tsx watch src/server.ts</code></li>
+              <li><code>build</code> — <code>tsc</code></li>
+              <li><code>start</code> — <code>node dist/server.js</code></li>
+              <li><code>test</code> — <code>jest</code></li>
+              <li><code>test:watch</code> — <code>jest --watch</code></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== SLIDE 6: SETUP JEST + SUPERTEST ====== -->
+  <div class="slide">
+    <div class="sc">
+      <div class="sh ts"><div class="st">🧪 Setup Jest + ts-jest + supertest</div><div class="ss">Roda <code style="background:rgba(255,255,255,.18);color:white;">.ts</code> direto, sem build prévio</div></div>
+      <div class="g2" style="gap:12px;align-items:start;">
+        <div class="term" style="height:340px;">
+          <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="term-ttl">jest.config.ts</div></div>
           <div class="term-body">
-            <div class="tl" id="pj0"></div><div class="tl" id="pj1"></div><div class="tl" id="pj2"></div>
-            <div class="tl" id="pj3"></div><div class="tl" id="pj4"></div><div class="tl" id="pj5"></div>
-            <div class="tl" id="pj6"></div><div class="tl" id="pj7"></div><div class="tl" id="pj8"></div>
-            <div class="tl" id="pj9"></div><div class="tl" id="pj10"></div><div class="tl" id="pj11"></div>
+            <div class="tl" id="je0"></div><div class="tl" id="je1"></div><div class="tl" id="je2"></div>
+            <div class="tl" id="je3"></div><div class="tl" id="je4"></div><div class="tl" id="je5"></div>
+            <div class="tl" id="je6"></div><div class="tl" id="je7"></div><div class="tl" id="je8"></div>
+            <div class="tl" id="je9"></div>
+          </div>
+        </div>
+        <div>
+          <div class="box grn" style="margin-bottom:8px;">
+            <h3>✅ O que esse setup garante</h3>
+            <ul>
+              <li><code>preset: 'ts-jest'</code> — compila TS em memória.</li>
+              <li><code>testEnvironment: 'node'</code> — sem JSDOM.</li>
+              <li><code>testMatch</code> aponta para <code>*.spec.ts</code> ao lado de cada arquivo.</li>
+              <li><code>supertest</code> dispara HTTP no app sem subir porta.</li>
+            </ul>
+          </div>
+          <div class="box amr">
+            <h3>🤔 AAA — Arrange / Act / Assert</h3>
+            <p>Todo teste tem três blocos: <strong>preparar</strong> entrada, <strong>executar</strong> a ação, <strong>verificar</strong> o resultado. Esse padrão deixa o teste lido como uma especificação.</p>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ====== SLIDE 6: EXPRESS.JS ====== -->
+  <!-- ====== SLIDE 7: SPEC CONTROLLER (RED) ====== -->
   <div class="slide">
     <div class="sc">
-      <div class="sh blue"><div class="st">Express.js — Servidor em 10 linhas</div><div class="ss">O micro-framework que coloca Node.js para trabalhar como API</div></div>
-      <div class="term" style="height:340px;">
-        <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="term-ttl">src/server.js</div></div>
-        <div class="term-body">
-          <div class="tl" id="ex0"></div><div class="tl" id="ex1"></div><div class="tl" id="ex2"></div>
-          <div class="tl" id="ex3"></div><div class="tl" id="ex4"></div><div class="tl" id="ex5"></div>
-          <div class="tl" id="ex6"></div><div class="tl" id="ex7"></div><div class="tl" id="ex8"></div>
-          <div class="tl" id="ex9"></div><div class="tl" id="ex10"></div><div class="tl" id="ex11"></div>
-          <div class="tl" id="ex12"></div>
-        </div>
-      </div>
-      <div class="box" style="margin-top:10px;">
-        <h3>📌 Vocabulário essencial</h3>
-        <p><code>req</code> = objeto da <strong>requisição</strong> do cliente (headers, body, params) &nbsp;·&nbsp; <code>res</code> = objeto da <strong>resposta</strong> do servidor (status, JSON)</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- ====== SLIDE 7: MVC ====== -->
-  <div class="slide">
-    <div class="sc">
-      <div class="sh dark"><div class="st">Padrão MVC — Model View Controller</div><div class="ss">Separação de responsabilidades que organiza e escala qualquer sistema</div></div>
-      <div class="lstack">
-        <div class="alayer" id="mvc0" style="background:linear-gradient(135deg,#374151,#b2b6bf);">
-          <div class="li">🎨</div>
-          <div>
-            <div class="ln">View — O que o usuário vê</div>
-            <div class="lt">HTML, CSS, JavaScript no browser</div>
-            <div class="ld">Interface visual que consome a API — no nosso projeto, o frontend é separado do backend.</div>
+      <div class="sh red"><div class="st"><span class="stage red">RED · 1</span>Spec do Controller via supertest</div><div class="ss">Começamos pelo topo: o uso real via HTTP</div></div>
+      <div class="g2" style="gap:12px;align-items:start;">
+        <div class="term" style="height:360px;">
+          <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="term-ttl">src/controllers/userController.spec.ts</div></div>
+          <div class="term-body">
+            <div class="tl" id="cs0"></div><div class="tl" id="cs1"></div><div class="tl" id="cs2"></div>
+            <div class="tl" id="cs3"></div><div class="tl" id="cs4"></div><div class="tl" id="cs5"></div>
+            <div class="tl" id="cs6"></div><div class="tl" id="cs7"></div><div class="tl" id="cs8"></div>
+            <div class="tl" id="cs9"></div><div class="tl" id="cs10"></div><div class="tl" id="cs11"></div>
+            <div class="tl" id="cs12"></div><div class="tl" id="cs13"></div>
           </div>
         </div>
-        <div class="larr" id="mvca0">⬇️ HTTP Request / Response</div>
-        <div class="alayer" id="mvc1" style="background:linear-gradient(135deg,#0d9488,#10b981);">
-          <div class="li">🎮</div>
-          <div>
-            <div class="ln">Controller — A lógica da requisição</div>
-            <div class="lt">Recebe req, valida dados, chama o Model, envia res</div>
-            <div class="ld">Orquestra o fluxo: autenticação, tratamento de erros, serialização da resposta.</div>
+        <div>
+          <div class="box red" style="margin-bottom:8px;">
+            <h3>🔴 Resultado esperado</h3>
+            <p>Falha. Não existe <code>app</code> ainda, nem rota, nem controller. <strong>Isso é certo.</strong></p>
           </div>
-        </div>
-        <div class="larr" id="mvca1">⬇️ Chamadas de função</div>
-        <div class="alayer" id="mvc2" style="background:linear-gradient(135deg,#d97706,#f59e0b);">
-          <div class="li">📦</div>
-          <div>
-            <div class="ln">Model — O acesso aos dados</div>
-            <div class="lt">Consultas SQL, regras de negócio, validações</div>
-            <div class="ld">Única camada que fala com o banco de dados — isola a lógica de persistência.</div>
+          <div class="box acc">
+            <h3>🧠 Por que começar por aqui?</h3>
+            <p>Esse spec descreve como o sistema é <em>realmente usado</em>: uma chamada HTTP. Quando ele passar, sabemos que o caminho controller → service → repository está fechado.</p>
           </div>
         </div>
       </div>
-      <div class="box" style="margin-top:10px;">
-        <h3>💡 No nosso projeto</h3>
-        <p>Sem View no backend — o frontend (HTML/JS) é uma aplicação separada. O backend expõe apenas <strong>endpoints REST (JSON)</strong>.</p>
-      </div>
     </div>
   </div>
 
-  <!-- ====== SLIDE 8: MODEL ====== -->
+  <!-- ====== SLIDE 8: SPEC SERVICE (RED) ====== -->
   <div class="slide">
     <div class="sc">
-      <div class="sh green"><div class="st">Model — Consultando o Banco</div><div class="ss">A camada que fala SQL — e isola o banco do resto da aplicação</div></div>
-      <div class="term" style="height:380px;">
-        <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="term-ttl">src/models/usuarioModel.js</div></div>
-        <div class="term-body">
-          <div class="tl" id="mo0"></div><div class="tl" id="mo1"></div><div class="tl" id="mo2"></div>
-          <div class="tl" id="mo3"></div><div class="tl" id="mo4"></div><div class="tl" id="mo5"></div>
-          <div class="tl" id="mo6"></div><div class="tl" id="mo7"></div><div class="tl" id="mo8"></div>
-          <div class="tl" id="mo9"></div><div class="tl" id="mo10"></div><div class="tl" id="mo11"></div>
-          <div class="tl" id="mo12"></div><div class="tl" id="mo13"></div><div class="tl" id="mo14"></div>
-          <div class="tl" id="mo15"></div><div class="tl" id="mo16"></div><div class="tl" id="mo17"></div>
-          <div class="tl" id="mo18"></div><div class="tl" id="mo19"></div><div class="tl" id="mo20"></div>
+      <div class="sh red"><div class="st"><span class="stage red">RED · 2</span>Spec do Service mockando o Repository</div><div class="ss">Isolamos a regra de negócio — sem tocar no banco</div></div>
+      <div class="g2" style="gap:12px;align-items:start;">
+        <div class="term" style="height:360px;">
+          <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="term-ttl">src/services/userService.spec.ts</div></div>
+          <div class="term-body">
+            <div class="tl" id="ss0"></div><div class="tl" id="ss1"></div><div class="tl" id="ss2"></div>
+            <div class="tl" id="ss3"></div><div class="tl" id="ss4"></div><div class="tl" id="ss5"></div>
+            <div class="tl" id="ss6"></div><div class="tl" id="ss7"></div><div class="tl" id="ss8"></div>
+            <div class="tl" id="ss9"></div><div class="tl" id="ss10"></div><div class="tl" id="ss11"></div>
+            <div class="tl" id="ss12"></div>
+          </div>
+        </div>
+        <div>
+          <div class="box amr" style="margin-bottom:8px;">
+            <h3>🎭 Test doubles</h3>
+            <ul>
+              <li><strong>mock</strong> — função fake controlada por nós.</li>
+              <li><code>jest.fn()</code> — cria a função.</li>
+              <li><code>mockResolvedValue()</code> — define o que a Promise resolve.</li>
+            </ul>
+          </div>
+          <div class="box red">
+            <h3>🔴 O que cobrimos aqui</h3>
+            <ul>
+              <li>Caminho feliz: repo retorna user → service devolve.</li>
+              <li>Caminho infeliz: repo retorna <code>null</code> → service lança <code>NotFoundError</code>.</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ====== SLIDE 9: CONTROLLER ====== -->
+  <!-- ====== SLIDE 9: SPEC REPOSITORY (RED) ====== -->
   <div class="slide">
     <div class="sc">
-      <div class="sh blue"><div class="st">Controller — Orquestrando a Lógica</div><div class="ss">Recebe a requisição, chama o Model, devolve a resposta</div></div>
-      <div class="term" style="height:370px;">
-        <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="term-ttl">src/controllers/usuarioController.js</div></div>
-        <div class="term-body">
-          <div class="tl" id="co0"></div><div class="tl" id="co1"></div><div class="tl" id="co2"></div>
-          <div class="tl" id="co3"></div><div class="tl" id="co4"></div><div class="tl" id="co5"></div>
-          <div class="tl" id="co6"></div><div class="tl" id="co7"></div><div class="tl" id="co8"></div>
-          <div class="tl" id="co9"></div><div class="tl" id="co10"></div><div class="tl" id="co11"></div>
-          <div class="tl" id="co12"></div><div class="tl" id="co13"></div><div class="tl" id="co14"></div>
-          <div class="tl" id="co15"></div><div class="tl" id="co16"></div><div class="tl" id="co17"></div>
-          <div class="tl" id="co18"></div>
+      <div class="sh red"><div class="st"><span class="stage red">RED · 3</span>Spec do Repository — SQL parametrizado</div><div class="ss">Aqui o teste mostra que a query é <strong>parametrizada</strong> e atinge o pool</div></div>
+      <div class="g2" style="gap:12px;align-items:start;">
+        <div class="term" style="height:340px;">
+          <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="term-ttl">src/repositories/userRepository.spec.ts</div></div>
+          <div class="term-body">
+            <div class="tl" id="rs0"></div><div class="tl" id="rs1"></div><div class="tl" id="rs2"></div>
+            <div class="tl" id="rs3"></div><div class="tl" id="rs4"></div><div class="tl" id="rs5"></div>
+            <div class="tl" id="rs6"></div><div class="tl" id="rs7"></div><div class="tl" id="rs8"></div>
+            <div class="tl" id="rs9"></div><div class="tl" id="rs10"></div>
+          </div>
+        </div>
+        <div>
+          <div class="box amr" style="margin-bottom:8px;">
+            <h3>💾 Banco efêmero — uma nota</h3>
+            <p>Aqui mockamos o <code>pool.query</code>. Quando precisarmos de um banco real (próximas aulas), usaremos um <strong>banco efêmero</strong> — Postgres em container, criado e derrubado a cada suíte.</p>
+          </div>
+          <div class="box red">
+            <h3>🔴 O que provamos</h3>
+            <ul>
+              <li>Que a query usa placeholder <code>$1</code> (anti-injeção).</li>
+              <li>Que o pool é chamado com o <code>id</code> recebido.</li>
+              <li>Que retornamos <code>null</code> quando não há linhas.</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ====== SLIDE 10: ROUTES ====== -->
+  <!-- ====== SLIDE 10: SPEC HELPER (RED) ====== -->
   <div class="slide">
     <div class="sc">
-      <div class="sh dark"><div class="st">Routes — Conectando tudo</div><div class="ss">O mapeamento entre URLs HTTP e funções do Controller</div></div>
-      <div class="term" style="height:370px;">
-        <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="term-ttl">src/routes/usuarioRoutes.js</div></div>
-        <div class="term-body">
-          <div class="tl" id="ro0"></div><div class="tl" id="ro1"></div><div class="tl" id="ro2"></div>
-          <div class="tl" id="ro3"></div><div class="tl" id="ro4"></div><div class="tl" id="ro5"></div>
-          <div class="tl" id="ro6"></div><div class="tl" id="ro7"></div><div class="tl" id="ro8"></div>
-          <div class="tl" id="ro9"></div><div class="tl" id="ro10"></div><div class="tl" id="ro11"></div>
-          <div class="tl" id="ro12"></div><div class="tl" id="ro13"></div>
+      <div class="sh red"><div class="st"><span class="stage red">RED · 4</span>Spec do Helper puro — <code style="background:rgba(255,255,255,.18);color:white;">isValidEmail</code></div><div class="ss">Função pura: entrada → saída, sem efeitos colaterais</div></div>
+      <div class="g2" style="gap:12px;align-items:start;">
+        <div class="term" style="height:300px;">
+          <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="term-ttl">src/helpers/email.spec.ts</div></div>
+          <div class="term-body">
+            <div class="tl" id="hs0"></div><div class="tl" id="hs1"></div><div class="tl" id="hs2"></div>
+            <div class="tl" id="hs3"></div><div class="tl" id="hs4"></div><div class="tl" id="hs5"></div>
+            <div class="tl" id="hs6"></div><div class="tl" id="hs7"></div><div class="tl" id="hs8"></div>
+          </div>
+        </div>
+        <div>
+          <div class="box grn" style="margin-bottom:8px;">
+            <h3>🎯 Matchers comuns</h3>
+            <ul>
+              <li><code>toBe</code> — igualdade estrita (<code>===</code>).</li>
+              <li><code>toEqual</code> — igualdade profunda de objetos/arrays.</li>
+              <li><code>toMatchObject</code> — subset de propriedades.</li>
+              <li><code>rejects.toThrow</code> — Promise rejeitada.</li>
+            </ul>
+          </div>
+          <div class="box acc">
+            <h3>♻️ Função pura</h3>
+            <p>Helpers puros são o caso mais simples de testar — <strong>comece por eles para aquecer</strong> e termine por eles para refatorar com segurança.</p>
+          </div>
         </div>
       </div>
     </div>
@@ -462,120 +452,218 @@
   <!-- ====== SLIDE 11: ESTRUTURA DE PASTAS ====== -->
   <div class="slide">
     <div class="sc">
-      <div class="sh green"><div class="st">Estrutura de Pastas MVC</div><div class="ss">Cada arquivo tem um lugar certo — convenção que todo time entende</div></div>
+      <div class="sh dark"><div class="st">📁 Estrutura — <code style="background:rgba(255,255,255,.18);color:white;">.spec.ts</code> ao lado de cada arquivo</div><div class="ss">MVC com 6 camadas — cada camada com seu teste vizinho</div></div>
       <div class="g2" style="gap:14px;align-items:start;">
-        <div class="term">
-          <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="term-ttl">meu-projeto/ — árvore de arquivos</div></div>
+        <div class="tree"><span class="dir">src/</span>
+├── <span class="dir">controllers/</span>
+│   ├── <span class="file">userController.ts</span>
+│   └── <span class="spec">userController.spec.ts</span>
+├── <span class="dir">routes/</span>
+│   └── <span class="file">userRoutes.ts</span>
+├── <span class="dir">services/</span>
+│   ├── <span class="file">userService.ts</span>
+│   └── <span class="spec">userService.spec.ts</span>
+├── <span class="dir">repositories/</span>
+│   ├── <span class="file">userRepository.ts</span>
+│   └── <span class="spec">userRepository.spec.ts</span>
+├── <span class="dir">models/</span>
+│   └── <span class="file">user.ts</span>          <span class="cm">// interface User</span>
+├── <span class="dir">helpers/</span>
+│   ├── <span class="file">email.ts</span>
+│   └── <span class="spec">email.spec.ts</span>
+├── <span class="dir">middlewares/</span>
+│   └── <span class="file">errorHandler.ts</span>
+├── <span class="dir">errors/</span>
+│   └── <span class="file">AppError.ts</span>
+├── <span class="dir">db/</span>
+│   └── <span class="file">pool.ts</span>
+├── <span class="file">app.ts</span>
+└── <span class="file">server.ts</span></div>
+        <div>
+          <div class="box ts" style="margin-bottom:8px;">
+            <h3>🏗️ As 6 camadas</h3>
+            <div class="lstack">
+              <div class="alayer" id="ly0" style="background:linear-gradient(135deg,#1e40af,#3b82f6);"><span class="li">🛣️</span><div><div class="ln">routes</div><div class="lt">URL → controller</div></div></div>
+              <div class="alayer" id="ly1" style="background:linear-gradient(135deg,#0284c7,#38bdf8);"><span class="li">🎮</span><div><div class="ln">controllers</div><div class="lt">HTTP in/out, sem regra</div></div></div>
+              <div class="alayer" id="ly2" style="background:linear-gradient(135deg,#0d9488,#10b981);"><span class="li">🧠</span><div><div class="ln">services</div><div class="lt">regras de negócio</div></div></div>
+              <div class="alayer" id="ly3" style="background:linear-gradient(135deg,#d97706,#f59e0b);"><span class="li">🗄️</span><div><div class="ln">repositories</div><div class="lt">SQL e pool</div></div></div>
+              <div class="alayer" id="ly4" style="background:linear-gradient(135deg,#7c3aed,#a855f7);"><span class="li">📐</span><div><div class="ln">models</div><div class="lt">interfaces (contratos)</div></div></div>
+              <div class="alayer" id="ly5" style="background:linear-gradient(135deg,#475569,#64748b);"><span class="li">🛠️</span><div><div class="ln">helpers</div><div class="lt">funções puras</div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== SLIDE 12: GREEN — CONTROLLER E ROTAS ====== -->
+  <div class="slide">
+    <div class="sc">
+      <div class="sh green"><div class="st"><span class="stage green">GREEN · 1</span>Controller e Rotas — sempre primeiro</div><div class="ss">É a casca: amarra HTTP ao service. Mínimo possível para o teste passar.</div></div>
+      <div class="g2" style="gap:12px;align-items:start;">
+        <div class="term" style="height:280px;">
+          <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="term-ttl">src/controllers/userController.ts</div></div>
           <div class="term-body">
-            <div class="tl" id="ft0"></div><div class="tl" id="ft1"></div><div class="tl" id="ft2"></div>
-            <div class="tl" id="ft3"></div><div class="tl" id="ft4"></div><div class="tl" id="ft5"></div>
-            <div class="tl" id="ft6"></div><div class="tl" id="ft7"></div><div class="tl" id="ft8"></div>
-            <div class="tl" id="ft9"></div><div class="tl" id="ft10"></div><div class="tl" id="ft11"></div>
-            <div class="tl" id="ft12"></div>
+            <div class="tl" id="gc0"></div><div class="tl" id="gc1"></div><div class="tl" id="gc2"></div>
+            <div class="tl" id="gc3"></div><div class="tl" id="gc4"></div><div class="tl" id="gc5"></div>
+            <div class="tl" id="gc6"></div><div class="tl" id="gc7"></div><div class="tl" id="gc8"></div>
+            <div class="tl" id="gc9"></div>
+          </div>
+        </div>
+        <div class="term" style="height:280px;">
+          <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="term-ttl">src/routes/userRoutes.ts + app.ts</div></div>
+          <div class="term-body">
+            <div class="tl" id="gr0"></div><div class="tl" id="gr1"></div><div class="tl" id="gr2"></div>
+            <div class="tl" id="gr3"></div><div class="tl" id="gr4"></div><div class="tl" id="gr5"></div>
+            <div class="tl" id="gr6"></div><div class="tl" id="gr7"></div><div class="tl" id="gr8"></div>
+            <div class="tl" id="gr9"></div><div class="tl" id="gr10"></div>
+          </div>
+        </div>
+      </div>
+      <div class="box grn" style="margin-top:10px;">
+        <h3>🟢 Casca montada</h3>
+        <p>O teste do controller ainda falha (falta o service), mas a estrutura está pronta. Agora descemos uma camada.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== SLIDE 13: GREEN — SERVICE ====== -->
+  <div class="slide">
+    <div class="sc">
+      <div class="sh green"><div class="st"><span class="stage green">GREEN · 2</span>Service — a regra de negócio</div><div class="ss">Pega no repository, decide o que fazer com a resposta</div></div>
+      <div class="g2" style="gap:12px;align-items:start;">
+        <div class="term" style="height:340px;">
+          <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="term-ttl">src/services/userService.ts</div></div>
+          <div class="term-body">
+            <div class="tl" id="gs0"></div><div class="tl" id="gs1"></div><div class="tl" id="gs2"></div>
+            <div class="tl" id="gs3"></div><div class="tl" id="gs4"></div><div class="tl" id="gs5"></div>
+            <div class="tl" id="gs6"></div><div class="tl" id="gs7"></div><div class="tl" id="gs8"></div>
+            <div class="tl" id="gs9"></div><div class="tl" id="gs10"></div>
           </div>
         </div>
         <div>
-          <div class="box acc" style="margin-bottom:10px;">
-            <h3>🏗️ Por que essa estrutura?</h3>
-            <ul>
-              <li><strong>config/</strong> — conexão com banco, variáveis de ambiente</li>
-              <li><strong>models/</strong> — todo SQL fica aqui, isolado</li>
-              <li><strong>controllers/</strong> — lógica HTTP, sem SQL</li>
-              <li><strong>routes/</strong> — mapeia URLs para controllers</li>
-              <li><strong>server.js</strong> — ponto de entrada da aplicação</li>
-            </ul>
+          <div class="box ts" style="margin-bottom:8px;">
+            <h3>📐 Model — <code>interface User</code></h3>
+            <pre class="inline-pre"><span style="color:#cba6f7;">export interface</span> <span style="color:#89b4fa;">User</span> {
+  id: <span style="color:#89b4fa;">number</span>;
+  name: <span style="color:#89b4fa;">string</span>;
+  email: <span style="color:#89b4fa;">string</span>;
+}</pre>
           </div>
-          <div class="box" style="border-left-color:var(--re);">
-            <h3>⚠️ .env — variáveis sensíveis</h3>
-            <p>Guarda <code>DB_URL</code>, <code>PORT</code>, senhas e tokens. <strong>Nunca suba ao Git!</strong> Adicione <code>.env</code> no <code>.gitignore</code>.</p>
+          <div class="box grn">
+            <h3>🟢 Resultado</h3>
+            <p>Os dois testes do service passam. O do controller ainda depende do repository — vamos lá.</p>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ====== SLIDE 12: SPEC-DRIVEN DEVELOPMENT ====== -->
+  <!-- ====== SLIDE 14: GREEN — REPOSITORY + POOL ====== -->
   <div class="slide">
     <div class="sc">
-      <div class="sh dark"><div class="st">🧪 Spec-Driven Development</div><div class="ss">RM-ODP → Business Drivers → Spec → Tests → Code</div></div>
-      <div class="g2" style="gap:12px;margin-bottom:10px;">
-        <div id="tdd0" style="opacity:0;">
-          <div class="box acc" style="margin-bottom:8px;">
-            <h3>1️⃣ RM-ODP: Enterprise → Business Driver</h3>
-            <p style="font-size:.85rem;"><strong>Enterprise viewpoint:</strong> "Usuários precisam se cadastrar para acessar recursos protegidos."<br>
-            <strong>Computational:</strong> <code>POST /users</code> deve criar usuário se email não existe.</p>
-          </div>
-          <div class="box" style="border-left-color:var(--am);">
-            <h3>2️⃣ Spec — defina o contrato antes do código</h3>
-            <pre style="font-size:.71rem;background:#1e1829;color:#e2e8f0;padding:6px;border-radius:6px;margin:4px 0;overflow:hidden;"><span style="color:#86efac">POST /users</span> { nome, email } válidos → <span style="color:#fca5a5">201</span> { id, nome, email }
-<span style="color:#86efac">POST /users</span> email duplicado → <span style="color:#fca5a5">409</span> { error: "já existe" }</pre>
+      <div class="sh green"><div class="st"><span class="stage green">GREEN · 3</span>Repository + Pool — SQL parametrizado</div><div class="ss"><code style="background:rgba(255,255,255,.18);color:white;">$1</code> sempre · <strong>nunca</strong> concatenar string com input do usuário</div></div>
+      <div class="g2" style="gap:12px;align-items:start;">
+        <div class="term" style="height:300px;">
+          <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="term-ttl">src/repositories/userRepository.ts</div></div>
+          <div class="term-body">
+            <div class="tl" id="gp0"></div><div class="tl" id="gp1"></div><div class="tl" id="gp2"></div>
+            <div class="tl" id="gp3"></div><div class="tl" id="gp4"></div><div class="tl" id="gp5"></div>
+            <div class="tl" id="gp6"></div><div class="tl" id="gp7"></div><div class="tl" id="gp8"></div>
           </div>
         </div>
-        <div id="tdd1" style="opacity:0;">
-          <div class="box" style="border-left-color:var(--re);margin-bottom:8px;">
-            <h3>3️⃣ 🔴 Test — spec vira código executável</h3>
-            <pre style="font-size:.71rem;background:#1e1829;color:#e2e8f0;padding:6px;border-radius:6px;margin:4px 0;overflow:hidden;">it(<span style="color:#86efac">'cria usuário com email único'</span>, async () =&gt; {
-  <span style="color:#93c5fd">const</span> res = <span style="color:#93c5fd">await</span> request(app)
-    .post(<span style="color:#86efac">'/users'</span>)
-    .send({nome:<span style="color:#86efac">'Ana'</span>,email:<span style="color:#86efac">'ana@t.com'</span>});
-  expect(res.status).<span style="color:#93c5fd">toBe</span>(<span style="color:#fca5a5">201</span>);
-  expect(res.body).<span style="color:#93c5fd">toHaveProperty</span>(<span style="color:#86efac">'id'</span>);
-}); <span style="color:#94a3b8">// ❌ FALHA — rota não existe</span></pre>
-          </div>
-          <div class="box" style="border-left-color:var(--gr);">
-            <h3>4️⃣ 🟢 Code → 🔵 Refactor</h3>
-            <p style="font-size:.83rem;">Implemente o mínimo para passar. Refatore com segurança. O teste garante que o <strong>business driver continua satisfeito</strong>.</p>
+        <div class="term" style="height:300px;">
+          <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="term-ttl">src/db/pool.ts</div></div>
+          <div class="term-body">
+            <div class="tl" id="gd0"></div><div class="tl" id="gd1"></div><div class="tl" id="gd2"></div>
+            <div class="tl" id="gd3"></div><div class="tl" id="gd4"></div><div class="tl" id="gd5"></div>
+            <div class="tl" id="gd6"></div><div class="tl" id="gd7"></div>
           </div>
         </div>
       </div>
-      <div id="tdd2" class="box" style="opacity:0;border-left-color:var(--hi);">
-        <h3>🔍 White Box Testing — você conhece os internos</h3>
-        <p style="font-size:.85rem;">Você escreveu o código → conhece a lógica interna → testa cada unidade isolada. Na aula 10: <strong>Black Box</strong> — testamos comportamento externo sem conhecer os internos.</p>
+      <div class="box red" style="margin-top:10px;">
+        <h3>⚠️ Anti-injeção</h3>
+        <p>Nunca: <code>"SELECT * FROM users WHERE id = " + req.params.id</code>. Sempre: <code>pool.query("... WHERE id = $1", [id])</code>. O driver do <code>pg</code> escapa o valor automaticamente.</p>
       </div>
     </div>
   </div>
 
-  <!-- ====== SLIDE 12: RM-ODP — AS 5 VISÕES ====== -->
+  <!-- ====== SLIDE 15: GREEN — HELPERS + ERRORS ====== -->
   <div class="slide">
     <div class="sc">
-      <div class="sh blue"><div class="st">RM-ODP — As 5 Visões do Sistema</div><div class="ss">ISO/IEC 10746 · Como diferentes stakeholders enxergam o sistema</div></div>
+      <div class="sh green"><div class="st"><span class="stage green">GREEN · 4</span>Helpers + Errors + Middleware</div><div class="ss">Erros de domínio com classe própria — middleware traduz para HTTP</div></div>
+      <div class="g3" style="gap:10px;align-items:start;">
+        <div class="term" style="height:300px;">
+          <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="term-ttl">src/errors/AppError.ts</div></div>
+          <div class="term-body">
+            <div class="tl" id="ge0"></div><div class="tl" id="ge1"></div><div class="tl" id="ge2"></div>
+            <div class="tl" id="ge3"></div><div class="tl" id="ge4"></div><div class="tl" id="ge5"></div>
+            <div class="tl" id="ge6"></div><div class="tl" id="ge7"></div><div class="tl" id="ge8"></div>
+          </div>
+        </div>
+        <div class="term" style="height:300px;">
+          <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="term-ttl">src/middlewares/errorHandler.ts</div></div>
+          <div class="term-body">
+            <div class="tl" id="gm0"></div><div class="tl" id="gm1"></div><div class="tl" id="gm2"></div>
+            <div class="tl" id="gm3"></div><div class="tl" id="gm4"></div><div class="tl" id="gm5"></div>
+            <div class="tl" id="gm6"></div><div class="tl" id="gm7"></div>
+          </div>
+        </div>
+        <div class="term" style="height:300px;">
+          <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="term-ttl">src/helpers/email.ts</div></div>
+          <div class="term-body">
+            <div class="tl" id="gh0"></div><div class="tl" id="gh1"></div><div class="tl" id="gh2"></div>
+            <div class="tl" id="gh3"></div><div class="tl" id="gh4"></div><div class="tl" id="gh5"></div>
+          </div>
+        </div>
+      </div>
+      <div class="box grn" style="margin-top:10px;">
+        <h3>✅ Tudo verde</h3>
+        <p>Os 4 specs passam. <code>npm test</code> retorna verde. <strong>Agora podemos refatorar.</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== SLIDE 15.5: RM-ODP — AS 5 VISÕES ====== -->
+  <div class="slide">
+    <div class="sc">
+      <div class="sh blue"><div class="st">RM-ODP — As 5 Visões do Sistema</div><div class="ss">ISO/IEC 10746 · As 5 visões aplicadas ao MVC do back-end tipado</div></div>
       <div class="pipe" style="flex-wrap:wrap;gap:8px;justify-content:center;margin:16px 0;">
-        <div class="alayer" id="odp0" style="background:linear-gradient(135deg,#2e2640,#4b5563);color:white;padding:10px 16px;border-radius:10px;opacity:0;transform:translateY(16px);transition:all .5s cubic-bezier(.34,1.3,.64,1);min-width:140px;text-align:center;"><strong>🏢 Enterprise</strong><br><small>Propósito, regras de negócio</small></div>
-        <div style="align-self:center;opacity:0;transition:opacity .3s;" id="oa0">→</div>
-        <div class="alayer" id="odp1" style="background:linear-gradient(135deg,#0d9488,#10b981);color:white;padding:10px 16px;border-radius:10px;opacity:0;transform:translateY(16px);transition:all .5s cubic-bezier(.34,1.3,.64,1);min-width:140px;text-align:center;"><strong>📋 Information</strong><br><small>Dados, entidades, relações</small></div>
-        <div style="align-self:center;opacity:0;transition:opacity .3s;" id="oa1">→</div>
-        <div class="alayer" id="odp2" style="background:linear-gradient(135deg,#4b5563,#6b7280);color:white;padding:10px 16px;border-radius:10px;opacity:0;transform:translateY(16px);transition:all .5s cubic-bezier(.34,1.3,.64,1);min-width:140px;text-align:center;"><strong>⚙️ Computational</strong><br><small>Componentes, interfaces</small></div>
-        <div style="align-self:center;opacity:0;transition:opacity .3s;" id="oa2">→</div>
-        <div class="alayer" id="odp3" style="background:linear-gradient(135deg,#d97706,#f59e0b);color:white;padding:10px 16px;border-radius:10px;opacity:0;transform:translateY(16px);transition:all .5s cubic-bezier(.34,1.3,.64,1);min-width:140px;text-align:center;"><strong>🔧 Engineering</strong><br><small>Distribuição, canais, nós</small></div>
-        <div style="align-self:center;opacity:0;transition:opacity .3s;" id="oa3">→</div>
-        <div class="alayer" id="odp4" style="background:linear-gradient(135deg,#dc2626,#ef4444);color:white;padding:10px 16px;border-radius:10px;opacity:0;transform:translateY(16px);transition:all .5s cubic-bezier(.34,1.3,.64,1);min-width:140px;text-align:center;"><strong>💻 Technology</strong><br><small>Plataformas, padrões</small></div>
+        <div class="alayer" id="rmo0" style="background:linear-gradient(135deg,#2e2640,#4b5563);color:white;padding:10px 16px;border-radius:10px;opacity:0;transform:translateY(16px);transition:all .5s cubic-bezier(.34,1.3,.64,1);min-width:140px;text-align:center;"><strong>🏢 Enterprise</strong><br><small>Propósito, regras de negócio</small></div>
+        <div style="align-self:center;opacity:0;transition:opacity .3s;" id="rma0">→</div>
+        <div class="alayer" id="rmo1" style="background:linear-gradient(135deg,#0d9488,#10b981);color:white;padding:10px 16px;border-radius:10px;opacity:0;transform:translateY(16px);transition:all .5s cubic-bezier(.34,1.3,.64,1);min-width:140px;text-align:center;"><strong>📋 Information</strong><br><small>Tipos, interfaces, modelos</small></div>
+        <div style="align-self:center;opacity:0;transition:opacity .3s;" id="rma1">→</div>
+        <div class="alayer" id="rmo2" style="background:linear-gradient(135deg,#1863dc,#3b82f6);color:white;padding:10px 16px;border-radius:10px;opacity:0;transform:translateY(16px);transition:all .5s cubic-bezier(.34,1.3,.64,1);min-width:140px;text-align:center;"><strong>⚙️ Computational</strong><br><small>Controller, service, repo</small></div>
+        <div style="align-self:center;opacity:0;transition:opacity .3s;" id="rma2">→</div>
+        <div class="alayer" id="rmo3" style="background:linear-gradient(135deg,#d97706,#f59e0b);color:white;padding:10px 16px;border-radius:10px;opacity:0;transform:translateY(16px);transition:all .5s cubic-bezier(.34,1.3,.64,1);min-width:140px;text-align:center;"><strong>🔧 Engineering</strong><br><small>Pool, middleware, jest</small></div>
+        <div style="align-self:center;opacity:0;transition:opacity .3s;" id="rma3">→</div>
+        <div class="alayer" id="rmo4" style="background:linear-gradient(135deg,#dc2626,#ef4444);color:white;padding:10px 16px;border-radius:10px;opacity:0;transform:translateY(16px);transition:all .5s cubic-bezier(.34,1.3,.64,1);min-width:140px;text-align:center;"><strong>💻 Technology</strong><br><small>Node, TS, pg, supertest</small></div>
       </div>
-      <div class="box acc" style="margin-top:8px;"><p><strong>Esta aula:</strong> Visões <strong>Information + Computational</strong> — as operações CRUD são as interfaces do componente de dados; as restrições garantem integridade da informação.</p></div>
+      <div class="box acc" style="margin-top:8px;"><p><strong>Esta aula:</strong> Visão <strong>Computational</strong> — desenhamos a casca do back-end (controller → service → repository) com TDD top-down.</p></div>
     </div>
   </div>
-  </div>
 
-  <!-- ====== SLIDE 13: ESTA AULA NO RM-ODP ====== -->
+  <!-- ====== SLIDE 15.6: RF + RNF + Artefato ====== -->
   <div class="slide">
     <div class="sc">
-      <div class="sh dark"><div class="st">Esta Aula: Computational</div><div class="ss">RM-ODP · RF, RNF e Artefato desta aula</div></div>
+      <div class="sh green"><div class="st">Esta Aula: Computational</div><div class="ss">RM-ODP · RF, RNF e Artefato — 8 Eixos no back tipado</div></div>
       <div class="g2" style="gap:12px;">
         <div>
-          <div class="box grn" style="margin-bottom:10px;"><h3>📌 Requisito Funcional</h3><p>Traduzir operações do sistema em componentes de back-end — models e controllers mapeados para cada RF.</p></div>
+          <div class="box grn" style="margin-bottom:10px;"><h3>📌 Requisito Funcional</h3><p>Expor a casca dos endpoints do recurso central do projeto (controller → service → repository) verificada por testes automatizados.</p></div>
           <div class="box" style="border-left-color:var(--am);"><h3>📦 Artefato</h3><ul>
-            <li id="art0" style="opacity:0;transition:all .4s ease;">🗂️ <strong>Estrutura inicial</strong> do back-end Node.js</li>
-            <li id="art1" style="opacity:0;transition:all .4s ease;">⚙️ <strong>Models e Controllers</strong> mapeados</li>
-            <li id="art2" style="opacity:0;transition:all .4s ease;">📋 <strong>Tabela Controller → RF</strong> do projeto</li>
+            <li id="art0" style="opacity:0;transition:all .4s ease;">🧪 <strong>Specs Jest + supertest</strong> (RED)</li>
+            <li id="art1" style="opacity:0;transition:all .4s ease;">🟢 <strong>Implementação mínima</strong> que faz passar</li>
+            <li id="art2" style="opacity:0;transition:all .4s ease;">♻️ <strong>Refatoração</strong> com cobertura instalada</li>
           </ul></div>
         </div>
         <div>
           <div class="box acc"><h3>⚖️ RNF — 8 Eixos ISO/IEC 25010</h3>
             <table class="stbl" id="rnf-tbl" style="border-spacing:0 3px;width:100%;">
-              <tr><td class="scc" data-s="0" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#f1f5f9;font-size:.8rem;"><strong>SUP</strong> Suportabilidade</td><td class="scc" data-s="1" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#dcfce7;font-size:.8rem;">✅ MVC separado</td></tr>
-              <tr><td class="scc" data-s="2" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#f1f5f9;font-size:.8rem;"><strong>SEG</strong> Segurança</td><td class="scc" data-s="3" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#dcfce7;font-size:.8rem;">✅ .env para credenciais</td></tr>
-              <tr><td class="scc" data-s="4" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#f1f5f9;font-size:.8rem;"><strong>CONF</strong> Confiabilidade</td><td class="scc" data-s="5" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#f9f9f9;font-size:.8rem;">→ Conexão DB estável</td></tr>
-              <tr><td class="scc" data-s="6" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#f1f5f9;font-size:.8rem;"><strong>DES</strong> Desempenho</td><td class="scc" data-s="7" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#f9f9f9;font-size:.8rem;">→ Pool de conexões</td></tr>
-              <tr><td class="scc" data-s="8" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#f1f5f9;font-size:.8rem;"><strong>REST</strong> Restrições</td><td class="scc" data-s="9" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#f9f9f9;font-size:.8rem;">→ Node.js + Express</td></tr>
+              <tr><td class="scc" data-s="0" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#f1f5f9;font-size:.8rem;"><strong>CONF</strong> Confiabilidade</td><td class="scc" data-s="1" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#dcfce7;font-size:.8rem;">✅ Testes automáticos</td></tr>
+              <tr><td class="scc" data-s="2" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#f1f5f9;font-size:.8rem;"><strong>MANT</strong> Manutenibilidade</td><td class="scc" data-s="3" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#dcfce7;font-size:.8rem;">✅ TS + camadas isoladas</td></tr>
+              <tr><td class="scc" data-s="4" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#f1f5f9;font-size:.8rem;"><strong>DES</strong> Desempenho</td><td class="scc" data-s="5" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#f9f9f9;font-size:.8rem;">→ pool reusado</td></tr>
+              <tr><td class="scc" data-s="6" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#f1f5f9;font-size:.8rem;"><strong>SEG</strong> Segurança</td><td class="scc" data-s="7" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#f9f9f9;font-size:.8rem;">→ validação no controller</td></tr>
+              <tr><td class="scc" data-s="8" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#f1f5f9;font-size:.8rem;"><strong>SUP</strong> Suportabilidade</td><td class="scc" data-s="9" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#f9f9f9;font-size:.8rem;">→ specs documentam</td></tr>
             </table>
           </div>
         </div>
@@ -583,42 +671,44 @@
     </div>
   </div>
 
-  <!-- ====== SLIDE 14: CHECKLIST ====== -->
+  <!-- ====== SLIDE 16: REFACTOR + RM-ODP + ENCERRAMENTO ====== -->
   <div class="slide">
     <div class="sc">
-      <div class="sh blue"><div class="st">Checklist da Aula</div><div class="ss">O que aprendemos hoje — e o que vem a seguir</div></div>
-      <ul class="ck-list">
-        <li class="ck-item" id="ck0"><div class="ck-icon">✅</div><div><div class="ck-text">O que é Node.js e o Event Loop</div><div class="ck-sub">JavaScript no servidor, V8 Engine, I/O não-bloqueante</div></div></li>
-        <li class="ck-item" id="ck1"><div class="ck-icon">✅</div><div><div class="ck-text">NPM e package.json</div><div class="ck-sub">npm init, npm install, scripts, dependências</div></div></li>
-        <li class="ck-item" id="ck2"><div class="ck-icon">✅</div><div><div class="ck-text">Express.js — servidor básico</div><div class="ck-sub">app.use, rotas, req/res, app.listen</div></div></li>
-        <li class="ck-item" id="ck3"><div class="ck-icon">✅</div><div><div class="ck-text">Padrão MVC</div><div class="ck-sub">Model, View, Controller — separação de responsabilidades</div></div></li>
-        <li class="ck-item" id="ck4"><div class="ck-icon">✅</div><div><div class="ck-text">Model — acesso ao banco</div><div class="ck-sub">findAll, findById, create — SQL isolado no model</div></div></li>
-        <li class="ck-item" id="ck5"><div class="ck-icon">✅</div><div><div class="ck-text">Controller — lógica da requisição</div><div class="ck-sub">listar, buscarPorId, try/catch, res.json, res.status</div></div></li>
-        <li class="ck-item" id="ck6"><div class="ck-icon">✅</div><div><div class="ck-text">Routes — mapeamento de URLs</div><div class="ck-sub">express.Router, GET/POST/PUT/DELETE, app.use</div></div></li>
-        <li class="ck-item" id="ck7" style="background:linear-gradient(135deg,rgba(24,99,220,.08),rgba(133,94,222,.08));border-color:var(--ac);"><div class="ck-icon">➡️</div><div><div class="ck-text">Próxima aula: Endpoints completos</div><div class="ck-sub">GET, POST, PUT, DELETE — CRUD completo via API REST</div></div></li>
-      </ul>
-    </div>
-  </div>
-
-  <!-- ====== SLIDE 13: ENCERRAMENTO ====== -->
-  <div class="slide cover-bg" style="background:linear-gradient(135deg,#12082c 0%,#8cc84b 55%,#10b981 100%)!important;">
-    <div class="sc" style="text-align:center;">
-      <div style="font-size:2.8rem;margin-bottom:12px;">🟢</div>
-      <div style="font-size:2.2rem;font-weight:800;color:white;margin-bottom:10px;">Servidor no ar!</div>
-      <div style="font-size:1rem;color:rgba(255,255,255,.85);margin-bottom:28px;max-width:580px;margin-left:auto;margin-right:auto;">
-        Você sabe criar um servidor Node.js com Express e organizar o código em <strong>Models, Controllers e Routes</strong>. Na próxima aula colocamos o CRUD completo em produção.
+      <div class="sh blue"><div class="st"><span class="stage ref">REFACTOR</span>♻️ → RM-ODP → encerramento</div><div class="ss">Com testes verdes, podemos extrair, renomear e reorganizar com segurança</div></div>
+      <div class="tdd-cycle">
+        <div class="tdd-step red" id="tdd0"><div class="tdd-emoji">🔴</div><div class="tdd-name">RED</div><div class="tdd-desc">Spec falha — descreve a intenção</div></div>
+        <div class="tdd-step green" id="tdd1"><div class="tdd-emoji">🟢</div><div class="tdd-name">GREEN</div><div class="tdd-desc">Mínimo código para passar</div></div>
+        <div class="tdd-step refac" id="tdd2"><div class="tdd-emoji">♻️</div><div class="tdd-name">REFACTOR</div><div class="tdd-desc">Limpa, extrai, renomeia — testes seguram</div></div>
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:24px;">
-        <div class="cv-tag" id="rt0">✅ Node.js</div>
-        <div class="cv-tag" id="rt1">✅ Event Loop</div>
-        <div class="cv-tag" id="rt2">✅ NPM</div>
-        <div class="cv-tag" id="rt3">✅ Express.js</div>
-        <div class="cv-tag" id="rt4">✅ Padrão MVC</div>
-        <div class="cv-tag" id="rt5">✅ Model</div>
-        <div class="cv-tag" id="rt6">✅ Controller</div>
-        <div class="cv-tag" id="rt7">✅ Routes</div>
+      <div class="g2" style="gap:10px;margin-top:8px;">
+        <div class="box blu">
+          <h3>♻️ O que refatoramos hoje</h3>
+          <ul>
+            <li>Extrair <code>asyncHandler</code> para tirar o <code>try/catch</code> dos controllers.</li>
+            <li>Mover validações para <code>helpers/</code> (testáveis isoladamente).</li>
+            <li>Tipar callbacks Express com <code>RequestHandler</code>.</li>
+          </ul>
+        </div>
+        <div class="box acc">
+          <h3>📊 Coverage — métrica, não meta</h3>
+          <p>Use cobertura para <strong>encontrar buracos</strong>, não para perseguir 100%. Um teste sem asserção real não cobre nada — só engana o relatório.</p>
+        </div>
       </div>
-      <div style="font-size:.84rem;color:rgba(255,255,255,.6);">Módulo 2 · Ciclo Comum · Aula 5 de 11</div>
+      <div class="odp-pipe" style="margin-top:8px;">
+        <div class="odp-card" id="odp0" style="background:linear-gradient(135deg,#2e2640,#4b5563);"><strong>🏢 Enterprise</strong><br><small>Propósito do recurso</small></div>
+        <div class="odp-arrow" id="oa0">→</div>
+        <div class="odp-card" id="odp1" style="background:linear-gradient(135deg,#0d9488,#10b981);"><strong>📋 Information</strong><br><small>interface User</small></div>
+        <div class="odp-arrow" id="oa1">→</div>
+        <div class="odp-card" id="odp2" style="background:linear-gradient(135deg,#1863dc,#3b82f6);"><strong>⚙️ Computational</strong><br><small>controller/service ◀ aqui</small></div>
+        <div class="odp-arrow" id="oa2">→</div>
+        <div class="odp-card" id="odp3" style="background:linear-gradient(135deg,#d97706,#f59e0b);"><strong>🔧 Engineering</strong><br><small>pool, middleware</small></div>
+        <div class="odp-arrow" id="oa3">→</div>
+        <div class="odp-card" id="odp4" style="background:linear-gradient(135deg,#dc2626,#ef4444);"><strong>💻 Technology</strong><br><small>Node, TS, pg</small></div>
+      </div>
+      <div class="box grn" style="margin-top:8px;">
+        <h3>🚀 Próxima aula — Back-End II</h3>
+        <p>POST/PUT/DELETE com validação, tratamento robusto de erros e o CRUD HTTP completo da entidade do projeto.</p>
+      </div>
     </div>
   </div>
 
@@ -632,12 +722,13 @@
   </div>
   <div class="nav-wrapper">
     <div class="nav-buttons"><button id="prev-btn" onclick="previousSlide()">← Anterior</button></div>
-    <div class="slide-counter"><span id="current-slide">1</span> / <span id="total-slides">13</span></div>
+    <div class="slide-counter"><span id="current-slide">1</span> / <span id="total-slides">16</span></div>
     <div class="nav-buttons"><button id="next-btn" onclick="nextSlide()">Próximo →</button></div>
   </div>
   <button class="fullscreen-btn" onclick="toggleFullScreen()" title="Tela cheia">⛶</button>
 </div>
 
+<script src="../js/human-type.js"></script>
 <script>
 // ── DAILY TIMER ───────────────────────────────────────────────────────────
 var dailyInterval = null;
@@ -695,232 +786,297 @@ document.addEventListener('keydown', function(e) {
 var _ts = [], _run = false;
 function clearT() { _run = false; _ts.forEach(clearTimeout); _ts = []; }
 function T(fn, d)  { _ts.push(setTimeout(fn, d)); }
-function escH(s)   { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function mkHtml(tokens) { return tokens.map(function(t){ return '<span class="'+t.c+'">'+escH(t.v)+'</span>'; }).join(''); }
-
-function showLine(id, tokens, delay) {
-  T(function() {
-    if (!_run) return;
-    var el = document.getElementById(id);
-    if (!el) return;
-    el.innerHTML = mkHtml(tokens);
-    el.classList.add('vis');
-  }, delay);
-}
 function resetLines(ids) {
   ids.forEach(function(id) { var el=document.getElementById(id); if(el){ el.innerHTML=''; el.classList.remove('vis'); } });
 }
 
-// ── SLIDE 1: Cover ────────────────────────────────────────────────────────
+// ── COVER ────────────────────────────────────────────────────────────────
+function animCover() {
+  ['ct0','ct1','ct2','ct3','ct4'].forEach(function(id){ var el=document.getElementById(id); if(el) el.classList.remove('vis'); });
+  ['ct0','ct1','ct2','ct3','ct4'].forEach(function(id,i){
+    T(function(){ var el=document.getElementById(id); if(el&&_run) el.classList.add('vis'); }, 200+i*180);
+  });
+}
+
+// ── DAILY ─────────────────────────────────────────────────────────────────
+function animDaily() {
+  ['dt0','dt1','dt2','dt3'].forEach(function(id){ var el=document.getElementById(id); if(el) el.classList.remove('vis'); });
+  ['dt0','dt1','dt2','dt3'].forEach(function(id,i){
+    T(function(){ var el=document.getElementById(id); if(el&&_run) el.classList.add('vis'); }, 200+i*180);
+  });
+}
+
+// ── ROADMAP ───────────────────────────────────────────────────────────────
+function animRoadmap() {
+  for (var i=0;i<8;i++){var el=document.getElementById('rm'+i);if(el){ el.classList.remove('vis'); }}
+  for (var j=0;j<8;j++){
+    (function(idx){ T(function(){ var el=document.getElementById('rm'+idx); if(el&&_run) el.classList.add('vis'); }, 100+idx*140); })(j);
+  }
+}
+
+// SLIDE 5: setup TS
+function animSetup() {
+  var ids=['su0','su1','su2','su3','su4','su5','su6','su7','su8','su9','su10'];
+  resetLines(ids);
+  var d=0,G=40;
+  d=typeLine('su0',[{c:'cmt',v:'$ npm init -y'}],d)+G;
+  d=typeLine('su1',[{c:'cmt',v:'# runtime'}],d)+G;
+  d=typeLine('su2',[{c:'kw',v:'$ npm install '},{c:'txt',v:'express pg dotenv'}],d)+G;
+  d=typeLine('su3',[{c:'cmt',v:'# dev'}],d)+G;
+  d=typeLine('su4',[{c:'kw',v:'$ npm install -D '},{c:'txt',v:'typescript @types/node @types/express \\'}],d)+G;
+  d=typeLine('su5',[{c:'txt',v:'    @types/pg tsx jest ts-jest @types/jest \\'}],d)+G;
+  d=typeLine('su6',[{c:'txt',v:'    supertest @types/supertest'}],d)+G;
+  d=typeLine('su7',[{c:'kw',v:'$ npx '},{c:'txt',v:'tsc --init'}],d)+G;
+  d=typeLine('su8',[{c:'cmt',v:'# tsconfig.json — strict + target ES2022'}],d)+G;
+  d=typeLine('su9',[{c:'txt',v:'  '},{c:'str',v:'"strict": true, "target": "ES2022",'}],d)+G;
+  d=typeLine('su10',[{c:'txt',v:'  '},{c:'str',v:'"rootDir": "src", "outDir": "dist"'}],d);
+}
+
+// SLIDE 6: jest config
+function animJest() {
+  var ids=['je0','je1','je2','je3','je4','je5','je6','je7','je8','je9'];
+  resetLines(ids);
+  var d=0,G=40;
+  d=typeLine('je0',[{c:'kw',v:'import type '},{c:'txt',v:'{ Config } '},{c:'kw',v:'from '},{c:'str',v:"'jest'"},{c:'txt',v:';'}],d)+G;
+  d=typeLine('je1',[{c:'txt',v:''}],d)+G;
+  d=typeLine('je2',[{c:'kw',v:'const '},{c:'txt',v:'config: Config = {'}],d)+G;
+  d=typeLine('je3',[{c:'txt',v:'  preset: '},{c:'str',v:"'ts-jest'"},{c:'txt',v:','}],d)+G;
+  d=typeLine('je4',[{c:'txt',v:'  testEnvironment: '},{c:'str',v:"'node'"},{c:'txt',v:','}],d)+G;
+  d=typeLine('je5',[{c:'txt',v:'  testMatch: ['},{c:'str',v:"'**/*.spec.ts'"},{c:'txt',v:'],'}],d)+G;
+  d=typeLine('je6',[{c:'txt',v:'  collectCoverageFrom: ['},{c:'str',v:"'src/**/*.ts'"},{c:'txt',v:'],'}],d)+G;
+  d=typeLine('je7',[{c:'txt',v:'};'}],d)+G;
+  d=typeLine('je8',[{c:'txt',v:''}],d)+G;
+  d=typeLine('je9',[{c:'kw',v:'export default '},{c:'txt',v:'config;'}],d);
+}
+
+// SLIDE 7: spec controller
+function animCtrlSpec() {
+  var ids=['cs0','cs1','cs2','cs3','cs4','cs5','cs6','cs7','cs8','cs9','cs10','cs11','cs12','cs13'];
+  resetLines(ids);
+  var d=0,G=40;
+  d=typeLine('cs0',[{c:'kw',v:'import '},{c:'txt',v:'request '},{c:'kw',v:'from '},{c:'str',v:"'supertest'"},{c:'txt',v:';'}],d)+G;
+  d=typeLine('cs1',[{c:'kw',v:'import '},{c:'txt',v:'{ app } '},{c:'kw',v:'from '},{c:'str',v:"'../app'"},{c:'txt',v:';'}],d)+G;
+  d=typeLine('cs2',[{c:'kw',v:'import '},{c:'txt',v:'* as svc '},{c:'kw',v:'from '},{c:'str',v:"'../services/userService'"},{c:'txt',v:';'}],d)+G;
+  d=typeLine('cs3',[{c:'fn',v:'jest.mock'},{c:'txt',v:'('},{c:'str',v:"'../services/userService'"},{c:'txt',v:');'}],d)+G;
+  d=typeLine('cs4',[{c:'txt',v:''}],d)+G;
+  d=typeLine('cs5',[{c:'fn',v:'describe'},{c:'txt',v:'('},{c:'str',v:"'GET /users/:id'"},{c:'txt',v:', () => {'}],d)+G;
+  d=typeLine('cs6',[{c:'txt',v:'  '},{c:'fn',v:'it'},{c:'txt',v:'('},{c:'str',v:"'200 com user existente'"},{c:'txt',v:', '},{c:'kw',v:'async '},{c:'txt',v:'() => {'}],d)+G;
+  d=typeLine('cs7',[{c:'txt',v:'    (svc.getById '},{c:'kw',v:'as '},{c:'typ',v:'jest.Mock'},{c:'txt',v:').'},{c:'fn',v:'mockResolvedValue'},{c:'txt',v:'({ id: '},{c:'num',v:'1'},{c:'txt',v:' });'}],d)+G;
+  d=typeLine('cs8',[{c:'txt',v:'    '},{c:'kw',v:'const '},{c:'txt',v:'res = '},{c:'kw',v:'await '},{c:'fn',v:'request'},{c:'txt',v:'(app).'},{c:'fn',v:'get'},{c:'txt',v:'('},{c:'str',v:"'/users/1'"},{c:'txt',v:');'}],d)+G;
+  d=typeLine('cs9',[{c:'txt',v:'    '},{c:'fn',v:'expect'},{c:'txt',v:'(res.status).'},{c:'fn',v:'toBe'},{c:'txt',v:'('},{c:'num',v:'200'},{c:'txt',v:');'}],d)+G;
+  d=typeLine('cs10',[{c:'txt',v:'  });'}],d)+G;
+  d=typeLine('cs11',[{c:'txt',v:'  '},{c:'fn',v:'it'},{c:'txt',v:'('},{c:'str',v:"'404 quando inexistente'"},{c:'txt',v:', '},{c:'kw',v:'async '},{c:'txt',v:'() => { /* ... */ });'}],d)+G;
+  d=typeLine('cs12',[{c:'txt',v:'});'}],d)+G;
+  d=typeLine('cs13',[{c:'cmt',v:'// 🔴 RED — falha: app/svc ainda não existem'}],d);
+}
+
+// SLIDE 8: spec service
+function animSvcSpec() {
+  var ids=['ss0','ss1','ss2','ss3','ss4','ss5','ss6','ss7','ss8','ss9','ss10','ss11','ss12'];
+  resetLines(ids);
+  var d=0,G=40;
+  d=typeLine('ss0',[{c:'kw',v:'import '},{c:'txt',v:'* as repo '},{c:'kw',v:'from '},{c:'str',v:"'../repositories/userRepository'"},{c:'txt',v:';'}],d)+G;
+  d=typeLine('ss1',[{c:'kw',v:'import '},{c:'txt',v:'{ getById } '},{c:'kw',v:'from '},{c:'str',v:"'./userService'"},{c:'txt',v:';'}],d)+G;
+  d=typeLine('ss2',[{c:'kw',v:'import '},{c:'txt',v:'{ NotFoundError } '},{c:'kw',v:'from '},{c:'str',v:"'../errors/AppError'"},{c:'txt',v:';'}],d)+G;
+  d=typeLine('ss3',[{c:'fn',v:'jest.mock'},{c:'txt',v:'('},{c:'str',v:"'../repositories/userRepository'"},{c:'txt',v:');'}],d)+G;
+  d=typeLine('ss4',[{c:'txt',v:''}],d)+G;
+  d=typeLine('ss5',[{c:'fn',v:'describe'},{c:'txt',v:'('},{c:'str',v:"'userService.getById'"},{c:'txt',v:', () => {'}],d)+G;
+  d=typeLine('ss6',[{c:'txt',v:'  '},{c:'fn',v:'it'},{c:'txt',v:'('},{c:'str',v:"'retorna user quando existe'"},{c:'txt',v:', '},{c:'kw',v:'async '},{c:'txt',v:'() => {'}],d)+G;
+  d=typeLine('ss7',[{c:'txt',v:'    (repo.findById '},{c:'kw',v:'as '},{c:'typ',v:'jest.Mock'},{c:'txt',v:').'},{c:'fn',v:'mockResolvedValue'},{c:'txt',v:'({ id: '},{c:'num',v:'1'},{c:'txt',v:' });'}],d)+G;
+  d=typeLine('ss8',[{c:'txt',v:'    '},{c:'fn',v:'expect'},{c:'txt',v:'('},{c:'kw',v:'await '},{c:'fn',v:'getById'},{c:'txt',v:'('},{c:'num',v:'1'},{c:'txt',v:')).'},{c:'fn',v:'toMatchObject'},{c:'txt',v:'({ id: '},{c:'num',v:'1'},{c:'txt',v:' });'}],d)+G;
+  d=typeLine('ss9',[{c:'txt',v:'  });'}],d)+G;
+  d=typeLine('ss10',[{c:'txt',v:'  '},{c:'fn',v:'it'},{c:'txt',v:'('},{c:'str',v:"'lança NotFoundError quando null'"},{c:'txt',v:', '},{c:'kw',v:'async '},{c:'txt',v:'() => {'}],d)+G;
+  d=typeLine('ss11',[{c:'txt',v:'    (repo.findById '},{c:'kw',v:'as '},{c:'typ',v:'jest.Mock'},{c:'txt',v:').'},{c:'fn',v:'mockResolvedValue'},{c:'txt',v:'('},{c:'kw',v:'null'},{c:'txt',v:');'}],d)+G;
+  d=typeLine('ss12',[{c:'txt',v:'    '},{c:'kw',v:'await '},{c:'fn',v:'expect'},{c:'txt',v:'('},{c:'fn',v:'getById'},{c:'txt',v:'('},{c:'num',v:'9'},{c:'txt',v:')).rejects.'},{c:'fn',v:'toThrow'},{c:'txt',v:'(NotFoundError);'}],d);
+}
+
+// SLIDE 9: spec repo
+function animRepoSpec() {
+  var ids=['rs0','rs1','rs2','rs3','rs4','rs5','rs6','rs7','rs8','rs9','rs10'];
+  resetLines(ids);
+  var d=0,G=40;
+  d=typeLine('rs0',[{c:'kw',v:'import '},{c:'txt',v:'{ pool } '},{c:'kw',v:'from '},{c:'str',v:"'../db/pool'"},{c:'txt',v:';'}],d)+G;
+  d=typeLine('rs1',[{c:'kw',v:'import '},{c:'txt',v:'{ findById } '},{c:'kw',v:'from '},{c:'str',v:"'./userRepository'"},{c:'txt',v:';'}],d)+G;
+  d=typeLine('rs2',[{c:'fn',v:'jest.mock'},{c:'txt',v:'('},{c:'str',v:"'../db/pool'"},{c:'txt',v:', () => ({ pool: { query: '},{c:'fn',v:'jest.fn'},{c:'txt',v:'() } }));'}],d)+G;
+  d=typeLine('rs3',[{c:'txt',v:''}],d)+G;
+  d=typeLine('rs4',[{c:'fn',v:'describe'},{c:'txt',v:'('},{c:'str',v:"'userRepository.findById'"},{c:'txt',v:', () => {'}],d)+G;
+  d=typeLine('rs5',[{c:'txt',v:'  '},{c:'fn',v:'it'},{c:'txt',v:'('},{c:'str',v:"'usa SQL parametrizado com $1'"},{c:'txt',v:', '},{c:'kw',v:'async '},{c:'txt',v:'() => {'}],d)+G;
+  d=typeLine('rs6',[{c:'txt',v:'    (pool.query '},{c:'kw',v:'as '},{c:'typ',v:'jest.Mock'},{c:'txt',v:').'},{c:'fn',v:'mockResolvedValue'},{c:'txt',v:'({ rows: [{ id: '},{c:'num',v:'1'},{c:'txt',v:' }] });'}],d)+G;
+  d=typeLine('rs7',[{c:'txt',v:'    '},{c:'kw',v:'await '},{c:'fn',v:'findById'},{c:'txt',v:'('},{c:'num',v:'1'},{c:'txt',v:');'}],d)+G;
+  d=typeLine('rs8',[{c:'txt',v:'    '},{c:'fn',v:'expect'},{c:'txt',v:'(pool.query).'},{c:'fn',v:'toHaveBeenCalledWith'},{c:'txt',v:'('}],d)+G;
+  d=typeLine('rs9',[{c:'txt',v:'      '},{c:'str',v:"'SELECT * FROM users WHERE id = $1'"},{c:'txt',v:', ['},{c:'num',v:'1'},{c:'txt',v:']);'}],d)+G;
+  d=typeLine('rs10',[{c:'txt',v:'  }); });'}],d);
+}
+
+// SLIDE 10: spec helper
+function animHelperSpec() {
+  var ids=['hs0','hs1','hs2','hs3','hs4','hs5','hs6','hs7','hs8'];
+  resetLines(ids);
+  var d=0,G=40;
+  d=typeLine('hs0',[{c:'kw',v:'import '},{c:'txt',v:'{ isValidEmail } '},{c:'kw',v:'from '},{c:'str',v:"'./email'"},{c:'txt',v:';'}],d)+G;
+  d=typeLine('hs1',[{c:'txt',v:''}],d)+G;
+  d=typeLine('hs2',[{c:'fn',v:'describe'},{c:'txt',v:'('},{c:'str',v:"'isValidEmail'"},{c:'txt',v:', () => {'}],d)+G;
+  d=typeLine('hs3',[{c:'txt',v:'  '},{c:'fn',v:'it'},{c:'txt',v:'('},{c:'str',v:"'aceita email válido'"},{c:'txt',v:', () => {'}],d)+G;
+  d=typeLine('hs4',[{c:'txt',v:'    '},{c:'fn',v:'expect'},{c:'txt',v:'('},{c:'fn',v:'isValidEmail'},{c:'txt',v:'('},{c:'str',v:"'ana@inteli.edu'"},{c:'txt',v:')).'},{c:'fn',v:'toBe'},{c:'txt',v:'('},{c:'kw',v:'true'},{c:'txt',v:');'}],d)+G;
+  d=typeLine('hs5',[{c:'txt',v:'  });'}],d)+G;
+  d=typeLine('hs6',[{c:'txt',v:'  '},{c:'fn',v:'it'},{c:'txt',v:'('},{c:'str',v:"'rejeita string sem @'"},{c:'txt',v:', () => {'}],d)+G;
+  d=typeLine('hs7',[{c:'txt',v:'    '},{c:'fn',v:'expect'},{c:'txt',v:'('},{c:'fn',v:'isValidEmail'},{c:'txt',v:'('},{c:'str',v:"'foo'"},{c:'txt',v:')).'},{c:'fn',v:'toBe'},{c:'txt',v:'('},{c:'kw',v:'false'},{c:'txt',v:');'}],d)+G;
+  d=typeLine('hs8',[{c:'txt',v:'  }); });'}],d);
+}
+
+// SLIDE 11: layers anim
+function animLayers() {
+  for (var i=0;i<6;i++){var el=document.getElementById('ly'+i);if(el){ el.classList.remove('vis'); }}
+  for (var j=0;j<6;j++){
+    (function(idx){ T(function(){ var el=document.getElementById('ly'+idx); if(el&&_run) el.classList.add('vis'); }, 100+idx*150); })(j);
+  }
+}
+
+// SLIDE 12: green controller + routes
+function animGreenCtrl() {
+  var ids=['gc0','gc1','gc2','gc3','gc4','gc5','gc6','gc7','gc8','gc9'];
+  resetLines(ids);
+  var d=0,G=35;
+  d=typeLine('gc0',[{c:'kw',v:'import type '},{c:'txt',v:'{ Request, Response, NextFunction } '},{c:'kw',v:'from '},{c:'str',v:"'express'"},{c:'txt',v:';'}],d)+G;
+  d=typeLine('gc1',[{c:'kw',v:'import '},{c:'txt',v:'* as svc '},{c:'kw',v:'from '},{c:'str',v:"'../services/userService'"},{c:'txt',v:';'}],d)+G;
+  d=typeLine('gc2',[{c:'txt',v:''}],d)+G;
+  d=typeLine('gc3',[{c:'kw',v:'export async function '},{c:'fn',v:'show'},{c:'txt',v:'('}],d)+G;
+  d=typeLine('gc4',[{c:'txt',v:'  req: '},{c:'typ',v:'Request'},{c:'txt',v:', res: '},{c:'typ',v:'Response'},{c:'txt',v:', next: '},{c:'typ',v:'NextFunction'}],d)+G;
+  d=typeLine('gc5',[{c:'txt',v:') {'}],d)+G;
+  d=typeLine('gc6',[{c:'txt',v:'  '},{c:'kw',v:'try '},{c:'txt',v:'{'}],d)+G;
+  d=typeLine('gc7',[{c:'txt',v:'    '},{c:'kw',v:'const '},{c:'txt',v:'user = '},{c:'kw',v:'await '},{c:'fn',v:'svc.getById'},{c:'txt',v:'('},{c:'typ',v:'Number'},{c:'txt',v:'(req.params.id));'}],d)+G;
+  d=typeLine('gc8',[{c:'txt',v:'    res.'},{c:'fn',v:'json'},{c:'txt',v:'(user);'}],d)+G;
+  d=typeLine('gc9',[{c:'txt',v:'  } '},{c:'kw',v:'catch '},{c:'txt',v:'(e) { '},{c:'fn',v:'next'},{c:'txt',v:'(e); } }'}],d);
+
+  var ids2=['gr0','gr1','gr2','gr3','gr4','gr5','gr6','gr7','gr8','gr9','gr10'];
+  resetLines(ids2);
+  var d2=400,G2=35;
+  d2=typeLine('gr0',[{c:'cmt',v:'// src/routes/userRoutes.ts'}],d2)+G2;
+  d2=typeLine('gr1',[{c:'kw',v:'import '},{c:'txt',v:'{ Router } '},{c:'kw',v:'from '},{c:'str',v:"'express'"},{c:'txt',v:';'}],d2)+G2;
+  d2=typeLine('gr2',[{c:'kw',v:'import '},{c:'txt',v:'{ show } '},{c:'kw',v:'from '},{c:'str',v:"'../controllers/userController'"},{c:'txt',v:';'}],d2)+G2;
+  d2=typeLine('gr3',[{c:'kw',v:'export const '},{c:'txt',v:'userRoutes = '},{c:'fn',v:'Router'},{c:'txt',v:'();'}],d2)+G2;
+  d2=typeLine('gr4',[{c:'txt',v:'userRoutes.'},{c:'fn',v:'get'},{c:'txt',v:'('},{c:'str',v:"'/:id'"},{c:'txt',v:', show);'}],d2)+G2;
+  d2=typeLine('gr5',[{c:'txt',v:''}],d2)+G2;
+  d2=typeLine('gr6',[{c:'cmt',v:'// src/app.ts'}],d2)+G2;
+  d2=typeLine('gr7',[{c:'kw',v:'import '},{c:'txt',v:'express '},{c:'kw',v:'from '},{c:'str',v:"'express'"},{c:'txt',v:';'}],d2)+G2;
+  d2=typeLine('gr8',[{c:'kw',v:'export const '},{c:'txt',v:'app = '},{c:'fn',v:'express'},{c:'txt',v:'();'}],d2)+G2;
+  d2=typeLine('gr9',[{c:'txt',v:'app.'},{c:'fn',v:'use'},{c:'txt',v:'('},{c:'fn',v:'express.json'},{c:'txt',v:'());'}],d2)+G2;
+  d2=typeLine('gr10',[{c:'txt',v:'app.'},{c:'fn',v:'use'},{c:'txt',v:'('},{c:'str',v:"'/users'"},{c:'txt',v:', userRoutes);'}],d2);
+}
+
+// SLIDE 13: green service
+function animGreenSvc() {
+  var ids=['gs0','gs1','gs2','gs3','gs4','gs5','gs6','gs7','gs8','gs9','gs10'];
+  resetLines(ids);
+  var d=0,G=40;
+  d=typeLine('gs0',[{c:'kw',v:'import '},{c:'txt',v:'{ findById } '},{c:'kw',v:'from '},{c:'str',v:"'../repositories/userRepository'"},{c:'txt',v:';'}],d)+G;
+  d=typeLine('gs1',[{c:'kw',v:'import type '},{c:'txt',v:'{ User } '},{c:'kw',v:'from '},{c:'str',v:"'../models/user'"},{c:'txt',v:';'}],d)+G;
+  d=typeLine('gs2',[{c:'kw',v:'import '},{c:'txt',v:'{ NotFoundError } '},{c:'kw',v:'from '},{c:'str',v:"'../errors/AppError'"},{c:'txt',v:';'}],d)+G;
+  d=typeLine('gs3',[{c:'txt',v:''}],d)+G;
+  d=typeLine('gs4',[{c:'kw',v:'export async function '},{c:'fn',v:'getById'},{c:'txt',v:'(id: '},{c:'typ',v:'number'},{c:'txt',v:'): '},{c:'typ',v:'Promise<User>'},{c:'txt',v:' {'}],d)+G;
+  d=typeLine('gs5',[{c:'txt',v:'  '},{c:'kw',v:'const '},{c:'txt',v:'user = '},{c:'kw',v:'await '},{c:'fn',v:'findById'},{c:'txt',v:'(id);'}],d)+G;
+  d=typeLine('gs6',[{c:'txt',v:'  '},{c:'kw',v:'if '},{c:'txt',v:'(!user) {'}],d)+G;
+  d=typeLine('gs7',[{c:'txt',v:'    '},{c:'kw',v:'throw new '},{c:'fn',v:'NotFoundError'},{c:'txt',v:'('},{c:'str',v:'`User ${id} not found`'},{c:'txt',v:');'}],d)+G;
+  d=typeLine('gs8',[{c:'txt',v:'  }'}],d)+G;
+  d=typeLine('gs9',[{c:'txt',v:'  '},{c:'kw',v:'return '},{c:'txt',v:'user;'}],d)+G;
+  d=typeLine('gs10',[{c:'txt',v:'}'}],d);
+}
+
+// SLIDE 14: green repo + pool
+function animGreenRepo() {
+  var ids=['gp0','gp1','gp2','gp3','gp4','gp5','gp6','gp7','gp8'];
+  resetLines(ids);
+  var d=0,G=40;
+  d=typeLine('gp0',[{c:'kw',v:'import '},{c:'txt',v:'{ pool } '},{c:'kw',v:'from '},{c:'str',v:"'../db/pool'"},{c:'txt',v:';'}],d)+G;
+  d=typeLine('gp1',[{c:'kw',v:'import type '},{c:'txt',v:'{ User } '},{c:'kw',v:'from '},{c:'str',v:"'../models/user'"},{c:'txt',v:';'}],d)+G;
+  d=typeLine('gp2',[{c:'txt',v:''}],d)+G;
+  d=typeLine('gp3',[{c:'kw',v:'export async function '},{c:'fn',v:'findById'},{c:'txt',v:'('}],d)+G;
+  d=typeLine('gp4',[{c:'txt',v:'  id: '},{c:'typ',v:'number'}],d)+G;
+  d=typeLine('gp5',[{c:'txt',v:'): '},{c:'typ',v:'Promise<User | null>'},{c:'txt',v:' {'}],d)+G;
+  d=typeLine('gp6',[{c:'txt',v:'  '},{c:'kw',v:'const '},{c:'txt',v:'r = '},{c:'kw',v:'await '},{c:'txt',v:'pool.'},{c:'fn',v:'query'},{c:'txt',v:'<'},{c:'typ',v:'User'},{c:'txt',v:'>('}],d)+G;
+  d=typeLine('gp7',[{c:'txt',v:'    '},{c:'str',v:"'SELECT * FROM users WHERE id = $1'"},{c:'txt',v:', [id]);'}],d)+G;
+  d=typeLine('gp8',[{c:'txt',v:'  '},{c:'kw',v:'return '},{c:'txt',v:'r.rows['},{c:'num',v:'0'},{c:'txt',v:'] ?? '},{c:'kw',v:'null'},{c:'txt',v:'; }'}],d);
+
+  var ids2=['gd0','gd1','gd2','gd3','gd4','gd5','gd6','gd7'];
+  resetLines(ids2);
+  var d2=300,G2=40;
+  d2=typeLine('gd0',[{c:'cmt',v:'// src/db/pool.ts'}],d2)+G2;
+  d2=typeLine('gd1',[{c:'kw',v:'import '},{c:'txt',v:'{ Pool } '},{c:'kw',v:'from '},{c:'str',v:"'pg'"},{c:'txt',v:';'}],d2)+G2;
+  d2=typeLine('gd2',[{c:'kw',v:'import '},{c:'txt',v:'dotenv '},{c:'kw',v:'from '},{c:'str',v:"'dotenv'"},{c:'txt',v:';'}],d2)+G2;
+  d2=typeLine('gd3',[{c:'fn',v:'dotenv.config'},{c:'txt',v:'();'}],d2)+G2;
+  d2=typeLine('gd4',[{c:'txt',v:''}],d2)+G2;
+  d2=typeLine('gd5',[{c:'kw',v:'export const '},{c:'txt',v:'pool = '},{c:'kw',v:'new '},{c:'fn',v:'Pool'},{c:'txt',v:'({'}],d2)+G2;
+  d2=typeLine('gd6',[{c:'txt',v:'  connectionString: process.env.'},{c:'typ',v:'DATABASE_URL'}],d2)+G2;
+  d2=typeLine('gd7',[{c:'txt',v:'});'}],d2);
+}
+
+// SLIDE 15: green errors + middleware + helper
+function animGreenErr() {
+  var ids=['ge0','ge1','ge2','ge3','ge4','ge5','ge6','ge7','ge8'];
+  resetLines(ids);
+  var d=0,G=40;
+  d=typeLine('ge0',[{c:'kw',v:'export class '},{c:'typ',v:'AppError'},{c:'txt',v:' '},{c:'kw',v:'extends '},{c:'typ',v:'Error'},{c:'txt',v:' {'}],d)+G;
+  d=typeLine('ge1',[{c:'txt',v:'  '},{c:'fn',v:'constructor'},{c:'txt',v:'('}],d)+G;
+  d=typeLine('ge2',[{c:'txt',v:'    msg: '},{c:'typ',v:'string'},{c:'txt',v:','}],d)+G;
+  d=typeLine('ge3',[{c:'kw',v:'    public '},{c:'txt',v:'status = '},{c:'num',v:'500'}],d)+G;
+  d=typeLine('ge4',[{c:'txt',v:'  ) { '},{c:'kw',v:'super'},{c:'txt',v:'(msg); } }'}],d)+G;
+  d=typeLine('ge5',[{c:'txt',v:''}],d)+G;
+  d=typeLine('ge6',[{c:'kw',v:'export class '},{c:'typ',v:'NotFoundError'},{c:'txt',v:' '},{c:'kw',v:'extends '},{c:'typ',v:'AppError'},{c:'txt',v:' {'}],d)+G;
+  d=typeLine('ge7',[{c:'txt',v:'  '},{c:'fn',v:'constructor'},{c:'txt',v:'(msg = '},{c:'str',v:"'Not Found'"},{c:'txt',v:') {'}],d)+G;
+  d=typeLine('ge8',[{c:'txt',v:'    '},{c:'kw',v:'super'},{c:'txt',v:'(msg, '},{c:'num',v:'404'},{c:'txt',v:'); } }'}],d);
+
+  var ids2=['gm0','gm1','gm2','gm3','gm4','gm5','gm6','gm7'];
+  resetLines(ids2);
+  var d2=300,G2=40;
+  d2=typeLine('gm0',[{c:'kw',v:'import type '},{c:'txt',v:'{ ErrorRequestHandler } '},{c:'kw',v:'from '},{c:'str',v:"'express'"},{c:'txt',v:';'}],d2)+G2;
+  d2=typeLine('gm1',[{c:'kw',v:'import '},{c:'txt',v:'{ AppError } '},{c:'kw',v:'from '},{c:'str',v:"'../errors/AppError'"},{c:'txt',v:';'}],d2)+G2;
+  d2=typeLine('gm2',[{c:'txt',v:''}],d2)+G2;
+  d2=typeLine('gm3',[{c:'kw',v:'export const '},{c:'txt',v:'errorHandler: '},{c:'typ',v:'ErrorRequestHandler'},{c:'txt',v:' = (err, _req, res, _next) => {'}],d2)+G2;
+  d2=typeLine('gm4',[{c:'txt',v:'  '},{c:'kw',v:'if '},{c:'txt',v:'(err '},{c:'kw',v:'instanceof '},{c:'typ',v:'AppError'},{c:'txt',v:') {'}],d2)+G2;
+  d2=typeLine('gm5',[{c:'txt',v:'    '},{c:'kw',v:'return '},{c:'txt',v:'res.'},{c:'fn',v:'status'},{c:'txt',v:'(err.status).'},{c:'fn',v:'json'},{c:'txt',v:'({ error: err.message });'}],d2)+G2;
+  d2=typeLine('gm6',[{c:'txt',v:'  }'}],d2)+G2;
+  d2=typeLine('gm7',[{c:'txt',v:'  res.'},{c:'fn',v:'status'},{c:'txt',v:'('},{c:'num',v:'500'},{c:'txt',v:').'},{c:'fn',v:'json'},{c:'txt',v:'({ error: '},{c:'str',v:"'Internal'"},{c:'txt',v:' }); };'}],d2);
+
+  var ids3=['gh0','gh1','gh2','gh3','gh4','gh5'];
+  resetLines(ids3);
+  var d3=600,G3=40;
+  d3=typeLine('gh0',[{c:'cmt',v:'// src/helpers/email.ts'}],d3)+G3;
+  d3=typeLine('gh1',[{c:'kw',v:'const '},{c:'txt',v:'RX = '},{c:'str',v:'/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/'},{c:'txt',v:';'}],d3)+G3;
+  d3=typeLine('gh2',[{c:'txt',v:''}],d3)+G3;
+  d3=typeLine('gh3',[{c:'kw',v:'export function '},{c:'fn',v:'isValidEmail'},{c:'txt',v:'(s: '},{c:'typ',v:'string'},{c:'txt',v:'): '},{c:'typ',v:'boolean'},{c:'txt',v:' {'}],d3)+G3;
+  d3=typeLine('gh4',[{c:'txt',v:'  '},{c:'kw',v:'return '},{c:'txt',v:'RX.'},{c:'fn',v:'test'},{c:'txt',v:'(s);'}],d3)+G3;
+  d3=typeLine('gh5',[{c:'txt',v:'}'}],d3);
+}
+
+// SLIDE 16: refactor + odp
+function animRefac() {
+  ['tdd0','tdd1','tdd2'].forEach(function(id){ var el=document.getElementById(id); if(el) el.classList.remove('vis'); });
+  ['tdd0','tdd1','tdd2'].forEach(function(id,i){
+    T(function(){ var el=document.getElementById(id); if(el&&_run) el.classList.add('vis'); }, 200+i*250);
+  });
+  ['odp0','oa0','odp1','oa1','odp2','oa2','odp3','oa3','odp4'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.classList.remove('vis');
+  });
+  ['odp0','oa0','odp1','oa1','odp2','oa2','odp3','oa3','odp4'].forEach(function(id,i){
+    T(function(){ var el=document.getElementById(id); if(el&&_run) el.classList.add('vis'); }, 1000+i*200);
+  });
+}
+
+// ── AGENDA / RM-ODP / RF+RNF (compliance slides) ─────────────────────────
 function animAgenda() {
   ['ag0','ag1','ag2','ag3'].forEach(function(id){ var el=document.getElementById(id); if(el){ el.style.opacity='0'; el.style.transform='translateY(18px)'; } });
   ['ag0','ag1','ag2','ag3'].forEach(function(id,i){
-    T(function(){ var el=document.getElementById(id); if(el){ el.style.opacity='1'; el.style.transform='translateY(0)'; } }, i*160);
-  });
-}
-
-function animCover() {
-  ['ct0','ct1','ct2','ct3','ct4','ct5'].forEach(function(id){ var el=document.getElementById(id); if(el) el.classList.remove('vis'); });
-  ['ct0','ct1','ct2','ct3','ct4','ct5'].forEach(function(id,i){
-    T(function(){ var el=document.getElementById(id); if(el&&_run) el.classList.add('vis'); }, 200+i*160);
-  });
-}
-
-// ── SLIDE 2: Daily ────────────────────────────────────────────────────────
-function animDaily() {
-  ['dc0','dc1','dc2'].forEach(function(id){ var el=document.getElementById(id); if(el) el.classList.remove('vis'); });
-  ['dc0','dc1','dc2'].forEach(function(id,i){
-    T(function(){ var el=document.getElementById(id); if(el&&_run) el.classList.add('vis'); }, 150+i*280);
-  });
-}
-
-// ── SLIDE 3: Node Pipeline ────────────────────────────────────────────────
-function animNodePipe() {
-  var steps = document.querySelectorAll('#pipe-node .ps.an');
-  steps.forEach(function(s){ s.classList.remove('sv'); });
-  steps.forEach(function(s,i){ T(function(el){ if(_run) el.classList.add('sv'); }.bind(null,s), 150+i*320); });
-}
-
-// ── SLIDE 4: Event Loop ───────────────────────────────────────────────────
-function animEventLoop() {
-  ['el0','el1','el2','el3'].forEach(function(id){ var el=document.getElementById(id); if(el) el.classList.remove('vis'); });
-  ['el0','el1','el2','el3'].forEach(function(id,i){
-    T(function(){ var el=document.getElementById(id); if(el&&_run) el.classList.add('vis'); }, 150+i*300);
-  });
-}
-
-// ── SLIDE 5: NPM + package.json ───────────────────────────────────────────
-function animNpm() {
-  var nIds=['nl0','nl1','nl2','nl3','nl4','nl5','nl6','nl7','nl8'];
-  var pIds=['pj0','pj1','pj2','pj3','pj4','pj5','pj6','pj7','pj8','pj9','pj10','pj11'];
-  resetLines(nIds); resetLines(pIds);
-  var d=0, S=130;
-  showLine('nl0',[{c:'cmt',v:'# Iniciar projeto'}],d); d+=S;
-  showLine('nl1',[{c:'kw',v:'npm'},{c:'txt',v:' init -y'}],d); d+=S;
-  showLine('nl2',[{c:'txt',v:''}],d); d+=S;
-  showLine('nl3',[{c:'cmt',v:'# Instalar Express'}],d); d+=S;
-  showLine('nl4',[{c:'kw',v:'npm'},{c:'txt',v:' install '},{c:'pth',v:'express'}],d); d+=S;
-  showLine('nl5',[{c:'txt',v:''}],d); d+=S;
-  showLine('nl6',[{c:'cmt',v:'# Instalar dependência de dev'}],d); d+=S;
-  showLine('nl7',[{c:'kw',v:'npm'},{c:'txt',v:' install --save-dev '},{c:'pth',v:'nodemon'}],d); d+=S;
-  showLine('nl8',[{c:'txt',v:''}],d);
-  d = 9*S + 200;
-  showLine('pj0',[{c:'txt',v:'{'}],0);
-  showLine('pj1',[{c:'txt',v:'  '},{c:'jk',v:'"name"'},{c:'txt',v:': '},{c:'js',v:'"meu-projeto"'},{c:'txt',v:','}],S);
-  showLine('pj2',[{c:'txt',v:'  '},{c:'jk',v:'"version"'},{c:'txt',v:': '},{c:'js',v:'"1.0.0"'},{c:'txt',v:','}],S*2);
-  showLine('pj3',[{c:'txt',v:'  '},{c:'jk',v:'"scripts"'},{c:'txt',v:': {'}],S*3);
-  showLine('pj4',[{c:'txt',v:'    '},{c:'jk',v:'"start"'},{c:'txt',v:': '},{c:'js',v:'"node src/server.js"'},{c:'txt',v:','}],S*4);
-  showLine('pj5',[{c:'txt',v:'    '},{c:'jk',v:'"dev"'},{c:'txt',v:': '},{c:'js',v:'"nodemon src/server.js"'}],S*5);
-  showLine('pj6',[{c:'txt',v:'  },'}],S*6);
-  showLine('pj7',[{c:'txt',v:'  '},{c:'jk',v:'"dependencies"'},{c:'txt',v:': {'}],S*7);
-  showLine('pj8',[{c:'txt',v:'    '},{c:'jk',v:'"express"'},{c:'txt',v:': '},{c:'js',v:'"^4.18.2"'}],S*8);
-  showLine('pj9',[{c:'txt',v:'  },'}],S*9);
-  showLine('pj10',[{c:'txt',v:'  '},{c:'jk',v:'"devDependencies"'},{c:'txt',v:': {'}],S*10);
-  showLine('pj11',[{c:'txt',v:'    '},{c:'jk',v:'"nodemon"'},{c:'txt',v:': '},{c:'js',v:'"^3.0.0"'}],S*11);
-}
-
-// ── SLIDE 6: Express ──────────────────────────────────────────────────────
-function animExpress() {
-  var ids=['ex0','ex1','ex2','ex3','ex4','ex5','ex6','ex7','ex8','ex9','ex10','ex11','ex12'];
-  resetLines(ids);
-  var d=0, S=120;
-  showLine('ex0',[{c:'cmt',v:'// src/server.js'}],d); d+=S;
-  showLine('ex1',[{c:'kw',v:'const '},{c:'txt',v:'express '},{c:'kw',v:'= '},{c:'kw',v:'require'},{c:'txt',v:'('},{c:'js',v:"'express'"},{c:'txt',v:');'}],d); d+=S;
-  showLine('ex2',[{c:'kw',v:'const '},{c:'txt',v:'app     '},{c:'kw',v:'= '},{c:'txt',v:'express();'}],d); d+=S;
-  showLine('ex3',[{c:'txt',v:''}],d); d+=S;
-  showLine('ex4',[{c:'txt',v:'app.'},{c:'kw',v:'use'},{c:'txt',v:'(express.'},{c:'kw',v:'json'},{c:'txt',v:'()); '},{c:'cmt',v:'// parse JSON body'}],d); d+=S;
-  showLine('ex5',[{c:'txt',v:''}],d); d+=S;
-  showLine('ex6',[{c:'cmt',v:'// Rota de teste'}],d); d+=S;
-  showLine('ex7',[{c:'txt',v:'app.'},{c:'kw',v:'get'},{c:'txt',v:'('},{c:'js',v:"'/'"},{c:'txt',v:', (req, res) => {'}],d); d+=S;
-  showLine('ex8',[{c:'txt',v:'  res.'},{c:'kw',v:'json'},{c:'txt',v:'({ '},{c:'jk',v:'status'},{c:'txt',v:': '},{c:'js',v:"'online'"},{c:'txt',v:', '},{c:'jk',v:'versao'},{c:'txt',v:': '},{c:'js',v:"'1.0.0'"},{c:'txt',v:' });'}],d); d+=S;
-  showLine('ex9',[{c:'txt',v:'});'}],d); d+=S;
-  showLine('ex10',[{c:'txt',v:''}],d); d+=S;
-  showLine('ex11',[{c:'kw',v:'const '},{c:'txt',v:'PORT '},{c:'kw',v:'= '},{c:'txt',v:'process.env.PORT '},{c:'kw',v:'||'},{c:'txt',v:' '},{c:'jn',v:'3000'},{c:'txt',v:';'}],d); d+=S;
-  showLine('ex12',[{c:'txt',v:'app.'},{c:'kw',v:'listen'},{c:'txt',v:'(PORT, () => console.'},{c:'kw',v:'log'},{c:'txt',v:'(`Servidor na porta ${PORT}`));'}],d);
-}
-
-// ── SLIDE 7: MVC Layers ───────────────────────────────────────────────────
-function animMvc() {
-  ['mvc0','mvca0','mvc1','mvca1','mvc2'].forEach(function(id){ var el=document.getElementById(id); if(el) el.classList.remove('vis'); });
-  ['mvc0','mvca0','mvc1','mvca1','mvc2'].forEach(function(id,i){
-    T(function(lid){ var el=document.getElementById(lid); if(el&&_run) el.classList.add('vis'); }.bind(null,id), 150+i*360);
-  });
-}
-
-// ── SLIDE 8: Model ────────────────────────────────────────────────────────
-function animModel() {
-  var ids=['mo0','mo1','mo2','mo3','mo4','mo5','mo6','mo7','mo8','mo9','mo10','mo11','mo12','mo13','mo14','mo15','mo16','mo17','mo18','mo19','mo20'];
-  resetLines(ids);
-  var d=0, S=95;
-  showLine('mo0',[{c:'cmt',v:'// src/models/usuarioModel.js'}],d); d+=S;
-  showLine('mo1',[{c:'kw',v:'const '},{c:'txt',v:'db '},{c:'kw',v:'= '},{c:'kw',v:'require'},{c:'txt',v:'('},{c:'js',v:"'../config/database'"},{c:'txt',v:');'}],d); d+=S;
-  showLine('mo2',[{c:'txt',v:''}],d); d+=S;
-  showLine('mo3',[{c:'kw',v:'const '},{c:'txt',v:'UsuarioModel '},{c:'kw',v:'= '},{c:'txt',v:'{'}],d); d+=S;
-  showLine('mo4',[{c:'cmt',v:'  // Buscar todos'}],d); d+=S;
-  showLine('mo5',[{c:'txt',v:'  '},{c:'kw',v:'async '},{c:'txt',v:'findAll() {'}],d); d+=S;
-  showLine('mo6',[{c:'txt',v:'    '},{c:'kw',v:'const '},{c:'txt',v:'result '},{c:'kw',v:'= await '},{c:'txt',v:'db.'},{c:'kw',v:'query'},{c:'txt',v:'('}],d); d+=S;
-  showLine('mo7',[{c:'txt',v:'      '},{c:'js',v:"'SELECT id, nome, email FROM usuarios ORDER BY nome'"}],d); d+=S;
-  showLine('mo8',[{c:'txt',v:'    );'}],d); d+=S;
-  showLine('mo9',[{c:'txt',v:'    '},{c:'kw',v:'return '},{c:'txt',v:'result.rows;'}],d); d+=S;
-  showLine('mo10',[{c:'txt',v:'  },'}],d); d+=S;
-  showLine('mo11',[{c:'cmt',v:'  // Buscar por ID'}],d); d+=S;
-  showLine('mo12',[{c:'txt',v:'  '},{c:'kw',v:'async '},{c:'txt',v:'findById(id) {'}],d); d+=S;
-  showLine('mo13',[{c:'txt',v:'    '},{c:'kw',v:'const '},{c:'txt',v:'result '},{c:'kw',v:'= await '},{c:'txt',v:'db.'},{c:'kw',v:'query'},{c:'txt',v:'('}],d); d+=S;
-  showLine('mo14',[{c:'txt',v:'      '},{c:'js',v:"'SELECT * FROM usuarios WHERE id = $1'"},{c:'txt',v:', [id]'}],d); d+=S;
-  showLine('mo15',[{c:'txt',v:'    );'}],d); d+=S;
-  showLine('mo16',[{c:'txt',v:'    '},{c:'kw',v:'return '},{c:'txt',v:'result.rows['},{c:'jn',v:'0'},{c:'txt',v:'];'}],d); d+=S;
-  showLine('mo17',[{c:'txt',v:'  },'}],d); d+=S;
-  showLine('mo18',[{c:'cmt',v:'  // Criar novo usuário (+ INSERT SQL)'}],d); d+=S;
-  showLine('mo19',[{c:'txt',v:'};'}],d); d+=S;
-  showLine('mo20',[{c:'kw',v:'module'},{c:'txt',v:'.exports '},{c:'kw',v:'= '},{c:'txt',v:'UsuarioModel;'}],d);
-}
-
-// ── SLIDE 9: Controller ───────────────────────────────────────────────────
-function animController() {
-  var ids=['co0','co1','co2','co3','co4','co5','co6','co7','co8','co9','co10','co11','co12','co13','co14','co15','co16','co17','co18'];
-  resetLines(ids);
-  var d=0, S=100;
-  showLine('co0',[{c:'cmt',v:'// src/controllers/usuarioController.js'}],d); d+=S;
-  showLine('co1',[{c:'kw',v:'const '},{c:'txt',v:'UsuarioModel '},{c:'kw',v:'= '},{c:'kw',v:'require'},{c:'txt',v:'('},{c:'js',v:"'../models/usuarioModel'"},{c:'txt',v:');'}],d); d+=S;
-  showLine('co2',[{c:'txt',v:''}],d); d+=S;
-  showLine('co3',[{c:'kw',v:'const '},{c:'txt',v:'UsuarioController '},{c:'kw',v:'= '},{c:'txt',v:'{'}],d); d+=S;
-  showLine('co4',[{c:'cmt',v:'  // GET /api/usuarios'}],d); d+=S;
-  showLine('co5',[{c:'txt',v:'  '},{c:'kw',v:'async '},{c:'txt',v:'listar(req, res) {'}],d); d+=S;
-  showLine('co6',[{c:'txt',v:'    '},{c:'kw',v:'try '},{c:'txt',v:'{'}],d); d+=S;
-  showLine('co7',[{c:'txt',v:'      '},{c:'kw',v:'const '},{c:'txt',v:'usuarios '},{c:'kw',v:'= await '},{c:'txt',v:'UsuarioModel.'},{c:'kw',v:'findAll'},{c:'txt',v:'();'}],d); d+=S;
-  showLine('co8',[{c:'txt',v:'      res.'},{c:'kw',v:'json'},{c:'txt',v:'({ '},{c:'jk',v:'status'},{c:'txt',v:': '},{c:'js',v:"'success'"},{c:'txt',v:', '},{c:'jk',v:'data'},{c:'txt',v:': usuarios });'}],d); d+=S;
-  showLine('co9',[{c:'txt',v:'    } '},{c:'kw',v:'catch '},{c:'txt',v:'(err) {'}],d); d+=S;
-  showLine('co10',[{c:'txt',v:'      res.'},{c:'kw',v:'status'},{c:'txt',v:'('},{c:'jn',v:'500'},{c:'txt',v:').'},{c:'kw',v:'json'},{c:'txt',v:'({ '},{c:'jk',v:'error'},{c:'txt',v:': err.message });'}],d); d+=S;
-  showLine('co11',[{c:'txt',v:'    }'}],d); d+=S;
-  showLine('co12',[{c:'txt',v:'  },'}],d); d+=S;
-  showLine('co13',[{c:'cmt',v:'  // GET /api/usuarios/:id'}],d); d+=S;
-  showLine('co14',[{c:'txt',v:'  '},{c:'kw',v:'async '},{c:'txt',v:'buscarPorId(req, res) {'}],d); d+=S;
-  showLine('co15',[{c:'txt',v:'    '},{c:'kw',v:'const '},{c:'txt',v:'usuario '},{c:'kw',v:'= await '},{c:'txt',v:'UsuarioModel.'},{c:'kw',v:'findById'},{c:'txt',v:'(req.params.id);'}],d); d+=S;
-  showLine('co16',[{c:'txt',v:'    '},{c:'kw',v:'if '},{c:'txt',v:'(!usuario) '},{c:'kw',v:'return '},{c:'txt',v:'res.'},{c:'kw',v:'status'},{c:'txt',v:'('},{c:'jn',v:'404'},{c:'txt',v:').'},{c:'kw',v:'json'},{c:'txt',v:'({...});'}],d); d+=S;
-  showLine('co17',[{c:'txt',v:'    res.'},{c:'kw',v:'json'},{c:'txt',v:'({ '},{c:'jk',v:'status'},{c:'txt',v:': '},{c:'js',v:"'success'"},{c:'txt',v:', '},{c:'jk',v:'data'},{c:'txt',v:': usuario });'}],d); d+=S;
-  showLine('co18',[{c:'txt',v:'  }'}],d);
-}
-
-// ── SLIDE 10: Routes ──────────────────────────────────────────────────────
-function animRoutes() {
-  var ids=['ro0','ro1','ro2','ro3','ro4','ro5','ro6','ro7','ro8','ro9','ro10','ro11','ro12','ro13'];
-  resetLines(ids);
-  var d=0, S=120;
-  showLine('ro0',[{c:'cmt',v:'// src/routes/usuarioRoutes.js'}],d); d+=S;
-  showLine('ro1',[{c:'kw',v:'const '},{c:'txt',v:'express    '},{c:'kw',v:'= '},{c:'kw',v:'require'},{c:'txt',v:'('},{c:'js',v:"'express'"},{c:'txt',v:');'}],d); d+=S;
-  showLine('ro2',[{c:'kw',v:'const '},{c:'txt',v:'router     '},{c:'kw',v:'= '},{c:'txt',v:'express.'},{c:'kw',v:'Router'},{c:'txt',v:'();'}],d); d+=S;
-  showLine('ro3',[{c:'kw',v:'const '},{c:'txt',v:'controller '},{c:'kw',v:'= '},{c:'kw',v:'require'},{c:'txt',v:'('},{c:'js',v:"'../controllers/usuarioController'"},{c:'txt',v:');'}],d); d+=S;
-  showLine('ro4',[{c:'txt',v:''}],d); d+=S;
-  showLine('ro5',[{c:'txt',v:'router.'},{c:'kw',v:'get'},{c:'txt',v:'('},{c:'js',v:"'/'"},{c:'txt',v:',    controller.listar);'}],d); d+=S;
-  showLine('ro6',[{c:'txt',v:'router.'},{c:'kw',v:'get'},{c:'txt',v:'('},{c:'js',v:"'/:id'"},{c:'txt',v:', controller.buscarPorId);'}],d); d+=S;
-  showLine('ro7',[{c:'txt',v:'router.'},{c:'kw',v:'post'},{c:'txt',v:'('},{c:'js',v:"'/'"},{c:'txt',v:',   controller.criar);'}],d); d+=S;
-  showLine('ro8',[{c:'txt',v:'router.'},{c:'kw',v:'put'},{c:'txt',v:'('},{c:'js',v:"'/:id'"},{c:'txt',v:', controller.atualizar);'}],d); d+=S;
-  showLine('ro9',[{c:'txt',v:'router.'},{c:'kw',v:'delete'},{c:'txt',v:'('},{c:'js',v:"'/:id'"},{c:'txt',v:', controller.deletar);'}],d); d+=S;
-  showLine('ro10',[{c:'txt',v:''}],d); d+=S;
-  showLine('ro11',[{c:'kw',v:'module'},{c:'txt',v:'.exports '},{c:'kw',v:'= '},{c:'txt',v:'router;'}],d); d+=S;
-  showLine('ro12',[{c:'txt',v:''}],d); d+=S;
-  showLine('ro13',[{c:'cmt',v:'// Em server.js:  app.use(\'/api/usuarios\', require(\'./routes/usuarioRoutes\'));'}],d);
-}
-
-// ── SLIDE 11: Folder Tree ─────────────────────────────────────────────────
-function animFolderTree() {
-  var ids=['ft0','ft1','ft2','ft3','ft4','ft5','ft6','ft7','ft8','ft9','ft10','ft11','ft12'];
-  resetLines(ids);
-  var d=0, S=130;
-  showLine('ft0',[{c:'pth',v:'meu-projeto/'}],d); d+=S;
-  showLine('ft1',[{c:'txt',v:'├── '},{c:'pth',v:'src/'}],d); d+=S;
-  showLine('ft2',[{c:'txt',v:'│   ├── '},{c:'pth',v:'config/'}],d); d+=S;
-  showLine('ft3',[{c:'txt',v:'│   │   └── '},{c:'ver',v:'database.js'}],d); d+=S;
-  showLine('ft4',[{c:'txt',v:'│   ├── '},{c:'pth',v:'models/'}],d); d+=S;
-  showLine('ft5',[{c:'txt',v:'│   │   └── '},{c:'ver',v:'usuarioModel.js'}],d); d+=S;
-  showLine('ft6',[{c:'txt',v:'│   ├── '},{c:'pth',v:'controllers/'}],d); d+=S;
-  showLine('ft7',[{c:'txt',v:'│   │   └── '},{c:'ver',v:'usuarioController.js'}],d); d+=S;
-  showLine('ft8',[{c:'txt',v:'│   ├── '},{c:'pth',v:'routes/'}],d); d+=S;
-  showLine('ft9',[{c:'txt',v:'│   │   └── '},{c:'ver',v:'usuarioRoutes.js'}],d); d+=S;
-  showLine('ft10',[{c:'txt',v:'│   └── '},{c:'kw',v:'server.js'}],d); d+=S;
-  showLine('ft11',[{c:'txt',v:'├── '},{c:'ver',v:'package.json'}],d); d+=S;
-  showLine('ft12',[{c:'txt',v:'└── '},{c:'hok',v:'.env'}],d);
-}
-
-// ── SLIDE 12: RM-ODP Viewpoints ──────────────────────────────────────────
-function animTDD() {
-  ['tdd0','tdd1','tdd2','tdd3'].forEach(function(id){ var el=document.getElementById(id); if(el){ el.style.opacity='0'; el.style.transform='translateY(18px)'; } });
-  ['tdd0','tdd1','tdd2','tdd3'].forEach(function(id,i){
-    T(function(){
-      var el=document.getElementById(id);
-      if(el&&_run){ el.style.opacity='1'; el.style.transform='translateY(0)'; el.style.transition='all .45s cubic-bezier(.34,1.3,.64,1)'; }
-    }, i*200);
+    T(function(){ var el=document.getElementById(id); if(el&&_run){ el.style.opacity='1'; el.style.transform='translateY(0)'; el.style.transition='all .4s ease'; } }, i*160);
   });
 }
 function animRmOdp() {
-  ['odp0','oa0','odp1','oa1','odp2','oa2','odp3','oa3','odp4'].forEach(function(id){
+  ['rmo0','rma0','rmo1','rma1','rmo2','rma2','rmo3','rma3','rmo4'].forEach(function(id){
     var el=document.getElementById(id); if(el){ el.style.opacity='0'; el.style.transform='translateY(16px)'; }
   });
-  ['odp0','oa0','odp1','oa1','odp2','oa2','odp3','oa3','odp4'].forEach(function(id,i){
+  ['rmo0','rma0','rmo1','rma1','rmo2','rma2','rmo3','rma3','rmo4'].forEach(function(id,i){
     T(function(lid){ var el=document.getElementById(lid); if(el&&_run){ el.style.opacity='1'; el.style.transform='translateY(0)'; } }.bind(null,id), 120+i*320);
   });
 }
-// ── SLIDE 13: RF + RNF + Artefato ─────────────────────────────────────────
 function animRfRnf() {
   var cells=document.querySelectorAll('#rnf-tbl .scc');
   cells.forEach(function(el){ el.style.opacity='0'; });
@@ -933,27 +1089,12 @@ function animRfRnf() {
     T(function(lid){ var el=document.getElementById(lid); if(el&&_run) el.style.opacity='1'; }.bind(null,id), 200+i*200);
   });
 }
-// ── SLIDE 14: Checklist ───────────────────────────────────────────────────
-function animChecklist() {
-  for(var i=0;i<8;i++){var el=document.getElementById('ck'+i);if(el)el.classList.remove('vis');}
-  for(var j=0;j<8;j++){
-    (function(idx){ T(function(){ var el=document.getElementById('ck'+idx); if(el&&_run) el.classList.add('vis'); }, 100+idx*180); })(j);
-  }
-}
-
-// ── SLIDE 15: Recap ───────────────────────────────────────────────────────
-function animRecap() {
-  for(var i=0;i<8;i++){var el=document.getElementById('rt'+i);if(el)el.classList.remove('vis');}
-  for(var j=0;j<8;j++){
-    (function(idx){ T(function(){ var el=document.getElementById('rt'+idx); if(el&&_run) el.classList.add('vis'); }, 160+idx*140); })(j);
-  }
-}
 
 // ── DISPATCH ─────────────────────────────────────────────────────────────
 var animMap = [
-  animCover, animDaily, animAgenda, animNodePipe, animEventLoop, animNpm,
-  animExpress, animMvc, animModel, animController, animRoutes,
-  animFolderTree, animTDD, animRmOdp, animRfRnf, animChecklist, animRecap
+  animCover, animDaily, animAgenda, animRoadmap, function(){}, animSetup, animJest,
+  animCtrlSpec, animSvcSpec, animRepoSpec, animHelperSpec, animLayers,
+  animGreenCtrl, animGreenSvc, animGreenRepo, animGreenErr, animRmOdp, animRfRnf, animRefac
 ];
 
 function runAnim(idx) {

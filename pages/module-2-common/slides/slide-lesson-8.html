@@ -4,26 +4,30 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aula 8 - Front-End II - Inteli</title>
+  <title>Aula 8 — Front-End II — Async, fetch() e Redes — Inteli</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="../../../css/inteli-styles.css" rel="stylesheet">
   <style>
-    :root { --ac:#4b5563; --hi:#b2b6bf; --dk:#2e2640; --gr:#0d9488; --re:#dc2626; --am:#d97706; }
+    :root { --ac:#4b5563; --hi:#b2b6bf; --dk:#2e2640; --gr:#0d9488; --re:#dc2626; --am:#d97706; --bl:#1d4ed8; }
     body { margin:0; padding:0; overflow:hidden; font-family:'Manrope',sans-serif; background:#f5f7fb; color:var(--dk); }
     .slide-container { width:100vw; height:100vh; position:relative; overflow:hidden; }
     .slide { width:100%; height:100%; display:none; padding:44px 52px 88px; box-sizing:border-box; position:absolute; }
     .slide.active { display:flex; flex-direction:column; justify-content:center; animation:slideIn 0.35s ease-in-out; }
     @keyframes slideIn { from{opacity:0;transform:translateX(36px)} to{opacity:1;transform:translateX(0)} }
     .sc { width:min(1140px,100%); margin:0 auto; font-size:1.05rem; line-height:1.55; }
+
     /* slide header */
     .sh { color:white; padding:16px 22px; border-radius:14px; margin-bottom:14px; }
     .sh.blue  { background:linear-gradient(135deg,#374151,#b2b6bf); }
     .sh.dark  { background:linear-gradient(135deg,var(--dk),#4a3d6b); }
     .sh.green { background:linear-gradient(135deg,var(--gr),#10b981); }
+    .sh.red   { background:linear-gradient(135deg,#991b1b,#ef4444); }
+    .sh.amber { background:linear-gradient(135deg,#b45309,#f59e0b); }
     .st { font-size:1.9rem; font-weight:800; margin:0 0 4px; line-height:1.15; }
     .ss { font-size:0.95rem; opacity:.9; margin:0; }
+
     /* boxes */
     .box { background:white; border:1px solid #dfe5ec; border-left:5px solid var(--hi); border-radius:12px; padding:14px 18px; box-shadow:0 4px 14px rgba(46,38,64,.06); }
     .box h3 { font-size:1rem; font-weight:700; margin:0 0 6px; color:var(--dk); }
@@ -32,38 +36,24 @@
     .box li { font-size:.87rem; margin-bottom:3px; line-height:1.4; color:#374151; }
     .box.acc { border-left-color:var(--ac); }
     .box.grn { border-left-color:var(--gr); }
+    .box.amr { border-left-color:var(--am); }
     .box.red { border-left-color:var(--re); }
+    .box.bl  { border-left-color:var(--bl); }
     code { background:#f1f5f9; color:var(--dk); padding:1px 6px; border-radius:5px; font-size:.86em; }
+
     /* grids */
     .g2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
     .g3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+    .g4 { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; }
 
     /* ===== COVER ===== */
-    .cover-bg { background:linear-gradient(135deg,#1f2937 0%,#4b5563 50%,#b2b6bf 100%) !important; }
+    .cover-bg { background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 50%,#3b82f6 100%) !important; }
     .cv-badge { background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.28); color:white; padding:5px 16px; border-radius:999px; font-size:.82rem; font-weight:600; display:inline-block; margin-bottom:18px; }
     .cv-title { font-size:3rem; font-weight:800; color:white; line-height:1.15; margin:0 0 14px; }
     .cv-sub   { font-size:1.1rem; color:rgba(255,255,255,.82); margin:0 0 28px; }
     .cv-tags  { display:flex; flex-wrap:wrap; gap:8px; }
     .cv-tag { background:rgba(255,255,255,.13); border:1px solid rgba(255,255,255,.28); backdrop-filter:blur(8px); color:white; padding:7px 16px; border-radius:10px; font-weight:700; font-size:.84rem; opacity:0; transform:translateY(18px); transition:all .5s cubic-bezier(.34,1.3,.64,1); }
     .cv-tag.vis { opacity:1; transform:translateY(0); }
-
-    /* ===== PIPELINE ===== */
-    .pipe { display:flex; align-items:flex-start; justify-content:center; gap:0; margin:14px 0; }
-    .ps { flex:1; display:flex; flex-direction:column; align-items:center; text-align:center; position:relative; }
-    .pn { width:52px; height:52px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.3rem; color:white; font-weight:800; z-index:2; box-shadow:0 4px 14px rgba(0,0,0,.18); flex-shrink:0; }
-    .pl { font-size:.8rem; font-weight:700; color:var(--dk); margin-top:7px; }
-    .ps2 { font-size:.68rem; color:#64748b; margin-top:2px; }
-    .pc { position:absolute; top:26px; left:calc(50% + 26px); width:calc(100% - 52px); height:4px; z-index:1; }
-    .pcb { width:100%; height:100%; border-radius:2px; background:linear-gradient(90deg,var(--fc,#4b5563),var(--tc,#b2b6bf)); }
-    .ps:last-child .pc { display:none; }
-    .pcl { position:absolute; top:-14px; left:50%; transform:translateX(-50%); font-size:.6rem; font-weight:700; color:#64748b; white-space:nowrap; }
-    /* pipeline anim */
-    .ps.an .pn { opacity:0; transform:scale(.3); transition:all .5s cubic-bezier(.34,1.56,.64,1); }
-    .ps.an .pl,.ps.an .ps2 { opacity:0; transform:translateY(7px); transition:all .4s ease .18s; }
-    .ps.an .pcb { transform:scaleX(0); transform-origin:left; transition:transform .6s cubic-bezier(.22,1,.36,1); }
-    .ps.an.sv .pn { opacity:1; transform:scale(1); box-shadow:0 4px 14px rgba(0,0,0,.18),0 0 20px rgba(24,99,220,.25); }
-    .ps.an.sv .pl,.ps.an.sv .ps2 { opacity:1; transform:translateY(0); }
-    .ps.an.sv .pcb { transform:scaleX(1); }
 
     /* ===== TERMINAL ===== */
     .term { background:#1e1e2e; border-radius:14px; overflow:hidden; box-shadow:0 8px 32px rgba(0,0,0,.3); display:flex; flex-direction:column; }
@@ -78,42 +68,73 @@
     .hn{color:#cba6f7;} .hv{color:#cdd6f4;} .hok{color:#a6e3a1;font-weight:700;}
     .jk{color:#cba6f7;} .js{color:#a6e3a1;} .jn{color:#fab387;} .jb{color:#89b4fa;}
     .cmt{color:#6c7086;font-style:italic;} .txt{color:#cdd6f4;}
-    .tcur{display:inline-block;width:7px;height:1.1em;background:#89b4fa;vertical-align:text-bottom;animation:tblink .7s step-end infinite;}
-    @keyframes tblink{0%,100%{opacity:1}50%{opacity:0}}
-    .tdiv { border:none; border-top:1px solid #313244; margin:8px 0; }
-
-    /* ===== LAYERS ===== */
-    .lstack { display:flex; flex-direction:column; gap:8px; margin:8px 0; }
-    .alayer { border-radius:12px; padding:13px 18px; display:flex; align-items:center; gap:14px; opacity:0; transform:translateX(-28px) scale(.95); transition:all .6s cubic-bezier(.34,1.3,.64,1); }
-    .alayer.vis { opacity:1; transform:translateX(0) scale(1); }
-    .li { font-size:1.9rem; flex-shrink:0; }
-    .ln { font-size:1rem; font-weight:800; color:white; margin-bottom:2px; }
-    .lt { font-size:.78rem; color:rgba(255,255,255,.88); }
-    .ld { font-size:.76rem; color:rgba(255,255,255,.72); margin-top:2px; }
-    .larr { text-align:center; font-size:1rem; color:#94a3b8; opacity:0; transition:opacity .4s ease; line-height:1; padding:2px 0; }
-    .larr.vis { opacity:1; }
+    .err{color:#f38ba8;font-weight:700;}
 
     /* ===== ROADMAP ITEMS ===== */
     .ri { display:flex; align-items:flex-start; gap:10px; padding:9px 12px; border-radius:10px; background:white; border:1px solid #e2e8f0; opacity:0; transform:translateX(-14px); transition:all .4s ease; margin-bottom:5px; }
     .ri.vis { opacity:1; transform:translateX(0); }
-    .ri.cur { background:linear-gradient(135deg,rgba(75,85,99,.09),rgba(107,114,128,.09)); border-color:var(--ac); }
+    .ri.cur { background:linear-gradient(135deg,rgba(29,78,216,.09),rgba(59,130,246,.09)); border-color:var(--bl); }
+    .ri.done { background:rgba(13,148,136,.06); border-color:#a7f3d0; }
     .rn { width:26px; height:26px; border-radius:50%; background:var(--dk); color:white; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:.78rem; flex-shrink:0; margin-top:1px; }
-    .ri.cur .rn { background:linear-gradient(135deg,#374151,#b2b6bf); }
+    .ri.cur .rn { background:linear-gradient(135deg,var(--bl),#3b82f6); }
+    .ri.done .rn { background:var(--gr); }
     .rtl { font-size:.86rem; font-weight:700; color:var(--dk); margin-bottom:1px; }
     .rds { font-size:.76rem; color:#64748b; }
 
-    /* ===== DAILY ===== */
-    .daily-timer { font-size:3.5rem; font-weight:800; font-family:monospace; background:rgba(255,255,255,.15); border-radius:16px; padding:10px 28px; display:inline-block; margin-bottom:16px; letter-spacing:4px; color:white; }
-    .daily-tag { background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.3); padding:6px 16px; border-radius:8px; font-weight:700; font-size:.85rem; color:white; opacity:0; transform:translateY(14px); transition:all .45s cubic-bezier(.34,1.3,.64,1); display:inline-block; margin:4px; }
-    .daily-tag.vis { opacity:1; transform:translateY(0); }
+    /* ===== EVENT LOOP ===== */
+    .loop-wrap { display:grid; grid-template-columns:1.2fr 1fr; gap:14px; align-items:stretch; }
+    .lane { background:white; border:1px solid #e2e8f0; border-radius:12px; padding:12px 14px; box-shadow:0 2px 8px rgba(46,38,64,.05); }
+    .lane h4 { margin:0 0 8px; font-size:.86rem; font-weight:800; color:var(--dk); display:flex; align-items:center; gap:6px; }
+    .qbox { background:#f8fafc; border:1px dashed #cbd5e1; border-radius:8px; padding:7px 10px; margin-top:6px; min-height:48px; }
+    .qitem { display:inline-block; background:var(--dk); color:white; font-family:monospace; font-size:.74rem; padding:3px 10px; border-radius:6px; margin:2px 4px 2px 0; opacity:0; transform:scale(.8); transition:all .35s cubic-bezier(.34,1.56,.64,1); }
+    .qitem.vis { opacity:1; transform:scale(1); }
+    .qitem.macro { background:var(--am); }
+    .qitem.micro { background:var(--bl); }
+    .qitem.task  { background:var(--gr); }
 
-    /* ===== COMPARISON ===== */
-    .cmp-box { border-radius:14px; padding:14px 16px; }
-    .cmp-box.red-bg { background:rgba(220,38,38,.06); border:2px solid rgba(220,38,38,.3); }
-    .cmp-box.grn-bg { background:rgba(13,148,136,.06); border:2px solid rgba(13,148,136,.3); }
-    .cmp-title { font-size:.92rem; font-weight:800; margin-bottom:8px; }
-    .cmp-box.red-bg .cmp-title { color:var(--re); }
-    .cmp-box.grn-bg .cmp-title { color:var(--gr); }
+    /* ===== PROMISE STATES ===== */
+    .pstate { background:white; border-radius:12px; padding:12px 14px; border-top:4px solid var(--hi); box-shadow:0 4px 14px rgba(46,38,64,.08); opacity:0; transform:translateY(14px); transition:all .45s cubic-bezier(.34,1.3,.64,1); }
+    .pstate.vis { opacity:1; transform:translateY(0); }
+    .pstate.pending  { border-top-color:var(--am); }
+    .pstate.fulfilled { border-top-color:var(--gr); }
+    .pstate.rejected  { border-top-color:var(--re); }
+    .pstate-icon { font-size:1.6rem; }
+    .pstate-name { font-family:monospace; font-weight:800; color:var(--dk); font-size:.95rem; margin-top:4px; }
+    .pstate-desc { font-size:.78rem; color:#64748b; margin-top:4px; line-height:1.45; }
+
+    /* ===== STATE CARDS UI ===== */
+    .ui-state { background:white; border:1px solid #e2e8f0; border-radius:12px; padding:14px 16px; opacity:0; transform:translateY(16px); transition:all .5s cubic-bezier(.34,1.3,.64,1); }
+    .ui-state.vis { opacity:1; transform:translateY(0); }
+    .ui-state.loading { border-left:5px solid var(--bl); }
+    .ui-state.empty   { border-left:5px solid var(--am); }
+    .ui-state.error   { border-left:5px solid var(--re); }
+    .ui-icon { font-size:1.6rem; margin-bottom:6px; }
+    .ui-title { font-size:.92rem; font-weight:800; color:var(--dk); margin-bottom:4px; }
+    .ui-desc { font-size:.78rem; color:#64748b; line-height:1.45; }
+    .ui-mock { font-family:monospace; font-size:.7rem; background:#f8fafc; padding:6px 10px; border-radius:6px; color:#475569; margin-top:6px; line-height:1.5; }
+
+    /* ===== HEADERS GRID ===== */
+    .hdr-row { display:grid; grid-template-columns:170px 1fr; gap:8px; padding:7px 0; border-bottom:1px solid #e2e8f0; opacity:0; transform:translateX(-10px); transition:all .35s ease; }
+    .hdr-row.vis { opacity:1; transform:translateX(0); }
+    .hdr-row:last-child { border-bottom:none; }
+    .hdr-name { font-family:monospace; font-weight:800; color:var(--bl); font-size:.84rem; }
+    .hdr-desc { font-size:.82rem; color:#374151; line-height:1.5; }
+
+    /* ===== DUAL ENDPOINT ===== */
+    .dual { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .dual-card { background:white; border-radius:12px; padding:12px 14px; border:1px solid #e2e8f0; box-shadow:0 4px 14px rgba(46,38,64,.06); }
+    .dual-card.html { border-top:4px solid var(--am); }
+    .dual-card.json { border-top:4px solid var(--gr); }
+    .dual-route { font-family:monospace; font-size:.78rem; font-weight:800; color:var(--dk); margin-bottom:6px; padding:3px 8px; background:#f1f5f9; border-radius:5px; display:inline-block; }
+    .dual-out { font-size:.74rem; color:#475569; line-height:1.5; margin-top:6px; font-family:monospace; background:#f8fafc; padding:5px 8px; border-radius:6px; }
+
+    /* ===== CHECKLIST ===== */
+    .chk { display:flex; align-items:flex-start; gap:10px; padding:10px 14px; border-radius:10px; background:white; border:1px solid #e2e8f0; opacity:0; transform:translateY(12px); transition:all .4s ease; margin-bottom:7px; }
+    .chk.vis { opacity:1; transform:translateY(0); }
+    .chk.ok { border-color:var(--gr); background:rgba(13,148,136,.05); }
+    .chk-icon { font-size:1.1rem; flex-shrink:0; margin-top:1px; }
+    .chk-text { font-size:.88rem; font-weight:600; color:var(--dk); line-height:1.4; }
+    .chk-sub { font-size:.76rem; color:#64748b; margin-top:2px; }
 
     /* ===== FOOTER ===== */
     .slide-footer { position:fixed; bottom:0; left:0; right:0; background:rgba(255,255,255,.97); border-top:1px solid #dfe5ec; padding:10px 24px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 -2px 10px rgba(46,38,64,.06); z-index:100; gap:12px; }
@@ -127,6 +148,10 @@
     .nav-buttons button:disabled { background:#caced6; cursor:not-allowed; }
     .slide-counter { font-weight:700; color:var(--dk); min-width:70px; text-align:center; }
     .fullscreen-btn { background:#f1f4f8; border:none; font-size:1.1rem; cursor:pointer; padding:8px 12px; border-radius:8px; }
+
+    .daily-timer { font-size:3.5rem; font-weight:800; font-family:monospace; background:rgba(255,255,255,.15); border-radius:16px; padding:10px 28px; display:inline-block; margin-bottom:16px; letter-spacing:4px; color:white; }
+    .daily-tag { background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.3); padding:6px 16px; border-radius:8px; font-weight:700; font-size:.85rem; color:white; opacity:0; transform:translateY(14px); transition:all .45s cubic-bezier(.34,1.3,.64,1); display:inline-block; margin:4px; }
+    .daily-tag.vis { opacity:1; transform:translateY(0); }
   </style>
 </head>
 <body>
@@ -136,534 +161,516 @@
   <div class="slide cover-bg">
     <div class="sc">
       <div class="cv-badge">Módulo 2 · Ciclo Comum · IN02 · Aula 8 de 11</div>
-      <div class="cv-title">Front-End II<br><span style="font-size:2rem;opacity:.9;">JavaScript Assíncrono e Redes</span></div>
-      <div class="cv-sub">Promises, async/await, fetch(), CORS e persistência no navegador</div>
+      <div class="cv-title">Front-End II<br><span style="font-size:2rem;opacity:.88;">Async, fetch() e Redes</span></div>
+      <div class="cv-sub">Como uma página SSR vira interativa: JS no cliente conversa com endpoints JSON do back-end</div>
       <div class="cv-tags">
-        <div class="cv-tag" id="ct0">⏳ Sync vs Async</div>
-        <div class="cv-tag" id="ct1">🤝 Promises</div>
-        <div class="cv-tag" id="ct2">⚡ async/await</div>
-        <div class="cv-tag" id="ct3">🌐 fetch()</div>
-        <div class="cv-tag" id="ct4">🔒 CORS</div>
-        <div class="cv-tag" id="ct5">💾 localStorage</div>
+        <div class="cv-tag" id="ct0">⏱️ Event loop</div>
+        <div class="cv-tag" id="ct1">🔮 Promises</div>
+        <div class="cv-tag" id="ct2">⏳ async/await</div>
+        <div class="cv-tag" id="ct3">🌐 fetch</div>
+        <div class="cv-tag" id="ct4">🚫 AbortController</div>
+        <div class="cv-tag" id="ct5">🔄 Estados UI</div>
       </div>
     </div>
   </div>
 
   <!-- ====== SLIDE 2: DAILY ====== -->
-  <div class="slide cover-bg" style="background:linear-gradient(135deg,#1f2937 0%,#4b5563 50%,#b2b6bf 100%)!important;">
+  <div class="slide cover-bg" style="background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 50%,#3b82f6 100%)!important;">
     <div class="sc" style="text-align:center;">
       <div style="background:rgba(255,255,255,.12);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.22);border-radius:20px;padding:28px 32px;">
         <div style="font-size:2rem;font-weight:800;color:white;margin-bottom:6px;">⏱️ Daily — 15 Minutos</div>
-        <div style="font-size:1rem;color:rgba(255,255,255,.85);margin-bottom:18px;">O que você fez? O que vai fazer? Algum impedimento?</div>
+        <div style="font-size:1rem;color:rgba(255,255,255,.85);margin-bottom:18px;">Recap da aula 7: HTML, DOM, eventos. Quem terminou o formulário com validação?</div>
         <div class="daily-timer" id="daily-timer">15:00</div>
         <div style="margin-bottom:18px;">
           <button id="daily-start-btn" onclick="startDaily()" style="background:rgba(255,255,255,.25);border:1px solid rgba(255,255,255,.4);color:white;padding:9px 22px;border-radius:10px;font-weight:700;font-size:.9rem;cursor:pointer;margin:0 6px;font-family:'Manrope',sans-serif;">▶ Iniciar</button>
           <button onclick="resetDaily()" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:white;padding:9px 22px;border-radius:10px;font-weight:700;font-size:.9rem;cursor:pointer;margin:0 6px;font-family:'Manrope',sans-serif;">↺ Reset</button>
         </div>
         <div>
-          <span class="daily-tag" id="dt0">✅ O que fiz</span>
-          <span class="daily-tag" id="dt1">🎯 O que vou fazer</span>
-          <span class="daily-tag" id="dt2">🚧 Impedimentos</span>
-          <span class="daily-tag" id="dt3">📦 Progresso do projeto</span>
+          <span class="daily-tag" id="dt0">✅ EJS funcionando</span>
+          <span class="daily-tag" id="dt1">🌳 querySelector</span>
+          <span class="daily-tag" id="dt2">📡 addEventListener</span>
+          <span class="daily-tag" id="dt3">🚧 Impedimentos</span>
         </div>
       </div>
     </div>
   </div>
 
-    <!-- ====== SLIDE 3: AGENDA ====== -->
+  <!-- ====== SLIDE 2.5: AGENDA ====== -->
   <div class="slide">
     <div class="sc">
       <div class="sh dark"><div class="st">📋 Agenda da Aula 8</div><div class="ss">Estrutura e objetivos da aula de hoje</div></div>
       <div class="g2" style="gap:12px;">
         <div id="ag0" class="box" style="opacity:0;">
-          <h3>🕐 Bloco 1 — Sync vs Async e Promises (20 min)</h3>
-          <p>Por que código assíncrono, event loop, Promises e async/await.</p>
+          <h3>🕐 Bloco 1 — Autoestudo (revisão e dúvidas)</h3>
+          <p>Recap do material — Event Loop, Promises, async/await, fetch, headers e cookies.</p>
         </div>
         <div id="ag1" class="box" style="opacity:0;">
-          <h3>🕑 Bloco 2 — Fetch e 3 Estados de UI (25 min)</h3>
-          <p>Consumindo APIs, loading/success/error e AbortController.</p>
+          <h3>🕑 Bloco 2 — Instrução (Professor)</h3>
+          <p>Consumo de APIs com fetch, tratamento de erros, AbortController e estados de UI.</p>
         </div>
         <div id="ag2" class="box" style="opacity:0;">
-          <h3>🕒 Bloco 3 — Spec-Driven Async: mock de fetch (20 min)</h3>
-          <p>White Box Testing para código assíncrono — cada estado de UI é uma spec.</p>
+          <h3>🕒 Bloco 3 — Almoço</h3>
+          <p>Pausa para refeição antes da prática.</p>
         </div>
         <div id="ag3" class="box acc" style="opacity:0;">
-          <h3>🎯 Objetivo da Aula</h3>
-          <p>Ao final, o aluno deve implementar fetch com 3 estados de UI <strong>e ter testes spec-driven com mock de rede</strong>.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-<!-- ==== SLIDE 3: SYNC VS ASYNC ====== -->
-  <div class="slide">
-    <div class="sc">
-      <div class="sh blue"><div class="st">Sync vs Async — O Problema</div><div class="ss">Por que precisamos de código assíncrono no navegador?</div></div>
-      <div class="g2" style="gap:14px;margin-bottom:12px;">
-        <div class="cmp-box red-bg" id="cmp-sync">
-          <div class="cmp-title">🔴 Síncrono — Bloqueia tudo</div>
-          <div class="term" style="margin-top:8px;">
-            <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><span class="term-ttl">sync.js</span></div>
-            <div class="term-body">
-              <div class="tl" id="sy0"></div>
-              <div class="tl" id="sy1"></div>
-              <div class="tl" id="sy2"></div>
-              <div class="tl" id="sy3"></div>
-              <div class="tl" id="sy4"></div>
-            </div>
-          </div>
-        </div>
-        <div class="cmp-box grn-bg" id="cmp-async">
-          <div class="cmp-title">🟢 Assíncrono — Não bloqueia</div>
-          <div class="term" style="margin-top:8px;">
-            <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><span class="term-ttl">async.js</span></div>
-            <div class="term-body">
-              <div class="tl" id="as0"></div>
-              <div class="tl" id="as1"></div>
-              <div class="tl" id="as2"></div>
-              <div class="tl" id="as3"></div>
-              <div class="tl" id="as4"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div id="pipe-syncasync" class="pipe" style="margin:8px 0;">
-        <div class="ps an">
-          <div class="pn" style="background:linear-gradient(135deg,#dc2626,#f87171);">1️⃣</div>
-          <div class="pl">Task 1</div><div class="ps2">~2s bloqueado</div>
-          <div class="pc"><div class="pcb" style="--fc:#dc2626;--tc:#d97706;"><div class="pcl">Sync: espera</div></div></div>
-        </div>
-        <div class="ps an">
-          <div class="pn" style="background:linear-gradient(135deg,#d97706,#fbbf24);">2️⃣</div>
-          <div class="pl">Task 2</div><div class="ps2">só começa depois</div>
-          <div class="pc"><div class="pcb" style="--fc:#d97706;--tc:#0d9488;"><div class="pcl">Async: paralelo</div></div></div>
-        </div>
-        <div class="ps an">
-          <div class="pn" style="background:linear-gradient(135deg,#0d9488,#10b981);">3️⃣</div>
-          <div class="pl">Task 3</div><div class="ps2">paralelo no async</div>
+          <h3>🎯 Bloco 4 — Desenvolvimento (Projeto)</h3>
+          <p>Adicionar interatividade dinâmica às páginas SSR consumindo a própria API do projeto.</p>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ====== SLIDE 4: EVOLUÇÃO CALLBACKS → PROMISES → ASYNC/AWAIT ====== -->
+  <!-- ====== SLIDE 3: ROADMAP ====== -->
   <div class="slide">
     <div class="sc">
-      <div class="sh dark"><div class="st">Callbacks → Promises → async/await</div><div class="ss">A evolução do JavaScript assíncrono ao longo dos anos</div></div>
-      <div class="lstack">
-        <div class="alayer" id="ev0" style="background:linear-gradient(135deg,#d97706,#f59e0b);">
-          <div class="li">📜</div>
-          <div>
-            <div class="ln">Callbacks — 2009</div>
-            <div class="lt">buscar(id, function(user) { salvar(user, function(ok) { notificar(ok, function() { ... }) }) })</div>
-            <div class="ld">Problema: "Callback Hell" — pirâmide da perdição, difícil de manter e debugar.</div>
-          </div>
+      <div class="sh dark"><div class="st">🗺️ Onde estamos no Módulo 2</div><div class="ss">Aula 8 de 11 — segunda aula de front-end, ligando UI ao back-end</div></div>
+      <div class="g2" style="gap:8px;">
+        <div>
+          <div class="ri done" id="rm1"><div class="rn">1</div><div><div class="rtl">Aulas 1–4 · Banco de dados</div><div class="rds">Modelagem, SQL, JOINs e relatórios</div></div></div>
+          <div class="ri done" id="rm2"><div class="rn">5</div><div><div class="rtl">Aula 5 · Back-end + MVC + TypeScript</div><div class="rds">Setup, models, services, repositories</div></div></div>
+          <div class="ri done" id="rm3"><div class="rn">6</div><div><div class="rtl">Aula 6 · Endpoints CRUD + zod</div><div class="rds">REST, validação, transações</div></div></div>
+          <div class="ri done" id="rm4"><div class="rn">7</div><div><div class="rtl">Aula 7 · Front-End I</div><div class="rds">HTML semântico, EJS, DOM, eventos</div></div></div>
         </div>
-        <div class="larr" id="eva0">⬇️ ES2015 — Promises chegam ao JavaScript</div>
-        <div class="alayer" id="ev1" style="background:linear-gradient(135deg,#374151,#b2b6bf);">
-          <div class="li">🤝</div>
-          <div>
-            <div class="ln">Promises — ES2015 (ES6)</div>
-            <div class="lt">buscar(id).then(user => salvar(user)).then(ok => notificar(ok)).catch(err => tratar(err))</div>
-            <div class="ld">Melhor: encadeamento legível, tratamento de erro centralizado com .catch(). Ainda verboso.</div>
-          </div>
+        <div>
+          <div class="ri cur" id="rm5"><div class="rn">8</div><div><div class="rtl">Aula 8 · Front-End II ← VOCÊ ESTÁ AQUI</div><div class="rds">Async, fetch, AbortController, estados de UI</div></div></div>
+          <div class="ri" id="rm6"><div class="rn">9</div><div><div class="rtl">Aula 9 · CSS + JS avançado</div><div class="rds">Layouts modernos e UX</div></div></div>
+          <div class="ri" id="rm7"><div class="rn">10</div><div><div class="rtl">Aula 10 · Deploy</div><div class="rds">Da máquina local para a internet</div></div></div>
+          <div class="ri" id="rm8"><div class="rn">11</div><div><div class="rtl">Aula 11 · Redes e protocolos</div><div class="rds">TCP/IP, DNS, HTTPS — fundação</div></div></div>
         </div>
-        <div class="larr" id="eva1">⬇️ ES2017 — async/await torna o código ainda mais limpo</div>
-        <div class="alayer" id="ev2" style="background:linear-gradient(135deg,#0d9488,#10b981);">
-          <div class="li">⚡</div>
-          <div>
-            <div class="ln">async/await — ES2017</div>
-            <div class="lt">try { const user = await buscar(id); const ok = await salvar(user); await notificar(ok); } catch(err) { tratar(err); }</div>
-            <div class="ld">Melhor de todos: parece código síncrono, usa try/catch nativo, máxima legibilidade.</div>
-          </div>
-        </div>
+      </div>
+      <div class="box bl" style="margin-top:12px;">
+        <h3>🎯 Objetivo da aula</h3>
+        <p>Ao final, o aluno conecta a UI do projeto ao back-end via <code>fetch()</code>: lê a página renderizada com EJS e adiciona interações dinâmicas que chamam endpoints JSON, com tratamento de erro, cancelamento e estados de UI.</p>
       </div>
     </div>
   </div>
 
-  <!-- ====== SLIDE 5: PROMISES NA PRÁTICA ====== -->
+  <!-- ====== SLIDE 4: EVENT LOOP ====== -->
   <div class="slide">
     <div class="sc">
-      <div class="sh green"><div class="st">Promises na Prática</div><div class="ss">Criando, consumindo e compondo Promises</div></div>
-      <div class="term">
-        <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><span class="term-ttl">promises.js</span></div>
-        <div class="term-body">
-          <div class="tl" id="pr0"></div>
-          <div class="tl" id="pr1"></div>
-          <div class="tl" id="pr2"></div>
-          <div class="tl" id="pr3"></div>
-          <div class="tl" id="pr4"></div>
-          <div class="tl" id="pr5"></div>
-          <div class="tl" id="pr6"></div>
-          <hr class="tdiv">
-          <div class="tl" id="pr7"></div>
-          <div class="tl" id="pr8"></div>
-          <div class="tl" id="pr9"></div>
-          <div class="tl" id="pr10"></div>
-          <div class="tl" id="pr11"></div>
-          <hr class="tdiv">
-          <div class="tl" id="pr12"></div>
-          <div class="tl" id="pr13"></div>
-          <div class="tl" id="pr14"></div>
-          <div class="tl" id="pr15"></div>
-          <div class="tl" id="pr16"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ====== SLIDE 6: FETCH — CONSUMINDO A API ====== -->
-  <div class="slide">
-    <div class="sc">
-      <div class="sh blue"><div class="st">fetch() — Consumindo a API</div><div class="ss">GET, POST, PUT e DELETE com a API nativa do navegador</div></div>
-      <div class="g2" style="gap:12px;">
-        <div class="term">
-          <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><span class="term-ttl">fetch-requests.js</span></div>
-          <div class="term-body">
-            <div class="tl" id="fr0"></div>
-            <div class="tl" id="fr1"></div>
-            <div class="tl" id="fr2"></div>
-            <div class="tl" id="fr3"></div>
-            <div class="tl" id="fr4"></div>
-            <div class="tl" id="fr5"></div>
-            <div class="tl" id="fr6"></div>
-            <div class="tl" id="fr7"></div>
-            <div class="tl" id="fr8"></div>
+      <div class="sh blue"><div class="st">⏱️ JavaScript é single-threaded — então como é assíncrono?</div><div class="ss">Event loop, microtasks (Promises) e macrotasks (setTimeout, I/O)</div></div>
+      <div class="loop-wrap">
+        <div class="lane">
+          <h4>🧠 Call stack</h4>
+          <div class="qbox" id="cs-q">
+            <span class="qitem task" id="cs0">main()</span>
+            <span class="qitem task" id="cs1">render()</span>
+            <span class="qitem task" id="cs2">handleClick()</span>
           </div>
-        </div>
-        <div class="term">
-          <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><span class="term-ttl">fetch-mutate.js</span></div>
-          <div class="term-body">
-            <div class="tl" id="fm0"></div>
-            <div class="tl" id="fm1"></div>
-            <div class="tl" id="fm2"></div>
-            <div class="tl" id="fm3"></div>
-            <div class="tl" id="fm4"></div>
-            <div class="tl" id="fm5"></div>
-            <div class="tl" id="fm6"></div>
-            <div class="tl" id="fm7"></div>
-            <div class="tl" id="fm8"></div>
+          <h4 style="margin-top:10px;">🟦 Microtask queue (Promises)</h4>
+          <div class="qbox" id="micro-q">
+            <span class="qitem micro" id="mq0">.then(callback)</span>
+            <span class="qitem micro" id="mq1">await resume</span>
           </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ====== SLIDE 7: TRATAMENTO DE ERROS COM FETCH ====== -->
-  <div class="slide">
-    <div class="sc">
-      <div class="sh dark"><div class="st">Tratamento de Erros com fetch()</div><div class="ss">fetch() não lança erro em respostas 4xx/5xx — você precisa verificar</div></div>
-      <div class="g2" style="gap:14px;align-items:start;">
-        <div class="term">
-          <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><span class="term-ttl">fetch-errors.js</span></div>
-          <div class="term-body">
-            <div class="tl" id="fe0"></div>
-            <div class="tl" id="fe1"></div>
-            <div class="tl" id="fe2"></div>
-            <div class="tl" id="fe3"></div>
-            <div class="tl" id="fe4"></div>
-            <div class="tl" id="fe5"></div>
-            <div class="tl" id="fe6"></div>
-            <div class="tl" id="fe7"></div>
-            <div class="tl" id="fe8"></div>
-            <div class="tl" id="fe9"></div>
-            <div class="tl" id="fe10"></div>
-            <div class="tl" id="fe11"></div>
-            <div class="tl" id="fe12"></div>
-            <div class="tl" id="fe13"></div>
-            <div class="tl" id="fe14"></div>
+          <h4 style="margin-top:10px;">🟧 Macrotask queue (setTimeout, I/O, fetch resolve)</h4>
+          <div class="qbox" id="macro-q">
+            <span class="qitem macro" id="tq0">setTimeout cb</span>
+            <span class="qitem macro" id="tq1">DOM event</span>
           </div>
         </div>
         <div>
-          <div class="box red" style="margin-bottom:10px;">
-            <h3>⚠️ Armadilha do fetch()</h3>
-            <p><strong>fetch()</strong> só lança erro em falha de <strong>rede</strong> (sem conexão, DNS falhou). Para respostas <code>4xx</code> e <code>5xx</code>, você precisa verificar <code>res.ok</code> ou <code>res.status</code> manualmente.</p>
-          </div>
           <div class="box acc">
-            <h3>🔍 Tipos de erro</h3>
+            <h3>O ciclo</h3>
             <ul>
-              <li><strong>TypeError</strong> — falha de rede, sem conexão</li>
-              <li><strong>400</strong> — dados inválidos enviados</li>
-              <li><strong>401</strong> — não autenticado</li>
-              <li><strong>403</strong> — sem permissão</li>
-              <li><strong>404</strong> — recurso não encontrado</li>
-              <li><strong>500</strong> — erro interno do servidor</li>
+              <li>1. JS executa o que está na <strong>call stack</strong> até esvaziar.</li>
+              <li>2. Esvaziou? Drena <strong>todas</strong> as microtasks.</li>
+              <li>3. Pega <strong>uma</strong> macrotask, coloca na stack, volta ao passo 1.</li>
             </ul>
+          </div>
+          <div class="box red" style="margin-top:10px;">
+            <h3>⚠️ Cuidado</h3>
+            <p>Microtasks têm prioridade. Um <code>while(true)</code> dentro de um <code>.then</code> trava o event loop e congela a UI.</p>
+          </div>
+          <div class="box grn" style="margin-top:10px;">
+            <h3>💡 Mental model</h3>
+            <p>Promises = microtask. setTimeout = macrotask. Por isso <code>Promise.resolve().then(...)</code> roda <strong>antes</strong> de <code>setTimeout(..., 0)</code>.</p>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ====== SLIDE 8: CORS ====== -->
+  <!-- ====== SLIDE 5: PROMISES ====== -->
   <div class="slide">
     <div class="sc">
-      <div class="sh green"><div class="st">CORS — Cross-Origin Resource Sharing</div><div class="ss">Por que o navegador bloqueia requisições entre origens diferentes</div></div>
-      <div id="pipe-cors" class="pipe" style="margin:10px 0 14px;">
-        <div class="ps an">
-          <div class="pn" style="background:linear-gradient(135deg,#374151,#b2b6bf);">🖥️</div>
-          <div class="pl">Browser</div><div class="ps2">localhost:5500</div>
-          <div class="pc"><div class="pcb" style="--fc:#dc2626;--tc:#dc2626;"><div class="pcl">❌ bloqueado sem CORS</div></div></div>
+      <div class="sh dark"><div class="st">🔮 Promises — o contrato do "vai chegar depois"</div><div class="ss">Estados, métodos de instância e métodos estáticos</div></div>
+      <div class="g3" style="margin-bottom:12px;">
+        <div class="pstate pending" id="ps0">
+          <div class="pstate-icon">⏳</div>
+          <div class="pstate-name">pending</div>
+          <div class="pstate-desc">Estado inicial. Ainda não resolveu nem rejeitou.</div>
         </div>
-        <div class="ps an">
-          <div class="pn" style="background:linear-gradient(135deg,#dc2626,#f87171);">🔒</div>
-          <div class="pl">Same-Origin Policy</div><div class="ps2">Política do navegador</div>
-          <div class="pc"><div class="pcb" style="--fc:#0d9488;--tc:#10b981;"><div class="pcl">✅ com header CORS</div></div></div>
+        <div class="pstate fulfilled" id="ps1">
+          <div class="pstate-icon">✅</div>
+          <div class="pstate-name">fulfilled</div>
+          <div class="pstate-desc">Resolveu com um valor. Dispara <code>.then(value =&gt; ...)</code>.</div>
         </div>
-        <div class="ps an">
-          <div class="pn" style="background:linear-gradient(135deg,#0d9488,#10b981);">⚙️</div>
-          <div class="pl">API Express</div><div class="ps2">localhost:3000</div>
+        <div class="pstate rejected" id="ps2">
+          <div class="pstate-icon">❌</div>
+          <div class="pstate-name">rejected</div>
+          <div class="pstate-desc">Rejeitou com um erro. Dispara <code>.catch(err =&gt; ...)</code>.</div>
         </div>
       </div>
       <div class="term">
-        <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><span class="term-ttl">cors-config.js — Express</span></div>
+        <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="term-ttl">promises.js — métodos estáticos</div></div>
         <div class="term-body">
-          <div class="tl" id="co0"></div>
-          <div class="tl" id="co1"></div>
-          <div class="tl" id="co2"></div>
-          <div class="tl" id="co3"></div>
-          <div class="tl" id="co4"></div>
-          <div class="tl" id="co5"></div>
-          <div class="tl" id="co6"></div>
-          <div class="tl" id="co7"></div>
-          <div class="tl" id="co8"></div>
-          <div class="tl" id="co9"></div>
+          <div class="tl" id="pm0"><span class="cmt">// Espera todas resolverem (falha se uma falhar)</span></div>
+          <div class="tl" id="pm1"><span class="kw">const</span> <span class="txt">[users, posts, tags] = </span><span class="kw">await</span> <span class="txt">Promise.</span><span class="jk">all</span><span class="txt">([fetchUsers(), fetchPosts(), fetchTags()]);</span></div>
+          <div class="tl" id="pm2"><span class="cmt">// Espera todas, sem falhar — devolve { status, value | reason }</span></div>
+          <div class="tl" id="pm3"><span class="kw">const</span> <span class="txt">results = </span><span class="kw">await</span> <span class="txt">Promise.</span><span class="jk">allSettled</span><span class="txt">([api1(), api2(), api3()]);</span></div>
+          <div class="tl" id="pm4"><span class="cmt">// Primeira que resolver (ou rejeitar) ganha</span></div>
+          <div class="tl" id="pm5"><span class="kw">const</span> <span class="txt">winner = </span><span class="kw">await</span> <span class="txt">Promise.</span><span class="jk">race</span><span class="txt">([fetch(url), timeout(</span><span class="jn">5000</span><span class="txt">)]);</span></div>
         </div>
+      </div>
+      <div class="box acc" style="margin-top:10px;">
+        <h3>📜 .then / .catch / .finally</h3>
+        <p>Encadeamento clássico. Cada <code>.then</code> retorna uma nova Promise. <code>.finally</code> roda em qualquer cenário (útil para fechar loaders).</p>
       </div>
     </div>
   </div>
 
-  <!-- ====== SLIDE 9: LOADING STATES ====== -->
+  <!-- ====== SLIDE 6: ASYNC/AWAIT ====== -->
   <div class="slide">
     <div class="sc">
-      <div class="sh blue"><div class="st">Loading States e UX</div><div class="ss">Gerenciar estado da interface durante requisições assíncronas</div></div>
-      <div class="g2" style="gap:14px;align-items:start;">
+      <div class="sh green"><div class="st">⏳ async / await — açúcar sintático para Promises</div><div class="ss">Código assíncrono que se lê como síncrono</div></div>
+      <div class="g2" style="align-items:start;">
         <div class="term">
-          <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><span class="term-ttl">loading-state.js</span></div>
+          <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="term-ttl">com Promises (.then)</div></div>
           <div class="term-body">
-            <div class="tl" id="ls0"></div>
-            <div class="tl" id="ls1"></div>
-            <div class="tl" id="ls2"></div>
-            <div class="tl" id="ls3"></div>
-            <div class="tl" id="ls4"></div>
-            <div class="tl" id="ls5"></div>
-            <div class="tl" id="ls6"></div>
-            <div class="tl" id="ls7"></div>
-            <div class="tl" id="ls8"></div>
-            <div class="tl" id="ls9"></div>
-            <div class="tl" id="ls10"></div>
-            <div class="tl" id="ls11"></div>
-            <div class="tl" id="ls12"></div>
-            <div class="tl" id="ls13"></div>
+            <div class="tl" id="aa0"><span class="kw">function</span> <span class="jk">carregarUsuario</span><span class="txt">(id) {</span></div>
+            <div class="tl" id="aa1"><span class="txt">  </span><span class="kw">return</span> <span class="jk">fetch</span><span class="txt">(`/api/users/${id}`)</span></div>
+            <div class="tl" id="aa2"><span class="txt">    .</span><span class="jk">then</span><span class="txt">(res =&gt; res.</span><span class="jk">json</span><span class="txt">())</span></div>
+            <div class="tl" id="aa3"><span class="txt">    .</span><span class="jk">then</span><span class="txt">(user =&gt; renderUser(user))</span></div>
+            <div class="tl" id="aa4"><span class="txt">    .</span><span class="jk">catch</span><span class="txt">(err =&gt; mostrarErro(err));</span></div>
+            <div class="tl" id="aa5"><span class="txt">}</span></div>
           </div>
         </div>
-        <div>
-          <div class="box acc" style="margin-bottom:10px;">
-            <h3>🎯 Os 3 estados</h3>
-            <ul>
-              <li><strong>carregando</strong> — mostra spinner, desabilita botões</li>
-              <li><strong>erro</strong> — exibe mensagem amigável, permite retry</li>
-              <li><strong>sucesso</strong> — renderiza os dados na tela</li>
-            </ul>
-          </div>
-          <div class="box grn">
-            <h3>💡 Boas práticas de UX</h3>
-            <ul>
-              <li>Sempre mostrar feedback visual de carregamento</li>
-              <li>Nunca deixar a tela travada sem explicação</li>
-              <li>Mensagens de erro legíveis para o usuário</li>
-              <li>Usar <code>finally</code> para limpar o estado</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ====== SLIDE 10: LOCALSTORAGE ====== -->
-  <div class="slide">
-    <div class="sc">
-      <div class="sh dark"><div class="st">localStorage e sessionStorage</div><div class="ss">Persistindo dados no navegador sem banco de dados</div></div>
-      <div class="g2" style="gap:14px;align-items:start;">
         <div class="term">
-          <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><span class="term-ttl">storage.js</span></div>
+          <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="term-ttl">com async / await</div></div>
           <div class="term-body">
-            <div class="tl" id="st0"></div>
-            <div class="tl" id="st1"></div>
-            <div class="tl" id="st2"></div>
-            <div class="tl" id="st3"></div>
-            <hr class="tdiv">
-            <div class="tl" id="st4"></div>
-            <div class="tl" id="st5"></div>
-            <div class="tl" id="st6"></div>
-            <hr class="tdiv">
-            <div class="tl" id="st7"></div>
-            <div class="tl" id="st8"></div>
-            <div class="tl" id="st9"></div>
-            <hr class="tdiv">
-            <div class="tl" id="st10"></div>
-            <div class="tl" id="st11"></div>
-          </div>
-        </div>
-        <div>
-          <div class="box acc" style="margin-bottom:10px;">
-            <h3>📊 localStorage vs sessionStorage</h3>
-            <ul>
-              <li><strong>localStorage</strong> — persiste entre sessões e abas, sem expiração</li>
-              <li><strong>sessionStorage</strong> — dura só enquanto a aba está aberta</li>
-              <li>Ambos armazenam apenas <strong>strings</strong> — use JSON.stringify/parse</li>
-              <li>Limite de ~5MB por origem</li>
-            </ul>
-          </div>
-          <div class="box red">
-            <h3>🔒 Segurança</h3>
-            <p><strong>NUNCA</strong> guarde senhas no localStorage. Para tokens JWT, prefira <strong>httpOnly cookies</strong> em produção. O localStorage é acessível por qualquer JS da página (risco XSS).</p>
+            <div class="tl" id="ab0"><span class="kw">async function</span> <span class="jk">carregarUsuario</span><span class="txt">(id) {</span></div>
+            <div class="tl" id="ab1"><span class="txt">  </span><span class="kw">try</span> <span class="txt">{</span></div>
+            <div class="tl" id="ab2"><span class="txt">    </span><span class="kw">const</span> <span class="txt">res  = </span><span class="kw">await</span> <span class="txt"> </span><span class="jk">fetch</span><span class="txt">(`/api/users/${id}`);</span></div>
+            <div class="tl" id="ab3"><span class="txt">    </span><span class="kw">const</span> <span class="txt">user = </span><span class="kw">await</span> <span class="txt"> res.</span><span class="jk">json</span><span class="txt">();</span></div>
+            <div class="tl" id="ab4"><span class="txt">    </span><span class="jk">renderUser</span><span class="txt">(user);</span></div>
+            <div class="tl" id="ab5"><span class="txt">  } </span><span class="kw">catch</span> <span class="txt">(err) { </span><span class="jk">mostrarErro</span><span class="txt">(err); }</span></div>
+            <div class="tl" id="ab6"><span class="txt">}</span></div>
           </div>
         </div>
       </div>
-    </div>
-  </div>
-
-  <!-- ====== SLIDE 11: PROJETO PRÁTICO ====== -->
-  <div class="slide">
-    <div class="sc">
-      <div class="sh green"><div class="st">Projeto Prático — CRUD Completo</div><div class="ss">Conectando todas as camadas: do formulário ao banco de dados</div></div>
-      <div id="pipe-crud" class="pipe" style="margin:16px 0 18px;">
-        <div class="ps an">
-          <div class="pn" style="background:linear-gradient(135deg,#e34c26,#f06529);">📝</div>
-          <div class="pl">HTML Form</div><div class="ps2">input do usuário</div>
-          <div class="pc"><div class="pcb" style="--fc:#e34c26;--tc:#f0db4f;"><div class="pcl">event listener</div></div></div>
-        </div>
-        <div class="ps an">
-          <div class="pn" style="background:linear-gradient(135deg,#f0db4f,#c8b800);">⚡</div>
-          <div class="pl">JS fetch()</div><div class="ps2">async/await</div>
-          <div class="pc"><div class="pcb" style="--fc:#f0db4f;--tc:#8cc84b;"><div class="pcl">HTTP POST/GET</div></div></div>
-        </div>
-        <div class="ps an">
-          <div class="pn" style="background:linear-gradient(135deg,#8cc84b,#4a8c3f);">🟢</div>
-          <div class="pl">Express API</div><div class="ps2">valida e processa</div>
-          <div class="pc"><div class="pcb" style="--fc:#8cc84b;--tc:#336791;"><div class="pcl">SQL query</div></div></div>
-        </div>
-        <div class="ps an">
-          <div class="pn" style="background:linear-gradient(135deg,#336791,#4a90d9);">🐘</div>
-          <div class="pl">PostgreSQL</div><div class="ps2">persiste dados</div>
-          <div class="pc"><div class="pcb" style="--fc:#336791;--tc:#0d9488;"><div class="pcl">JSON response</div></div></div>
-        </div>
-        <div class="ps an">
-          <div class="pn" style="background:linear-gradient(135deg,#0d9488,#10b981);">🎨</div>
-          <div class="pl">DOM update</div><div class="ps2">re-renderiza UI</div>
-        </div>
-      </div>
-      <div class="g2" style="gap:12px;">
-        <div class="box acc">
-          <h3>📋 O que implementar hoje</h3>
-          <ul>
-            <li>Formulário de criação de usuário (POST)</li>
-            <li>Listagem com fetch GET ao carregar a página</li>
-            <li>Botão de deletar com fetch DELETE</li>
-            <li>Loading spinner durante as requisições</li>
-            <li>Mensagens de erro para o usuário</li>
-          </ul>
+      <div class="g2" style="margin-top:12px;">
+        <div class="box red">
+          <h3>🚫 Erro clássico</h3>
+          <p><code>await</code> só funciona dentro de função <code>async</code>. Top-level <code>await</code> existe em ES modules, mas dentro de funções comuns dispara <em>SyntaxError</em>.</p>
         </div>
         <div class="box grn">
-          <h3>🏆 Desafio extra</h3>
+          <h3>✅ try/catch</h3>
+          <p>Em async/await, erros viram exceções normais. Use <code>try/catch</code> exatamente como em código síncrono.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== SLIDE 7: FETCH GET ====== -->
+  <div class="slide">
+    <div class="sc">
+      <div class="sh blue"><div class="st">🌐 fetch() — GET é o caso default</div><div class="ss">Lendo dados da nossa API TypeScript+Express</div></div>
+      <div class="term">
+        <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="term-ttl">public/js/users.js — GET /api/users</div></div>
+        <div class="term-body">
+          <div class="tl" id="g0"><span class="cmt">// fetch sem segundo argumento = GET</span></div>
+          <div class="tl" id="g1"><span class="kw">async function</span> <span class="jk">listarUsuarios</span><span class="txt">() {</span></div>
+          <div class="tl" id="g2"><span class="txt">  </span><span class="kw">const</span> <span class="txt">res = </span><span class="kw">await</span> <span class="txt"> </span><span class="jk">fetch</span><span class="txt">(</span><span class="js">'/api/users'</span><span class="txt">);</span></div>
+          <div class="tl" id="g3"><span class="txt"></span></div>
+          <div class="tl" id="g4"><span class="cmt">  // res é Response — não é o JSON ainda!</span></div>
+          <div class="tl" id="g5"><span class="txt">  </span><span class="kw">if</span> <span class="txt">(!res.</span><span class="jk">ok</span><span class="txt">) </span><span class="kw">throw</span> <span class="kw">new</span> <span class="hn">Error</span><span class="txt">(`HTTP ${res.</span><span class="jk">status</span><span class="txt">}`);</span></div>
+          <div class="tl" id="g6"><span class="txt"></span></div>
+          <div class="tl" id="g7"><span class="cmt">  // .json() retorna Promise — precisa de await</span></div>
+          <div class="tl" id="g8"><span class="txt">  </span><span class="kw">const</span> <span class="txt">data = </span><span class="kw">await</span> <span class="txt"> res.</span><span class="jk">json</span><span class="txt">();</span></div>
+          <div class="tl" id="g9"><span class="txt">  </span><span class="kw">return</span> <span class="txt">data;</span></div>
+          <div class="tl" id="g10"><span class="txt">}</span></div>
+        </div>
+      </div>
+      <div class="g3" style="margin-top:12px;">
+        <div class="box bl">
+          <h3>🧱 Response</h3>
+          <p>É um stream do corpo. Use <code>.json()</code>, <code>.text()</code>, <code>.blob()</code> conforme o tipo.</p>
+        </div>
+        <div class="box acc">
+          <h3>🔁 Reusável</h3>
+          <p>Crie um helper <code>getJSON(url)</code> em <code>public/js/api.js</code> e reuse em todas as páginas.</p>
+        </div>
+        <div class="box grn">
+          <h3>📦 Mesmo origem</h3>
+          <p>Como o front-end SSR e o JSON são servidos pelo mesmo Express, não há CORS — caminho relativo basta.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== SLIDE 8: FETCH POST ====== -->
+  <div class="slide">
+    <div class="sc">
+      <div class="sh dark"><div class="st">📮 fetch() — POST com JSON</div><div class="ss">Enviando dados para a API com headers e body</div></div>
+      <div class="term">
+        <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="term-ttl">public/js/users.js — POST /api/users</div></div>
+        <div class="term-body">
+          <div class="tl" id="p0"><span class="kw">async function</span> <span class="jk">criarUsuario</span><span class="txt">(payload) {</span></div>
+          <div class="tl" id="p1"><span class="txt">  </span><span class="kw">const</span> <span class="txt">res = </span><span class="kw">await</span> <span class="txt"> </span><span class="jk">fetch</span><span class="txt">(</span><span class="js">'/api/users'</span><span class="txt">, {</span></div>
+          <div class="tl" id="p2"><span class="txt">    </span><span class="jk">method</span><span class="txt">: </span><span class="js">'POST'</span><span class="txt">,</span></div>
+          <div class="tl" id="p3"><span class="txt">    </span><span class="jk">headers</span><span class="txt">: { </span><span class="js">'Content-Type'</span><span class="txt">: </span><span class="js">'application/json'</span><span class="txt"> },</span></div>
+          <div class="tl" id="p4"><span class="txt">    </span><span class="jk">body</span><span class="txt">: </span><span class="hn">JSON</span><span class="txt">.</span><span class="jk">stringify</span><span class="txt">(payload)</span></div>
+          <div class="tl" id="p5"><span class="txt">  });</span></div>
+          <div class="tl" id="p6"><span class="txt"></span></div>
+          <div class="tl" id="p7"><span class="txt">  </span><span class="kw">if</span> <span class="txt">(!res.</span><span class="jk">ok</span><span class="txt">) {</span></div>
+          <div class="tl" id="p8"><span class="txt">    </span><span class="kw">const</span> <span class="txt">erro = </span><span class="kw">await</span> <span class="txt"> res.</span><span class="jk">json</span><span class="txt">();</span></div>
+          <div class="tl" id="p9"><span class="txt">    </span><span class="kw">throw</span> <span class="kw">new</span> <span class="hn">Error</span><span class="txt">(erro.message ?? `HTTP ${res.</span><span class="jk">status</span><span class="txt">}`);</span></div>
+          <div class="tl" id="p10"><span class="txt">  }</span></div>
+          <div class="tl" id="p11"><span class="txt">  </span><span class="kw">return</span> <span class="kw">await</span> <span class="txt"> res.</span><span class="jk">json</span><span class="txt">();</span></div>
+          <div class="tl" id="p12"><span class="txt">}</span></div>
+        </div>
+      </div>
+      <div class="box amr" style="margin-top:12px;">
+        <h3>📌 Três coisas obrigatórias no POST com JSON</h3>
+        <ul>
+          <li><code>method: 'POST'</code> — sem isso, vira GET silenciosamente.</li>
+          <li><code>headers: { 'Content-Type': 'application/json' }</code> — sem isso, o Express com <code>express.json()</code> não parseia o corpo.</li>
+          <li><code>body: JSON.stringify(...)</code> — objeto JS não serializa sozinho. Sem stringify, o corpo vai como <code>[object Object]</code>.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== SLIDE 9: ERROR HANDLING ====== -->
+  <div class="slide">
+    <div class="sc">
+      <div class="sh red"><div class="st">⚠️ Tratamento de erros — o pulo do gato</div><div class="ss">fetch só rejeita por erro de rede; 4xx/5xx chegam como sucesso</div></div>
+      <div class="g2" style="align-items:start;margin-bottom:12px;">
+        <div class="box red">
+          <h3>❌ Erro de rede (Promise rejeita)</h3>
           <ul>
-            <li>Modal de edição com fetch PUT</li>
-            <li>Filtro de busca no frontend (sem requisição)</li>
-            <li>Salvar filtro ativo no sessionStorage</li>
-            <li>Token de sessão simulado no localStorage</li>
+            <li>DNS falhou (host não existe).</li>
+            <li>Sem internet.</li>
+            <li>CORS bloqueou.</li>
+            <li>Request foi cancelado.</li>
           </ul>
+          <p style="font-size:.82rem;color:#64748b;margin-top:6px;">→ Cai no <code>catch</code>.</p>
+        </div>
+        <div class="box amr">
+          <h3>📨 Erro HTTP (Promise resolve!)</h3>
+          <ul>
+            <li>404 — recurso não existe.</li>
+            <li>401 — não autenticado.</li>
+            <li>422 — validação zod falhou.</li>
+            <li>500 — bug do servidor.</li>
+          </ul>
+          <p style="font-size:.82rem;color:#64748b;margin-top:6px;">→ <code>res.ok = false</code>, mas o <code>await</code> não dispara erro.</p>
+        </div>
+      </div>
+      <div class="term">
+        <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="term-ttl">padrão correto: ler res.ok</div></div>
+        <div class="term-body">
+          <div class="tl" id="e0"><span class="kw">async function</span> <span class="jk">getJSON</span><span class="txt">(url) {</span></div>
+          <div class="tl" id="e1"><span class="txt">  </span><span class="kw">const</span> <span class="txt">res = </span><span class="kw">await</span> <span class="txt"> </span><span class="jk">fetch</span><span class="txt">(url);</span></div>
+          <div class="tl" id="e2"><span class="txt">  </span><span class="kw">if</span> <span class="txt">(!res.</span><span class="jk">ok</span><span class="txt">) </span><span class="kw">throw</span> <span class="kw">new</span> <span class="hn">Error</span><span class="txt">(`HTTP ${res.</span><span class="jk">status</span><span class="txt">}`);</span></div>
+          <div class="tl" id="e3"><span class="txt">  </span><span class="kw">return</span> <span class="kw">await</span> <span class="txt"> res.</span><span class="jk">json</span><span class="txt">();</span></div>
+          <div class="tl" id="e4"><span class="txt">}</span></div>
         </div>
       </div>
     </div>
   </div>
 
-
-  <!-- ====== SLIDE 12: SPEC-DRIVEN ASYNC ====== -->
+  <!-- ====== SLIDE 10: ABORT CONTROLLER ====== -->
   <div class="slide">
     <div class="sc">
-      <div class="sh dark"><div class="st">🧪 Spec-Driven — Código Assíncrono</div><div class="ss">Computational viewpoint → o que o sistema computa via API</div></div>
-      <div class="g2" style="gap:12px;margin-bottom:10px;">
-        <div id="tdd0" style="opacity:0;">
-          <div class="box acc" style="margin-bottom:8px;">
-            <h3>Computational viewpoint → Spec async</h3>
-            <p style="font-size:.83rem;"><strong>Driver:</strong> "Sistema exibe produtos buscados na API."<br>
-            <strong>Spec:</strong> <code>fetchProdutos()</code> retorna array; em erro de rede lança exceção com mensagem.</p>
-          </div>
-          <div class="box" style="border-left-color:var(--re);">
-            <h3>🔴 Red — mock da rede</h3>
-            <pre style="font-size:.70rem;background:#1e1829;color:#e2e8f0;padding:6px;border-radius:6px;margin:4px 0;overflow:hidden;">global.fetch = jest.fn(() =&gt; Promise.resolve({
-  ok:<span style="color:#fca5a5">true</span>, json:() =&gt; Promise.resolve([{nome:<span style="color:#86efac">'X'</span>}])
-}));
-it(<span style="color:#86efac">'retorna produtos'</span>, async () =&gt; {
-  <span style="color:#93c5fd">const</span> ps = <span style="color:#93c5fd">await</span> <span style="color:#86efac">fetchProdutos</span>();
-  expect(ps).toHaveLength(<span style="color:#fca5a5">1</span>);
-}); <span style="color:#94a3b8">// ❌ FALHA</span></pre>
-          </div>
-        </div>
-        <div id="tdd1" style="opacity:0;">
-          <div class="box" style="border-left-color:var(--gr);margin-bottom:8px;">
-            <h3>🟢 Green + spec de erro</h3>
-            <pre style="font-size:.70rem;background:#1e1829;color:#e2e8f0;padding:6px;border-radius:6px;margin:4px 0;overflow:hidden;"><span style="color:#93c5fd">async function</span> <span style="color:#86efac">fetchProdutos</span>() {
-  <span style="color:#93c5fd">const</span> r = <span style="color:#93c5fd">await</span> fetch(<span style="color:#86efac">'/api/produtos'</span>);
-  <span style="color:#93c5fd">if</span>(!r.ok) <span style="color:#93c5fd">throw new</span> Error(<span style="color:#86efac">'Falha na API'</span>);
-  <span style="color:#93c5fd">return</span> r.json();
-}
-<span style="color:#94a3b8">// a spec do erro tb é um teste!</span></pre>
-          </div>
-          <div class="box grn">
-            <h3>3 estados = 3 specs</h3>
-            <p style="font-size:.82rem;">loading → success → error: <strong>cada estado é uma spec</strong> que deve ter um teste correspondente.</p>
-          </div>
+      <div class="sh amber"><div class="st">🚫 AbortController — cancelando requests obsoletos</div><div class="ss">Busca digitada, troca de página, navegação rápida</div></div>
+      <div class="term">
+        <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="term-ttl">public/js/search.js — typeahead com cancelamento</div></div>
+        <div class="term-body">
+          <div class="tl" id="ac0"><span class="kw">let</span> <span class="txt">controller = </span><span class="kw">null</span><span class="txt">;</span></div>
+          <div class="tl" id="ac1"><span class="txt"></span></div>
+          <div class="tl" id="ac2"><span class="txt">input.</span><span class="jk">addEventListener</span><span class="txt">(</span><span class="js">'input'</span><span class="txt">, </span><span class="kw">async</span> <span class="txt"> (e) =&gt; {</span></div>
+          <div class="tl" id="ac3"><span class="cmt">  // Cancela request anterior se ainda estiver em voo</span></div>
+          <div class="tl" id="ac4"><span class="txt">  </span><span class="kw">if</span> <span class="txt">(controller) controller.</span><span class="jk">abort</span><span class="txt">();</span></div>
+          <div class="tl" id="ac5"><span class="txt">  controller = </span><span class="kw">new</span> <span class="hn">AbortController</span><span class="txt">();</span></div>
+          <div class="tl" id="ac6"><span class="txt"></span></div>
+          <div class="tl" id="ac7"><span class="txt">  </span><span class="kw">try</span> <span class="txt">{</span></div>
+          <div class="tl" id="ac8"><span class="txt">    </span><span class="kw">const</span> <span class="txt">res = </span><span class="kw">await</span> <span class="txt"> </span><span class="jk">fetch</span><span class="txt">(`/api/search?q=${e.target.value}`, {</span></div>
+          <div class="tl" id="ac9"><span class="txt">      </span><span class="jk">signal</span><span class="txt">: controller.</span><span class="jk">signal</span></div>
+          <div class="tl" id="ac10"><span class="txt">    });</span></div>
+          <div class="tl" id="ac11"><span class="txt">    </span><span class="jk">renderResultados</span><span class="txt">(</span><span class="kw">await</span> <span class="txt"> res.</span><span class="jk">json</span><span class="txt">());</span></div>
+          <div class="tl" id="ac12"><span class="txt">  } </span><span class="kw">catch</span> <span class="txt">(err) {</span></div>
+          <div class="tl" id="ac13"><span class="txt">    </span><span class="kw">if</span> <span class="txt">(err.</span><span class="jk">name</span><span class="txt"> === </span><span class="js">'AbortError'</span><span class="txt">) </span><span class="kw">return</span><span class="txt">; </span><span class="cmt">// silencioso</span></div>
+          <div class="tl" id="ac14"><span class="txt">    </span><span class="jk">mostrarErro</span><span class="txt">(err);</span></div>
+          <div class="tl" id="ac15"><span class="txt">  }</span></div>
+          <div class="tl" id="ac16"><span class="txt">});</span></div>
         </div>
       </div>
-      <div id="tdd2" class="box" style="opacity:0;border-left-color:var(--hi);">
-        <h3>🔍 White Box: você sabe o interior</h3>
-        <p style="font-size:.85rem;">Como você escreveu <code>fetchProdutos</code>, sabe que ela chama <code>fetch()</code> → pode mockar e testar a lógica de tratamento <strong>sem depender de rede real</strong>.</p>
+      <div class="box bl" style="margin-top:12px;">
+        <h3>🎯 Quando usar</h3>
+        <p>Sempre que um novo evento substitui o anterior: campo de busca digitando, abas trocando, paginação rápida, <em>infinite scroll</em>. Evita renderizar resultado antigo em cima do novo.</p>
       </div>
     </div>
   </div>
 
-  <!-- ====== SLIDE 12: RM-ODP — AS 5 VISÕES ====== -->
+  <!-- ====== SLIDE 11: UI STATES ====== -->
   <div class="slide">
     <div class="sc">
-      <div class="sh blue"><div class="st">RM-ODP — As 5 Visões do Sistema</div><div class="ss">ISO/IEC 10746 · Como diferentes stakeholders enxergam o sistema</div></div>
+      <div class="sh dark"><div class="st">🔄 Loading · Empty · Error · Success</div><div class="ss">Toda UI assíncrona vive em 4 estados — não esqueça nenhum</div></div>
+      <div class="g4">
+        <div class="ui-state loading" id="us0">
+          <div class="ui-icon">⏳</div>
+          <div class="ui-title">Loading</div>
+          <div class="ui-desc">Request em andamento. Mostre spinner ou skeleton.</div>
+          <div class="ui-mock">&lt;div&gt;Carregando...&lt;/div&gt;</div>
+        </div>
+        <div class="ui-state empty" id="us1">
+          <div class="ui-icon">📭</div>
+          <div class="ui-title">Empty</div>
+          <div class="ui-desc">Resposta OK, mas <code>data.length === 0</code>. Mensagem amigável.</div>
+          <div class="ui-mock">"Nenhum usuário cadastrado ainda."</div>
+        </div>
+        <div class="ui-state error" id="us2">
+          <div class="ui-icon">⚠️</div>
+          <div class="ui-title">Error</div>
+          <div class="ui-desc">Rede falhou ou status &gt;=400. Mostrar erro + botão "tentar novamente".</div>
+          <div class="ui-mock">"Falha ao carregar. Tentar novamente?"</div>
+        </div>
+        <div class="ui-state" id="us3" style="border-left:5px solid var(--gr);">
+          <div class="ui-icon">✅</div>
+          <div class="ui-title">Success</div>
+          <div class="ui-desc">Renderiza o conteúdo final.</div>
+          <div class="ui-mock">&lt;ul&gt;...&lt;/ul&gt;</div>
+        </div>
+      </div>
+      <div class="term" style="margin-top:14px;">
+        <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="term-ttl">esqueleto canônico</div></div>
+        <div class="term-body">
+          <div class="tl vis"><span class="jk">setLoading</span><span class="txt">();</span></div>
+          <div class="tl vis"><span class="kw">try</span> <span class="txt">{</span></div>
+          <div class="tl vis"><span class="txt">  </span><span class="kw">const</span> <span class="txt">data = </span><span class="kw">await</span> <span class="txt"> </span><span class="jk">getJSON</span><span class="txt">(</span><span class="js">'/api/users'</span><span class="txt">);</span></div>
+          <div class="tl vis"><span class="txt">  </span><span class="kw">if</span> <span class="txt">(data.length === </span><span class="jn">0</span><span class="txt">) </span><span class="kw">return</span> <span class="jk">renderEmpty</span><span class="txt">();</span></div>
+          <div class="tl vis"><span class="txt">  </span><span class="jk">renderList</span><span class="txt">(data);</span></div>
+          <div class="tl vis"><span class="txt">} </span><span class="kw">catch</span> <span class="txt">(err) { </span><span class="jk">renderError</span><span class="txt">(err); }</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== SLIDE 12: BACKEND DUAL ====== -->
+  <div class="slide">
+    <div class="sc">
+      <div class="sh green"><div class="st">🔁 Backend dual — HTML (EJS) + JSON na mesma rota lógica</div><div class="ss">O mesmo controller responde duas linguagens, reusando o service</div></div>
+      <div class="dual" style="margin-bottom:12px;">
+        <div class="dual-card html">
+          <div class="dual-route">GET /users</div>
+          <div style="font-size:.82rem;color:#374151;line-height:1.5;">
+            Renderiza <code>views/users/index.ejs</code> via SSR.<br>Carga inicial da página, SEO-friendly.
+          </div>
+          <div class="dual-out">res.render('users/index', { users })</div>
+        </div>
+        <div class="dual-card json">
+          <div class="dual-route">GET /api/users</div>
+          <div style="font-size:.82rem;color:#374151;line-height:1.5;">
+            Devolve JSON puro.<br>Consumido pelo JS do cliente após carga.
+          </div>
+          <div class="dual-out">res.json({ data: users })</div>
+        </div>
+      </div>
+      <div class="term">
+        <div class="term-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div><div class="term-ttl">src/controllers/UserController.ts — dois métodos, um service</div></div>
+        <div class="term-body">
+          <div class="tl" id="bd0"><span class="kw">export class</span> <span class="hn">UserController</span> <span class="txt">{</span></div>
+          <div class="tl" id="bd1"><span class="txt">  </span><span class="kw">constructor</span><span class="txt">(</span><span class="kw">private</span> <span class="txt">service: </span><span class="hn">UserService</span><span class="txt">) {}</span></div>
+          <div class="tl" id="bd2"><span class="txt"></span></div>
+          <div class="tl" id="bd3"><span class="cmt">  // HTML — renderiza EJS</span></div>
+          <div class="tl" id="bd4"><span class="txt">  index = </span><span class="kw">async</span> <span class="txt">(req, res) =&gt; {</span></div>
+          <div class="tl" id="bd5"><span class="txt">    </span><span class="kw">const</span> <span class="txt">users = </span><span class="kw">await</span> <span class="txt"> </span><span class="kw">this</span><span class="txt">.service.</span><span class="jk">listAll</span><span class="txt">();</span></div>
+          <div class="tl" id="bd6"><span class="txt">    res.</span><span class="jk">render</span><span class="txt">(</span><span class="js">'users/index'</span><span class="txt">, { users });</span></div>
+          <div class="tl" id="bd7"><span class="txt">  };</span></div>
+          <div class="tl" id="bd8"><span class="txt"></span></div>
+          <div class="tl" id="bd9"><span class="cmt">  // JSON — mesma lógica, formato diferente</span></div>
+          <div class="tl" id="bd10"><span class="txt">  apiList = </span><span class="kw">async</span> <span class="txt">(req, res) =&gt; {</span></div>
+          <div class="tl" id="bd11"><span class="txt">    </span><span class="kw">const</span> <span class="txt">users = </span><span class="kw">await</span> <span class="txt"> </span><span class="kw">this</span><span class="txt">.service.</span><span class="jk">listAll</span><span class="txt">();</span></div>
+          <div class="tl" id="bd12"><span class="txt">    res.</span><span class="jk">json</span><span class="txt">({ data: users });</span></div>
+          <div class="tl" id="bd13"><span class="txt">  };</span></div>
+          <div class="tl" id="bd14"><span class="txt">}</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== SLIDE 13: HEADERS, COOKIES, NETWORK TAB ====== -->
+  <div class="slide">
+    <div class="sc">
+      <div class="sh blue"><div class="st">🛠️ Headers, cookies de sessão e Network tab</div><div class="ss">Inspecionando o que sai e o que entra na sua aplicação</div></div>
+      <div class="g2" style="align-items:start;">
+        <div class="box bl">
+          <h3>📋 Headers comuns</h3>
+          <div class="hdr-row vis"><div class="hdr-name">Content-Type</div><div class="hdr-desc">Tipo do corpo enviado/recebido (<code>application/json</code>).</div></div>
+          <div class="hdr-row vis"><div class="hdr-name">Accept</div><div class="hdr-desc">O que o cliente sabe consumir.</div></div>
+          <div class="hdr-row vis"><div class="hdr-name">Authorization</div><div class="hdr-desc">Token bearer / Basic. <strong>Não usaremos hoje.</strong></div></div>
+          <div class="hdr-row vis"><div class="hdr-name">Cache-Control</div><div class="hdr-desc">Política de cache (browser e proxies).</div></div>
+          <div class="hdr-row vis"><div class="hdr-name">Cookie / Set-Cookie</div><div class="hdr-desc">Sessão stateful — vai automático em mesma origem.</div></div>
+        </div>
+        <div>
+          <div class="box amr">
+            <h3>🍪 Cookies de sessão · SameSite</h3>
+            <p>O navegador anexa o cookie de sessão automaticamente em <code>fetch</code> de mesma origem. <code>SameSite=Lax</code> é o default seguro: cookie envia em GETs cross-site mas não em POSTs.</p>
+          </div>
+          <div class="box acc" style="margin-top:8px;">
+            <h3>🌐 CORS — em uma frase</h3>
+            <p>Mesma origem (<code>localhost:3000</code> servindo HTML e JSON)? Não há problema. Se um dia o front virar <code>app.x.com</code> e a API <code>api.x.com</code>, ative o middleware <code>cors</code> no Express.</p>
+          </div>
+          <div class="box grn" style="margin-top:8px;">
+            <h3>🔍 DevTools · Network tab</h3>
+            <p>F12 → Network. Veja URL, método, status, headers, payload e <em>timing</em>. É a primeira parada quando algo não funciona.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== SLIDE 13.5: RM-ODP — AS 5 VISÕES ====== -->
+  <div class="slide">
+    <div class="sc">
+      <div class="sh blue"><div class="st">RM-ODP — As 5 Visões do Sistema</div><div class="ss">ISO/IEC 10746 · Interatividade dinâmica nas 5 visões</div></div>
       <div class="pipe" style="flex-wrap:wrap;gap:8px;justify-content:center;margin:16px 0;">
-        <div class="alayer" id="odp0" style="background:linear-gradient(135deg,#2e2640,#4b5563);color:white;padding:10px 16px;border-radius:10px;opacity:0;transform:translateY(16px);transition:all .5s cubic-bezier(.34,1.3,.64,1);min-width:140px;text-align:center;"><strong>🏢 Enterprise</strong><br><small>Propósito, regras de negócio</small></div>
-        <div style="align-self:center;opacity:0;transition:opacity .3s;" id="oa0">→</div>
-        <div class="alayer" id="odp1" style="background:linear-gradient(135deg,#0d9488,#10b981);color:white;padding:10px 16px;border-radius:10px;opacity:0;transform:translateY(16px);transition:all .5s cubic-bezier(.34,1.3,.64,1);min-width:140px;text-align:center;"><strong>📋 Information</strong><br><small>Dados, entidades, relações</small></div>
-        <div style="align-self:center;opacity:0;transition:opacity .3s;" id="oa1">→</div>
-        <div class="alayer" id="odp2" style="background:linear-gradient(135deg,#4b5563,#6b7280);color:white;padding:10px 16px;border-radius:10px;opacity:0;transform:translateY(16px);transition:all .5s cubic-bezier(.34,1.3,.64,1);min-width:140px;text-align:center;"><strong>⚙️ Computational</strong><br><small>Componentes, interfaces</small></div>
-        <div style="align-self:center;opacity:0;transition:opacity .3s;" id="oa2">→</div>
-        <div class="alayer" id="odp3" style="background:linear-gradient(135deg,#d97706,#f59e0b);color:white;padding:10px 16px;border-radius:10px;opacity:0;transform:translateY(16px);transition:all .5s cubic-bezier(.34,1.3,.64,1);min-width:140px;text-align:center;"><strong>🔧 Engineering</strong><br><small>Distribuição, canais, nós</small></div>
-        <div style="align-self:center;opacity:0;transition:opacity .3s;" id="oa3">→</div>
-        <div class="alayer" id="odp4" style="background:linear-gradient(135deg,#dc2626,#ef4444);color:white;padding:10px 16px;border-radius:10px;opacity:0;transform:translateY(16px);transition:all .5s cubic-bezier(.34,1.3,.64,1);min-width:140px;text-align:center;"><strong>💻 Technology</strong><br><small>Plataformas, padrões</small></div>
+        <div class="alayer" id="rmo0" style="background:linear-gradient(135deg,#2e2640,#4b5563);color:white;padding:10px 16px;border-radius:10px;opacity:0;transform:translateY(16px);transition:all .5s cubic-bezier(.34,1.3,.64,1);min-width:140px;text-align:center;"><strong>🏢 Enterprise</strong><br><small>Experiência em tempo real</small></div>
+        <div style="align-self:center;opacity:0;transition:opacity .3s;" id="rma0">→</div>
+        <div class="alayer" id="rmo1" style="background:linear-gradient(135deg,#0d9488,#10b981);color:white;padding:10px 16px;border-radius:10px;opacity:0;transform:translateY(16px);transition:all .5s cubic-bezier(.34,1.3,.64,1);min-width:140px;text-align:center;"><strong>📋 Information</strong><br><small>JSON consumido pelo cliente</small></div>
+        <div style="align-self:center;opacity:0;transition:opacity .3s;" id="rma1">→</div>
+        <div class="alayer" id="rmo2" style="background:linear-gradient(135deg,#1863dc,#3b82f6);color:white;padding:10px 16px;border-radius:10px;opacity:0;transform:translateY(16px);transition:all .5s cubic-bezier(.34,1.3,.64,1);min-width:140px;text-align:center;"><strong>⚙️ Computational</strong><br><small>fetch, promises, UI states</small></div>
+        <div style="align-self:center;opacity:0;transition:opacity .3s;" id="rma2">→</div>
+        <div class="alayer" id="rmo3" style="background:linear-gradient(135deg,#d97706,#f59e0b);color:white;padding:10px 16px;border-radius:10px;opacity:0;transform:translateY(16px);transition:all .5s cubic-bezier(.34,1.3,.64,1);min-width:140px;text-align:center;"><strong>🔧 Engineering</strong><br><small>AbortController, retries</small></div>
+        <div style="align-self:center;opacity:0;transition:opacity .3s;" id="rma3">→</div>
+        <div class="alayer" id="rmo4" style="background:linear-gradient(135deg,#dc2626,#ef4444);color:white;padding:10px 16px;border-radius:10px;opacity:0;transform:translateY(16px);transition:all .5s cubic-bezier(.34,1.3,.64,1);min-width:140px;text-align:center;"><strong>💻 Technology</strong><br><small>Browser, fetch API</small></div>
       </div>
-      <div class="box acc" style="margin-top:8px;"><p><strong>Esta aula:</strong> Visões <strong>Information + Computational</strong> — as operações CRUD são as interfaces do componente de dados; as restrições garantem integridade da informação.</p></div>
+      <div class="box acc" style="margin-top:8px;"><p><strong>Esta aula:</strong> Visão <strong>Computational</strong> — adicionamos JS assíncrono no front, consumindo a API do back.</p></div>
     </div>
   </div>
-  </div>
 
-  <!-- ====== SLIDE 13: ESTA AULA NO RM-ODP ====== -->
+  <!-- ====== SLIDE 13.6: RF + RNF + Artefato ====== -->
   <div class="slide">
     <div class="sc">
-      <div class="sh green"><div class="st">Esta Aula no RM-ODP</div><div class="ss">RF, RNF e Artefato desta aula</div></div>
+      <div class="sh green"><div class="st">Esta Aula: JS Assíncrono</div><div class="ss">RM-ODP · RF, RNF e Artefato — 8 Eixos do JS assíncrono</div></div>
       <div class="g2" style="gap:12px;">
         <div>
-          <div class="box grn" style="margin-bottom:10px;"><h3>📌 Requisito Funcional</h3><p>Integrar interface com endpoints de leitura e escrita — fetch() assíncrono com tratamento de estados.</p></div>
+          <div class="box grn" style="margin-bottom:10px;"><h3>📌 Requisito Funcional</h3><p>Permitir que páginas atualizem dados sem reload, consumindo a API com tratamento adequado de erros e cancelamento.</p></div>
           <div class="box" style="border-left-color:var(--am);"><h3>📦 Artefato</h3><ul>
-            <li id="art0" style="opacity:0;transition:all .4s ease;">🔗 <strong>Integração front-back</strong> funcionando no projeto</li>
-            <li id="art1" style="opacity:0;transition:all .4s ease;">⏳ <strong>Estados de UI</strong>: carregando, sucesso e erro</li>
-            <li id="art2" style="opacity:0;transition:all .4s ease;">🌐 <strong>Requisições documentadas</strong> na aba Network</li>
+            <li id="art0" style="opacity:0;transition:all .4s ease;">📡 <strong>Cliente fetch</strong> com async/await</li>
+            <li id="art1" style="opacity:0;transition:all .4s ease;">🛑 <strong>AbortController</strong> + estados (loading/erro)</li>
+            <li id="art2" style="opacity:0;transition:all .4s ease;">🔁 <strong>UI states</strong> alimentados por JSON</li>
           </ul></div>
         </div>
         <div>
           <div class="box acc"><h3>⚖️ RNF — 8 Eixos ISO/IEC 25010</h3>
             <table class="stbl" id="rnf-tbl" style="border-spacing:0 3px;width:100%;">
-              <tr><td class="scc" data-s="0" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#f1f5f9;font-size:.8rem;"><strong>CONF</strong> Confiabilidade</td><td class="scc" data-s="1" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#dcfce7;font-size:.8rem;">✅ try/catch + fallback</td></tr>
-              <tr><td class="scc" data-s="2" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#f1f5f9;font-size:.8rem;"><strong>DES</strong> Desempenho</td><td class="scc" data-s="3" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#dcfce7;font-size:.8rem;">✅ Feedback imediato ao usuário</td></tr>
-              <tr><td class="scc" data-s="4" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#f1f5f9;font-size:.8rem;"><strong>USAB</strong> Usabilidade</td><td class="scc" data-s="5" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#f9f9f9;font-size:.8rem;">→ Loading states visíveis</td></tr>
-              <tr><td class="scc" data-s="6" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#f1f5f9;font-size:.8rem;"><strong>SEG</strong> Segurança</td><td class="scc" data-s="7" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#f9f9f9;font-size:.8rem;">→ Não expor tokens no JS</td></tr>
-              <tr><td class="scc" data-s="8" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#f1f5f9;font-size:.8rem;"><strong>SUP</strong> Suportabilidade</td><td class="scc" data-s="9" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#f9f9f9;font-size:.8rem;">→ Erros logados no console</td></tr>
+              <tr><td class="scc" data-s="0" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#f1f5f9;font-size:.8rem;"><strong>USAB</strong> Usabilidade</td><td class="scc" data-s="1" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#dcfce7;font-size:.8rem;">✅ Feedback imediato</td></tr>
+              <tr><td class="scc" data-s="2" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#f1f5f9;font-size:.8rem;"><strong>CONF</strong> Confiabilidade</td><td class="scc" data-s="3" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#dcfce7;font-size:.8rem;">✅ Erros tratados</td></tr>
+              <tr><td class="scc" data-s="4" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#f1f5f9;font-size:.8rem;"><strong>DES</strong> Desempenho</td><td class="scc" data-s="5" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#dcfce7;font-size:.8rem;">✅ Abort + paralelismo</td></tr>
+              <tr><td class="scc" data-s="6" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#f1f5f9;font-size:.8rem;"><strong>SEG</strong> Segurança</td><td class="scc" data-s="7" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#f9f9f9;font-size:.8rem;">→ CORS + sameSite cookies</td></tr>
+              <tr><td class="scc" data-s="8" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#f1f5f9;font-size:.8rem;"><strong>MANT</strong> Manutenibilidade</td><td class="scc" data-s="9" style="opacity:0;transition:all .35s;padding:3px 6px;border-radius:5px;background:#f9f9f9;font-size:.8rem;">→ Cliente API isolado</td></tr>
             </table>
           </div>
         </div>
@@ -671,46 +678,45 @@ it(<span style="color:#86efac">'retorna produtos'</span>, async () =&gt; {
     </div>
   </div>
 
-  <!-- ====== SLIDE 14: CHECKLIST ====== -->
+  <!-- ====== SLIDE 14: ENCERRAMENTO ====== -->
   <div class="slide">
     <div class="sc">
-      <div class="sh blue"><div class="st">✅ Checklist da Aula</div><div class="ss">O que você deve dominar ao sair daqui</div></div>
-      <div class="g2" style="gap:8px;">
+      <div class="sh dark"><div class="st">🎯 Recap + Entrega + Próxima aula</div><div class="ss">O que você precisa entregar até as 16h</div></div>
+      <div class="g2" style="align-items:start;">
         <div>
-          <div class="ri" id="ck0"><div class="rn" style="background:linear-gradient(135deg,#0d9488,#10b981);">✓</div><div><div class="rtl">Explicar a diferença entre código síncrono e assíncrono</div><div class="rds">E por que o JavaScript precisa ser assíncrono no browser</div></div></div>
-          <div class="ri" id="ck1"><div class="rn" style="background:linear-gradient(135deg,#0d9488,#10b981);">✓</div><div><div class="rtl">Criar e consumir uma Promise</div><div class="rds">Com new Promise(), .then(), .catch() e .finally()</div></div></div>
-          <div class="ri" id="ck2"><div class="rn" style="background:linear-gradient(135deg,#0d9488,#10b981);">✓</div><div><div class="rtl">Usar async/await corretamente</div><div class="rds">Com try/catch e dentro de funções marcadas como async</div></div></div>
-          <div class="ri" id="ck3"><div class="rn" style="background:linear-gradient(135deg,#0d9488,#10b981);">✓</div><div><div class="rtl">Fazer requisições com fetch()</div><div class="rds">GET, POST, PUT e DELETE com headers e body corretos</div></div></div>
+          <div class="box grn">
+            <h3>✅ O que dominamos hoje</h3>
+            <ul>
+              <li>Event loop, microtasks vs macrotasks.</li>
+              <li>Promises e async/await com try/catch.</li>
+              <li>fetch GET e POST com JSON.</li>
+              <li><code>res.ok</code> como checagem obrigatória.</li>
+              <li>AbortController para cancelamento.</li>
+              <li>Loading / Empty / Error / Success.</li>
+              <li>Backend dual HTML+JSON reusando service.</li>
+            </ul>
+          </div>
+          <div class="box amr" style="margin-top:10px;">
+            <h3>📦 Entrega da aula 8</h3>
+            <p>MR <code>feat(front): fetch e estados de UI</code>: ao menos uma página EJS do projeto carrega lista via <code>fetch('/api/...')</code> com loading, empty e error states tratados.</p>
+          </div>
         </div>
         <div>
-          <div class="ri" id="ck4"><div class="rn" style="background:linear-gradient(135deg,#0d9488,#10b981);">✓</div><div><div class="rtl">Verificar res.ok para erros 4xx/5xx</div><div class="rds">Saber que fetch não lança erro em respostas de erro HTTP</div></div></div>
-          <div class="ri" id="ck5"><div class="rn" style="background:linear-gradient(135deg,#0d9488,#10b981);">✓</div><div><div class="rtl">Configurar CORS no Express</div><div class="rds">Entender Same-Origin Policy e como liberar origens permitidas</div></div></div>
-          <div class="ri" id="ck6"><div class="rn" style="background:linear-gradient(135deg,#0d9488,#10b981);">✓</div><div><div class="rtl">Gerenciar loading states na UI</div><div class="rds">Spinners, mensagens de erro e atualização do DOM</div></div></div>
-          <div class="ri" id="ck7"><div class="rn" style="background:linear-gradient(135deg,#0d9488,#10b981);">✓</div><div><div class="rtl">Usar localStorage e sessionStorage</div><div class="rds">setItem, getItem, removeItem — e saber quando NÃO usar</div></div></div>
+          <div class="box bl">
+            <h3>🚀 Próximas aulas</h3>
+            <ul>
+              <li><strong>Aula 9 · CSS + JS avançado</strong> — layouts modernos, animações, UX e padrões avançados de cliente.</li>
+              <li><strong>Aula 10 · Deploy</strong> — coloca a aplicação na internet.</li>
+              <li><strong>Aula 11 · Redes</strong> — TCP/IP, DNS e HTTPS, fundação do que fizemos hoje.</li>
+            </ul>
+          </div>
+          <div class="box acc" style="margin-top:10px;">
+            <h3>🔮 Sneak peek aula 11</h3>
+            <p>Quando você fez <code>fetch('/api/users')</code>, por baixo: DNS resolveu o host → TCP fez handshake → TLS criptografou → HTTP enviou request. Aula 11 abre cada caixa-preta dessas.</p>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
-
-  <!-- ====== SLIDE 13: ENCERRAMENTO ====== -->
-  <div class="slide cover-bg" style="background:linear-gradient(135deg,#12082c 0%,#0d9488 55%,#10b981 100%)!important;">
-    <div class="sc" style="text-align:center;">
-      <div style="font-size:2.8rem;margin-bottom:12px;">🌐</div>
-      <div style="font-size:2.2rem;font-weight:800;color:white;margin-bottom:10px;">Front-End II — Concluído!</div>
-      <div style="font-size:1rem;color:rgba(255,255,255,.85);margin-bottom:28px;max-width:580px;margin-left:auto;margin-right:auto;">
-        Agora o seu frontend sabe conversar com o backend de forma assíncrona, tratar erros e guardar dados no navegador. Na próxima aula: <strong>Front-End III — CSS e JavaScript Avançado</strong>.
-      </div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:24px;">
-        <div class="cv-tag" id="rt0">✅ Sync vs Async</div>
-        <div class="cv-tag" id="rt1">✅ Promises</div>
-        <div class="cv-tag" id="rt2">✅ async/await</div>
-        <div class="cv-tag" id="rt3">✅ fetch() CRUD</div>
-        <div class="cv-tag" id="rt4">✅ Tratamento de erros</div>
-        <div class="cv-tag" id="rt5">✅ CORS</div>
-        <div class="cv-tag" id="rt6">✅ Loading States</div>
-        <div class="cv-tag" id="rt7">✅ localStorage</div>
-      </div>
-      <div style="font-size:.84rem;color:rgba(255,255,255,.6);">Módulo 2 · Ciclo Comum · Aula 8 de 11</div>
+      <div style="text-align:center;font-size:.78rem;color:#64748b;margin-top:14px;">Módulo 2 · Ciclo Comum · Aula 8 de 11 — Front-End II</div>
     </div>
   </div>
 
@@ -724,13 +730,41 @@ it(<span style="color:#86efac">'retorna produtos'</span>, async () =&gt; {
   </div>
   <div class="nav-wrapper">
     <div class="nav-buttons"><button id="prev-btn" onclick="previousSlide()">← Anterior</button></div>
-    <div class="slide-counter"><span id="current-slide">1</span> / <span id="total-slides">13</span></div>
+    <div class="slide-counter"><span id="current-slide">1</span> / <span id="total-slides">14</span></div>
     <div class="nav-buttons"><button id="next-btn" onclick="nextSlide()">Próximo →</button></div>
   </div>
   <button class="fullscreen-btn" onclick="toggleFullScreen()" title="Tela cheia">⛶</button>
 </div>
 
 <script>
+// ── DAILY TIMER ───────────────────────────────────────────────────────────
+var dailyInterval = null;
+var dailySeconds = 900;
+var dailyRunning = false;
+function updateDailyDisplay() {
+  var m = Math.floor(dailySeconds / 60);
+  var s = dailySeconds % 60;
+  var el = document.getElementById('daily-timer');
+  if (el) el.textContent = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+}
+function startDaily() {
+  if (dailyRunning) { clearInterval(dailyInterval); dailyRunning = false; document.getElementById('daily-start-btn').textContent = '▶ Continuar'; return; }
+  dailyRunning = true;
+  document.getElementById('daily-start-btn').textContent = '⏸ Pausar';
+  dailyInterval = setInterval(function() {
+    if (dailySeconds <= 0) { clearInterval(dailyInterval); dailyRunning = false; document.getElementById('daily-start-btn').textContent = '✅ Fim!'; return; }
+    dailySeconds--;
+    updateDailyDisplay();
+  }, 1000);
+}
+function resetDaily() {
+  clearInterval(dailyInterval);
+  dailyRunning = false;
+  dailySeconds = 900;
+  updateDailyDisplay();
+  document.getElementById('daily-start-btn').textContent = '▶ Iniciar';
+}
+
 // ── NAVIGATION ──────────────────────────────────────────────────────────────
 var currentSlide = 0;
 var slides = document.querySelectorAll('.slide');
@@ -759,271 +793,103 @@ document.addEventListener('keydown', function(e) {
 var _ts = [], _run = false;
 function clearT() { _run = false; _ts.forEach(clearTimeout); _ts = []; }
 function T(fn, d)  { _ts.push(setTimeout(fn, d)); }
-function escH(s)   { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function mkHtml(tokens) { return tokens.map(function(t){ return '<span class="'+t.c+'">'+escH(t.v)+'</span>'; }).join(''); }
 
-function showLine(id, tokens, delay) {
+function showLineSimple(id, delay) {
   T(function() {
     if (!_run) return;
     var el = document.getElementById(id);
-    if (!el) return;
-    el.innerHTML = mkHtml(tokens);
-    el.classList.add('vis');
+    if (el) el.classList.add('vis');
   }, delay);
 }
-function resetLines(ids) {
-  ids.forEach(function(id) { var el=document.getElementById(id); if(el){ el.innerHTML=''; el.classList.remove('vis'); } });
+function resetByIds(ids) {
+  ids.forEach(function(id) { var el = document.getElementById(id); if (el) el.classList.remove('vis'); });
 }
 
-// ── DAILY TIMER ───────────────────────────────────────────────────────────
-var dailyInterval = null;
-var dailySeconds = 900;
-var dailyRunning = false;
-
-function updateDailyDisplay() {
-  var m = Math.floor(dailySeconds / 60);
-  var s = dailySeconds % 60;
-  var el = document.getElementById('daily-timer');
-  if (el) el.textContent = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
-}
-function startDaily() {
-  if (dailyRunning) { clearInterval(dailyInterval); dailyRunning = false; document.getElementById('daily-start-btn').textContent = '▶ Continuar'; return; }
-  dailyRunning = true;
-  document.getElementById('daily-start-btn').textContent = '⏸ Pausar';
-  dailyInterval = setInterval(function() {
-    if (dailySeconds <= 0) { clearInterval(dailyInterval); dailyRunning = false; document.getElementById('daily-start-btn').textContent = '✅ Fim!'; return; }
-    dailySeconds--;
-    updateDailyDisplay();
-  }, 1000);
-}
-function resetDaily() {
-  clearInterval(dailyInterval);
-  dailyRunning = false;
-  dailySeconds = 900;
-  updateDailyDisplay();
-  document.getElementById('daily-start-btn').textContent = '▶ Iniciar';
-}
-
-// ── SLIDE 1: Cover ────────────────────────────────────────────────────────
+// ── ANIMATIONS PER SLIDE ──────────────────────────────────────────────────
 function animCover() {
-  ['ct0','ct1','ct2','ct3','ct4','ct5'].forEach(function(id){ var el=document.getElementById(id); if(el) el.classList.remove('vis'); });
-  ['ct0','ct1','ct2','ct3','ct4','ct5'].forEach(function(id,i){
-    T(function(){ var el=document.getElementById(id); if(el&&_run) el.classList.add('vis'); }, 200+i*160);
-  });
+  var ids = ['ct0','ct1','ct2','ct3','ct4','ct5'];
+  resetByIds(ids);
+  ids.forEach(function(id, i) { showLineSimple(id, 200 + i * 160); });
 }
-
-// ── SLIDE 2: Daily ────────────────────────────────────────────────────────
 function animDaily() {
-  ['dt0','dt1','dt2','dt3'].forEach(function(id){ var el=document.getElementById(id); if(el) el.classList.remove('vis'); });
-  ['dt0','dt1','dt2','dt3'].forEach(function(id,i){
-    T(function(){ var el=document.getElementById(id); if(el&&_run) el.classList.add('vis'); }, 300+i*200);
-  });
+  var ids = ['dt0','dt1','dt2','dt3'];
+  resetByIds(ids);
+  ids.forEach(function(id, i) { showLineSimple(id, 200 + i * 220); });
+}
+function animRoadmap() {
+  var ids = ['rm1','rm2','rm3','rm4','rm5','rm6','rm7','rm8'];
+  resetByIds(ids);
+  ids.forEach(function(id, i) { showLineSimple(id, 100 + i * 120); });
+}
+function animEventLoop() {
+  var ids = ['cs0','cs1','cs2','mq0','mq1','tq0','tq1'];
+  resetByIds(ids);
+  ids.forEach(function(id, i) { showLineSimple(id, 200 + i * 180); });
+}
+function animPromises() {
+  var ids = ['ps0','ps1','ps2','pm0','pm1','pm2','pm3','pm4','pm5'];
+  resetByIds(ids);
+  ids.forEach(function(id, i) { showLineSimple(id, 150 + i * 200); });
+}
+function animAsyncAwait() {
+  var left  = ['aa0','aa1','aa2','aa3','aa4','aa5'];
+  var right = ['ab0','ab1','ab2','ab3','ab4','ab5','ab6'];
+  resetByIds(left.concat(right));
+  left.forEach(function(id, i)  { showLineSimple(id, 100 + i * 130); });
+  right.forEach(function(id, i) { showLineSimple(id, 950 + i * 130); });
+}
+function animFetchGet() {
+  var ids = ['g0','g1','g2','g3','g4','g5','g6','g7','g8','g9','g10'];
+  resetByIds(ids);
+  ids.forEach(function(id, i) { showLineSimple(id, 100 + i * 140); });
+}
+function animFetchPost() {
+  var ids = ['p0','p1','p2','p3','p4','p5','p6','p7','p8','p9','p10','p11','p12'];
+  resetByIds(ids);
+  ids.forEach(function(id, i) { showLineSimple(id, 100 + i * 130); });
+}
+function animErrors() {
+  var ids = ['e0','e1','e2','e3','e4'];
+  resetByIds(ids);
+  ids.forEach(function(id, i) { showLineSimple(id, 300 + i * 200); });
+}
+function animAbort() {
+  var ids = ['ac0','ac1','ac2','ac3','ac4','ac5','ac6','ac7','ac8','ac9','ac10','ac11','ac12','ac13','ac14','ac15','ac16'];
+  resetByIds(ids);
+  ids.forEach(function(id, i) { showLineSimple(id, 100 + i * 110); });
+}
+function animUiStates() {
+  var ids = ['us0','us1','us2','us3'];
+  resetByIds(ids);
+  ids.forEach(function(id, i) { showLineSimple(id, 150 + i * 220); });
+}
+function animBackendDual() {
+  var ids = ['bd0','bd1','bd2','bd3','bd4','bd5','bd6','bd7','bd8','bd9','bd10','bd11','bd12','bd13','bd14'];
+  resetByIds(ids);
+  ids.forEach(function(id, i) { showLineSimple(id, 100 + i * 130); });
+}
+function animHeaders() {
+  // headers tem .vis no HTML por default; nada a animar dinamicamente
+}
+function animRecap() {
+  // estático
 }
 
-// ── SLIDE 3: Agenda ───────────────────────────────────────────────────────
+// ── AGENDA / RM-ODP / RF+RNF (compliance slides) ─────────────────────────
 function animAgenda() {
   ['ag0','ag1','ag2','ag3'].forEach(function(id){ var el=document.getElementById(id); if(el){ el.style.opacity='0'; el.style.transform='translateY(18px)'; } });
   ['ag0','ag1','ag2','ag3'].forEach(function(id,i){
-    T(function(){
-      var el=document.getElementById(id);
-      if(el&&_run){ el.style.opacity='1'; el.style.transform='translateY(0)'; el.style.transition='all .45s cubic-bezier(.34,1.3,.64,1)'; }
-    }, i*160);
-  });
-}
-
-// ── SLIDE 4: Sync vs Async ────────────────────────────────────────────────
-function animSyncAsync() {
-  var syncIds=['sy0','sy1','sy2','sy3','sy4'];
-  var asyncIds=['as0','as1','as2','as3','as4'];
-  resetLines(syncIds); resetLines(asyncIds);
-  var d=0, S=120;
-  showLine('sy0',[{c:'cmt',v:'// SÍNCRONO — bloqueia a thread'}],d); d+=S;
-  showLine('sy1',[{c:'kw',v:'console'},{c:'txt',v:'.'},{c:'pth',v:'log'},{c:'txt',v:'('},{c:'js',v:'"Início"'},{c:'txt',v:');'}],d); d+=S;
-  showLine('sy2',[{c:'kw',v:'const'},{c:'txt',v:' dados '},{c:'kw',v:'= '},{c:'pth',v:'buscarDadosBanco'},{c:'txt',v:'();'}],d); d+=S;
-  showLine('sy3',[{c:'kw',v:'console'},{c:'txt',v:'.'},{c:'pth',v:'log'},{c:'txt',v:'('},{c:'js',v:'"Dados:"'},{c:'txt',v:', dados);'}],d); d+=S;
-  showLine('sy4',[{c:'cmt',v:'// UI travada por 3 segundos ❌'}],d);
-
-  d=0; S=120;
-  showLine('as0',[{c:'cmt',v:'// ASSÍNCRONO — não bloqueia'}],d); d+=S;
-  showLine('as1',[{c:'kw',v:'console'},{c:'txt',v:'.'},{c:'pth',v:'log'},{c:'txt',v:'('},{c:'js',v:'"Início"'},{c:'txt',v:');'}],d); d+=S;
-  showLine('as2',[{c:'kw',v:'const'},{c:'txt',v:' dados '},{c:'kw',v:'= await '},{c:'pth',v:'buscarDadosBanco'},{c:'txt',v:'();'}],d); d+=S;
-  showLine('as3',[{c:'kw',v:'console'},{c:'txt',v:'.'},{c:'pth',v:'log'},{c:'txt',v:'('},{c:'js',v:'"Dados:"'},{c:'txt',v:', dados);'}],d); d+=S;
-  showLine('as4',[{c:'cmt',v:'// UI livre enquanto espera ✅'}],d);
-
-  var steps = document.querySelectorAll('#pipe-syncasync .ps.an');
-  steps.forEach(function(s){ s.classList.remove('sv'); });
-  steps.forEach(function(s,i){ T(function(el){ if(_run) el.classList.add('sv'); }.bind(null,s), 800+i*300); });
-}
-
-// ── SLIDE 4: Evolution layers ─────────────────────────────────────────────
-function animEvolution() {
-  ['ev0','eva0','ev1','eva1','ev2'].forEach(function(id){ var el=document.getElementById(id); if(el) el.classList.remove('vis'); });
-  ['ev0','eva0','ev1','eva1','ev2'].forEach(function(id,i){
-    T(function(lid){ var el=document.getElementById(lid); if(el&&_run) el.classList.add('vis'); }.bind(null,id), 150+i*380);
-  });
-}
-
-// ── SLIDE 5: Promises terminal ────────────────────────────────────────────
-function animPromises() {
-  var ids=['pr0','pr1','pr2','pr3','pr4','pr5','pr6','pr7','pr8','pr9','pr10','pr11','pr12','pr13','pr14','pr15','pr16'];
-  resetLines(ids);
-  var d=0, S=105;
-  showLine('pr0',[{c:'cmt',v:'// Criando uma Promise'}],d); d+=S;
-  showLine('pr1',[{c:'kw',v:'const'},{c:'txt',v:' promessa '},{c:'kw',v:'= new '},{c:'hn',v:'Promise'},{c:'txt',v:'(('},{c:'pth',v:'resolve'},{c:'txt',v:', '},{c:'pth',v:'reject'},{c:'txt',v:') => {'}],d); d+=S;
-  showLine('pr2',[{c:'txt',v:'  '},{c:'pth',v:'setTimeout'},{c:'txt',v:'(() => {'}],d); d+=S;
-  showLine('pr3',[{c:'txt',v:'    '},{c:'kw',v:'const'},{c:'txt',v:' sucesso '},{c:'kw',v:'= '},{c:'jb',v:'true'},{c:'txt',v:';'}],d); d+=S;
-  showLine('pr4',[{c:'txt',v:'    '},{c:'kw',v:'if'},{c:'txt',v:' (sucesso) '},{c:'pth',v:'resolve'},{c:'txt',v:'({ '},{c:'jk',v:'nome'},{c:'txt',v:': '},{c:'js',v:'"Ana"'},{c:'txt',v:', '},{c:'jk',v:'id'},{c:'txt',v:': '},{c:'jn',v:'1'},{c:'txt',v:' });'}],d); d+=S;
-  showLine('pr5',[{c:'txt',v:'    '},{c:'kw',v:'else '},{c:'pth',v:'reject'},{c:'txt',v:'('},{c:'kw',v:'new '},{c:'hn',v:'Error'},{c:'txt',v:'('},{c:'js',v:'"Algo deu errado"'},{c:'txt',v:'));'}],d); d+=S;
-  showLine('pr6',[{c:'txt',v:'  }, '},{c:'jn',v:'1000'},{c:'txt',v:');'}],d); d+=S;
-  showLine('pr7',[{c:'cmt',v:'// Consumindo com .then/.catch'}],d); d+=S;
-  showLine('pr8',[{c:'txt',v:'promessa'}],d); d+=S;
-  showLine('pr9',[{c:'txt',v:'  .'},{c:'pth',v:'then'},{c:'txt',v:'(usuario => '},{c:'kw',v:'console'},{c:'txt',v:'.'},{c:'pth',v:'log'},{c:'txt',v:'('},{c:'js',v:'"Usuário:"'},{c:'txt',v:', usuario))'}],d); d+=S;
-  showLine('pr10',[{c:'txt',v:'  .'},{c:'pth',v:'catch'},{c:'txt',v:'(err   => '},{c:'kw',v:'console'},{c:'txt',v:'.'},{c:'pth',v:'error'},{c:'txt',v:'('},{c:'js',v:'"Erro:"'},{c:'txt',v:', err))'}],d); d+=S;
-  showLine('pr11',[{c:'txt',v:'  .'},{c:'pth',v:'finally'},{c:'txt',v:'(()  => '},{c:'kw',v:'console'},{c:'txt',v:'.'},{c:'pth',v:'log'},{c:'txt',v:'('},{c:'js',v:'"Sempre executado"'},{c:'txt',v:'));'}],d); d+=S;
-  showLine('pr12',[{c:'cmt',v:'// Promise.all — esperar múltiplas'}],d); d+=S;
-  showLine('pr13',[{c:'kw',v:'const'},{c:'txt',v:' [usuarios, pedidos] '},{c:'kw',v:'= await '},{c:'hn',v:'Promise'},{c:'txt',v:'.'},{c:'pth',v:'all'},{c:'txt',v:'(['}],d); d+=S;
-  showLine('pr14',[{c:'txt',v:'  '},{c:'pth',v:'fetch'},{c:'txt',v:'('},{c:'js',v:'"/api/usuarios"'},{c:'txt',v:').'},{c:'pth',v:'then'},{c:'txt',v:'(r => r.'},{c:'pth',v:'json'},{c:'txt',v:'()),'}],d); d+=S;
-  showLine('pr15',[{c:'txt',v:'  '},{c:'pth',v:'fetch'},{c:'txt',v:'('},{c:'js',v:'"/api/pedidos"'},{c:'txt',v:').'},{c:'pth',v:'then'},{c:'txt',v:'(r => r.'},{c:'pth',v:'json'},{c:'txt',v:'())'}],d); d+=S;
-  showLine('pr16',[{c:'txt',v:']);'}],d);
-}
-
-// ── SLIDE 6: fetch terminals ──────────────────────────────────────────────
-function animFetch() {
-  var rIds=['fr0','fr1','fr2','fr3','fr4','fr5','fr6','fr7','fr8'];
-  var mIds=['fm0','fm1','fm2','fm3','fm4','fm5','fm6','fm7','fm8'];
-  resetLines(rIds); resetLines(mIds);
-  var d=0, S=110;
-  showLine('fr0',[{c:'cmt',v:'// GET — buscar dados'}],d); d+=S;
-  showLine('fr1',[{c:'kw',v:'const'},{c:'txt',v:' res  '},{c:'kw',v:'= await '},{c:'pth',v:'fetch'},{c:'txt',v:'('},{c:'js',v:'"/api/usuarios"'},{c:'txt',v:');'}],d); d+=S;
-  showLine('fr2',[{c:'kw',v:'const'},{c:'txt',v:' json '},{c:'kw',v:'= await'},{c:'txt',v:' res.'},{c:'pth',v:'json'},{c:'txt',v:'();'}],d); d+=S;
-  showLine('fr3',[{c:'txt',v:''}],d); d+=S;
-  showLine('fr4',[{c:'cmt',v:'// POST — criar recurso'}],d); d+=S;
-  showLine('fr5',[{c:'kw',v:'const'},{c:'txt',v:' res '},{c:'kw',v:'= await '},{c:'pth',v:'fetch'},{c:'txt',v:'('},{c:'js',v:'"/api/usuarios"'},{c:'txt',v:', {'}],d); d+=S;
-  showLine('fr6',[{c:'txt',v:'  '},{c:'jk',v:'method'},{c:'txt',v:': '},{c:'js',v:'"POST"'},{c:'txt',v:', '},{c:'jk',v:'headers'},{c:'txt',v:': {'}],d); d+=S;
-  showLine('fr7',[{c:'txt',v:'    '},{c:'js',v:'"Content-Type"'},{c:'txt',v:': '},{c:'js',v:'"application/json"'},{c:'txt',v:' },'}],d); d+=S;
-  showLine('fr8',[{c:'txt',v:'  '},{c:'jk',v:'body'},{c:'txt',v:': '},{c:'hn',v:'JSON'},{c:'txt',v:'.'},{c:'pth',v:'stringify'},{c:'txt',v:'({ '},{c:'jk',v:'nome'},{c:'txt',v:': '},{c:'js',v:'"Ana"'},{c:'txt',v:' }) });'}],d);
-
-  d=0; S=110;
-  showLine('fm0',[{c:'cmt',v:'// PUT — atualizar recurso'}],d); d+=S;
-  showLine('fm1',[{c:'kw',v:'await '},{c:'pth',v:'fetch'},{c:'txt',v:'(`/api/usuarios/${'},{c:'jn',v:'id'},{c:'txt',v:'}`, {'}],d); d+=S;
-  showLine('fm2',[{c:'txt',v:'  '},{c:'jk',v:'method'},{c:'txt',v:': '},{c:'js',v:'"PUT"'},{c:'txt',v:', '},{c:'jk',v:'headers'},{c:'txt',v:': {'}],d); d+=S;
-  showLine('fm3',[{c:'txt',v:'    '},{c:'js',v:'"Content-Type"'},{c:'txt',v:': '},{c:'js',v:'"application/json"'},{c:'txt',v:' },'}],d); d+=S;
-  showLine('fm4',[{c:'txt',v:'  '},{c:'jk',v:'body'},{c:'txt',v:': '},{c:'hn',v:'JSON'},{c:'txt',v:'.'},{c:'pth',v:'stringify'},{c:'txt',v:'({ '},{c:'jk',v:'nome'},{c:'txt',v:': '},{c:'js',v:'"Ana Lima"'},{c:'txt',v:' })'}],d); d+=S;
-  showLine('fm5',[{c:'txt',v:'});'}],d); d+=S;
-  showLine('fm6',[{c:'txt',v:''}],d); d+=S;
-  showLine('fm7',[{c:'cmt',v:'// DELETE — remover recurso'}],d); d+=S;
-  showLine('fm8',[{c:'kw',v:'await '},{c:'pth',v:'fetch'},{c:'txt',v:'(`/api/usuarios/${'},{c:'jn',v:'id'},{c:'txt',v:'}`, { '},{c:'jk',v:'method'},{c:'txt',v:': '},{c:'js',v:'"DELETE"'},{c:'txt',v:' });'}],d);
-}
-
-// ── SLIDE 7: fetch error handling ────────────────────────────────────────
-function animFetchErrors() {
-  var ids=['fe0','fe1','fe2','fe3','fe4','fe5','fe6','fe7','fe8','fe9','fe10','fe11','fe12','fe13','fe14'];
-  resetLines(ids);
-  var d=0, S=100;
-  showLine('fe0',[{c:'kw',v:'async'},{c:'txt',v:' '},{c:'kw',v:'function'},{c:'txt',v:' '},{c:'pth',v:'buscarUsuarios'},{c:'txt',v:'() {'}],d); d+=S;
-  showLine('fe1',[{c:'txt',v:'  '},{c:'kw',v:'try'},{c:'txt',v:' {'}],d); d+=S;
-  showLine('fe2',[{c:'txt',v:'    '},{c:'kw',v:'const'},{c:'txt',v:' res '},{c:'kw',v:'= await '},{c:'pth',v:'fetch'},{c:'txt',v:'('},{c:'js',v:'"/api/usuarios"'},{c:'txt',v:');'}],d); d+=S;
-  showLine('fe3',[{c:'txt',v:''}],d); d+=S;
-  showLine('fe4',[{c:'txt',v:'    '},{c:'cmt',v:'// fetch não lança erro em 4xx/5xx!'}],d); d+=S;
-  showLine('fe5',[{c:'txt',v:'    '},{c:'kw',v:'if'},{c:'txt',v:' (!res.'},{c:'pth',v:'ok'},{c:'txt',v:') {'}],d); d+=S;
-  showLine('fe6',[{c:'txt',v:'      '},{c:'kw',v:'const'},{c:'txt',v:' erro '},{c:'kw',v:'= await'},{c:'txt',v:' res.'},{c:'pth',v:'json'},{c:'txt',v:'();'}],d); d+=S;
-  showLine('fe7',[{c:'txt',v:'      '},{c:'kw',v:'throw new '},{c:'hn',v:'Error'},{c:'txt',v:'(erro.message || `HTTP ${res.'},{c:'pth',v:'status'},{c:'txt',v:'}`);'}],d); d+=S;
-  showLine('fe8',[{c:'txt',v:'    }'}],d); d+=S;
-  showLine('fe9',[{c:'txt',v:'    '},{c:'kw',v:'return await'},{c:'txt',v:' res.'},{c:'pth',v:'json'},{c:'txt',v:'();'}],d); d+=S;
-  showLine('fe10',[{c:'txt',v:'  } '},{c:'kw',v:'catch'},{c:'txt',v:' (err) {'}],d); d+=S;
-  showLine('fe11',[{c:'txt',v:'    '},{c:'kw',v:'if'},{c:'txt',v:' (err '},{c:'kw',v:'instanceof '},{c:'hn',v:'TypeError'},{c:'txt',v:')'}],d); d+=S;
-  showLine('fe12',[{c:'txt',v:'      '},{c:'kw',v:'console'},{c:'txt',v:'.'},{c:'pth',v:'error'},{c:'txt',v:'('},{c:'js',v:'"Sem conexão com o servidor"'},{c:'txt',v:');'}],d); d+=S;
-  showLine('fe13',[{c:'txt',v:'    '},{c:'kw',v:'else '},{c:'kw',v:'console'},{c:'txt',v:'.'},{c:'pth',v:'error'},{c:'txt',v:'('},{c:'js',v:'"Erro da API:"'},{c:'txt',v:', err.message);'}],d); d+=S;
-  showLine('fe14',[{c:'txt',v:'    '},{c:'kw',v:'throw'},{c:'txt',v:' err; '},{c:'cmt',v:'// re-lançar para o chamador tratar'}],d);
-}
-
-// ── SLIDE 8: CORS ─────────────────────────────────────────────────────────
-function animCors() {
-  var steps = document.querySelectorAll('#pipe-cors .ps.an');
-  steps.forEach(function(s){ s.classList.remove('sv'); });
-  steps.forEach(function(s,i){ T(function(el){ if(_run) el.classList.add('sv'); }.bind(null,s), 150+i*300); });
-
-  var ids=['co0','co1','co2','co3','co4','co5','co6','co7','co8','co9'];
-  resetLines(ids);
-  var d=700, S=105;
-  showLine('co0',[{c:'kw',v:'const'},{c:'txt',v:' cors '},{c:'kw',v:'= '},{c:'pth',v:'require'},{c:'txt',v:'('},{c:'js',v:'"cors"'},{c:'txt',v:');'}],d); d+=S;
-  showLine('co1',[{c:'txt',v:''}],d); d+=S;
-  showLine('co2',[{c:'cmt',v:'// Permitir todas as origens (desenvolvimento)'}],d); d+=S;
-  showLine('co3',[{c:'txt',v:'app.'},{c:'pth',v:'use'},{c:'txt',v:'('},{c:'pth',v:'cors'},{c:'txt',v:'());'}],d); d+=S;
-  showLine('co4',[{c:'txt',v:''}],d); d+=S;
-  showLine('co5',[{c:'cmt',v:'// Configuração específica (produção)'}],d); d+=S;
-  showLine('co6',[{c:'txt',v:'app.'},{c:'pth',v:'use'},{c:'txt',v:'('},{c:'pth',v:'cors'},{c:'txt',v:'({'}],d); d+=S;
-  showLine('co7',[{c:'txt',v:'  '},{c:'jk',v:'origin'},{c:'txt',v:': ['},{c:'js',v:'"https://meuapp.com"'},{c:'txt',v:', '},{c:'js',v:'"http://localhost:5500"'},{c:'txt',v:'],'}],d); d+=S;
-  showLine('co8',[{c:'txt',v:'  '},{c:'jk',v:'methods'},{c:'txt',v:': ['},{c:'js',v:'"GET"'},{c:'txt',v:', '},{c:'js',v:'"POST"'},{c:'txt',v:', '},{c:'js',v:'"PUT"'},{c:'txt',v:', '},{c:'js',v:'"DELETE"'},{c:'txt',v:'],'}],d); d+=S;
-  showLine('co9',[{c:'txt',v:'  '},{c:'jk',v:'allowedHeaders'},{c:'txt',v:': ['},{c:'js',v:'"Content-Type"'},{c:'txt',v:', '},{c:'js',v:'"Authorization"'},{c:'txt',v:'] });'}],d);
-}
-
-// ── SLIDE 9: Loading states ───────────────────────────────────────────────
-function animLoadingStates() {
-  var ids=['ls0','ls1','ls2','ls3','ls4','ls5','ls6','ls7','ls8','ls9','ls10','ls11','ls12','ls13'];
-  resetLines(ids);
-  var d=0, S=105;
-  showLine('ls0',[{c:'cmt',v:'// Estados da interface'}],d); d+=S;
-  showLine('ls1',[{c:'kw',v:'const'},{c:'txt',v:' estado '},{c:'kw',v:'= '},{c:'txt',v:'{ '},{c:'jk',v:'carregando'},{c:'txt',v:': '},{c:'jb',v:'false'},{c:'txt',v:', '},{c:'jk',v:'erro'},{c:'txt',v:': '},{c:'jb',v:'null'},{c:'txt',v:', '},{c:'jk',v:'dados'},{c:'txt',v:': [] };'}],d); d+=S;
-  showLine('ls2',[{c:'txt',v:''}],d); d+=S;
-  showLine('ls3',[{c:'kw',v:'async'},{c:'txt',v:' '},{c:'kw',v:'function'},{c:'txt',v:' '},{c:'pth',v:'carregar'},{c:'txt',v:'() {'}],d); d+=S;
-  showLine('ls4',[{c:'txt',v:'  estado.'},{c:'jk',v:'carregando'},{c:'txt',v:' '},{c:'kw',v:'= '},{c:'jb',v:'true'},{c:'txt',v:';'}],d); d+=S;
-  showLine('ls5',[{c:'txt',v:'  '},{c:'pth',v:'renderizar'},{c:'txt',v:'(); '},{c:'cmt',v:'// Mostra spinner'}],d); d+=S;
-  showLine('ls6',[{c:'txt',v:''}],d); d+=S;
-  showLine('ls7',[{c:'txt',v:'  '},{c:'kw',v:'try'},{c:'txt',v:' {'}],d); d+=S;
-  showLine('ls8',[{c:'txt',v:'    estado.'},{c:'jk',v:'dados'},{c:'txt',v:' '},{c:'kw',v:'= await '},{c:'pth',v:'buscarUsuarios'},{c:'txt',v:'();'}],d); d+=S;
-  showLine('ls9',[{c:'txt',v:'    estado.'},{c:'jk',v:'erro'},{c:'txt',v:'  '},{c:'kw',v:'= '},{c:'jb',v:'null'},{c:'txt',v:';'}],d); d+=S;
-  showLine('ls10',[{c:'txt',v:'  } '},{c:'kw',v:'catch'},{c:'txt',v:' (err) {'}],d); d+=S;
-  showLine('ls11',[{c:'txt',v:'    estado.'},{c:'jk',v:'erro'},{c:'txt',v:'  '},{c:'kw',v:'= '},{c:'txt',v:'err.message; estado.'},{c:'jk',v:'dados'},{c:'txt',v:' '},{c:'kw',v:'= '},{c:'txt',v:'[];'}],d); d+=S;
-  showLine('ls12',[{c:'txt',v:'  } '},{c:'kw',v:'finally'},{c:'txt',v:' {'}],d); d+=S;
-  showLine('ls13',[{c:'txt',v:'    estado.'},{c:'jk',v:'carregando'},{c:'txt',v:' '},{c:'kw',v:'= '},{c:'jb',v:'false'},{c:'txt',v:'; '},{c:'pth',v:'renderizar'},{c:'txt',v:'();'}],d);
-}
-
-// ── SLIDE 10: localStorage ────────────────────────────────────────────────
-function animStorage() {
-  var ids=['st0','st1','st2','st3','st4','st5','st6','st7','st8','st9','st10','st11'];
-  resetLines(ids);
-  var d=0, S=110;
-  showLine('st0',[{c:'cmt',v:'// Salvar dados no navegador'}],d); d+=S;
-  showLine('st1',[{c:'txt',v:'localStorage.'},{c:'pth',v:'setItem'},{c:'txt',v:'('},{c:'js',v:'"token"'},{c:'txt',v:', '},{c:'js',v:'"eyJhbGci..."'},{c:'txt',v:');'}],d); d+=S;
-  showLine('st2',[{c:'txt',v:'localStorage.'},{c:'pth',v:'setItem'},{c:'txt',v:'('},{c:'js',v:'"usuario"'},{c:'txt',v:', '},{c:'hn',v:'JSON'},{c:'txt',v:'.'},{c:'pth',v:'stringify'},{c:'txt',v:'({ '},{c:'jk',v:'id'},{c:'txt',v:': '},{c:'jn',v:'1'},{c:'txt',v:', '},{c:'jk',v:'nome'},{c:'txt',v:': '},{c:'js',v:'"Ana"'},{c:'txt',v:' }));'}],d); d+=S;
-  showLine('st3',[{c:'txt',v:''}],d); d+=S;
-  showLine('st4',[{c:'cmt',v:'// Recuperar'}],d); d+=S;
-  showLine('st5',[{c:'kw',v:'const'},{c:'txt',v:' token   '},{c:'kw',v:'= '},{c:'txt',v:'localStorage.'},{c:'pth',v:'getItem'},{c:'txt',v:'('},{c:'js',v:'"token"'},{c:'txt',v:');'}],d); d+=S;
-  showLine('st6',[{c:'kw',v:'const'},{c:'txt',v:' usuario '},{c:'kw',v:'= '},{c:'hn',v:'JSON'},{c:'txt',v:'.'},{c:'pth',v:'parse'},{c:'txt',v:'(localStorage.'},{c:'pth',v:'getItem'},{c:'txt',v:'('},{c:'js',v:'"usuario"'},{c:'txt',v:'));'}],d); d+=S;
-  showLine('st7',[{c:'txt',v:''}],d); d+=S;
-  showLine('st8',[{c:'cmt',v:'// Remover itens'}],d); d+=S;
-  showLine('st9',[{c:'txt',v:'localStorage.'},{c:'pth',v:'removeItem'},{c:'txt',v:'('},{c:'js',v:'"token"'},{c:'txt',v:'); '},{c:'cmt',v:'// remove só o token'}],d); d+=S;
-  showLine('st10',[{c:'cmt',v:'// sessionStorage = mesma API, mas dura só a sessão'}],d); d+=S;
-  showLine('st11',[{c:'txt',v:'sessionStorage.'},{c:'pth',v:'setItem'},{c:'txt',v:'('},{c:'js',v:'"filtro"'},{c:'txt',v:', '},{c:'js',v:'"ativo"'},{c:'txt',v:');'}],d);
-}
-
-// ── SLIDE 11: CRUD pipeline ───────────────────────────────────────────────
-function animCrud() {
-  var steps = document.querySelectorAll('#pipe-crud .ps.an');
-  steps.forEach(function(s){ s.classList.remove('sv'); });
-  steps.forEach(function(s,i){ T(function(el){ if(_run) el.classList.add('sv'); }.bind(null,s), 120+i*280); });
-}
-
-// ── SLIDE 12: RM-ODP Viewpoints ──────────────────────────────────────────
-function animTDD() {
-  ['tdd0','tdd1','tdd2','tdd3'].forEach(function(id){ var el=document.getElementById(id); if(el){ el.style.opacity='0'; el.style.transform='translateY(18px)'; } });
-  ['tdd0','tdd1','tdd2','tdd3'].forEach(function(id,i){
-    T(function(){
-      var el=document.getElementById(id);
-      if(el&&_run){ el.style.opacity='1'; el.style.transform='translateY(0)'; el.style.transition='all .45s cubic-bezier(.34,1.3,.64,1)'; }
-    }, i*200);
+    T(function(){ var el=document.getElementById(id); if(el&&_run){ el.style.opacity='1'; el.style.transform='translateY(0)'; el.style.transition='all .4s ease'; } }, i*160);
   });
 }
 function animRmOdp() {
-  ['odp0','oa0','odp1','oa1','odp2','oa2','odp3','oa3','odp4'].forEach(function(id){
+  ['rmo0','rma0','rmo1','rma1','rmo2','rma2','rmo3','rma3','rmo4'].forEach(function(id){
     var el=document.getElementById(id); if(el){ el.style.opacity='0'; el.style.transform='translateY(16px)'; }
   });
-  ['odp0','oa0','odp1','oa1','odp2','oa2','odp3','oa3','odp4'].forEach(function(id,i){
+  ['rmo0','rma0','rmo1','rma1','rmo2','rma2','rmo3','rma3','rmo4'].forEach(function(id,i){
     T(function(lid){ var el=document.getElementById(lid); if(el&&_run){ el.style.opacity='1'; el.style.transform='translateY(0)'; } }.bind(null,id), 120+i*320);
   });
 }
-// ── SLIDE 13: RF + RNF + Artefato ─────────────────────────────────────────
 function animRfRnf() {
   var cells=document.querySelectorAll('#rnf-tbl .scc');
   cells.forEach(function(el){ el.style.opacity='0'; });
@@ -1036,27 +902,26 @@ function animRfRnf() {
     T(function(lid){ var el=document.getElementById(lid); if(el&&_run) el.style.opacity='1'; }.bind(null,id), 200+i*200);
   });
 }
-// ── SLIDE 14: Checklist ───────────────────────────────────────────────────
-function animChecklist() {
-  for(var i=0;i<8;i++){var el=document.getElementById('ck'+i);if(el)el.classList.remove('vis');}
-  for(var j=0;j<8;j++){
-    (function(idx){ T(function(){ var el=document.getElementById('ck'+idx); if(el&&_run) el.classList.add('vis'); }, 80+idx*160); })(j);
-  }
-}
-
-// ── SLIDE 15: Recap ───────────────────────────────────────────────────────
-function animRecap() {
-  for(var i=0;i<8;i++){var el=document.getElementById('rt'+i);if(el)el.classList.remove('vis');}
-  for(var j=0;j<8;j++){
-    (function(idx){ T(function(){ var el=document.getElementById('rt'+idx); if(el&&_run) el.classList.add('vis'); }, 160+idx*140); })(j);
-  }
-}
 
 // ── DISPATCH ─────────────────────────────────────────────────────────────
 var animMap = [
-  animCover, animDaily, animAgenda, animSyncAsync, animEvolution, animPromises,
-  animFetch, animFetchErrors, animCors, animLoadingStates, animStorage,
-  animCrud, animTDD, animRmOdp, animRfRnf, animChecklist, animRecap
+  animCover,        // 1
+  animDaily,        // 2
+  animAgenda,       // 3 NEW
+  animRoadmap,      // 4
+  animEventLoop,    // 5
+  animPromises,     // 6
+  animAsyncAwait,   // 7
+  animFetchGet,     // 8
+  animFetchPost,    // 9
+  animErrors,       // 10
+  animAbort,        // 11
+  animUiStates,     // 12
+  animBackendDual,  // 13
+  animHeaders,      // 14
+  animRmOdp,        // 15 NEW
+  animRfRnf,        // 16 NEW
+  animRecap         // 17
 ];
 
 function runAnim(idx) {
@@ -1068,5 +933,13 @@ function runAnim(idx) {
 
 showSlide(0);
 </script>
+
+<!-- ====== FOOTER GLOBAL ====== -->
+<footer class="inteli-footer">
+  <div class="inteli-footer-content">
+    <span>© 2025 Inteli — Instituto de Tecnologia e Liderança</span>
+    <span>Prof. Afonso Brandão</span>
+  </div>
+</footer>
 </body>
 </html>
