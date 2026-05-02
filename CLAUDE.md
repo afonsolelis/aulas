@@ -103,8 +103,31 @@ border: 1px solid rgba(255,255,255,0.18);
 Tests run against local `file://` URLs (no server needed). They validate:
 - `tests/index.spec.ts` — index card links point to `pages/home-*.html` and files exist on disk; course card header colors match the design system
 - `tests/specs-compliance.spec.ts` — validates all specs including home pages, routes naming, slides, and lesson cards
+- `tests/calendar-consistency.spec.ts` — validates that `config/calendar.json` dates match the `📅 dd/mm/yyyy` shown in each lesson card of the active modules' homes
 
 When adding a new module/lesson, ensure the corresponding file exists on disk before committing or tests will fail.
+
+### `config/calendar.json` — Trimester & Active Modules
+
+Single source of truth for which modules the professor is currently teaching and the date of every lesson. Schema:
+
+```json
+{
+  "trimester": { "code": "2026-T2", "start": "23/04/2026", "end": "22/06/2026", "professor": "..." },
+  "active_modules": [
+    {
+      "id": "module-2-common",
+      "course": "...",
+      "name": "...",
+      "config": "config/module-2-common.json",
+      "home": "pages/home-module-2-common.html",
+      "lessons": [{ "number": 1, "date": "23/04/2026", "title": "..." }]
+    }
+  ]
+}
+```
+
+Dates are stored as `dd/mm/yyyy` strings to match exactly what is rendered in the home cards (`<small>📅 dd/mm/yyyy</small>`). The Playwright spec above fails if any home card date diverges from `calendar.json`.
 
 ## Key Rules
 
@@ -113,3 +136,4 @@ When adding a new module/lesson, ensure the corresponding file exists on disk be
 3. Slides must fill the viewport — no overflow and no excessive blank space. Check the densest slides visually and adjust typography, grid, padding, and card height until content is well distributed.
 4. Images must have descriptive `alt` text; images are hosted on Cloudinary (`https://res.cloudinary.com/dyhjjms8y/image/upload/`).
 5. Keep `config/module-[N]-[curso].json` in sync when adding/removing lessons.
+6. Whenever a lesson date changes, update **both** `config/calendar.json` **and** the corresponding `<small>📅 dd/mm/yyyy</small>` in `pages/home-module-*.html` — they must match exactly. Same applies when activating/deactivating a module for the trimester.
