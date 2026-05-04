@@ -170,7 +170,15 @@
         <a href="#sec-e2e">13. Exemplo end-to-end</a>
         <a href="#sec-log">14. Logging</a>
         <a href="#sec-test">15. Testes manuais</a>
-        <a href="#sec-checklist">16. Checklist</a>
+        <a href="#sec-e2e-tests">16. Testes E2E — Jest + Playwright</a>
+        <a href="#sec-e2e-pyramid" class="toc-h3">16.1 Pirâmide de testes</a>
+        <a href="#sec-e2e-stack" class="toc-h3">16.2 Jest + supertest vs Playwright Test</a>
+        <a href="#sec-e2e-jest-setup" class="toc-h3">16.3 Setup com Jest + ts-jest + supertest</a>
+        <a href="#sec-e2e-pw-setup" class="toc-h3">16.4 Setup com Playwright Test</a>
+        <a href="#sec-e2e-db" class="toc-h3">16.5 Banco isolado e cleanup</a>
+        <a href="#sec-e2e-cases" class="toc-h3">16.6 Casos de teste essenciais</a>
+        <a href="#sec-e2e-ci" class="toc-h3">16.7 Rodando no CI</a>
+        <a href="#sec-checklist">17. Checklist</a>
         <a href="#sec-refs">Referências</a>
       </div>
     </aside>
@@ -983,13 +991,478 @@ Content-Type: application/json
 
         <div class="callout callout-info sr">
           <div class="callout-label">Próximo passo: testes automatizados</div>
-          <p>Os testes manuais são ótimos para iteração rápida. Para regressão, use <code>jest</code> + <code>supertest</code> (cobrirá um fluxo nas próximas aulas). A regra: cada endpoint precisa de pelo menos 2 testes — um caminho feliz e um caminho de erro.</p>
+          <p>Os testes manuais são ótimos para iteração rápida, mas não substituem regressão automatizada. A próxima seção mostra como cobrir cada endpoint com <code>Jest + supertest</code> ou <code>Playwright Test</code> — incluindo setup do banco, fixtures e CI. A regra continua valendo: cada endpoint precisa de pelo menos 2 testes — um caminho feliz e um caminho de erro.</p>
         </div>
       </section>
 
-      <!-- ════════ 16. CHECKLIST ════════ -->
+      <!-- ════════ 16. TESTES E2E — JEST + PLAYWRIGHT ════════ -->
+      <section class="mat-section" id="sec-e2e-tests">
+        <h2>16. Testes End-to-End — Jest + Playwright</h2>
+
+        <p>Testes manuais cobrem você no momento em que escreve o código. Mas duas semanas depois, quando outro dev (ou você mesmo) refatora o <code>OrderService</code>, ninguém vai lembrar de re-rodar 20 chamadas <code>curl</code>. Sem teste automatizado de ponta-a-ponta, regressões silenciosas viram bug em produção. Esta seção mostra como cobrir cada endpoint com testes E2E que sobem o servidor real, fazem requisições HTTP de verdade e verificam tanto a resposta quanto o estado do banco depois — o tipo de teste que dá confiança para mudar código sem medo.</p>
+
+        <p>Existem dois caminhos consagrados no ecossistema Node/TypeScript: <strong>Jest + supertest</strong> (combinação clássica, ampla adoção, integração simples) e <strong>Playwright Test</strong> (mais novo, runner próprio, fixture <code>request</code> nativa, paralelismo automático). Ambos funcionam e se completam: você pode usar Jest para unit/integration e Playwright para E2E full-stack — cobrindo backend e frontend no mesmo runner. Vamos ver os dois lado a lado para você escolher com base no contexto do seu projeto.</p>
+
+        <p>Antes de escrever a primeira linha de teste, lembre-se da regra de ouro: <em>teste E2E confiável depende de banco isolado</em>. Rodar contra o mesmo PostgreSQL onde você desenvolve é a fonte número um de "passou na minha máquina". Vamos discutir três estratégias — schema descartável, transação por teste com rollback e Testcontainers — e quando cada uma faz sentido.</p>
+
+        <!-- ─── 16.1 Pirâmide ─── -->
+        <h3 id="sec-e2e-pyramid">16.1 A pirâmide de testes — onde os E2E entram</h3>
+
+        <p>A <strong>pirâmide de testes</strong> de Mike Cohn descreve a proporção saudável entre tipos de teste: muitos <em>unit</em> (rápidos, baratos, focados em uma função pura), alguns <em>integration</em> (testam dois ou três componentes juntos — service + repository + DB) e poucos <em>E2E</em> (sobem o servidor inteiro, fazem HTTP real, validam o comportamento observável de fora). A inversão dessa pirâmide — o famoso "ice-cream cone anti-pattern" — gera suítes lentas, frágeis e caras de manter, em que toda mudança de código quebra dezenas de E2E.</p>
+
+        <table class="mat-table sr">
+          <thead>
+            <tr><th>Camada</th><th>O que testa</th><th>Velocidade típica</th><th>Quando criar</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="tag tag-green">Unit</span></td>
+              <td>Função/classe isolada, sem I/O. Helpers, validações, regras de negócio puras.</td>
+              <td>~1 ms / teste</td>
+              <td>Sempre que houver lógica condicional não-trivial.</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-blue">Integration</span></td>
+              <td>Service + Repository + DB real (mas sem HTTP). Verifica que SQL e transação funcionam.</td>
+              <td>~50–200 ms / teste</td>
+              <td>Sempre que o service tiver SQL não-trivial ou transação.</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-purple">E2E (API)</span></td>
+              <td>Servidor real + DB real + HTTP real. Cobre o contrato completo do endpoint.</td>
+              <td>~200 ms – 2 s / teste</td>
+              <td>Pelo menos 1 happy + 1 erro por endpoint.</td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-amber">E2E (UI)</span></td>
+              <td>Browser real + frontend + backend. Valida fluxo do usuário ponta a ponta.</td>
+              <td>~2–10 s / teste</td>
+              <td>Apenas para fluxos críticos de negócio (checkout, login).</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="callout callout-tip sr">
+          <div class="callout-label">Heurística prática</div>
+          <p>Para o projeto da disciplina, mire em <strong>~70% unit + ~25% integration/E2E API + ~5% E2E UI</strong>. Cada endpoint precisa de pelo menos 1 happy path e 1 caminho de erro testados via HTTP — esse é o piso para considerar a feature "pronta".</p>
+        </div>
+
+        <!-- ─── 16.2 Stack ─── -->
+        <h3 id="sec-e2e-stack">16.2 Jest + supertest vs Playwright Test — qual escolher?</h3>
+
+        <p>Os dois caminhos chegam ao mesmo destino — fazer requisições HTTP contra o seu Express e validar a resposta —, mas têm trade-offs distintos. <strong>Jest + supertest</strong> é a combinação histórica do ecossistema Node: Jest é um runner maduro com mocking poderoso, e supertest faz <em>in-process</em> HTTP (não abre porta TCP — chama o handler do Express diretamente), o que é rápido e simples. <strong>Playwright Test</strong> é o runner do time da Microsoft pensado para testar <em>tudo</em>: tem fixture <code>request</code> que faz HTTP real (ABRE porta), suporta paralelismo automático com isolamento, e permite no mesmo arquivo testar API e UI — útil se você já vai cobrir o frontend.</p>
+
+        <table class="mat-table sr">
+          <thead>
+            <tr><th>Critério</th><th>Jest + supertest</th><th>Playwright Test</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Maturidade no ecossistema Node</td><td>Muito alta — padrão de fato</td><td>Crescente — popular desde 2022</td></tr>
+            <tr><td>Forma da requisição HTTP</td><td>In-process (sem porta TCP)</td><td>Out-of-process (porta TCP real)</td></tr>
+            <tr><td>Velocidade por teste</td><td>Mais rápido (sem overhead de rede)</td><td>Levemente mais lento</td></tr>
+            <tr><td>Paralelismo</td><td>Manual via <code>--maxWorkers</code></td><td>Automático por arquivo</td></tr>
+            <tr><td>Mocking de módulos</td><td>Excelente (<code>jest.mock</code>)</td><td>Limitado — prefere injeção</td></tr>
+            <tr><td>Fixtures</td><td>beforeAll/beforeEach manuais</td><td>Sistema de fixtures nativo</td></tr>
+            <tr><td>Cobre frontend também</td><td>Não — precisa de outra ferramenta</td><td>Sim — mesmo runner</td></tr>
+            <tr><td>Curva de aprendizado</td><td>Baixa se já conhece Jest</td><td>Média — conceitos próprios</td></tr>
+          </tbody>
+        </table>
+
+        <div class="callout callout-info sr">
+          <div class="callout-label">Recomendação para o módulo 2</div>
+          <p>Use <strong>Jest + supertest</strong> para o trabalho da disciplina. Razões: é o stack mais documentado, o supertest dispensa subir servidor em porta separada (um problema a menos no setup), e Jest é o que você verá em qualquer projeto Node profissional. Quando chegar à <strong>Aula 8 (Front-End II)</strong> e à <strong>Aula 10 (Testes e Automação)</strong>, o Playwright Test entra para cobrir o frontend e os fluxos completos — aí você terá os dois.</p>
+        </div>
+
+        <!-- ─── 16.3 Setup Jest ─── -->
+        <h3 id="sec-e2e-jest-setup">16.3 Setup com Jest + ts-jest + supertest</h3>
+
+        <p>O caminho mais curto para testar uma API Express em TypeScript: instale Jest, ts-jest (transpila TS na hora) e supertest. Em seguida, exporte o <code>app</code> Express (sem <code>app.listen</code>) de um arquivo separado para que os testes possam importar a instância sem subir o servidor.</p>
+
+        <div class="code-wrap">
+          <div class="code-label">Instalação<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code>npm install -D jest ts-jest @types/jest supertest @types/supertest
+npx ts-jest config:init</code></pre>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-label">jest.config.ts<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-kw">import</span> <span class="hl-kw">type</span> { Config } <span class="hl-kw">from</span> <span class="hl-str">'jest'</span>;
+
+<span class="hl-kw">const</span> config: Config = {
+  preset: <span class="hl-str">'ts-jest'</span>,
+  testEnvironment: <span class="hl-str">'node'</span>,
+  testMatch: [<span class="hl-str">'**/tests/**/*.spec.ts'</span>],
+  setupFilesAfterEnv: [<span class="hl-str">'&lt;rootDir&gt;/tests/setup.ts'</span>],
+  testTimeout: <span class="hl-num">10000</span>,           <span class="hl-cmt">// E2E pode passar de 1s — não use 5s default</span>
+  forceExit: <span class="hl-kw">true</span>,             <span class="hl-cmt">// força sair se algum handler ficou pendurado</span>
+  detectOpenHandles: <span class="hl-kw">true</span>,     <span class="hl-cmt">// avisa se conexão de banco não foi fechada</span>
+};
+<span class="hl-kw">export default</span> config;</code></pre>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-label">src/app.ts — separar app de listen<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-kw">import</span> express <span class="hl-kw">from</span> <span class="hl-str">'express'</span>;
+<span class="hl-kw">import</span> { router } <span class="hl-kw">from</span> <span class="hl-str">'./routes'</span>;
+<span class="hl-kw">import</span> { errorHandler } <span class="hl-kw">from</span> <span class="hl-str">'./middlewares/error'</span>;
+
+<span class="hl-kw">export function</span> <span class="hl-fn">createApp</span>() {
+  <span class="hl-kw">const</span> app = <span class="hl-fn">express</span>();
+  app.<span class="hl-fn">use</span>(express.<span class="hl-fn">json</span>());
+  app.<span class="hl-fn">use</span>(<span class="hl-str">'/api'</span>, router);
+  app.<span class="hl-fn">use</span>(errorHandler);
+  <span class="hl-kw">return</span> app;
+}
+
+<span class="hl-cmt">// src/index.ts — bootstrap separado, NÃO importado pelos testes</span>
+<span class="hl-cmt">// import { createApp } from './app';</span>
+<span class="hl-cmt">// createApp().listen(process.env.PORT ?? 3000);</span></code></pre>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-label">tests/orders.spec.ts — primeiro teste E2E<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-kw">import</span> request <span class="hl-kw">from</span> <span class="hl-str">'supertest'</span>;
+<span class="hl-kw">import</span> { createApp } <span class="hl-kw">from</span> <span class="hl-str">'../src/app'</span>;
+<span class="hl-kw">import</span> { resetDb, seedClient } <span class="hl-kw">from</span> <span class="hl-str">'./helpers/db'</span>;
+
+<span class="hl-kw">const</span> app = <span class="hl-fn">createApp</span>();
+
+<span class="hl-fn">describe</span>(<span class="hl-str">'POST /api/orders'</span>, () =&gt; {
+  <span class="hl-fn">beforeEach</span>(<span class="hl-kw">async</span> () =&gt; {
+    <span class="hl-kw">await</span> <span class="hl-fn">resetDb</span>();         <span class="hl-cmt">// TRUNCATE em todas as tabelas</span>
+  });
+
+  <span class="hl-fn">it</span>(<span class="hl-str">'cria pedido válido e devolve 201 com Location header'</span>, <span class="hl-kw">async</span> () =&gt; {
+    <span class="hl-kw">const</span> client = <span class="hl-kw">await</span> <span class="hl-fn">seedClient</span>({ email: <span class="hl-str">'ana@inteli.edu'</span> });
+
+    <span class="hl-kw">const</span> res = <span class="hl-kw">await</span> <span class="hl-fn">request</span>(app)
+      .<span class="hl-fn">post</span>(<span class="hl-str">'/api/orders'</span>)
+      .<span class="hl-fn">send</span>({ clientId: client.id, items: [{ productId: <span class="hl-num">1</span>, qty: <span class="hl-num">2</span> }] })
+      .<span class="hl-fn">set</span>(<span class="hl-str">'Content-Type'</span>, <span class="hl-str">'application/json'</span>);
+
+    <span class="hl-fn">expect</span>(res.status).<span class="hl-fn">toBe</span>(<span class="hl-num">201</span>);
+    <span class="hl-fn">expect</span>(res.headers.location).<span class="hl-fn">toMatch</span>(<span class="hl-str">/^\/api\/orders\/\d+$/</span>);
+    <span class="hl-fn">expect</span>(res.body).<span class="hl-fn">toMatchObject</span>({ clientId: client.id, status: <span class="hl-str">'PENDING'</span> });
+  });
+
+  <span class="hl-fn">it</span>(<span class="hl-str">'devolve 422 quando items é vazio'</span>, <span class="hl-kw">async</span> () =&gt; {
+    <span class="hl-kw">const</span> res = <span class="hl-kw">await</span> <span class="hl-fn">request</span>(app)
+      .<span class="hl-fn">post</span>(<span class="hl-str">'/api/orders'</span>)
+      .<span class="hl-fn">send</span>({ clientId: <span class="hl-num">1</span>, items: [] });
+    <span class="hl-fn">expect</span>(res.status).<span class="hl-fn">toBe</span>(<span class="hl-num">422</span>);
+    <span class="hl-fn">expect</span>(res.body.error).<span class="hl-fn">toBe</span>(<span class="hl-str">'ValidationError'</span>);
+  });
+});</code></pre>
+        </div>
+
+        <!-- ─── 16.4 Setup Playwright ─── -->
+        <h3 id="sec-e2e-pw-setup">16.4 Setup com Playwright Test (apenas API)</h3>
+
+        <p>Playwright Test não precisa de browser para testar API — basta a fixture <code>request</code>. A diferença em relação ao Jest+supertest: aqui o servidor sobe de verdade em porta TCP, e os testes batem nele via HTTP "real". A vantagem é que você está testando exatamente o mesmo binário/processo que vai rodar em produção; a desvantagem é que cada teste paga ~50–100 ms a mais de overhead.</p>
+
+        <div class="code-wrap">
+          <div class="code-label">Instalação<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code>npm init playwright@latest -- --quiet --browser=chromium
+<span class="hl-cmt"># Já temos Playwright Test + fixtures + config gerados</span></code></pre>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-label">playwright.config.ts<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-kw">import</span> { defineConfig } <span class="hl-kw">from</span> <span class="hl-str">'@playwright/test'</span>;
+
+<span class="hl-kw">export default</span> <span class="hl-fn">defineConfig</span>({
+  testDir: <span class="hl-str">'./tests/e2e'</span>,
+  timeout: <span class="hl-num">15000</span>,
+  fullyParallel: <span class="hl-kw">true</span>,
+  reporter: [[<span class="hl-str">'list'</span>], [<span class="hl-str">'html'</span>, { open: <span class="hl-str">'never'</span> }]],
+
+  <span class="hl-cmt">// Sobe o servidor antes dos testes; mata depois.</span>
+  webServer: {
+    command: <span class="hl-str">'npm run dev'</span>,
+    url: <span class="hl-str">'http://localhost:3000/api/health'</span>,
+    timeout: <span class="hl-num">30000</span>,
+    reuseExistingServer: !process.env.CI,
+  },
+
+  use: {
+    baseURL: <span class="hl-str">'http://localhost:3000'</span>,
+    extraHTTPHeaders: { <span class="hl-str">'Content-Type'</span>: <span class="hl-str">'application/json'</span> },
+  },
+});</code></pre>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-label">tests/e2e/orders.spec.ts<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-kw">import</span> { test, expect } <span class="hl-kw">from</span> <span class="hl-str">'@playwright/test'</span>;
+<span class="hl-kw">import</span> { resetDb, seedClient } <span class="hl-kw">from</span> <span class="hl-str">'./helpers/db'</span>;
+
+test.<span class="hl-fn">beforeEach</span>(<span class="hl-kw">async</span> () =&gt; { <span class="hl-kw">await</span> <span class="hl-fn">resetDb</span>(); });
+
+<span class="hl-fn">test</span>(<span class="hl-str">'POST /api/orders cria pedido e devolve 201'</span>, <span class="hl-kw">async</span> ({ request }) =&gt; {
+  <span class="hl-kw">const</span> client = <span class="hl-kw">await</span> <span class="hl-fn">seedClient</span>({ email: <span class="hl-str">'ana@inteli.edu'</span> });
+
+  <span class="hl-kw">const</span> res = <span class="hl-kw">await</span> request.<span class="hl-fn">post</span>(<span class="hl-str">'/api/orders'</span>, {
+    data: { clientId: client.id, items: [{ productId: <span class="hl-num">1</span>, qty: <span class="hl-num">2</span> }] },
+  });
+
+  <span class="hl-fn">expect</span>(res.status()).<span class="hl-fn">toBe</span>(<span class="hl-num">201</span>);
+  <span class="hl-fn">expect</span>(res.headers()[<span class="hl-str">'location'</span>]).<span class="hl-fn">toMatch</span>(<span class="hl-str">/^\/api\/orders\/\d+$/</span>);
+  <span class="hl-kw">const</span> body = <span class="hl-kw">await</span> res.<span class="hl-fn">json</span>();
+  <span class="hl-fn">expect</span>(body).<span class="hl-fn">toMatchObject</span>({ clientId: client.id, status: <span class="hl-str">'PENDING'</span> });
+});
+
+<span class="hl-fn">test</span>(<span class="hl-str">'POST /api/orders sem itens devolve 422'</span>, <span class="hl-kw">async</span> ({ request }) =&gt; {
+  <span class="hl-kw">const</span> res = <span class="hl-kw">await</span> request.<span class="hl-fn">post</span>(<span class="hl-str">'/api/orders'</span>, {
+    data: { clientId: <span class="hl-num">1</span>, items: [] },
+  });
+  <span class="hl-fn">expect</span>(res.status()).<span class="hl-fn">toBe</span>(<span class="hl-num">422</span>);
+});</code></pre>
+        </div>
+
+        <div class="callout callout-tip sr">
+          <div class="callout-label">Fixture customizada</div>
+          <p>Em projetos maiores, criar uma fixture <code>authenticatedRequest</code> que já loga e devolve um <code>request</code> com cookie/token elimina boilerplate em dezenas de testes. Ver a doc oficial em <code>test.extend()</code> — é o mesmo padrão que o Jest resolve via <code>beforeAll</code> mas declarativo.</p>
+        </div>
+
+        <!-- ─── 16.5 Banco isolado ─── -->
+        <h3 id="sec-e2e-db">16.5 Banco de teste isolado e estratégias de cleanup</h3>
+
+        <p>Toda dor de cabeça em testes E2E começa quando dois testes pisam nos mesmos dados. Há três estratégias maduras, em ordem crescente de isolamento (e custo):</p>
+
+        <div class="code-wrap">
+          <div class="code-label">Estratégia 1 — TRUNCATE em beforeEach (simples e rápida)<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-cmt">// tests/helpers/db.ts</span>
+<span class="hl-kw">import</span> { Pool } <span class="hl-kw">from</span> <span class="hl-str">'pg'</span>;
+
+<span class="hl-kw">export const</span> testPool = <span class="hl-kw">new</span> <span class="hl-fn">Pool</span>({
+  connectionString: process.env.DATABASE_URL_TEST,
+});
+
+<span class="hl-kw">export async function</span> <span class="hl-fn">resetDb</span>() {
+  <span class="hl-kw">await</span> testPool.<span class="hl-fn">query</span>(<span class="hl-str">`
+    TRUNCATE TABLE orders, order_items, clients, products
+    RESTART IDENTITY CASCADE;
+  `</span>);
+  <span class="hl-kw">await</span> <span class="hl-fn">seedFixtures</span>();      <span class="hl-cmt">// re-popula dados de referência (produtos, etc.)</span>
+}</code></pre>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-label">Estratégia 2 — Transação por teste com ROLLBACK (mais rápida ainda)<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-cmt">// Cada teste roda dentro de uma transação que faz ROLLBACK no final.</span>
+<span class="hl-cmt">// Ganho: ~10x mais rápido que TRUNCATE. Limite: o app precisa aceitar</span>
+<span class="hl-cmt">// uma conexão pré-aberta — exige injeção de dependência.</span>
+<span class="hl-kw">let</span> tx: PoolClient;
+
+<span class="hl-fn">beforeEach</span>(<span class="hl-kw">async</span> () =&gt; {
+  tx = <span class="hl-kw">await</span> testPool.<span class="hl-fn">connect</span>();
+  <span class="hl-kw">await</span> tx.<span class="hl-fn">query</span>(<span class="hl-str">'BEGIN'</span>);
+  setRequestScopedClient(tx);  <span class="hl-cmt">// app usa este client em vez do pool</span>
+});
+
+<span class="hl-fn">afterEach</span>(<span class="hl-kw">async</span> () =&gt; {
+  <span class="hl-kw">await</span> tx.<span class="hl-fn">query</span>(<span class="hl-str">'ROLLBACK'</span>);
+  tx.<span class="hl-fn">release</span>();
+});</code></pre>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-label">Estratégia 3 — Testcontainers (isolamento total)<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-kw">import</span> { PostgreSqlContainer } <span class="hl-kw">from</span> <span class="hl-str">'@testcontainers/postgresql'</span>;
+
+<span class="hl-kw">let</span> container: StartedPostgreSqlContainer;
+
+<span class="hl-fn">beforeAll</span>(<span class="hl-kw">async</span> () =&gt; {
+  container = <span class="hl-kw">await new</span> <span class="hl-fn">PostgreSqlContainer</span>(<span class="hl-str">'postgres:16-alpine'</span>).<span class="hl-fn">start</span>();
+  process.env.DATABASE_URL = container.<span class="hl-fn">getConnectionUri</span>();
+  <span class="hl-kw">await</span> <span class="hl-fn">runMigrations</span>();          <span class="hl-cmt">// aplica seu schema</span>
+}, <span class="hl-num">60_000</span>);
+
+<span class="hl-fn">afterAll</span>(<span class="hl-kw">async</span> () =&gt; { <span class="hl-kw">await</span> container.<span class="hl-fn">stop</span>(); });</code></pre>
+        </div>
+
+        <table class="mat-table sr">
+          <thead><tr><th>Estratégia</th><th>Velocidade</th><th>Isolamento</th><th>Quando usar</th></tr></thead>
+          <tbody>
+            <tr><td>TRUNCATE em beforeEach</td><td>~30 ms / teste</td><td>Bom (entre testes do mesmo arquivo)</td><td>Padrão para o módulo 2.</td></tr>
+            <tr><td>Transação + ROLLBACK</td><td>~3 ms / teste</td><td>Excelente</td><td>Suítes grandes (&gt;200 testes) e código que aceita injeção de client.</td></tr>
+            <tr><td>Testcontainers</td><td>~10 s setup + ~50 ms / teste</td><td>Total — DB descartável por suíte</td><td>CI sem banco preinstalado, ou múltiplas versões do PostgreSQL.</td></tr>
+          </tbody>
+        </table>
+
+        <div class="callout callout-warn sr">
+          <div class="callout-label">⚠️ NUNCA aponte o teste para o banco de dev</div>
+          <p>Use <strong>variável de ambiente separada</strong> (<code>DATABASE_URL_TEST</code>) e tenha um guard no <code>helpers/db.ts</code>: se a URL não terminar com <code>_test</code>, aborte o processo. Um <code>TRUNCATE</code> acidental no banco errado destrói horas de trabalho.</p>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-label">Guard anti-acidente em helpers/db.ts<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-kw">const</span> url = process.env.DATABASE_URL_TEST ?? <span class="hl-str">''</span>;
+<span class="hl-kw">if</span> (!url.<span class="hl-fn">endsWith</span>(<span class="hl-str">'_test'</span>) &amp;&amp; !url.<span class="hl-fn">includes</span>(<span class="hl-str">'localhost'</span>)) {
+  <span class="hl-kw">throw new</span> <span class="hl-fn">Error</span>(<span class="hl-str">'DATABASE_URL_TEST inválida — recusando subir testes contra prod/staging'</span>);
+}</code></pre>
+        </div>
+
+        <!-- ─── 16.6 Casos essenciais ─── -->
+        <h3 id="sec-e2e-cases">16.6 Casos de teste essenciais para cada endpoint</h3>
+
+        <p>Para um endpoint REST típico, há 6 casos que cobrem 90% dos bugs. Pense neles como o "kit mínimo" — qualquer endpoint que vai para produção deveria passar por essa lista. Os exemplos abaixo usam Jest+supertest, mas o esqueleto é idêntico em Playwright.</p>
+
+        <div class="code-wrap">
+          <div class="code-label">Kit mínimo — 6 casos para POST /orders<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-fn">describe</span>(<span class="hl-str">'POST /api/orders — kit mínimo'</span>, () =&gt; {
+
+  <span class="hl-cmt">// 1. HAPPY PATH — o caminho que deve funcionar</span>
+  <span class="hl-fn">it</span>(<span class="hl-str">'201 Created com Location e body coerente'</span>, <span class="hl-kw">async</span> () =&gt; {
+    <span class="hl-kw">const</span> client = <span class="hl-kw">await</span> <span class="hl-fn">seedClient</span>();
+    <span class="hl-kw">const</span> res = <span class="hl-kw">await</span> <span class="hl-fn">request</span>(app).<span class="hl-fn">post</span>(<span class="hl-str">'/api/orders'</span>)
+      .<span class="hl-fn">send</span>({ clientId: client.id, items: [{ productId: <span class="hl-num">1</span>, qty: <span class="hl-num">1</span> }] });
+    <span class="hl-fn">expect</span>(res.status).<span class="hl-fn">toBe</span>(<span class="hl-num">201</span>);
+    <span class="hl-fn">expect</span>(res.headers.location).<span class="hl-fn">toMatch</span>(<span class="hl-str">/\/api\/orders\/\d+/</span>);
+  });
+
+  <span class="hl-cmt">// 2. VALIDAÇÃO DE PAYLOAD — schema falha</span>
+  <span class="hl-fn">it</span>(<span class="hl-str">'422 quando clientId está ausente'</span>, <span class="hl-kw">async</span> () =&gt; {
+    <span class="hl-kw">const</span> res = <span class="hl-kw">await</span> <span class="hl-fn">request</span>(app).<span class="hl-fn">post</span>(<span class="hl-str">'/api/orders'</span>).<span class="hl-fn">send</span>({ items: [] });
+    <span class="hl-fn">expect</span>(res.status).<span class="hl-fn">toBe</span>(<span class="hl-num">422</span>);
+    <span class="hl-fn">expect</span>(res.body.error).<span class="hl-fn">toBe</span>(<span class="hl-str">'ValidationError'</span>);
+    <span class="hl-fn">expect</span>(res.body.details).<span class="hl-fn">toContainEqual</span>(
+      <span class="hl-fn">expect</span>.<span class="hl-fn">objectContaining</span>({ path: [<span class="hl-str">'clientId'</span>] })
+    );
+  });
+
+  <span class="hl-cmt">// 3. ENTIDADE NÃO ENCONTRADA — FK aponta para nada</span>
+  <span class="hl-fn">it</span>(<span class="hl-str">'404 quando clientId não existe'</span>, <span class="hl-kw">async</span> () =&gt; {
+    <span class="hl-kw">const</span> res = <span class="hl-kw">await</span> <span class="hl-fn">request</span>(app).<span class="hl-fn">post</span>(<span class="hl-str">'/api/orders'</span>)
+      .<span class="hl-fn">send</span>({ clientId: <span class="hl-num">99999</span>, items: [{ productId: <span class="hl-num">1</span>, qty: <span class="hl-num">1</span> }] });
+    <span class="hl-fn">expect</span>(res.status).<span class="hl-fn">toBe</span>(<span class="hl-num">404</span>);
+  });
+
+  <span class="hl-cmt">// 4. CONFLITO DE NEGÓCIO — regra é violada</span>
+  <span class="hl-fn">it</span>(<span class="hl-str">'409 quando produto está sem estoque'</span>, <span class="hl-kw">async</span> () =&gt; {
+    <span class="hl-kw">const</span> client = <span class="hl-kw">await</span> <span class="hl-fn">seedClient</span>();
+    <span class="hl-kw">const</span> prod = <span class="hl-kw">await</span> <span class="hl-fn">seedProduct</span>({ stock: <span class="hl-num">0</span> });
+    <span class="hl-kw">const</span> res = <span class="hl-kw">await</span> <span class="hl-fn">request</span>(app).<span class="hl-fn">post</span>(<span class="hl-str">'/api/orders'</span>)
+      .<span class="hl-fn">send</span>({ clientId: client.id, items: [{ productId: prod.id, qty: <span class="hl-num">1</span> }] });
+    <span class="hl-fn">expect</span>(res.status).<span class="hl-fn">toBe</span>(<span class="hl-num">409</span>);
+    <span class="hl-fn">expect</span>(res.body.error).<span class="hl-fn">toBe</span>(<span class="hl-str">'ConflictError'</span>);
+  });
+
+  <span class="hl-cmt">// 5. EFEITO COLATERAL NO BANCO — verifica o estado depois</span>
+  <span class="hl-fn">it</span>(<span class="hl-str">'persiste pedido + itens e decrementa estoque'</span>, <span class="hl-kw">async</span> () =&gt; {
+    <span class="hl-kw">const</span> client = <span class="hl-kw">await</span> <span class="hl-fn">seedClient</span>();
+    <span class="hl-kw">const</span> prod = <span class="hl-kw">await</span> <span class="hl-fn">seedProduct</span>({ stock: <span class="hl-num">10</span> });
+
+    <span class="hl-kw">await</span> <span class="hl-fn">request</span>(app).<span class="hl-fn">post</span>(<span class="hl-str">'/api/orders'</span>)
+      .<span class="hl-fn">send</span>({ clientId: client.id, items: [{ productId: prod.id, qty: <span class="hl-num">3</span> }] });
+
+    <span class="hl-kw">const</span> { rows: orders } = <span class="hl-kw">await</span> testPool.<span class="hl-fn">query</span>(
+      <span class="hl-str">'SELECT * FROM orders WHERE client_id = $1'</span>, [client.id]
+    );
+    <span class="hl-kw">const</span> { rows: stock } = <span class="hl-kw">await</span> testPool.<span class="hl-fn">query</span>(
+      <span class="hl-str">'SELECT stock FROM products WHERE id = $1'</span>, [prod.id]
+    );
+    <span class="hl-fn">expect</span>(orders).<span class="hl-fn">toHaveLength</span>(<span class="hl-num">1</span>);
+    <span class="hl-fn">expect</span>(stock[<span class="hl-num">0</span>].stock).<span class="hl-fn">toBe</span>(<span class="hl-num">7</span>);  <span class="hl-cmt">// 10 - 3</span>
+  });
+
+  <span class="hl-cmt">// 6. ROLLBACK — falha no meio da transação não persiste nada</span>
+  <span class="hl-fn">it</span>(<span class="hl-str">'rollback: pedido inválido não persiste itens já inseridos'</span>, <span class="hl-kw">async</span> () =&gt; {
+    <span class="hl-kw">const</span> client = <span class="hl-kw">await</span> <span class="hl-fn">seedClient</span>();
+    <span class="hl-kw">const</span> p1 = <span class="hl-kw">await</span> <span class="hl-fn">seedProduct</span>({ stock: <span class="hl-num">5</span> });
+    <span class="hl-kw">const</span> p2 = <span class="hl-kw">await</span> <span class="hl-fn">seedProduct</span>({ stock: <span class="hl-num">0</span> }); <span class="hl-cmt">// vai falhar no segundo item</span>
+
+    <span class="hl-kw">const</span> res = <span class="hl-kw">await</span> <span class="hl-fn">request</span>(app).<span class="hl-fn">post</span>(<span class="hl-str">'/api/orders'</span>).<span class="hl-fn">send</span>({
+      clientId: client.id,
+      items: [{ productId: p1.id, qty: <span class="hl-num">1</span> }, { productId: p2.id, qty: <span class="hl-num">1</span> }],
+    });
+
+    <span class="hl-fn">expect</span>(res.status).<span class="hl-fn">toBe</span>(<span class="hl-num">409</span>);
+    <span class="hl-kw">const</span> { rows } = <span class="hl-kw">await</span> testPool.<span class="hl-fn">query</span>(<span class="hl-str">'SELECT count(*) FROM orders'</span>);
+    <span class="hl-fn">expect</span>(rows[<span class="hl-num">0</span>].count).<span class="hl-fn">toBe</span>(<span class="hl-str">'0'</span>);  <span class="hl-cmt">// nada persistiu — ROLLBACK funcionou</span>
+  });
+});</code></pre>
+        </div>
+
+        <h4>Idempotência — testar PUT/DELETE chamados duas vezes</h4>
+        <p>Idempotência não é uma propriedade que aparece em logs — ela só se manifesta quando alguém retenta. Cobrir esses casos é o que separa um endpoint que "passa nos testes" de um endpoint que "sobrevive na produção".</p>
+
+        <div class="code-wrap">
+          <div class="code-label">Teste de idempotência<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-fn">it</span>(<span class="hl-str">'PUT /api/clients/:id é idempotente'</span>, <span class="hl-kw">async</span> () =&gt; {
+  <span class="hl-kw">const</span> client = <span class="hl-kw">await</span> <span class="hl-fn">seedClient</span>({ name: <span class="hl-str">'Antigo'</span> });
+  <span class="hl-kw">const</span> payload = { name: <span class="hl-str">'Novo'</span>, email: client.email };
+
+  <span class="hl-kw">const</span> r1 = <span class="hl-kw">await</span> <span class="hl-fn">request</span>(app).<span class="hl-fn">put</span>(<span class="hl-str">`/api/clients/</span>${client.id}<span class="hl-str">`</span>).<span class="hl-fn">send</span>(payload);
+  <span class="hl-kw">const</span> r2 = <span class="hl-kw">await</span> <span class="hl-fn">request</span>(app).<span class="hl-fn">put</span>(<span class="hl-str">`/api/clients/</span>${client.id}<span class="hl-str">`</span>).<span class="hl-fn">send</span>(payload);
+
+  <span class="hl-fn">expect</span>(r1.status).<span class="hl-fn">toBe</span>(<span class="hl-num">200</span>);
+  <span class="hl-fn">expect</span>(r2.status).<span class="hl-fn">toBe</span>(<span class="hl-num">200</span>);
+  <span class="hl-fn">expect</span>(r1.body).<span class="hl-fn">toEqual</span>(r2.body);  <span class="hl-cmt">// estado final idêntico</span>
+});
+
+<span class="hl-fn">it</span>(<span class="hl-str">'DELETE /api/clients/:id devolve 204 na primeira e 404 na segunda'</span>, <span class="hl-kw">async</span> () =&gt; {
+  <span class="hl-kw">const</span> client = <span class="hl-kw">await</span> <span class="hl-fn">seedClient</span>();
+  <span class="hl-kw">const</span> r1 = <span class="hl-kw">await</span> <span class="hl-fn">request</span>(app).<span class="hl-fn">delete</span>(<span class="hl-str">`/api/clients/</span>${client.id}<span class="hl-str">`</span>);
+  <span class="hl-kw">const</span> r2 = <span class="hl-kw">await</span> <span class="hl-fn">request</span>(app).<span class="hl-fn">delete</span>(<span class="hl-str">`/api/clients/</span>${client.id}<span class="hl-str">`</span>);
+  <span class="hl-fn">expect</span>(r1.status).<span class="hl-fn">toBe</span>(<span class="hl-num">204</span>);
+  <span class="hl-fn">expect</span>(r2.status).<span class="hl-fn">toBe</span>(<span class="hl-num">404</span>);  <span class="hl-cmt">// alternativa válida: 204 — escolha uma e mantenha</span>
+});</code></pre>
+        </div>
+
+        <!-- ─── 16.7 CI ─── -->
+        <h3 id="sec-e2e-ci">16.7 Rodando no CI (GitHub Actions)</h3>
+
+        <p>Localmente, <code>npm test</code> roda os E2E contra o seu banco de dev. No CI, você precisa de um PostgreSQL efêmero por job — o GitHub Actions oferece <strong>service containers</strong> exatamente para isso. O snippet abaixo sobe Postgres 16 antes da suíte, aplica migrations e roda os testes; ao fim do job, o container é destruído.</p>
+
+        <div class="code-wrap">
+          <div class="code-label">.github/workflows/ci.yml<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-kw">name:</span> CI
+
+<span class="hl-kw">on:</span> [push, pull_request]
+
+<span class="hl-kw">jobs:</span>
+  test:
+    <span class="hl-kw">runs-on:</span> ubuntu-latest
+    <span class="hl-kw">services:</span>
+      postgres:
+        <span class="hl-kw">image:</span> postgres:16-alpine
+        <span class="hl-kw">env:</span>
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: app_test
+        <span class="hl-kw">ports:</span> [<span class="hl-str">'5432:5432'</span>]
+        <span class="hl-kw">options:</span> &gt;-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    <span class="hl-kw">env:</span>
+      DATABASE_URL_TEST: postgres://test:test@localhost:5432/app_test
+    <span class="hl-kw">steps:</span>
+      - <span class="hl-kw">uses:</span> actions/checkout@v4
+      - <span class="hl-kw">uses:</span> actions/setup-node@v4
+        <span class="hl-kw">with:</span> { node-version: <span class="hl-str">'20'</span>, cache: <span class="hl-str">'npm'</span> }
+      - <span class="hl-kw">run:</span> npm ci
+      - <span class="hl-kw">run:</span> npm run db:migrate    <span class="hl-cmt"># aplica schema no banco do CI</span>
+      - <span class="hl-kw">run:</span> npm test               <span class="hl-cmt"># roda Jest E2E</span>
+      - <span class="hl-kw">run:</span> npx playwright test    <span class="hl-cmt"># roda Playwright (se houver)</span></code></pre>
+        </div>
+
+        <div class="callout callout-tip sr">
+          <div class="callout-label">Boas práticas que economizam horas</div>
+          <p><strong>1.</strong> Sempre paralelize entre <em>arquivos</em>, nunca entre <em>testes do mesmo arquivo</em> que tocam o mesmo recurso. <strong>2.</strong> Nomeie testes pelo comportamento esperado (<em>"devolve 422 quando..."</em>), não pelo método (<em>"testCreateOrder1"</em>). <strong>3.</strong> Falha intermitente é bug — investigue, não retry. <strong>4.</strong> O teste E2E <em>é</em> documentação: alguém lendo a suíte deveria entender o contrato da API sem abrir o código.</p>
+        </div>
+
+        <div class="callout callout-deep sr">
+          <div class="callout-label">Conexão com a Aula 10</div>
+          <p>A <strong>Aula 10 — Testes e Automação</strong> aprofunda esse mesmo tema: cobertura de código, mocking estratégico, testes de carga e a integração com pipelines mais elaborados. O que você cobre aqui (E2E API com Jest/Playwright) é o piso para a entrega do módulo. O que você verá lá é o teto.</p>
+        </div>
+      </section>
+
+      <!-- ════════ 17. CHECKLIST ════════ -->
       <section class="mat-section" id="sec-checklist">
-        <h2>16. Checklist de Estudo</h2>
+        <h2>17. Checklist de Estudo</h2>
         <p>Marque os conceitos à medida que você os domina:</p>
         <ul class="checklist" id="checklist">
           <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Sei quando usar GET, POST, PUT, PATCH e DELETE — e por que importa.</span></li>
@@ -1008,6 +1481,11 @@ Content-Type: application/json
           <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Sei que PUT/DELETE são idempotentes e POST não — e o que isso implica.</span></li>
           <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Adotei UMA convenção de envelope de resposta para o projeto.</span></li>
           <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Tenho um <code>requests.http</code> versionado com exemplos do CRUD.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Configurei Jest com <code>ts-jest</code> e exporto <code>createApp()</code> separado do <code>listen</code>.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Cada endpoint tem pelo menos os 6 testes do "kit mínimo" (happy, validação, 404, conflito, efeito no banco, rollback).</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Uso <code>DATABASE_URL_TEST</code> separada do dev/prod, com guard que aborta se a URL for suspeita.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Sei a diferença entre Jest+supertest (in-process) e Playwright Test (out-of-process) e quando usar cada um.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Tenho um <code>ci.yml</code> com service container do PostgreSQL e os testes E2E rodando a cada push.</span></li>
         </ul>
       </section>
 
@@ -1023,6 +1501,14 @@ Content-Type: application/json
           <li><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods" target="_blank" rel="noopener noreferrer">MDN — HTTP Methods</a> — verbos, idempotência e segurança</li>
           <li><a href="https://www.rfc-editor.org/rfc/rfc7231" target="_blank" rel="noopener noreferrer">RFC 7231 — HTTP/1.1 Semantics and Content</a> — referência normativa</li>
           <li><a href="https://github.com/expressjs/morgan" target="_blank" rel="noopener noreferrer">morgan — HTTP request logger middleware</a></li>
+          <li><a href="https://jestjs.io/docs/getting-started" target="_blank" rel="noopener noreferrer">Jest — Getting Started</a> — runner de testes, assertions e mocks</li>
+          <li><a href="https://github.com/ladjs/supertest" target="_blank" rel="noopener noreferrer">supertest — Super-agent driven HTTP assertions</a> — chamadas in-process à app Express</li>
+          <li><a href="https://kulshekhar.github.io/ts-jest/" target="_blank" rel="noopener noreferrer">ts-jest — TypeScript preprocessor para Jest</a></li>
+          <li><a href="https://playwright.dev/docs/api-testing" target="_blank" rel="noopener noreferrer">Playwright Test — API Testing</a> — fixture <code>request</code> para testar APIs sem browser</li>
+          <li><a href="https://playwright.dev/docs/test-fixtures" target="_blank" rel="noopener noreferrer">Playwright Test — Fixtures</a> — sistema declarativo de setup/teardown</li>
+          <li><a href="https://node.testcontainers.org/modules/postgresql/" target="_blank" rel="noopener noreferrer">Testcontainers — PostgreSQL module</a> — bancos descartáveis em Docker</li>
+          <li><a href="https://docs.github.com/en/actions/using-containerized-services/creating-postgresql-service-containers" target="_blank" rel="noopener noreferrer">GitHub Actions — PostgreSQL Service Containers</a> — referência oficial</li>
+          <li><a href="https://martinfowler.com/articles/practical-test-pyramid.html" target="_blank" rel="noopener noreferrer">Martin Fowler — The Practical Test Pyramid</a> — fundação conceitual da pirâmide</li>
         </ul>
       </section>
 
