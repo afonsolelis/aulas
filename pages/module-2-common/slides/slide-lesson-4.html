@@ -12,7 +12,7 @@
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
     mermaid.initialize({
-      startOnLoad: true,
+      startOnLoad: false,
       theme: 'base',
       themeVariables: {
         fontFamily: 'Manrope, sans-serif',
@@ -1135,6 +1135,25 @@ var slides = document.querySelectorAll('.slide');
 var totalSlides = slides.length;
 document.getElementById('total-slides').textContent = totalSlides;
 
+// Captura o source original de cada bloco .mermaid antes de qualquer render
+document.querySelectorAll('.mermaid').forEach(function(el){
+  if (!el.hasAttribute('data-src')) el.setAttribute('data-src', el.textContent.trim());
+});
+
+// Render lazy — só renderiza Mermaid quando o slide fica ativo
+function renderSlideMermaid(slide) {
+  if (!window.mermaid) return;
+  var blocks = slide.querySelectorAll('.mermaid:not([data-rendered])');
+  if (!blocks.length) return;
+  blocks.forEach(function(b){
+    var src = b.getAttribute('data-src') || '';
+    b.innerHTML = src;                         // restaura o source caso Mermaid tenha mexido
+    b.removeAttribute('data-processed');       // permite que mermaid.run() processe de novo
+    b.setAttribute('data-rendered', 'true');
+  });
+  try { window.mermaid.run({ nodes: Array.from(blocks) }); } catch(e){ console.warn('mermaid render', e); }
+}
+
 function showSlide(i) {
   document.querySelectorAll('.slide.active').forEach(function(s){ s.classList.remove('active'); });
   slides[i].classList.add('active');
@@ -1142,6 +1161,7 @@ function showSlide(i) {
   document.getElementById('current-slide').textContent = i + 1;
   document.getElementById('prev-btn').disabled = i === 0;
   document.getElementById('next-btn').disabled = i === totalSlides - 1;
+  renderSlideMermaid(slides[i]);
   runAnim(i);
 }
 function nextSlide()     { if (currentSlide < totalSlides - 1) showSlide(currentSlide + 1); }
