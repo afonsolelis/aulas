@@ -44,6 +44,12 @@
       er: { useMaxWidth: true, layoutDirection: 'LR' }
     });
     window.mermaid = mermaid;
+    // Após o Mermaid carregar, força render do slide atualmente ativo
+    // (caso o usuário tenha chegado num slide com Mermaid antes do módulo carregar)
+    if (typeof window.renderSlideMermaid === 'function') {
+      var active = document.querySelector('.slide.active');
+      if (active) window.renderSlideMermaid(active);
+    }
   </script>
   <style>
     :root { --ac:#4b5563; --hi:#b2b6bf; --dk:#2e2640; --gr:#0d9488; --re:#dc2626; --am:#d97706; }
@@ -1148,19 +1154,29 @@ document.querySelectorAll('.mermaid').forEach(function(el){
   if (!el.hasAttribute('data-src')) el.setAttribute('data-src', el.textContent.trim());
 });
 
-// Render lazy — só renderiza Mermaid quando o slide fica ativo
+// Render lazy — renderiza Mermaid quando o slide fica ativo.
+// Detecta blocos que ainda não têm SVG ou que renderizaram com erro e força re-render.
 function renderSlideMermaid(slide) {
   if (!window.mermaid) return;
-  var blocks = slide.querySelectorAll('.mermaid:not([data-rendered])');
+  var blocks = slide.querySelectorAll('.mermaid');
   if (!blocks.length) return;
+  var toRender = [];
   blocks.forEach(function(b){
+    var hasSvg = !!b.querySelector('svg');
+    var hasErr = /Syntax error/i.test(b.innerHTML);
+    if (hasSvg && !hasErr) return;            // já renderizou corretamente; skip
     var src = b.getAttribute('data-src') || '';
-    b.innerHTML = src;                         // restaura o source caso Mermaid tenha mexido
-    b.removeAttribute('data-processed');       // permite que mermaid.run() processe de novo
-    b.setAttribute('data-rendered', 'true');
+    if (!src) return;                         // sem source preservado; nada a fazer
+    b.innerHTML = src;                        // restaura o source
+    b.removeAttribute('data-processed');      // libera Mermaid para reprocessar
+    toRender.push(b);
   });
-  try { window.mermaid.run({ nodes: Array.from(blocks) }); } catch(e){ console.warn('mermaid render', e); }
+  if (toRender.length) {
+    try { window.mermaid.run({ nodes: toRender }); } catch(e){ console.warn('mermaid render', e); }
+  }
 }
+// Expõe globalmente para o módulo Mermaid poder chamar após carregar
+window.renderSlideMermaid = renderSlideMermaid;
 
 function showSlide(i) {
   document.querySelectorAll('.slide.active').forEach(function(s){ s.classList.remove('active'); });
