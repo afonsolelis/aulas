@@ -8,6 +8,24 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="../../../css/inteli-styles.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'base',
+      themeVariables: {
+        fontFamily: 'Manrope, sans-serif',
+        primaryColor: '#dbeafe',
+        primaryTextColor: '#1e293b',
+        primaryBorderColor: '#3b82f6',
+        lineColor: '#4b5563',
+        secondaryColor: '#ede9fe',
+        tertiaryColor: '#dcfce7'
+      },
+      class: { useMaxWidth: true }
+    });
+    window.mermaid = mermaid;
+  </script>
   <style>
     :root {
       --ac:#4b5563; --hi:#b2b6bf; --dk:#2e2640; --gr:#0d9488; --re:#dc2626; --am:#d97706;
@@ -161,6 +179,28 @@
     .output-table-row { color:#cdd6f4; padding:7px 14px; border-top:1px solid #313244; display:grid; gap:8px; }
     .output-table-row:hover { background:#313244; }
     .output-null { color:#f38ba8; font-style:italic; }
+
+    /* ── Mermaid + Class diagram presentation ── */
+    .mermaid { display:flex; justify-content:center; padding:18px 8px; background:#fbfbfd; border:1px solid var(--border); border-radius:10px; overflow-x:auto; font-family:'Manrope',sans-serif !important; min-height:60px; margin:18px 0; }
+    .mermaid svg { max-width:100%; height:auto; }
+
+    /* ── Class anatomy box ── */
+    .cls-anatomy { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin:20px 0; }
+    .cls-comp { background:var(--card); border:1px solid var(--border); border-top:4px solid #3b82f6; border-radius:10px; padding:14px 16px; }
+    .cls-comp h5 { font-size:.85rem; font-weight:800; color:var(--dk); margin:0 0 6px; text-transform:uppercase; letter-spacing:.04em; }
+    .cls-comp p  { font-size:.82rem; color:#374151; line-height:1.55; margin:0 0 6px; }
+    .cls-comp code { background:#f1f5f9; padding:1px 6px; border-radius:4px; font-size:.78rem; color:#1e3a8a; }
+
+    /* ── Visibility legend ── */
+    .vis-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; margin:14px 0; }
+    .vis-card { background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:10px 14px; display:flex; align-items:center; gap:10px; }
+    .vis-symbol { font-family:'JetBrains Mono',monospace; font-size:1.4rem; font-weight:800; width:36px; height:36px; display:flex; align-items:center; justify-content:center; border-radius:8px; flex-shrink:0; }
+    .vis-pub { background:#dcfce7; color:#15803d; }
+    .vis-pri { background:#fee2e2; color:#b91c1c; }
+    .vis-pro { background:#fef3c7; color:#92400e; }
+    .vis-pkg { background:#ede9fe; color:#7c3aed; }
+    .vis-name { font-size:.82rem; font-weight:700; color:var(--dk); }
+    .vis-desc { font-size:.74rem; color:var(--muted); line-height:1.4; }
   </style>
 </head>
 <body>
@@ -199,9 +239,10 @@
         <a href="#sec-where-having" class="toc-h3">7. WHERE vs HAVING</a>
         <a href="#sec-subquery">8. Subconsultas</a>
         <a href="#sec-window">9. Window Functions</a>
-        <a href="#sec-rmodp">10. RM-ODP</a>
-        <a href="#sec-req">11. RF, RN e RNF</a>
-        <a href="#sec-checklist">12. Checklist</a>
+        <a href="#sec-classdiagram">10. Modelagem estática (UML)</a>
+        <a href="#sec-rmodp">11. RM-ODP</a>
+        <a href="#sec-req">12. RF, RN e RNF</a>
+        <a href="#sec-checklist">13. Checklist</a>
         <a href="#sec-refs">Referências</a>
       </div>
     </aside>
@@ -585,9 +626,289 @@
         </div>
       </section>
 
-      <!-- ════════ 10. RM-ODP ════════ -->
+      <!-- ════════ 10. MODELAGEM ESTÁTICA — DIAGRAMAS DE CLASSES ════════ -->
+      <section class="mat-section" id="sec-classdiagram">
+        <h2>10. Modelagem estática com diagramas de classes</h2>
+
+        <p>Até aqui você modelou os dados do sistema com diagramas Entidade–Relacionamento (ER) e os exercitou em SQL via JOINs. Existe uma segunda forma de modelagem, complementar e mais rica em comportamento: o <strong>diagrama de classes da UML</strong> (Unified Modeling Language). Enquanto o ER descreve <em>como os dados são guardados</em>, o diagrama de classes descreve <em>como o domínio é representado em código orientado a objetos</em> — incluindo atributos, operações, visibilidade, herança e o tipo exato de cada associação.</p>
+
+        <p>A UML divide a modelagem em duas categorias amplas: a <strong>modelagem estática</strong>, que captura a estrutura do sistema em um determinado instante (classes, atributos, relacionamentos) — e a <strong>modelagem dinâmica</strong>, que captura o comportamento ao longo do tempo (diagramas de sequência, de estados, de atividades, vistos na Aula 3). O diagrama de classes é o principal artefato da modelagem estática e serve como ponte entre o levantamento de requisitos, o desenho do banco de dados e a implementação em código.</p>
+
+        <div class="callout callout-info sr">
+          <div class="callout-label">Por que diagrama de classes em uma aula de SQL?</div>
+          <p>Cada classe que você desenha vira (na maioria dos casos) uma tabela. Cada associação vira uma chave estrangeira — e portanto um JOIN. Cada multiplicidade <code>1..*</code> determina se o JOIN é simples ou se exige tabela de junção. Aprender a ler um diagrama de classes acelera a tradução do modelo de domínio para o esquema relacional.</p>
+        </div>
+
+        <h3>Anatomia de uma classe</h3>
+        <p>Uma classe é representada por um retângulo dividido em três compartimentos: <strong>nome</strong> (no topo, em negrito e em maiúsculo), <strong>atributos</strong> (no meio, com tipo e visibilidade) e <strong>operações/métodos</strong> (na base, com parâmetros e tipo de retorno). Compartimentos vazios podem ser omitidos quando não forem relevantes para a leitura do diagrama.</p>
+
+        <div class="cls-anatomy sr">
+          <div class="cls-comp">
+            <h5>Nome</h5>
+            <p>Identifica a classe. Use <code>PascalCase</code> e substantivos do domínio: <code>Cliente</code>, <code>Pedido</code>, <code>ItemPedido</code>. Classes abstratas aparecem em <em>itálico</em> ou com o estereótipo <code>&lt;&lt;abstract&gt;&gt;</code>.</p>
+          </div>
+          <div class="cls-comp" style="border-top-color:#22c55e;">
+            <h5>Atributos</h5>
+            <p>Estado da classe. Sintaxe: <code>visibilidade nome: Tipo = default</code>. Atributos sublinhados são <em>estáticos</em> (de classe, não de instância).</p>
+          </div>
+          <div class="cls-comp" style="border-top-color:#8b5cf6;">
+            <h5>Operações</h5>
+            <p>Comportamento da classe. Sintaxe: <code>visibilidade nome(parâmetros): TipoRetorno</code>. Operações abstratas aparecem em itálico.</p>
+          </div>
+        </div>
+
+        <h3>Visibilidade — quem vê o quê</h3>
+        <p>A visibilidade controla o acesso a atributos e operações a partir de outras classes. Os quatro símbolos da UML correspondem diretamente aos modificadores de quase todas as linguagens orientadas a objetos:</p>
+
+        <div class="vis-grid sr">
+          <div class="vis-card">
+            <div class="vis-symbol vis-pub">+</div>
+            <div>
+              <div class="vis-name">public</div>
+              <div class="vis-desc">Acessível por qualquer classe. Parte da interface pública.</div>
+            </div>
+          </div>
+          <div class="vis-card">
+            <div class="vis-symbol vis-pri">−</div>
+            <div>
+              <div class="vis-name">private</div>
+              <div class="vis-desc">Acessível apenas dentro da própria classe. Detalhe interno.</div>
+            </div>
+          </div>
+          <div class="vis-card">
+            <div class="vis-symbol vis-pro">#</div>
+            <div>
+              <div class="vis-name">protected</div>
+              <div class="vis-desc">Acessível pela classe e por suas subclasses (herança).</div>
+            </div>
+          </div>
+          <div class="vis-card">
+            <div class="vis-symbol vis-pkg">~</div>
+            <div>
+              <div class="vis-name">package</div>
+              <div class="vis-desc">Acessível por classes do mesmo pacote/módulo.</div>
+            </div>
+          </div>
+        </div>
+
+        <p>O diagrama abaixo mostra uma classe <code>Cliente</code> com os três compartimentos preenchidos. Note como cada atributo é privado (<code>−</code>) e cada operação é pública (<code>+</code>) — esse é o padrão de encapsulamento clássico: <em>esconde dados, expõe comportamento</em>.</p>
+
+        <div class="mermaid">
+classDiagram
+    class Cliente {
+        -id: int
+        -nome: string
+        -email: string
+        -dataCadastro: Date
+        -ativo: bool
+        +cadastrar(nome, email) void
+        +atualizarEmail(novoEmail) void
+        +listarPedidos() Pedido[*]
+        +desativar() void
+    }
+        </div>
+
+        <h3>Tipos de relacionamento</h3>
+        <p>Diagramas de classes distinguem com precisão diferentes <em>tipos</em> de relação entre classes — algo que o ER tradicional não captura com tanto detalhe. Cada notação carrega semântica específica e influencia decisões de implementação (ciclo de vida do objeto, propagação de exclusão, navegabilidade).</p>
+
+        <table class="mat-table sr">
+          <thead>
+            <tr><th>Relação</th><th>Notação UML</th><th>Sintaxe Mermaid</th><th>Semântica</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Associação</strong></td>
+              <td>Linha contínua</td>
+              <td><code>A -- B</code> ou <code>A --&gt; B</code></td>
+              <td>Relação genérica entre duas classes. Pode ter direção (navegabilidade), papéis e multiplicidade.</td>
+            </tr>
+            <tr>
+              <td><strong>Agregação</strong></td>
+              <td>Losango branco</td>
+              <td><code>A o-- B</code></td>
+              <td>Todo–parte <em>fraco</em>: as partes existem independentemente do todo. Ex.: <code>Departamento</code> agrega <code>Funcionario</code>.</td>
+            </tr>
+            <tr>
+              <td><strong>Composição</strong></td>
+              <td>Losango preto</td>
+              <td><code>A *-- B</code></td>
+              <td>Todo–parte <em>forte</em>: a parte não vive sem o todo. Apagar o todo apaga as partes. Ex.: <code>Pedido</code> compõe <code>ItemPedido</code>.</td>
+            </tr>
+            <tr>
+              <td><strong>Generalização</strong></td>
+              <td>Seta vazia (triângulo)</td>
+              <td><code>A &lt;|-- B</code></td>
+              <td>Herança: <code>B</code> é uma especialização de <code>A</code>. <code>B</code> herda atributos e operações.</td>
+            </tr>
+            <tr>
+              <td><strong>Realização</strong></td>
+              <td>Seta vazia + linha tracejada</td>
+              <td><code>A &lt;|.. B</code></td>
+              <td><code>B</code> implementa a interface <code>A</code>. Contrato sem herança de implementação.</td>
+            </tr>
+            <tr>
+              <td><strong>Dependência</strong></td>
+              <td>Linha tracejada com seta</td>
+              <td><code>A ..&gt; B</code></td>
+              <td><code>A</code> usa <code>B</code> de forma transiente (parâmetro de método, retorno, variável local) — não armazena referência permanente.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="callout callout-tip sr">
+          <div class="callout-label">Agregação vs Composição na prática</div>
+          <p>Pergunta-chave: <em>se eu apagar o todo, o que acontece com as partes?</em> Se elas continuam existindo (um funcionário transferido para outro departamento), é <strong>agregação</strong>. Se elas deixam de fazer sentido (os itens de um pedido cancelado), é <strong>composição</strong>. No banco, composição costuma virar <code>ON DELETE CASCADE</code>; agregação costuma virar <code>ON DELETE SET NULL</code> ou <code>RESTRICT</code>.</p>
+        </div>
+
+        <h3>Multiplicidade — cardinalidade nas pontas</h3>
+        <p>A multiplicidade indica <strong>quantas instâncias</strong> de uma classe podem participar da associação. É escrita em cada extremidade da linha e é o equivalente direto da cardinalidade do ER (1:1, 1:N, N:M).</p>
+
+        <table class="mat-table sr">
+          <thead>
+            <tr><th>Notação</th><th>Significado</th><th>Equivalente no ER</th><th>Exemplo</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>1</code></td><td>Exatamente uma</td><td>Cardinalidade obrigatória 1</td><td>Todo pedido tem exatamente <em>1</em> cliente.</td></tr>
+            <tr><td><code>0..1</code></td><td>Zero ou uma</td><td>Cardinalidade opcional 0..1</td><td>Um cliente pode ter <em>0 ou 1</em> CPF cadastrado.</td></tr>
+            <tr><td><code>*</code> ou <code>0..*</code></td><td>Zero ou muitas</td><td>Cardinalidade N (opcional)</td><td>Um cliente pode ter <em>0 ou mais</em> pedidos.</td></tr>
+            <tr><td><code>1..*</code></td><td>Pelo menos uma</td><td>Cardinalidade N (obrigatória)</td><td>Um pedido tem <em>1 ou mais</em> itens.</td></tr>
+            <tr><td><code>n..m</code></td><td>De n a m instâncias</td><td>Faixa restrita</td><td>Uma turma tem <em>2..40</em> alunos.</td></tr>
+          </tbody>
+        </table>
+
+        <h3>O modelo de e-commerce desta aula em UML</h3>
+        <p>O mesmo modelo que vimos como tabelas relacionais e usamos nos JOINs pode ser desenhado como diagrama de classes. Compare a riqueza semântica: agora vemos não apenas que existe FK entre <code>itens_pedido</code> e <code>pedidos</code>, mas que se trata de uma <strong>composição</strong> — um item não tem sentido fora do pedido que o contém. Já <code>Cliente → Pedido</code> e <code>ItemPedido → Produto</code> são apenas associações: clientes existem antes do primeiro pedido, e produtos existem mesmo sem nenhum item de pedido referenciá-los.</p>
+
+        <div class="mermaid">
+classDiagram
+    class Cliente {
+        -id: int
+        -nome: string
+        -email: string
+        -dataCadastro: Date
+        +cadastrar() void
+        +listarPedidos() Pedido[*]
+    }
+    class Pedido {
+        -id: int
+        -dataCriacao: Date
+        -status: string
+        -total: decimal
+        +adicionarItem(p, qtd) void
+        +calcularTotal() decimal
+        +confirmar() void
+    }
+    class ItemPedido {
+        -quantidade: int
+        -precoUnitario: decimal
+        +calcularSubtotal() decimal
+    }
+    class Produto {
+        -id: int
+        -nome: string
+        -preco: decimal
+        -estoqueDisponivel: int
+        +reduzirEstoque(qtd) void
+    }
+    Cliente "1" --> "0..*" Pedido : realiza
+    Pedido "1" *-- "1..*" ItemPedido : contém
+    ItemPedido "*" --> "1" Produto : referencia
+        </div>
+
+        <p>Leia o diagrama em três passos. Primeiro, os relacionamentos: a seta <code>--&gt;</code> mostra <strong>navegabilidade</strong> (a partir de quem você consegue chegar a quem). Segundo, as multiplicidades nas pontas: um cliente realiza <em>0..*</em> pedidos, ou seja, pode existir sem nenhum pedido. Terceiro, a forma da ponta da linha: o losango preto entre <code>Pedido</code> e <code>ItemPedido</code> indica composição — o ciclo de vida do <code>ItemPedido</code> está atrelado ao do <code>Pedido</code>.</p>
+
+        <div class="callout callout-info sr">
+          <div class="callout-label">Cada associação UML é um JOIN potencial</div>
+          <p>A associação <code>Cliente "1" → "0..*" Pedido : realiza</code> se traduz em <code>JOIN clientes c ON c.id = p.cliente_id</code>. A composição <code>Pedido "1" *-- "1..*" ItemPedido</code> se traduz em <code>JOIN itens_pedido ip ON ip.pedido_id = p.id</code>. O diagrama de classes <em>é</em> o mapa das navegações que seu SQL precisará percorrer.</p>
+        </div>
+
+        <h3>Classes abstratas, herança e interfaces</h3>
+        <p>A modelagem estática brilha quando há <em>tipos relacionados</em> no domínio. Imagine que o sistema precise representar tanto clientes quanto funcionários — ambos são <em>pessoas</em> e compartilham nome, CPF e e-mail, mas cada um tem atributos e comportamentos próprios. A UML resolve isso com generalização (herança) e classes abstratas:</p>
+
+        <div class="mermaid">
+classDiagram
+    class Pessoa {
+        <<abstract>>
+        #id: int
+        #nome: string
+        #cpf: string
+        #email: string
+        +identificar() string
+        +validarCpf() bool
+    }
+    class Cliente {
+        -dataCadastro: Date
+        -ativo: bool
+        +listarPedidos() Pedido[*]
+    }
+    class Funcionario {
+        -salario: decimal
+        -cargo: string
+        +calcularBonus() decimal
+    }
+    class Notificavel {
+        <<interface>>
+        +notificar(msg) void
+    }
+    Pessoa <|-- Cliente
+    Pessoa <|-- Funcionario
+    Notificavel <|.. Cliente
+    Notificavel <|.. Funcionario
+        </div>
+
+        <p>O estereótipo <code>&lt;&lt;abstract&gt;&gt;</code> indica que <code>Pessoa</code> não pode ser instanciada diretamente — só via subclasses concretas. Os atributos <code>protected</code> (<code>#</code>) ficam visíveis para as subclasses. A interface <code>Notificavel</code> aparece com o estereótipo <code>&lt;&lt;interface&gt;&gt;</code> e é <em>realizada</em> (linha tracejada) por ambas as subclasses — define um contrato comum (<code>notificar()</code>) sem impor uma implementação.</p>
+
+        <h3>Do diagrama de classes ao esquema relacional</h3>
+        <p>Bancos relacionais não falam UML — falam tabelas, colunas e chaves estrangeiras. O processo de transformar um diagrama de classes em DDL segue regras consistentes que você aplicará várias vezes ao longo do curso:</p>
+
+        <table class="mat-table sr">
+          <thead>
+            <tr><th>Elemento UML</th><th>Tradução para o banco relacional</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Classe concreta</td><td>Tabela com mesmo nome (geralmente em snake_case e plural)</td></tr>
+            <tr><td>Atributo</td><td>Coluna com tipo SQL correspondente (string → VARCHAR, int → INTEGER, Date → DATE/TIMESTAMP)</td></tr>
+            <tr><td>Atributo identificador (chave)</td><td>Coluna <code>id</code> como <code>PRIMARY KEY</code> (geralmente <code>SERIAL</code> ou <code>UUID</code>)</td></tr>
+            <tr><td>Associação 1 → *</td><td>Coluna <code>fk_id</code> na tabela do lado "*" com <code>REFERENCES</code> para o lado "1"</td></tr>
+            <tr><td>Associação * → *</td><td>Tabela de junção com FKs para ambos os lados (e PK composta ou própria)</td></tr>
+            <tr><td>Composição</td><td>Mesma FK da associação 1→*, geralmente com <code>ON DELETE CASCADE</code> e <code>NOT NULL</code></td></tr>
+            <tr><td>Agregação</td><td>FK comum, geralmente com <code>ON DELETE SET NULL</code> ou <code>RESTRICT</code></td></tr>
+            <tr><td>Generalização (herança)</td><td>Três estratégias: tabela única (TPH), tabela por subclasse (TPC) ou tabela por hierarquia (TPT)</td></tr>
+            <tr><td>Operação/método</td><td>Não vai para o banco — fica na camada de aplicação ou em <code>FUNCTION</code>/<code>PROCEDURE</code>, se necessário</td></tr>
+            <tr><td>Multiplicidade <code>0..1</code></td><td>FK <code>NULL</code>-permitida</td></tr>
+            <tr><td>Multiplicidade <code>1</code> ou <code>1..*</code></td><td>FK <code>NOT NULL</code> + verificação de pelo menos uma linha relacionada (constraint diferida)</td></tr>
+          </tbody>
+        </table>
+
+        <div class="callout callout-warn sr">
+          <div class="callout-label">O que não atravessa a fronteira</div>
+          <p>Métodos da classe não viram colunas. Visibilidade (<code>+ - # ~</code>) não tem equivalente em SQL — o banco não sabe se um atributo é privado ou público; controle de acesso fica na aplicação ou em <code>GRANT</code>/<code>REVOKE</code> em nível de papel. Interfaces (<code>&lt;&lt;interface&gt;&gt;</code>) são puramente um conceito da camada de aplicação: o banco vê apenas as tabelas das classes que as implementam.</p>
+        </div>
+
+        <h3>Boas práticas ao desenhar diagramas de classes</h3>
+        <ul>
+          <li><strong>Substantivos para classes, verbos para operações</strong>. <code>Pedido</code> é classe; <code>confirmar()</code> é operação. <code>Confirmacao</code> só faz sentido como classe se houver realmente uma entidade independente.</li>
+          <li><strong>Evite a "classe deus"</strong> com dezenas de atributos e operações. Se uma classe começa a fazer mais de uma coisa coesa, divida — princípio de responsabilidade única.</li>
+          <li><strong>Modele a multiplicidade de verdade</strong>. Não use <code>*</code> por preguiça; pergunte "quantos no mínimo?" e "quantos no máximo?". <code>1..*</code> versus <code>0..*</code> tem impacto direto no esquema do banco e nas validações de aplicação.</li>
+          <li><strong>Composição é compromisso forte</strong>. Use composição apenas quando o ciclo de vida realmente está atrelado. Em caso de dúvida, prefira agregação ou associação simples.</li>
+          <li><strong>Mostre só o relevante</strong>. Um diagrama com 30 classes ilegíveis comunica menos que três diagramas focados em diferentes subsistemas (módulo de vendas, módulo de estoque, módulo de pagamento).</li>
+          <li><strong>Sincronize código e diagrama</strong>. Diagramas que divergem do código se tornam folclore. Versione-os no repositório (Mermaid em Markdown é excelente para isso) e atualize sempre que a estrutura mudar.</li>
+        </ul>
+
+        <h3>Ponte para o Back-End I</h3>
+        <p>Esta seção encerra o bloco de dados do módulo. A partir da próxima aula entramos no bloco de <strong>Back-End</strong>, e o diagrama de classes deixa de ser apenas documentação para virar a espinha dorsal do código que escreveremos em Node.js. No padrão arquitetural <strong>MVC</strong>, cada classe concreta do diagrama vira um <strong>Model</strong> — um arquivo JavaScript responsável por encapsular o acesso a uma tabela do banco. As operações que aparecem no compartimento inferior das classes (<code>+listarPedidos()</code>, <code>+confirmar()</code>, <code>+calcularTotal()</code>) viram métodos desse Model — e a maioria delas executará um dos JOINs que você aprendeu nesta aula.</p>
+
+        <p>As associações também se materializam no código. Uma associação <code>Cliente → Pedido</code> com multiplicidade <code>1..*</code> vira um método <code>Cliente.listarPedidos()</code> que executa um <code>SELECT ... FROM pedidos WHERE cliente_id = $1</code>. Uma composição <code>Pedido → ItemPedido</code> orienta a estratégia de inserção e exclusão em cascata. E quando houver herança no domínio (<code>Pessoa → Cliente, Funcionario</code>), cabe à camada de Model decidir entre uma única tabela com coluna discriminadora ou tabelas separadas — uma decisão de mapeamento objeto-relacional (ORM) que estudaremos a seguir.</p>
+
+        <div class="callout callout-deep sr">
+          <div class="callout-label">O que vem na Aula 5 — Back-End I</div>
+          <p>Saímos do banco e subimos para a aplicação: cada Model em Node.js carrega o conhecimento das classes desta seção. As <em>queries</em> SQL desta aula serão encapsuladas em métodos; as <em>associações</em> do diagrama virarão chamadas entre Models; a <em>visibilidade</em> (<code>+ −</code>) virará distinção entre métodos exportados e funções internas. Pense neste diagrama de classes como o esqueleto sobre o qual o código do Back-End será construído.</p>
+        </div>
+      </section>
+
+      <!-- ════════ 11. RM-ODP ════════ -->
       <section class="mat-section" id="sec-rmodp">
-        <h2>10. RM-ODP — JOINs nas visões do sistema</h2>
+        <h2>11. RM-ODP — JOINs nas visões do sistema</h2>
 
         <p>O framework RM-ODP nos convida a analisar o sistema a partir de cinco perspectivas complementares. Os JOINs e consultas complexas que aprendemos nesta aula têm um papel central em pelo menos duas dessas visões: a visão de <strong>Informação</strong> e a visão <strong>Computacional</strong>.</p>
 
@@ -639,9 +960,9 @@
         <p>Ao projetar uma nova rota ou endpoint que precisará de dados de múltiplas tabelas, a primeira pergunta que você deve fazer é: "quais relacionamentos do modelo ER eu preciso navegar?" Essa pergunta traduz diretamente nos JOINs necessários. É a visão de Informação guiando a visão Computacional.</p>
       </section>
 
-      <!-- ════════ 11. RF, RN e RNF ════════ -->
+      <!-- ════════ 12. RF, RN e RNF ════════ -->
       <section class="mat-section" id="sec-req">
-        <h2>11. RF, RN e RNF aplicados a consultas complexas</h2>
+        <h2>12. RF, RN e RNF aplicados a consultas complexas</h2>
 
         <p>Cada consulta que você escreve pode ser rastreada a um requisito. Entender essa ligação torna o código mais justificável e facilita decisões de otimização: você prioriza a performance das queries que atendem a requisitos funcionais críticos, e documenta as garantias de qualidade como requisitos não funcionais mensuráveis.</p>
 
@@ -712,9 +1033,9 @@
         </div>
       </section>
 
-      <!-- ════════ 12. CHECKLIST ════════ -->
+      <!-- ════════ 13. CHECKLIST ════════ -->
       <section class="mat-section" id="sec-checklist">
-        <h2>12. Checklist de Estudo</h2>
+        <h2>13. Checklist de Estudo</h2>
         <p>Clique nos itens à medida que você dominar cada conceito:</p>
         <ul class="checklist" id="checklist">
           <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo explicar por que a normalização exige JOINs para consultar dados relacionados.</span></li>
@@ -727,6 +1048,9 @@
           <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo explicar a diferença entre WHERE e HAVING e quando usar cada um.</span></li>
           <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo escrever uma subquery com IN e uma com EXISTS e explicar a diferença de comportamento.</span></li>
           <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo usar ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...) e explicar o que cada parte faz.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo ler um diagrama de classes UML, identificando atributos, operações e visibilidade.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Sei distinguir associação, agregação, composição, generalização e realização — e a semântica de cada uma.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo traduzir um diagrama de classes em esquema relacional, mapeando classes em tabelas, atributos em colunas e associações em chaves estrangeiras.</span></li>
           <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo identificar qual visão do RM-ODP é mais relevante para o design de consultas SQL.</span></li>
           <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Sei por que é importante criar índices em colunas de chave estrangeira usadas em JOINs frequentes.</span></li>
         </ul>
