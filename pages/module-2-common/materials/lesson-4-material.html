@@ -20,9 +20,27 @@
         primaryBorderColor: '#3b82f6',
         lineColor: '#4b5563',
         secondaryColor: '#ede9fe',
-        tertiaryColor: '#dcfce7'
+        tertiaryColor: '#dcfce7',
+        actorBkg: '#ede9fe',
+        actorBorder: '#7c3aed',
+        actorTextColor: '#2e2640',
+        actorLineColor: '#94a3b8',
+        signalColor: '#374151',
+        signalTextColor: '#1e293b',
+        labelBoxBkgColor: '#fef3c7',
+        labelBoxBorderColor: '#f59e0b',
+        labelTextColor: '#92400e',
+        loopTextColor: '#1e293b',
+        activationBkgColor: '#dcfce7',
+        activationBorderColor: '#22c55e',
+        sequenceNumberColor: '#ffffff',
+        noteBkgColor: '#fef3c7',
+        noteBorderColor: '#f59e0b',
+        noteTextColor: '#92400e'
       },
-      class: { useMaxWidth: true }
+      class: { useMaxWidth: true },
+      sequence: { useMaxWidth: true, mirrorActors: false, boxMargin: 12, messageMargin: 38, noteMargin: 12, wrap: true, actorMargin: 60 },
+      er: { useMaxWidth: true, layoutDirection: 'LR' }
     });
     window.mermaid = mermaid;
   </script>
@@ -242,7 +260,8 @@
         <a href="#sec-classdiagram">10. Modelagem estática (UML)</a>
         <a href="#sec-rmodp">11. RM-ODP</a>
         <a href="#sec-req">12. RF, RN e RNF</a>
-        <a href="#sec-checklist">13. Checklist</a>
+        <a href="#sec-caso">13. Estudo de caso integrado</a>
+        <a href="#sec-checklist">14. Checklist</a>
         <a href="#sec-refs">Referências</a>
       </div>
     </aside>
@@ -1033,9 +1052,297 @@ classDiagram
         </div>
       </section>
 
-      <!-- ════════ 13. CHECKLIST ════════ -->
+      <!-- ════════ 13. ESTUDO DE CASO INTEGRADO ════════ -->
+      <section class="mat-section" id="sec-caso">
+        <h2>13. Estudo de caso integrado: o checkout do e-commerce</h2>
+
+        <p>Esta seção amarra todos os conceitos da aula em um único caso, mostrando o mesmo problema sob cinco lentes diferentes: <strong>requisitos</strong> → <strong>modelagem conceitual</strong> → <strong>modelagem lógica</strong> → <strong>diagrama de classes</strong> (modelagem estática) → <strong>diagrama de sequência</strong> (modelagem dinâmica) → <strong>código SQL</strong>. Cada artefato é uma tradução do anterior, em um nível de detalhe maior, até chegar ao código que de fato roda no banco. É exatamente esse fluxo que você seguirá nos projetos do módulo.</p>
+
+        <h3>Cenário e requisitos</h3>
+        <p>Estamos construindo o endpoint de checkout de uma loja virtual. Quando o cliente confirma o pedido, o sistema precisa: (1) validar se há estoque para todos os itens; (2) criar o pedido; (3) registrar cada item; (4) reduzir o estoque dos produtos; (5) calcular o total e devolver a confirmação. Tudo isso em uma única transação — se qualquer passo falhar, nada deve ser persistido.</p>
+
+        <table class="mat-table sr">
+          <thead>
+            <tr><th>Tipo</th><th>Código</th><th>Descrição</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><span class="tag tag-blue">RF</span></td><td><code>RF-01</code></td><td>O sistema deve permitir que um cliente cadastrado confirme um pedido com 1 ou mais produtos.</td></tr>
+            <tr><td><span class="tag tag-blue">RF</span></td><td><code>RF-02</code></td><td>O sistema deve consultar o estoque de cada produto antes de aceitar o pedido.</td></tr>
+            <tr><td><span class="tag tag-blue">RF</span></td><td><code>RF-03</code></td><td>O sistema deve reduzir o estoque dos produtos pelas quantidades vendidas.</td></tr>
+            <tr><td><span class="tag tag-purple">RN</span></td><td><code>RN-01</code></td><td>Não é permitido confirmar um pedido sem estoque suficiente para qualquer item.</td></tr>
+            <tr><td><span class="tag tag-purple">RN</span></td><td><code>RN-02</code></td><td>O preço unitário do item é congelado no momento da compra (não acompanha alterações futuras do produto).</td></tr>
+            <tr><td><span class="tag tag-purple">RN</span></td><td><code>RN-03</code></td><td>Pedido sem itens é inválido — todo pedido tem pelo menos 1 item.</td></tr>
+            <tr><td><span class="tag tag-amber">RNF</span></td><td><code>RNF-01</code></td><td>O checkout deve ser atômico: ou tudo é persistido, ou nada (transação ACID).</td></tr>
+            <tr><td><span class="tag tag-amber">RNF</span></td><td><code>RNF-02</code></td><td>Consultas a pedidos por cliente devem responder em &lt; 200ms para até 1M de pedidos (índice em <code>cliente_id</code>).</td></tr>
+          </tbody>
+        </table>
+
+        <h3>1 · Modelagem conceitual — o ER de alto nível</h3>
+        <p>O modelo conceitual é o primeiro recorte do domínio: identifica as <strong>entidades</strong> e os <strong>relacionamentos</strong>, sem se preocupar com tipos de dado, chaves estrangeiras ou implementação. Serve para alinhar o time com o cliente: "estamos falando de quais coisas e como elas se relacionam?".</p>
+
+        <div class="mermaid">
+erDiagram
+    CLIENTE ||--o{ PEDIDO : "realiza"
+    PEDIDO  ||--|{ ITEM_PEDIDO : "contem"
+    PRODUTO ||--o{ ITEM_PEDIDO : "aparece em"
+        </div>
+
+        <p>Leia as cardinalidades: <code>||--o{</code> significa "um para zero ou muitos" (um cliente pode realizar zero ou mais pedidos); <code>||--|{</code> significa "um para um ou muitos" (um pedido contém pelo menos um item). O modelo conceitual já carrega a regra de negócio <code>RN-03</code>: pedido sem itens é proibido.</p>
+
+        <h3>2 · Modelagem lógica — atributos, tipos e chaves</h3>
+        <p>O modelo lógico detalha cada entidade com seus atributos, tipos de dado, chaves primárias (<code>PK</code>), chaves estrangeiras (<code>FK</code>) e restrições de unicidade (<code>UK</code>). É a ponte entre o conceito e o código: ainda independente de SGBD, mas já com a estrutura que o banco terá. Aqui aparecem as decisões de normalização (1FN, 2FN, 3FN) que você estudou nas aulas anteriores.</p>
+
+        <div class="mermaid">
+erDiagram
+    CLIENTE {
+        int id PK
+        varchar(100) nome
+        varchar(150) email UK
+        date data_cadastro
+        boolean ativo
+    }
+    PEDIDO {
+        int id PK
+        int cliente_id FK
+        timestamp data_criacao
+        varchar(20) status
+        decimal total
+    }
+    ITEM_PEDIDO {
+        int id PK
+        int pedido_id FK
+        int produto_id FK
+        int quantidade
+        decimal preco_unitario
+    }
+    PRODUTO {
+        int id PK
+        varchar(150) nome
+        decimal preco
+        int estoque
+    }
+    CLIENTE ||--o{ PEDIDO : "realiza"
+    PEDIDO  ||--|{ ITEM_PEDIDO : "contem"
+    PRODUTO ||--o{ ITEM_PEDIDO : "aparece em"
+        </div>
+
+        <p>Note três decisões importantes: (1) <code>email</code> é único (UK) — não permitiremos duas contas com o mesmo e-mail; (2) <code>preco_unitario</code> aparece duplicado em <code>item_pedido</code> mesmo já existindo em <code>produto</code>, atendendo a <code>RN-02</code> (preço congelado no momento da compra); (3) <code>cliente_id</code> em <code>pedido</code> é a chave estrangeira que materializa o relacionamento "realiza".</p>
+
+        <h3>3 · Modelagem estática — diagrama de classes</h3>
+        <p>O diagrama de classes pega o modelo lógico e adiciona <em>comportamento</em>. Cada entidade vira uma classe com atributos privados e operações públicas. As multiplicidades e tipos de associação (composição, navegabilidade) ficam explícitos. Este é o esqueleto sobre o qual o Back-End será construído.</p>
+
+        <div class="mermaid">
+classDiagram
+    class Cliente {
+        -id: int
+        -nome: string
+        -email: string
+        -ativo: bool
+        +listarPedidos() Pedido[*]
+    }
+    class Pedido {
+        -id: int
+        -dataCriacao: Date
+        -status: string
+        -total: decimal
+        +adicionarItem(prod, qtd) void
+        +calcularTotal() decimal
+        +confirmar() void
+    }
+    class ItemPedido {
+        -quantidade: int
+        -precoUnitario: decimal
+        +calcularSubtotal() decimal
+    }
+    class Produto {
+        -id: int
+        -nome: string
+        -preco: decimal
+        -estoque: int
+        +temEstoque(qtd) bool
+        +reduzirEstoque(qtd) void
+    }
+    Cliente "1" --> "0..*" Pedido : realiza
+    Pedido "1" *-- "1..*" ItemPedido : contem
+    ItemPedido "*" --> "1" Produto : referencia
+        </div>
+
+        <p>O losango preto entre <code>Pedido</code> e <code>ItemPedido</code> indica <strong>composição</strong>: itens não existem fora do pedido. Isso vai ditar o <code>ON DELETE CASCADE</code> no SQL. O método <code>Produto.temEstoque(qtd)</code> implementa diretamente a regra <code>RN-01</code> — antes de aceitar o item, perguntamos ao produto se ele suporta a quantidade pedida.</p>
+
+        <h3>4 · Modelagem dinâmica — diagrama de sequência</h3>
+        <p>Enquanto o diagrama de classes mostra a estrutura <em>parada</em>, o diagrama de sequência mostra como ela <em>se mexe</em> ao longo do tempo. Cada seta horizontal é uma chamada; cada barra vertical é o tempo durante o qual um objeto está ativo. As caixas de <code>alt</code> e <code>loop</code> capturam decisões e repetições.</p>
+
+        <div class="mermaid">
+sequenceDiagram
+    actor Cliente
+    participant Ctrl as Controller
+    participant Pedido
+    participant Produto
+    participant DB as Banco
+    Cliente->>Ctrl: POST /pedidos {clienteId, itens[]}
+    activate Ctrl
+    Ctrl->>DB: BEGIN TRANSACTION
+    Ctrl->>Pedido: novo Pedido(clienteId)
+    activate Pedido
+    loop para cada item solicitado
+        Pedido->>Produto: temEstoque(produtoId, qtd)
+        Produto->>DB: SELECT estoque WHERE id=? FOR UPDATE
+        DB-->>Produto: estoque atual
+        alt estoque insuficiente
+            Produto-->>Pedido: false
+            Pedido-->>Ctrl: ErroEstoque
+            Ctrl->>DB: ROLLBACK
+            Ctrl-->>Cliente: 409 Conflict
+        else estoque ok
+            Produto-->>Pedido: true
+            Pedido->>Pedido: adicionarItem(produto, qtd)
+            Pedido->>Produto: reduzirEstoque(qtd)
+            Produto->>DB: UPDATE produtos SET estoque = estoque - ?
+        end
+    end
+    Pedido->>Pedido: calcularTotal()
+    Pedido->>DB: INSERT INTO pedidos
+    Pedido->>DB: INSERT INTO itens_pedido (varios)
+    Pedido->>DB: UPDATE pedidos SET total = ?
+    DB-->>Pedido: pedidoId
+    deactivate Pedido
+    Ctrl->>DB: COMMIT
+    Ctrl-->>Cliente: 201 Created {pedidoId, total}
+    deactivate Ctrl
+        </div>
+
+        <p>Observe três coisas. Primeiro, o <code>BEGIN/COMMIT/ROLLBACK</code> envolvendo todo o fluxo materializa o requisito <code>RNF-01</code> (atomicidade). Segundo, o <code>FOR UPDATE</code> no SELECT bloqueia a linha do produto até o final da transação — sem ele, dois clientes simultâneos poderiam comprar o último item em estoque. Terceiro, cada interação que cruza a borda <em>Controller → Banco</em> é precisamente um comando SQL que vamos escrever no próximo passo.</p>
+
+        <h3>5 · Implementação física — código SQL final</h3>
+        <p>Agora descemos para o código que de fato executa no PostgreSQL. O DDL cria as tabelas com tipos exatos, restrições e índices. O DML implementa o checkout dentro de uma transação. As queries de leitura usam JOINs que percorrem exatamente as associações desenhadas no diagrama de classes.</p>
+
+        <div class="code-wrap">
+          <div class="code-label">SQL — DDL: criação do esquema<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-cmt">-- Tabela clientes</span>
+<span class="hl-kw">CREATE TABLE</span> clientes (
+  id            <span class="hl-typ">SERIAL PRIMARY KEY</span>,
+  nome          <span class="hl-typ">VARCHAR</span>(100) <span class="hl-kw">NOT NULL</span>,
+  email         <span class="hl-typ">VARCHAR</span>(150) <span class="hl-kw">NOT NULL UNIQUE</span>,
+  data_cadastro <span class="hl-typ">DATE</span>         <span class="hl-kw">NOT NULL DEFAULT</span> <span class="hl-fn">CURRENT_DATE</span>,
+  ativo         <span class="hl-typ">BOOLEAN</span>      <span class="hl-kw">NOT NULL DEFAULT</span> <span class="hl-kw">TRUE</span>
+);
+
+<span class="hl-cmt">-- Tabela produtos com checks</span>
+<span class="hl-kw">CREATE TABLE</span> produtos (
+  id      <span class="hl-typ">SERIAL PRIMARY KEY</span>,
+  nome    <span class="hl-typ">VARCHAR</span>(150)  <span class="hl-kw">NOT NULL</span>,
+  preco   <span class="hl-typ">NUMERIC</span>(10,2) <span class="hl-kw">NOT NULL CHECK</span> (preco > <span class="hl-num">0</span>),
+  estoque <span class="hl-typ">INTEGER</span>       <span class="hl-kw">NOT NULL DEFAULT</span> <span class="hl-num">0</span> <span class="hl-kw">CHECK</span> (estoque >= <span class="hl-num">0</span>)
+);
+
+<span class="hl-cmt">-- Tabela pedidos com FK e indice por cliente_id (RNF-02)</span>
+<span class="hl-kw">CREATE TABLE</span> pedidos (
+  id            <span class="hl-typ">SERIAL PRIMARY KEY</span>,
+  cliente_id    <span class="hl-typ">INTEGER</span>      <span class="hl-kw">NOT NULL REFERENCES</span> clientes(id) <span class="hl-kw">ON DELETE RESTRICT</span>,
+  data_criacao  <span class="hl-typ">TIMESTAMP</span>    <span class="hl-kw">NOT NULL DEFAULT</span> <span class="hl-fn">NOW</span>(),
+  status        <span class="hl-typ">VARCHAR</span>(20)  <span class="hl-kw">NOT NULL DEFAULT</span> <span class="hl-str">'pendente'</span>,
+  total         <span class="hl-typ">NUMERIC</span>(10,2) <span class="hl-kw">NOT NULL DEFAULT</span> <span class="hl-num">0</span>
+);
+<span class="hl-kw">CREATE INDEX</span> idx_pedidos_cliente <span class="hl-kw">ON</span> pedidos(cliente_id);
+
+<span class="hl-cmt">-- Tabela de junção: composição -> ON DELETE CASCADE</span>
+<span class="hl-kw">CREATE TABLE</span> itens_pedido (
+  id             <span class="hl-typ">SERIAL PRIMARY KEY</span>,
+  pedido_id      <span class="hl-typ">INTEGER</span>      <span class="hl-kw">NOT NULL REFERENCES</span> pedidos(id)  <span class="hl-kw">ON DELETE CASCADE</span>,
+  produto_id     <span class="hl-typ">INTEGER</span>      <span class="hl-kw">NOT NULL REFERENCES</span> produtos(id) <span class="hl-kw">ON DELETE RESTRICT</span>,
+  quantidade     <span class="hl-typ">INTEGER</span>      <span class="hl-kw">NOT NULL CHECK</span> (quantidade > <span class="hl-num">0</span>),
+  preco_unitario <span class="hl-typ">NUMERIC</span>(10,2) <span class="hl-kw">NOT NULL</span>,
+  <span class="hl-kw">UNIQUE</span> (pedido_id, produto_id)
+);
+<span class="hl-kw">CREATE INDEX</span> idx_itens_pedido_pedido  <span class="hl-kw">ON</span> itens_pedido(pedido_id);
+<span class="hl-kw">CREATE INDEX</span> idx_itens_pedido_produto <span class="hl-kw">ON</span> itens_pedido(produto_id);</code></pre>
+        </div>
+
+        <p>Cada cláusula do DDL é justificada por algum elemento do modelo: <code>UNIQUE (pedido_id, produto_id)</code> impede o mesmo produto aparecer duas vezes no mesmo pedido (use a coluna <code>quantidade</code> para isso); o <code>ON DELETE CASCADE</code> em <code>itens_pedido.pedido_id</code> implementa a composição UML; o <code>ON DELETE RESTRICT</code> em <code>cliente_id</code> e <code>produto_id</code> impede apagar entidades referenciadas — é a "associação" do diagrama, mais frouxa que composição.</p>
+
+        <div class="code-wrap">
+          <div class="code-label">SQL — DML: o checkout em transação<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-cmt">-- Checkout: cliente 1 compra 2 unidades do produto 10 e 1 do produto 22</span>
+<span class="hl-kw">BEGIN</span>;
+
+<span class="hl-cmt">-- 1. trava as linhas dos produtos durante a transação (evita race condition)</span>
+<span class="hl-kw">SELECT</span> id, estoque, preco
+  <span class="hl-kw">FROM</span> produtos
+ <span class="hl-kw">WHERE</span> id <span class="hl-kw">IN</span> (<span class="hl-num">10</span>, <span class="hl-num">22</span>)
+ <span class="hl-kw">FOR UPDATE</span>;
+
+<span class="hl-cmt">-- 2. cria o pedido (cabeçalho)</span>
+<span class="hl-kw">INSERT INTO</span> pedidos (cliente_id, status)
+<span class="hl-kw">VALUES</span> (<span class="hl-num">1</span>, <span class="hl-str">'pendente'</span>)
+<span class="hl-kw">RETURNING</span> id <span class="hl-kw">INTO</span> @pedido_id;  <span class="hl-cmt">-- ou usar currval('pedidos_id_seq')</span>
+
+<span class="hl-cmt">-- 3. registra cada item (preço congelado pela RN-02)</span>
+<span class="hl-kw">INSERT INTO</span> itens_pedido (pedido_id, produto_id, quantidade, preco_unitario)
+<span class="hl-kw">VALUES</span>
+  (@pedido_id, <span class="hl-num">10</span>, <span class="hl-num">2</span>, (<span class="hl-kw">SELECT</span> preco <span class="hl-kw">FROM</span> produtos <span class="hl-kw">WHERE</span> id = <span class="hl-num">10</span>)),
+  (@pedido_id, <span class="hl-num">22</span>, <span class="hl-num">1</span>, (<span class="hl-kw">SELECT</span> preco <span class="hl-kw">FROM</span> produtos <span class="hl-kw">WHERE</span> id = <span class="hl-num">22</span>));
+
+<span class="hl-cmt">-- 4. reduz estoque (RF-03)</span>
+<span class="hl-kw">UPDATE</span> produtos <span class="hl-kw">SET</span> estoque = estoque - <span class="hl-num">2</span> <span class="hl-kw">WHERE</span> id = <span class="hl-num">10</span>;
+<span class="hl-kw">UPDATE</span> produtos <span class="hl-kw">SET</span> estoque = estoque - <span class="hl-num">1</span> <span class="hl-kw">WHERE</span> id = <span class="hl-num">22</span>;
+
+<span class="hl-cmt">-- 5. atualiza o total agregado do pedido (subquery)</span>
+<span class="hl-kw">UPDATE</span> pedidos
+   <span class="hl-kw">SET</span> total = (<span class="hl-kw">SELECT</span> <span class="hl-fn">SUM</span>(quantidade * preco_unitario)
+                  <span class="hl-kw">FROM</span> itens_pedido
+                 <span class="hl-kw">WHERE</span> pedido_id = @pedido_id),
+       status = <span class="hl-str">'confirmado'</span>
+ <span class="hl-kw">WHERE</span> id = @pedido_id;
+
+<span class="hl-kw">COMMIT</span>;</code></pre>
+        </div>
+
+        <p>Cada passo do DML é numerado para coincidir com as setas do diagrama de sequência. O <code>FOR UPDATE</code> implementa o lock de linha que evita corrida entre dois checkouts simultâneos — sem ele, dois clientes poderiam ler "estoque = 1" ao mesmo tempo e ambos confirmarem a venda. Se em qualquer ponto um <code>CHECK</code> falhar (estoque ficaria negativo, por exemplo), o <code>BEGIN/COMMIT</code> faz rollback automático e nada é persistido.</p>
+
+        <div class="code-wrap">
+          <div class="code-label">SQL — Query de leitura: GET /pedidos/:id<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <pre class="code-block"><code><span class="hl-cmt">-- Detalhe completo de um pedido — todas as 4 tabelas, 1 query só</span>
+<span class="hl-kw">SELECT</span>
+  p.id            <span class="hl-kw">AS</span> pedido_id,
+  p.data_criacao,
+  p.status,
+  p.total,
+  c.nome          <span class="hl-kw">AS</span> cliente,
+  c.email,
+  pr.nome         <span class="hl-kw">AS</span> produto,
+  ip.quantidade,
+  ip.preco_unitario,
+  (ip.quantidade * ip.preco_unitario) <span class="hl-kw">AS</span> subtotal
+<span class="hl-kw">FROM</span> pedidos p
+<span class="hl-kw">INNER JOIN</span> clientes     c  <span class="hl-kw">ON</span> c.id  = p.cliente_id
+<span class="hl-kw">INNER JOIN</span> itens_pedido ip <span class="hl-kw">ON</span> ip.pedido_id = p.id
+<span class="hl-kw">INNER JOIN</span> produtos     pr <span class="hl-kw">ON</span> pr.id = ip.produto_id
+<span class="hl-kw">WHERE</span> p.id = $1
+<span class="hl-kw">ORDER BY</span> pr.nome;
+
+<span class="hl-cmt">-- Relatório agregado: vendas por cliente (LEFT JOIN + GROUP BY)</span>
+<span class="hl-kw">SELECT</span>
+  c.nome,
+  <span class="hl-fn">COUNT</span>(<span class="hl-kw">DISTINCT</span> p.id)             <span class="hl-kw">AS</span> total_pedidos,
+  <span class="hl-fn">COALESCE</span>(<span class="hl-fn">SUM</span>(p.total), <span class="hl-num">0</span>)         <span class="hl-kw">AS</span> faturamento,
+  <span class="hl-fn">COALESCE</span>(<span class="hl-fn">AVG</span>(p.total), <span class="hl-num">0</span>)         <span class="hl-kw">AS</span> ticket_medio
+<span class="hl-kw">FROM</span> clientes c
+<span class="hl-kw">LEFT JOIN</span> pedidos p <span class="hl-kw">ON</span> p.cliente_id = c.id <span class="hl-kw">AND</span> p.status = <span class="hl-str">'confirmado'</span>
+<span class="hl-kw">GROUP BY</span> c.id, c.nome
+<span class="hl-kw">ORDER BY</span> faturamento <span class="hl-kw">DESC</span>;</code></pre>
+        </div>
+
+        <p>A query <code>GET /pedidos/:id</code> é a tradução literal das três associações do diagrama de classes: cada <code>INNER JOIN</code> percorre exatamente uma seta UML. O relatório de vendas usa <code>LEFT JOIN</code> + <code>COUNT DISTINCT</code> + <code>COALESCE</code> para incluir clientes sem nenhum pedido (com faturamento zero) — é o uso clássico do anti-join opcional que vimos na seção 3.</p>
+
+        <div class="callout callout-deep sr">
+          <div class="callout-label">Os cinco artefatos como uma narrativa</div>
+          <p>O modelo conceitual disse <em>o que existe</em>. O modelo lógico disse <em>como cada coisa é</em>. O diagrama de classes disse <em>o que cada coisa faz</em>. O diagrama de sequência disse <em>quando e em que ordem</em>. O SQL diz <em>exatamente como</em>. Quando você apresentar um projeto, esses cinco artefatos devem contar a mesma história — qualquer divergência entre eles é um sintoma de bug latente ou de documentação desatualizada. Mantenha-os sincronizados: o diagrama de classes é seu mapa para escrever os Models do Back-End I; o diagrama de sequência é seu roteiro para escrever os Controllers; o SQL é o destino final.</p>
+        </div>
+      </section>
+
+      <!-- ════════ 14. CHECKLIST ════════ -->
       <section class="mat-section" id="sec-checklist">
-        <h2>13. Checklist de Estudo</h2>
+        <h2>14. Checklist de Estudo</h2>
         <p>Clique nos itens à medida que você dominar cada conceito:</p>
         <ul class="checklist" id="checklist">
           <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo explicar por que a normalização exige JOINs para consultar dados relacionados.</span></li>
@@ -1053,6 +1360,8 @@ classDiagram
           <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo traduzir um diagrama de classes em esquema relacional, mapeando classes em tabelas, atributos em colunas e associações em chaves estrangeiras.</span></li>
           <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo identificar qual visão do RM-ODP é mais relevante para o design de consultas SQL.</span></li>
           <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Sei por que é importante criar índices em colunas de chave estrangeira usadas em JOINs frequentes.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Consigo modelar um caso ponta-a-ponta: requisitos → ER conceitual → ER lógico → diagrama de classes → diagrama de sequência → DDL/DML SQL.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Entendo por que o checkout precisa rodar em transação com FOR UPDATE para evitar corrida no estoque.</span></li>
         </ul>
       </section>
 
