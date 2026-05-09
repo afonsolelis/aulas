@@ -1,0 +1,43 @@
+@startuml netflix-aws-deployment
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam DefaultFontName Manrope
+skinparam DefaultFontSize 11
+skinparam ArrowColor #475569
+skinparam NodeBorderColor #1d4ed8
+skinparam NodeBackgroundColor #eff6ff
+skinparam ArtifactBorderColor #b45309
+skinparam ArtifactBackgroundColor #fef3c7
+skinparam DatabaseBorderColor #15803d
+skinparam DatabaseBackgroundColor #f0fdf4
+
+node "Smart TV / Mobile <<device>>" as Device #fdf2f8 {
+  artifact "NetflixApp v8.42" as App
+}
+
+node "AWS · us-east-1 <<node>>" as East {
+  node "EKS · Docker <<executionEnvironment>>" as EKS {
+    artifact "playback-svc:v3"
+    artifact "drm-svc:v1"
+    artifact "catalog-svc:v5"
+    artifact "profile-svc:v2"
+  }
+  database "Cassandra Cluster\nmetadata.db (sharded)" as Cassandra
+}
+
+node "AWS · us-west-2 <<node>>\n(réplica · failover)" as West #f8fafc {
+  artifact "stack idêntica\nRPO < 1s · RTO < 60s" as Replica
+}
+
+node "Open Connect Appliance <<device>>\n(dentro do ISP)" as OCA #f5f3ff {
+  node "FreeBSD + nginx <<executionEnvironment>>" as FreeBSD {
+    artifact "video-cache\n(Top-N popular titles)" as Cache
+  }
+}
+
+Device --> East : <<HTTPS>> API
+East   ..> West : <<replicação multi-região>>
+Device --> OCA  : <<HTTPS>> stream HLS/DASH
+
+@enduml
