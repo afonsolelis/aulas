@@ -953,60 +953,112 @@ All files             |   89.47 |    66.67 |   85.71 |   89.47 |
         <h2>17. RF, RN e RNF aplicados ao back-end</h2>
 
         <h3>Requisitos Funcionais (RF)</h3>
-        <p>Cada endpoint do back-end implementa um ou mais RFs. O endpoint da aula resolve um único RF, mas o método se replica para todos:</p>
+        <p>Segundo Sommerville (2018), um RF descreve <strong>o que o sistema faz</strong>, e não <em>como</em> ele faz. Por isso, os enunciados abaixo evitam nomes de endpoint, classes ou helpers — esses detalhes ficam nas RNs e RNFs vinculadas. Cada endpoint do back-end implementa um ou mais RFs:</p>
 
         <table class="mat-table">
           <thead><tr><th>RF</th><th>Descrição</th><th>Camada principal</th></tr></thead>
           <tbody>
             <tr>
               <td><span class="tag tag-blue">RF-04</span></td>
-              <td>O sistema deve permitir consultar um usuário pelo seu ID via API HTTP</td>
-              <td><code>GET /users/:id</code> — controller, service, repository</td>
+              <td>O sistema deve permitir que o usuário autenticado visualize as informações do seu próprio perfil.</td>
+              <td>controller, service, repository</td>
             </tr>
             <tr>
               <td><span class="tag tag-green">RF-05</span></td>
-              <td>O sistema deve responder com 404 quando o usuário não existir</td>
-              <td>service lança <code>NotFoundError</code> + middleware</td>
+              <td>O sistema deve retornar uma mensagem de "Recurso não encontrado" e interromper o processamento da solicitação caso o identificador do usuário pesquisado seja inexistente ou inválido.</td>
+              <td>service + middleware de erros</td>
             </tr>
             <tr>
               <td><span class="tag tag-purple">RF-06</span></td>
-              <td>O sistema deve validar o formato de email no cadastro</td>
-              <td>helper <code>isValidEmail</code> + service</td>
+              <td>O sistema deve impedir o cadastro de usuários caso o e-mail fornecido não possua uma estrutura composta por um identificador, o símbolo "@" e um domínio válido (por exemplo: <code>nome@dominio.com</code>).</td>
+              <td>helper de validação + service</td>
             </tr>
           </tbody>
         </table>
 
         <h3>Regras de Negócio (RN)</h3>
-        <p>RNs aparecem como condições e validações dentro do service. Por exemplo: "RN-02: Usuário inativo não pode ser retornado em consulta pública". Isso vira um filtro no service ou um campo extra no <code>WHERE</code> do repository — depende da decisão arquitetural.</p>
+        <p>As RNs detalham as condições, restrições e invariantes do domínio que cada RF deve respeitar. Vivem na camada de service (ou em filtros de repository) e podem ser verificadas isoladamente por testes unitários.</p>
+
+        <table class="mat-table">
+          <thead><tr><th>RN</th><th>Título</th><th>Descrição</th><th>Vincula</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="tag tag-amber">RN-01</span></td>
+              <td>Identificação única</td>
+              <td>Todo usuário deve ser obrigatoriamente associado a um identificador imutável, gerado automaticamente na criação do registro.</td>
+              <td><span class="tag tag-blue">RF-04</span></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-amber">RN-02</span></td>
+              <td>Escopo do perfil</td>
+              <td>A visualização do perfil deve retornar o conjunto completo de dados do usuário, conforme definido no esquema de dados da conta (por exemplo, nome, e-mail e data de cadastro).</td>
+              <td><span class="tag tag-blue">RF-04</span></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-amber">RN-03</span></td>
+              <td>Restrição de propriedade</td>
+              <td>Um usuário só pode acessar os detalhes do seu próprio perfil, impedindo o acesso a dados de terceiros por meio de manipulação de ID.</td>
+              <td><span class="tag tag-blue">RF-04</span></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-amber">RN-04</span></td>
+              <td>Interrupção de fluxo</td>
+              <td>Caso o identificador não seja localizado, nenhuma outra operação lógica (como registros de acesso ou cálculos de perfil) deve ser executada após a detecção do erro.</td>
+              <td><span class="tag tag-green">RF-05</span></td>
+            </tr>
+          </tbody>
+        </table>
 
         <h3>Requisitos Não Funcionais (RNF)</h3>
+        <p>Os RNFs especificam <em>como</em> o sistema deve se comportar (qualidade, restrições e padrões), seguindo os 8 eixos da ISO/IEC 25010 adotados na disciplina (USAB, CONF, DES, SUP, SEG, CAP, REST, ORG).</p>
 
-        <div class="eixo-grid" id="eixo-grid">
-          <div class="eixo-card" style="border-top-color:#3178c6;">
-            <span class="eixo-tag" style="color:#3178c6;">RNF — Manutenibilidade</span>
-            <div class="eixo-title">Cobertura de testes acima de 70%</div>
-            <div class="eixo-q">Cada arquivo de produção tem um spec ao lado, executado pelo CI antes de merge?</div>
-            <div class="eixo-example">Evidência: arquivos <code>.spec.ts</code> ao lado de cada módulo; <code>jest --coverage</code> roda no CI</div>
-          </div>
-          <div class="eixo-card" style="border-top-color:#dc2626;">
-            <span class="eixo-tag" style="color:#dc2626;">RNF — Segurança</span>
-            <div class="eixo-title">Resistência a SQL injection</div>
-            <div class="eixo-q">Toda query usa marcadores parametrizados em vez de concatenação?</div>
-            <div class="eixo-example">Evidência: spec do repository força uso de <code>$1</code>; revisão pega qualquer concatenação direta</div>
-          </div>
-          <div class="eixo-card" style="border-top-color:#0d9488;">
-            <span class="eixo-tag" style="color:#0d9488;">RNF — Confiabilidade</span>
-            <div class="eixo-title">Erros tratados sem vazar stack ao cliente</div>
-            <div class="eixo-q">Erros não-AppError viram 500 genérico, com stack só no log do servidor?</div>
-            <div class="eixo-example">Evidência: middleware <code>errorHandler</code>; spec verifica formato da resposta de erro</div>
-          </div>
-          <div class="eixo-card" style="border-top-color:#7c3aed;">
-            <span class="eixo-tag" style="color:#7c3aed;">RNF — Observabilidade</span>
-            <div class="eixo-title">Logs estruturados de erro 500</div>
-            <div class="eixo-q">Cada erro inesperado é registrado com timestamp e contexto?</div>
-            <div class="eixo-example">Evidência: <code>console.error(err)</code> no middleware (evolui para Pino/Winston)</div>
-          </div>
-        </div>
+        <table class="mat-table">
+          <thead><tr><th>RNF</th><th>Eixo</th><th>Descrição</th><th>Vincula</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="tag tag-red">RNF-01</span></td>
+              <td>REST — Arquitetura de persistência</td>
+              <td>A recuperação de dados deve ser realizada por meio do padrão Repository, garantindo que a lógica de acesso ao banco de dados esteja isolada da lógica de negócio (Service).</td>
+              <td><span class="tag tag-blue">RF-04</span></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-red">RNF-02</span></td>
+              <td>SUP — Protocolo</td>
+              <td>A funcionalidade deve ser realizada por meio de um endpoint HTTP <code>GET</code>.</td>
+              <td><span class="tag tag-blue">RF-04</span></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-red">RNF-03</span></td>
+              <td>CONF — Padronização de erros</td>
+              <td>O sistema deve utilizar um middleware global de exceções para capturar erros do tipo <code>NotFoundError</code> e convertê-los automaticamente no código de status HTTP 404.</td>
+              <td><span class="tag tag-green">RF-05</span></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-red">RNF-04</span></td>
+              <td>SEG — Segurança de resposta</td>
+              <td>A mensagem de erro retornada não deve expor detalhes internos da infraestrutura ou do banco de dados (stack traces).</td>
+              <td><span class="tag tag-green">RF-05</span></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-red">RNF-05</span></td>
+              <td>CONF — Sintaxe de contato</td>
+              <td>A validação do e-mail deve seguir estritamente o padrão definido na RFC 5322, bloqueando caracteres especiais não permitidos no local-part.</td>
+              <td><span class="tag tag-purple">RF-06</span></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-red">RNF-06</span></td>
+              <td>SUP — Camada de validação</td>
+              <td>A validação deve ocorrer na camada de serviço (business logic) antes de qualquer tentativa de persistência, utilizando métodos utilitários (helpers) especializados e testáveis isoladamente.</td>
+              <td><span class="tag tag-purple">RF-06</span></td>
+            </tr>
+            <tr>
+              <td><span class="tag tag-red">RNF-07</span></td>
+              <td>REST — Resposta de validação</td>
+              <td>Em caso de falha sintática, o sistema deve responder com o código de status HTTP 400 (Bad Request).</td>
+              <td><span class="tag tag-purple">RF-06</span></td>
+            </tr>
+          </tbody>
+        </table>
 
         <div class="callout callout-info">
           <div class="callout-label">Como TDD ajuda RNFs</div>
