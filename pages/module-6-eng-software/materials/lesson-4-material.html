@@ -4,53 +4,1052 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗄️</text></svg>">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Material Aula 4 - Projeto 6</title>
+  <title>Aula 4 — Stored Procedures e Functions — Inteli</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="../../../css/inteli-styles.css" rel="stylesheet">
-  <style>body{background:#f7f9fb;color:#2e2640;font-family:"Manrope",sans-serif;line-height:1.7}.page-header{background:linear-gradient(135deg,#2e2640,#ff4545);color:#fff;padding:28px 0;margin-bottom:24px}.cardx{background:#fff;border:1px solid #e3e7ea;border-radius:16px;padding:24px;margin-bottom:16px}.badge-accent{background:#ff4545;color:#fff;border-radius:6px;padding:2px 10px;font-size:.8rem;font-weight:600}.cardx p,.cardx li{text-align:justify}</style>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ac:#dc2626; --hi:#f87171; --dk:#1e293b; --gr:#0d9488; --re:#dc2626; --am:#d97706; --pr:#7c3aed; --bl:#1d4ed8;
+      --text:#1e293b; --muted:#64748b; --border:#e2e8f0; --bg:#f8fafc; --card:#ffffff;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family:'Manrope',sans-serif; color:var(--text); background:var(--bg); }
+
+    #progress-bar { position:fixed; top:0; left:0; height:3px; background:linear-gradient(90deg,var(--ac),var(--hi)); width:0%; z-index:9999; transition:width .1s; }
+
+    #float-nav { position:fixed; bottom:28px; right:28px; display:flex; flex-direction:column; gap:8px; z-index:9998; opacity:0; pointer-events:none; transform:translateY(12px); transition:opacity .3s,transform .3s; }
+    #float-nav.visible { opacity:1; pointer-events:auto; transform:translateY(0); }
+    .fn-btn { display:flex; align-items:center; gap:6px; padding:10px 16px; border-radius:999px; font-size:.82rem; font-weight:700; text-decoration:none; box-shadow:0 4px 18px rgba(0,0,0,.25); transition:transform .15s,box-shadow .15s; white-space:nowrap; }
+    .fn-btn:hover { transform:translateY(-2px); box-shadow:0 6px 24px rgba(0,0,0,.32); text-decoration:none; }
+    .fn-btn-slides { background:white; color:var(--ac); border:2px solid var(--ac); }
+    .fn-btn-plano  { background:white; color:var(--pr); border:2px solid var(--pr); }
+    .fn-btn-back   { background:var(--dk); color:white; }
+
+    .mat-header { background:linear-gradient(135deg,#7f1d1d 0%,#dc2626 50%,#f87171 100%); color:white; padding:44px 0 36px; }
+    .mat-header h1 { font-size:2.3rem; font-weight:800; margin:0 0 10px; }
+    .mat-header .subtitle { font-size:1.04rem; opacity:.92; margin:0 0 22px; max-width:820px; line-height:1.55; }
+    .mat-badge { background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.35); color:white; padding:4px 14px; border-radius:999px; font-size:.78rem; font-weight:700; display:inline-block; margin-bottom:14px; margin-right:6px; }
+
+    .mat-layout { display:grid; grid-template-columns:260px 1fr; gap:32px; max-width:1200px; margin:0 auto; padding:40px 24px; }
+    @media(max-width:900px){ .mat-layout { grid-template-columns:1fr; } .mat-sidebar { display:none; } }
+
+    .mat-sidebar { position:sticky; top:24px; max-height:calc(100vh - 48px); overflow-y:auto; }
+    .mat-toc { background:var(--card); border-radius:14px; padding:20px; border:1px solid var(--border); box-shadow:0 2px 8px rgba(0,0,0,.05); }
+    .mat-toc h4 { font-size:.8rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:0 0 12px; }
+    .mat-toc a { display:block; color:var(--muted); text-decoration:none; font-size:.82rem; padding:5px 0 5px 12px; border-left:2px solid transparent; transition:all .2s; line-height:1.3; }
+    .mat-toc a:hover, .mat-toc a.active { color:var(--ac); border-left-color:var(--ac); }
+    .mat-toc .toc-h3 { padding-left:22px; font-size:.77rem; }
+
+    .mat-article { min-width:0; }
+    .mat-section { margin-bottom:56px; }
+    .mat-section h2 { font-size:1.78rem; font-weight:800; color:var(--dk); padding-bottom:12px; border-bottom:2px solid var(--border); margin:0 0 24px; scroll-margin-top:80px; }
+    .mat-section h3 { font-size:1.22rem; font-weight:700; color:var(--dk); margin:32px 0 12px; scroll-margin-top:80px; }
+    .mat-section h4 { font-size:1.02rem; font-weight:700; color:var(--dk); margin:24px 0 10px; }
+    .mat-section p { line-height:1.8; margin-bottom:16px; font-size:.97rem; color:#374151; }
+    .mat-section ul, .mat-section ol { padding-left:1.5rem; margin-bottom:16px; }
+    .mat-section li { line-height:1.75; font-size:.95rem; color:#374151; margin-bottom:6px; }
+    .mat-section strong { color:var(--dk); }
+    .mat-section em { color:#475569; }
+    .mat-section code { background:#fef2f2; color:#7f1d1d; padding:1px 6px; border-radius:5px; font-family:'JetBrains Mono',monospace; font-size:.85em; }
+    .mat-section a { color:var(--ac); font-weight:600; text-decoration:none; border-bottom:1px dashed #fca5a5; }
+    .mat-section a:hover { border-bottom-style:solid; }
+
+    .intro-card { background:white; border:1px solid var(--border); border-left:5px solid var(--ac); border-radius:12px; padding:18px 22px; margin-bottom:28px; }
+    .intro-card p { margin-bottom:8px; }
+    .intro-card p:last-child { margin-bottom:0; }
+
+    .callout { border-radius:12px; padding:16px 20px; margin:20px 0; border-left:4px solid; }
+    .callout-info   { background:#eff6ff; border-color:#3b82f6; }
+    .callout-warn   { background:#fffbeb; border-color:#f59e0b; }
+    .callout-danger { background:#fef2f2; border-color:#ef4444; }
+    .callout-tip    { background:#f0fdf4; border-color:#22c55e; }
+    .callout-deep   { background:#f5f3ff; border-color:#8b5cf6; }
+    .callout-label { font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; margin-bottom:6px; }
+    .callout-info   .callout-label { color:#1d4ed8; }
+    .callout-warn   .callout-label { color:#b45309; }
+    .callout-danger .callout-label { color:#b91c1c; }
+    .callout-tip    .callout-label { color:#15803d; }
+    .callout-deep   .callout-label { color:#6d28d9; }
+    .callout p { margin:0; font-size:.92rem; line-height:1.7; color:#374151; }
+    .callout p + p { margin-top:8px; }
+    .callout ul { margin:8px 0 0; padding-left:1.3rem; }
+    .callout li { font-size:.9rem; }
+
+    .code-wrap { position:relative; margin:20px 0; border-radius:12px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,.18); }
+    .code-label { background:#313244; color:#94a3b8; font-size:.72rem; font-weight:700; padding:7px 14px; font-family:'JetBrains Mono',monospace; display:flex; justify-content:space-between; align-items:center; }
+    .code-label .lang { color:#f9e2af; }
+    pre.code-block { background:#1e1e2e; color:#cdd6f4; padding:18px 20px; margin:0; font-family:'JetBrains Mono',monospace; font-size:.82rem; line-height:1.75; overflow-x:auto; }
+    pre.code-block code { font-family:inherit; background:transparent; color:inherit; padding:0; }
+    .hl-kw  { color:#cba6f7; font-weight:600; }
+    .hl-str { color:#a6e3a1; }
+    .hl-num { color:#fab387; }
+    .hl-cmt { color:#6c7086; font-style:italic; }
+    .hl-typ { color:#f9e2af; }
+    .hl-fn  { color:#89b4fa; }
+    .hl-var { color:#f9e2af; }
+    .hl-op  { color:#f38ba8; }
+    .hl-prop{ color:#94e2d5; }
+
+    .mat-table { width:100%; border-collapse:collapse; margin:20px 0; border-radius:10px; overflow:hidden; border:1px solid var(--border); font-size:.9rem; background:white; }
+    .mat-table thead th { background:var(--dk); color:white; padding:12px 16px; text-align:left; font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+    .mat-table tbody td { padding:11px 16px; border-bottom:1px solid var(--border); line-height:1.55; vertical-align:top; }
+    .mat-table tbody tr:last-child td { border-bottom:none; }
+    .mat-table tbody tr:hover { background:#fef2f2; }
+    .mat-table th.proc { background:#7f1d1d; }
+    .mat-table th.func { background:#1d4ed8; }
+
+    .tag { display:inline-block; padding:2px 9px; border-radius:5px; font-size:.7rem; font-weight:700; }
+    .tag-blue   { background:#dbeafe; color:#1d4ed8; }
+    .tag-green  { background:#dcfce7; color:#15803d; }
+    .tag-red    { background:#fee2e2; color:#b91c1c; }
+    .tag-purple { background:#ede9fe; color:#7c3aed; }
+    .tag-amber  { background:#fef3c7; color:#92400e; }
+
+    .compare-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:20px 0; }
+    @media(max-width:700px){ .compare-grid { grid-template-columns:1fr; } }
+    .compare-card { background:white; border:1px solid var(--border); border-top:4px solid; border-radius:12px; padding:16px 18px; }
+    .compare-card.good { border-top-color:#22c55e; }
+    .compare-card.bad  { border-top-color:#dc2626; }
+    .compare-card h4 { margin:0 0 8px; font-size:.95rem; }
+    .compare-card.good h4::before { content:"✅ "; }
+    .compare-card.bad  h4::before { content:"⚠️ "; }
+    .compare-card ul { margin:0; padding-left:1.2rem; }
+
+    .stack-flow { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px; margin:20px 0; }
+    .stack-step { padding:12px 14px; border-radius:10px; color:white; box-shadow:0 4px 14px rgba(0,0,0,.12); }
+    .stack-step .icn { font-size:1.5rem; margin-bottom:4px; }
+    .stack-step .lab { font-size:.62rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; opacity:.85; }
+    .stack-step .nm  { font-size:.9rem; font-weight:800; margin-top:2px; line-height:1.2; }
+    .stack-step .ds  { font-size:.72rem; opacity:.92; margin-top:3px; line-height:1.4; }
+    .stack-step.view  { background:linear-gradient(135deg,#7c3aed,#a78bfa); }
+    .stack-step.vm    { background:linear-gradient(135deg,#0d9488,#10b981); }
+    .stack-step.model { background:linear-gradient(135deg,#dc2626,#f87171); }
+    .stack-step.api   { background:linear-gradient(135deg,#1d4ed8,#60a5fa); }
+    .stack-step.db    { background:linear-gradient(135deg,#1e293b,#475569); }
+
+    .obj-list { list-style:none; padding:0; margin:0 0 20px; }
+    .obj-list li { display:flex; gap:12px; align-items:flex-start; padding:10px 0; border-bottom:1px solid var(--border); font-size:.94rem; color:#374151; }
+    .obj-list li:last-child { border-bottom:none; }
+    .obj-tag { font-family:'JetBrains Mono',monospace; font-size:.72rem; font-weight:800; background:var(--ac); color:white; padding:2px 9px; border-radius:5px; flex-shrink:0; margin-top:1px; min-width:54px; text-align:center; }
+
+    .deck-figure { background:white; border:1px solid var(--border); border-radius:14px; padding:16px 18px; margin:24px 0; box-shadow:0 4px 14px rgba(0,0,0,.06); }
+    .deck-figure figcaption { font-size:.78rem; color:var(--muted); text-align:center; margin-top:10px; font-style:italic; }
+    .deck-figure svg { display:block; width:100%; height:auto; }
+
+    .back-cta { text-align:center; padding:28px 0 8px; }
+    .back-cta a { color:var(--ac); font-weight:700; text-decoration:none; border:2px solid var(--ac); padding:10px 22px; border-radius:999px; transition:all .2s; display:inline-block; }
+    .back-cta a:hover { background:var(--ac); color:white; }
+  </style>
 </head>
 <body>
-  <header class="page-header"><div class="container d-flex justify-content-between align-items-center flex-wrap gap-2"><div><div><span class="badge-accent">Projeto 6 • Engenharia de Software</span></div><h1 class="h3 mb-1 mt-2">Aula 4 — Material</h1><div>Tópicos de BD: Stored Procedures e Functions</div></div><div class="d-flex gap-2 flex-wrap"><a href="../slides/slide-lesson-4.html" class="btn btn-light">Slides</a><a href="../../home-module-6-eng-software.html" class="btn btn-outline-light">← Voltar ao Módulo</a></div></div></header>
-  <main class="container pb-4">
-    <section class="cardx">
-      <h2 class="h5">Objetivo</h2>
-      <p>Encapsular regras críticas de leitura e escrita dentro do banco de dados via stored procedures e functions, reduzindo round-trips, padronizando contratos entre serviços e simplificando o controle de transações.</p>
-    </section>
-    <section class="cardx">
-      <h2 class="h5">Pontos-chave</h2>
-      <ul>
-        <li>Quando descer lógica para o BD (e quando NÃO descer).</li>
-        <li>Anatomia de uma <code>CREATE PROCEDURE</code>: parâmetros, defaults, OUTPUT, transação com TRY/CATCH.</li>
-        <li>Diferença entre function escalar (retorna 1 valor, usável em SELECT/WHERE) e function tabular (TVF — usável em FROM/JOIN).</li>
-        <li>Comparativo procedure × function: side-effects, retorno, uso em queries, transações.</li>
-        <li>Plano de execução: cache do plano, parameter sniffing, <code>OPTION (RECOMPILE)</code>, importância dos índices que cobrem WHERE/ORDER BY.</li>
-        <li>Versionamento e CI/CD: migrações idempotentes (Flyway, Liquibase, EF Migrations), gates do GitLab CI, rollback.</li>
-      </ul>
-    </section>
-    <section class="cardx">
-      <h2 class="h5">Atividade prática (em sala · em grupo · não ponderada)</h2>
-      <p>Criar o arquivo <code>db/procedures.sql</code> no repositório do <strong>grupo</strong>, com:</p>
-      <ol>
-        <li>1 stored procedure que retorna top-N recomendações de um usuário (parâmetros: <code>@userId</code>, <code>@N</code>).</li>
-        <li>1 procedure que registra uma interação (INSERT em <code>interacao</code> + UPDATE em <code>estatistica_item</code>) dentro de uma transação implícita.</li>
-        <li>1 function escalar que calcula a média de ratings de um item.</li>
-        <li>1 function tabular que retorna os 5 itens mais parecidos com um item dado.</li>
-        <li>README curto (<code>db/README.md</code>) explicando cada um, com exemplo de chamada (<code>EXEC</code> / <code>SELECT</code>).</li>
-      </ol>
-      <p><strong>Entrega:</strong> Merge Request <code>feat(db): procedures e functions</code> no repositório do grupo até o fim do dia.</p>
-      <p><strong>⭐ Excelência:</strong> cobertura de erro (<code>TRY/CATCH</code> em SQL Server / <code>EXCEPTION</code> em PostgreSQL) + 1 índice criado para suportar a procedure principal.</p>
-    </section>
-    <section class="cardx">
-      <h2 class="h5">Bibliografia</h2>
-      <ul>
-        <li><a href="https://learn.microsoft.com/pt-br/sql/t-sql/statements/create-procedure-transact-sql" target="_blank" rel="noopener noreferrer">CREATE PROCEDURE (Transact-SQL)</a> — Microsoft Docs.</li>
-        <li><a href="https://learn.microsoft.com/pt-br/sql/t-sql/statements/create-function-transact-sql" target="_blank" rel="noopener noreferrer">CREATE FUNCTION (Transact-SQL)</a> — Microsoft Docs.</li>
-        <li><a href="https://www.postgresql.org/docs/current/plpgsql.html" target="_blank" rel="noopener noreferrer">PL/pgSQL — Procedural Language</a> — PostgreSQL Docs.</li>
-        <li><a href="https://use-the-index-luke.com/" target="_blank" rel="noopener noreferrer">Use The Index, Luke!</a> — Markus Winand.</li>
-        <li>Brent Ozar — artigos sobre <em>parameter sniffing</em> e diagnóstico de planos de execução.</li>
-      </ul>
-    </section>
-  </main>
+  <div id="progress-bar"></div>
+
+  <div id="float-nav">
+    <a href="../slides/slide-lesson-4.html" class="fn-btn fn-btn-slides">🎞️ Slides</a>
+    <a href="../planos/lesson-4-plano.html" class="fn-btn fn-btn-plano">🗂️ Plano</a>
+    <a href="../../home-module-6-eng-software.html" class="fn-btn fn-btn-back">← Módulo</a>
+  </div>
+
+  <header class="mat-header">
+    <div class="container">
+      <span class="mat-badge">Projeto 6 · Engenharia de Software</span>
+      <span class="mat-badge">Aula 4 de 10</span>
+      <span class="mat-badge">Material de Leitura</span>
+      <h1>Tópicos de BD — Stored Procedures e Functions</h1>
+      <p class="subtitle">Da regra de negócio encapsulada no banco até a tela do app: como procedures e functions viram a camada Model de uma arquitetura MVVM com React Native consumindo uma API.</p>
+      <a href="../../home-module-6-eng-software.html" class="btn btn-outline-light btn-sm">← Voltar ao Módulo</a>
+    </div>
+  </header>
+
+  <div class="mat-layout">
+    <aside class="mat-sidebar">
+      <div class="mat-toc">
+        <h4>Neste material</h4>
+        <a href="#sec-intro">1. Introdução</a>
+        <a href="#sec-porque">2. Por que descer lógica para o BD</a>
+        <a href="#sec-procedures">3. Stored Procedures</a>
+        <a href="#sec-plpgsql">4. PL/pgSQL</a>
+        <a href="#sec-functions">5. Functions · escalar &amp; tabular</a>
+        <a href="#sec-vs">6. Procedure × Function</a>
+        <a href="#sec-perf">7. Performance e plano de execução</a>
+        <a href="#sec-seguranca">8. Segurança e SQL injection</a>
+        <a href="#sec-versao">9. Versionamento e CI/CD</a>
+        <a href="#sec-mvvm">10. MVVM · onde a procedure entra</a>
+        <a href="#sec-rn">11. React Native · como funciona</a>
+        <a href="#sec-apk">12. Compilando um APK</a>
+        <a href="#sec-caminho">13. Caminho de uma requisição</a>
+        <a href="#sec-atividade">14. Atividade prática</a>
+        <a href="#sec-conexoes">15. Conexões com as próximas aulas</a>
+        <a href="#sec-biblio">16. Bibliografia</a>
+      </div>
+    </aside>
+
+    <article class="mat-article">
+
+      <!-- ====================== 1. INTRODUÇÃO ====================== -->
+      <section class="mat-section" id="sec-intro">
+        <h2>1. Introdução · O banco como camada ativa</h2>
+        <div class="intro-card">
+          <p>Até agora você tratou o banco de dados como um lugar onde se <em>guarda</em> coisa. Você manda <code>SELECT</code>, ele devolve linhas. Você manda <code>INSERT</code>, ele guarda. Toda a lógica do sistema — quem pode fazer o quê, o que conta como uma operação válida, como combinar dados — vive no backend.</p>
+          <p>Esta aula muda essa perspectiva. <strong>O banco também pode executar lógica.</strong> Ele pode receber um pedido como "marque o usuário 42 como tendo assistido ao espetáculo 17 e atualize o contador de visualizações", verificar regras, abrir uma transação, fazer várias operações, fechar a transação e devolver o resultado em <strong>uma única chamada de rede</strong>.</p>
+          <p>Esse poder vem de duas construções: <strong>stored procedures</strong> e <strong>functions</strong>. Ambas vivem dentro do banco como objetos versionáveis, têm parâmetros, podem ler e escrever em tabelas, podem subir exceções. A diferença está em <em>como</em> elas se encaixam no resto do mundo — e é nessa diferença que reside boa parte das decisões arquiteturais que você vai tomar daqui em diante no projeto.</p>
+        </div>
+
+        <h3>Objetivos de aprendizagem</h3>
+        <ul class="obj-list">
+          <li><span class="obj-tag">OA-1</span><span><strong>Diferenciar</strong> stored procedures de functions, escolhendo a forma certa para cada caso de uso do projeto.</span></li>
+          <li><span class="obj-tag">OA-2</span><span><strong>Escrever</strong> rotinas PL/pgSQL com variáveis, controle de fluxo (<code>IF</code>, <code>LOOP</code>) e tratamento de exceção.</span></li>
+          <li><span class="obj-tag">OA-3</span><span><strong>Implementar</strong> uma procedure que encapsule uma operação de domínio do projeto dentro de uma transação atômica.</span></li>
+          <li><span class="obj-tag">OA-4</span><span><strong>Justificar</strong> o trade-off entre colocar lógica no banco vs. na aplicação, com argumentos de manutenibilidade, performance e segurança.</span></li>
+          <li><span class="obj-tag">OA-5</span><span><strong>Conectar</strong> a procedure ao stack mobile MVVM com React Native, identificando onde ela aparece em cada camada (View, ViewModel, Model, API).</span></li>
+          <li><span class="obj-tag">OA-6</span><span><strong>Reconhecer</strong> riscos de segurança (SQL injection em SQL dinâmico) e técnicas de mitigação (<code>EXECUTE ... USING</code>, revogação de privilégios).</span></li>
+        </ul>
+
+        <div class="callout callout-info">
+          <div class="callout-label">📌 Pré-requisito assumido</div>
+          <p>Você já sabe escrever SQL: <code>SELECT</code>, <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code>, <code>JOIN</code> e agregações. Se algum desses ainda dói, revise o material da aula 4 do Módulo 2 (Joins) antes de prosseguir — sem essa base, procedures parecem mágica em vez de ferramenta.</p>
+        </div>
+      </section>
+
+      <!-- ====================== 2. POR QUE DESCER LÓGICA ====================== -->
+      <section class="mat-section" id="sec-porque">
+        <h2>2. Por que descer lógica para o BD?</h2>
+        <p>A pergunta certa não é "<em>posso</em> colocar essa regra no banco?" — quase sempre você pode. A pergunta é "<em>devo</em>?". Vamos olhar os quatro motivos clássicos a favor, e depois os três sinais de que você está empurrando coisa errada para o lugar errado.</p>
+
+        <h3>2.1 · Quatro motivos a favor</h3>
+
+        <h4>⚡ Round-trips · reduzir idas e voltas</h4>
+        <p>Suponha que o app precise executar uma lógica composta por 4 queries dependentes. Sem procedure, o backend faz 4 chamadas: pega o resultado da primeira, monta a segunda, espera a resposta, monta a terceira… Em uma rede com 10ms de latência, você gasta <strong>40ms só em ida-e-volta</strong>, sem contar o tempo de execução em si. Com procedure, são <strong>10ms de uma chamada só</strong> — o banco executa as 4 queries internamente.</p>
+
+        <h4>🛡️ Atomicidade e contrato</h4>
+        <p>Uma procedure expõe um contrato claro: <em>"você me dá esses parâmetros, eu te devolvo essa saída"</em>. O que acontece entre os dois é problema do banco. Se a procedure abre uma transação, executa três UPDATEs e dá <code>COMMIT</code>, o app não precisa saber dessa orquestração — só recebe sucesso ou erro.</p>
+
+        <h4>🔐 Segurança por encapsulamento</h4>
+        <p>Você pode <strong>revogar permissões de leitura/escrita direta nas tabelas</strong> e dar permissão só de <code>EXECUTE</code> nas procedures. O app passa a só conhecer pontos de entrada controlados. SQL injection vira muito mais difícil porque o app nunca monta SQL livre; ele só chama procedures com parâmetros tipados.</p>
+
+        <h4>♻️ Reuso entre serviços</h4>
+        <p>Tem app web, app mobile, job batch noturno e relatório do BI. Se a regra "calcular top-N recomendações" vive como query SQL espalhada por 4 stacks diferentes, mudar essa regra significa mudar em 4 lugares. Se vive como procedure única, é uma migration só. <strong>O banco vira o ponto de centralização natural.</strong></p>
+
+        <h3>2.2 · Três cenários onde NÃO compensa</h3>
+        <div class="compare-grid">
+          <div class="compare-card bad">
+            <h4>Lógica que muda toda sprint</h4>
+            <p>Regra de marketing que troca a cada A/B test? Política de preços com 6 condições novas por mês? <strong>Deixe no app.</strong> Versionar SQL com rollback seguro é mais lento que versionar TypeScript — o ganho de performance da procedure não compensa o atrito de deploy.</p>
+          </div>
+          <div class="compare-card bad">
+            <h4>Regra que precisa de chamadas externas</h4>
+            <p>Se a operação depende de uma API REST, de um modelo de Machine Learning ou de processamento pesado, o banco <strong>não é o lugar</strong>. PL/pgSQL pode fazer HTTP em teoria (com extensão), mas isso é abrir mão da simplicidade da camada de dados.</p>
+          </div>
+          <div class="compare-card bad">
+            <h4>Time sem skill em SQL avançado</h4>
+            <p>Debug de procedure complexa requer ferramentas diferentes do debug de JS. Se o time não tem alguém confortável em ler plano de execução e analisar locks, procedure vira caixa-preta com bug difícil de achar. <strong>Avalie honestamente.</strong></p>
+          </div>
+        </div>
+
+        <div class="callout callout-tip">
+          <div class="callout-label">🎯 Princípio orientador</div>
+          <p><strong>Procedure útil:</strong> encapsula consistência crítica, atomicidade transacional ou desempenho que <em>importa medir</em>. <strong>Procedure ruim:</strong> esconde regra de negócio em lugar onde nenhum desenvolvedor da aplicação vai pensar em procurar. Se um colega de outro projeto não consegue entender o que o sistema faz lendo só o código do backend, a procedure virou armadilha — não ferramenta.</p>
+        </div>
+      </section>
+
+      <!-- ====================== 3. STORED PROCEDURES ====================== -->
+      <section class="mat-section" id="sec-procedures">
+        <h2>3. Stored Procedures · Anatomia</h2>
+        <p>Uma stored procedure é uma rotina nomeada, com parâmetros tipados, que executa um bloco de SQL. É chamada por <code>CALL</code> (PostgreSQL) ou <code>EXEC</code> (SQL Server). Não retorna valor como uma função matemática — ela <em>faz coisas</em>: insere, atualiza, deleta, eventualmente devolve um result set.</p>
+
+        <h3>3.1 · Anatomia mínima</h3>
+        <div class="code-wrap">
+          <div class="code-label"><span>📝 PostgreSQL · PL/pgSQL</span><span class="lang">SQL</span></div>
+<pre class="code-block"><code><span class="hl-kw">CREATE OR REPLACE PROCEDURE</span> sp_top_recomendacoes_usuario(
+    <span class="hl-var">p_user_id</span> <span class="hl-typ">INTEGER</span>,
+    <span class="hl-var">p_top</span>     <span class="hl-typ">INTEGER</span> <span class="hl-kw">DEFAULT</span> <span class="hl-num">10</span>
+)
+<span class="hl-kw">LANGUAGE</span> plpgsql
+<span class="hl-kw">AS</span> <span class="hl-str">$$</span>
+<span class="hl-kw">BEGIN</span>
+    <span class="hl-cmt">-- corpo da procedure</span>
+    <span class="hl-kw">SELECT</span> i.id, i.nome, r.score
+      <span class="hl-kw">FROM</span> recomendacao r
+      <span class="hl-kw">JOIN</span> item i <span class="hl-kw">ON</span> i.id = r.item_id
+     <span class="hl-kw">WHERE</span> r.user_id = <span class="hl-var">p_user_id</span>
+     <span class="hl-kw">ORDER BY</span> r.score <span class="hl-kw">DESC</span>
+     <span class="hl-kw">LIMIT</span> <span class="hl-var">p_top</span>;
+<span class="hl-kw">END</span>;
+<span class="hl-str">$$</span>;
+
+<span class="hl-cmt">-- chamada</span>
+<span class="hl-kw">CALL</span> sp_top_recomendacoes_usuario(<span class="hl-num">42</span>, <span class="hl-num">5</span>);
+</code></pre>
+        </div>
+
+        <p>Quatro pontos importantes nessa estrutura:</p>
+        <ul>
+          <li><code>CREATE OR REPLACE</code> torna o script idempotente — rodar duas vezes não quebra. Migrations dependem disso.</li>
+          <li>Os parâmetros são <strong>tipados</strong>. O motor rejeita uma chamada com tipo errado <em>antes</em> de executar.</li>
+          <li><code>DEFAULT 10</code> permite omitir o parâmetro na chamada. Reduz acoplamento entre app e procedure.</li>
+          <li>O bloco entre <code>$$ ... $$</code> é o corpo da rotina. Tudo que está aí dentro é PL/pgSQL — não é SQL puro.</li>
+        </ul>
+
+        <h3>3.2 · Procedure com transação e exceção</h3>
+        <p>O ganho real aparece quando a procedure executa <strong>múltiplas operações que precisam acontecer juntas</strong>. Exemplo: registrar uma interação e atualizar o contador agregado.</p>
+        <div class="code-wrap">
+          <div class="code-label"><span>📝 sp_marcar_assistido</span><span class="lang">SQL</span></div>
+<pre class="code-block"><code><span class="hl-kw">CREATE OR REPLACE PROCEDURE</span> sp_marcar_assistido(
+    <span class="hl-var">p_user_id</span>       <span class="hl-typ">INTEGER</span>,
+    <span class="hl-var">p_espetaculo_id</span> <span class="hl-typ">INTEGER</span>,
+    <span class="hl-kw">INOUT</span> <span class="hl-var">p_interacao_id</span> <span class="hl-typ">INTEGER</span>
+)
+<span class="hl-kw">LANGUAGE</span> plpgsql
+<span class="hl-kw">AS</span> <span class="hl-str">$$</span>
+<span class="hl-kw">BEGIN</span>
+    <span class="hl-cmt">-- as duas operações abaixo são atômicas:</span>
+    <span class="hl-cmt">-- ou ambas commitam, ou nenhuma acontece</span>
+
+    <span class="hl-kw">INSERT INTO</span> interacao (user_id, espetaculo_id, tipo, data)
+    <span class="hl-kw">VALUES</span> (<span class="hl-var">p_user_id</span>, <span class="hl-var">p_espetaculo_id</span>, <span class="hl-str">'ASSISTIU'</span>, <span class="hl-fn">NOW</span>())
+    <span class="hl-kw">RETURNING</span> id <span class="hl-kw">INTO</span> <span class="hl-var">p_interacao_id</span>;
+
+    <span class="hl-kw">UPDATE</span> estatistica_item
+       <span class="hl-kw">SET</span> total_visualizacoes = total_visualizacoes + <span class="hl-num">1</span>
+     <span class="hl-kw">WHERE</span> item_id = <span class="hl-var">p_espetaculo_id</span>;
+
+<span class="hl-kw">EXCEPTION</span>
+    <span class="hl-kw">WHEN</span> foreign_key_violation <span class="hl-kw">THEN</span>
+        <span class="hl-kw">RAISE EXCEPTION</span> <span class="hl-str">'Usuário ou espetáculo inexistente: % / %'</span>,
+            <span class="hl-var">p_user_id</span>, <span class="hl-var">p_espetaculo_id</span>;
+    <span class="hl-kw">WHEN OTHERS THEN</span>
+        <span class="hl-kw">RAISE</span>;  <span class="hl-cmt">-- propaga qualquer outro erro para o caller</span>
+<span class="hl-kw">END</span>;
+<span class="hl-str">$$</span>;
+</code></pre>
+        </div>
+
+        <p>Note três coisas:</p>
+        <ul>
+          <li><code>INOUT</code> permite que a procedure receba <strong>e</strong> devolva um valor pelo mesmo parâmetro. Útil para retornar IDs gerados.</li>
+          <li>O bloco <code>EXCEPTION</code> trata erros específicos antes de subir genericamente. <code>foreign_key_violation</code> é só uma das condições nominadas que o PostgreSQL expõe.</li>
+          <li>Em PostgreSQL, cada chamada de procedure roda em sua própria transação implícita. <code>COMMIT</code> e <code>ROLLBACK</code> são automáticos se você não os controla manualmente.</li>
+        </ul>
+
+        <div class="callout callout-warn">
+          <div class="callout-label">⚠️ SQL Server × PostgreSQL</div>
+          <p>O exemplo usa PostgreSQL. Em SQL Server (T-SQL), você usaria <code>CREATE PROCEDURE</code> com <code>@parametros</code>, <code>BEGIN TRY / BEGIN CATCH</code> e <code>BEGIN TRANSACTION / COMMIT TRANSACTION</code> explícitos. A ideia é a mesma — só a sintaxe muda. Os slides da aula mostram a versão T-SQL para você comparar lado a lado.</p>
+        </div>
+      </section>
+
+      <!-- ====================== 4. PL/pgSQL ====================== -->
+      <section class="mat-section" id="sec-plpgsql">
+        <h2>4. PL/pgSQL · A linguagem procedural do PostgreSQL</h2>
+        <p>SQL puro é declarativo: você descreve <em>o que</em> quer, o motor decide <em>como</em>. PL/pgSQL adiciona controle procedural — você descreve passos. É a linguagem em que escrevemos o corpo das procedures e functions no PostgreSQL.</p>
+
+        <h3>4.1 · Variáveis e atribuição</h3>
+        <div class="code-wrap">
+          <div class="code-label"><span>📝 Variáveis</span><span class="lang">PL/pgSQL</span></div>
+<pre class="code-block"><code><span class="hl-kw">DECLARE</span>
+    <span class="hl-var">v_total</span>     <span class="hl-typ">INTEGER</span>;
+    <span class="hl-var">v_media</span>     <span class="hl-typ">NUMERIC</span>(<span class="hl-num">5</span>,<span class="hl-num">2</span>);
+    <span class="hl-var">v_nome</span>      <span class="hl-typ">TEXT</span>;
+    <span class="hl-var">v_encontrado</span> <span class="hl-typ">BOOLEAN</span> <span class="hl-op">:=</span> <span class="hl-kw">FALSE</span>;  <span class="hl-cmt">-- valor inicial</span>
+<span class="hl-kw">BEGIN</span>
+    <span class="hl-kw">SELECT</span> <span class="hl-fn">COUNT</span>(*) <span class="hl-kw">INTO</span> <span class="hl-var">v_total</span> <span class="hl-kw">FROM</span> item;
+    <span class="hl-var">v_media</span> <span class="hl-op">:=</span> <span class="hl-var">v_total</span> / <span class="hl-num">10</span>.<span class="hl-num">0</span>;
+<span class="hl-kw">END</span>;
+</code></pre>
+        </div>
+
+        <h3>4.2 · Controle de fluxo</h3>
+        <div class="code-wrap">
+          <div class="code-label"><span>📝 IF / LOOP / CASE</span><span class="lang">PL/pgSQL</span></div>
+<pre class="code-block"><code><span class="hl-kw">IF</span> <span class="hl-var">v_total</span> <span class="hl-op">&gt;</span> <span class="hl-num">100</span> <span class="hl-kw">THEN</span>
+    <span class="hl-kw">RAISE NOTICE</span> <span class="hl-str">'Catálogo grande: % itens'</span>, <span class="hl-var">v_total</span>;
+<span class="hl-kw">ELSIF</span> <span class="hl-var">v_total</span> <span class="hl-op">&gt;</span> <span class="hl-num">10</span> <span class="hl-kw">THEN</span>
+    <span class="hl-kw">RAISE NOTICE</span> <span class="hl-str">'Catálogo médio'</span>;
+<span class="hl-kw">ELSE</span>
+    <span class="hl-kw">RAISE NOTICE</span> <span class="hl-str">'Catálogo pequeno'</span>;
+<span class="hl-kw">END IF</span>;
+
+<span class="hl-cmt">-- LOOP com FOR sobre um SELECT</span>
+<span class="hl-kw">FOR</span> <span class="hl-var">r</span> <span class="hl-kw">IN</span> <span class="hl-kw">SELECT</span> id, nome <span class="hl-kw">FROM</span> item <span class="hl-kw">ORDER BY</span> id <span class="hl-kw">LOOP</span>
+    <span class="hl-kw">RAISE NOTICE</span> <span class="hl-str">'Item %: %'</span>, <span class="hl-var">r</span>.id, <span class="hl-var">r</span>.nome;
+<span class="hl-kw">END LOOP</span>;
+</code></pre>
+        </div>
+
+        <h3>4.3 · Tratamento de exceção</h3>
+        <p>O bloco <code>EXCEPTION</code> intercepta erros antes que eles propaguem para o caller. Você pode tratar condições específicas ou usar <code>WHEN OTHERS</code> como rede final. Quando você apenas faz <code>RAISE</code> dentro do handler, o erro original é re-disparado — útil para logar e propagar.</p>
+
+        <div class="callout callout-deep">
+          <div class="callout-label">🔎 Deep dive · condições nominadas</div>
+          <p>O PostgreSQL expõe nomes simbólicos para tipos de erro: <code>unique_violation</code>, <code>foreign_key_violation</code>, <code>not_null_violation</code>, <code>division_by_zero</code>, <code>no_data_found</code>, entre dezenas de outros. A lista completa está em <em>Appendix A: PostgreSQL Error Codes</em>. Capturar pelo nome é mais legível e estável do que comparar por código SQLSTATE — embora o código sirva quando você não tem o nome à mão.</p>
+        </div>
+      </section>
+
+      <!-- ====================== 5. FUNCTIONS ====================== -->
+      <section class="mat-section" id="sec-functions">
+        <h2>5. Functions · Escalar e Tabular</h2>
+        <p>Onde procedure <em>faz coisa</em>, function <em>devolve coisa</em>. A diferença operacional é simples: function pode ser usada em qualquer lugar onde uma expressão SQL caberia — em <code>SELECT</code>, <code>WHERE</code>, <code>FROM</code>, <code>JOIN</code>, dentro de outra function. Procedure não — ela exige chamada explícita por <code>CALL</code>.</p>
+
+        <h3>5.1 · Function escalar — devolve 1 valor</h3>
+        <div class="code-wrap">
+          <div class="code-label"><span>📝 fn_media_item</span><span class="lang">SQL</span></div>
+<pre class="code-block"><code><span class="hl-kw">CREATE OR REPLACE FUNCTION</span> fn_media_item(<span class="hl-var">p_item_id</span> <span class="hl-typ">INTEGER</span>)
+<span class="hl-kw">RETURNS</span> <span class="hl-typ">NUMERIC</span>
+<span class="hl-kw">LANGUAGE</span> plpgsql
+<span class="hl-kw">AS</span> <span class="hl-str">$$</span>
+<span class="hl-kw">DECLARE</span>
+    <span class="hl-var">v_media</span> <span class="hl-typ">NUMERIC</span>;
+<span class="hl-kw">BEGIN</span>
+    <span class="hl-kw">SELECT</span> <span class="hl-fn">AVG</span>(rating) <span class="hl-kw">INTO</span> <span class="hl-var">v_media</span>
+      <span class="hl-kw">FROM</span> avaliacao
+     <span class="hl-kw">WHERE</span> item_id = <span class="hl-var">p_item_id</span>;
+    <span class="hl-kw">RETURN</span> <span class="hl-fn">COALESCE</span>(<span class="hl-var">v_media</span>, <span class="hl-num">0</span>);
+<span class="hl-kw">END</span>;
+<span class="hl-str">$$</span>;
+
+<span class="hl-cmt">-- usa em qualquer expressão SQL:</span>
+<span class="hl-kw">SELECT</span> id, nome, fn_media_item(id) <span class="hl-kw">AS</span> media
+  <span class="hl-kw">FROM</span> item
+ <span class="hl-kw">WHERE</span> fn_media_item(id) <span class="hl-op">&gt;</span> <span class="hl-num">4</span>.<span class="hl-num">0</span>;
+</code></pre>
+        </div>
+
+        <h3>5.2 · Function tabular — devolve um SELECT</h3>
+        <div class="code-wrap">
+          <div class="code-label"><span>📝 fn_itens_similares</span><span class="lang">SQL</span></div>
+<pre class="code-block"><code><span class="hl-kw">CREATE OR REPLACE FUNCTION</span> fn_itens_similares(<span class="hl-var">p_item_id</span> <span class="hl-typ">INTEGER</span>)
+<span class="hl-kw">RETURNS TABLE</span> (id <span class="hl-typ">INTEGER</span>, nome <span class="hl-typ">TEXT</span>, similaridade <span class="hl-typ">NUMERIC</span>)
+<span class="hl-kw">LANGUAGE</span> sql  <span class="hl-cmt">-- pode ser SQL puro se for um único SELECT</span>
+<span class="hl-kw">AS</span> <span class="hl-str">$$</span>
+    <span class="hl-kw">SELECT</span> i.id, i.nome, s.similaridade
+      <span class="hl-kw">FROM</span> similaridade s
+      <span class="hl-kw">JOIN</span> item i <span class="hl-kw">ON</span> i.id = s.item_b_id
+     <span class="hl-kw">WHERE</span> s.item_a_id = <span class="hl-var">p_item_id</span>
+     <span class="hl-kw">ORDER BY</span> s.similaridade <span class="hl-kw">DESC</span>
+     <span class="hl-kw">LIMIT</span> <span class="hl-num">5</span>;
+<span class="hl-str">$$</span>;
+
+<span class="hl-cmt">-- usa como se fosse uma tabela:</span>
+<span class="hl-kw">SELECT</span> * <span class="hl-kw">FROM</span> fn_itens_similares(<span class="hl-num">17</span>);
+
+<span class="hl-cmt">-- ou em JOIN:</span>
+<span class="hl-kw">SELECT</span> u.nome <span class="hl-kw">AS</span> usuario, s.nome <span class="hl-kw">AS</span> sugestao
+  <span class="hl-kw">FROM</span> usuario u
+  <span class="hl-kw">CROSS JOIN LATERAL</span> fn_itens_similares(u.item_favorito_id) <span class="hl-kw">AS</span> s
+ <span class="hl-kw">WHERE</span> u.id = <span class="hl-num">42</span>;
+</code></pre>
+        </div>
+
+        <div class="callout callout-tip">
+          <div class="callout-label">⚡ Performance · use LANGUAGE sql quando possível</div>
+          <p>Quando a function é um <strong>único SELECT</strong> sem variáveis nem controle de fluxo, declare-a como <code>LANGUAGE sql</code> em vez de <code>plpgsql</code>. O motor consegue fazer <em>inline</em> da function diretamente na query externa — o plano de execução pula a chamada e otimiza tudo junto. Para SQL Server, o equivalente é Inline Table-Valued Function (sem <code>BEGIN/END</code>).</p>
+        </div>
+      </section>
+
+      <!-- ====================== 6. VS ====================== -->
+      <section class="mat-section" id="sec-vs">
+        <h2>6. Procedure × Function · Tabela de decisão</h2>
+        <table class="mat-table">
+          <thead>
+            <tr>
+              <th>Critério</th>
+              <th class="proc">Procedure</th>
+              <th class="func">Function</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Side-effects</strong> (INSERT, UPDATE, DELETE)</td>
+              <td>✅ Permitido — é para isso que existe</td>
+              <td>❌ Bloqueado pelo motor (raras exceções com <code>VOLATILE</code>)</td>
+            </tr>
+            <tr>
+              <td><strong>Retorno</strong></td>
+              <td>Result set, parâmetros <code>OUT/INOUT</code>, código de saída</td>
+              <td>1 valor (escalar) ou tabela (TVF)</td>
+            </tr>
+            <tr>
+              <td><strong>Uso em <code>SELECT</code> / <code>WHERE</code> / <code>FROM</code></strong></td>
+              <td>❌ Não — chamada por <code>CALL</code> ou <code>EXEC</code></td>
+              <td>✅ Sim — composta como qualquer expressão</td>
+            </tr>
+            <tr>
+              <td><strong>Controle de transação</strong></td>
+              <td>✅ <code>BEGIN / COMMIT / ROLLBACK</code> à vontade</td>
+              <td>❌ Roda na transação do caller</td>
+            </tr>
+            <tr>
+              <td><strong>Tratamento de erro</strong></td>
+              <td>✅ <code>EXCEPTION</code> com <code>RAISE</code> arbitrário</td>
+              <td>⚠️ Limitado — função pura não levanta erro de negócio</td>
+            </tr>
+            <tr>
+              <td><strong>Caso típico</strong></td>
+              <td>Operação de escrita, fluxo com transação, batch</td>
+              <td>Cálculo derivado, lookup, métrica usada em outra query</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="callout callout-info">
+          <div class="callout-label">📌 Regra de bolso</div>
+          <p>Se a operação <strong>muda</strong> dados, é procedure. Se <strong>calcula</strong> algo que vai entrar em outra query, é function. Em dúvida? <strong>Comece com procedure</strong> — é mais flexível e expõe um contrato explícito (você precisa chamá-la deliberadamente). Promover de procedure para function depois é trivial; o caminho inverso costuma exigir reescrita do chamador.</p>
+        </div>
+      </section>
+
+      <!-- ====================== 7. PERFORMANCE ====================== -->
+      <section class="mat-section" id="sec-perf">
+        <h2>7. Performance · Plano de execução, cache e parameter sniffing</h2>
+        <p>Procedures e functions <strong>não são mágicas de performance</strong>. Elas reduzem round-trips e dão um plano cacheado, mas se a query interna é ruim, a procedure só esconde o problema. Vamos ver os três conceitos que importam.</p>
+
+        <h3>7.1 · Cache do plano</h3>
+        <p>Na primeira execução, o motor compila a procedure e guarda o <strong>plano de execução</strong> no cache. Próximas chamadas pulam essa fase. Em uma procedure chamada milhares de vezes por minuto, isso vira ganho real.</p>
+
+        <h3>7.2 · Parameter sniffing</h3>
+        <p>O plano é otimizado para o <strong>primeiro valor que chegou</strong>. Se a primeira chamada foi <code>p_user_id = 42</code> (usuário com 5 recomendações) e a segunda foi <code>p_user_id = 7</code> (usuário com 5000 recomendações), o plano em cache foi feito para o caso de 5 linhas e vai performar mal no caso de 5000. Esse fenômeno é o famoso <em>parameter sniffing</em>.</p>
+
+        <div class="code-wrap">
+          <div class="code-label"><span>📝 Forçar recompilação</span><span class="lang">SQL</span></div>
+<pre class="code-block"><code><span class="hl-cmt">-- PostgreSQL: discartar plano em cache</span>
+<span class="hl-kw">DISCARD</span> <span class="hl-kw">PLANS</span>;
+
+<span class="hl-cmt">-- SQL Server: forçar plano fresco a cada execução</span>
+<span class="hl-kw">CREATE PROCEDURE</span> sp_top_recomendacoes_usuario
+    <span class="hl-var">@userId</span> <span class="hl-typ">INT</span>
+<span class="hl-kw">WITH</span> RECOMPILE  <span class="hl-cmt">-- recompila toda vez · perde cache, ganha plano fresco</span>
+<span class="hl-kw">AS</span>
+<span class="hl-kw">BEGIN</span>
+    <span class="hl-kw">SELECT</span> ...
+<span class="hl-kw">END</span>
+</code></pre>
+        </div>
+
+        <h3>7.3 · Como ler o plano</h3>
+        <ul>
+          <li><strong>PostgreSQL:</strong> <code>EXPLAIN ANALYZE &lt;query&gt;</code> mostra o plano e o tempo real de cada nó.</li>
+          <li><strong>SQL Server:</strong> <code>SET SHOWPLAN_ALL ON</code> ou Ctrl+M no SSMS para plano gráfico.</li>
+          <li>Procure por <strong>Sequential Scan / Table Scan</strong> em tabelas grandes — quase sempre é índice faltando.</li>
+          <li>Compare o custo total (<code>cost</code>) antes e depois de adicionar um índice — esse é o feedback objetivo.</li>
+        </ul>
+
+        <div class="callout callout-warn">
+          <div class="callout-label">⚠️ Procedure não conserta query ruim</div>
+          <p>Se a query interna faz <code>SELECT</code> em tabela de 50 milhões de linhas sem índice, a procedure só vai esconder isso — não vai melhorar. <strong>Procedure boa precisa do índice certo embaixo dela.</strong> Antes de mover lógica para o banco achando que vai ficar rápido, rode <code>EXPLAIN ANALYZE</code> na query crua e veja se o problema é mesmo round-trip ou se é query ruim.</p>
+        </div>
+      </section>
+
+      <!-- ====================== 8. SEGURANÇA ====================== -->
+      <section class="mat-section" id="sec-seguranca">
+        <h2>8. Segurança · SQL injection em procedures</h2>
+        <p>Procedure não é imune a SQL injection. Se você monta SQL dinâmico concatenando strings dentro de uma procedure, você reintroduz o mesmo problema do backend mal escrito.</p>
+
+        <div class="code-wrap">
+          <div class="code-label"><span>📝 ❌ Vulnerável</span><span class="lang">PL/pgSQL</span></div>
+<pre class="code-block"><code><span class="hl-cmt">-- NÃO FAÇA ISSO</span>
+<span class="hl-kw">CREATE OR REPLACE FUNCTION</span> fn_buscar_item(<span class="hl-var">p_filtro</span> <span class="hl-typ">TEXT</span>)
+<span class="hl-kw">RETURNS</span> <span class="hl-kw">SETOF</span> item
+<span class="hl-kw">LANGUAGE</span> plpgsql
+<span class="hl-kw">AS</span> <span class="hl-str">$$</span>
+<span class="hl-kw">BEGIN</span>
+    <span class="hl-kw">RETURN QUERY EXECUTE</span>
+        <span class="hl-str">'SELECT * FROM item WHERE nome LIKE '</span> <span class="hl-op">||</span> <span class="hl-fn">QUOTE_LITERAL</span>(<span class="hl-var">p_filtro</span>);
+    <span class="hl-cmt">-- mesmo com QUOTE_LITERAL acima, fica frágil</span>
+<span class="hl-kw">END</span>;
+<span class="hl-str">$$</span>;
+</code></pre>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-label"><span>📝 ✅ Seguro</span><span class="lang">PL/pgSQL</span></div>
+<pre class="code-block"><code><span class="hl-kw">CREATE OR REPLACE FUNCTION</span> fn_buscar_item(<span class="hl-var">p_filtro</span> <span class="hl-typ">TEXT</span>)
+<span class="hl-kw">RETURNS</span> <span class="hl-kw">SETOF</span> item
+<span class="hl-kw">LANGUAGE</span> plpgsql
+<span class="hl-kw">AS</span> <span class="hl-str">$$</span>
+<span class="hl-kw">BEGIN</span>
+    <span class="hl-kw">RETURN QUERY EXECUTE</span>
+        <span class="hl-str">'SELECT * FROM item WHERE nome LIKE $1'</span>
+        <span class="hl-kw">USING</span> <span class="hl-str">'%'</span> <span class="hl-op">||</span> <span class="hl-var">p_filtro</span> <span class="hl-op">||</span> <span class="hl-str">'%'</span>;
+    <span class="hl-cmt">-- USING faz bind seguro · parâmetro nunca vira código</span>
+<span class="hl-kw">END</span>;
+<span class="hl-str">$$</span>;
+</code></pre>
+        </div>
+
+        <p>Sempre que precisar de SQL dinâmico (nome de tabela ou coluna em parâmetro, por exemplo), use:</p>
+        <ul>
+          <li><code>EXECUTE ... USING</code> para valores → parametrização segura.</li>
+          <li><code>format(...)</code> com <code>%I</code> (identifier) ou <code>%L</code> (literal) → escapa corretamente para nomes/literais embutidos no SQL.</li>
+        </ul>
+
+        <div class="callout callout-tip">
+          <div class="callout-label">🔐 Defesa em camadas</div>
+          <p>Para reduzir o blast radius de uma injection eventual, <strong>revogue privilégios diretos</strong> de SELECT/INSERT/UPDATE/DELETE para o usuário de aplicação e conceda apenas <code>EXECUTE</code> nas procedures. Mesmo que o app seja comprometido, o atacante só consegue executar o conjunto controlado de procedures — não consegue fazer <code>DROP TABLE</code> nem ler colunas sensíveis arbitrariamente.</p>
+        </div>
+      </section>
+
+      <!-- ====================== 9. VERSIONAMENTO ====================== -->
+      <section class="mat-section" id="sec-versao">
+        <h2>9. Versionamento e CI/CD · Migrations idempotentes</h2>
+        <p>SQL é código. Procedures e functions vivem no Git, passam por code review, têm CI próprio. <strong>Procedure que não está versionada não existe</strong> — você não tem como reproduzir o ambiente, fazer rollback ou rodar testes confiavelmente.</p>
+
+        <h3>9.1 · Ferramentas mais comuns</h3>
+        <ul>
+          <li><strong><a href="https://flywaydb.org/" target="_blank" rel="noopener noreferrer">Flyway</a></strong> — arquivos versionados <code>V1__init.sql</code>, <code>V2__add_proc.sql</code>. Aplica em ordem, mantém histórico em tabela de controle. Simples e robusto.</li>
+          <li><strong><a href="https://www.liquibase.org/" target="_blank" rel="noopener noreferrer">Liquibase</a></strong> — XML/YAML/SQL com <em>changesets</em>. Suporta rollback declarativo. Mais expressivo, mas exige aprendizado.</li>
+          <li><strong><a href="https://github.com/salsita/node-pg-migrate" target="_blank" rel="noopener noreferrer">node-pg-migrate</a></strong> — para stacks Node.js. Migrations em JS/TS com <code>up()</code> e <code>down()</code>.</li>
+          <li><strong>EF Core Migrations</strong> — para stacks .NET. Gera SQL a partir de modelo C#.</li>
+        </ul>
+
+        <h3>9.2 · Idempotência é lei</h3>
+        <p>Pipeline de CI/CD precisa ser <strong>retentável</strong>. Se a migration falha no meio, você precisa poder rodar de novo sem quebrar. Por isso, use:</p>
+        <ul>
+          <li><code>CREATE OR REPLACE PROCEDURE/FUNCTION</code> — sempre substitui, nunca quebra.</li>
+          <li><code>DROP X IF EXISTS</code> antes de criar coisas que não suportam OR REPLACE.</li>
+          <li>Migrations devem ser <strong>aditivas</strong> sempre que possível: nunca modificar uma migration já aplicada em produção — sempre criar uma nova.</li>
+        </ul>
+
+        <h3>9.3 · Gates de CI sugeridos</h3>
+        <ul>
+          <li><strong><code>db-lint</code></strong> — roda <em>sqlfluff</em> em todo <code>db/*.sql</code> para padronizar estilo.</li>
+          <li><strong><code>db-migrate-staging</code></strong> — aplica migration em ambiente espelho do prod.</li>
+          <li><strong><code>db-rollback-test</code></strong> — verifica se a migration tem rollback funcional.</li>
+          <li><strong>Aprovação manual</strong> obrigatória antes de tocar em produção.</li>
+        </ul>
+      </section>
+
+      <!-- ====================== 10. MVVM ====================== -->
+      <section class="mat-section" id="sec-mvvm">
+        <h2>10. Conectando ao mundo · MVVM com React Native</h2>
+        <p>Toda essa engenharia de procedures e functions só faz sentido quando alguém <em>chama</em> elas. No nosso projeto, esse alguém é o app mobile React Native — organizado em uma arquitetura MVVM (Model-View-ViewModel).</p>
+
+        <p>MVVM é um padrão de separação de responsabilidades. Pense nele como três camadas com papéis bem definidos:</p>
+
+        <h3>10.1 · As três camadas</h3>
+        <h4>📱 View — a interface do usuário</h4>
+        <p>São os componentes visuais do React Native: telas, botões, textos, listas. <strong>A View não processa dados.</strong> Ela apenas exibe o que a ViewModel manda e avisa quando o usuário interage (toca em algo, faz pull-to-refresh, digita).</p>
+
+        <h4>🧠 ViewModel — o cérebro da tela</h4>
+        <p>É quem busca dados na Model, transforma e prepara para a View consumir. <strong>No React Native, costumamos implementar a ViewModel como um Custom Hook</strong> que encapsula <code>useState</code>, <code>useEffect</code> e callbacks. Gerencia <code>loading</code>, <code>error</code> e <code>data</code> — esses três estados que toda tela precisa lidar.</p>
+
+        <h4>🗄️ Model — dados e regras de negócio</h4>
+        <p>É a camada dos dados. Define tipos/classes que descrevem a forma dos dados (TypeScript interfaces) e implementa as requisições para APIs ou bancos locais. <strong>É aqui que a chamada HTTP acontece</strong> — a chamada que, na ponta, ativa a nossa procedure.</p>
+
+        <h3>10.2 · Exemplo concreto — Tela de perfil</h3>
+        <div class="callout callout-info">
+          <div class="callout-label">💡 Exemplo</div>
+          <p>Você tem uma tela de perfil que mostra foto, nome e estatísticas do usuário.</p>
+          <ul>
+            <li>A <strong style="color:#7c3aed;">View</strong> renderiza a foto e o nome com <code>&lt;Image&gt;</code> e <code>&lt;Text&gt;</code>.</li>
+            <li>A <strong style="color:#0d9488;">ViewModel</strong> (um hook <code>useProfile(userId)</code>) tem a lógica de carregar esses dados, gerenciar o <code>loading</code> e expor um <code>refetch</code>.</li>
+            <li>A <strong style="color:#dc2626;">Model</strong> (um Repository <code>ProfileRepo</code>) é a função que vai no servidor buscar o JSON com os dados — e o servidor, por baixo, executa a nossa procedure para calcular o ranking, contar avaliações, etc.</li>
+          </ul>
+        </div>
+
+        <h3>10.3 · Diagrama da arquitetura</h3>
+        <figure class="deck-figure">
+          <svg viewBox="0 0 1000 460" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <marker id="adn" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/>
+              </marker>
+              <marker id="aup" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 z" fill="#0d9488"/>
+              </marker>
+              <linearGradient id="gv1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#a78bfa"/></linearGradient>
+              <linearGradient id="gv2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#0d9488"/><stop offset="100%" stop-color="#10b981"/></linearGradient>
+              <linearGradient id="gv3" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#dc2626"/><stop offset="100%" stop-color="#f87171"/></linearGradient>
+              <linearGradient id="gv4" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1d4ed8"/><stop offset="100%" stop-color="#60a5fa"/></linearGradient>
+              <linearGradient id="gv5" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1e293b"/><stop offset="100%" stop-color="#475569"/></linearGradient>
+            </defs>
+
+            <rect x="30" y="20" width="580" height="370" rx="16" fill="none" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="6 4"/>
+            <text x="50" y="44" fill="#64748b" font-size="12" font-weight="700" letter-spacing="1">📱 APP MOBILE · REACT NATIVE</text>
+
+            <rect x="60" y="65" width="520" height="70" rx="12" fill="url(#gv1)"/>
+            <text x="80" y="93" fill="white" font-size="18" font-weight="800">📱 VIEW</text>
+            <text x="80" y="114" fill="rgba(255,255,255,.92)" font-size="12">Componentes JSX · só renderiza, não processa</text>
+            <text x="80" y="130" fill="rgba(255,255,255,.78)" font-size="10">FlatList, RefreshControl, Text, Button</text>
+
+            <path d="M 200 137 L 200 188" stroke="#dc2626" stroke-width="3" fill="none" marker-end="url(#adn)"/>
+            <text x="210" y="167" fill="#7f1d1d" font-size="11" font-weight="700">eventos do usuário</text>
+            <path d="M 450 188 L 450 137" stroke="#0d9488" stroke-width="3" fill="none" marker-end="url(#aup)"/>
+            <text x="345" y="167" fill="#14532d" font-size="11" font-weight="700" text-anchor="end">estado pronto</text>
+
+            <rect x="60" y="190" width="520" height="70" rx="12" fill="url(#gv2)"/>
+            <text x="80" y="218" fill="white" font-size="18" font-weight="800">🧠 VIEWMODEL</text>
+            <text x="80" y="239" fill="rgba(255,255,255,.92)" font-size="12">Custom Hook · estado + side effects</text>
+            <text x="80" y="255" fill="rgba(255,255,255,.78)" font-size="10">useState, useEffect, refetch, loading, error</text>
+
+            <path d="M 200 262 L 200 313" stroke="#dc2626" stroke-width="3" fill="none" marker-end="url(#adn)"/>
+            <text x="210" y="292" fill="#7f1d1d" font-size="11" font-weight="700">pede dados</text>
+            <path d="M 450 313 L 450 262" stroke="#0d9488" stroke-width="3" fill="none" marker-end="url(#aup)"/>
+            <text x="345" y="292" fill="#14532d" font-size="11" font-weight="700" text-anchor="end">JSON cru</text>
+
+            <rect x="60" y="315" width="520" height="60" rx="12" fill="url(#gv3)"/>
+            <text x="80" y="343" fill="white" font-size="18" font-weight="800">🗄️ MODEL</text>
+            <text x="80" y="364" fill="rgba(255,255,255,.92)" font-size="12">Repository · tipos + chamadas HTTP (fetch / axios)</text>
+
+            <path d="M 610 345 L 660 345" stroke="#1d4ed8" stroke-width="3" fill="none" marker-end="url(#adn)" stroke-dasharray="5 3"/>
+            <text x="635" y="335" fill="#1d4ed8" font-size="11" font-weight="800" text-anchor="middle">HTTP</text>
+
+            <rect x="670" y="25" width="300" height="365" rx="16" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6 4"/>
+            <text x="690" y="49" fill="#475569" font-size="12" font-weight="700" letter-spacing="1">☁️ SERVIDOR · BACKEND</text>
+
+            <rect x="690" y="115" width="260" height="110" rx="12" fill="url(#gv4)"/>
+            <text x="710" y="143" fill="white" font-size="16" font-weight="800">🔌 API REST</text>
+            <text x="710" y="161" fill="rgba(255,255,255,.92)" font-size="11">Express · controller fino</text>
+            <rect x="710" y="170" width="220" height="44" rx="8" fill="rgba(0,0,0,.3)"/>
+            <text x="720" y="188" fill="#dbeafe" font-size="10" font-family="Courier New, monospace">app.get('/users/:id/recos')</text>
+            <text x="720" y="205" fill="#dbeafe" font-size="10" font-family="Courier New, monospace">db.query('CALL sp_top_...')</text>
+
+            <path d="M 820 230 L 820 275" stroke="#dc2626" stroke-width="3" fill="none" marker-end="url(#adn)"/>
+            <text x="830" y="258" fill="#7f1d1d" font-size="11" font-weight="800">CALL</text>
+
+            <rect x="690" y="280" width="260" height="105" rx="12" fill="url(#gv5)"/>
+            <text x="710" y="308" fill="white" font-size="16" font-weight="800">🗄️ PROCEDURE</text>
+            <text x="710" y="326" fill="rgba(255,255,255,.92)" font-size="11">PostgreSQL · PL/pgSQL</text>
+            <rect x="710" y="335" width="220" height="40" rx="8" fill="rgba(0,0,0,.4)"/>
+            <text x="720" y="353" fill="#fde68a" font-size="10" font-family="Courier New, monospace">sp_top_recomendacoes</text>
+            <text x="720" y="368" fill="#fde68a" font-size="10" font-family="Courier New, monospace">_usuario(p_user, p_top)</text>
+
+            <rect x="30" y="410" width="940" height="36" rx="8" fill="#f8fafc" stroke="#e2e8f0"/>
+            <line x1="55" y1="428" x2="100" y2="428" stroke="#dc2626" stroke-width="3" marker-end="url(#adn)"/>
+            <text x="115" y="432" fill="#374151" font-size="11" font-weight="700">comando · pede algo</text>
+            <line x1="300" y1="428" x2="345" y2="428" stroke="#0d9488" stroke-width="3" marker-end="url(#aup)"/>
+            <text x="360" y="432" fill="#374151" font-size="11" font-weight="700">resposta · devolve dados</text>
+            <text x="600" y="432" fill="#64748b" font-size="11" font-style="italic">🔁 cada toque na tela = 1 ciclo</text>
+          </svg>
+          <figcaption>Figura 10.1 · Arquitetura MVVM do app + servidor com procedure no fim da cadeia.</figcaption>
+        </figure>
+
+        <div class="callout callout-tip">
+          <div class="callout-label">📌 Por que essa separação importa</div>
+          <p>Cada camada conhece apenas a vizinha. Trocar PostgreSQL por SQL Server: muda só a procedure. Trocar React Native por Flutter: muda só a View. Trocar o servidor Node por um servidor Python: muda só o controller da API. <strong>É isso que MVVM compra:</strong> capacidade de evoluir cada parte independentemente, sem reescrever o resto.</p>
+        </div>
+      </section>
+
+      <!-- ====================== 11. REACT NATIVE ====================== -->
+      <section class="mat-section" id="sec-rn">
+        <h2>11. React Native · Como funciona por baixo</h2>
+        <p>React Native permite que você escreva aplicativos para Android e iOS usando apenas JavaScript/TypeScript com a biblioteca React. <strong>O segredo dele é que ele não renderiza um site dentro do celular.</strong> Ele traduz o seu código JavaScript em componentes nativos de cada sistema operacional.</p>
+
+        <h3>11.1 · O que acontece com um <code>&lt;Text&gt;</code></h3>
+        <p>Quando você escreve <code>&lt;Text&gt;Olá&lt;/Text&gt;</code>:</p>
+        <ul>
+          <li><strong>No Android:</strong> ele vira um <code>TextView</code> nativo.</li>
+          <li><strong>No iOS:</strong> ele vira um <code>UITextView</code> nativo.</li>
+        </ul>
+        <p>Isso garante que o app tenha a cara, a velocidade e a performance de um aplicativo feito do jeito tradicional — porque, <em>na prática, é nativo</em>. A diferença é só que a <strong>árvore de componentes</strong> e a <strong>lógica de interação</strong> ficam em JS.</p>
+
+        <h3>11.2 · O motor por baixo · Hermes + Bridge</h3>
+        <p>Hoje em dia, o React Native funciona principalmente através de:</p>
+        <ul>
+          <li><strong>Hermes</strong> — um motor de JavaScript otimizado para mobile. Tem startup rápido, uso baixo de memória e bytecode pré-compilado. É o que executa seu código JS no celular.</li>
+          <li><strong>JSI (JavaScript Interface) / Bridge</strong> — a estrutura que comunica o JavaScript diretamente com o código nativo (C++, Java/Kotlin no Android, Objective-C/Swift no iOS). Sem essa ponte, JS não consegue tocar widget nativo.</li>
+          <li><strong>Fabric + TurboModules</strong> — a "Nova Arquitetura" do RN, que renderiza componentes e expõe módulos nativos de forma mais eficiente e tipada que o sistema antigo.</li>
+        </ul>
+
+        <div class="callout callout-deep">
+          <div class="callout-label">🔎 Deep dive · por que JS no celular</div>
+          <p>JavaScript é interpretado, mas Hermes faz <em>ahead-of-time compilation</em> para bytecode, então o app já abre rápido. Em paralelo, a maior parte do trabalho pesado (animação, scroll, rasterização) acontece em código nativo, não em JS. JS coordena, o nativo executa. Resultado: você programa com flexibilidade de web, mas entrega performance de mobile.</p>
+        </div>
+
+        <h3>11.3 · O que isso significa pra nossa arquitetura MVVM</h3>
+        <p>A camada <strong>View</strong> do MVVM (que renderiza JSX) vive dentro do mundo Hermes/Bridge. A <strong>ViewModel</strong> e a <strong>Model</strong> são JS/TS puros — não dependem de chamada nativa especial. Quando o Model faz <code>fetch('/api/...')</code>, essa chamada de rede sim usa a API nativa do SO via Bridge — mas isso é transparente para você.</p>
+      </section>
+
+      <!-- ====================== 12. APK ====================== -->
+      <section class="mat-section" id="sec-apk">
+        <h2>12. Como e onde compilar um APK</h2>
+        <p>O APK (Android Package Kit) é o arquivo instalável para dispositivos Android. A forma como você vai gerar esse arquivo depende do tipo de projeto React Native que você criou. Existem três caminhos principais — vamos do mais comum ao mais avançado.</p>
+
+        <h3>12.1 · Android Studio · o caminho oficial (e pesado)</h3>
+        <p>Android Studio é o IDE oficial do Google para desenvolvimento Android. Ele inclui o <strong>SDK do Android</strong>, ferramentas de build, e o <strong>AVD (Android Virtual Device)</strong> — um emulador que simula um celular Android no seu computador.</p>
+
+        <p>É excelente para debug profundo: dá logs nativos, profiler de memória, inspeção de layout. Mas tem um custo real:</p>
+        <ul>
+          <li>Download do SDK: ~3-6 GB.</li>
+          <li>Imagens de AVD: ~3-8 GB cada (você normalmente tem 2-3 imagens diferentes).</li>
+          <li>Precisa de HAXM (Intel) ou Hyper-V/WSA (Windows) ou Apple Hypervisor (Mac).</li>
+          <li>RAM gorda — recomendado mínimo 16GB no host, com pelo menos 4GB livre para o emulador.</li>
+          <li>Boot do AVD: 1 a 3 minutos. Em máquina modesta, pode travar.</li>
+        </ul>
+        <p><strong>Quando vale a pena:</strong> quando você precisa de debug nativo, quando vai testar comportamento em versões específicas do Android, ou quando seu app usa módulos nativos customizados.</p>
+
+        <h3>12.2 · Expo · o caminho recomendado pra começar</h3>
+        <p>O <strong>Expo</strong> é uma plataforma construída sobre React Native que tira de cima de você toda a complexidade do build nativo. Você <strong>não precisa do Android Studio para começar</strong>. Tem dois componentes principais que mudam a vida:</p>
+
+        <h4>Expo Go · seu celular é o emulador</h4>
+        <p>Expo Go é um app gratuito (Play Store / App Store) que você instala no seu celular real. Quando você roda <code>npx expo start</code> no seu projeto, ele gera um QR code. Você escaneia esse QR pelo Expo Go e o app abre — <strong>rodando seu código sem precisar instalar nada</strong>. Hot reload via Wi-Fi enquanto você edita o código no computador. Acessa câmera, GPS, notificações e sensores de forma nativa, porque é um app nativo de verdade rodando.</p>
+
+        <h4>EAS Build · APK compilado na nuvem</h4>
+        <p>Quando você precisa de um APK propriamente dito (para instalar fora do Expo Go, ou para distribuir), use o <strong>EAS Build</strong>. Os servidores do Expo compilam o APK na nuvem deles — você não precisa ter Android Studio nem JDK instalados.</p>
+
+        <div class="code-wrap">
+          <div class="code-label"><span>📝 Expo · APK na nuvem</span><span class="lang">bash</span></div>
+<pre class="code-block"><code><span class="hl-cmt"># 1. instala o CLI do EAS</span>
+npm install -g eas-cli
+
+<span class="hl-cmt"># 2. faz login na sua conta Expo</span>
+eas login
+
+<span class="hl-cmt"># 3. configura o projeto de build (uma vez por projeto)</span>
+eas build:configure
+
+<span class="hl-cmt"># 4. gera um APK de teste pra instalar direto no celular</span>
+eas build --platform android --profile preview
+
+<span class="hl-cmt"># Quando terminar, o Expo dá um link pra baixar o .apk</span>
+</code></pre>
+        </div>
+
+        <h3>12.3 · React Native CLI · sem Expo, controle total</h3>
+        <p>Se você criou o projeto com o CLI puro do React Native (sem Expo), você compila localmente. Aqui precisa ter <strong>Android Studio + JDK</strong> instalados e configurados, com as variáveis de ambiente apontando para o SDK.</p>
+
+        <div class="code-wrap">
+          <div class="code-label"><span>📝 RN CLI · build local com Gradle</span><span class="lang">bash</span></div>
+<pre class="code-block"><code><span class="hl-cmt"># 1. abra o terminal na pasta do projeto</span>
+<span class="hl-cmt"># 2. entre na pasta android</span>
+cd android
+
+<span class="hl-cmt"># 3. rode o Gradle pra gerar o APK de debug</span>
+./gradlew assembleDebug
+
+<span class="hl-cmt"># O APK gerado fica em:</span>
+<span class="hl-cmt"># meu-projeto/android/app/build/outputs/apk/debug/app-debug.apk</span>
+
+<span class="hl-cmt"># Pra release (assinado), use assembleRelease</span>
+./gradlew assembleRelease
+</code></pre>
+        </div>
+
+        <div class="callout callout-tip">
+          <div class="callout-label">⭐ Recomendação prática para o projeto</div>
+          <p>Comece com <strong>Expo + Expo Go</strong>. Você testa direto no seu celular via QR code, sem esperar emulador travar, e acessa câmera/GPS/notificações de forma nativa enquanto desenvolve. Quando precisar do APK final, <code>eas build</code> entrega na nuvem em poucos minutos. <strong>Android Studio só se você precisar mesmo</strong> — para debug profundo, módulos nativos customizados, ou requisitos específicos que o Expo não cobre.</p>
+        </div>
+      </section>
+
+      <!-- ====================== 13. CAMINHO DE UMA REQUISIÇÃO ====================== -->
+      <section class="mat-section" id="sec-caminho">
+        <h2>13. Caminho de uma requisição · código completo</h2>
+        <p>Agora vamos amarrar tudo: do toque do usuário na tela até a procedure rodando no banco. O exemplo é "top-N recomendações do usuário 42". Cada bloco abaixo representa <strong>uma camada do MVVM</strong> mais o backend.</p>
+
+        <h3>13.1 · View · só renderiza</h3>
+        <div class="code-wrap">
+          <div class="code-label"><span>📱 RecommendationsScreen.tsx</span><span class="lang">TSX</span></div>
+<pre class="code-block"><code><span class="hl-kw">import</span> { FlatList, RefreshControl } <span class="hl-kw">from</span> <span class="hl-str">'react-native'</span>;
+<span class="hl-kw">import</span> { useRecommendations } <span class="hl-kw">from</span> <span class="hl-str">'./useRecommendations'</span>;
+<span class="hl-kw">import</span> { RecoCard } <span class="hl-kw">from</span> <span class="hl-str">'./RecoCard'</span>;
+
+<span class="hl-kw">export function</span> <span class="hl-fn">RecommendationsScreen</span>({ userId }: { userId: <span class="hl-typ">number</span> }) {
+  <span class="hl-kw">const</span> { recos, loading, refetch } = <span class="hl-fn">useRecommendations</span>(userId);
+
+  <span class="hl-kw">return</span> (
+    &lt;<span class="hl-fn">FlatList</span>
+      data={recos}
+      keyExtractor={(item) =&gt; <span class="hl-fn">String</span>(item.id)}
+      refreshControl={
+        &lt;<span class="hl-fn">RefreshControl</span> refreshing={loading} onRefresh={refetch} /&gt;
+      }
+      renderItem={({ item }) =&gt; &lt;<span class="hl-fn">RecoCard</span> item={item} /&gt;}
+    /&gt;
+  );
+}
+</code></pre>
+        </div>
+        <p>Observe: <strong>zero lógica de dados</strong>. A View não sabe que existe API, que existe banco. Ela só usa o hook e renderiza. Se trocássemos a fonte de dados, essa tela continuaria a mesma.</p>
+
+        <h3>13.2 · ViewModel · hook custom</h3>
+        <div class="code-wrap">
+          <div class="code-label"><span>🧠 useRecommendations.ts</span><span class="lang">TS</span></div>
+<pre class="code-block"><code><span class="hl-kw">import</span> { useState, useEffect, useCallback } <span class="hl-kw">from</span> <span class="hl-str">'react'</span>;
+<span class="hl-kw">import</span> { RecoRepo, Reco } <span class="hl-kw">from</span> <span class="hl-str">'./RecoRepo'</span>;
+
+<span class="hl-kw">export function</span> <span class="hl-fn">useRecommendations</span>(userId: <span class="hl-typ">number</span>) {
+  <span class="hl-kw">const</span> [recos, setRecos]     = useState&lt;Reco[]&gt;([]);
+  <span class="hl-kw">const</span> [loading, setLoading] = <span class="hl-fn">useState</span>(<span class="hl-kw">false</span>);
+  <span class="hl-kw">const</span> [error, setError]     = useState&lt;<span class="hl-typ">Error</span> | <span class="hl-kw">null</span>&gt;(<span class="hl-kw">null</span>);
+
+  <span class="hl-kw">const</span> refetch = <span class="hl-fn">useCallback</span>(<span class="hl-kw">async</span> () =&gt; {
+    <span class="hl-fn">setLoading</span>(<span class="hl-kw">true</span>);
+    <span class="hl-fn">setError</span>(<span class="hl-kw">null</span>);
+    <span class="hl-kw">try</span> {
+      <span class="hl-kw">const</span> data = <span class="hl-kw">await</span> RecoRepo.<span class="hl-fn">topN</span>(userId, <span class="hl-num">10</span>);
+      <span class="hl-fn">setRecos</span>(data);
+    } <span class="hl-kw">catch</span> (e) {
+      <span class="hl-fn">setError</span>(e <span class="hl-kw">as</span> <span class="hl-typ">Error</span>);
+    } <span class="hl-kw">finally</span> {
+      <span class="hl-fn">setLoading</span>(<span class="hl-kw">false</span>);
+    }
+  }, [userId]);
+
+  <span class="hl-fn">useEffect</span>(() =&gt; { <span class="hl-fn">refetch</span>(); }, [refetch]);
+
+  <span class="hl-kw">return</span> { recos, loading, error, refetch };
+}
+</code></pre>
+        </div>
+        <p>O hook é a <strong>ViewModel</strong>. Cuida do estado, expõe três coisas para a View (<code>recos</code>, <code>loading</code>, <code>error</code>) e um trigger (<code>refetch</code>). <strong>Não conhece JSX</strong> — é puramente lógica.</p>
+
+        <h3>13.3 · Model · Repository + API</h3>
+        <div class="code-wrap">
+          <div class="code-label"><span>🗄️ RecoRepo.ts (mobile)</span><span class="lang">TS</span></div>
+<pre class="code-block"><code><span class="hl-kw">export type</span> Reco = { id: <span class="hl-typ">number</span>; nome: <span class="hl-typ">string</span>; score: <span class="hl-typ">number</span> };
+
+<span class="hl-kw">const</span> API = process.env.EXPO_PUBLIC_API_URL ?? <span class="hl-str">'http://localhost:3000'</span>;
+
+<span class="hl-kw">export const</span> RecoRepo = {
+  <span class="hl-prop">topN</span>: <span class="hl-kw">async</span> (userId: <span class="hl-typ">number</span>, top: <span class="hl-typ">number</span>): Promise&lt;Reco[]&gt; =&gt; {
+    <span class="hl-kw">const</span> r = <span class="hl-kw">await</span> <span class="hl-fn">fetch</span>(<span class="hl-str">`</span><span class="hl-op">${API}</span><span class="hl-str">/users/</span><span class="hl-op">${userId}</span><span class="hl-str">/recos?top=</span><span class="hl-op">${top}</span><span class="hl-str">`</span>);
+    <span class="hl-kw">if</span> (!r.ok) <span class="hl-kw">throw new</span> <span class="hl-fn">Error</span>(<span class="hl-str">'falha ao buscar recos'</span>);
+    <span class="hl-kw">return</span> r.<span class="hl-fn">json</span>();
+  }
+};
+</code></pre>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-label"><span>🔌 server.ts (Express · backend)</span><span class="lang">TS</span></div>
+<pre class="code-block"><code><span class="hl-kw">import</span> express <span class="hl-kw">from</span> <span class="hl-str">'express'</span>;
+<span class="hl-kw">import</span> { Pool } <span class="hl-kw">from</span> <span class="hl-str">'pg'</span>;
+
+<span class="hl-kw">const</span> app  = <span class="hl-fn">express</span>();
+<span class="hl-kw">const</span> pool = <span class="hl-kw">new</span> <span class="hl-fn">Pool</span>({ connectionString: process.env.DATABASE_URL });
+
+app.<span class="hl-fn">get</span>(<span class="hl-str">'/users/:id/recos'</span>, <span class="hl-kw">async</span> (req, res) =&gt; {
+  <span class="hl-kw">try</span> {
+    <span class="hl-kw">const</span> userId = <span class="hl-fn">Number</span>(req.params.id);
+    <span class="hl-kw">const</span> top    = <span class="hl-fn">Number</span>(req.query.top ?? <span class="hl-num">10</span>);
+
+    <span class="hl-cmt">// CALL da procedure · ponta da cadeia</span>
+    <span class="hl-kw">const</span> { rows } = <span class="hl-kw">await</span> pool.<span class="hl-fn">query</span>(
+      <span class="hl-str">'SELECT * FROM sp_top_recomendacoes_usuario($1, $2)'</span>,
+      [userId, top]
+    );
+    res.<span class="hl-fn">json</span>(rows);
+  } <span class="hl-kw">catch</span> (e) {
+    res.<span class="hl-fn">status</span>(<span class="hl-num">500</span>).<span class="hl-fn">json</span>({ error: (e <span class="hl-kw">as</span> <span class="hl-typ">Error</span>).message });
+  }
+});
+
+app.<span class="hl-fn">listen</span>(<span class="hl-num">3000</span>);
+</code></pre>
+        </div>
+
+        <h3>13.4 · Procedure · a ponta da cadeia</h3>
+        <p>E no fim, a procedure que vimos lá no início do material — a mesma que você vai escrever na atividade prática:</p>
+        <div class="code-wrap">
+          <div class="code-label"><span>🗄️ sp_top_recomendacoes_usuario</span><span class="lang">PL/pgSQL</span></div>
+<pre class="code-block"><code><span class="hl-kw">CREATE OR REPLACE PROCEDURE</span> sp_top_recomendacoes_usuario(
+    <span class="hl-var">p_user_id</span> <span class="hl-typ">INTEGER</span>,
+    <span class="hl-var">p_top</span>     <span class="hl-typ">INTEGER</span> <span class="hl-kw">DEFAULT</span> <span class="hl-num">10</span>
+)
+<span class="hl-kw">LANGUAGE</span> plpgsql
+<span class="hl-kw">AS</span> <span class="hl-str">$$</span>
+<span class="hl-kw">BEGIN</span>
+    <span class="hl-kw">SELECT</span> i.id, i.nome, r.score
+      <span class="hl-kw">FROM</span> recomendacao r
+      <span class="hl-kw">JOIN</span> item i <span class="hl-kw">ON</span> i.id = r.item_id
+     <span class="hl-kw">WHERE</span> r.user_id = <span class="hl-var">p_user_id</span>
+     <span class="hl-kw">ORDER BY</span> r.score <span class="hl-kw">DESC</span>
+     <span class="hl-kw">LIMIT</span> <span class="hl-var">p_top</span>;
+<span class="hl-kw">END</span>;
+<span class="hl-str">$$</span>;
+</code></pre>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-label">📌 O que olhar</div>
+          <p>Se trocássemos PostgreSQL por SQL Server amanhã, <strong>só uma linha mudaria</strong>: a do <code>pool.query</code> no server.ts (que passaria a usar a sintaxe T-SQL). A View, o hook, o Repository — tudo continua igual. Esse é o ganho do MVVM bem aplicado: cada camada protege a anterior das mudanças da seguinte.</p>
+        </div>
+      </section>
+
+      <!-- ====================== 14. ATIVIDADE ====================== -->
+      <section class="mat-section" id="sec-atividade">
+        <h2>14. Atividade prática · em grupo</h2>
+        <p>Criar o arquivo <code>db/procedures.sql</code> no repositório do <strong>grupo</strong> com:</p>
+        <ol>
+          <li><strong>Procedure 1 · Top-N recomendações</strong> — recebe <code>p_user_id</code> e <code>p_top</code>, retorna a lista ordenada.</li>
+          <li><strong>Procedure 2 · Registrar interação</strong> — INSERT em <code>interacao</code> + UPDATE em <code>estatistica_item</code>, dentro de uma transação com tratamento de exceção.</li>
+          <li><strong>Function escalar · Média de ratings</strong> — recebe <code>p_item_id</code> e retorna o <code>NUMERIC</code> da média.</li>
+          <li><strong>Function tabular · Itens similares</strong> — recebe <code>p_item_id</code> e retorna até 5 itens mais parecidos.</li>
+          <li><strong>README curto</strong> em <code>db/README.md</code> explicando cada um, com exemplo de chamada.</li>
+        </ol>
+
+        <h3>Entrega</h3>
+        <p>Merge Request <code>feat(db): procedures e functions</code> no repositório do <strong>grupo</strong> até o fim do dia (18h00).</p>
+
+        <h3>Excelência (opcional, mas conta)</h3>
+        <ul>
+          <li>Tratamento de erro com <code>EXCEPTION WHEN</code> em PostgreSQL (ou <code>TRY/CATCH</code> em SQL Server).</li>
+          <li>1 índice criado para suportar a procedure principal — incluir o <code>CREATE INDEX</code> na migration e justificar no README.</li>
+          <li>1 ADR (Architecture Decision Record) curto justificando a decisão de empurrar essas operações para o banco.</li>
+        </ul>
+
+        <div class="callout callout-warn">
+          <div class="callout-label">⏰ Critério mínimo</div>
+          <p>Sair às 18h sem <strong>2 procedures + 2 functions rodando contra a base do projeto + migration versionada</strong> coloca o grupo em débito técnico para a aula 5 (Transactions e Triggers, dia 22/05). A aula 5 vai envolver suas procedures em transações de isolamento mais sofisticadas — sem elas prontas, fica complicado acompanhar.</p>
+        </div>
+      </section>
+
+      <!-- ====================== 15. CONEXÕES ====================== -->
+      <section class="mat-section" id="sec-conexoes">
+        <h2>15. Conexões com as próximas aulas</h2>
+        <h3>15.1 · Aula 5 (22/05) · Transactions e Triggers</h3>
+        <p>Vamos aprofundar transações: níveis de isolamento (READ COMMITTED, REPEATABLE READ, SERIALIZABLE), deadlocks, locking. E entrar em triggers (<code>BEFORE</code> / <code>AFTER</code> / <code>INSTEAD OF</code>), que reagem automaticamente a eventos no banco — e que muitas vezes <em>chamam procedures</em> que você escreveu hoje.</p>
+
+        <h3>15.2 · Aula 6 (25/05) · FrontEnd Mobile + MVVM com React Native</h3>
+        <p>Vamos construir o lado mobile do stack que você viu na seção 13: View, ViewModel, Model. As suas procedures vão virar endpoints na API e, em última instância, dados na tela do app que o usuário do parceiro vai ver. <strong>Tudo que você implementou hoje é peça do quebra-cabeça que se monta na aula 6.</strong></p>
+
+        <h3>15.3 · Aula 7 (28/05) · Orientação a objetos com TDD</h3>
+        <p>A camada de ViewModel/Model do MVVM vai começar a precisar de classes, interfaces e testes unitários. Vamos voltar ao código mobile com olhar de orientação a objetos disciplinada.</p>
+
+        <h3>15.4 · Aula 8 (08/06) · Testes de integração</h3>
+        <p>Como testar uma procedure? Como testar um endpoint que chama uma procedure? Como testar um hook que chama um endpoint que chama uma procedure? Tudo isso na aula 8.</p>
+      </section>
+
+      <!-- ====================== 16. BIBLIOGRAFIA ====================== -->
+      <section class="mat-section" id="sec-biblio">
+        <h2>16. Bibliografia e referências</h2>
+        <h3>16.1 · Bancos de dados</h3>
+        <ul>
+          <li><a href="https://www.postgresql.org/docs/current/plpgsql.html" target="_blank" rel="noopener noreferrer">PL/pgSQL — Procedural Language</a> · PostgreSQL Official Docs.</li>
+          <li><a href="https://learn.microsoft.com/pt-br/sql/t-sql/statements/create-procedure-transact-sql" target="_blank" rel="noopener noreferrer">CREATE PROCEDURE (Transact-SQL)</a> · Microsoft Docs.</li>
+          <li><a href="https://learn.microsoft.com/pt-br/sql/t-sql/statements/create-function-transact-sql" target="_blank" rel="noopener noreferrer">CREATE FUNCTION (Transact-SQL)</a> · Microsoft Docs.</li>
+          <li><a href="https://use-the-index-luke.com/" target="_blank" rel="noopener noreferrer">Use The Index, Luke!</a> · Markus Winand — referência canônica sobre índices e plano de execução.</li>
+          <li>Brent Ozar — artigos sobre <em>parameter sniffing</em> e diagnóstico de planos em SQL Server.</li>
+        </ul>
+
+        <h3>16.2 · Migrations e CI/CD</h3>
+        <ul>
+          <li><a href="https://flywaydb.org/documentation/" target="_blank" rel="noopener noreferrer">Flyway Documentation</a> · Redgate.</li>
+          <li><a href="https://www.liquibase.org/get-started/quickstart" target="_blank" rel="noopener noreferrer">Liquibase Quickstart</a>.</li>
+          <li><a href="https://salsita.github.io/node-pg-migrate/" target="_blank" rel="noopener noreferrer">node-pg-migrate</a> · alternativa para stacks Node.</li>
+        </ul>
+
+        <h3>16.3 · React Native e MVVM</h3>
+        <ul>
+          <li><a href="https://reactnative.dev/docs/getting-started" target="_blank" rel="noopener noreferrer">React Native · Getting Started</a> · Documentação oficial.</li>
+          <li><a href="https://reactnative.dev/architecture/overview" target="_blank" rel="noopener noreferrer">React Native · Architecture Overview</a> · Nova arquitetura (Fabric, Hermes, TurboModules).</li>
+          <li><a href="https://docs.expo.dev/" target="_blank" rel="noopener noreferrer">Expo Documentation</a> · Inclui guia do Expo Go e EAS Build.</li>
+          <li><a href="https://docs.expo.dev/build/setup/" target="_blank" rel="noopener noreferrer">Expo · EAS Build Setup</a> — passo a passo para compilar APK na nuvem.</li>
+          <li>Martin Fowler · <a href="https://martinfowler.com/eaaDev/PresentationModel.html" target="_blank" rel="noopener noreferrer">Presentation Model</a> · texto fundacional sobre MVVM.</li>
+        </ul>
+
+        <h3>16.4 · Android Studio</h3>
+        <ul>
+          <li><a href="https://developer.android.com/studio/intro" target="_blank" rel="noopener noreferrer">Android Studio Overview</a> · Google Developers.</li>
+          <li><a href="https://developer.android.com/studio/run/emulator" target="_blank" rel="noopener noreferrer">Run apps on the Android Emulator</a> · documentação do AVD.</li>
+        </ul>
+      </section>
+
+      <div class="back-cta"><a href="../../home-module-6-eng-software.html">← Voltar ao Módulo</a></div>
+    </article>
+  </div>
+
+  <div class="logo-container text-center py-4">
+    <img src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli Logo" style="max-width: 150px;">
+  </div>
 
   <footer class="inteli-footer mt-auto py-4 bg-light border-top">
     <div class="container text-center">
@@ -58,5 +1057,25 @@
       <small class="text-muted">🔓 Licença de leitura aberta</small>
     </div>
   </footer>
+
+  <script>
+    const progressBar = document.getElementById('progress-bar');
+    const floatNav = document.getElementById('float-nav');
+    window.addEventListener('scroll', () => {
+      const scrolled = window.scrollY;
+      const total = document.documentElement.scrollHeight - window.innerHeight;
+      progressBar.style.width = (scrolled / total * 100) + '%';
+      if (scrolled > 320) floatNav.classList.add('visible');
+      else floatNav.classList.remove('visible');
+    });
+    const tocLinks = document.querySelectorAll('.mat-toc a');
+    const sections = document.querySelectorAll('.mat-section');
+    const spy = () => {
+      let current = '';
+      sections.forEach((s) => { const top = s.getBoundingClientRect().top; if (top < 120) current = s.id; });
+      tocLinks.forEach((a) => { a.classList.toggle('active', a.getAttribute('href') === '#' + current); });
+    };
+    window.addEventListener('scroll', spy);
+  </script>
 </body>
 </html>
