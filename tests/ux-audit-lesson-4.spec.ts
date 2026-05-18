@@ -27,7 +27,7 @@ const SLIDE_FILE = path.resolve(
   'slide-lesson-4.html'
 );
 const OUT_DIR = path.resolve(__dirname, '..', 'test-results', 'ux-audit', 'lesson-4');
-const TOTAL_SLIDES = 19;
+const TOTAL_SLIDES = 18;
 
 const SLIDE_TITLES: Record<number, string> = {
   1: 'Cover',
@@ -40,15 +40,14 @@ const SLIDE_TITLES: Record<number, string> = {
   8: 'Function · Escalar vs Tabular',
   9: 'Procedure × Function · Comparação',
   10: 'Performance · Plano de execução',
-  11: 'Versionamento e CI/CD',
-  12: 'Atividade Prática · Descrição',
-  13: 'O que é MVVM?',
-  14: 'Diagrama SVG da MVVM',
-  15: 'Como funciona o React Native',
-  16: 'Compilar APK',
-  17: 'Caminho de uma requisição',
-  18: 'Mão na massa',
-  19: 'Encerramento',
+  11: 'Passo a passo · Supabase',
+  12: 'O que é MVVM?',
+  13: 'Diagrama SVG da MVVM',
+  14: 'Como funciona o React Native',
+  15: 'Compilar APK',
+  16: 'Caminho de uma requisição',
+  17: 'Mão na massa',
+  18: 'Encerramento',
 };
 
 type SlideReport = {
@@ -134,8 +133,8 @@ async function inspectSlide(page: Page, slideNumber: number) {
 
     // contar elementos que deveriam ter aparecido mas continuam invisíveis
     const candidates = active.querySelectorAll(
-      '[id^="ct"],[id^="dt"],[id^="ae"],[id^="ag"],[id^="dl"],[id^="mm"],[id^="en"],' +
-      '[id^="mv"],[id^="rn"],[id^="apk"],[id^="rna"],[id^="rnm"],' +
+      '[id^="ct"],[id^="dt"],[id^="ae"],[id^="ag"],[id^="mm"],[id^="en"],' +
+      '[id^="mv"],[id^="rn"],[id^="apk"],[id^="rna"],[id^="rnm"],[id^="sb"],' +
       '[id^="mvvm-"],#rn-view,#rn-vm,#rn-repo,#rn-sql,#apk-expo,#apk-cli,' +
       '#c1-out-wrap,#c2-out-wrap,#c3a-out-wrap,#c3b-out-wrap'
     );

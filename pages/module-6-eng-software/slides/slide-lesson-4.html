@@ -579,89 +579,114 @@
     </div>
   </div>
 
-  <!-- ====== SLIDE 11: VERSIONAMENTO E CI/CD ====== -->
+  <!-- ====== SLIDE 11: PASSO A PASSO · SUPABASE (PROCEDURE + TRIGGER) ====== -->
   <div class="slide">
     <div class="sc">
-      <div class="sh green"><div class="st">Versionamento e CI/CD 🚀</div><div class="ss">Migrações idempotentes · ferramentas · gates do GitLab · rollback</div></div>
-      <div class="g3" style="gap:10px;">
-        <div class="box grn"><h3>🌱 Flyway</h3><p style="font-size:.8rem;">Arquivos versionados <code>V1__init.sql</code>, <code>V2__add_proc.sql</code>. Aplica em ordem, mantém tabela de controle <code>flyway_schema_history</code>.</p></div>
-        <div class="box blu"><h3>🌊 Liquibase</h3><p style="font-size:.8rem;">XML/YAML/SQL com <em>changesets</em>. Suporta rollback declarativo, ideal para times com DBA forte.</p></div>
-        <div class="box acc"><h3>⚙️ EF Core Migrations</h3><p style="font-size:.8rem;">Para stack .NET. <code>dotnet ef migrations add</code> gera C# que vira SQL na hora do deploy.</p></div>
-      </div>
-      <div class="g2" style="gap:12px;margin-top:10px;">
-        <div class="box amb">
-          <h3>♻️ Idempotência é lei</h3>
-          <p style="font-size:.84rem;">Use <code>CREATE OR ALTER PROCEDURE</code> (SQL Server 2016+) ou <code>DROP IF EXISTS</code> antes de criar. <strong>Rodar 2 vezes não pode quebrar</strong> — pipeline é retentável.</p>
+      <div class="sh green" style="padding:12px 18px;"><div class="st" style="font-size:1.55rem;">Passo a passo · Supabase 🧪</div><div class="ss">Procedure + Trigger + INSERT — cole no SQL Editor e veja acontecendo no banco</div></div>
+
+      <div class="g2" style="gap:10px;">
+        <div>
+          <div class="box grn" id="sb0" style="padding:7px 11px;margin-bottom:5px;opacity:0;transform:translateY(12px);">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+              <div style="background:#0d9488;color:white;font-size:.62rem;font-weight:800;padding:2px 8px;border-radius:5px;font-family:'Courier New',monospace;">1</div>
+              <h3 style="margin:0;font-size:.85rem;">Criar as 2 tabelas</h3>
+            </div>
+            <div class="jp-code small" style="font-size:.62rem;line-height:1.35;border-radius:6px;padding:7px 10px;"><span class="c-kw">CREATE TABLE</span> nota (
+  id     <span class="c-typ">SERIAL PRIMARY KEY</span>,
+  aluno  <span class="c-typ">TEXT</span>,
+  valor  <span class="c-typ">NUMERIC</span>(<span class="c-num">4</span>,<span class="c-num">2</span>)
+);
+<span class="c-kw">CREATE TABLE</span> nota_log (
+  id            <span class="c-typ">SERIAL PRIMARY KEY</span>,
+  nota_id       <span class="c-typ">INT</span>,
+  valor_antigo  <span class="c-typ">NUMERIC</span>(<span class="c-num">4</span>,<span class="c-num">2</span>),
+  valor_novo    <span class="c-typ">NUMERIC</span>(<span class="c-num">4</span>,<span class="c-num">2</span>),
+  alterado_em   <span class="c-typ">TIMESTAMP</span> <span class="c-kw">DEFAULT</span> <span class="c-fn">NOW</span>()
+);</div>
+          </div>
+
+          <div class="box blu" id="sb1" style="padding:7px 11px;margin-bottom:5px;opacity:0;transform:translateY(12px);">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+              <div style="background:#1d4ed8;color:white;font-size:.62rem;font-weight:800;padding:2px 8px;border-radius:5px;font-family:'Courier New',monospace;">2</div>
+              <h3 style="margin:0;font-size:.85rem;">Trigger function · registra histórico</h3>
+            </div>
+            <div class="jp-code small" style="font-size:.62rem;line-height:1.35;border-radius:6px;padding:7px 10px;"><span class="c-kw">CREATE OR REPLACE FUNCTION</span> fn_log_nota()
+<span class="c-kw">RETURNS TRIGGER LANGUAGE</span> plpgsql <span class="c-kw">AS</span> <span class="c-str">$$</span>
+<span class="c-kw">BEGIN</span>
+  <span class="c-kw">INSERT INTO</span> nota_log
+    (nota_id, valor_antigo, valor_novo)
+  <span class="c-kw">VALUES</span> (<span class="c-kw">OLD</span>.id, <span class="c-kw">OLD</span>.valor, <span class="c-kw">NEW</span>.valor);
+  <span class="c-kw">RETURN NEW</span>;
+<span class="c-kw">END</span>; <span class="c-str">$$</span>;</div>
+          </div>
+
+          <div class="box acc" id="sb2" style="padding:7px 11px;opacity:0;transform:translateY(12px);">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+              <div style="background:#dc2626;color:white;font-size:.62rem;font-weight:800;padding:2px 8px;border-radius:5px;font-family:'Courier New',monospace;">3</div>
+              <h3 style="margin:0;font-size:.85rem;">Trigger · dispara em UPDATE</h3>
+            </div>
+            <div class="jp-code small" style="font-size:.62rem;line-height:1.35;border-radius:6px;padding:7px 10px;"><span class="c-kw">CREATE TRIGGER</span> trg_nota_log
+<span class="c-kw">AFTER UPDATE OF</span> valor <span class="c-kw">ON</span> nota
+<span class="c-kw">FOR EACH ROW</span>
+<span class="c-kw">EXECUTE FUNCTION</span> fn_log_nota();</div>
+          </div>
         </div>
-        <div class="box acc">
-          <h3>🛡️ Gates no GitLab CI</h3>
-          <ul style="font-size:.82rem;">
-            <li>Job <code>db-lint</code>: <em>sqlfluff</em> em todo <code>db/*.sql</code></li>
-            <li>Job <code>db-migrate-staging</code>: aplica migration em ambiente espelho</li>
-            <li>Job <code>db-rollback-test</code>: roda rollback no staging</li>
-            <li>Aprovação manual antes do production</li>
-          </ul>
+
+        <div>
+          <div class="box amb" id="sb3" style="padding:7px 11px;margin-bottom:5px;opacity:0;transform:translateY(12px);">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+              <div style="background:#d97706;color:white;font-size:.62rem;font-weight:800;padding:2px 8px;border-radius:5px;font-family:'Courier New',monospace;">4</div>
+              <h3 style="margin:0;font-size:.85rem;">Procedure · corrige a nota</h3>
+            </div>
+            <div class="jp-code small" style="font-size:.62rem;line-height:1.35;border-radius:6px;padding:7px 10px;"><span class="c-kw">CREATE OR REPLACE PROCEDURE</span>
+  sp_corrigir_nota(p_id <span class="c-typ">INT</span>, p_novo <span class="c-typ">NUMERIC</span>)
+<span class="c-kw">LANGUAGE</span> plpgsql <span class="c-kw">AS</span> <span class="c-str">$$</span>
+<span class="c-kw">BEGIN</span>
+  <span class="c-kw">UPDATE</span> nota
+     <span class="c-kw">SET</span> valor = p_novo
+   <span class="c-kw">WHERE</span> id    = p_id;
+<span class="c-kw">END</span>; <span class="c-str">$$</span>;</div>
+          </div>
+
+          <div class="box grn" id="sb4" style="padding:7px 11px;margin-bottom:5px;opacity:0;transform:translateY(12px);">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+              <div style="background:#15803d;color:white;font-size:.62rem;font-weight:800;padding:2px 8px;border-radius:5px;font-family:'Courier New',monospace;">5</div>
+              <h3 style="margin:0;font-size:.85rem;">Popular + chamar a procedure</h3>
+            </div>
+            <div class="jp-code small" style="font-size:.62rem;line-height:1.35;border-radius:6px;padding:7px 10px;"><span class="c-cmt">-- INSERT inicial</span>
+<span class="c-kw">INSERT INTO</span> nota (aluno, valor)
+<span class="c-kw">VALUES</span> (<span class="c-str">'Maria'</span>, <span class="c-num">7.5</span>);
+
+<span class="c-cmt">-- corrige a nota → trigger dispara!</span>
+<span class="c-kw">CALL</span> sp_corrigir_nota(<span class="c-num">1</span>, <span class="c-num">8.5</span>);
+<span class="c-kw">CALL</span> sp_corrigir_nota(<span class="c-num">1</span>, <span class="c-num">9.0</span>);</div>
+          </div>
+
+          <div class="box" id="sb5" style="padding:7px 11px;border-left-color:#7c3aed;opacity:0;transform:translateY(12px);">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+              <div style="background:#7c3aed;color:white;font-size:.62rem;font-weight:800;padding:2px 8px;border-radius:5px;font-family:'Courier New',monospace;">6</div>
+              <h3 style="margin:0;font-size:.85rem;">Conferir o histórico gerado</h3>
+            </div>
+            <div class="jp-code small" style="font-size:.62rem;line-height:1.35;border-radius:6px;padding:7px 10px;"><span class="c-kw">SELECT</span> * <span class="c-kw">FROM</span> nota_log
+ <span class="c-kw">ORDER BY</span> alterado_em;</div>
+            <table class="jdf" style="font-size:.62rem;margin-top:5px;">
+              <thead><tr><th class="idx">id</th><th>nota</th><th>antigo</th><th>novo</th><th>quando</th></tr></thead>
+              <tbody>
+                <tr><td>1</td><td>1</td><td>7.50</td><td class="score">8.50</td><td>10:01</td></tr>
+                <tr><td>2</td><td>1</td><td>8.50</td><td class="score">9.00</td><td>10:02</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-      <div class="box" style="margin-top:8px;border-left-color:var(--dk);background:#f8fafc;padding:9px 14px;">
-        <p style="font-size:.8rem;margin:0;"><strong>📌 Princípio:</strong> SQL faz parte do código do projeto, não é &quot;configuração&quot;. Vive no Git, passa por code review, tem CI próprio. <strong>Procedure que não está versionada não existe.</strong></p>
+
+      <div class="box" style="margin-top:6px;border-left-color:var(--dk);background:#f8fafc;padding:6px 12px;">
+        <p style="font-size:.72rem;margin:0;line-height:1.4;"><strong>📌 Supabase:</strong> Dashboard → SQL Editor → cole cada bloco. Abra <strong>Database → Tables → nota_log</strong> e veja as linhas surgindo sozinhas a cada <code>CALL</code> — <strong>quem inseriu foi o trigger</strong>. Procedure faz; trigger reage.</p>
       </div>
     </div>
   </div>
 
-  <!-- ====== SLIDE 12: ATIVIDADE PRÁTICA · DESCRIÇÃO ====== -->
-  <div class="slide">
-    <div class="sc">
-      <div class="sh dark"><div class="st">Atividade Prática · Descrição 🧪</div><div class="ss">db/procedures.sql · 2 procedures + 2 functions · em grupo · 65 min em sala</div></div>
-      <div class="g4" style="gap:8px;">
-        <div class="box acc" id="dl0" style="padding:11px 13px;opacity:0;transform:translateY(16px);">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
-            <div style="background:var(--ac);color:white;font-size:.62rem;font-weight:800;padding:2px 8px;border-radius:5px;">01</div>
-            <div style="font-size:1rem;">⚙️</div>
-          </div>
-          <h3 style="font-size:.84rem;line-height:1.2;margin:0 0 4px;">Procedure · Top-N</h3>
-          <p style="font-size:.72rem;line-height:1.4;margin:0;">Retorna top-N recomendações de um usuário. Parâmetros: <code>@userId</code>, <code>@N</code>. Use <code>SELECT TOP</code>.</p>
-        </div>
-        <div class="box blu" id="dl1" style="padding:11px 13px;opacity:0;transform:translateY(16px);">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
-            <div style="background:var(--bl);color:white;font-size:.62rem;font-weight:800;padding:2px 8px;border-radius:5px;">02</div>
-            <div style="font-size:1rem;">🔄</div>
-          </div>
-          <h3 style="font-size:.84rem;line-height:1.2;margin:0 0 4px;">Procedure · Registrar interação</h3>
-          <p style="font-size:.72rem;line-height:1.4;margin:0;">INSERT em <code>interacao</code> + UPDATE em <code>estatistica_item</code>, em transação implícita. Devolve o ID.</p>
-        </div>
-        <div class="box grn" id="dl2" style="padding:11px 13px;opacity:0;transform:translateY(16px);">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
-            <div style="background:var(--gr);color:white;font-size:.62rem;font-weight:800;padding:2px 8px;border-radius:5px;">03</div>
-            <div style="font-size:1rem;">🔢</div>
-          </div>
-          <h3 style="font-size:.84rem;line-height:1.2;margin:0 0 4px;">Function escalar · Média</h3>
-          <p style="font-size:.72rem;line-height:1.4;margin:0;">Calcula a média de ratings de um item. <code>fn_media_item(@itemId)</code> retorna FLOAT.</p>
-        </div>
-        <div class="box amb" id="dl3" style="padding:11px 13px;opacity:0;transform:translateY(16px);">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
-            <div style="background:var(--am);color:white;font-size:.62rem;font-weight:800;padding:2px 8px;border-radius:5px;">04</div>
-            <div style="font-size:1rem;">📋</div>
-          </div>
-          <h3 style="font-size:.84rem;line-height:1.2;margin:0 0 4px;">Function tabular · Similares</h3>
-          <p style="font-size:.72rem;line-height:1.4;margin:0;">Retorna os 5 itens mais parecidos com um item dado. <code>fn_itens_similares(@itemId)</code> retorna TABLE.</p>
-        </div>
-      </div>
-      <div class="box" style="margin-top:10px;border-left-color:var(--dk);background:#f8fafc;padding:10px 14px;">
-        <p style="font-size:.82rem;margin:0 0 4px;"><strong>📋 Pergunta-base:</strong> com base no domínio do projeto do <strong>seu grupo</strong>, escreva o arquivo <code>db/procedures.sql</code> com 2 stored procedures + 2 functions e um <code>db/README.md</code> curto explicando cada um, com exemplo de chamada (<code>EXEC</code>/<code>SELECT</code>).</p>
-      </div>
-      <div class="g2" style="margin-top:6px;gap:8px;">
-        <div class="box" style="border-left-color:#8b5cf6;padding:8px 12px;">
-          <p style="font-size:.74rem;margin:0;"><strong>📌 Entrega:</strong> Merge Request <code>feat(db): procedures e functions</code> no repositório do <strong>grupo</strong> até o fim do dia.</p>
-        </div>
-        <div class="box" style="border-left-color:#0d9488;padding:8px 12px;">
-          <p style="font-size:.74rem;margin:0;"><strong>⭐ Excelência:</strong> tratamento de erro (<code>TRY/CATCH</code> em SQL Server / <code>EXCEPTION</code> em PostgreSQL) + 1 índice criado para suportar a procedure principal.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ====== SLIDE 13: O QUE É MVVM? ====== -->
+  <!-- ====== SLIDE 12: O QUE É MVVM? ====== -->
   <div class="slide">
     <div class="sc">
       <div class="sh dark"><div class="st">O que é a Arquitetura MVVM? 🧱</div><div class="ss">Padrão de 3 camadas que separa responsabilidades · base do que vem na aula 6 (FrontEnd Mobile)</div></div>
@@ -719,7 +744,7 @@
     </div>
   </div>
 
-  <!-- ====== SLIDE 14: DIAGRAMA SVG DA ARQUITETURA MVVM ====== -->
+  <!-- ====== SLIDE 13: DIAGRAMA SVG DA ARQUITETURA MVVM ====== -->
   <div class="slide">
     <div class="sc">
       <div class="sh dark"><div class="st">Arquitetura MVVM · Diagrama 🗺️</div><div class="ss">Fluxo de eventos e dados entre as 3 camadas · até onde sua procedure aparece</div></div>
@@ -881,7 +906,7 @@
     </div>
   </div>
 
-  <!-- ====== SLIDE 15: COMO FUNCIONA O REACT NATIVE? ====== -->
+  <!-- ====== SLIDE 14: COMO FUNCIONA O REACT NATIVE? ====== -->
   <div class="slide">
     <div class="sc">
       <div class="sh blue"><div class="st">Como funciona o React Native? ⚙️</div><div class="ss">JavaScript que vira componente nativo · Hermes · Bridge · um único código para Android + iOS</div></div>
@@ -941,7 +966,7 @@
     </div>
   </div>
 
-  <!-- ====== SLIDE 16: COMO E ONDE COMPILAR UM APK? ====== -->
+  <!-- ====== SLIDE 15: COMO E ONDE COMPILAR UM APK? ====== -->
   <div class="slide">
     <div class="sc">
       <div class="sh green"><div class="st">Como e onde compilar um APK? 📦</div><div class="ss">Android Studio · Expo (recomendado) · React Native CLI · qual escolher e por quê</div></div>
@@ -1040,7 +1065,7 @@ cd android
     </div>
   </div>
 
-  <!-- ====== SLIDE 17: EXEMPLO CONCRETO · 4 CAMADAS DE CÓDIGO ====== -->
+  <!-- ====== SLIDE 16: EXEMPLO CONCRETO · 4 CAMADAS DE CÓDIGO ====== -->
   <div class="slide">
     <div class="sc">
       <div class="sh blue"><div class="st">Caminho de uma requisição 🔁</div><div class="ss">Pull-to-refresh na tela → procedure roda no banco → 1 round-trip · 4 camadas de código</div></div>
@@ -1143,7 +1168,7 @@ app.<span class="c-fn">get</span>(<span class="c-str">'/users/:id/recos'</span>,
     </div>
   </div>
 
-  <!-- ====== SLIDE 18: MÃO NA MASSA ====== -->
+  <!-- ====== SLIDE 17: MÃO NA MASSA ====== -->
   <div class="slide cover-bg" style="background:linear-gradient(135deg,#12082c 0%,#7c2d12 55%,#dc2626 100%)!important;">
     <div class="sc" style="text-align:center;">
       <div style="font-size:2.8rem;margin-bottom:10px;">🛠️</div>
@@ -1165,7 +1190,7 @@ app.<span class="c-fn">get</span>(<span class="c-str">'/users/:id/recos'</span>,
     </div>
   </div>
 
-  <!-- ====== SLIDE 19: ENCERRAMENTO ====== -->
+  <!-- ====== SLIDE 18: ENCERRAMENTO ====== -->
   <div class="slide cover-bg" style="background:linear-gradient(135deg,#450a0a 0%,#b91c1c 45%,#f87171 100%)!important;">
     <div class="sc" style="text-align:center;">
       <div style="font-size:2.6rem;margin-bottom:10px;">🎯</div>
@@ -1198,7 +1223,7 @@ app.<span class="c-fn">get</span>(<span class="c-str">'/users/:id/recos'</span>,
   </div>
   <div class="nav-wrapper">
     <div class="nav-buttons"><button id="prev-btn" onclick="previousSlide()">← Anterior</button></div>
-    <div class="slide-counter"><span id="current-slide">1</span> / <span id="total-slides">19</span></div>
+    <div class="slide-counter"><span id="current-slide">1</span> / <span id="total-slides">18</span></div>
     <div class="nav-buttons"><button id="next-btn" onclick="nextSlide()">Próximo →</button></div>
   </div>
   <button class="fullscreen-btn" onclick="toggleFullScreen()" title="Tela cheia">⛶</button>
@@ -1510,48 +1535,21 @@ function animPerformance() {
   }));
 }
 
-// ── SLIDE 10 · CI/CD ───────────────────────────────────────────────────
-function animCicd() {
+// ── SLIDE 11 · PASSO A PASSO SUPABASE ──────────────────────────────
+function animSupabase() {
   var lib = A(); if (!lib) return;
-  var slide = slides[10];
-  if (!slide) return;
-  var boxes = slide.querySelectorAll('.box');
-  lib.utils.set(boxes, { opacity: 0, translateY: 14 });
-  track(lib.animate(boxes, {
-    opacity: [0,1], translateY: [14,0],
-    duration: 460, ease: 'outCubic',
-    delay: lib.stagger(110, { start: 100 })
+  lib.utils.set('#sb0,#sb1,#sb2,#sb3,#sb4,#sb5', { opacity: 0, translateY: 12 });
+  track(lib.animate('#sb0,#sb1,#sb2,#sb3,#sb4,#sb5', {
+    opacity: [0,1], translateY: [12,0],
+    duration: 440, ease: 'outCubic',
+    delay: lib.stagger(110, { start: 80 })
   }));
-}
-
-// ── SLIDE 11: ATIVIDADE DESCRIÇÃO ───────────────────────────────
-function animEntregas() {
-  var lib = A(); if (!lib) return;
-  lib.utils.set('#dl0,#dl1,#dl2,#dl3', { opacity: 0, translateY: 22, scale: 0.92 });
-  track(lib.animate('#dl0,#dl1,#dl2,#dl3', {
-    opacity: [0,1], translateY: [22,0], scale: [0.92,1],
-    duration: 540, ease: 'outBack(1.8)',
-    delay: lib.stagger(120, { start: 100 })
-  }));
-  var slide = slides[11];
-  if (slide) {
-    var allBoxes = slide.querySelectorAll('.box');
-    var rest = Array.prototype.slice.call(allBoxes, 4);
-    if (rest.length) {
-      lib.utils.set(rest, { opacity: 0, translateY: 12 });
-      track(lib.animate(rest, {
-        opacity: [0,1], translateY: [12,0],
-        duration: 460, ease: 'outCubic',
-        delay: lib.stagger(120, { start: 600 })
-      }));
-    }
-  }
 }
 
 // ── SLIDE 17: MÃO NA MASSA ───────────────────────────────────────
 function animMaoNaMassa() {
   var lib = A(); if (!lib) return;
-  var slide = slides[17];
+  var slide = slides[16];
   if (slide) animateParticles(slide);
 
   var sel = '#mm0,#mm1,#mm2,#mm3,#mm4,#mm5,#mm6,#mm7';
@@ -1650,7 +1648,7 @@ function animCaminho() {
 // ── SLIDE 18: ENCERRAMENTO ──────────────────────────────────────
 function animEncerramento() {
   var lib = A(); if (!lib) return;
-  var slide = slides[18];
+  var slide = slides[17];
   if (slide) animateParticles(slide);
 
   var sel = '#en0,#en1,#en2,#en3,#en4,#en5,#en6,#en7,#en8';
@@ -1674,15 +1672,14 @@ var animMap = [
   animFunctions,    // 8  · Function escalar vs tabular
   animCompare,      // 9  · Procedure × Function comparação
   animPerformance,  // 10 · Plano de execução
-  animCicd,         // 11 · Versionamento / CI/CD
-  animEntregas,     // 12 · Atividade descrição
-  animMVVM,         // 13 · MVVM em 3 cards
-  animMVVMSvg,      // 14 · MVVM diagrama SVG
-  animRN,           // 15 · Como funciona o React Native
-  animAPK,          // 16 · Compilar APK
-  animCaminho,      // 17 · Caminho de uma requisição
-  animMaoNaMassa,   // 18 · Mão na massa
-  animEncerramento  // 19 · Encerramento
+  animSupabase,     // 11 · Passo a passo · Supabase
+  animMVVM,         // 12 · MVVM em 3 cards
+  animMVVMSvg,      // 13 · MVVM diagrama SVG
+  animRN,           // 14 · Como funciona o React Native
+  animAPK,          // 15 · Compilar APK
+  animCaminho,      // 16 · Caminho de uma requisição
+  animMaoNaMassa,   // 17 · Mão na massa
+  animEncerramento  // 18 · Encerramento
 ];
 
 function runAnim(idx) {
