@@ -139,6 +139,61 @@
     body.anime-ready .daily-tag,
     body.anime-ready .jdf-cell,
     body.anime-ready .jp-line { transition:none !important; }
+
+    /* ── Tooltip de hover (cabeçalhos das anomalias do slide 7) ── */
+    .tt-trigger { position:relative; cursor:help; z-index:1; }
+    .tt-trigger:hover { z-index:99999; }
+    .tt-trigger::after { content:'\2139'; font-size:.6rem; margin-left:4px; opacity:.5; vertical-align:super; }
+    .tt-balloon {
+      position:absolute;
+      top:calc(100% + 14px);
+      left:50%;
+      transform:translateX(-50%) translateY(-6px);
+      width:280px;
+      background:#1e293b;
+      color:#f1f5f9;
+      padding:12px 14px;
+      border-radius:10px;
+      box-shadow:0 12px 32px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.08);
+      font-size:.78rem;
+      line-height:1.55;
+      font-weight:400;
+      text-transform:none;
+      text-align:left;
+      letter-spacing:0;
+      opacity:0;
+      visibility:hidden;
+      transition:opacity .22s ease, transform .22s ease;
+      z-index:999999;
+      pointer-events:none;
+      white-space:normal;
+      isolation:isolate;
+    }
+    .tt-balloon::before {
+      content:'';
+      position:absolute;
+      bottom:100%;
+      left:50%;
+      transform:translateX(-50%);
+      border:8px solid transparent;
+      border-bottom-color:#1e293b;
+    }
+    .tt-trigger:hover .tt-balloon {
+      opacity:1;
+      visibility:visible;
+      transform:translateX(-50%) translateY(0);
+    }
+    /* Garante que o slide / container que contêm o tooltip não criam clipping */
+    .slide:has(.tt-trigger:hover) { overflow:visible !important; z-index:99999 !important; }
+    .slide-container:has(.tt-trigger:hover) { overflow:visible !important; }
+    .jp:has(.tt-trigger) { overflow:visible !important; }
+    /* Mini-cards de explicação abaixo da tabela: sob o tooltip */
+    .slide .g4 > .box { position:relative; z-index:0; }
+    .tt-balloon .tt-title { display:block; color:#fbbf24; font-weight:800; margin-bottom:6px; font-size:.84rem; }
+    .tt-balloon p { margin:0 0 6px; color:#e2e8f0; }
+    .tt-balloon p:last-child { margin-bottom:0; }
+    .tt-balloon .tt-ex { background:rgba(251,191,36,.12); border-left:3px solid #fbbf24; padding:6px 8px; border-radius:4px; font-size:.72rem; line-height:1.5; color:#fde68a; margin-top:6px; }
+    .tt-balloon code { background:rgba(255,255,255,.10); color:#7dd3fc; padding:1px 5px; border-radius:3px; font-family:'Courier New',monospace; font-size:.86em; }
   </style>
 
   <!-- anime.js v4 — módulo ESM via CDN (slides standalone, sem bundler) -->
@@ -367,16 +422,16 @@
   <!-- ====== SLIDE 7: NÍVEIS DE ISOLAMENTO ====== -->
   <div class="slide">
     <div class="sc">
-      <div class="sh red"><div class="st">4 níveis de isolamento × 4 anomalias 📊</div><div class="ss">Nível mais alto = mais consistência, menos throughput · escolha consciente</div></div>
-      <div class="jp" style="padding:12px 14px;">
-        <table class="jdf" id="iso-tbl">
+      <div class="sh red"><div class="st">4 níveis de isolamento × 4 anomalias 📊</div><div class="ss">Nível mais alto = mais consistência, menos throughput · passe o mouse nas anomalias para ver detalhes</div></div>
+      <div class="jp" style="padding:12px 14px; overflow:visible;">
+        <table class="jdf" id="iso-tbl" style="overflow:visible;">
           <thead>
             <tr>
               <th class="idx jdf-cell" data-r="0" data-c="0">Nível ↓ / Anomalia →</th>
-              <th class="jdf-cell" data-r="0" data-c="1">Dirty Read</th>
-              <th class="jdf-cell" data-r="0" data-c="2">Non-repeatable Read</th>
-              <th class="jdf-cell" data-r="0" data-c="3">Phantom Read</th>
-              <th class="jdf-cell" data-r="0" data-c="4">Serialization Anomaly</th>
+              <th class="jdf-cell tt-trigger" data-r="0" data-c="1">Dirty Read<div class="tt-balloon"><span class="tt-title">💀 Dirty Read</span><p>Você lê dados que <strong>outra transação modificou mas ainda não confirmou</strong> (sem <code>COMMIT</code>).</p><p>Se a outra transação fizer <code>ROLLBACK</code>, você acabou de ler um valor <strong>que nunca existiu</strong>.</p><div class="tt-ex">Ex.: Tx A atualiza saldo para R$ 100, ainda sem COMMIT. Tx B lê R$ 100 e age sobre isso. Tx A faz ROLLBACK. Tx B agiu com um dado fantasma.</div></div></th>
+              <th class="jdf-cell tt-trigger" data-r="0" data-c="2">Non-repeatable Read<div class="tt-balloon"><span class="tt-title">🔁 Non-repeatable Read</span><p>Dentro da mesma transação, você lê o <strong>mesmo registro duas vezes</strong> e obtém valores <strong>diferentes</strong>.</p><p>Outra transação fez <code>UPDATE</code> + <code>COMMIT</code> entre as suas duas leituras.</p><div class="tt-ex">Ex.: Tx A lê o preço do produto = R$ 50 às 10h00. Tx B atualiza o preço para R$ 65 e comita. Tx A lê de novo às 10h01 e recebe R$ 65 — mesma transação, leitura inconsistente.</div></div></th>
+              <th class="jdf-cell tt-trigger" data-r="0" data-c="3">Phantom Read<div class="tt-balloon"><span class="tt-title">👻 Phantom Read</span><p>Você roda a <strong>mesma query com <code>WHERE</code></strong> duas vezes na mesma transação e o <strong>conjunto de linhas retornadas mudou</strong>.</p><p>Outra transação fez <code>INSERT</code> (ou <code>DELETE</code>) que casa com o filtro entre as duas leituras.</p><div class="tt-ex">Ex.: Tx A faz <code>SELECT * FROM pedidos WHERE status='ABERTO'</code> e recebe 12 linhas. Tx B insere mais 1 pedido aberto e comita. Tx A repete o SELECT e recebe 13 — apareceu um fantasma.</div></div></th>
+              <th class="jdf-cell tt-trigger" data-r="0" data-c="4">Serialization Anomaly<div class="tt-balloon"><span class="tt-title">🌀 Serialization Anomaly</span><p>Duas transações concorrentes produzem juntas um resultado final que <strong>não corresponde a nenhuma ordem serial possível</strong> de execução delas — viola a ilusão de "uma de cada vez".</p><p>É mais sutil que as outras: cada Tx, em isolamento, parece OK; o conjunto é que é impossível.</p><div class="tt-ex">Ex.: Tx A e Tx B leem que há 2 médicos de plantão. Cada uma decide "posso me retirar, ainda sobra 1". As duas comitam. Resultado: zero médicos — estado impossível em qualquer ordem serial.</div></div></th>
             </tr>
           </thead>
           <tbody>
@@ -621,64 +676,97 @@
   <!-- ====== SLIDE 12: DO BANCO ATÉ A TELA · CHECKOUT DE INGRESSO ====== -->
   <div class="slide">
     <div class="sc">
-      <div class="sh blue"><div class="st">Do banco até a tela · checkout 💳</div><div class="ss">Onde sua procedure cai · como os erros previstos propagam até virar estado visual no app mobile</div></div>
+      <div class="sh blue" style="padding:10px 16px;"><div class="st" style="font-size:1.35rem;">Do banco até a tela · checkout 💳</div><div class="ss" style="font-size:.82rem;">Como uma transação SQL propaga camada a camada até virar estado visual no app mobile</div></div>
 
-      <div style="background:white;border:1px solid #dfe5ec;border-radius:14px;padding:14px 18px;box-shadow:0 4px 14px rgba(46,38,64,.06);margin-bottom:10px;">
-        <div style="display:grid;grid-template-columns:repeat(5, 1fr) 40px;gap:5px;align-items:stretch;">
-          <div id="fx0" style="background:linear-gradient(135deg,#1e293b,#475569);color:white;border-radius:12px;padding:10px 11px;opacity:0;transform:translateY(14px);">
-            <div style="font-size:1.4rem;margin-bottom:3px;">🗄️</div>
-            <div style="font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;opacity:.85;">Banco</div>
-            <div style="font-size:.82rem;font-weight:800;margin:2px 0 3px;line-height:1.15;">sp_comprar_ingresso</div>
-            <div style="font-size:.66rem;opacity:.92;line-height:1.35;">BEGIN · lock · INSERT · COMMIT/ROLLBACK</div>
+      <div style="display:flex; gap:14px; align-items:stretch; margin-top:8px;">
+
+        <!-- ============ COLUNA ESQUERDA · PIPELINE VERTICAL (54%) ============ -->
+        <div style="flex: 0 0 calc(54% - 7px); min-width:0; background:white; border:1px solid #dfe5ec; border-radius:14px; padding:12px 14px; box-shadow:0 4px 14px rgba(46,38,64,.06);">
+          <div style="font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:#64748b; margin-bottom:8px;">Pipeline · de baixo para cima</div>
+
+          <!-- Etapa 1: Banco -->
+          <div id="fx0" style="display:flex; align-items:center; gap:11px; opacity:0; transform:translateY(10px);">
+            <div style="flex:0 0 44px; height:44px; border-radius:50%; background:linear-gradient(135deg,#1e293b,#475569); color:white; display:flex; align-items:center; justify-content:center; font-size:1.4rem; box-shadow:0 4px 10px rgba(0,0,0,.18);">🗄️</div>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:.6rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:#64748b;">Banco · SQL Server</div>
+              <div style="font-size:.92rem; font-weight:800; color:#1e293b; line-height:1.2;">sp_comprar_ingresso</div>
+              <div style="font-size:.72rem; color:#475569; line-height:1.35;"><code>BEGIN</code> · <code>lock</code> · <code>INSERT</code> · <code>COMMIT</code> / <code>ROLLBACK</code></div>
+            </div>
           </div>
-          <div id="fa0" style="display:flex;align-items:center;justify-content:center;color:var(--ac);font-size:1.4rem;font-weight:800;opacity:0;">→</div>
-          <div id="fx1" style="background:linear-gradient(135deg,#1d4ed8,#60a5fa);color:white;border-radius:12px;padding:10px 11px;opacity:0;transform:translateY(14px);">
-            <div style="font-size:1.4rem;margin-bottom:3px;">🔌</div>
-            <div style="font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;opacity:.85;">API</div>
-            <div style="font-size:.82rem;font-weight:800;margin:2px 0 3px;line-height:1.15;">POST /comprar</div>
-            <div style="font-size:.66rem;opacity:.92;line-height:1.35;">200 ok · 409 sold_out · 500 erro</div>
+          <div id="fa0" style="display:flex; align-items:center; padding-left:16px; opacity:0; color:#cbd5e1; font-size:1.05rem; line-height:1; height:18px;">↓</div>
+
+          <!-- Etapa 2: API -->
+          <div id="fx1" style="display:flex; align-items:center; gap:11px; opacity:0; transform:translateY(10px);">
+            <div style="flex:0 0 44px; height:44px; border-radius:50%; background:linear-gradient(135deg,#1d4ed8,#60a5fa); color:white; display:flex; align-items:center; justify-content:center; font-size:1.4rem; box-shadow:0 4px 10px rgba(29,78,216,.25);">🔌</div>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:.6rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:#1d4ed8;">API · ASP.NET</div>
+              <div style="font-size:.92rem; font-weight:800; color:#1e293b; line-height:1.2;">POST /comprar</div>
+              <div style="font-size:.72rem; color:#475569; line-height:1.35;"><code>200 OK</code> · <code>409 sold_out</code> · <code>500 erro</code></div>
+            </div>
           </div>
-          <div id="fa1" style="display:flex;align-items:center;justify-content:center;color:var(--ac);font-size:1.4rem;font-weight:800;opacity:0;">→</div>
-          <div id="fx2" style="background:linear-gradient(135deg,#dc2626,#f87171);color:white;border-radius:12px;padding:10px 11px;opacity:0;transform:translateY(14px);">
-            <div style="font-size:1.4rem;margin-bottom:3px;">🗂️</div>
-            <div style="font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;opacity:.85;">Model</div>
-            <div style="font-size:.82rem;font-weight:800;margin:2px 0 3px;line-height:1.15;">CheckoutRepo.comprar</div>
-            <div style="font-size:.66rem;opacity:.92;line-height:1.35;">HTTP → union type tipado</div>
+          <div id="fa1" style="display:flex; align-items:center; padding-left:16px; opacity:0; color:#cbd5e1; font-size:1.05rem; line-height:1; height:18px;">↓</div>
+
+          <!-- Etapa 3: Model / Repository -->
+          <div id="fx2" style="display:flex; align-items:center; gap:11px; opacity:0; transform:translateY(10px);">
+            <div style="flex:0 0 44px; height:44px; border-radius:50%; background:linear-gradient(135deg,#dc2626,#f87171); color:white; display:flex; align-items:center; justify-content:center; font-size:1.4rem; box-shadow:0 4px 10px rgba(220,38,38,.22);">🗂️</div>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:.6rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:#b91c1c;">Model · Repository</div>
+              <div style="font-size:.92rem; font-weight:800; color:#1e293b; line-height:1.2;">CheckoutRepo.comprar()</div>
+              <div style="font-size:.72rem; color:#475569; line-height:1.35;">HTTP cru → union type TS tipado</div>
+            </div>
           </div>
-          <div id="fa2" style="display:flex;align-items:center;justify-content:center;color:var(--ac);font-size:1.4rem;font-weight:800;opacity:0;">→</div>
-          <div id="fx3" style="background:linear-gradient(135deg,#0d9488,#10b981);color:white;border-radius:12px;padding:10px 11px;opacity:0;transform:translateY(14px);grid-column:span 2;">
-            <div style="font-size:1.4rem;margin-bottom:3px;">🧠</div>
-            <div style="font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;opacity:.85;">ViewModel</div>
-            <div style="font-size:.82rem;font-weight:800;margin:2px 0 3px;line-height:1.15;">useCheckout()</div>
-            <div style="font-size:.66rem;opacity:.92;line-height:1.35;">5 estados · idle/loading/success/sold_out/error</div>
+          <div id="fa2" style="display:flex; align-items:center; padding-left:16px; opacity:0; color:#cbd5e1; font-size:1.05rem; line-height:1; height:18px;">↓</div>
+
+          <!-- Etapa 4: ViewModel -->
+          <div id="fx3" style="display:flex; align-items:center; gap:11px; opacity:0; transform:translateY(10px);">
+            <div style="flex:0 0 44px; height:44px; border-radius:50%; background:linear-gradient(135deg,#0d9488,#10b981); color:white; display:flex; align-items:center; justify-content:center; font-size:1.4rem; box-shadow:0 4px 10px rgba(13,148,136,.22);">🧠</div>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:.6rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:#0d9488;">ViewModel · custom hook</div>
+              <div style="font-size:.92rem; font-weight:800; color:#1e293b; line-height:1.2;">useCheckout()</div>
+              <div style="font-size:.72rem; color:#475569; line-height:1.35;">5 estados: <code>idle</code> · <code>loading</code> · <code>success</code> · <code>sold_out</code> · <code>error</code></div>
+            </div>
           </div>
-          <div id="fa3" style="display:flex;align-items:center;justify-content:center;color:var(--ac);font-size:1.4rem;font-weight:800;opacity:0;">↓</div>
-          <div id="fx4" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);color:white;border-radius:12px;padding:10px 11px;opacity:0;transform:translateY(14px);grid-column:span 2;">
-            <div style="font-size:1.4rem;margin-bottom:3px;">📱</div>
-            <div style="font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;opacity:.85;">View</div>
-            <div style="font-size:.82rem;font-weight:800;margin:2px 0 3px;line-height:1.15;">CheckoutScreen.tsx</div>
-            <div style="font-size:.66rem;opacity:.92;line-height:1.35;">spinner · modal · toast · alert</div>
+          <div id="fa3" style="display:flex; align-items:center; padding-left:16px; opacity:0; color:#cbd5e1; font-size:1.05rem; line-height:1; height:18px;">↓</div>
+
+          <!-- Etapa 5: View -->
+          <div id="fx4" style="display:flex; align-items:center; gap:11px; opacity:0; transform:translateY(10px);">
+            <div style="flex:0 0 44px; height:44px; border-radius:50%; background:linear-gradient(135deg,#7c3aed,#a78bfa); color:white; display:flex; align-items:center; justify-content:center; font-size:1.4rem; box-shadow:0 4px 10px rgba(124,58,237,.22);">📱</div>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:.6rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:#7c3aed;">View · React Native</div>
+              <div style="font-size:.92rem; font-weight:800; color:#1e293b; line-height:1.2;">CheckoutScreen.tsx</div>
+              <div style="font-size:.72rem; color:#475569; line-height:1.35;">spinner · modal · toast · alert</div>
+            </div>
           </div>
         </div>
+
+        <!-- ============ COLUNA DIREITA · 3 CENÁRIOS (46%) ============ -->
+        <div style="flex: 0 0 calc(46% - 7px); min-width:0; display:flex; flex-direction:column; gap:8px;">
+          <div style="font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:#64748b;">3 cenários · mesmo pipeline</div>
+
+          <!-- Cenário 1: Sold Out -->
+          <div id="fc0" style="opacity:0; transform:translateY(10px); background:#fef2f2; border:1px solid #fecaca; border-left:4px solid #dc2626; border-radius:10px; padding:10px 12px;">
+            <div style="font-size:.84rem; font-weight:800; color:#7f1d1d; margin-bottom:4px;">⛔ Sem estoque · 409 Conflict</div>
+            <div style="font-size:.74rem; color:#374151; line-height:1.5;">Procedure: <code>RAISE EXCEPTION 'sold_out'</code> → API: <code>409</code> → Repo: <code>{ ok:false, reason:'sold_out' }</code> → ViewModel vira <code>sold_out</code> → View: <strong>modal "ingresso esgotado"</strong>.</div>
+          </div>
+
+          <!-- Cenário 2: Deadlock -->
+          <div id="fc1" style="opacity:0; transform:translateY(10px); background:#fffbeb; border:1px solid #fde68a; border-left:4px solid #d97706; border-radius:10px; padding:10px 12px;">
+            <div style="font-size:.84rem; font-weight:800; color:#92400e; margin-bottom:4px;">⚠️ Deadlock · 500 Internal Error</div>
+            <div style="font-size:.74rem; color:#374151; line-height:1.5;">Lock pessimista detectou conflito → <code>ROLLBACK</code> automático → API: <code>500</code> → Repo: <code>'deadlock'</code> → ViewModel: <code>error</code> → View: <strong>"tente novamente"</strong>.</div>
+          </div>
+
+          <!-- Cenário 3: Sucesso -->
+          <div id="fc2" style="opacity:0; transform:translateY(10px); background:#f0fdf4; border:1px solid #bbf7d0; border-left:4px solid #16a34a; border-radius:10px; padding:10px 12px;">
+            <div style="font-size:.84rem; font-weight:800; color:#14532d; margin-bottom:4px;">✅ Compra confirmada · 200 OK</div>
+            <div style="font-size:.74rem; color:#374151; line-height:1.5;">Procedure devolve <code>ingresso_id</code> → API: <code>200</code> + JSON → Repo: <code>{ ok:true, ingressoId }</code> → ViewModel: <code>success</code> → View: <strong>toast verde + navegação</strong>.</div>
+          </div>
+        </div>
+
       </div>
 
-      <div class="g3" style="gap:8px;">
-        <div class="box" id="fc0" style="padding:9px 12px;opacity:0;transform:translateY(12px);border-left-color:#dc2626;background:#fef2f2;">
-          <h3 style="font-size:.82rem;margin:0 0 3px;color:#7f1d1d;">⛔ Sem estoque · 409</h3>
-          <p style="font-size:.72rem;margin:0;line-height:1.4;">Procedure faz <code>RAISE EXCEPTION 'sold_out'</code>. API mapeia em HTTP <code>409 Conflict</code>. Repository devolve <code>{ ok:false, reason:'sold_out' }</code>. View mostra <strong>modal "ingresso esgotado"</strong>.</p>
-        </div>
-        <div class="box" id="fc1" style="padding:9px 12px;opacity:0;transform:translateY(12px);border-left-color:#d97706;background:#fffbeb;">
-          <h3 style="font-size:.82rem;margin:0 0 3px;color:#b45309;">⚠️ Deadlock · 500</h3>
-          <p style="font-size:.72rem;margin:0;line-height:1.4;">Lock pessimista detectou conflito. Procedure faz <code>ROLLBACK</code> automático. API devolve <code>500</code>. Repository sinaliza <code>'deadlock'</code>. View sugere <strong>"tente novamente"</strong>.</p>
-        </div>
-        <div class="box" id="fc2" style="padding:9px 12px;opacity:0;transform:translateY(12px);border-left-color:#15803d;background:#f0fdf4;">
-          <h3 style="font-size:.82rem;margin:0 0 3px;color:#14532d;">✅ Sucesso · 200</h3>
-          <p style="font-size:.72rem;margin:0;line-height:1.4;">Procedure devolve <code>ingresso_id</code>. API responde <code>200 OK</code> + JSON. Repository devolve <code>{ ok:true, ingressoId }</code>. View mostra <strong>toast verde</strong> e navega.</p>
-        </div>
-      </div>
-
-      <div class="box" style="margin-top:6px;border-left-color:var(--dk);background:#f8fafc;padding:6px 12px;">
-        <p style="font-size:.72rem;margin:0;line-height:1.45;"><strong>📌 A grande sacada:</strong> a procedure não decide nada visual — ela só fala <em>o que aconteceu</em> via códigos de erro. <strong>Cada camada acima traduz</strong> esse erro pro vocabulário dela. View nunca toca SQL. Procedure nunca toca pixel.</p>
+      <!-- ============ BOX RESUMO (FULL WIDTH) ============ -->
+      <div class="box" style="margin-top:10px; border-left-color:var(--dk); background:#f8fafc; padding:8px 14px;">
+        <p style="font-size:.78rem; margin:0; line-height:1.5;"><strong>📌 A grande sacada:</strong> a procedure não decide nada visual — ela só fala <em>o que aconteceu</em> via códigos. <strong>Cada camada acima traduz</strong> esse "o quê" para o vocabulário dela. View nunca toca SQL. Procedure nunca toca pixel.</p>
       </div>
     </div>
   </div>
@@ -897,56 +985,56 @@
   <!-- ====== SLIDE 16: ATIVIDADE PRÁTICA · DESCRIÇÃO ====== -->
   <div class="slide">
     <div class="sc">
-      <div class="sh dark"><div class="st">Atividade Prática · Em sala 🛠️</div><div class="ss">Em grupo · 1h05 + dev (16h–18h) · sem ponderada · Merge Request no repo do grupo</div></div>
+      <div class="sh dark" style="padding:10px 16px;"><div class="st" style="font-size:1.35rem;">Atividade Prática · Em sala 🛠️</div><div class="ss" style="font-size:.82rem;">Tela mobile (React Native + Expo) + Supabase + trigger de log · em grupo · 1h05 + dev (16h–18h)</div></div>
       <div class="g4" style="gap:10px;">
         <div class="box acc" id="dl0" style="padding:11px 13px;opacity:0;transform:translateY(16px);">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
             <div style="background:var(--ac);color:white;font-size:.62rem;font-weight:800;padding:2px 8px;border-radius:5px;">01</div>
-            <div style="font-size:1rem;">💳</div>
+            <div style="font-size:1rem;">📱</div>
           </div>
-          <h3 style="font-size:.84rem;line-height:1.2;margin:0 0 4px;">Transação atômica</h3>
-          <p style="font-size:.72rem;line-height:1.4;margin:0 0 4px;"><code>sp_comprar_ingresso(@userId, @espId)</code>: decrementa estoque (com lock pessimista), <code>INSERT</code> em <code>ingresso</code>, <code>INSERT</code> em <code>log_auditoria</code>.</p>
-          <p style="font-size:.7rem;line-height:1.35;margin:0;color:#64748b;">Dentro de <code>TRY/CATCH/ROLLBACK</code>. Rejeita se estoque é 0.</p>
+          <h3 style="font-size:.84rem;line-height:1.2;margin:0 0 4px;">Tela mobile simples</h3>
+          <p style="font-size:.72rem;line-height:1.4;margin:0 0 4px;">App em <strong>React Native + Expo</strong> com UMA tela: input para escrever uma avaliação, botão "Enviar" e lista das últimas 5 avaliações cadastradas.</p>
+          <p style="font-size:.7rem;line-height:1.35;margin:0;color:#64748b;">Sem login. Estilo livre. Foco no fluxo: digitar → salvar → ver na lista.</p>
         </div>
         <div class="box blu" id="dl1" style="padding:11px 13px;opacity:0;transform:translateY(16px);">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
             <div style="background:var(--bl);color:white;font-size:.62rem;font-weight:800;padding:2px 8px;border-radius:5px;">02</div>
-            <div style="font-size:1rem;">🪝</div>
+            <div style="font-size:1rem;">🗄️</div>
           </div>
-          <h3 style="font-size:.84rem;line-height:1.2;margin:0 0 4px;">Trigger de auditoria</h3>
-          <p style="font-size:.72rem;line-height:1.4;margin:0 0 4px;"><code>trg_avaliacao_audit</code> em <code>AFTER INSERT/UPDATE/DELETE</code> na tabela <code>avaliacao</code>.</p>
-          <p style="font-size:.7rem;line-height:1.35;margin:0;color:#64748b;">Grava operação, user, valor antigo, valor novo em <code>log_avaliacao_audit</code>.</p>
+          <h3 style="font-size:.84rem;line-height:1.2;margin:0 0 4px;">Banco no Supabase</h3>
+          <p style="font-size:.72rem;line-height:1.4;margin:0 0 4px;">Criar projeto no <strong>Supabase</strong>, tabela <code>avaliacao(id, texto, criado_em)</code> e tabela <code>log_avaliacao(id, op, payload, criado_em)</code>.</p>
+          <p style="font-size:.7rem;line-height:1.35;margin:0;color:#64748b;">App usa <code>@supabase/supabase-js</code> com URL + anon key.</p>
         </div>
         <div class="box grn" id="dl2" style="padding:11px 13px;opacity:0;transform:translateY(16px);">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
             <div style="background:var(--gr);color:white;font-size:.62rem;font-weight:800;padding:2px 8px;border-radius:5px;">03</div>
-            <div style="font-size:1rem;">⚔️</div>
+            <div style="font-size:1rem;">🪝</div>
           </div>
-          <h3 style="font-size:.84rem;line-height:1.2;margin:0 0 4px;">Teste de race</h3>
-          <p style="font-size:.72rem;line-height:1.4;margin:0 0 4px;">Abrir 2 sessões SQL e tentar comprar o último ingresso simultaneamente.</p>
-          <p style="font-size:.7rem;line-height:1.35;margin:0;color:#64748b;">Documentar: <em>sem lock vs com lock</em>.</p>
+          <h3 style="font-size:.84rem;line-height:1.2;margin:0 0 4px;">Trigger de log</h3>
+          <p style="font-size:.72rem;line-height:1.4;margin:0 0 4px;"><code>trg_avaliacao_log</code> em <strong>AFTER INSERT</strong> na tabela <code>avaliacao</code> que grava automaticamente uma linha em <code>log_avaliacao</code>.</p>
+          <p style="font-size:.7rem;line-height:1.35;margin:0;color:#64748b;">App nunca escreve no log; quem escreve é o trigger.</p>
         </div>
         <div class="box amb" id="dl3" style="padding:11px 13px;opacity:0;transform:translateY(16px);">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
             <div style="background:var(--am);color:white;font-size:.62rem;font-weight:800;padding:2px 8px;border-radius:5px;">04</div>
-            <div style="font-size:1rem;">📝</div>
+            <div style="font-size:1rem;">▶️</div>
           </div>
-          <h3 style="font-size:.84rem;line-height:1.2;margin:0 0 4px;">README + MR</h3>
-          <p style="font-size:.72rem;line-height:1.4;margin:0 0 4px;">README em <code>db/</code> explicando os 3 entregáveis acima e como reproduzir.</p>
-          <p style="font-size:.7rem;line-height:1.35;margin:0;color:#b45309;"><strong>⭐ Excelência:</strong> <code>SET TRANSACTION ISOLATION LEVEL SERIALIZABLE</code> + análise do <em>throughput</em>.</p>
+          <h3 style="font-size:.84rem;line-height:1.2;margin:0 0 4px;">Emular com Expo</h3>
+          <p style="font-size:.72rem;line-height:1.4;margin:0 0 4px;">Rodar <code>npx expo start</code>, abrir no celular via <strong>Expo Go</strong> (QR code) ou no emulador Android/iOS — demonstrar tela funcionando.</p>
+          <p style="font-size:.7rem;line-height:1.35;margin:0;color:#b45309;"><strong>⭐ Excelência:</strong> exibir também a lista de logs lida diretamente da tabela <code>log_avaliacao</code>.</p>
         </div>
       </div>
       <div class="box" style="margin-top:10px;border-left-color:var(--dk);background:#f8fafc;padding:9px 14px;">
         <p style="font-size:.8rem;margin:0 0 4px;"><strong>📌 Fluxo de entrega (em grupo):</strong></p>
         <ol style="font-size:.76rem;line-height:1.45;margin:0;padding-left:1.2rem;">
-          <li>Branch <code>feat/db-transactions-triggers</code> no repositório do grupo</li>
-          <li>Pasta <code>db/</code> com scripts <code>sp_comprar_ingresso.sql</code>, <code>trg_avaliacao_audit.sql</code>, <code>tabelas_log.sql</code></li>
-          <li><code>README.md</code> documentando o teste de race condition (com lock vs sem lock)</li>
-          <li>Abrir Merge Request <code>feat(db): transactions + triggers de auditoria</code></li>
+          <li>Branch <code>feat/mobile-supabase-trigger</code> no repositório do grupo</li>
+          <li>Pasta <code>app/</code> com o projeto Expo (<code>npx create-expo-app</code>) e <code>db/</code> com <code>schema.sql</code> + <code>trg_avaliacao_log.sql</code></li>
+          <li><code>README.md</code> com print da tela rodando no Expo Go e print da tabela <code>log_avaliacao</code> populada pelo trigger</li>
+          <li>Abrir Merge Request <code>feat(mobile): tela de avaliacao + supabase + trigger de log</code></li>
         </ol>
       </div>
       <div class="box" style="margin-top:6px;border-left-color:#dc2626;background:#fef2f2;padding:9px 14px;">
-        <p style="font-size:.78rem;margin:0;"><strong>⚠️ Importante:</strong> sem nota ponderada. A entrega coletiva é avaliada qualitativamente pelo professor — vale como <em>débito técnico zero</em> para a aula 6 (mobile vai consumir essas procedures).</p>
+        <p style="font-size:.78rem;margin:0;"><strong>⚠️ Importante:</strong> sem nota ponderada. A entrega coletiva é avaliada qualitativamente — vale como <em>débito técnico zero</em> para a próxima aula (que aprofunda mobile, MVVM e integração com a API).</p>
       </div>
     </div>
   </div>
