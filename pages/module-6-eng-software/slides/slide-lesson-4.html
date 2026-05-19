@@ -327,19 +327,19 @@
         <div class="jp-row">
           <div class="jp-tag sql">SQL [1]</div>
           <div class="jp-body">
-            <div class="jp-code" id="c1-code"><span class="jp-line"><span class="c-kw">CREATE PROCEDURE</span> sp_top_recomendacoes_usuario</span>
-<span class="jp-line">    <span class="c-vb">@userId</span> <span class="c-typ">INT</span>,</span>
-<span class="jp-line">    <span class="c-vb">@top</span>    <span class="c-typ">INT</span> = <span class="c-num">10</span>   <span class="c-cmt">-- valor default</span></span>
-<span class="jp-line"><span class="c-kw">AS</span></span>
-<span class="jp-line"><span class="c-kw">BEGIN</span></span>
-<span class="jp-line">    <span class="c-kw">SET</span> NOCOUNT <span class="c-kw">ON</span>;</span>
+            <div class="jp-code" id="c1-code"><span class="jp-line"><span class="c-kw">CREATE PROCEDURE</span> sp_top_recomendacoes_usuario       <span class="c-cmt">-- cria a procedure como objeto persistente no banco</span></span>
+<span class="jp-line">    <span class="c-vb">@userId</span> <span class="c-typ">INT</span>,                                    <span class="c-cmt">-- parametro de entrada obrigatorio: id do usuario</span></span>
+<span class="jp-line">    <span class="c-vb">@top</span>    <span class="c-typ">INT</span> = <span class="c-num">10</span>                                <span class="c-cmt">-- parametro com valor default 10 (omissivel na chamada)</span></span>
+<span class="jp-line"><span class="c-kw">AS</span>                                                  <span class="c-cmt">-- separa a assinatura do corpo da procedure</span></span>
+<span class="jp-line"><span class="c-kw">BEGIN</span>                                               <span class="c-cmt">-- inicia o bloco de comandos do corpo</span></span>
+<span class="jp-line">    <span class="c-kw">SET</span> NOCOUNT <span class="c-kw">ON</span>;                                <span class="c-cmt">-- suprime mensagens "X rows affected" no protocolo</span></span>
 <span class="jp-line"></span>
-<span class="jp-line">    <span class="c-kw">SELECT TOP</span> (<span class="c-vb">@top</span>) i.id, i.nome, r.score</span>
-<span class="jp-line">    <span class="c-kw">FROM</span> recomendacao r</span>
-<span class="jp-line">    <span class="c-kw">JOIN</span> item i <span class="c-kw">ON</span> i.id = r.item_id</span>
-<span class="jp-line">    <span class="c-kw">WHERE</span> r.user_id = <span class="c-vb">@userId</span></span>
-<span class="jp-line">    <span class="c-kw">ORDER BY</span> r.score <span class="c-kw">DESC</span>;</span>
-<span class="jp-line"><span class="c-kw">END</span></span></div>
+<span class="jp-line">    <span class="c-kw">SELECT TOP</span> (<span class="c-vb">@top</span>) i.id, i.nome, r.score            <span class="c-cmt">-- traz somente as @top primeiras linhas do result set</span></span>
+<span class="jp-line">    <span class="c-kw">FROM</span> recomendacao r                            <span class="c-cmt">-- fonte: tabela de recomendacoes (alias r)</span></span>
+<span class="jp-line">    <span class="c-kw">JOIN</span> item i <span class="c-kw">ON</span> i.id = r.item_id                <span class="c-cmt">-- junta com o catalogo para trazer o nome do item</span></span>
+<span class="jp-line">    <span class="c-kw">WHERE</span> r.user_id = <span class="c-vb">@userId</span>                       <span class="c-cmt">-- filtra apenas as recomendacoes daquele usuario</span></span>
+<span class="jp-line">    <span class="c-kw">ORDER BY</span> r.score <span class="c-kw">DESC</span>;                        <span class="c-cmt">-- ordena do maior para o menor score (top-N por relevancia)</span></span>
+<span class="jp-line"><span class="c-kw">END</span>                                                 <span class="c-cmt">-- encerra o bloco do corpo da procedure</span></span></div>
             <div style="margin-top:8px;" id="c1-run"><span class="jp-running"><span>▶ Executando</span><span class="dots"><span></span><span></span><span></span></span></span></div>
           </div>
         </div>
@@ -348,20 +348,37 @@
         <div class="jp-row">
           <div class="jp-tag out">Out [1]</div>
           <div class="jp-body">
-            <div class="jp-out green">Commands completed successfully.</div>
-            <div style="margin-top:6px;font-size:.74rem;color:#64748b;font-style:italic;">EXEC sp_top_recomendacoes_usuario @userId = 42, @top = 3;</div>
-            <div style="margin-top:4px;">
-              <table class="jdf" style="font-size:.76rem;">
-                <thead><tr><th class="idx">id</th><th>nome</th><th>score</th></tr></thead>
-                <tbody>
-                  <tr><td>17</td><td>Cirque du Soleil — OVO</td><td class="score">0.92</td></tr>
-                  <tr><td>03</td><td>Bossa Acústica</td><td class="score">0.87</td></tr>
-                  <tr><td>21</td><td>Hamlet · Cia Teatro</td><td class="score">0.81</td></tr>
-                </tbody>
-              </table>
-            </div>
-            <div class="box" style="margin-top:8px;border-left-color:var(--bl);background:#eff6ff;padding:8px 12px;">
-              <p style="font-size:.78rem;margin:0;"><strong>📌 Lê assim:</strong> a procedure recebe <code>@userId</code> e devolve um result set. O app faz <strong>1 EXEC</strong> e recebe a lista pronta. Sem montar SQL no backend, sem N round-trips.</p>
+            <div style="display:flex; gap:14px; align-items:stretch;">
+              <!-- ===== 70%: OUTPUT DA EXECUÇÃO ===== -->
+              <div style="flex: 0 0 calc(70% - 7px); min-width:0;">
+                <div class="jp-out green">Commands completed successfully.</div>
+                <div style="margin-top:6px;font-size:.74rem;color:#64748b;font-style:italic;">EXEC sp_top_recomendacoes_usuario @userId = 42, @top = 3;</div>
+                <div style="margin-top:4px;">
+                  <table class="jdf" style="font-size:.76rem;">
+                    <thead><tr><th class="idx">id</th><th>nome</th><th>score</th></tr></thead>
+                    <tbody>
+                      <tr><td>17</td><td>Cirque du Soleil — OVO</td><td class="score">0.92</td></tr>
+                      <tr><td>03</td><td>Bossa Acústica</td><td class="score">0.87</td></tr>
+                      <tr><td>21</td><td>Hamlet · Cia Teatro</td><td class="score">0.81</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="box" style="margin-top:8px;border-left-color:var(--bl);background:#eff6ff;padding:8px 12px;">
+                  <p style="font-size:.78rem;margin:0;"><strong>📌 Lê assim:</strong> a procedure recebe <code>@userId</code> e devolve um result set. O app faz <strong>1 EXEC</strong> e recebe a lista pronta. Sem montar SQL no backend, sem N round-trips.</p>
+                </div>
+              </div>
+
+              <!-- ===== 30%: POR QUE É IMPORTANTE ===== -->
+              <div style="flex: 0 0 calc(30% - 7px); min-width:0;">
+                <div style="background:#fef2f2; border:1px solid #fecaca; border-left:4px solid #dc2626; border-radius:8px; padding:11px 13px; font-size:.74rem; line-height:1.5; height:100%; box-sizing:border-box;">
+                  <div style="font-weight:800; color:#991b1b; margin-bottom:8px; font-size:.86rem;">🎯 Por que essa procedure importa?</div>
+                  <div style="margin-bottom:7px;"><strong style="color:#7f1d1d;">⚡ 1 EXEC vs N round-trips.</strong> O cliente faz UMA única chamada de rede; o banco devolve a lista pronta, sem montagem de SQL no back-end.</div>
+                  <div style="margin-bottom:7px;"><strong style="color:#7f1d1d;">🛡️ Sem SQL injection.</strong> Parâmetros tipados (<code>@userId</code> <span class="c-typ" style="background:transparent;color:#7f1d1d;">INT</span>) são escapados pelo driver — nada de concatenação de strings.</div>
+                  <div style="margin-bottom:7px;"><strong style="color:#7f1d1d;">♻️ Reuso real.</strong> App mobile, painel BI e jobs noturnos invocam a MESMA regra de negócio — uma única fonte de verdade.</div>
+                  <div style="margin-bottom:7px;"><strong style="color:#7f1d1d;">🚀 Plano em cache.</strong> O SQL Server reaproveita o plano de execução nas chamadas seguintes — latência menor em alta concorrência.</div>
+                  <div><strong style="color:#7f1d1d;">🔒 Encapsulamento.</strong> A política de "top recomendações" mora no banco; trocar a regra não exige redeploy do back-end.</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -372,52 +389,78 @@
   <!-- ====== SLIDE 7: PROCEDURE · OUTPUT + TRANSAÇÃO ====== -->
   <div class="slide">
     <div class="sc">
-      <div class="sh red" style="padding:12px 18px;"><div class="st" style="font-size:1.5rem;">Procedure · OUTPUT + Transação 🔄</div><div class="ss">Registra interação · atualiza contador · devolve o ID gerado · tudo atômico</div></div>
-      <div class="jp" style="margin-bottom:8px;">
-        <div class="jp-row">
-          <div class="jp-tag sql">SQL [2]</div>
-          <div class="jp-body">
-            <div class="jp-code small" id="c2-code"><span class="jp-line"><span class="c-kw">CREATE PROCEDURE</span> sp_marcar_assistido</span>
-<span class="jp-line">    <span class="c-vb">@userId</span>       <span class="c-typ">INT</span>,</span>
-<span class="jp-line">    <span class="c-vb">@espetaculoId</span> <span class="c-typ">INT</span>,</span>
-<span class="jp-line">    <span class="c-vb">@interacaoId</span>  <span class="c-typ">INT</span> <span class="c-kw">OUTPUT</span>     <span class="c-cmt">-- devolve o ID gerado</span></span>
+      <div class="sh red" style="padding:10px 16px;"><div class="st" style="font-size:1.35rem;">Procedure · OUTPUT + Transação 🔄</div><div class="ss" style="font-size:.82rem;">Registra interação · atualiza contador · devolve o ID gerado · tudo atômico</div></div>
+
+      <div style="display:flex; gap:12px; align-items:stretch;">
+
+        <!-- ============== COLUNA ESQUERDA · CÓDIGO (58%) ============== -->
+        <div style="flex: 0 0 calc(58% - 6px); min-width:0;">
+          <div class="jp">
+            <div class="jp-row">
+              <div class="jp-tag sql">SQL [2]</div>
+              <div class="jp-body">
+                <div class="jp-code small" id="c2-code" style="font-size:.62rem; line-height:1.32;"><span class="jp-line"><span class="c-kw">CREATE PROCEDURE</span> sp_marcar_assistido       <span class="c-cmt">-- procedure transacional</span></span>
+<span class="jp-line">    <span class="c-vb">@userId</span>       <span class="c-typ">INT</span>,                   <span class="c-cmt">-- in: usuario</span></span>
+<span class="jp-line">    <span class="c-vb">@espetaculoId</span> <span class="c-typ">INT</span>,                   <span class="c-cmt">-- in: espetaculo</span></span>
+<span class="jp-line">    <span class="c-vb">@interacaoId</span>  <span class="c-typ">INT</span> <span class="c-kw">OUTPUT</span>            <span class="c-cmt">-- out: ID gerado</span></span>
 <span class="jp-line"><span class="c-kw">AS</span></span>
 <span class="jp-line"><span class="c-kw">BEGIN</span></span>
-<span class="jp-line">    <span class="c-kw">SET</span> NOCOUNT <span class="c-kw">ON</span>;</span>
+<span class="jp-line">    <span class="c-kw">SET</span> NOCOUNT <span class="c-kw">ON</span>;                        <span class="c-cmt">-- protocolo limpo</span></span>
 <span class="jp-line"></span>
-<span class="jp-line">    <span class="c-kw">BEGIN TRY</span></span>
-<span class="jp-line">        <span class="c-kw">BEGIN TRANSACTION</span>;</span>
+<span class="jp-line">    <span class="c-kw">BEGIN TRY</span>                              <span class="c-cmt">-- captura excecao</span></span>
+<span class="jp-line">        <span class="c-kw">BEGIN TRANSACTION</span>;                  <span class="c-cmt">-- abre transacao</span></span>
 <span class="jp-line"></span>
 <span class="jp-line">        <span class="c-kw">INSERT INTO</span> interacao (user_id, espetaculo_id, tipo, data)</span>
 <span class="jp-line">        <span class="c-kw">VALUES</span> (<span class="c-vb">@userId</span>, <span class="c-vb">@espetaculoId</span>, <span class="c-str">'ASSISTIU'</span>, <span class="c-fn">GETDATE</span>());</span>
 <span class="jp-line"></span>
-<span class="jp-line">        <span class="c-kw">SET</span> <span class="c-vb">@interacaoId</span> = <span class="c-fn">SCOPE_IDENTITY</span>();   <span class="c-cmt">-- pega o ID auto-incremento</span></span>
+<span class="jp-line">        <span class="c-kw">SET</span> <span class="c-vb">@interacaoId</span> = <span class="c-fn">SCOPE_IDENTITY</span>();  <span class="c-cmt">-- pega ID novo</span></span>
 <span class="jp-line"></span>
 <span class="jp-line">        <span class="c-kw">UPDATE</span> estatistica_item</span>
 <span class="jp-line">           <span class="c-kw">SET</span> total_visualizacoes = total_visualizacoes + <span class="c-num">1</span></span>
 <span class="jp-line">         <span class="c-kw">WHERE</span> item_id = <span class="c-vb">@espetaculoId</span>;</span>
 <span class="jp-line"></span>
-<span class="jp-line">        <span class="c-kw">COMMIT TRANSACTION</span>;</span>
+<span class="jp-line">        <span class="c-kw">COMMIT TRANSACTION</span>;                 <span class="c-cmt">-- confirma tudo</span></span>
 <span class="jp-line">    <span class="c-kw">END TRY</span></span>
-<span class="jp-line">    <span class="c-kw">BEGIN CATCH</span></span>
-<span class="jp-line">        <span class="c-kw">ROLLBACK TRANSACTION</span>;</span>
-<span class="jp-line">        <span class="c-kw">THROW</span>;   <span class="c-cmt">-- propaga o erro para o app</span></span>
+<span class="jp-line">    <span class="c-kw">BEGIN CATCH</span>                            <span class="c-cmt">-- pegou erro</span></span>
+<span class="jp-line">        <span class="c-kw">ROLLBACK TRANSACTION</span>;               <span class="c-cmt">-- desfaz tudo</span></span>
+<span class="jp-line">        <span class="c-kw">THROW</span>;                              <span class="c-cmt">-- relanca pro app</span></span>
 <span class="jp-line">    <span class="c-kw">END CATCH</span></span>
 <span class="jp-line"><span class="c-kw">END</span></span></div>
-            <div style="margin-top:8px;" id="c2-run"><span class="jp-running"><span>▶ Executando</span><span class="dots"><span></span><span></span><span></span></span></span></div>
-          </div>
-        </div>
-      </div>
-      <div class="jp" id="c2-out-wrap" style="opacity:0;">
-        <div class="jp-row">
-          <div class="jp-tag out">Out [2]</div>
-          <div class="jp-body">
-            <div class="jp-out green">@interacaoId = 91823 · 1 row inserted · 1 row updated · COMMIT</div>
-            <div class="box" style="margin-top:8px;border-left-color:var(--gr);background:#f0fdf4;padding:8px 12px;">
-              <p style="font-size:.78rem;margin:0;"><strong>📌 O que importa:</strong> os dois passos (INSERT + UPDATE) ou acontecem juntos ou nenhum acontece. Se o UPDATE falhar, o INSERT é desfeito. <strong>Atomicidade resolvida no BD</strong> — o app só precisa ler o erro e reagir.</p>
+                <div style="margin-top:6px;" id="c2-run"><span class="jp-running"><span>▶ Executando</span><span class="dots"><span></span><span></span><span></span></span></span></div>
+              </div>
             </div>
           </div>
         </div>
+
+        <!-- ============== COLUNA DIREITA · OUTPUT + CARD (42%) ============== -->
+        <div style="flex: 0 0 calc(42% - 6px); min-width:0; display:flex; flex-direction:column; gap:8px;">
+
+          <!-- Out [2] -->
+          <div class="jp" id="c2-out-wrap" style="opacity:0; flex: 0 0 auto;">
+            <div class="jp-row">
+              <div class="jp-tag out">Out [2]</div>
+              <div class="jp-body">
+                <div class="jp-out green" style="font-size:.74rem;">@interacaoId = 91823 · 1 row inserted · 1 row updated · COMMIT</div>
+                <div style="margin-top:4px;font-size:.66rem;color:#64748b;font-style:italic;word-break:break-word;">DECLARE @id INT;<br>EXEC sp_marcar_assistido @userId=42, @espetaculoId=17, @interacaoId=@id OUTPUT;</div>
+                <div class="box" style="margin-top:6px;border-left-color:var(--gr);background:#f0fdf4;padding:6px 10px;">
+                  <p style="font-size:.72rem;margin:0;line-height:1.4;"><strong>📌 O que importa:</strong> INSERT + UPDATE acontecem juntos ou nenhum acontece. Falha = ROLLBACK automático.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card "Por que importa" — flex:1 para preencher altura restante e alinhar com a coluna esquerda -->
+          <div style="flex: 1 1 auto; background:#f0fdf4; border:1px solid #bbf7d0; border-left:4px solid #16a34a; border-radius:8px; padding:11px 13px; font-size:.74rem; line-height:1.5; display:flex; flex-direction:column; justify-content:flex-start;">
+            <div style="font-weight:800; color:#14532d; margin-bottom:8px; font-size:.84rem;">🎯 Por que essa procedure importa?</div>
+            <div style="margin-bottom:7px;"><strong style="color:#166534;">🔄 Atomicidade.</strong> INSERT + UPDATE confirmam juntos. Falha de um desfaz o outro.</div>
+            <div style="margin-bottom:7px;"><strong style="color:#166534;">↩️ TRY / CATCH.</strong> Exceção dentro do TRY cai no CATCH, ROLLBACK e <code>THROW</code> relança.</div>
+            <div style="margin-bottom:7px;"><strong style="color:#166534;">📤 OUTPUT param.</strong> App recebe o ID na MESMA chamada, sem SELECT extra.</div>
+            <div style="margin-bottom:7px;"><strong style="color:#166534;">🚫 Sem estado inconsistente.</strong> Nunca há "interação registrada mas não contada".</div>
+            <div><strong style="color:#166534;">🎯 Regra ao lado dos dados.</strong> A política vive perto da fonte da verdade.</div>
+          </div>
+
+        </div>
+
       </div>
     </div>
   </div>
@@ -686,7 +729,45 @@
     </div>
   </div>
 
-  <!-- ====== SLIDE 12: O QUE É MVVM? ====== -->
+  <!-- ====== SLIDE 12: OPTION (RECOMPILE) · QUANDO USAR ====== -->
+  <div class="slide">
+    <div class="sc">
+      <div class="sh amber" style="padding:12px 18px;">
+        <div class="st" style="font-size:1.5rem;">🎯 Quando usar <code style="color:#fff;background:rgba(255,255,255,.15);padding:2px 8px;border-radius:5px;">OPTION (RECOMPILE)</code></div>
+        <div class="ss" style="font-size:.86rem;">Trade-off: cache de plano (rápido sempre) vs plano sob medida (rápido <em>para aquele valor</em>)</div>
+      </div>
+
+      <div style="display:flex; gap:14px; align-items:stretch; margin-top:10px;">
+
+        <!-- USE QUANDO -->
+        <div id="rec-yes" style="flex:1; background:#f0fdf4; border:1px solid #bbf7d0; border-left:5px solid #16a34a; border-radius:10px; padding:14px 16px; display:flex; flex-direction:column;">
+          <div style="font-weight:800; color:#14532d; font-size:1.05rem; margin-bottom:10px;">✅ USE quando</div>
+          <ul style="font-size:.88rem; line-height:1.55; color:#374151; margin:0; padding-left:1.1rem;">
+            <li style="margin-bottom:8px;">A <strong>distribuição dos dados é muito desigual</strong> entre valores do parâmetro — alguns <code>@userId</code> têm 3 itens, outros têm 1 milhão.</li>
+            <li style="margin-bottom:8px;">A query roda com <strong>pouca frequência</strong> (poucas vezes por minuto). O custo da recompilação é pago em ms — diluído por chamada.</li>
+            <li>Os outros tunings (<strong>índices, estatísticas, reescrita da query</strong>) já foram feitos e o problema de plano ruim ainda persiste.</li>
+          </ul>
+        </div>
+
+        <!-- NÃO USE QUANDO -->
+        <div id="rec-no" style="flex:1; background:#fef2f2; border:1px solid #fecaca; border-left:5px solid #dc2626; border-radius:10px; padding:14px 16px; display:flex; flex-direction:column;">
+          <div style="font-weight:800; color:#991b1b; font-size:1.05rem; margin-bottom:10px;">❌ NÃO USE quando</div>
+          <ul style="font-size:.88rem; line-height:1.55; color:#374151; margin:0; padding-left:1.1rem;">
+            <li style="margin-bottom:8px;">A procedure roda <strong>milhares de vezes por segundo</strong>. O custo de compilar repetidamente fica mais caro do que o ganho do plano sob medida.</li>
+            <li style="margin-bottom:8px;">A distribuição dos dados é <strong>uniforme</strong> (todos os <code>@userId</code> têm número parecido de linhas). O cache do plano é exatamente o que você quer aqui.</li>
+            <li>Você ainda <strong>não confirmou</strong> que tem um problema real de parameter sniffing — não é mágica, é <em>trade-off</em>.</li>
+          </ul>
+        </div>
+
+      </div>
+
+      <div class="box" style="margin-top:12px;border-left-color:var(--am);background:#fffbeb;padding:10px 14px;">
+        <p style="font-size:.86rem;margin:0;line-height:1.5;"><strong>📌 Em uma frase:</strong> <code>OPTION (RECOMPILE)</code> é a opção nuclear contra <em>parameter sniffing</em> — toda execução é uma compilação fresca. Use só quando o plano <strong>realmente varia muito</strong> entre os parâmetros, porque você está trocando <strong>cache eficiente</strong> por <strong>plano sob medida</strong>.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== SLIDE 13 (antigo 12): O QUE É MVVM? ====== -->
   <div class="slide">
     <div class="sc">
       <div class="sh dark"><div class="st">O que é a Arquitetura MVVM? 🧱</div><div class="ss">Padrão de 3 camadas que separa responsabilidades · base do que vem na aula 6 (FrontEnd Mobile)</div></div>
@@ -1535,6 +1616,17 @@ function animPerformance() {
   }));
 }
 
+// ── SLIDE 12 · OPTION (RECOMPILE) · QUANDO USAR ──────────────────────
+function animRecompile() {
+  var lib = A(); if (!lib) return;
+  lib.utils.set('#rec-yes,#rec-no', { opacity: 0, translateY: 14, scale: 0.96 });
+  track(lib.animate('#rec-yes,#rec-no', {
+    opacity: [0,1], translateY: [14,0], scale: [0.96,1],
+    duration: 520, ease: 'outBack(1.5)',
+    delay: lib.stagger(160, { start: 120 })
+  }));
+}
+
 // ── SLIDE 11 · PASSO A PASSO SUPABASE ──────────────────────────────
 function animSupabase() {
   var lib = A(); if (!lib) return;
@@ -1673,13 +1765,14 @@ var animMap = [
   animCompare,      // 9  · Procedure × Function comparação
   animPerformance,  // 10 · Plano de execução
   animSupabase,     // 11 · Passo a passo · Supabase
-  animMVVM,         // 12 · MVVM em 3 cards
-  animMVVMSvg,      // 13 · MVVM diagrama SVG
-  animRN,           // 14 · Como funciona o React Native
-  animAPK,          // 15 · Compilar APK
-  animCaminho,      // 16 · Caminho de uma requisição
-  animMaoNaMassa,   // 17 · Mão na massa
-  animEncerramento  // 18 · Encerramento
+  animRecompile,    // 12 · OPTION (RECOMPILE) · quando usar
+  animMVVM,         // 13 · MVVM em 3 cards
+  animMVVMSvg,      // 14 · MVVM diagrama SVG
+  animRN,           // 15 · Como funciona o React Native
+  animAPK,          // 16 · Compilar APK
+  animCaminho,      // 17 · Caminho de uma requisição
+  animMaoNaMassa,   // 18 · Mão na massa
+  animEncerramento  // 19 · Encerramento
 ];
 
 function runAnim(idx) {
