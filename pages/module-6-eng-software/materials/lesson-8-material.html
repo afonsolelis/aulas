@@ -1376,18 +1376,31 @@ server.<span class="fn">Stop</span>();</pre></div>
           </div>
         </div>
 
-        <p>A ponderada da aula 8 é individual, em sala, 90 minutos. A entrega é via Merge Request no repositório oficial do grupo. Não é arquivo solto, não é screenshot. É um MR com descrição preenchida.</p>
+        <p>A ponderada da aula 8 é individual, em sala, 90 minutos. A entrega é via Merge Request no repositório oficial do grupo. <strong>Testcontainers</strong> e <strong>WireMock.Net (VCR)</strong> são obrigatórios na entrega — você usa as duas ferramentas no mesmo teste. Além disso, cada aluno do grupo cobre um fluxo diferente: <strong>fluxos duplicados são inválidos</strong>.</p>
 
-        <h3>11.1 · Checklist da entrega</h3>
+        <div class="speak">
+          <div class="speak-label">A regra que ordena o trabalho</div>
+          <p>O fluxo escolhido deve obrigatoriamente tocar <strong>uma dependência possuída</strong> (BD/cache/broker do seu serviço) — testada com Testcontainers — <strong>e uma dependência consumida</strong> (API externa) — testada com WireMock.Net. Se o fluxo do MVP não tem as duas, escolha outro.</p>
+        </div>
+
+        <h3>11.1 · Checklist da entrega · 10 passos</h3>
 
         <ol class="steps-num">
           <li>
-            <h5>Escolher 1 fluxo da API .NET</h5>
-            <p>Pegue um fluxo dos services do projeto do grupo. Identifique o endpoint correspondente.</p>
+            <h5>🤝 Coordenar no grupo · registrar fluxo único</h5>
+            <p>Antes de codar, alinhe com seus colegas qual fluxo cada um vai testar. Registre a divisão numa <strong>tabela no README</strong> do repositório, com 3 colunas: aluno, fluxo escolhido, link do MR (preenchido depois). <strong>Fluxos duplicados</strong> entre alunos do mesmo grupo são considerados não-conformes — quem chega primeiro pega.</p>
+            <div class="code-wrap"><div class="code-head"><span>seção sugerida no README do repo</span><span class="lang">Markdown</span></div><pre class="code-body">## 🧪 Tracker · Testes de Integração (Aula 8)
+
+| Aluno              | Fluxo testado            | MR                 |
+|--------------------|--------------------------|--------------------|
+| Ana Silva          | POST /pedidos            | !127               |
+| Bruno Costa        | GET /catalogo/{id}       | !128               |
+| Carla Dias         | POST /pagamentos/charge  | (em desenvolvim.)  |
+| Diego Souza        | PUT /pedidos/{id}/cancel | (em desenvolvim.)  |</pre></div>
           </li>
           <li>
-            <h5>Classificar a dependência</h5>
-            <p>O fluxo escolhido toca em qual dependência? Classifique: <strong>possuída</strong> (BD/broker/cache do grupo) ou <strong>consumida</strong> (API externa). Isso define a ferramenta.</p>
+            <h5>Identificar as duas dependências do fluxo</h5>
+            <p>Olhe o fluxo escolhido e mapeie: qual é a <strong>dependência possuída</strong> (geralmente o BD do serviço, mas pode ser cache ou broker)? E qual é a <strong>dependência consumida</strong> (geralmente uma API externa do parceiro ou de outro squad)? Anote as duas — vão pra descrição do MR.</p>
           </li>
           <li>
             <h5>Identificar o RF correspondente</h5>
@@ -1402,66 +1415,91 @@ server.<span class="fn">Stop</span>();</pre></div>
             <p>Padrão: <code>test/integration-{nome-do-fluxo}</code>. Ex.: <code>test/integration-criar-pedido</code>.</p>
           </li>
           <li>
+            <h5>🐳 Configurar Testcontainers (dependência possuída)</h5>
+            <p>Crie a fixture do container conforme o capítulo 6. <code>PostgreSqlBuilder</code> (ou módulo equivalente do seu BD) + <code>IAsyncLifetime</code>. Migrations rodando no setup. Verifique que o container sobe local.</p>
+          </li>
+          <li>
+            <h5>📼 Configurar WireMock.Net (dependência consumida)</h5>
+            <p>Crie a fixture do stub HTTP conforme o capítulo 7. <code>WireMockServer.Start</code> com porta dinâmica + mappings das responses esperadas da API externa. Aponte o <code>HttpClient</code> da sua app para a URL do WireMock no teste.</p>
+          </li>
+          <li>
             <h5>Implementar 1 teste de sucesso + 1 teste de erro</h5>
-            <p>Use Testcontainers OU WireMock.Net, conforme o mapa do passo 2. Cenário de sucesso (status 2xx ou comportamento esperado) + cenário de erro (4xx, exceção tipada, timeout).</p>
+            <p><strong>Sucesso:</strong> fluxo feliz com BD real (TC) + API externa respondendo 200 (WireMock). <strong>Erro:</strong> pode ser tanto regra de negócio violada (BD recusa) quanto falha do provider (WireMock devolve 503/timeout). Padrão AAA. Black-box: só interage pelo contrato observável.</p>
           </li>
           <li>
             <h5>Garantir <code>dotnet test</code> verde no pipeline</h5>
-            <p>O CI do repositório precisa estar verde. Se falhou, o critério 1 da ponderada vai cair. Push e veja o resultado antes de abrir o MR.</p>
+            <p>O CI do repositório precisa estar verde. Se falhou, o critério 2 do barema vai cair. Push para a branch e veja o resultado antes de abrir o MR.</p>
           </li>
           <li>
-            <h5>Abrir o Merge Request com descrição completa</h5>
-            <p>A descrição do MR é parte da nota. Modelo recomendado:</p>
+            <h5>Abrir o MR com descrição completa + postar link na plataforma</h5>
+            <p>A descrição do MR é parte da nota. Use o modelo abaixo. Depois de abrir o MR, atualize a tabela do README com o número do MR e <strong>cole o link direto na plataforma da disciplina</strong> antes do fim dos 90 min.</p>
             <div class="code-wrap"><div class="code-head"><span>modelo da descrição do MR</span><span class="lang">Markdown</span></div><pre class="code-body">## Fluxo testado
 Criação de pedido via POST /api/pedidos.
 
-## Classificação da dependência
-**Possuída** — o serviço de pedidos usa o PostgreSQL administrado
-pelo grupo. Schema, migrations e deploy estão sob nosso controle.
+## Coordenação no grupo
+Registrado na tabela do README como meu fluxo (linha 1).
+Sem duplicação com colegas do grupo.
 
-## Ferramenta escolhida
-**Testcontainers for .NET** (módulo PostgreSql). Justificativa:
-dependência possuída, dialeto JSONB usado no payload, queries reais
-contra o mesmo banco que vai para produção.
+## Classificação das dependências
+
+### Dependência possuída · Testcontainers
+**PostgreSQL do serviço de pedidos** — o grupo controla schema,
+migrations e deploy. Testado com `PostgreSqlBuilder` rodando
+postgres:16-alpine em container descartável.
+
+### Dependência consumida · WireMock.Net (VCR)
+**API de catálogo do parceiro** — serviço externo que valida
+estoque antes de criar o pedido. Testado com stub HTTP que
+devolve 200 (sucesso) e 503 (cenário de erro).
 
 ## Rastreabilidade
-- **RF05** — Pedido deve ter ao menos 1 item válido
-  (artefato de requisitos, seção 3.2).
-- **RNF02** — Eixo: Confiabilidade · o teste previne corrupção de
-  dados em fluxo crítico (criação de pedido). Sem este teste,
-  uma alteração no schema do pedido pode passar invisível e
-  causar perda de dados em produção.
+- **RF05** — Pedido deve ter ao menos 1 item válido e estoque
+  positivo no catálogo (artefato de requisitos, seção 3.2).
+- **RNF02** — Eixo: Confiabilidade · o teste previne corrupção
+  de dados em fluxo crítico (criação de pedido) e garante
+  comportamento correto quando o catálogo externo cai. Sem
+  este teste, uma alteração no schema do pedido ou queda do
+  catálogo pode passar invisível e causar perda de pedidos.
 
 ## Cenários implementados
-- ✅ DeveCriarPedidoEListarComItens (sucesso)
-- ⚠️ DeveRecusarPedidoComClienteInexistente (erro)
+- ✅ DeveCriarPedidoQuandoCatalogoConfirmaEstoque (sucesso)
+- ⚠️ DeveRecusarPedidoQuandoCatalogoIndisponivel (erro · 503)
 
 ## Pipeline
-- [x] `dotnet test` verde
-- [x] Migrations rodam no setup da fixture
-- [x] Container Postgres descartável (não suja banco compartilhado)</pre></div>
-          </li>
-          <li>
-            <h5>Postar o link do MR na plataforma</h5>
-            <p>O link direto do MR vai na plataforma da disciplina antes do fim dos 90 min. Sem o link postado, a entrega não é considerada.</p>
+- [x] `dotnet test` verde no CI
+- [x] Migrations rodam no setup da fixture do Postgres
+- [x] WireMock.Net devolve stubs determinísticos
+- [x] Container Postgres + WireMock descartáveis a cada execução</pre></div>
           </li>
         </ol>
 
-        <h3>11.2 · Barema (10 pontos · 4 critérios)</h3>
+        <h3>11.2 · Barema · 10 pontos · 5 critérios</h3>
 
         <table class="mat-table">
           <thead><tr><th>Critério</th><th>Peso</th><th>O que pontua máximo</th></tr></thead>
           <tbody>
-            <tr><td><strong>1 · Teste de integração black-box</strong></td><td>3,0 pts</td><td>1 sucesso + 1 erro corretos, asserções sem falsos positivos, <code>dotnet test</code> verde no pipeline.</td></tr>
-            <tr><td><strong>2 · Entrega via Merge Request</strong></td><td>2,0 pts</td><td>MR aberto no repositório oficial do grupo, branch <code>test/integration-{flow}</code>, gitflow correto.</td></tr>
-            <tr><td><strong>3 · Classificação + RF</strong></td><td>2,5 pts</td><td>Dependência classificada (possuída/consumida) com justificativa da ferramenta + RF citado com código exato. ⭐ Excelência: explica como o teste previne falha crítica no negócio do parceiro.</td></tr>
-            <tr><td><strong>4 · RNF justificado (ISO 25010)</strong></td><td>2,5 pts</td><td>Eixo identificado e justificado claramente. ⭐ Excelência: código RNF exato do artefato (ex.: "RNF02") + ligação direta com o teste.</td></tr>
+            <tr><td><strong>1 · Coordenação no grupo · Fluxo único</strong></td><td>1,0 pt</td><td>Fluxo registrado na tabela do README antes de codar; sem duplicação com outro aluno do grupo. <em>0,5 pt:</em> fluxo único mas registro feito após a entrega. <em>0 pt:</em> fluxo duplicado ou sem tabela.</td></tr>
+            <tr><td><strong>2 · Testes com Testcontainers + WireMock.Net</strong></td><td>3,0 pts</td><td>1 sucesso + 1 erro com Testcontainers (possuída) <strong>e</strong> WireMock.Net (consumida), asserções corretas, <code>dotnet test</code> verde. <em>1,5 pt:</em> só uma das ferramentas ou faltou cenário. <em>0 pt:</em> sem testes funcionais.</td></tr>
+            <tr><td><strong>3 · Entrega via Merge Request</strong></td><td>1,5 pt</td><td>MR no repositório oficial do grupo (Open ou Merged), branch <code>test/integration-{flow}</code>, gitflow correto. <em>0,75 pt:</em> fora do padrão. <em>0 pt:</em> sem MR.</td></tr>
+            <tr><td><strong>4 · Rastreabilidade da Regra de Negócio (RF)</strong></td><td>2,0 pts</td><td>Descrição do MR cita qual RF do artefato o teste valida. ⭐ Excelência: RF exato (ex.: "RF05") + como previne falha crítica. <em>1,0 pt:</em> menção vaga. <em>0 pt:</em> sem RF.</td></tr>
+            <tr><td><strong>5 · Conexão com RNF · ISO 25010</strong></td><td>2,5 pts</td><td>Eixo identificado e justificado (eficiência, segurança, confiabilidade, manutenibilidade). ⭐ Excelência: código RNF exato (ex.: "RNF02") + ligação direta com o teste. <em>1,0 pt:</em> cita sem justificar. <em>0 pt:</em> sem RNF.</td></tr>
           </tbody>
         </table>
 
         <div class="warn">
           <div class="warn-label">Critério mínimo</div>
-          <p>Aluno que sair às 16h15 sem <strong>MR aberto + dependência classificada + RF + RNF + pipeline verde</strong> está em débito técnico para a aula 9. Submissão parcial &gt; submissão zerada — entregue o que conseguir.</p>
+          <p>Aluno que sair às 16h15 sem <strong>fluxo único registrado + MR aberto + Testcontainers + WireMock + RF + RNF + pipeline verde</strong> está em débito técnico para a aula 9. Submissão parcial &gt; submissão zerada — entregue o que conseguir.</p>
+        </div>
+
+        <div class="tip">
+          <div class="tip-label">Estratégia de 90 minutos</div>
+          <ul>
+            <li><strong>0–10 min</strong> — coordenar no grupo, registrar fluxo no README (1,0 pt fácil).</li>
+            <li><strong>10–25 min</strong> — setup das duas fixtures (Testcontainers + WireMock) copiando dos capítulos 6 e 7.</li>
+            <li><strong>25–60 min</strong> — escrever os dois cenários (sucesso + erro) com AAA explícito.</li>
+            <li><strong>60–75 min</strong> — abrir MR, copiar template da descrição, preencher RF + RNF + classificação das dependências.</li>
+            <li><strong>75–90 min</strong> — refinar para os ⭐ Excelência (RF e RNF exatos do artefato), postar link na plataforma.</li>
+          </ul>
         </div>
       </section>
 
