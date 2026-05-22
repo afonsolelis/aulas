@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sandbox: SQLite Locks - Inteli</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔒</text></svg>">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="../../css/inteli-styles.css" rel="stylesheet">
+  
+  <style>
+    .sandbox-container { margin-top: 30px; }
+    .status-panel { 
+      background-color: #f8f9fa;
+      border: 2px solid #e9ecef;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 20px;
+      transition: all 0.3s ease;
+    }
+    .status-locked-me { border-color: var(--eng-software-yellow); background-color: #fff9e6; }
+    .status-locked-other { border-color: #dc3545; background-color: #f8d7da; }
+    
+    .terminal-log {
+      background-color: #212529;
+      color: #00ff00;
+      font-family: 'Courier New', Courier, monospace;
+      padding: 15px;
+      border-radius: 5px;
+      height: 250px;
+      overflow-y: auto;
+      font-size: 0.9rem;
+      margin-bottom: 20px;
+    }
+    .terminal-log span.error { color: #ff4444; }
+    .terminal-log span.info { color: #00bbff; }
+    .terminal-log span.warning { color: #ffaa00; }
+  </style>
+</head>
+<body>
+  <div class="module-header" style="background: var(--eng-software-yellow); color: white; padding: 15px 0;">
+    <div class="container d-flex justify-content-between align-items-center">
+      <div>
+        <span class="badge bg-dark mb-1">Sandbox Web</span>
+        <h1 style="font-size: 1.5rem; margin: 0;">Laboratório de SQLite Locks</h1>
+      </div>
+      <a href="../home-module-6-eng-software.html" class="btn btn-outline-light">← Voltar</a>
+    </div>
+  </div>
+
+  <div class="container sandbox-container">
+    <div class="row">
+      <!-- Painel Principal -->
+      <div class="col-md-8">
+        <div id="statusPanel" class="status-panel">
+          <h4 class="mb-3 d-flex justify-content-between">
+            Status do Banco de Dados
+            <span id="lockBadge" class="badge bg-success">Livre (Unlocked)</span>
+          </h4>
+          <p class="mb-1"><strong>Identificador desta aba:</strong> <span id="tabIdDisplay" class="text-primary font-monospace"></span></p>
+          <p class="mb-3"><strong>Aviso:</strong> Abra esta mesma página em <a href="sandbox-sqlite-locks.html" target="_blank">uma nova aba</a> para testar a concorrência!</p>
+          
+          <table class="table table-bordered table-striped bg-white" id="dbTable">
+            <thead class="table-dark">
+              <tr>
+                <th>ID</th>
+                <th>Titular</th>
+                <th>Saldo (R$)</th>
+              </tr>
+            </thead>
+            <tbody id="dbTableBody">
+              <tr><td colspan="3" class="text-center">Carregando SQLite...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="terminal-log" id="terminalLog">
+          <div><span class="info">[Sistema] Inicializando simulador de Lock SQLite no navegador...</span></div>
+        </div>
+      </div>
+
+      <!-- Painel de Ações -->
+      <div class="col-md-4">
+        <div class="card mb-3">
+          <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">Ações (Processo Atual)</h5>
+          </div>
+          <div class="card-body">
+            <div class="d-grid gap-2 mb-3">
+              <button id="btnBegin" class="btn btn-warning" onclick="beginTransaction()">
+                1. Iniciar Transação (Lock)
+              </button>
+              <button id="btnUpdate" class="btn btn-primary" onclick="updateBalance()">
+                2. Realizar UPDATE
+              </button>
+              <button id="btnCommit" class="btn btn-success" onclick="commitTransaction()" disabled>
+                3. Finalizar (COMMIT)
+              </button>
+            </div>
+            
+            <!-- SQL Viewer Box -->
+            <div class="bg-light p-2 border rounded mb-3">
+              <small class="fw-bold text-muted d-block border-bottom pb-1 mb-2">💻 Código SQL em Execução:</small>
+              <pre class="mb-0"><code id="sqlSnippet" class="text-primary fw-bold" style="font-size: 0.85rem;">-- Transação não iniciada</code></pre>
+            </div>
+            
+            <button id="btnReset" class="btn btn-outline-danger btn-sm w-100" onclick="resetDatabase()">
+              Zerar Banco e Locks
+            </button>
+          </div>
+        </div>
+        
+        <div class="alert alert-info" style="font-size: 0.85rem;">
+          <strong>Instruções:</strong><br>
+          Para simular o <code>SQLITE_BUSY</code>, na <strong>Aba 1</strong> clique em <em>BEGIN TRANSACTION</em> para adquirir o lock de escrita. Em seguida, vá para a <strong>Aba 2</strong> e tente fazer o <em>UPDATE</em>!
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+  <script>
+    // Configurações e Globais
+    const myTabId = 'Aba_' + Math.random().toString(36).substr(2, 5).toUpperCase();
+    let db = null;
+    let SQL = null;
+    let isTransactionActive = false;
+    let currentSql = "";
+
+    document.getElementById('tabIdDisplay').innerText = myTabId;
+
+    // Gerencia Snippet de Código SQL
+    function appendSql(sqlCmd, reset = false) {
+      if (reset) {
+        currentSql = sqlCmd;
+      } else {
+        currentSql += (currentSql ? "\n" : "") + sqlCmd;
+      }
+      document.getElementById('sqlSnippet').innerText = currentSql || "-- Transação não iniciada";
+    }
+
+    // Função de Logging no terminal
+    function logMessage(msg, type = '') {
+      const term = document.getElementById('terminalLog');
+      const time = new Date().toLocaleTimeString();
+      let spanClass = '';
+      if(type === 'error') spanClass = 'error';
+      else if(type === 'info') spanClass = 'info';
+      else if(type === 'warning') spanClass = 'warning';
+      
+      term.innerHTML += `<div>[${time}] <span class="${spanClass}">${msg}</span></div>`;
+      term.scrollTop = term.scrollHeight;
+    }
+
+    // Inicializa o SQL.js
+    async function initDatabase() {
+      try {
+        SQL = await initSqlJs({
+          locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
+        });
+        
+        loadDbFromStorage();
+        updateUI();
+        logMessage("SQLite WebAssembly carregado com sucesso.", "info");
+      } catch (err) {
+        logMessage("Erro ao carregar SQLite: " + err.message, "error");
+      }
+    }
+
+    function loadDbFromStorage() {
+      const saved = localStorage.getItem('sqlite_db_state');
+      if (saved) {
+        const uInt8Array = new Uint8Array(saved.split(',').map(Number));
+        db = new SQL.Database(uInt8Array);
+      } else {
+        createInitialDatabase();
+      }
+      renderTable();
+    }
+
+    function createInitialDatabase() {
+      if(db) db.close();
+      db = new SQL.Database();
+      db.run("CREATE TABLE contas (id INTEGER PRIMARY KEY, titular TEXT, saldo REAL);");
+      db.run("INSERT INTO contas (titular, saldo) VALUES ('João Silva', 1000.00);");
+      saveDbToStorage();
+    }
+
+    function saveDbToStorage() {
+      const data = db.export();
+      localStorage.setItem('sqlite_db_state', data.join(','));
+    }
+
+    // Renderiza a tabela na tela
+    function renderTable() {
+      if (!db) return;
+      const res = db.exec("SELECT * FROM contas");
+      const tbody = document.getElementById('dbTableBody');
+      tbody.innerHTML = '';
+      
+      if (res.length > 0) {
+        res[0].values.forEach(row => {
+          tbody.innerHTML += `<tr>
+            <td>${row[0]}</td>
+            <td>${row[1]}</td>
+            <td>R$ ${row[2].toFixed(2)}</td>
+          </tr>`;
+        });
+      }
+    }
+
+    // Ações do Banco
+    function beginTransaction() {
+      const currentLock = localStorage.getItem('sqlite_db_lock');
+      
+      if (currentLock) {
+        logMessage(`SQLITE_BUSY: database is locked (Bloqueado por: ${currentLock})`, "error");
+        return;
+      }
+      
+      localStorage.setItem('sqlite_db_lock', myTabId);
+      isTransactionActive = true;
+      updateUI();
+      appendSql("BEGIN EXCLUSIVE TRANSACTION;", true);
+      logMessage("BEGIN EXCLUSIVE TRANSACTION: Lock adquirido.", "warning");
+    }
+
+    function updateBalance() {
+      const currentLock = localStorage.getItem('sqlite_db_lock');
+      
+      if (currentLock && currentLock !== myTabId) {
+        logMessage(`❌ SQLITE_BUSY: database is locked (O arquivo do banco está bloqueado por ${currentLock})`, "error");
+        return;
+      }
+      
+      if (!isTransactionActive) {
+        // Se autocommit (sem begin), ele tenta pegar o lock rapidinho.
+        logMessage("Executando UPDATE em modo autocommit...", "info");
+        appendSql("UPDATE contas\nSET saldo = saldo - 100\nWHERE id = 1;", true);
+        db.run("UPDATE contas SET saldo = saldo - 100 WHERE id = 1");
+        saveDbToStorage();
+        renderTable();
+        logMessage("✅ UPDATE executado com sucesso e salvo.");
+      } else {
+        // Se dentro da transação, só faz na memoria e não salva no localStorage ainda
+        appendSql("UPDATE contas\nSET saldo = saldo - 100\nWHERE id = 1;");
+        db.run("UPDATE contas SET saldo = saldo - 100 WHERE id = 1");
+        renderTable();
+        logMessage("✅ UPDATE executado na transação (Ainda não comitado).");
+      }
+    }
+
+    function commitTransaction() {
+      if (!isTransactionActive) {
+        logMessage("Nenhuma transação ativa para realizar COMMIT.", "error");
+        return;
+      }
+      
+      appendSql("COMMIT;");
+      saveDbToStorage();
+      localStorage.removeItem('sqlite_db_lock');
+      isTransactionActive = false;
+      updateUI();
+      logMessage("COMMIT executado com sucesso. Banco destravado e salvo nas outras abas.", "info");
+    }
+
+    function resetDatabase() {
+      localStorage.removeItem('sqlite_db_lock');
+      localStorage.removeItem('sqlite_db_state');
+      isTransactionActive = false;
+      createInitialDatabase();
+      renderTable();
+      updateUI();
+      appendSql("DROP TABLE IF EXISTS contas;\nCREATE TABLE contas (id INTEGER PRIMARY KEY, titular TEXT, saldo REAL);\nINSERT INTO contas (titular, saldo) VALUES ('João Silva', 1000.00);", true);
+      logMessage("Banco e Locks resetados para o estado inicial.", "info");
+    }
+
+    // Gerenciamento de Interface Visual do Lock
+    function updateUI() {
+      const currentLock = localStorage.getItem('sqlite_db_lock');
+      const panel = document.getElementById('statusPanel');
+      const badge = document.getElementById('lockBadge');
+      const btnBegin = document.getElementById('btnBegin');
+      const btnCommit = document.getElementById('btnCommit');
+
+      panel.classList.remove('status-locked-me', 'status-locked-other');
+      
+      if (!currentLock) {
+        badge.className = "badge bg-success";
+        badge.innerText = "Livre (Unlocked)";
+        btnBegin.disabled = false;
+        btnCommit.disabled = true;
+      } else if (currentLock === myTabId) {
+        badge.className = "badge bg-warning text-dark";
+        badge.innerText = "Bloqueado por Mim";
+        panel.classList.add('status-locked-me');
+        btnBegin.disabled = true;
+        btnCommit.disabled = false;
+      } else {
+        badge.className = "badge bg-danger";
+        badge.innerText = `Bloqueado por ${currentLock}`;
+        panel.classList.add('status-locked-other');
+        btnBegin.disabled = false; // Permite tentar clicar pra ver o erro
+        btnCommit.disabled = true;
+      }
+    }
+
+    // Escuta eventos de storage para sincronizar entre abas
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'sqlite_db_state' && e.newValue) {
+        const uInt8Array = new Uint8Array(e.newValue.split(',').map(Number));
+        db = new SQL.Database(uInt8Array);
+        renderTable();
+        if (!isTransactionActive) {
+           logMessage("⚠️ Os dados do banco foram atualizados por outra aba.", "warning");
+        }
+      }
+      
+      if (e.key === 'sqlite_db_lock') {
+        updateUI();
+        if (e.newValue && e.newValue !== myTabId) {
+          logMessage(`⚠️ O banco acabou de ser bloqueado pela aba: ${e.newValue}`, "warning");
+        } else if (!e.newValue && !isTransactionActive) {
+          logMessage(`✅ O banco foi liberado! Você pode escrever novamente.`, "info");
+        }
+      }
+    });
+
+    // Iniciar
+    initDatabase();
+  </script>
+</body>
+</html>
