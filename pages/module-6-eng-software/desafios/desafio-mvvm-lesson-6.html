@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧩</text></svg>">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Desafio Aula 6 — Refatorar para MVVM | Projeto 6</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="../../../css/inteli-styles.css" rel="stylesheet">
+  <style>
+    body { background:#f7f9fb; color:#2e2640; font-family:"Manrope",sans-serif; line-height:1.7; }
+    .page-header { background:linear-gradient(135deg,#2e2640,#ff4545); color:#fff; padding:28px 0; margin-bottom:24px; }
+    .badge-accent { background:#ff4545; color:#fff; border-radius:6px; padding:2px 10px; font-size:.8rem; font-weight:600; }
+    .cardx { background:#fff; border:1px solid #e3e7ea; border-radius:16px; padding:24px; margin-bottom:18px; }
+    .cardx p, .cardx li { text-align:justify; }
+    .step-badge { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:50%; background:#ff4545; color:#fff; font-weight:800; font-size:.9rem; margin-right:8px; }
+    /* ===== CODE BLOCKS WITH COPY ===== */
+    .code-block { position:relative; margin:14px 0; }
+    .code-block pre { background:#1e1e2e; color:#cdd6f4; border-radius:10px; padding:16px 18px; margin:0; overflow:auto; font-size:.86rem; line-height:1.5; }
+    .code-block code { background:none; color:inherit; padding:0; font-family:'Courier New',monospace; white-space:pre; }
+    .copy-btn { position:absolute; top:10px; right:10px; background:#ff4545; color:#fff; border:none; border-radius:7px; padding:5px 12px; font-size:.78rem; font-weight:700; cursor:pointer; font-family:"Manrope",sans-serif; transition:background .2s; }
+    .copy-btn:hover { background:#d63838; }
+    .copy-btn.ok { background:#0d9488; }
+    .code-label { display:inline-block; background:#eef2f7; color:#2e2640; font-weight:700; font-size:.78rem; padding:3px 10px; border-radius:6px 6px 0 0; font-family:'Courier New',monospace; }
+    code { background:#eef2f7; padding:1px 6px; border-radius:5px; font-family:'Courier New',monospace; font-size:.9em; }
+    .rule-box { background:#fee2e2; border-left:5px solid #dc2626; border-radius:10px; padding:14px 18px; }
+    .tip-box { background:#eff6ff; border-left:5px solid #1d4ed8; border-radius:10px; padding:14px 18px; }
+    .bridge-box { background:#f5f3ff; border-left:5px solid #8b5cf6; border-radius:10px; padding:14px 18px; }
+    .layer-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; }
+    .layer-tag { display:inline-block; font-size:.7rem; font-weight:800; padding:2px 9px; border-radius:5px; text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px; }
+    .lt-model { background:#dcfce7; color:#0d9488; }
+    .lt-vm { background:#fee2e2; color:#dc2626; }
+    .lt-view { background:#dbeafe; color:#1d4ed8; }
+    .check-list { list-style:none; padding-left:0; }
+    .check-list li { padding-left:1.8rem; position:relative; margin-bottom:8px; }
+    .check-list li::before { content:"☐"; position:absolute; left:0; font-size:1.1rem; color:#ff4545; }
+  </style>
+</head>
+<body>
+  <header class="page-header">
+    <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div>
+        <div><span class="badge-accent">Projeto 6 • Engenharia de Software • Aula 6</span></div>
+        <h1 class="h3 mb-1 mt-2">🧩 Desafio — Refatorar para MVVM</h1>
+        <div>De "tudo num arquivo só" para Model / ViewModel / View</div>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <a href="../slides/slide-lesson-6.html" class="btn btn-light">← Slides</a>
+        <a href="../materials/lesson-6-material.html" class="btn btn-outline-light">Material</a>
+        <a href="../../home-module-6-eng-software.html" class="btn btn-outline-light">Módulo</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container pb-5">
+
+    <!-- OBJETIVO -->
+    <section class="cardx">
+      <h2 class="h5">🎯 O desafio</h2>
+      <p>Você vai receber um componente React Native que faz <strong>tudo num arquivo só</strong> — busca de dados, estado e UI misturados. Sua missão é <strong>refatorá-lo nas 3 camadas do MVVM</strong> que vimos nos slides 8 a 10, sem mudar o comportamento do app.</p>
+      <p class="mb-0"><strong>Não é construir tela nova</strong> (isso você já fez em UX) e <strong>não é escrever testes</strong> (isso é a aula 7). É reorganizar código para separar responsabilidades.</p>
+    </section>
+
+    <!-- SETUP -->
+    <section class="cardx">
+      <h2 class="h5"><span class="step-badge">1</span>Setup</h2>
+      <p>Se já tem o app do grupo (Aventura), use-o e só crie as pastas. Senão, crie um projeto Expo do zero:</p>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">📋 Copiar</button>
+        <pre><code># Projeto novo (pule se já tem o app do grupo)
+npx create-expo-app aventura-mvvm --template blank-typescript
+cd aventura-mvvm
+
+# Crie as pastas das 3 camadas
+mkdir model viewmodels views
+
+# Rode no celular com o Expo Go
+npx expo start</code></pre>
+      </div>
+    </section>
+
+    <!-- CODIGO ANTES -->
+    <section class="cardx">
+      <h2 class="h5"><span class="step-badge">2</span>Ponto de partida — o código "ANTES" 😱</h2>
+      <p>Copie este componente para o seu projeto (ex.: <code>App.tsx</code> ou <code>views/EspetaculosScreen.tsx</code>). Repare como o <em>fetch</em>, o <em>estado</em> e a <em>UI</em> estão todos no mesmo lugar:</p>
+      <div class="code-block">
+        <span class="code-label">EspetaculosScreen.tsx</span>
+        <button class="copy-btn" onclick="copyCode(this)">📋 Copiar</button>
+        <pre><code>// EspetaculosScreen.tsx — tudo num arquivo só 😱
+import { useEffect, useState } from 'react';
+import { FlatList, Text, View, ActivityIndicator } from 'react-native';
+
+export default function EspetaculosScreen() {
+  const [items, setItems] = useState&lt;any[]&gt;([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() =&gt; {
+    fetch('https://api.aventura.app/espetaculos')   // fetch dentro da View
+      .then(r =&gt; r.json())
+      .then(d =&gt; { setItems(d); setLoading(false); });
+  }, []);
+
+  if (loading) return &lt;ActivityIndicator size="large" /&gt;;
+  return (
+    &lt;FlatList
+      data={items}
+      keyExtractor={(i) =&gt; i.id}
+      renderItem={({ item }) =&gt; (
+        &lt;View style={{ padding: 12 }}&gt;
+          &lt;Text&gt;{item.nome} ★ {item.rating}&lt;/Text&gt;
+        &lt;/View&gt;
+      )}
+    /&gt;
+  );
+}</code></pre>
+      </div>
+      <div class="tip-box mt-2">
+        <strong>🔌 Sem backend rodando?</strong> O endpoint acima é fictício. Use este mock no lugar do <code>fetch</code> para o app renderizar mesmo offline — depois é só mover ele para o Model:
+        <div class="code-block">
+          <button class="copy-btn" onclick="copyCode(this)">📋 Copiar</button>
+          <pre><code>const MOCK = [
+  { id: '1', nome: 'O Auto da Compadecida', categoria: 'Teatro', rating: 4.8 },
+  { id: '2', nome: 'Cirque Aventura',        categoria: 'Circo',  rating: 4.5 },
+  { id: '3', nome: 'Sinfônica ao Pôr do Sol', categoria: 'Música', rating: 4.9 },
+];
+// troque o fetch por: Promise.resolve(MOCK)</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- MISSAO + STUBS -->
+    <section class="cardx">
+      <h2 class="h5"><span class="step-badge">3</span>Sua missão — separe nas 3 camadas</h2>
+      <p>Mova cada responsabilidade para o arquivo certo. Use estes <strong>stubs</strong> como ponto de partida (estão vazios de propósito — a implementação é o desafio):</p>
+
+      <div class="layer-grid">
+        <div>
+          <span class="layer-tag lt-model">Model</span>
+          <div class="code-block">
+            <span class="code-label">model/Espetaculo.ts</span>
+            <button class="copy-btn" onclick="copyCode(this)">📋 Copiar</button>
+            <pre><code>// model/Espetaculo.ts
+// Dados + acesso à API. SEM React, SEM UI.
+
+export type Espetaculo = {
+  // TODO: id, nome, categoria, rating
+};
+
+export async function fetchEspetaculos(): Promise&lt;Espetaculo[]&gt; {
+  // TODO: mova o fetch da View para cá
+  // TODO: trate !response.ok lançando um Error
+}</code></pre>
+          </div>
+        </div>
+
+        <div>
+          <span class="layer-tag lt-vm">ViewModel</span>
+          <div class="code-block">
+            <span class="code-label">viewmodels/useEspetaculosViewModel.ts</span>
+            <button class="copy-btn" onclick="copyCode(this)">📋 Copiar</button>
+            <pre><code>// viewmodels/useEspetaculosViewModel.ts
+// Estado + ações da tela. SEM JSX.
+import { useEffect, useState } from 'react';
+import { Espetaculo, fetchEspetaculos } from '../model/Espetaculo';
+
+export function useEspetaculosViewModel() {
+  // TODO: estado items, loading, error
+  // TODO: load() com try / catch / finally
+  // TODO: useEffect(() =&gt; { load(); }, [])
+  // TODO: return { items, loading, error, reload: load }
+}</code></pre>
+          </div>
+        </div>
+
+        <div>
+          <span class="layer-tag lt-view">View</span>
+          <div class="code-block">
+            <span class="code-label">views/EspetaculosScreen.tsx</span>
+            <button class="copy-btn" onclick="copyCode(this)">📋 Copiar</button>
+            <pre><code>// views/EspetaculosScreen.tsx
+// Só renderiza. Consome o hook do ViewModel.
+import { FlatList, Text, View, ActivityIndicator } from 'react-native';
+import { useEspetaculosViewModel } from '../viewmodels/useEspetaculosViewModel';
+
+export default function EspetaculosScreen() {
+  // TODO: const { items, loading, error, reload } = useEspetaculosViewModel();
+  // TODO: trate loading e error
+  // TODO: FlatList — SEM fetch e SEM useEffect aqui!
+}</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="rule-box mt-3">
+        <strong>⚠️ Regra de ouro:</strong> a <strong>View não pode</strong> ter <code>fetch</code> nem <code>useEffect</code> de dados. Se ela tem, a responsabilidade está na camada errada. A View só conhece o ViewModel; o ViewModel conhece o Model; o Model não conhece ninguém.
+      </div>
+    </section>
+
+    <!-- ENTREGA -->
+    <section class="cardx">
+      <h2 class="h5"><span class="step-badge">4</span>Entrega — Merge Request individual</h2>
+      <ul class="check-list mb-0">
+        <li>Branch <code>feat/espetaculos-mvvm</code></li>
+        <li>Os 3 arquivos refatorados: <code>model/</code>, <code>viewmodels/</code>, <code>views/</code></li>
+        <li>O app continua funcionando igual (com mock ou backend)</li>
+        <li>Na descrição do MR, 1 frase respondendo: <em>"o que ficou testável agora que não era antes?"</em></li>
+      </ul>
+    </section>
+
+    <!-- DICAS -->
+    <section class="cardx">
+      <h2 class="h5">💡 Dicas</h2>
+      <ul class="mb-0">
+        <li>Comece pelo <strong>Model</strong>: recorte o <code>fetch</code> e o tipo dos dados. É a camada mais independente.</li>
+        <li>Depois o <strong>ViewModel</strong>: traga <code>useState</code>/<code>useEffect</code> para o hook e exponha <code>items</code>, <code>loading</code>, <code>error</code>, <code>reload</code>.</li>
+        <li>Por último a <strong>View</strong>: ela deve ficar bem menor — só desestrutura o hook e renderiza.</li>
+        <li>Pode usar IA para acelerar, mas <strong>entenda cada recorte</strong>: o objetivo é a separação, não a velocidade.</li>
+      </ul>
+    </section>
+
+    <div class="bridge-box">
+      <strong>🔗 Liga com a aula 7:</strong> o <code>useEspetaculosViewModel</code> que você isolar aqui é exatamente o que vamos <strong>testar com TDD</strong> na próxima aula — sem montar a UI. Hoje você o torna testável; lá escrevemos os testes antes do código.
+    </div>
+
+  </main>
+
+  <footer class="inteli-footer mt-auto py-4 bg-light border-top">
+    <div class="container text-center">
+      <p class="mb-1">Material criado pelo professor <strong>Afonso Brandão</strong> para o <strong>Inteli</strong>.</p>
+      <small class="text-muted">🔓 Licença de leitura aberta</small>
+    </div>
+  </footer>
+
+  <script>
+    function copyCode(btn) {
+      var code = btn.closest('.code-block').querySelector('code').textContent;
+      navigator.clipboard.writeText(code).then(function () {
+        var original = btn.textContent;
+        btn.textContent = '✓ Copiado!';
+        btn.classList.add('ok');
+        setTimeout(function () { btn.textContent = original; btn.classList.remove('ok'); }, 1500);
+      });
+    }
+  </script>
+</body>
+</html>
