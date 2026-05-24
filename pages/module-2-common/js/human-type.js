@@ -29,13 +29,13 @@
   }
 
   window.typeLine = function(id, tokens, startDelay) {
-    var TYPO  = 0.04;    // 4 % chance per alpha char (max 1 per line)
-    var CMIN  = 22;      // ms min per char
-    var CMAX  = 52;      // ms max per char
-    var SPC   = 12;      // ms for spaces
-    var PAUSE = 320;     // ms "notice the mistake"
-    var BKSP  = 55;      // ms backspace
-    var SLOW  = 35;      // extra ms after fix
+    var TYPO  = 0.03;    // 3 % chance per alpha char (max 1 per line)
+    var CMIN  = 10;      // ms min per char
+    var CMAX  = 22;      // ms max per char
+    var SPC   = 6;       // ms for spaces
+    var PAUSE = 180;     // ms "notice the mistake"
+    var BKSP  = 32;      // ms backspace
+    var SLOW  = 18;      // extra ms after fix
 
     var t=startDelay, typed=[], hadTypo=false;
 
