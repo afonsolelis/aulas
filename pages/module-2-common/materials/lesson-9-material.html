@@ -147,799 +147,797 @@
     <aside class="mat-sidebar">
       <div class="mat-toc">
         <h4>Neste material</h4>
-        <a href="#sec-virada">1. A virada: você audita</a>
-        <a href="#sec-rnf">2. RNF e a ISO/IEC 25010</a>
-        <a href="#sec-cobertura">3. Cobertura de testes</a>
-        <a href="#sec-ciclomatica">4. Complexidade ciclomática</a>
-        <a href="#sec-cognitiva" class="toc-h3">5. Complexidade cognitiva</a>
-        <a href="#sec-manutenibilidade">6. Manutenibilidade (plato)</a>
-        <a href="#sec-duplicacao" class="toc-h3">7. Duplicação (jscpd)</a>
-        <a href="#sec-dependencias">8. Dependências (madge)</a>
-        <a href="#sec-seg-deps">9. Segurança das bibliotecas</a>
-        <a href="#sec-seg-codigo" class="toc-h3">10. Segurança no código</a>
-        <a href="#sec-saidas">11. Saídas e cobertura de tipos</a>
-        <a href="#sec-algoritmos" class="toc-h3">12. Complexidade algorítmica</a>
-        <a href="#sec-refatoracao">13. Refatoração guiada por métricas</a>
-        <a href="#sec-passo-a-passo">14. Passo a passo: gerar relatórios</a>
-        <a href="#sec-relatorio-modelo">15. Relatório-modelo (entregável)</a>
-        <a href="#sec-painel">16. O painel consolidado</a>
-        <a href="#sec-fluxo">17. O fluxo IA → auditoria</a>
-        <a href="#sec-best">18. Boas práticas</a>
-        <a href="#sec-anti" class="toc-h3">19. Anti-padrões</a>
-        <a href="#sec-checklist">20. Checklist de estudo</a>
+        <a href="#sec-intro">1. Por que testar</a>
+        <a href="#sec-pyramid">2. Pirâmide de testes</a>
+        <a href="#sec-aaa" class="toc-h3">3. AAA e naming</a>
+        <a href="#sec-doubles" class="toc-h3">4. Test doubles</a>
+        <a href="#sec-setup">5. Configuração Jest+TS</a>
+        <a href="#sec-helpers" class="toc-h3">6. Testando helpers</a>
+        <a href="#sec-services" class="toc-h3">7. Testando services</a>
+        <a href="#sec-repos">8. Testando repositories</a>
+        <a href="#sec-controllers" class="toc-h3">9. Testando controllers</a>
+        <a href="#sec-views" class="toc-h3">10. Smoke test em views EJS</a>
+        <a href="#sec-models" class="toc-h3">11. Models e o compilador</a>
+        <a href="#sec-coverage">12. Cobertura</a>
+        <a href="#sec-tdd" class="toc-h3">13. TDD red-green-refactor</a>
+        <a href="#sec-husky">14. Husky e lint-staged</a>
+        <a href="#sec-ci" class="toc-h3">15. GitHub Actions (CI)</a>
+        <a href="#sec-best">16. Boas práticas</a>
+        <a href="#sec-anti" class="toc-h3">17. Anti-padrões</a>
+        <a href="#sec-checklist">18. Checklist</a>
         <a href="#sec-refs">Referências</a>
       </div>
     </aside>
 
     <article class="mat-article">
 
-      <section class="mat-section" id="sec-virada">
-        <h2>1. A virada: a IA escreve, você audita</h2>
-        <p>Algo mudou de forma silenciosa e definitiva no jeito de programar. Hoje, ainda no primeiro semestre, ferramentas como Copilot, ChatGPT e Claude escrevem boa parte do código que entra nos projetos. Você descreve a intenção em uma frase e recebe uma função inteira, pronta, com testes que passam. O trabalho do desenvolvedor não desapareceu — ele <strong>migrou</strong>. Deixou de ser, principalmente, o ato de <em>digitar</em> e passou a ser, principalmente, o ato de <strong>auditar</strong>.</p>
-        <p>Aqui mora a armadilha. Código que compila, passa no teste e roda em produção <strong>não é sinônimo de código bom</strong>. A IA otimiza para "funciona" — quase nunca para "sustentável". Ela entrega a primeira solução que satisfaz o exemplo, e essa solução costuma vir com condicionais aninhadas, trechos duplicados, dependências circulares, consultas inseguras montadas por concatenação de strings e algoritmos quadráticos onde caberia um <code>Set</code>. Tudo isso passa no teste. Nada disso aparece quando você só pergunta "rodou?".</p>
+      <section class="mat-section" id="sec-intro">
+        <h2>1. Por que testar</h2>
+        <p>Existe um momento na vida de todo projeto em que ele cresce o suficiente para que ninguém — nem mesmo quem o escreveu — consiga prever todas as consequências de uma alteração. É o ponto em que mexer no código vira loteria: a feature nova funciona, mas quebra um cadastro antigo; o refactor "óbvio" derruba um endpoint que ninguém lembrava que existia; um bugzinho bobo passa pela revisão e só aparece em produção, na sexta-feira, depois das 18h. Testes automatizados existem para que esse momento nunca chegue.</p>
+        <p>Há quatro razões concretas para investir em testes desde cedo, mesmo (ou principalmente) num projeto pequeno. A primeira é <strong>regressão</strong>: cada teste verde é uma trava contra um bug que você já caçou e não quer caçar de novo. A segunda é <strong>refactor seguro</strong>: com cobertura razoável, reorganizar pastas, renomear classes ou trocar uma biblioteca deixa de ser um ato de fé. A terceira é <strong>documentação executável</strong>: ler <code>describe('UserService.create')</code> com seis casos descritos é melhor do que qualquer README sobre como o serviço se comporta. A quarta é <strong>confiança no deploy</strong>: se o pipeline de CI passou — lint, types, testes — você pode mergear na sexta-feira sem suar frio.</p>
 
         <div class="callout callout-info sr">
-          <div class="callout-label">A tese desta aula</div>
-          <p>Esta aula ensina a montar um <strong>painel de qualidade local</strong>: um conjunto de bibliotecas npm que você roda no <em>próprio terminal</em>, sem servidor e sem serviço externo, para <strong>medir</strong> os requisitos não-funcionais do código gerado — cobertura de testes, complexidade, manutenibilidade, duplicação, arquitetura, segurança e corretude de tipos — e então <strong>refatorar guiado por esses números</strong>. É o raio-x do código: enquanto os testes dizem que o programa faz a coisa certa, as métricas dizem o quanto disso está protegido e se o código <em>é</em> bom.</p>
+          <div class="callout-label">A premissa desta aula</div>
+          <p>Vamos assumir o stack do projeto: <strong>TypeScript + Express + EJS + PostgreSQL</strong> em arquitetura MVC de seis camadas (models, views, controllers, services, repositories, helpers). Cada camada tem uma estratégia de teste que combina com sua responsabilidade — e é justamente combinar bem cada estratégia que diferencia uma suíte útil de uma suíte que ninguém olha.</p>
         </div>
 
-        <h3>Testes são a rede; métricas são o raio-x</h3>
-        <p>Nas aulas anteriores você aprendeu a escrever testes: a pirâmide, o AAA, os <em>test doubles</em>, o Jest com TypeScript. Os testes garantem que o código <strong>faz</strong> a coisa certa — são a rede de proteção contra regressão. Mas eles não respondem a duas perguntas igualmente importantes: <em>o quanto</em> do código está realmente protegido por essa rede (é a <strong>cobertura</strong>), e se o código que passou no teste <em>é</em> de fato bom de manter (são as <strong>métricas de qualidade</strong>). Esta aula fecha esse buraco. Os testes continuam sendo a rede; o painel e a cobertura são o raio-x que mostra onde a rede tem furos e onde o esqueleto do código está torto.</p>
-
-        <div class="callout callout-warn sr">
-          <div class="callout-label">O novo perfil de erro</div>
-          <p>Antes, o erro típico do iniciante era escrever código que <em>não funcionava</em>. Agora, o erro típico é aceitar código que <em>funciona mas é ruim</em>: ilegível, frágil, inseguro, lento. A IA é uma estagiária brilhante e apressada — produz muito, mas não responde pela manutenção. Quem responde é você. Auditar virou a competência central.</p>
-        </div>
+        <h3>Quando o ROI vira negativo</h3>
+        <p>Testes não são gratuitos. Eles custam tempo para escrever, tempo para rodar e tempo para manter. A pergunta certa não é "preciso de testes?" — é "<em>onde</em> a relação custo/benefício compensa?". Em geral: lógica de negócio em services merece muitos testes; helpers puros são baratíssimos de testar; controllers ganham com integração; views EJS quase nunca precisam de teste unitário. Vamos justificar cada escolha ao longo do material.</p>
       </section>
 
-      <section class="mat-section" id="sec-rnf">
-        <h2>2. Requisitos não-funcionais e a ISO/IEC 25010</h2>
-        <p>Todo software tem dois tipos de requisito. Os <strong>funcionais</strong> dizem <em>o que</em> o sistema faz: "cadastrar usuário", "calcular frete", "emitir nota". Os <strong>não-funcionais</strong> (RNF) dizem <em>quão bem</em> ele faz: com que rapidez, quão seguro, quão fácil de manter, quão confiável. Os testes que você já escreveu atacam sobretudo os requisitos funcionais. O painel de qualidade ataca os RNF.</p>
-        <p>A norma internacional <strong>ISO/IEC 25010</strong> organiza a qualidade de produto de software em oito características. Conhecê-las dá nome aos números que vamos medir:</p>
+      <section class="mat-section" id="sec-pyramid">
+        <h2>2. Pirâmide de testes</h2>
+        <p>Mike Cohn popularizou em 2009 a metáfora da <strong>pirâmide de testes</strong>: muitos testes <em>unitários</em> na base, alguns testes de <em>integração</em> no meio e poucos testes <em>end-to-end</em> no topo. A justificativa é mecânica: testes unitários são rápidos (milissegundos), determinísticos e baratos de manter; testes E2E são lentos (segundos a minutos), mais frágeis (dependem de rede, banco, navegador) e caros para investigar quando falham. Inverter essa proporção é desperdiçar tempo de CI e energia de gente.</p>
+
+        <div class="pyramid">
+          <div class="py-tier e2e">E2E<small>poucos · lentos · alta confiança</small></div>
+          <div class="py-tier intg">Integração<small>médios · cobre fronteiras</small></div>
+          <div class="py-tier unit">Unitários<small>muitos · rápidos · isolados</small></div>
+        </div>
+
+        <p>Cada nível responde a uma pergunta diferente. Unitário: "<em>essa função pura, com essas entradas, retorna isso?</em>". Integração: "<em>esses módulos conversam corretamente — controller fala com service, service fala com repo?</em>". E2E: "<em>quando um usuário real abre o navegador e preenche o formulário, o cadastro acontece e o e-mail chega?</em>". Os três tipos coexistem; nenhum substitui outro.</p>
+
+        <h3>Anti-padrões: ice-cream cone e hourglass</h3>
+        <p>O <strong>ice-cream cone</strong> é uma pirâmide invertida: muito E2E, pouquíssimo unitário. Acontece em times que começam testando "do jeito do usuário" e nunca descem o nível. O resultado é uma suíte que demora 40 minutos para rodar, falha por motivos aleatórios (a rede do CI, um seletor de CSS que mudou) e ninguém confia. O <strong>hourglass</strong> tem muitos unitários e muitos E2E, mas pouca integração no meio: o problema é que bugs reais costumam acontecer na fronteira entre módulos — e essa fronteira fica sem cobertura.</p>
 
         <table class="mat-table">
-          <thead><tr><th>Característica</th><th>O que avalia</th><th>Mede no painel?</th></tr></thead>
+          <thead><tr><th>Nível</th><th>O que cobre</th><th>Velocidade típica</th><th>Quando falha</th></tr></thead>
           <tbody>
-            <tr><td><strong>Adequação Funcional</strong></td><td>Faz o que deveria, completo e correto</td><td><span class="tag tag-green">cobertura de testes</span></td></tr>
-            <tr><td><strong>Eficiência de Desempenho</strong></td><td>Tempo e recursos consumidos</td><td><span class="tag tag-amber">Big-O dos algoritmos</span></td></tr>
-            <tr><td><strong>Compatibilidade</strong></td><td>Coexiste e interopera com outros sistemas</td><td>—</td></tr>
-            <tr><td><strong>Usabilidade</strong></td><td>Facilidade de uso pela pessoa</td><td>—</td></tr>
-            <tr><td><strong>Confiabilidade</strong></td><td>Funciona sem falhar ao longo do tempo</td><td><span class="tag tag-green">cobertura, dependências</span></td></tr>
-            <tr><td><strong>Segurança</strong></td><td>Protege dados e resiste a ataques</td><td><span class="tag tag-red">npm audit, eslint-security</span></td></tr>
-            <tr><td><strong>Manutenibilidade</strong></td><td>Facilidade de modificar sem quebrar</td><td><span class="tag tag-blue">complexidade, MI, duplicação</span></td></tr>
-            <tr><td><strong>Portabilidade</strong></td><td>Migra entre ambientes</td><td>—</td></tr>
+            <tr><td><span class="tag tag-green">Unitário</span></td><td>1 função/classe isolada</td><td>&lt; 50ms</td><td>Lógica errada na unidade</td></tr>
+            <tr><td><span class="tag tag-blue">Integração</span></td><td>2+ camadas conversando</td><td>50ms - 2s</td><td>Contrato entre camadas quebrou</td></tr>
+            <tr><td><span class="tag tag-purple">E2E</span></td><td>Fluxo completo do usuário</td><td>5s - 60s</td><td>Caminho real do usuário quebrou</td></tr>
           </tbody>
         </table>
 
-        <p>Nesta aula o foco recai sobre quatro delas, justamente as que mais sofrem com código gerado às pressas: <strong>Manutenibilidade</strong> (o código será lido e alterado dezenas de vezes), <strong>Segurança</strong> (a IA adora concatenar SQL e usar <code>eval</code>), <strong>Confiabilidade</strong> (cobertura e ausência de ciclos) e <strong>Eficiência</strong> (o algoritmo quadrático escondido). Cada ferramenta do painel coloca um número onde antes só havia opinião.</p>
-
-        <div class="callout callout-deep sr">
-          <div class="callout-label">Por que normatizar a qualidade</div>
-          <p>Sem uma norma, "código bom" vira discussão de gosto. A ISO/IEC 25010 transforma qualidade em <em>vocabulário compartilhado</em>: quando você diz "a manutenibilidade caiu", todo o time entende a mesma coisa. O painel é a régua que dá valor numérico a esse vocabulário — e número você consegue comparar antes e depois de uma refatoração.</p>
+        <div class="callout callout-warn sr">
+          <div class="callout-label">Proporção razoável para um projeto MVC</div>
+          <p>Uma proporção saudável para o nosso stack é algo como <strong>70% unitários (helpers + services com mocks), 25% integração (repositories e controllers com supertest) e 5% E2E (Playwright apenas em fluxos críticos: login, cadastro, checkout)</strong>. Isso é uma sugestão, não uma lei — calibre conforme o domínio.</p>
         </div>
       </section>
 
-      <section class="mat-section" id="sec-cobertura">
-        <h2>3. Cobertura de testes — <code>npm test -- --coverage</code></h2>
-        <p>Esta é a peça central do entregável. Você já escreveu testes nas aulas anteriores; agora precisa <strong>gerar e anexar o relatório de cobertura</strong> ao seu Merge Request. Cobertura é a métrica que responde "do código que existe, quanto está protegido por pelo menos um teste?". Sem ela, você sabe que tem testes, mas não sabe o que <em>não</em> tem teste — e o que não tem teste é exatamente onde a IA esconde os bugs.</p>
-
-        <h3>O comando</h3>
-        <p>Com Jest + ts-jest, basta passar a flag <code>--coverage</code>. Ela imprime uma tabela no terminal <strong>e</strong> gera uma pasta <code>coverage/</code> com um relatório HTML navegável.</p>
+      <section class="mat-section" id="sec-aaa">
+        <h2>3. Estrutura AAA e naming</h2>
+        <p>Todo bom teste tem três partes claras: <strong>Arrange</strong> (preparar o cenário), <strong>Act</strong> (executar a ação) e <strong>Assert</strong> (verificar o resultado). É o padrão <em>AAA</em>. Separá-los com linhas em branco — ou comentários nas primeiras semanas — força quem lê a entender em segundos o que está sendo testado.</p>
 
         <div class="code-wrap">
-          <div class="code-label">Bash — gerar o relatório<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
-<pre class="code-block"><code><span class="hl-cmt"># roda os testes E coleta cobertura</span>
-npm test -- --coverage
+          <div class="code-label">TypeScript — estrutura AAA<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+<pre class="code-block"><code><span class="hl-kw">import</span> { formatCurrency } <span class="hl-kw">from</span> <span class="hl-str">'../helpers/format'</span>;
 
-<span class="hl-cmt"># o relatório navegável fica em:</span>
-<span class="hl-cmt"># coverage/lcov-report/index.html  (abra no navegador)</span></code></pre>
+<span class="hl-fn">describe</span>(<span class="hl-str">'formatCurrency'</span>, () =&gt; {
+  <span class="hl-fn">it</span>(<span class="hl-str">'formata número positivo em BRL'</span>, () =&gt; {
+    <span class="hl-cmt">// Arrange</span>
+    <span class="hl-kw">const</span> valor = <span class="hl-num">1234.5</span>;
+
+    <span class="hl-cmt">// Act</span>
+    <span class="hl-kw">const</span> saida = <span class="hl-fn">formatCurrency</span>(valor);
+
+    <span class="hl-cmt">// Assert</span>
+    <span class="hl-fn">expect</span>(saida).<span class="hl-fn">toBe</span>(<span class="hl-str">'R$ 1.234,50'</span>);
+  });
+});</code></pre>
         </div>
 
-        <h3>Configurar no jest.config.ts</h3>
-        <p>Para o relatório sair completo e consistente, configure a coleta no <code>jest.config.ts</code>. O <code>collectCoverageFrom</code> diz <em>quais</em> arquivos contam (e quais ignorar, como o <code>server.ts</code> que só sobe o servidor); o <code>coverageReporters</code> diz em que formatos gerar.</p>
+        <p>Sobre <em>naming</em>: a regra prática é que ao ler apenas <code>describe</code> + <code>it</code>, sem o corpo, deveria dar para entender o comportamento testado. Bons exemplos: <code>describe('UserService.create')</code> com <code>it('cria usuário válido', ...)</code>, <code>it('rejeita e-mail duplicado', ...)</code>, <code>it('lança ValidationError quando nome está vazio', ...)</code>. Maus exemplos: <code>it('test 1')</code>, <code>it('funciona')</code>, <code>it('caso de erro')</code>.</p>
+
+        <h3>Um teste, um comportamento</h3>
+        <p>É tentador empilhar várias verificações dentro de um único <code>it</code>. Resista. Quando o teste falha, você quer saber <em>imediatamente</em> qual comportamento quebrou — não ler 30 linhas para descobrir que o terceiro <code>expect</code> reclamou. Se um cenário de fato precisa verificar três coisas relacionadas, três <code>it</code>s separados deixam o relatório mais legível e o erro mais cirúrgico.</p>
+
+        <div class="callout callout-tip sr">
+          <div class="callout-label">Use beforeEach para arranjos repetitivos</div>
+          <p>Se cinco testes começam exatamente com a mesma preparação ("criar um usuário fake na memória", "limpar a tabela", "abrir transação"), mova para um <code>beforeEach</code>. Mantém os <code>it</code>s focados na variação real entre eles.</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="sec-doubles">
+        <h2>4. Test doubles: stub, spy, mock, fake</h2>
+        <p>"Mock" virou guarda-chuva no dia a dia, mas a literatura (Gerard Meszaros, Martin Fowler) distingue quatro tipos de <em>test doubles</em> — substitutos que você usa no lugar de um colaborador real para isolar a unidade testada.</p>
+
+        <table class="mat-table">
+          <thead><tr><th>Tipo</th><th>Para que serve</th><th>Exemplo</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Stub</strong></td><td>Retorna respostas fixas; ignora interações</td><td>Repository falso que sempre retorna o mesmo usuário</td></tr>
+            <tr><td><strong>Spy</strong></td><td>Como o real, mas registra chamadas para inspeção</td><td><code>jest.spyOn(logger, 'info')</code></td></tr>
+            <tr><td><strong>Mock</strong></td><td>Programado com expectativas: "deve ser chamado 1×"</td><td><code>expect(repo.save).toHaveBeenCalledWith(user)</code></td></tr>
+            <tr><td><strong>Fake</strong></td><td>Implementação simplificada porém funcional</td><td>Repository em memória que simula o banco</td></tr>
+          </tbody>
+        </table>
+
+        <p>Em Jest, todos esses tipos são construídos a partir de <code>jest.fn()</code> e <code>jest.spyOn()</code>. A diferença é a intenção. <em>Stub</em>: você só quer um colaborador que devolva algo previsível. <em>Spy</em>: quer ver se o colaborador foi chamado. <em>Mock</em>: quer afirmar que ele foi chamado de tal jeito. <em>Fake</em>: precisa de comportamento real, mas leve, sem o custo de uma dependência externa.</p>
 
         <div class="code-wrap">
-          <div class="code-label">jest.config.ts — bloco de cobertura<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+          <div class="code-label">TypeScript — os quatro doubles em Jest<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+<pre class="code-block"><code><span class="hl-cmt">// stub: resposta fixa</span>
+<span class="hl-kw">const</span> repoStub = { findById: <span class="hl-typ">jest</span>.<span class="hl-fn">fn</span>().<span class="hl-fn">mockResolvedValue</span>({ id: <span class="hl-num">1</span>, name: <span class="hl-str">'Ada'</span> }) };
+
+<span class="hl-cmt">// spy: observa chamadas reais</span>
+<span class="hl-kw">const</span> spy = <span class="hl-typ">jest</span>.<span class="hl-fn">spyOn</span>(<span class="hl-typ">console</span>, <span class="hl-str">'log'</span>);
+
+<span class="hl-cmt">// mock: programado com expectativa</span>
+<span class="hl-fn">expect</span>(repoStub.findById).<span class="hl-fn">toHaveBeenCalledWith</span>(<span class="hl-num">1</span>);
+
+<span class="hl-cmt">// fake: implementação alternativa</span>
+<span class="hl-kw">class</span> <span class="hl-typ">UserRepoFake</span> {
+  <span class="hl-kw">private</span> data: <span class="hl-typ">Map</span>&lt;<span class="hl-typ">number</span>, <span class="hl-typ">User</span>&gt; = <span class="hl-kw">new</span> <span class="hl-typ">Map</span>();
+  <span class="hl-kw">async</span> <span class="hl-fn">save</span>(u: <span class="hl-typ">User</span>) { <span class="hl-kw">this</span>.data.<span class="hl-fn">set</span>(u.id, u); <span class="hl-kw">return</span> u; }
+  <span class="hl-kw">async</span> <span class="hl-fn">findById</span>(id: <span class="hl-typ">number</span>) { <span class="hl-kw">return</span> <span class="hl-kw">this</span>.data.<span class="hl-fn">get</span>(id) ?? <span class="hl-kw">null</span>; }
+}</code></pre>
+        </div>
+
+        <div class="callout callout-deep sr">
+          <div class="callout-label">London vs Detroit</div>
+          <p>Existem duas escolas filosóficas sobre o uso de doubles. A "London school" (a la Steve Freeman) prefere mock-everything: cada colaborador é mockado, o teste afirma interações. A "Detroit school" (a la Kent Beck) prefere usar implementações reais sempre que viáveis e mockar só nas fronteiras (banco, rede). Na prática, a maioria dos times mistura: mocks para colaboradores caros, instâncias reais para classes triviais. Não há resposta certa — o que importa é a coerência dentro do projeto.</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="sec-setup">
+        <h2>5. Configuração — Jest + ts-jest + supertest</h2>
+        <p>O ecossistema TypeScript tem várias opções (Vitest, Mocha, node:test), mas Jest continua sendo a escolha mais difundida por trazer runner, asserções, mocks e cobertura no mesmo pacote. Para usá-lo com TypeScript, basta adicionar <code>ts-jest</code> como transformador. O <code>supertest</code> é o utilitário canônico para testar APIs Express sem subir um servidor real.</p>
+
+        <div class="code-wrap">
+          <div class="code-label">Bash — instalação<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+<pre class="code-block"><code><span class="hl-cmt"># dependências de desenvolvimento</span>
+npm install -D jest ts-jest @types/jest supertest @types/supertest
+
+<span class="hl-cmt"># gerar config inicial (opcional)</span>
+npx ts-jest config:init</code></pre>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-label">jest.config.ts — mínimo para o projeto<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
 <pre class="code-block"><code><span class="hl-kw">import</span> <span class="hl-kw">type</span> { <span class="hl-typ">Config</span> } <span class="hl-kw">from</span> <span class="hl-str">'jest'</span>;
 
 <span class="hl-kw">const</span> config: <span class="hl-typ">Config</span> = {
   preset: <span class="hl-str">'ts-jest'</span>,
   testEnvironment: <span class="hl-str">'node'</span>,
-  collectCoverage: <span class="hl-kw">true</span>,
+  roots: [<span class="hl-str">'&lt;rootDir&gt;/src'</span>, <span class="hl-str">'&lt;rootDir&gt;/tests'</span>],
+  testMatch: [<span class="hl-str">'**/*.test.ts'</span>, <span class="hl-str">'**/*.spec.ts'</span>],
   collectCoverageFrom: [
     <span class="hl-str">'src/**/*.ts'</span>,
     <span class="hl-str">'!src/**/*.d.ts'</span>,
     <span class="hl-str">'!src/server.ts'</span>,
   ],
   coverageDirectory: <span class="hl-str">'coverage'</span>,
-  coverageReporters: [<span class="hl-str">'text'</span>, <span class="hl-str">'html'</span>, <span class="hl-str">'lcov'</span>],
-  <span class="hl-cmt">// opcional: barra a suíte se cair abaixo do mínimo</span>
-  coverageThreshold: {
-    global: { statements: <span class="hl-num">80</span>, branches: <span class="hl-num">70</span>, functions: <span class="hl-num">80</span>, lines: <span class="hl-num">80</span> },
-  },
+  setupFilesAfterEnv: [<span class="hl-str">'&lt;rootDir&gt;/tests/setup.ts'</span>],
+  clearMocks: <span class="hl-kw">true</span>,
 };
 
 <span class="hl-kw">export default</span> config;</code></pre>
         </div>
 
-        <h3>As quatro dimensões</h3>
-        <p>O relatório mede cobertura em quatro recortes diferentes do mesmo código. Entender a diferença entre eles é o que separa quem <em>lê</em> o relatório de quem só olha o número grande.</p>
-
-        <table class="mat-table">
-          <thead><tr><th>Dimensão</th><th>O que conta</th><th>Por que importa</th></tr></thead>
-          <tbody>
-            <tr><td><strong>% Statements</strong></td><td>Comandos executados ao menos uma vez</td><td>Visão geral; fácil de inflar</td></tr>
-            <tr><td><strong>% Branches</strong></td><td>Galhos de decisão (<code>if</code>/<code>else</code>, <code>?:</code>, <code>&&</code>)</td><td><span class="tag tag-amber">a mais reveladora</span></td></tr>
-            <tr><td><strong>% Functions</strong></td><td>Funções chamadas ao menos uma vez</td><td>Aponta funções nunca exercitadas</td></tr>
-            <tr><td><strong>% Lines</strong></td><td>Linhas físicas executadas</td><td>Parecido com statements</td></tr>
-          </tbody>
-        </table>
-
-        <p><strong>Branches é a dimensão mais reveladora.</strong> É comum ter 90% de <em>statements</em> mas só 60% de <em>branches</em>: significa que você testou o caminho feliz de cada função, mas deixou o <code>else</code>, o tratamento de erro e o caso de borda sem exercício. E é justamente no galho não testado que o bug se esconde. Sempre olhe branches antes de comemorar.</p>
-
-        <h3>Lendo a saída do terminal</h3>
-        <p>Ao rodar o comando, o reporter <code>text</code> imprime uma tabela como esta:</p>
-
         <div class="code-wrap">
-          <div class="code-label">Terminal — saída de npm test -- --coverage<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
-<pre class="code-block"><code>----------------|---------|----------|---------|---------|-------------------
-File            | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s
-----------------|---------|----------|---------|---------|-------------------
-All files       |   87.4  |   79.1   |   91.2  |   87.0  |
- helpers/       |   100   |   100    |   100   |   100   |
- services/      |   84.0  |   71.5   |   88.0  |   83.7  | 42-55, 71
- controllers/   |   78.2  |   63.0   |   85.0  |   78.2  | 23, 30-38
-----------------|---------|----------|---------|---------|-------------------</code></pre>
+          <div class="code-label">package.json — scripts<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+<pre class="code-block"><code><span class="hl-str">"scripts"</span>: {
+  <span class="hl-str">"test"</span>:           <span class="hl-str">"jest"</span>,
+  <span class="hl-str">"test:watch"</span>:     <span class="hl-str">"jest --watch"</span>,
+  <span class="hl-str">"test:coverage"</span>:  <span class="hl-str">"jest --coverage"</span>,
+  <span class="hl-str">"test:ci"</span>:        <span class="hl-str">"jest --ci --coverage --reporters=default --reporters=jest-junit"</span>
+}</code></pre>
         </div>
 
-        <p>Leia da direita para a esquerda. A coluna <strong>Uncovered Line #s</strong> aponta exatamente quais linhas nenhum teste tocou. Aqui, <code>controllers/</code> tem só <strong>63% de branches</strong> e linhas <code>23, 30-38</code> sem cobertura — provavelmente os ramos de erro (status 400/409). Esse é o alvo: escreva testes para esses galhos e o número sobe de forma honesta.</p>
+        <p>Estrutura de pastas sugerida: testes podem ficar <strong>colocalizados</strong> (ao lado do arquivo testado: <code>format.ts</code> + <code>format.test.ts</code>) ou em uma pasta <code>tests/</code> espelhando <code>src/</code>. Ambos funcionam; o importante é escolher uma e ser consistente. Colocalização aproxima teste e implementação — quem refatora vê o teste imediatamente.</p>
+      </section>
 
-        <h3>O relatório HTML, linha a linha</h3>
-        <p>Abra <code>coverage/lcov-report/index.html</code> no navegador. Você clica em um arquivo e vê o código-fonte colorido: <strong>verde</strong> = coberto, <strong>vermelho</strong> = nunca executado, e um marcador <code>I</code>/<code>E</code> nos galhos (<em>if</em>/<em>else</em>) que só rodaram por um lado. É a ferramenta mais didática do painel: você <em>vê</em> o buraco. É esse HTML (ou um print dele) que você anexa ao MR.</p>
+      <section class="mat-section" id="sec-helpers">
+        <h2>6. Testando helpers — unit puro</h2>
+        <p>Helpers são o caso mais fácil e o melhor lugar para começar. São funções puras: dado o mesmo input, sempre retornam o mesmo output, sem efeitos colaterais. Não tocam banco, não falam com a rede. Basta importá-las e afirmar.</p>
+
+        <div class="code-wrap">
+          <div class="code-label">src/helpers/format.ts<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+<pre class="code-block"><code><span class="hl-kw">export function</span> <span class="hl-fn">formatCurrency</span>(value: <span class="hl-typ">number</span>, locale = <span class="hl-str">'pt-BR'</span>): <span class="hl-typ">string</span> {
+  <span class="hl-kw">return new</span> <span class="hl-typ">Intl</span>.<span class="hl-typ">NumberFormat</span>(locale, {
+    style: <span class="hl-str">'currency'</span>,
+    currency: <span class="hl-str">'BRL'</span>,
+  }).<span class="hl-fn">format</span>(value);
+}
+
+<span class="hl-kw">export function</span> <span class="hl-fn">isValidEmail</span>(input: <span class="hl-typ">string</span>): <span class="hl-typ">boolean</span> {
+  <span class="hl-kw">const</span> re = <span class="hl-str">/^[^\s@]+@[^\s@]+\.[^\s@]+$/</span>;
+  <span class="hl-kw">return</span> re.<span class="hl-fn">test</span>(input.<span class="hl-fn">trim</span>().<span class="hl-fn">toLowerCase</span>());
+}</code></pre>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-label">src/helpers/format.test.ts<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+<pre class="code-block"><code><span class="hl-kw">import</span> { formatCurrency, isValidEmail } <span class="hl-kw">from</span> <span class="hl-str">'./format'</span>;
+
+<span class="hl-fn">describe</span>(<span class="hl-str">'formatCurrency'</span>, () =&gt; {
+  <span class="hl-fn">it</span>(<span class="hl-str">'formata valor positivo'</span>, () =&gt; {
+    <span class="hl-fn">expect</span>(<span class="hl-fn">formatCurrency</span>(<span class="hl-num">1234.5</span>)).<span class="hl-fn">toMatch</span>(<span class="hl-str">/R\$\s*1\.234,50/</span>);
+  });
+
+  <span class="hl-fn">it</span>(<span class="hl-str">'formata zero'</span>, () =&gt; {
+    <span class="hl-fn">expect</span>(<span class="hl-fn">formatCurrency</span>(<span class="hl-num">0</span>)).<span class="hl-fn">toMatch</span>(<span class="hl-str">/R\$\s*0,00/</span>);
+  });
+
+  <span class="hl-fn">it</span>(<span class="hl-str">'formata valor negativo'</span>, () =&gt; {
+    <span class="hl-fn">expect</span>(<span class="hl-fn">formatCurrency</span>(-<span class="hl-num">10</span>)).<span class="hl-fn">toMatch</span>(<span class="hl-str">/-?R\$\s*10,00/</span>);
+  });
+});
+
+<span class="hl-fn">describe</span>(<span class="hl-str">'isValidEmail'</span>, () =&gt; {
+  <span class="hl-fn">it</span>.<span class="hl-fn">each</span>([
+    [<span class="hl-str">'a@b.co'</span>, <span class="hl-kw">true</span>],
+    [<span class="hl-str">'   ada@inteli.edu.br '</span>, <span class="hl-kw">true</span>],
+    [<span class="hl-str">'sem-arroba'</span>, <span class="hl-kw">false</span>],
+    [<span class="hl-str">'a@b'</span>, <span class="hl-kw">false</span>],
+    [<span class="hl-str">''</span>, <span class="hl-kw">false</span>],
+  ])(<span class="hl-str">'%s -&gt; %s'</span>, (input, esperado) =&gt; {
+    <span class="hl-fn">expect</span>(<span class="hl-fn">isValidEmail</span>(input <span class="hl-kw">as</span> <span class="hl-typ">string</span>)).<span class="hl-fn">toBe</span>(esperado);
+  });
+});</code></pre>
+        </div>
+
+        <p>O <code>it.each</code> é particularmente útil para helpers: gera um caso de teste para cada linha da tabela. É a forma idiomática de testar muitas combinações input/output sem repetir o corpo cinco vezes. Para casos extremos, há o <code>describe.each</code> que aplica o mesmo padrão a um bloco inteiro.</p>
 
         <div class="callout callout-tip sr">
-          <div class="callout-label">Cobertura é bússola, não meta cega</div>
-          <p>Cobertura serve para <strong>achar buracos</strong>, não para perseguir 100%. Os últimos pontos percentuais quase sempre custam testes artificiais que afirmam pouco. A meta saudável: <strong>≥ 80% statements</strong> e <strong>≥ 70% branches</strong>, com foco em cobrir a lógica de negócio e os ramos de erro. Mas atenção: mesmo sendo bússola, o <strong>relatório precisa ser gerado e anexado</strong> — é o coração do entregável.</p>
+          <div class="callout-label">Cuidado com Intl e <code>\u00a0</code></div>
+          <p>O <code>Intl.NumberFormat</code> insere um <strong>espaço não-quebrável</strong> (<code>\u00a0</code>) entre o símbolo da moeda e o número. Se o teste falhar com a mensagem "expected 'R$ 1.234,50' to be 'R$ 1.234,50'" e os strings parecem idênticos, é exatamente isso. Use <code>toMatch</code> com regex (<code>/R\$\s*1\.234,50/</code>) para evitar a armadilha.</p>
         </div>
       </section>
 
-      <section class="mat-section" id="sec-ciclomatica">
-        <h2>4. Complexidade ciclomática</h2>
-        <p>A <strong>complexidade ciclomática</strong>, criada por Thomas McCabe em 1976, conta o número de <em>caminhos independentes</em> que atravessam uma função. A receita é simples: comece em 1 e some 1 para cada ponto de decisão — cada <code>if</code>, <code>else if</code>, <code>case</code>, <code>&&</code>, <code>||</code>, operador ternário e laço. Quanto maior o número, mais caminhos a função tem e, portanto, mais testes são necessários para exercitá-la inteira.</p>
-        <p>Essa métrica liga-se diretamente à <strong>testabilidade</strong>: uma função com complexidade 14 precisa, no limite, de 14 testes para cobrir todos os galhos. Por isso ela conversa com a cobertura da seção anterior — funções complexas são as que mais derrubam o % de branches.</p>
-
-        <h3>O limite e como vigiá-lo com ESLint</h3>
-        <p>A convenção da indústria é manter funções com complexidade <strong>≤ 10</strong>. Acima disso, a função vira difícil de ler, testar e alterar com segurança. O ESLint já traz uma regra <code>complexity</code> nativa — sem plugin nenhum — que falha o lint quando alguma função estoura o teto. Junte algumas regras irmãs e você tem um guardião de complexidade no terminal:</p>
+      <section class="mat-section" id="sec-services">
+        <h2>7. Testando services — mockando o repository</h2>
+        <p>Services contêm a lógica de negócio: regras de validação, orquestração de várias chamadas, decisões. Eles dependem de repositories para tocar dados, mas a regra de negócio não deveria depender de Postgres estar rodando para ser testada. A solução é mockar o repository.</p>
 
         <div class="code-wrap">
-          <div class="code-label">.eslintrc — regras de complexidade<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
-<pre class="code-block"><code>{
-  <span class="hl-str">"rules"</span>: {
-    <span class="hl-str">"complexity"</span>:               [<span class="hl-str">"error"</span>, <span class="hl-num">10</span>],
-    <span class="hl-str">"max-depth"</span>:                [<span class="hl-str">"error"</span>, <span class="hl-num">4</span>],
-    <span class="hl-str">"max-params"</span>:               [<span class="hl-str">"error"</span>, <span class="hl-num">4</span>],
-    <span class="hl-str">"max-lines-per-function"</span>:   [<span class="hl-str">"error"</span>, <span class="hl-num">50</span>],
-    <span class="hl-str">"max-nested-callbacks"</span>:     [<span class="hl-str">"error"</span>, <span class="hl-num">3</span>]
+          <div class="code-label">src/services/UserService.ts<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+<pre class="code-block"><code><span class="hl-kw">import</span> <span class="hl-kw">type</span> { <span class="hl-typ">UserRepository</span> } <span class="hl-kw">from</span> <span class="hl-str">'../repositories/UserRepository'</span>;
+<span class="hl-kw">import</span> { isValidEmail } <span class="hl-kw">from</span> <span class="hl-str">'../helpers/format'</span>;
+
+<span class="hl-kw">export class</span> <span class="hl-typ">EmailDuplicadoError</span> <span class="hl-kw">extends</span> <span class="hl-typ">Error</span> {}
+<span class="hl-kw">export class</span> <span class="hl-typ">EmailInvalidoError</span>  <span class="hl-kw">extends</span> <span class="hl-typ">Error</span> {}
+
+<span class="hl-kw">export class</span> <span class="hl-typ">UserService</span> {
+  <span class="hl-fn">constructor</span>(<span class="hl-kw">private</span> repo: <span class="hl-typ">UserRepository</span>) {}
+
+  <span class="hl-kw">async</span> <span class="hl-fn">create</span>(input: { name: <span class="hl-typ">string</span>; email: <span class="hl-typ">string</span> }) {
+    <span class="hl-kw">if</span> (!<span class="hl-fn">isValidEmail</span>(input.email)) <span class="hl-kw">throw new</span> <span class="hl-typ">EmailInvalidoError</span>();
+    <span class="hl-kw">const</span> existente = <span class="hl-kw">await this</span>.repo.<span class="hl-fn">findByEmail</span>(input.email);
+    <span class="hl-kw">if</span> (existente) <span class="hl-kw">throw new</span> <span class="hl-typ">EmailDuplicadoError</span>();
+    <span class="hl-kw">return await this</span>.repo.<span class="hl-fn">create</span>(input);
   }
 }</code></pre>
         </div>
 
-        <p>Quando alguma função passa do limite, o terminal aponta o dedo com precisão de linha e coluna:</p>
-
         <div class="code-wrap">
-          <div class="code-label">Terminal — npx eslint src<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
-<pre class="code-block"><code>freight.ts
-  3:1  error  Function 'calcFrete' has a complexity of 14. Maximum allowed is 10  complexity</code></pre>
+          <div class="code-label">src/services/UserService.test.ts<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+<pre class="code-block"><code><span class="hl-kw">import</span> { <span class="hl-typ">UserService</span>, <span class="hl-typ">EmailDuplicadoError</span>, <span class="hl-typ">EmailInvalidoError</span> } <span class="hl-kw">from</span> <span class="hl-str">'./UserService'</span>;
+<span class="hl-kw">import</span> <span class="hl-kw">type</span> { <span class="hl-typ">UserRepository</span> } <span class="hl-kw">from</span> <span class="hl-str">'../repositories/UserRepository'</span>;
+
+<span class="hl-kw">function</span> <span class="hl-fn">makeRepo</span>(): <span class="hl-typ">jest</span>.<span class="hl-typ">Mocked</span>&lt;<span class="hl-typ">UserRepository</span>&gt; {
+  <span class="hl-kw">return</span> {
+    findByEmail: <span class="hl-typ">jest</span>.<span class="hl-fn">fn</span>(),
+    create:      <span class="hl-typ">jest</span>.<span class="hl-fn">fn</span>(),
+    findById:    <span class="hl-typ">jest</span>.<span class="hl-fn">fn</span>(),
+  } <span class="hl-kw">as unknown as</span> <span class="hl-typ">jest</span>.<span class="hl-typ">Mocked</span>&lt;<span class="hl-typ">UserRepository</span>&gt;;
+}
+
+<span class="hl-fn">describe</span>(<span class="hl-str">'UserService.create'</span>, () =&gt; {
+  <span class="hl-fn">it</span>(<span class="hl-str">'cria usuário válido quando e-mail é único'</span>, <span class="hl-kw">async</span> () =&gt; {
+    <span class="hl-kw">const</span> repo = <span class="hl-fn">makeRepo</span>();
+    repo.findByEmail.<span class="hl-fn">mockResolvedValue</span>(<span class="hl-kw">null</span>);
+    repo.create.<span class="hl-fn">mockResolvedValue</span>({ id: <span class="hl-num">1</span>, name: <span class="hl-str">'Ada'</span>, email: <span class="hl-str">'ada@x.com'</span> });
+    <span class="hl-kw">const</span> svc = <span class="hl-kw">new</span> <span class="hl-typ">UserService</span>(repo);
+
+    <span class="hl-kw">const</span> r = <span class="hl-kw">await</span> svc.<span class="hl-fn">create</span>({ name: <span class="hl-str">'Ada'</span>, email: <span class="hl-str">'ada@x.com'</span> });
+
+    <span class="hl-fn">expect</span>(r.id).<span class="hl-fn">toBe</span>(<span class="hl-num">1</span>);
+    <span class="hl-fn">expect</span>(repo.create).<span class="hl-fn">toHaveBeenCalledWith</span>({ name: <span class="hl-str">'Ada'</span>, email: <span class="hl-str">'ada@x.com'</span> });
+  });
+
+  <span class="hl-fn">it</span>(<span class="hl-str">'rejeita e-mail inválido sem chamar repo.create'</span>, <span class="hl-kw">async</span> () =&gt; {
+    <span class="hl-kw">const</span> repo = <span class="hl-fn">makeRepo</span>();
+    <span class="hl-kw">const</span> svc = <span class="hl-kw">new</span> <span class="hl-typ">UserService</span>(repo);
+
+    <span class="hl-kw">await</span> <span class="hl-fn">expect</span>(svc.<span class="hl-fn">create</span>({ name: <span class="hl-str">'X'</span>, email: <span class="hl-str">'invalido'</span> }))
+      .<span class="hl-fn">rejects</span>.<span class="hl-fn">toBeInstanceOf</span>(<span class="hl-typ">EmailInvalidoError</span>);
+    <span class="hl-fn">expect</span>(repo.create).<span class="hl-fn">not</span>.<span class="hl-fn">toHaveBeenCalled</span>();
+  });
+
+  <span class="hl-fn">it</span>(<span class="hl-str">'rejeita e-mail duplicado'</span>, <span class="hl-kw">async</span> () =&gt; {
+    <span class="hl-kw">const</span> repo = <span class="hl-fn">makeRepo</span>();
+    repo.findByEmail.<span class="hl-fn">mockResolvedValue</span>({ id: <span class="hl-num">9</span>, name: <span class="hl-str">'X'</span>, email: <span class="hl-str">'a@b.com'</span> });
+    <span class="hl-kw">const</span> svc = <span class="hl-kw">new</span> <span class="hl-typ">UserService</span>(repo);
+
+    <span class="hl-kw">await</span> <span class="hl-fn">expect</span>(svc.<span class="hl-fn">create</span>({ name: <span class="hl-str">'Y'</span>, email: <span class="hl-str">'a@b.com'</span> }))
+      .<span class="hl-fn">rejects</span>.<span class="hl-fn">toBeInstanceOf</span>(<span class="hl-typ">EmailDuplicadoError</span>);
+  });
+});</code></pre>
         </div>
 
-        <p>Repare nas regras companheiras: <code>max-depth</code> (aninhamento de blocos), <code>max-params</code> (lista longa de parâmetros é um <em>smell</em>) e <code>max-lines-per-function</code> (método longo). Juntas, formam um cerco contra as funções inchadas que a IA tende a gerar.</p>
+        <p>Note três coisas. Primeiro, o teste <em>nunca</em> precisa de Postgres rodando — todos os efeitos colaterais foram simulados com <code>jest.fn()</code>. Segundo, o teste afirma <strong>comportamento</strong> ("não chama repo.create quando e-mail é inválido"), não implementação interna. Terceiro, o tipo <code>jest.Mocked&lt;UserRepository&gt;</code> dá auto-complete e segurança: se você renomear um método do repo, o teste estoura no compilador antes de rodar.</p>
+
+        <div class="callout callout-warn sr">
+          <div class="callout-label">Não mocke o que você está testando</div>
+          <p>Erro clássico do iniciante: testar <code>UserService.create</code> e mockar <code>UserService</code> no caminho. Aí o teste passa sem nem executar a unidade real. Mocke os <em>colaboradores</em> do sujeito (repo, logger, e-mail), nunca o sujeito em si.</p>
+        </div>
       </section>
 
-      <section class="mat-section" id="sec-cognitiva">
-        <h2>5. Complexidade cognitiva</h2>
-        <p>A ciclomática conta caminhos, mas trata todos os galhos como iguais. Na prática, um <code>if</code> no topo da função é fácil de ler; o mesmo <code>if</code> aninhado a quatro níveis de profundidade é um pesadelo. A <strong>complexidade cognitiva</strong> corrige isso: mede o <em>esforço humano de leitura</em>, penalizando especialmente o <strong>aninhamento</strong>. Dois trechos podem ter a mesma ciclomática e cognitivas muito diferentes.</p>
+      <section class="mat-section" id="sec-repos">
+        <h2>8. Testando repositories — banco efêmero</h2>
+        <p>Repositories tocam o banco. Mocká-los aqui esvazia o teste — o objetivo é justamente verificar que o SQL escrito faz o que se espera. A pergunta é: como rodar testes contra Postgres sem precisar de um banco compartilhado, sem deixar rastros entre testes e sem demorar minutos?</p>
+        <p>Há três caminhos viáveis no nosso stack:</p>
+        <ul>
+          <li><strong>Postgres em Docker</strong> via <code>docker compose</code>. Sobe um container <code>postgres:16-alpine</code> antes da suíte e derruba ao final. Rápido (~1s para subir), idêntico à produção.</li>
+          <li><strong>Testcontainers</strong> (biblioteca <code>testcontainers</code> no npm). Sobe containers programaticamente dentro do próprio teste. Útil em CI/CD onde o Docker já está disponível.</li>
+          <li><strong>pg-mem</strong>: implementação em memória (JavaScript) compatível com a maior parte do dialeto Postgres. Não tem todos os recursos do Postgres real (extensões, alguns tipos exóticos), mas é instantâneo.</li>
+        </ul>
 
-        <table class="mat-table">
-          <thead><tr><th></th><th>Complexidade Ciclomática</th><th>Complexidade Cognitiva</th></tr></thead>
-          <tbody>
-            <tr><td><strong>Mede</strong></td><td>Caminhos independentes</td><td>Esforço de leitura humana</td></tr>
-            <tr><td><strong>Aninhamento</strong></td><td>Não penaliza profundidade</td><td>Penaliza fortemente</td></tr>
-            <tr><td><strong>Liga-se a</strong></td><td>Testabilidade (nº de testes)</td><td>Legibilidade / manutenção</td></tr>
-            <tr><td><strong>Limite usual</strong></td><td>≤ 10</td><td>≤ 15</td></tr>
-          </tbody>
-        </table>
-
-        <h3>Medindo com ts-complex</h3>
-        <p>A ferramenta <code>ts-complex</code> calcula <strong>as duas</strong> métricas, por função, direto em TypeScript:</p>
+        <p>O segredo do <em>isolamento</em> entre testes é abrir uma <strong>transação</strong> no <code>beforeEach</code> e dar <strong>ROLLBACK</strong> no <code>afterEach</code>. Cada teste enxerga um banco "limpo" sem precisar truncar tabelas — e nenhum dado vaza para o próximo.</p>
 
         <div class="code-wrap">
-          <div class="code-label">Terminal — npx ts-complex src/freight.ts<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
-<pre class="code-block"><code>npx ts-complex src/freight.ts
+          <div class="code-label">tests/setup.ts — pool global<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+<pre class="code-block"><code><span class="hl-kw">import</span> { <span class="hl-typ">Pool</span> } <span class="hl-kw">from</span> <span class="hl-str">'pg'</span>;
 
-  Function       Cyclomatic   Cognitive
-  calcFrete          14           22</code></pre>
+<span class="hl-kw">export const</span> pool = <span class="hl-kw">new</span> <span class="hl-typ">Pool</span>({
+  host: <span class="hl-typ">process</span>.env.PGHOST ?? <span class="hl-str">'localhost'</span>,
+  port: <span class="hl-typ">Number</span>(<span class="hl-typ">process</span>.env.PGPORT ?? <span class="hl-num">5432</span>),
+  database: <span class="hl-typ">process</span>.env.PGDATABASE ?? <span class="hl-str">'app_test'</span>,
+  user: <span class="hl-typ">process</span>.env.PGUSER ?? <span class="hl-str">'postgres'</span>,
+  password: <span class="hl-typ">process</span>.env.PGPASSWORD ?? <span class="hl-str">'postgres'</span>,
+});
+
+<span class="hl-fn">afterAll</span>(<span class="hl-kw">async</span> () =&gt; { <span class="hl-kw">await</span> pool.<span class="hl-fn">end</span>(); });</code></pre>
         </div>
-
-        <p>A <code>calcFrete</code> gerada pela IA marca <strong>ciclomática 14 e cognitiva 22</strong> — ambas acima do limite, e a cognitiva alta denuncia o aninhamento de condicionais. Depois de refatorada (seção 13), a mesma função cai para <strong>ciclomática 3 e cognitiva 4</strong>, com as <em>mesmas saídas</em>. É a prova viva de que "funciona" e "é bom" são coisas diferentes: as duas versões passam nos mesmos testes, mas só uma é agradável de manter.</p>
-
-        <div class="callout callout-info sr">
-          <div class="callout-label">Por que a cognitiva é tão útil na auditoria de IA</div>
-          <p>A IA frequentemente gera código que <em>funciona</em> à custa de muitos <code>if</code> aninhados — porque foi treinada para satisfazer o exemplo, não para minimizar carga cognitiva. A complexidade cognitiva é o sensor mais direto desse problema: número alto significa "vai doer ler isto daqui a três meses".</p>
-        </div>
-      </section>
-
-      <section class="mat-section" id="sec-manutenibilidade">
-        <h2>6. Índice de Manutenibilidade e o dashboard plato</h2>
-        <p>O <strong>Índice de Manutenibilidade</strong> (MI, <em>Maintainability Index</em>) condensa várias métricas em um único número de 0 a 100 — quanto maior, mais fácil de manter. Ele combina três ingredientes: o <strong>volume de Halstead</strong> (tamanho e densidade de operadores/operandos), a <strong>complexidade ciclomática</strong> e as <strong>linhas de código</strong> (SLOC). Funções grandes, densas e cheias de decisões derrubam o índice.</p>
-
-        <table class="mat-table">
-          <thead><tr><th>Faixa de MI</th><th>Interpretação</th></tr></thead>
-          <tbody>
-            <tr><td><span class="tag tag-red">&lt; 65</span></td><td>Ruim — manutenção difícil, candidato a refatorar</td></tr>
-            <tr><td><span class="tag tag-amber">65 – 85</span></td><td>Moderado — aceitável, vigiar</td></tr>
-            <tr><td><span class="tag tag-green">&gt; 85</span></td><td>Bom — fácil de manter</td></tr>
-          </tbody>
-        </table>
-
-        <h3>plato: o dashboard visual</h3>
-        <p>O <code>plato</code> varre o projeto e gera um <strong>relatório HTML navegável</strong> — o dashboard do painel. Você vê gráficos de MI ao longo do tempo, ciclomática média, métricas de Halstead (volume, dificuldade, esforço), SLOC e erros de lint, arquivo por arquivo.</p>
 
         <div class="code-wrap">
-          <div class="code-label">Terminal — gerar o dashboard<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
-<pre class="code-block"><code>npx plato -r -d report src
+          <div class="code-label">src/repositories/UserRepository.test.ts<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+<pre class="code-block"><code><span class="hl-kw">import</span> { pool } <span class="hl-kw">from</span> <span class="hl-str">'../../tests/setup'</span>;
+<span class="hl-kw">import</span> { <span class="hl-typ">UserRepository</span> } <span class="hl-kw">from</span> <span class="hl-str">'./UserRepository'</span>;
+<span class="hl-kw">import</span> <span class="hl-kw">type</span> { <span class="hl-typ">PoolClient</span> } <span class="hl-kw">from</span> <span class="hl-str">'pg'</span>;
 
-<span class="hl-cmt"># abre o painel navegável em:</span>
-<span class="hl-cmt"># report/index.html</span></code></pre>
+<span class="hl-fn">describe</span>(<span class="hl-str">'UserRepository (integração)'</span>, () =&gt; {
+  <span class="hl-kw">let</span> client: <span class="hl-typ">PoolClient</span>;
+  <span class="hl-kw">let</span> repo: <span class="hl-typ">UserRepository</span>;
+
+  <span class="hl-fn">beforeEach</span>(<span class="hl-kw">async</span> () =&gt; {
+    client = <span class="hl-kw">await</span> pool.<span class="hl-fn">connect</span>();
+    <span class="hl-kw">await</span> client.<span class="hl-fn">query</span>(<span class="hl-str">'BEGIN'</span>);
+    repo = <span class="hl-kw">new</span> <span class="hl-typ">UserRepository</span>(client);
+  });
+
+  <span class="hl-fn">afterEach</span>(<span class="hl-kw">async</span> () =&gt; {
+    <span class="hl-kw">await</span> client.<span class="hl-fn">query</span>(<span class="hl-str">'ROLLBACK'</span>);
+    client.<span class="hl-fn">release</span>();
+  });
+
+  <span class="hl-fn">it</span>(<span class="hl-str">'create + findByEmail retornam o mesmo registro'</span>, <span class="hl-kw">async</span> () =&gt; {
+    <span class="hl-kw">const</span> u = <span class="hl-kw">await</span> repo.<span class="hl-fn">create</span>({ name: <span class="hl-str">'Ada'</span>, email: <span class="hl-str">'ada@x.com'</span> });
+    <span class="hl-kw">const</span> achado = <span class="hl-kw">await</span> repo.<span class="hl-fn">findByEmail</span>(<span class="hl-str">'ada@x.com'</span>);
+    <span class="hl-fn">expect</span>(achado?.id).<span class="hl-fn">toBe</span>(u.id);
+  });
+
+  <span class="hl-fn">it</span>(<span class="hl-str">'findByEmail retorna null quando não existe'</span>, <span class="hl-kw">async</span> () =&gt; {
+    <span class="hl-fn">expect</span>(<span class="hl-kw">await</span> repo.<span class="hl-fn">findByEmail</span>(<span class="hl-str">'fantasma@x.com'</span>)).<span class="hl-fn">toBeNull</span>();
+  });
+
+  <span class="hl-fn">it</span>(<span class="hl-str">'create estoura ao violar UNIQUE de email'</span>, <span class="hl-kw">async</span> () =&gt; {
+    <span class="hl-kw">await</span> repo.<span class="hl-fn">create</span>({ name: <span class="hl-str">'A'</span>, email: <span class="hl-str">'dup@x.com'</span> });
+    <span class="hl-kw">await</span> <span class="hl-fn">expect</span>(repo.<span class="hl-fn">create</span>({ name: <span class="hl-str">'B'</span>, email: <span class="hl-str">'dup@x.com'</span> }))
+      .<span class="hl-fn">rejects</span>.<span class="hl-fn">toThrow</span>(<span class="hl-str">/duplicate key/i</span>);
+  });
+});</code></pre>
         </div>
 
-        <p>A flag <code>-r</code> é recursiva (entra nas subpastas) e <code>-d report</code> define a pasta de saída. Abra <code>report/index.html</code> e você terá uma visão de pássaro da saúde do código: os arquivos com MI baixo aparecem em destaque, prontos para serem o alvo da próxima refatoração.</p>
+        <p>Como a transação é revertida no <code>afterEach</code>, o teste <code>create estoura ao violar UNIQUE</code> não polui o próximo. Você pode rodar a suíte em paralelo (<code>jest --maxWorkers=4</code>) que cada worker terá sua própria conexão e seu próprio rollback. Bancos de teste não precisam ser frágeis.</p>
 
         <div class="callout callout-deep sr">
-          <div class="callout-label">As métricas de Halstead</div>
-          <p>Maurice Halstead propôs medir software como se fosse um texto: contando operadores distintos, operandos distintos e suas ocorrências, derivam-se <em>volume</em> (tamanho conceitual), <em>dificuldade</em> (propensão a erro) e <em>esforço</em> (trabalho mental para entender). Não decore as fórmulas; entenda a ideia — código denso e cheio de símbolos é mentalmente caro, e o plato põe esse custo num gráfico.</p>
+          <div class="callout-label">Migrations no setup global</div>
+          <p>Para testes de integração funcionarem, o schema precisa existir. A prática consagrada é rodar as <em>migrations reais</em> da aplicação contra o banco de teste no <code>globalSetup</code> do Jest. Assim o esquema testado é exatamente o que vai pra produção, e migrar a aplicação implica revalidar os testes.</p>
         </div>
       </section>
 
-      <section class="mat-section" id="sec-duplicacao">
-        <h2>7. Duplicação de código</h2>
-        <p>O princípio <strong>DRY</strong> (<em>Don't Repeat Yourself</em>) diz que cada pedaço de conhecimento deve ter uma única representação no sistema. Código duplicado viola isso: quando a regra muda, você precisa lembrar de alterar todas as cópias — e sempre esquece uma. A IA é uma máquina de duplicar: ela gera funções parecidas em arquivos diferentes porque cada prompt é respondido de forma isolada, sem visão do todo.</p>
-
-        <h3>Medindo com jscpd</h3>
-        <p>O <code>jscpd</code> (<em>copy/paste detector</em>) varre o código procurando blocos repetidos e reporta a porcentagem de duplicação e o número de <em>clones</em>:</p>
+      <section class="mat-section" id="sec-controllers">
+        <h2>9. Testando controllers — supertest</h2>
+        <p>Controllers fazem o "casamento" entre HTTP e domínio: pegam <code>req.body</code>, chamam o service, traduzem o resultado em <code>res.status(...).json(...)</code> ou <code>res.render(...)</code>. Testá-los unitariamente (mockando <code>req</code>/<code>res</code>) é tedioso e quebradiço. O caminho idiomático é <em>integração leve</em>: instanciar o app Express e usar <code>supertest</code> para disparar requisições HTTP em memória.</p>
 
         <div class="code-wrap">
-          <div class="code-label">Terminal — npx jscpd src<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
-<pre class="code-block"><code>npx jscpd src
+          <div class="code-label">src/app.ts — exportar o Express<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+<pre class="code-block"><code><span class="hl-kw">import</span> express <span class="hl-kw">from</span> <span class="hl-str">'express'</span>;
+<span class="hl-kw">import</span> { userRouter } <span class="hl-kw">from</span> <span class="hl-str">'./controllers/UserController'</span>;
 
-  Found 12 clones.
-  Duplicated lines: 4.7% (143 of 3024 lines)</code></pre>
+<span class="hl-kw">export function</span> <span class="hl-fn">buildApp</span>() {
+  <span class="hl-kw">const</span> app = <span class="hl-fn">express</span>();
+  app.<span class="hl-fn">use</span>(express.<span class="hl-fn">json</span>());
+  app.<span class="hl-fn">set</span>(<span class="hl-str">'view engine'</span>, <span class="hl-str">'ejs'</span>);
+  app.<span class="hl-fn">use</span>(<span class="hl-str">'/api/users'</span>, userRouter);
+  <span class="hl-kw">return</span> app;
+}</code></pre>
         </div>
 
-        <p>O limiar saudável é <strong>menos de 5%</strong> de duplicação. Acima disso, é hora de extrair o trecho repetido para uma função ou módulo comum. Você fixa o limite num arquivo <code>.jscpd.json</code> para que o comando falhe quando a duplicação ultrapassar a régua — bom para deixar o número visível e sob controle.</p>
+        <div class="code-wrap">
+          <div class="code-label">tests/users.controller.test.ts<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+<pre class="code-block"><code><span class="hl-kw">import</span> request <span class="hl-kw">from</span> <span class="hl-str">'supertest'</span>;
+<span class="hl-kw">import</span> { buildApp } <span class="hl-kw">from</span> <span class="hl-str">'../src/app'</span>;
 
-        <div class="callout callout-tip sr">
-          <div class="callout-label">Duplicação não é só copiar e colar literal</div>
-          <p>O <code>jscpd</code> também pega duplicação <em>estrutural</em>: dois blocos que fazem a mesma coisa com nomes de variáveis diferentes. Esse é o tipo que a IA mais produz — e o mais perigoso, porque não salta aos olhos numa leitura rápida.</p>
+<span class="hl-kw">const</span> app = <span class="hl-fn">buildApp</span>();
+
+<span class="hl-fn">describe</span>(<span class="hl-str">'POST /api/users'</span>, () =&gt; {
+  <span class="hl-fn">it</span>(<span class="hl-str">'cria usuário e retorna 201'</span>, <span class="hl-kw">async</span> () =&gt; {
+    <span class="hl-kw">const</span> res = <span class="hl-kw">await</span> <span class="hl-fn">request</span>(app)
+      .<span class="hl-fn">post</span>(<span class="hl-str">'/api/users'</span>)
+      .<span class="hl-fn">send</span>({ name: <span class="hl-str">'Ada'</span>, email: <span class="hl-str">'ada@x.com'</span> })
+      .<span class="hl-fn">expect</span>(<span class="hl-num">201</span>);
+
+    <span class="hl-fn">expect</span>(res.body).<span class="hl-fn">toEqual</span>(<span class="hl-fn">expect</span>.<span class="hl-fn">objectContaining</span>({
+      id: <span class="hl-fn">expect</span>.<span class="hl-fn">any</span>(<span class="hl-typ">Number</span>),
+      email: <span class="hl-str">'ada@x.com'</span>,
+    }));
+  });
+
+  <span class="hl-fn">it</span>(<span class="hl-str">'retorna 400 com email inválido'</span>, <span class="hl-kw">async</span> () =&gt; {
+    <span class="hl-kw">await</span> <span class="hl-fn">request</span>(app)
+      .<span class="hl-fn">post</span>(<span class="hl-str">'/api/users'</span>)
+      .<span class="hl-fn">send</span>({ name: <span class="hl-str">'X'</span>, email: <span class="hl-str">'invalido'</span> })
+      .<span class="hl-fn">expect</span>(<span class="hl-num">400</span>);
+  });
+
+  <span class="hl-fn">it</span>(<span class="hl-str">'retorna 409 quando email duplicado'</span>, <span class="hl-kw">async</span> () =&gt; {
+    <span class="hl-kw">await</span> <span class="hl-fn">request</span>(app)
+      .<span class="hl-fn">post</span>(<span class="hl-str">'/api/users'</span>)
+      .<span class="hl-fn">send</span>({ name: <span class="hl-str">'A'</span>, email: <span class="hl-str">'dup@x.com'</span> });
+
+    <span class="hl-kw">await</span> <span class="hl-fn">request</span>(app)
+      .<span class="hl-fn">post</span>(<span class="hl-str">'/api/users'</span>)
+      .<span class="hl-fn">send</span>({ name: <span class="hl-str">'B'</span>, email: <span class="hl-str">'dup@x.com'</span> })
+      .<span class="hl-fn">expect</span>(<span class="hl-num">409</span>);
+  });
+});</code></pre>
+        </div>
+
+        <p>Importante: <code>supertest(app)</code> <strong>não</strong> precisa de servidor escutando em porta. Ele despacha as requisições direto contra a instância do Express, em memória. Isso faz com que cada teste leve ~10-30ms — rápido o bastante para rodar dezenas em segundos.</p>
+
+        <h3>Injetar dependências para testar sem Postgres</h3>
+        <p>Para o teste de controller acima rodar sem banco, você pode usar uma <em>fake</em> do repository (em memória). Para isso, exporte o <code>buildApp</code> aceitando dependências, ou aplique injeção via container de DI. Em projetos pequenos, basta uma fábrica:</p>
+
+        <div class="code-wrap">
+          <div class="code-label">src/app.ts — versão com DI explícita<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+<pre class="code-block"><code><span class="hl-kw">export function</span> <span class="hl-fn">buildApp</span>(deps: { userService: <span class="hl-typ">UserService</span> }) {
+  <span class="hl-kw">const</span> app = <span class="hl-fn">express</span>();
+  app.<span class="hl-fn">use</span>(express.<span class="hl-fn">json</span>());
+  app.<span class="hl-fn">use</span>(<span class="hl-str">'/api/users'</span>, <span class="hl-fn">makeUserRouter</span>(deps.userService));
+  <span class="hl-kw">return</span> app;
+}</code></pre>
         </div>
       </section>
 
-      <section class="mat-section" id="sec-dependencias">
-        <h2>8. Dependências e arquitetura</h2>
-        <p>Um código bem arquitetado tem dependências que fluem em uma direção: controllers dependem de services, services de repositories, e ninguém volta. Quando esse fluxo se torna um ciclo — <code>A</code> importa <code>B</code> que importa <code>A</code> —, você tem uma <strong>dependência circular</strong>: um sintoma de acoplamento alto que dificulta testar, refatorar e até carregar os módulos na ordem certa. A IA cria ciclos com facilidade porque não enxerga o grafo completo de imports.</p>
-
-        <h3>Detectando com madge</h3>
-        <p>O <code>madge</code> analisa o grafo de imports do projeto e denuncia ciclos:</p>
+      <section class="mat-section" id="sec-views">
+        <h2>10. Smoke test em views EJS</h2>
+        <p>Views EJS renderizadas no servidor (SSR) são strings de HTML. Testá-las unitariamente é raramente útil — o template é simples; o que importa é se ele <em>recebeu</em> os dados certos. A estratégia mais barata é o <strong>smoke test</strong>: bater no controller que renderiza a página, capturar a resposta HTML e verificar via regex se aparece algo crítico (o <code>&lt;title&gt;</code>, um nome, uma classe).</p>
 
         <div class="code-wrap">
-          <div class="code-label">Terminal — npx madge --circular src<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
-<pre class="code-block"><code>npx madge --circular src
+          <div class="code-label">tests/users.view.test.ts<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+<pre class="code-block"><code><span class="hl-kw">import</span> request <span class="hl-kw">from</span> <span class="hl-str">'supertest'</span>;
+<span class="hl-kw">import</span> { buildApp } <span class="hl-kw">from</span> <span class="hl-str">'../src/app'</span>;
 
-  ✖ Found 1 circular dependency:
+<span class="hl-kw">const</span> app = <span class="hl-fn">buildApp</span>(<span class="hl-cmt">/* deps fake */</span>);
 
-  1) order.service.ts > payment.service.ts > order.service.ts</code></pre>
+<span class="hl-fn">describe</span>(<span class="hl-str">'GET /users (view)'</span>, () =&gt; {
+  <span class="hl-fn">it</span>(<span class="hl-str">'renderiza HTML com título e tabela'</span>, <span class="hl-kw">async</span> () =&gt; {
+    <span class="hl-kw">const</span> res = <span class="hl-kw">await</span> <span class="hl-fn">request</span>(app).<span class="hl-fn">get</span>(<span class="hl-str">'/users'</span>).<span class="hl-fn">expect</span>(<span class="hl-num">200</span>);
+    <span class="hl-fn">expect</span>(res.text).<span class="hl-fn">toMatch</span>(<span class="hl-str">/&lt;title&gt;Usuários/</span>);
+    <span class="hl-fn">expect</span>(res.text).<span class="hl-fn">toMatch</span>(<span class="hl-str">/&lt;table[^&gt;]*class=&quot;[^&quot;]*users-table/</span>);
+    <span class="hl-fn">expect</span>(res.headers[<span class="hl-str">'content-type'</span>]).<span class="hl-fn">toMatch</span>(<span class="hl-str">/text\/html/</span>);
+  });
+});</code></pre>
         </div>
 
-        <p>A meta é simples e inegociável: <strong>0 dependências circulares</strong>. Quando o <code>madge</code> aponta um ciclo, quebre-o — geralmente extraindo a parte compartilhada para um terceiro módulo do qual ambos dependem, ou invertendo a dependência com uma interface.</p>
+        <p>Esse tipo de teste pega a maior parte das regressões de view: template renomeado, variável faltando, layout que sumiu. O que ele <em>não</em> pega é interação no browser real — para isso, existe E2E.</p>
 
-        <p>O <code>madge</code> também desenha o grafo inteiro como imagem, ótimo para enxergar o acoplamento de relance:</p>
-
-        <div class="code-wrap">
-          <div class="code-label">Terminal — gerar o grafo visual<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
-<pre class="code-block"><code>npx madge --image graph.svg src
-
-<span class="hl-cmt"># abre graph.svg: um nó por módulo, setas = imports</span></code></pre>
-        </div>
-
-        <p>Um grafo com poucos nós muito conectados (uma "teia") indica acoplamento alto — outro RNF de manutenibilidade que vale auditar.</p>
-      </section>
-
-      <section class="mat-section" id="sec-seg-deps">
-        <h2>9. Segurança das bibliotecas — npm audit</h2>
-        <p>O código que você escreve é só a ponta do iceberg: por baixo, dezenas (às vezes centenas) de pacotes de terceiros rodam dentro da sua aplicação. Cada um deles pode ter uma vulnerabilidade conhecida — uma <strong>CVE</strong> (<em>Common Vulnerabilities and Exposures</em>). Quando a IA sugere "instale o pacote X", ela raramente verifica se aquela versão tem buracos de segurança. Quem verifica é você, com o <code>npm audit</code>.</p>
+        <h3>E2E real com Playwright</h3>
+        <p>Quando o fluxo importa demais para confiar só em regex (cadastro, checkout, login), entra Playwright. Ele controla um navegador real, preenche campos, clica em botões e verifica o resultado de verdade. É o mesmo Playwright que o repositório de aulas usa em <code>tests/index.spec.ts</code>.</p>
 
         <div class="code-wrap">
-          <div class="code-label">Terminal — auditar dependências<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
-<pre class="code-block"><code>npm audit
+          <div class="code-label">tests/e2e/cadastro.spec.ts<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+<pre class="code-block"><code><span class="hl-kw">import</span> { test, expect } <span class="hl-kw">from</span> <span class="hl-str">'@playwright/test'</span>;
 
-  found 3 vulnerabilities (1 critical, 2 high)
+<span class="hl-fn">test</span>(<span class="hl-str">'usuário consegue se cadastrar'</span>, <span class="hl-kw">async</span> ({ page }) =&gt; {
+  <span class="hl-kw">await</span> page.<span class="hl-fn">goto</span>(<span class="hl-str">'http://localhost:3000/cadastro'</span>);
+  <span class="hl-kw">await</span> page.<span class="hl-fn">getByLabel</span>(<span class="hl-str">'Nome'</span>).<span class="hl-fn">fill</span>(<span class="hl-str">'Ada Lovelace'</span>);
+  <span class="hl-kw">await</span> page.<span class="hl-fn">getByLabel</span>(<span class="hl-str">'E-mail'</span>).<span class="hl-fn">fill</span>(<span class="hl-str">'ada@x.com'</span>);
+  <span class="hl-kw">await</span> page.<span class="hl-fn">getByRole</span>(<span class="hl-str">'button'</span>, { name: <span class="hl-str">'Cadastrar'</span> }).<span class="hl-fn">click</span>();
 
-<span class="hl-cmt"># falha só com severidade alta ou crítica (bom para o painel)</span>
-npm audit --audit-level=high</code></pre>
-        </div>
-
-        <p>A flag <code>--audit-level=high</code> faz o comando falhar apenas quando há vulnerabilidades <em>high</em> ou <em>critical</em> — útil para o painel não travar por avisos menores. A meta: <strong>0 vulnerabilidades high/critical</strong>.</p>
-
-        <h3>Corrigindo</h3>
-        <p>Boa parte das vulnerabilidades se resolve com um único comando, que atualiza os pacotes para versões corrigidas dentro do que o <code>package.json</code> permite:</p>
-
-        <div class="code-wrap">
-          <div class="code-label">Terminal — corrigir automaticamente<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
-<pre class="code-block"><code>npm audit fix
-
-<span class="hl-cmt"># para correções que exigem major version (revise antes):</span>
-npm audit fix --force</code></pre>
+  <span class="hl-kw">await</span> <span class="hl-fn">expect</span>(page.<span class="hl-fn">getByText</span>(<span class="hl-str">'Cadastro realizado'</span>)).<span class="hl-fn">toBeVisible</span>();
+});</code></pre>
         </div>
 
         <div class="callout callout-warn sr">
-          <div class="callout-label">Cuidado com o --force</div>
-          <p>O <code>npm audit fix --force</code> pode subir versões <em>major</em> de pacotes, o que muda a API e pode quebrar seu código. Use-o com a suíte de testes verde por perto: rode, depois rode <code>npm test</code>. Se quebrou, você descobre na hora — mais uma razão para a rede de testes existir.</p>
+          <div class="callout-label">Não exagere no E2E</div>
+          <p>Cada teste E2E custa segundos. Se sua suíte E2E passa de 5 minutos, ela vai ser pulada pelo time. Mantenha E2E só para os fluxos críticos do produto. Se você está testando casos de borda no E2E ("e se o telefone tiver 14 dígitos?"), provavelmente esse caso pertence a um teste unitário do helper de validação.</p>
         </div>
       </section>
 
-      <section class="mat-section" id="sec-seg-codigo">
-        <h2>10. Segurança no código — eslint-plugin-security</h2>
-        <p>O <code>npm audit</code> cuida das bibliotecas; mas a vulnerabilidade pode estar no <em>seu</em> código — ou melhor, no código que a IA escreveu para você. O <code>eslint-plugin-security</code> detecta <strong>padrões inseguros</strong> direto nos arquivos-fonte, sinalizando construções clássicas que abrem brechas.</p>
+      <section class="mat-section" id="sec-models">
+        <h2>11. Models — o compilador já testa</h2>
+        <p>No nosso stack, "models" são tipos TypeScript: <code>interface User</code>, <code>type CreateUserInput</code>, <code>enum Status</code>. Eles não têm comportamento — descrevem dados. Testar tipos com Jest seria redundante: o <em>compilador</em> já faz esse trabalho a cada <code>tsc --noEmit</code>.</p>
+
+        <div class="code-wrap">
+          <div class="code-label">src/models/User.ts<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+<pre class="code-block"><code><span class="hl-kw">export interface</span> <span class="hl-typ">User</span> {
+  id:        <span class="hl-typ">number</span>;
+  name:      <span class="hl-typ">string</span>;
+  email:     <span class="hl-typ">string</span>;
+  createdAt: <span class="hl-typ">Date</span>;
+}
+
+<span class="hl-kw">export type</span> <span class="hl-typ">CreateUserInput</span> = <span class="hl-typ">Omit</span>&lt;<span class="hl-typ">User</span>, <span class="hl-str">'id'</span> | <span class="hl-str">'createdAt'</span>&gt;;</code></pre>
+        </div>
+
+        <p>Se um service tentar criar um <code>User</code> sem <code>email</code>, o build estoura. Se um repository devolver <code>string</code> onde se esperava <code>Date</code>, idem. Por isso é tão importante que o pipeline de CI rode <code>tsc --noEmit</code> junto dos testes — é parte da bateria de qualidade, ainda que ninguém escreva um <code>describe</code> sobre tipos.</p>
+
+        <div class="callout callout-tip sr">
+          <div class="callout-label">Quando testar model com runtime check</div>
+          <p>Se você usa uma biblioteca como <strong>Zod</strong> ou <strong>io-ts</strong> para validação <em>em runtime</em> (ex.: validar JSON da requisição), aí sim faz sentido escrever testes: garanta que o schema rejeita o que deveria rejeitar e aceita o que deveria aceitar.</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="sec-coverage">
+        <h2>12. Cobertura — boa métrica, péssima meta</h2>
+        <p>Cobertura de testes (<em>coverage</em>) mede quais linhas, branches ou funções foram executadas durante a suíte. Em Jest, <code>--coverage</code> gera um relatório por arquivo com quatro métricas:</p>
 
         <table class="mat-table">
-          <thead><tr><th>Regra</th><th>O que detecta</th><th>Risco que a IA introduz</th></tr></thead>
+          <thead><tr><th>Métrica</th><th>O que conta</th></tr></thead>
           <tbody>
-            <tr><td><code>detect-non-literal-regexp</code></td><td>RegExp montado a partir de input</td><td>ReDoS (negação de serviço por regex)</td></tr>
-            <tr><td><code>detect-child-process</code></td><td>Execução de processos do sistema</td><td>Injeção de comando</td></tr>
-            <tr><td><code>detect-non-literal-fs-filename</code></td><td><code>fs</code> com caminho dinâmico</td><td>Path traversal (ler arquivo proibido)</td></tr>
-            <tr><td><code>detect-eval-with-expression</code></td><td><code>eval</code> com expressão</td><td>Execução de código arbitrário</td></tr>
-            <tr><td><code>detect-object-injection</code></td><td>Acesso a objeto por chave dinâmica</td><td>Object injection / prototype pollution</td></tr>
+            <tr><td><strong>Statements</strong></td><td>% de instruções executadas</td></tr>
+            <tr><td><strong>Branches</strong></td><td>% de ramos (if/else, &amp;&amp;, ||) atingidos</td></tr>
+            <tr><td><strong>Functions</strong></td><td>% de funções chamadas</td></tr>
+            <tr><td><strong>Lines</strong></td><td>% de linhas executadas</td></tr>
           </tbody>
         </table>
 
-        <p>Ative o plugin no <code>.eslintrc</code> com <code>extends: ["plugin:security/recommended"]</code> e ele passa a apontar os problemas junto com o lint normal:</p>
-
         <div class="code-wrap">
-          <div class="code-label">Terminal — eslint-plugin-security em ação<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
-<pre class="code-block"><code>user.controller.ts
-  23:14  warning  Found non-literal argument to RegExp Constructor  security/detect-non-literal-regexp</code></pre>
+          <div class="code-label">Bash — rodar com cobertura<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+<pre class="code-block"><code>npm test -- --coverage
+
+<span class="hl-cmt"># abre o relatório HTML detalhado</span>
+open coverage/lcov-report/index.html</code></pre>
         </div>
 
-        <h3>O que a IA costuma errar</h3>
-        <p>Quatro padrões aparecem com frequência no código gerado, e todos são pegos por esse plugin (ou por uma leitura atenta):</p>
-        <ul>
-          <li><strong>SQL por concatenação</strong> — montar a query com <code>'SELECT ... WHERE id = ' + req.params.id</code>, abrindo <em>SQL injection</em>. O certo é usar <em>queries parametrizadas</em> (<code>$1</code>, <code>$2</code> no <code>pg</code>).</li>
-          <li><strong>eval</strong> — usar <code>eval</code> para "interpretar" algo do usuário. Quase nunca é necessário e é perigosíssimo.</li>
-          <li><strong>RegExp de input</strong> — <code>new RegExp(req.query.busca)</code> permite que o usuário derrube o servidor com uma regex catastrófica.</li>
-          <li><strong>fs com path do usuário</strong> — <code>fs.readFile(req.query.arquivo)</code> deixa o usuário pedir <code>../../etc/passwd</code>.</li>
-        </ul>
+        <p>Cobertura é uma métrica útil para <em>encontrar buracos</em>: se um arquivo crítico está com 12% de branches, há cenários inteiros sem teste. Mas é uma péssima <em>meta</em>. Cravar "100% de cobertura" empurra o time a escrever testes triviais que só executam o código sem afirmar comportamento — atinge a métrica e não pega bug nenhum.</p>
 
         <div class="callout callout-danger sr">
-          <div class="callout-label">A IA não tem instinto de segurança</div>
-          <p>A IA otimiza para produzir um resultado que "funciona com o exemplo dado". Um exemplo benigno (<code>id = 5</code>) nunca dispara a brecha — ela só aparece quando um usuário malicioso manda <code>id = 5 OR 1=1</code>. Por isso a auditoria de segurança é <em>sua</em> responsabilidade: a IA não pensa em adversários, você precisa pensar.</p>
+          <div class="callout-label">A armadilha do 100%</div>
+          <p>Já vi times exigirem 100% de cobertura via política de CI e a primeira coisa que aparece é o "teste decorativo": chamar a função sem expect, marcar a linha como coberta e seguir adiante. A métrica subiu, a qualidade caiu. Trate cobertura como termômetro, nunca como vacina.</p>
         </div>
+
+        <p>Uma régua razoável: <strong>80% de statements</strong> nas pastas de <code>services</code> e <code>helpers</code>, <strong>60% nos controllers</strong> (porque parte deles é "casing" trivial), e <strong>0% obrigado em scripts auxiliares</strong> (excluídos via <code>collectCoverageFrom</code>).</p>
       </section>
 
-      <section class="mat-section" id="sec-saidas">
-        <h2>11. Corretude das saídas e cobertura de tipos</h2>
-        <p>Auditar a <strong>saída</strong> de uma função é verificar o seu contrato: qual o tipo de retorno, e o que acontece nos casos de borda — <code>null</code>, <code>undefined</code>, array vazio, string vazia. A IA tende a tratar o caminho feliz e esquecer as bordas; o retorno "funciona" para o exemplo e quebra quando alguém passa <code>[]</code>.</p>
-        <p>Em TypeScript, o melhor guardião do contrato de saída é o <strong>sistema de tipos</strong>. Mas há um vilão: o <code>any</code>. Cada <code>any</code> é um buraco no contrato — o compilador desliga as verificações e o bug volta a ser possível. A IA usa <code>any</code> demais, porque é o caminho de menor resistência quando ela não sabe o tipo exato.</p>
-
-        <h3>Medindo com type-coverage</h3>
-        <p>O <code>type-coverage</code> calcula a porcentagem do código que está coberta por tipos reais (não-<code>any</code>):</p>
-
-        <div class="code-wrap">
-          <div class="code-label">Terminal — npx type-coverage<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
-<pre class="code-block"><code>npx type-coverage --detail --at-least 95
-
-  9821 / 10000  98.21%
-
-<span class="hl-cmt"># --detail lista CADA ocorrência de any (arquivo:linha:coluna)</span>
-<span class="hl-cmt"># --at-least 95 faz o comando falhar abaixo de 95%</span></code></pre>
-        </div>
-
-        <p>A meta é <strong>acima de 95%</strong>. A flag <code>--detail</code> lista cada <code>any</code> com arquivo, linha e coluna — é a lista de tarefas para tipar o que a IA deixou solto. Tipos bem definidos garantem o <em>shape</em> do retorno: se a função promete devolver <code>User</code>, o compilador impede que ela devolva <code>undefined</code> por engano.</p>
-
-        <div class="callout callout-info sr">
-          <div class="callout-label">Tipos como teste estático</div>
-          <p>Um tipo é um teste que roda em todo <em>build</em>, sem você escrever um <code>expect</code>. Quando você troca <code>any</code> por um tipo preciso, está adicionando dezenas de verificações gratuitas sobre as saídas — e o <code>type-coverage</code> mede o quanto dessa proteção você realmente tem.</p>
-        </div>
-      </section>
-
-      <section class="mat-section" id="sec-algoritmos">
-        <h2>12. Complexidade algorítmica (Big-O)</h2>
-        <p>Última peça da auditoria: a <strong>eficiência</strong>, RNF de Desempenho. Código pode funcionar e passar nos testes com dados pequenos, mas ficar lento de forma catastrófica conforme a entrada cresce. A IA, focada em "produzir algo que roda", frequentemente gera soluções <strong>O(n²)</strong> — um laço dentro de outro, ou um <code>.find()</code>/<code>.includes()</code> chamado dentro de um <code>.map()</code>, o que esconde um laço aninhado.</p>
-
-        <h3>O caso clássico: deduplicar</h3>
-        <p>Veja como a IA costuma deduplicar uma lista — e como auditar transforma O(n²) em O(n):</p>
-
-        <div class="code-wrap">
-          <div class="code-label">TypeScript — ANTES: O(n²) gerado pela IA<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
-<pre class="code-block"><code><span class="hl-kw">function</span> <span class="hl-fn">dedup</span>(itens: <span class="hl-typ">number</span>[]): <span class="hl-typ">number</span>[] {
-  <span class="hl-kw">const</span> saida: <span class="hl-typ">number</span>[] = [];
-  <span class="hl-kw">for</span> (<span class="hl-kw">const</span> x <span class="hl-kw">of</span> itens) {
-    <span class="hl-cmt">// includes percorre 'saida' inteira: laço dentro de laço = O(n²)</span>
-    <span class="hl-kw">if</span> (!saida.<span class="hl-fn">includes</span>(x)) saida.<span class="hl-fn">push</span>(x);
-  }
-  <span class="hl-kw">return</span> saida;
-}</code></pre>
-        </div>
-
-        <div class="code-wrap">
-          <div class="code-label">TypeScript — DEPOIS: O(n) com Set<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
-<pre class="code-block"><code><span class="hl-kw">function</span> <span class="hl-fn">dedup</span>(itens: <span class="hl-typ">number</span>[]): <span class="hl-typ">number</span>[] {
-  <span class="hl-cmt">// Set verifica pertencimento em O(1); total O(n)</span>
-  <span class="hl-kw">return</span> [...<span class="hl-kw">new</span> <span class="hl-typ">Set</span>(itens)];
-}</code></pre>
-        </div>
-
-        <p>As duas versões passam exatamente nos mesmos testes. A diferença só aparece com 100 mil itens: a primeira faz bilhões de comparações; a segunda, cem mil. Ler o Big-O do código gerado e questionar "isso escala?" é parte da auditoria de eficiência. Não há ferramenta que meça Big-O automaticamente — aqui o sensor é o <strong>seu olho treinado</strong>: laço dentro de laço, ou método de busca dentro de laço, acende a luz amarela.</p>
-
-        <div class="callout callout-tip sr">
-          <div class="callout-label">Estruturas de dados são a cura</div>
-          <p>A maioria dos O(n²) da IA vira O(n) trocando a estrutura de dados: <code>Set</code> para pertencimento, <code>Map</code> para busca por chave, ordenar uma vez em vez de buscar repetidamente. Quando ver um <code>.find()</code> dentro de um laço, pergunte: "dá para indexar isso num <code>Map</code> antes?".</p>
-        </div>
-      </section>
-
-      <section class="mat-section" id="sec-refatoracao">
-        <h2>13. Refatoração guiada por métricas</h2>
-        <p>Medir só faz sentido se levar à ação. <strong>Refatorar</strong> é melhorar a estrutura interna do código <em>sem mudar seu comportamento externo</em> — as saídas continuam idênticas, os testes continuam verdes, mas os números do painel melhoram. Martin Fowler catalogou os <em>code smells</em> (sinais de problema) e os <em>refactorings</em> (movimentos para resolvê-los).</p>
-
-        <table class="mat-table">
-          <thead><tr><th>Code smell (Fowler)</th><th>Refactoring que resolve</th></tr></thead>
-          <tbody>
-            <tr><td>Método Longo</td><td>Extrair Função</td></tr>
-            <tr><td>Condicional Aninhada</td><td>Substituir Condicional por Tabela; Cláusulas de Guarda</td></tr>
-            <tr><td>Código Duplicado</td><td>Extrair Função</td></tr>
-            <tr><td>Números Mágicos</td><td>Extrair Constante</td></tr>
-            <tr><td>Lista Longa de Parâmetros</td><td>Introduzir Objeto de Parâmetro</td></tr>
-            <tr><td>Inveja de Recurso / Classe Grande</td><td>Mover Função; Extrair Classe</td></tr>
-            <tr><td>Cirurgia com Espingarda</td><td>Mover Função / consolidar</td></tr>
-          </tbody>
-        </table>
-
-        <h3>O exemplo canônico: calcFrete</h3>
-        <p>Lembre dos números das seções anteriores: a <code>calcFrete</code> gerada pela IA marcava <strong>ciclomática 14 / cognitiva 22</strong>. Ela tem todos os <em>smells</em>: método longo, condicional aninhada, código duplicado (as três faixas de peso repetidas) e números mágicos. Eis o estado original:</p>
-
-        <div class="code-wrap">
-          <div class="code-label">freight.ts — ANTES (ciclomática 14 / cognitiva 22)<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
-<pre class="code-block"><code><span class="hl-kw">export function</span> <span class="hl-fn">calcFrete</span>(uf: <span class="hl-typ">string</span>, peso: <span class="hl-typ">number</span>, expresso: <span class="hl-typ">boolean</span>): <span class="hl-typ">number</span> {
-  <span class="hl-kw">let</span> valor = <span class="hl-num">0</span>;
-  <span class="hl-kw">if</span> (uf === <span class="hl-str">'SP'</span> || uf === <span class="hl-str">'RJ'</span> || uf === <span class="hl-str">'MG'</span> || uf === <span class="hl-str">'ES'</span>) {
-    <span class="hl-kw">if</span> (peso &lt;= <span class="hl-num">1</span>) valor = <span class="hl-num">10</span>;
-    <span class="hl-kw">else if</span> (peso &lt;= <span class="hl-num">5</span>) valor = <span class="hl-num">18</span>;
-    <span class="hl-kw">else if</span> (peso &lt;= <span class="hl-num">10</span>) valor = <span class="hl-num">28</span>;
-    <span class="hl-kw">else</span> valor = <span class="hl-num">40</span>;
-  } <span class="hl-kw">else if</span> (uf === <span class="hl-str">'PR'</span> || uf === <span class="hl-str">'SC'</span> || uf === <span class="hl-str">'RS'</span>) {
-    <span class="hl-kw">if</span> (peso &lt;= <span class="hl-num">1</span>) valor = <span class="hl-num">14</span>;
-    <span class="hl-kw">else if</span> (peso &lt;= <span class="hl-num">5</span>) valor = <span class="hl-num">22</span>;
-    <span class="hl-kw">else if</span> (peso &lt;= <span class="hl-num">10</span>) valor = <span class="hl-num">34</span>;
-    <span class="hl-kw">else</span> valor = <span class="hl-num">50</span>;
-  } <span class="hl-kw">else</span> {
-    <span class="hl-kw">if</span> (peso &lt;= <span class="hl-num">1</span>) valor = <span class="hl-num">20</span>;
-    <span class="hl-kw">else if</span> (peso &lt;= <span class="hl-num">5</span>) valor = <span class="hl-num">32</span>;
-    <span class="hl-kw">else if</span> (peso &lt;= <span class="hl-num">10</span>) valor = <span class="hl-num">48</span>;
-    <span class="hl-kw">else</span> valor = <span class="hl-num">70</span>;
-  }
-  <span class="hl-kw">if</span> (expresso) valor = valor * <span class="hl-num">1.6</span>;
-  <span class="hl-kw">return</span> valor;
-}</code></pre>
-        </div>
-
-        <p>Aplicando três refactorings — <strong>Substituir Condicional por Tabela</strong>, <strong>Extrair Constante</strong> e <strong>Cláusulas de Guarda</strong> —, a função encolhe para <strong>ciclomática 3 / cognitiva 4</strong>, com saídas <em>idênticas</em>:</p>
-
-        <div class="code-wrap">
-          <div class="code-label">freight.ts — DEPOIS (ciclomática 3 / cognitiva 4)<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
-<pre class="code-block"><code><span class="hl-kw">type</span> <span class="hl-typ">Regiao</span> = <span class="hl-str">'sudeste'</span> | <span class="hl-str">'sul'</span> | <span class="hl-str">'outras'</span>;
-
-<span class="hl-kw">const</span> <span class="hl-typ">REGIAO</span>: <span class="hl-typ">Record</span>&lt;<span class="hl-typ">string</span>, <span class="hl-typ">Regiao</span>&gt; = {
-  SP: <span class="hl-str">'sudeste'</span>, RJ: <span class="hl-str">'sudeste'</span>, MG: <span class="hl-str">'sudeste'</span>, ES: <span class="hl-str">'sudeste'</span>,
-  PR: <span class="hl-str">'sul'</span>, SC: <span class="hl-str">'sul'</span>, RS: <span class="hl-str">'sul'</span>,
-};
-
-<span class="hl-kw">const</span> <span class="hl-typ">TABELA</span>: <span class="hl-typ">Record</span>&lt;<span class="hl-typ">Regiao</span>, <span class="hl-typ">number</span>[]&gt; = {
-  sudeste: [<span class="hl-num">10</span>, <span class="hl-num">18</span>, <span class="hl-num">28</span>, <span class="hl-num">40</span>],
-  sul:     [<span class="hl-num">14</span>, <span class="hl-num">22</span>, <span class="hl-num">34</span>, <span class="hl-num">50</span>],
-  outras:  [<span class="hl-num">20</span>, <span class="hl-num">32</span>, <span class="hl-num">48</span>, <span class="hl-num">70</span>],
-};
-
-<span class="hl-kw">const</span> <span class="hl-typ">FAIXAS</span> = [<span class="hl-num">1</span>, <span class="hl-num">5</span>, <span class="hl-num">10</span>, <span class="hl-typ">Infinity</span>];
-
-<span class="hl-kw">export function</span> <span class="hl-fn">calcFrete</span>(uf: <span class="hl-typ">string</span>, peso: <span class="hl-typ">number</span>, expresso: <span class="hl-typ">boolean</span>): <span class="hl-typ">number</span> {
-  <span class="hl-kw">const</span> regiao = <span class="hl-typ">REGIAO</span>[uf] ?? <span class="hl-str">'outras'</span>;
-  <span class="hl-kw">const</span> faixa = <span class="hl-typ">FAIXAS</span>.<span class="hl-fn">findIndex</span>((limite) =&gt; peso &lt;= limite);
-  <span class="hl-kw">const</span> base = <span class="hl-typ">TABELA</span>[regiao][faixa];
-  <span class="hl-kw">return</span> expresso ? base * <span class="hl-num">1.6</span> : base;
-}</code></pre>
-        </div>
-
-        <p>De 24 linhas cheias de galhos para 5 linhas declarativas. A regra de negócio agora mora em <em>dados</em> (as tabelas), não em <em>controle de fluxo</em> — adicionar uma região nova vira uma linha na tabela, sem tocar na lógica. É a refatoração guiada por métrica: o número apontou o problema, o catálogo de Fowler apontou o movimento, e os testes garantiram que o comportamento não mudou.</p>
-
-        <div class="callout callout-warn sr">
-          <div class="callout-label">Refatore sempre com testes verdes</div>
-          <p>A condição inegociável para refatorar é ter testes cobrindo o comportamento <strong>antes</strong> de mexer. Sem rede, "refatorar" é só "reescrever e torcer". Rode os testes, veja o verde, refatore um passo pequeno, rode de novo. Se ficou vermelho, você mudou comportamento — desfaça.</p>
-        </div>
-      </section>
-
-      <section class="mat-section" id="sec-passo-a-passo">
-        <h2>14. Passo a passo: configurar e gerar os relatórios</h2>
-        <p>Esta seção é o roteiro reproduzível. Siga na ordem e ao final você terá todos os relatórios do painel prontos para anexar ao MR.</p>
-
-        <h3>Passo 1 — Instalar as devDependencies</h3>
-        <div class="code-wrap">
-          <div class="code-label">Bash — instalação<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
-<pre class="code-block"><code>npm i -D jest ts-jest @types/jest eslint ts-complex jscpd madge \
-         type-coverage eslint-plugin-security plato</code></pre>
-        </div>
-
-        <h3>Passo 2 — Configurar a cobertura</h3>
-        <p>No <code>jest.config.ts</code>, ative a coleta (mesmo bloco da seção 3): <code>collectCoverage: true</code>, <code>collectCoverageFrom</code>, <code>coverageDirectory: 'coverage'</code> e <code>coverageReporters: ['text','html','lcov']</code>. Depois rode e abra o HTML:</p>
-        <div class="code-wrap">
-          <div class="code-label">Bash — gerar e abrir a cobertura<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
-<pre class="code-block"><code>npm test -- --coverage
-<span class="hl-cmt"># abra coverage/lcov-report/index.html no navegador</span></code></pre>
-        </div>
-
-        <h3>Passo 3 — Configurar complexidade e lint de segurança</h3>
-        <p>No <code>.eslintrc</code>, junte as regras de complexidade da seção 4 com o <code>extends</code> do plugin de segurança:</p>
-        <div class="code-wrap">
-          <div class="code-label">.eslintrc — complexidade + segurança<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
-<pre class="code-block"><code>{
-  <span class="hl-str">"extends"</span>: [<span class="hl-str">"plugin:security/recommended"</span>],
-  <span class="hl-str">"plugins"</span>: [<span class="hl-str">"security"</span>],
-  <span class="hl-str">"rules"</span>: {
-    <span class="hl-str">"complexity"</span>:             [<span class="hl-str">"error"</span>, <span class="hl-num">10</span>],
-    <span class="hl-str">"max-depth"</span>:              [<span class="hl-str">"error"</span>, <span class="hl-num">4</span>],
-    <span class="hl-str">"max-params"</span>:             [<span class="hl-str">"error"</span>, <span class="hl-num">4</span>],
-    <span class="hl-str">"max-lines-per-function"</span>: [<span class="hl-str">"error"</span>, <span class="hl-num">50</span>],
-    <span class="hl-str">"max-nested-callbacks"</span>:   [<span class="hl-str">"error"</span>, <span class="hl-num">3</span>]
-  }
-}</code></pre>
-        </div>
-        <div class="code-wrap">
-          <div class="code-label">Bash — rodar lint e complexidade<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
-<pre class="code-block"><code>npx eslint src
-npx ts-complex src</code></pre>
-        </div>
-
-        <h3>Passo 4 — Fixar os limiares de duplicação e tipos</h3>
-        <div class="code-wrap">
-          <div class="code-label">.jscpd.json — limiar de duplicação<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
-<pre class="code-block"><code>{
-  <span class="hl-str">"threshold"</span>: <span class="hl-num">5</span>,
-  <span class="hl-str">"reporters"</span>: [<span class="hl-str">"console"</span>, <span class="hl-str">"html"</span>],
-  <span class="hl-str">"ignore"</span>: [<span class="hl-str">"**/*.test.ts"</span>]
-}</code></pre>
-        </div>
-        <p>Para tipos, o limiar vai direto na flag: <code>type-coverage --at-least 95</code>.</p>
-
-        <h3>Passo 5 — Gerar o dashboard, o grafo e a auditoria de segurança</h3>
-        <div class="code-wrap">
-          <div class="code-label">Bash — dashboard, dependências, segurança, tipos<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
-<pre class="code-block"><code>npx plato -r -d report src          <span class="hl-cmt"># dashboard em report/index.html</span>
-npx jscpd src                       <span class="hl-cmt"># duplicação</span>
-npx madge --circular src            <span class="hl-cmt"># dependências circulares</span>
-npm audit --audit-level=high        <span class="hl-cmt"># CVEs high/critical</span>
-npx type-coverage --at-least 95     <span class="hl-cmt"># cobertura de tipos</span></code></pre>
-        </div>
-
-        <div class="callout callout-tip sr">
-          <div class="callout-label">Dica: rode tudo de uma vez</div>
-          <p>Em vez de digitar seis comandos, deixe-os encadeados num único script <code>quality</code> no <code>package.json</code> (próxima seção). Um <code>npm run quality</code> roda o painel inteiro; <code>npm test -- --coverage</code> gera a cobertura. Dois comandos, todo o raio-x.</p>
-        </div>
-
-        <h3>Passo 6 — Preencher e anexar</h3>
-        <p>Com os relatórios em mãos (terminal + os HTMLs em <code>coverage/</code> e <code>report/</code>), preencha o relatório-modelo (seção 15) e anexe os prints ao Merge Request. Esse é o entregável.</p>
-      </section>
-
-      <section class="mat-section" id="sec-relatorio-modelo">
-        <h2>15. Relatório-modelo de qualidade — o entregável</h2>
-        <p>Este é o documento que você deve <strong>preencher e anexar ao Merge Request</strong>. Ele consolida, em uma página, todos os números do painel. Copie o template abaixo, substitua os valores pelos <em>seus</em> resultados e anexe junto com os prints dos relatórios HTML.</p>
-
-        <div class="code-wrap">
-          <div class="code-label">Markdown — RELATÓRIO-MODELO (copiar e preencher)<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
-<pre class="code-block"><code># Relatório de Qualidade — Aula 9 (Testes e Automação)
-Projeto: &lt;nome&gt;   |   Branch: &lt;branch&gt;   |   Data: &lt;dd/mm/aaaa&gt;   |   Gerado com: npm run quality + npm test -- --coverage
-
-## 1. Cobertura de testes  (npm test -- --coverage)
-| Dimensão   | Valor | Meta   | Status |
-|------------|-------|--------|--------|
-| Statements | 87.4% | &gt;= 80% | OK     |
-| Branches   | 79.1% | &gt;= 70% | OK     |
-| Functions  | 91.2% | &gt;= 80% | OK     |
-| Lines      | 87.0% | &gt;= 80% | OK     |
-Pior arquivo: controllers/ (63% branches). Print: coverage/lcov-report/index.html
-
-## 2. Complexidade  (ts-complex / ESLint complexity)
-| Função              | Ciclomática | Cognitiva | Status     |
-|---------------------|-------------|-----------|------------|
-| calcFrete (antes)   | 14          | 22        | refatorar  |
-| calcFrete (depois)  | 3           | 4         | OK         |
-
-## 3. Manutenibilidade  (plato)         MI médio: 78 (bom). Pior: order.service.ts (MI 61). Print: report/index.html
-## 4. Duplicação  (jscpd)               4.7% (12 clones). Meta &lt; 5%. Status OK
-## 5. Dependências  (madge --circular)  0 ciclos. Status OK
-## 6. Segurança  (npm audit + eslint-plugin-security)
-npm audit: 1 high, 2 moderate. eslint-plugin-security: 1 detect-non-literal-regexp. Status: corrigir o high.
-## 7. Cobertura de tipos  (type-coverage)   96.8%. Meta &gt; 95%. Status OK
-
-## Plano de ação
-- [x] Refatorar calcFrete (14 -&gt; 3)
-- [ ] npm audit fix (corrigir 1 high)
-- [ ] Sanitizar o RegExp construído a partir de input
-- [ ] Subir branches de controllers de 63% para &gt;= 70%</code></pre>
-        </div>
-
-        <h3>O que cada seção significa</h3>
-        <ul>
-          <li><strong>1. Cobertura de testes</strong> — as quatro dimensões com a meta de cada uma; aponte o pior arquivo e referencie o HTML. É o coração do entregável.</li>
-          <li><strong>2. Complexidade</strong> — ciclomática e cognitiva das funções que você refatorou, mostrando o antes/depois. O par <code>calcFrete</code> 14/22 → 3/4 é o exemplo a seguir.</li>
-          <li><strong>3. Manutenibilidade</strong> — o MI médio do projeto (plato) e o pior arquivo, com print do dashboard.</li>
-          <li><strong>4. Duplicação</strong> — a porcentagem do <code>jscpd</code> contra a meta de 5%.</li>
-          <li><strong>5. Dependências</strong> — quantos ciclos o <code>madge</code> achou (a meta é zero).</li>
-          <li><strong>6. Segurança</strong> — o resultado do <code>npm audit</code> (bibliotecas) <em>e</em> do <code>eslint-plugin-security</code> (código).</li>
-          <li><strong>7. Cobertura de tipos</strong> — a porcentagem do <code>type-coverage</code> contra a meta de 95%.</li>
-          <li><strong>Plano de ação</strong> — checklist do que ainda falta corrigir; transforma a auditoria em tarefas concretas.</li>
-        </ul>
-
-        <div class="callout callout-info sr">
-          <div class="callout-label">O entregável em uma frase</div>
-          <p>Anexe ao MR: <strong>cobertura + complexidade ciclomática + manutenibilidade + duplicação + dependências + segurança de bibliotecas + cobertura de tipos</strong>, com o relatório-modelo preenchido e os prints dos HTMLs. Principalmente a cobertura — é o que o professor pede primeiro.</p>
-        </div>
-      </section>
-
-      <section class="mat-section" id="sec-painel">
-        <h2>16. O painel de qualidade local consolidado</h2>
-        <p>Em vez de memorizar cada comando, registre o painel inteiro como <em>scripts</em> no <code>package.json</code>. Assim <code>npm run quality</code> executa todas as verificações em sequência e para na primeira que falhar — um único comando para o raio-x completo.</p>
-
-        <div class="code-wrap">
-          <div class="code-label">package.json — o painel como scripts<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
-<pre class="code-block"><code><span class="hl-str">"scripts"</span>: {
-  <span class="hl-str">"test"</span>:       <span class="hl-str">"jest"</span>,
-  <span class="hl-str">"test:cov"</span>:   <span class="hl-str">"jest --coverage"</span>,
-  <span class="hl-str">"lint"</span>:       <span class="hl-str">"eslint src --max-warnings 0"</span>,
-  <span class="hl-str">"complexity"</span>: <span class="hl-str">"ts-complex src --threshold 10"</span>,
-  <span class="hl-str">"dup"</span>:        <span class="hl-str">"jscpd src --threshold 5"</span>,
-  <span class="hl-str">"deps"</span>:       <span class="hl-str">"madge --circular src"</span>,
-  <span class="hl-str">"types"</span>:      <span class="hl-str">"type-coverage --at-least 95"</span>,
-  <span class="hl-str">"audit"</span>:      <span class="hl-str">"npm audit --audit-level=high"</span>,
-  <span class="hl-str">"report"</span>:     <span class="hl-str">"plato -r -d report src"</span>,
-  <span class="hl-str">"quality"</span>:    <span class="hl-str">"npm run lint &amp;&amp; npm run complexity &amp;&amp; npm run dup &amp;&amp; npm run deps &amp;&amp; npm run types &amp;&amp; npm run audit &amp;&amp; npm run test:cov"</span>
-}</code></pre>
-        </div>
-
-        <h3>A régua de limiares</h3>
-        <p>Cada ferramenta tem um número-alvo. Esta é a régua que define "código auditado e aprovado":</p>
-
-        <table class="mat-table">
-          <thead><tr><th>Métrica</th><th>Ferramenta</th><th>Limiar</th></tr></thead>
-          <tbody>
-            <tr><td>Cobertura — statements</td><td><code>jest --coverage</code></td><td><span class="tag tag-green">&ge; 80%</span></td></tr>
-            <tr><td>Cobertura — branches</td><td><code>jest --coverage</code></td><td><span class="tag tag-green">&ge; 70%</span></td></tr>
-            <tr><td>Complexidade ciclomática</td><td><code>ts-complex</code> / ESLint</td><td><span class="tag tag-blue">&le; 10</span></td></tr>
-            <tr><td>Complexidade cognitiva</td><td><code>ts-complex</code></td><td><span class="tag tag-blue">&le; 15</span></td></tr>
-            <tr><td>Duplicação</td><td><code>jscpd</code></td><td><span class="tag tag-blue">&lt; 5%</span></td></tr>
-            <tr><td>Manutenibilidade (MI)</td><td><code>plato</code></td><td><span class="tag tag-blue">&gt; 70</span></td></tr>
-            <tr><td>Cobertura de tipos</td><td><code>type-coverage</code></td><td><span class="tag tag-purple">&gt; 95%</span></td></tr>
-            <tr><td>Dependências circulares</td><td><code>madge</code></td><td><span class="tag tag-amber">0</span></td></tr>
-            <tr><td>Vulnerabilidades high/critical</td><td><code>npm audit</code></td><td><span class="tag tag-red">0</span></td></tr>
-          </tbody>
-        </table>
-
-        <div class="callout callout-tip sr">
-          <div class="callout-label">Painel local, sem servidor</div>
-          <p>Todo o painel roda no <em>seu</em> terminal — nada de serviço externo, nada na nuvem. Você instala as bibliotecas, roda <code>npm run quality</code> e lê os números ali mesmo. É o raio-x na sua máquina, antes mesmo de abrir o MR.</p>
-        </div>
-      </section>
-
-      <section class="mat-section" id="sec-fluxo">
-        <h2>17. O fluxo IA → auditoria</h2>
-        <p>Junte tudo num ciclo repetível. Toda vez que a IA gera código, ele passa por estas seis etapas antes de virar commit:</p>
+      <section class="mat-section" id="sec-tdd">
+        <h2>13. TDD — red, green, refactor</h2>
+        <p>TDD (Test-Driven Development) é o ciclo curto proposto por Kent Beck: escreva o teste <strong>antes</strong> da implementação, veja-o falhar (vermelho), faça-o passar com o mínimo de código (verde) e só então melhore o código sem mudar comportamento (refactor). É uma disciplina, não uma religião — vale aplicar onde o domínio compensa.</p>
 
         <ol>
-          <li><strong>A IA gera</strong> — você descreve a intenção e recebe o código.</li>
-          <li><strong>Meça</strong> — rode <code>npm run quality</code> e <code>npm test -- --coverage</code>.</li>
-          <li><strong>Leia os números</strong> — compare cada métrica com a régua de limiares.</li>
-          <li><strong>Refatore os pontos vermelhos</strong> — ataque o que estourou (smell → refactoring de Fowler).</li>
-          <li><strong>Re-meça</strong> — os números caíram? Os testes continuam verdes? (Se não, você mudou comportamento — desfaça.)</li>
-          <li><strong>Preencha o relatório e comite</strong> — com o painel verde, documente no relatório-modelo e suba o MR.</li>
+          <li><strong>Red:</strong> escreva um teste que descreva uma capacidade <em>ainda inexistente</em>. Ele falha porque a função sequer existe.</li>
+          <li><strong>Green:</strong> implemente o mínimo para o teste passar. Pode ser feio. Pode ter <code>if</code> hardcoded. Foco é virar o teste para verde.</li>
+          <li><strong>Refactor:</strong> com o teste verde como rede de segurança, melhore o código — extraia funções, renomeie variáveis, simplifique condicionais. O teste continua verde porque o comportamento não mudou.</li>
         </ol>
 
-        <h3>Checklist de auditoria de código de IA</h3>
-        <p>Antes de aceitar qualquer código gerado, passe por estas nove perguntas:</p>
-        <ul class="checklist" id="checklist-auditoria">
-          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">A <strong>cobertura</strong> é suficiente? (≥ 80% statements, ≥ 70% branches)</span></li>
-          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">A <strong>complexidade</strong> está no limite? (ciclomática ≤ 10, cognitiva ≤ 15)</span></li>
-          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Há <strong>duplicação</strong> abaixo de 5%?</span></li>
-          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Existe alguma <strong>dependência circular</strong>? (alvo: zero)</span></li>
-          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Há <strong>padrões inseguros</strong> no código? (SQL concatenado, eval, RegExp de input, fs com path)</span></li>
-          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">As <strong>dependências</strong> estão sem CVE high/critical?</span></li>
-          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Os <strong>tipos</strong> estão cobertos? (sem <code>any</code> escondido, &gt; 95%)</span></li>
-          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">O <strong>algoritmo</strong> é eficiente? (sem O(n²) onde cabe O(n))</span></li>
-          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Os <strong>casos de borda das saídas</strong> estão tratados? (null, undefined, array vazio)</span></li>
-        </ul>
+        <div class="code-wrap">
+          <div class="code-label">TDD — passo a passo de um helper<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+<pre class="code-block"><code><span class="hl-cmt">// 1. RED — teste falha porque slugify não existe</span>
+<span class="hl-fn">describe</span>(<span class="hl-str">'slugify'</span>, () =&gt; {
+  <span class="hl-fn">it</span>(<span class="hl-str">'troca espaços por hífens e baixa caixa'</span>, () =&gt; {
+    <span class="hl-fn">expect</span>(<span class="hl-fn">slugify</span>(<span class="hl-str">'Olá Mundo'</span>)).<span class="hl-fn">toBe</span>(<span class="hl-str">'ola-mundo'</span>);
+  });
+});
+
+<span class="hl-cmt">// 2. GREEN — implementação mínima para virar verde</span>
+<span class="hl-kw">export function</span> <span class="hl-fn">slugify</span>(s: <span class="hl-typ">string</span>) {
+  <span class="hl-kw">return</span> s.<span class="hl-fn">toLowerCase</span>().<span class="hl-fn">normalize</span>(<span class="hl-str">'NFD'</span>)
+          .<span class="hl-fn">replace</span>(<span class="hl-str">/[\u0300-\u036f]/g</span>, <span class="hl-str">''</span>)
+          .<span class="hl-fn">replace</span>(<span class="hl-str">/\s+/g</span>, <span class="hl-str">'-'</span>);
+}
+
+<span class="hl-cmt">// 3. REFACTOR — melhora sem mudar comportamento</span>
+<span class="hl-kw">const</span> RE_DIACRITICOS = <span class="hl-str">/[\u0300-\u036f]/g</span>;
+<span class="hl-kw">const</span> RE_ESPACOS     = <span class="hl-str">/\s+/g</span>;
+<span class="hl-kw">export function</span> <span class="hl-fn">slugify</span>(s: <span class="hl-typ">string</span>) {
+  <span class="hl-kw">return</span> s.<span class="hl-fn">toLowerCase</span>()
+          .<span class="hl-fn">normalize</span>(<span class="hl-str">'NFD'</span>)
+          .<span class="hl-fn">replace</span>(RE_DIACRITICOS, <span class="hl-str">''</span>)
+          .<span class="hl-fn">replace</span>(RE_ESPACOS, <span class="hl-str">'-'</span>);
+}</code></pre>
+        </div>
+
+        <p>Quando funciona bem? Em lógica de negócio com regras claras (validações, cálculos, regras de domínio). Quando não compensa? Em código exploratório onde a interface ainda muda a cada hora — você gastará mais tempo reescrevendo testes do que implementação.</p>
+      </section>
+
+      <section class="mat-section" id="sec-husky">
+        <h2>14. Husky e lint-staged — gate local antes do commit</h2>
+        <p>Antes do commit chegar ao CI remoto, há uma camada barata de validação: o <strong>pre-commit hook</strong>. Ele roda na máquina do desenvolvedor, em segundos, e impede que código quebrado seja commitado. <code>husky</code> instala hooks via npm; <code>lint-staged</code> roda comandos só nos arquivos modificados (não na base inteira).</p>
+
+        <div class="code-wrap">
+          <div class="code-label">Bash — instalação<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+<pre class="code-block"><code>npm install -D husky lint-staged
+npx husky init
+echo <span class="hl-str">"npx lint-staged"</span> &gt; .husky/pre-commit</code></pre>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-label">package.json — config lint-staged<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+<pre class="code-block"><code><span class="hl-str">"lint-staged"</span>: {
+  <span class="hl-str">"*.ts"</span>: [
+    <span class="hl-str">"eslint --fix"</span>,
+    <span class="hl-str">"tsc-files --noEmit"</span>
+  ],
+  <span class="hl-str">"*.{json,md}"</span>: [<span class="hl-str">"prettier --write"</span>]
+}</code></pre>
+        </div>
+
+        <p>Resultado: a cada <code>git commit</code>, os arquivos staged são corrigidos pelo ESLint, validados pelo compilador TS e formatados. Se algum passo falhar, o commit é abortado. O autor descobre o problema em segundos, não em 5 minutos esperando o CI.</p>
+
+        <div class="callout callout-info sr">
+          <div class="callout-label">Não rode a suíte inteira no pre-commit</div>
+          <p>É tentador colocar <code>npm test</code> no pre-commit. Não faça. Para projetos com mais de 50 testes, isso vira tempo de espera no commit e gente passa a usar <code>--no-verify</code>. Lint + types já filtram a maior parte dos erros bobos; deixe a suíte completa para o CI ou para um <code>pre-push</code> opcional.</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="sec-ci">
+        <h2>15. GitHub Actions — CI no remoto</h2>
+        <p>O <strong>CI</strong> (Continuous Integration) é o robô que pega seu push, instala dependências, roda lint, testes, build, e devolve um sinal verde ou vermelho no PR. Em GitHub, isso é configurado via arquivos YAML em <code>.github/workflows/</code>. Cada arquivo define um <em>workflow</em>; cada workflow tem <em>jobs</em>; cada job, <em>steps</em>.</p>
+
+        <div class="code-wrap">
+          <div class="code-label">.github/workflows/ci.yml<button class="code-copy" onclick="copyCode(this)">copiar</button></div>
+<pre class="code-block"><code><span class="hl-prop">name</span>: CI
+
+<span class="hl-prop">on</span>:
+  <span class="hl-prop">push</span>:
+    <span class="hl-prop">branches</span>: [main]
+  <span class="hl-prop">pull_request</span>:
+    <span class="hl-prop">branches</span>: [main]
+
+<span class="hl-prop">jobs</span>:
+  <span class="hl-prop">test</span>:
+    <span class="hl-prop">runs-on</span>: ubuntu-latest
+
+    <span class="hl-prop">services</span>:
+      <span class="hl-prop">postgres</span>:
+        <span class="hl-prop">image</span>: postgres:16-alpine
+        <span class="hl-prop">env</span>:
+          <span class="hl-prop">POSTGRES_PASSWORD</span>: postgres
+          <span class="hl-prop">POSTGRES_DB</span>:       app_test
+        <span class="hl-prop">ports</span>: [<span class="hl-str">'5432:5432'</span>]
+        <span class="hl-prop">options</span>: &gt;-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    <span class="hl-prop">steps</span>:
+      - <span class="hl-prop">uses</span>: actions/checkout@v4
+
+      - <span class="hl-prop">name</span>: Setup Node.js
+        <span class="hl-prop">uses</span>: actions/setup-node@v4
+        <span class="hl-prop">with</span>:
+          <span class="hl-prop">node-version</span>: <span class="hl-str">'20'</span>
+          <span class="hl-prop">cache</span>: <span class="hl-str">'npm'</span>
+
+      - <span class="hl-prop">name</span>: Install
+        <span class="hl-prop">run</span>: npm ci
+
+      - <span class="hl-prop">name</span>: Lint
+        <span class="hl-prop">run</span>: npm run lint
+
+      - <span class="hl-prop">name</span>: Type-check
+        <span class="hl-prop">run</span>: npx tsc --noEmit
+
+      - <span class="hl-prop">name</span>: Test (com Postgres como service)
+        <span class="hl-prop">env</span>:
+          <span class="hl-prop">PGHOST</span>: localhost
+          <span class="hl-prop">PGUSER</span>: postgres
+          <span class="hl-prop">PGPASSWORD</span>: postgres
+          <span class="hl-prop">PGDATABASE</span>: app_test
+        <span class="hl-prop">run</span>: npm test -- --ci --coverage</code></pre>
+        </div>
+
+        <p>O bloco <code>services.postgres</code> é a magia: o GitHub Actions sobe um container Postgres ao lado do job, expõe a porta 5432, e a aplicação se conecta como se fosse local. Custa zero configuração extra. Para Redis, MongoDB, etc., o padrão é o mesmo.</p>
+
+        <h3>Status checks no PR</h3>
+        <p>Configure no GitHub: <em>Settings → Branches → Branch protection rules → Require status checks to pass</em>. Marque o job <code>test</code>. A partir daí, ninguém faz merge para <code>main</code> com CI vermelho — nem o owner do repo. É a versão do projeto da regra "vermelho não passa".</p>
+
+        <div class="callout callout-tip sr">
+          <div class="callout-label">Caching agressivo</div>
+          <p>Adicionar <code>cache: 'npm'</code> ao <code>setup-node</code> reduz o tempo de instalação de ~50s para ~5s em PRs subsequentes. Para builds de TypeScript pesados, o action <code>actions/cache</code> pode armazenar <code>dist/</code> entre runs. CI rápido = time confiando no CI.</p>
+        </div>
       </section>
 
       <section class="mat-section" id="sec-best">
-        <h2>18. Boas práticas</h2>
-
-        <h3>Métrica é bússola, não meta</h3>
-        <p>O alvo nunca é o número em si — é o código bom que o número aponta. Perseguir 100% de cobertura ou MI 100 produz testes artificiais e código contorcido para agradar a ferramenta. Use as métricas para <em>encontrar problemas</em>, corrija os problemas reais, e deixe o número subir como consequência.</p>
-
-        <h3>Refatore em passos pequenos, com testes verdes</h3>
-        <p>Nunca refatore um trecho grande de uma vez. Faça um movimento (extrair uma função, substituir uma condicional), rode os testes, veja o verde, comite. Passos pequenos mantêm a rede de segurança sempre ativa e tornam trivial localizar onde algo quebrou.</p>
-
-        <h3>Meça antes de mexer</h3>
-        <p>Sempre tire a foto "antes": rode o painel e anote os números <em>antes</em> de refatorar. Sem o antes, você não tem como provar que a refatoração melhorou — e às vezes ela piora sem que você perceba. O par antes/depois (como o <code>calcFrete</code> 14→3) é a prova objetiva de que valeu a pena.</p>
-
-        <div class="callout callout-tip sr">
-          <div class="callout-label">Pequenas auditorias contínuas &gt; uma grande no fim</div>
-          <p>Rodar o painel a cada feature, sobre um diff pequeno, é barato e mantém o código sempre saudável. Deixar para auditar tudo no fim do projeto transforma a auditoria num mutirão doloroso — e a essa altura os smells já se multiplicaram.</p>
-        </div>
+        <h2>16. Boas práticas — testes que envelhecem bem</h2>
+        <ul>
+          <li><strong>Determinísticos:</strong> mesmo input, mesmo resultado, sempre. Se um teste depende de <code>Date.now()</code>, mocke. Se depende de <code>Math.random()</code>, injete uma seed.</li>
+          <li><strong>Independentes:</strong> a ordem de execução não pode importar. Cada teste arranja seu próprio cenário e limpa quando termina.</li>
+          <li><strong>Rápidos:</strong> unitários em milissegundos, integração em centenas de ms. Se um teste leva 10s, virá moroso o suficiente para ninguém esperar.</li>
+          <li><strong>Auto-explicativos:</strong> um humano lê o nome e entende o cenário. Sem precisar abrir o corpo.</li>
+          <li><strong>Focados em comportamento, não implementação:</strong> o teste sobrevive a refactor. Se você renomeou um método privado e o teste quebrou, ele estava verificando a implementação errada.</li>
+          <li><strong>Mockando colaboradores, não o sujeito:</strong> mocke as dependências externas, deixe o objeto sob teste real.</li>
+          <li><strong>Um <code>expect</code> primário por <code>it</code>:</strong> múltiplas verificações relacionadas tudo bem; mas se vai testar três comportamentos, três <code>it</code>s.</li>
+          <li><strong>Falham por uma boa razão:</strong> se um teste falha, ele aponta o defeito. Se ele falha por motivos cosméticos (espaços em branco, ordem de chaves), recalibre o asserter.</li>
+        </ul>
       </section>
 
       <section class="mat-section" id="sec-anti">
-        <h2>19. Anti-padrões</h2>
+        <h2>17. Anti-padrões — testes que viram lastro</h2>
 
-        <h3>Perseguir 100% de cobertura</h3>
-        <p>Os últimos pontos percentuais custam testes que afirmam pouco — só executam linhas para colorir o relatório. Cobertura é bússola para achar buracos relevantes, não troféu. Pare quando os caminhos importantes (lógica de negócio, ramos de erro) estiverem cobertos.</p>
+        <h3>Flakey tests</h3>
+        <p>Testes que passam às vezes e falham às vezes — sem mudança no código. Causas comuns: dependência de horário (<code>new Date()</code>), de rede (chamada a um endpoint externo), de ordem (teste B precisa que A tenha rodado antes), de timing assíncrono (<code>setTimeout</code> sem <code>await</code> apropriado). O custo de um flakey é altíssimo: cada PR vermelho falsamente desbasta a confiança no CI. Se um teste é flakey duas vezes, conserte ou apague — não deixe de quarentena.</p>
 
-        <h3>Refatorar sem teste</h3>
-        <p>Reorganizar código sem uma rede de testes que prove que o comportamento não mudou é apenas "reescrever e torcer". Se não há teste cobrindo o trecho, <em>primeiro</em> escreva o teste (que documenta o comportamento atual), <em>depois</em> refatore.</p>
+        <h3>Mocks demais</h3>
+        <p>Sintoma: o teste se torna um espelho da implementação. Você muda a ordem de duas chamadas internas e o teste quebra, mesmo que o comportamento externo seja idêntico. O remédio é mockar só o que sai do limite do projeto (banco, rede, sistema de arquivos) e usar instâncias reais para tudo dentro.</p>
 
-        <h3>Confiar cegamente na IA</h3>
-        <p>Aceitar o código gerado porque "passou no teste" ignora tudo o que esta aula mostra: o teste não vê complexidade, duplicação, ciclos, brechas de segurança nem algoritmos quadráticos. "Funciona" é o piso, não o teto. Audite antes de aceitar.</p>
+        <h3>Dependência de ordem</h3>
+        <p>Quando o teste C só passa porque B inseriu o registro X. Em Jest, basta um <code>--randomize</code> ou paralelismo para descobrir. Cura: cada teste cria/derruba seu próprio cenário (transação + rollback, fixtures por <code>beforeEach</code>, banco em memória recriado).</p>
 
-        <h3>Gold-plating de métrica</h3>
-        <p>Otimizar um número que já está bom — espremer o MI de 88 para 92, ou a cobertura de 88% para 94% num módulo trivial — gasta tempo sem retorno. É o equivalente a polir o que já brilha enquanto outro arquivo está em 40. Direcione o esforço para onde o número está <em>ruim</em>.</p>
+        <h3>Testes "decorativos"</h3>
+        <p>Aqueles que executam o código sem verificar nada relevante: <code>expect(typeof x).toBe('object')</code>. Sobem cobertura, não pegam bug. Veja se cada <code>expect</code> realmente afirma um <em>comportamento</em>; se for só "não explodiu", remova.</p>
+
+        <h3>Testar implementação privada</h3>
+        <p>Espionar métodos internos da classe, afirmar a ordem de chamadas particulares — tudo isso amarra o teste à implementação. Refactor inocente quebra cinquenta testes. Teste pela API pública.</p>
 
         <div class="callout callout-danger sr">
-          <div class="callout-label">O pior anti-padrão: métrica como teatro</div>
-          <p>Maquiar números para "passar no painel" — desabilitar regras de lint com comentários, excluir os arquivos ruins do <code>collectCoverageFrom</code>, baixar o threshold até tudo passar. Isso transforma a auditoria em encenação e devolve à IA o controle da qualidade. O painel só vale se você for honesto com ele.</p>
+          <div class="callout-label">A regra do "se eu deletar isso, o teste continua passando?"</div>
+          <p>Antes de comitar um teste novo, faça este experimento mental: se eu apagar uma linha do código de produção, esse teste falha? Se a resposta for não, o teste é decorativo. Apague-o ou reescreva-o até que apagar produção produza vermelho.</p>
         </div>
       </section>
 
       <section class="mat-section" id="sec-checklist">
-        <h2>20. Checklist de estudo</h2>
+        <h2>18. Checklist de estudo</h2>
         <p>Marque conforme dominar:</p>
         <ul class="checklist" id="checklist">
-          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Explico a virada "a IA escreve, você audita" e por que "funciona" ≠ "é bom".</span></li>
-          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Sei nomear os RNF pela ISO/IEC 25010 e ligar cada um a uma ferramenta do painel.</span></li>
-          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Gero o relatório de cobertura com <code>npm test -- --coverage</code> e o anexo ao MR.</span></li>
-          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Leio as 4 dimensões da cobertura e sei por que <strong>branches</strong> é a mais reveladora.</span></li>
-          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Abro o HTML <code>coverage/lcov-report/index.html</code> e identifico as linhas vermelhas.</span></li>
-          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Calculo complexidade ciclomática e a vigio com a regra <code>complexity</code> do ESLint.</span></li>
-          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Diferencio complexidade ciclomática de cognitiva e meço ambas com <code>ts-complex</code>.</span></li>
-          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Interpreto o Índice de Manutenibilidade e leio o dashboard do <code>plato</code>.</span></li>
-          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Meço duplicação com <code>jscpd</code> e mantenho abaixo de 5%.</span></li>
-          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Detecto dependências circulares com <code>madge --circular</code> (alvo: zero).</span></li>
-          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Audito as bibliotecas com <code>npm audit --audit-level=high</code> e corrijo com <code>npm audit fix</code>.</span></li>
-          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Pego padrões inseguros no código com <code>eslint-plugin-security</code> e sei o que a IA erra.</span></li>
-          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Garanto cobertura de tipos com <code>type-coverage --at-least 95</code> e elimino <code>any</code>.</span></li>
-          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Reconheço O(n²) gerado pela IA e troco por O(n) com <code>Set</code>/<code>Map</code>.</span></li>
-          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Refatoro <code>calcFrete</code> de 14/22 para 3/4 mantendo as saídas idênticas.</span></li>
-          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Preencho o relatório-modelo e o anexo ao MR com os prints dos HTMLs.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Sei explicar a pirâmide de testes e os anti-padrões ice-cream cone e hourglass.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Escrevo testes em estrutura AAA com naming descritivo em <code>describe/it</code>.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Sei diferenciar stub, spy, mock e fake.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Configuro Jest + ts-jest + supertest do zero em um projeto TS.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Testo helpers puros com <code>it.each</code> para múltiplos casos.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Testo services mockando o repository com <code>jest.fn()</code>.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Testo repositories contra Postgres efêmero com BEGIN/ROLLBACK por teste.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Testo controllers via supertest contra a instância do Express.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Faço smoke test em views EJS verificando o HTML resultante por regex.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Sei quando usar Playwright para E2E e quando NÃO usar.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Leio relatório de cobertura e entendo por que 100% não é meta.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Aplico o ciclo TDD red-green-refactor em uma regra de negócio.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Configuro Husky + lint-staged para rodar lint e tsc no pre-commit.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Escrevo um workflow GitHub Actions com Postgres como service container.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Identifico e exorcizo flakey tests da suíte.</span></li>
+          <li onclick="toggleCk(this)"><div class="ck-box">&#10003;</div><span class="ck-text">Aplico a regra "se eu deletar produção, o teste falha?" antes de comitar testes.</span></li>
         </ul>
       </section>
 
       <section class="mat-section" id="sec-refs">
         <h2>Referências</h2>
         <ul>
-          <li><a href="https://jestjs.io/docs/configuration#collectcoverage-boolean" target="_blank" rel="noopener noreferrer">Jest — Coverage</a> — configuração de cobertura (collectCoverage, reporters)</li>
-          <li><a href="https://eslint.org/docs/latest/rules/complexity" target="_blank" rel="noopener noreferrer">ESLint — regra <code>complexity</code></a> — limite de complexidade ciclomática</li>
-          <li><a href="https://www.npmjs.com/package/plato" target="_blank" rel="noopener noreferrer">plato</a> — relatório visual de manutenibilidade e Halstead</li>
-          <li><a href="https://www.npmjs.com/package/ts-complex" target="_blank" rel="noopener noreferrer">ts-complex</a> — complexidade ciclomática e cognitiva em TypeScript</li>
-          <li><a href="https://www.npmjs.com/package/jscpd" target="_blank" rel="noopener noreferrer">jscpd</a> — detector de cópia/colagem (duplicação)</li>
-          <li><a href="https://www.npmjs.com/package/madge" target="_blank" rel="noopener noreferrer">madge</a> — grafo de dependências e detecção de ciclos</li>
-          <li><a href="https://docs.npmjs.com/cli/v10/commands/npm-audit" target="_blank" rel="noopener noreferrer">npm audit</a> — auditoria de vulnerabilidades (CVE) em dependências</li>
-          <li><a href="https://www.npmjs.com/package/eslint-plugin-security" target="_blank" rel="noopener noreferrer">eslint-plugin-security</a> — padrões inseguros no código</li>
-          <li><a href="https://www.npmjs.com/package/type-coverage" target="_blank" rel="noopener noreferrer">type-coverage</a> — cobertura de tipos (porcentagem não-<code>any</code>)</li>
-          <li><a href="https://martinfowler.com/books/refactoring.html" target="_blank" rel="noopener noreferrer">Martin Fowler — Refactoring</a> — catálogo de smells e refactorings</li>
-          <li><a href="https://iso25000.com/index.php/en/iso-25000-standards/iso-25010" target="_blank" rel="noopener noreferrer">ISO/IEC 25010</a> — modelo de qualidade de produto de software</li>
+          <li><a href="https://jestjs.io/docs/getting-started" target="_blank" rel="noopener noreferrer">Jest — Getting Started</a> — documentação oficial do runner</li>
+          <li><a href="https://kulshekhar.github.io/ts-jest/" target="_blank" rel="noopener noreferrer">ts-jest</a> — transformador TypeScript para Jest</li>
+          <li><a href="https://github.com/ladjs/supertest" target="_blank" rel="noopener noreferrer">supertest</a> — testes HTTP em apps Express</li>
+          <li><a href="https://playwright.dev/docs/intro" target="_blank" rel="noopener noreferrer">Playwright — Documentação</a> — E2E moderno multi-browser</li>
+          <li><a href="https://martinfowler.com/bliki/TestPyramid.html" target="_blank" rel="noopener noreferrer">Martin Fowler — Test Pyramid</a> — artigo original sobre a pirâmide</li>
+          <li><a href="https://martinfowler.com/articles/mocksArentStubs.html" target="_blank" rel="noopener noreferrer">Martin Fowler — Mocks Aren't Stubs</a> — diferença entre tipos de doubles</li>
+          <li><a href="https://typicode.github.io/husky/" target="_blank" rel="noopener noreferrer">Husky — Git hooks via npm</a></li>
+          <li><a href="https://github.com/lint-staged/lint-staged" target="_blank" rel="noopener noreferrer">lint-staged — rodar linters só nos staged files</a></li>
+          <li><a href="https://docs.github.com/en/actions/using-workflows/about-workflows" target="_blank" rel="noopener noreferrer">GitHub Actions — Workflows</a> — referência oficial</li>
+          <li><a href="https://docs.github.com/en/actions/using-containerized-services/about-service-containers" target="_blank" rel="noopener noreferrer">GitHub Actions — Service containers</a> — Postgres no CI</li>
+          <li><a href="https://node-postgres.com/" target="_blank" rel="noopener noreferrer">node-postgres (pg)</a> — driver oficial usado no projeto</li>
+          <li><a href="https://testcontainers.com/guides/getting-started-with-testcontainers-for-nodejs/" target="_blank" rel="noopener noreferrer">Testcontainers — Node.js</a> — banco efêmero programático</li>
         </ul>
       </section>
 
