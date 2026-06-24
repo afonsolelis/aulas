@@ -585,10 +585,12 @@ test.describe('config-json.md - Arquivos de Configuração JSON', () => {
   });
 
   test('módulos em construção (placeholder simples) não devem ter diretório de módulo criado', () => {
+    // Módulo 11 saiu da lista: as aulas do Prof. Afonso (Computação 2) já têm
+    // slides e material publicados em pages/module-11-eng-software/, embora as
+    // aulas dos demais professores sigam em preparação (home ainda "Em construção").
     const placeholderHomes = [
       'pages/home-module-7-sistemas-informacao.html',
       'pages/home-module-8-sistemas-informacao.html',
-      'pages/home-module-11-eng-software.html',
     ];
 
     placeholderHomes.forEach((homeFile) => {
