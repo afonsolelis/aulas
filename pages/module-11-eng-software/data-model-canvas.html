@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Model Canvas</title>
+  <style>
+    :root {
+      --bg:            #f5f5f7;
+      --surface:       #ffffff;
+      --border:        #d2d2d7;
+      --border-light:  #e8e8ed;
+      --text:          #1d1d1f;
+      --text-2:        #6e6e73;
+      --text-3:        #aeaeb2;
+      --blue:          #0071e3;
+      --blue-bg:       #e8f0fe;
+      --green:         #28a745;
+      --green-bg:      #eafaf0;
+      --purple:        #7c3aed;
+      --purple-bg:     #f0ebff;
+      --teal:          #0891b2;
+      --teal-bg:       #e0f7fa;
+      --r:             12px;
+      --r-sm:          8px;
+      --shadow:        0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.05);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page { max-width: 1400px; margin: 0 auto; }
+
+    /* ── Toolbar ─────────────────────────────────────────── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      gap: 12px;
+    }
+
+    .save-indicator {
+      font-size: 12px;
+      color: var(--text-3);
+      transition: color 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .save-indicator::before {
+      content: '';
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0;
+    }
+
+    .save-indicator.saved { color: var(--green); }
+
+    .toolbar-right { display: flex; gap: 8px; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 16px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+      white-space: nowrap;
+      font-weight: 500;
+    }
+
+    .btn:hover { background: var(--bg); border-color: var(--text-2); }
+
+    .btn-primary {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #fff;
+    }
+
+    .btn-primary:hover { background: #0077ed; border-color: #0077ed; }
+
+    /* ── Header ──────────────────────────────────────────── */
+    .dmc-header {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 32px 36px;
+      margin-bottom: 16px;
+      display: grid;
+      grid-template-columns: 1fr 1.1fr;
+      gap: 40px;
+      align-items: center;
+      box-shadow: var(--shadow);
+    }
+
+    .header-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 8px;
+    }
+
+    .dmc-header h1 {
+      font-size: 40px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      line-height: 1.05;
+      color: var(--text);
+    }
+
+    .dmc-header h2 {
+      font-size: 17px;
+      font-weight: 400;
+      color: var(--text-2);
+      margin-top: 4px;
+    }
+
+    .dmc-meta { display: grid; gap: 14px; }
+
+    .meta-field { display: grid; gap: 3px; }
+
+    .meta-field label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-3);
+    }
+
+    .meta-field input[type="text"],
+    .meta-field input[type="date"] {
+      width: 100%;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      padding: 4px 0;
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--text);
+      background: transparent;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .meta-field input:focus { border-bottom-color: var(--blue); }
+    .meta-field input::placeholder { color: var(--text-3); }
+
+    .meta-row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    /* ── Canvas ──────────────────────────────────────────── */
+    .canvas { display: grid; gap: 16px; }
+
+    .canvas-row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    /* ── Cards ───────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border-light);
+      gap: 12px;
+    }
+
+    .card-head-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .negocio  .card-dot { background: var(--blue); }
+    .consumo  .card-dot { background: var(--green); }
+    .governanca .card-dot { background: var(--purple); }
+    .cubo     .card-dot { background: var(--teal); }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    .card-subtitle {
+      font-size: 12px;
+      color: var(--text-3);
+    }
+
+    .card-body { padding: 20px; }
+
+    /* ── Sections ────────────────────────────────────────── */
+    .sections-stack { display: grid; gap: 10px; }
+
+    .section-box {
+      border: 1px solid var(--border-light);
+      border-radius: var(--r-sm);
+      padding: 14px 16px;
+      background: var(--bg);
+    }
+
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 5px;
+    }
+
+    .section-num {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      font-size: 10px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: #fff;
+    }
+
+    .negocio    .section-num { background: var(--blue); }
+    .consumo    .section-num { background: var(--green); }
+    .governanca .section-num { background: var(--purple); }
+    .cubo       .section-num { background: var(--teal); }
+    .dados-sub  .section-num { background: var(--teal); }
+    .gov-sub    .section-num { background: var(--purple); }
+    .modelo-sub .section-num { background: var(--blue); }
+
+    .section-name {
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .section-prompt {
+      font-size: 12px;
+      color: var(--text-2);
+      margin-bottom: 8px;
+    }
+
+    /* ── Editable list ───────────────────────────────────── */
+    .editable-list {
+      list-style: none;
+      display: grid;
+      gap: 1px;
+    }
+
+    .editable-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 7px;
+      padding: 2px 0;
+    }
+
+    .list-bullet {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--text-3);
+      flex-shrink: 0;
+      margin-top: 8px;
+    }
+
+    [contenteditable] {
+      flex: 1;
+      outline: none;
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--text);
+      min-height: 20px;
+      line-height: 1.5;
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.15s;
+      word-break: break-word;
+    }
+
+    [contenteditable]:focus { border-bottom-color: var(--border); }
+
+    [contenteditable]:empty::before {
+      content: attr(data-ph);
+      color: var(--text-3);
+      pointer-events: none;
+    }
+
+    .list-del {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-3);
+      font-size: 15px;
+      padding: 0 2px;
+      opacity: 0;
+      transition: opacity 0.15s, color 0.15s;
+      line-height: 1.5;
+      font-family: inherit;
+      flex-shrink: 0;
+    }
+
+    .editable-list li:hover .list-del { opacity: 1; }
+    .list-del:hover { color: #ff3b30; }
+
+    .add-item-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 12px;
+      color: var(--text-3);
+      padding: 4px 0;
+      font-family: inherit;
+      transition: color 0.15s;
+      margin-top: 2px;
+    }
+
+    .add-item-btn:hover { color: var(--blue); }
+    .consumo  .add-item-btn:hover { color: var(--green); }
+    .governanca .add-item-btn:hover { color: var(--purple); }
+
+    /* ── Governança grid ─────────────────────────────────── */
+    .gov-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    /* ── Checklist fields ────────────────────────────────── */
+    .checklist { display: grid; gap: 6px; }
+
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 13px;
+    }
+
+    .check-row input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      accent-color: var(--blue);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .check-field {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--text-2);
+      flex-wrap: nowrap;
+    }
+
+    .check-field span {
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .check-field input[type="text"] {
+      flex: 1;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      outline: none;
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--text);
+      padding: 1px 0;
+      background: transparent;
+      min-width: 40px;
+    }
+
+    .check-field input[type="text"]:focus { border-bottom-color: var(--blue); }
+    .check-field input[type="text"]::placeholder { color: var(--text-3); }
+
+    /* ── Cubo card ───────────────────────────────────────── */
+    .cubo-name-row {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .cubo-name-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-3);
+      white-space: nowrap;
+    }
+
+    .cubo-name-input {
+      flex: 1;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      outline: none;
+      font-size: 16px;
+      font-weight: 600;
+      font-family: inherit;
+      color: var(--teal);
+      padding: 2px 0;
+      background: transparent;
+    }
+
+    .cubo-name-input:focus { border-bottom-color: var(--teal); }
+    .cubo-name-input::placeholder { color: var(--text-3); font-weight: 400; }
+
+    .cubo-subcards { display: grid; gap: 12px; }
+
+    /* ── Subcards ────────────────────────────────────────── */
+    .subcard {
+      border: 1px solid var(--border-light);
+      border-radius: var(--r-sm);
+      overflow: hidden;
+    }
+
+    .subcard-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .modelo-sub .subcard-head { background: var(--blue-bg); }
+    .dados-sub  .subcard-head { background: var(--teal-bg); }
+    .gov-sub    .subcard-head { background: var(--purple-bg); }
+
+    .subcard-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .modelo-sub .subcard-dot { background: var(--blue); }
+    .dados-sub  .subcard-dot { background: var(--teal); }
+    .gov-sub    .subcard-dot { background: var(--purple); }
+
+    .subcard-title {
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .modelo-sub .subcard-title { color: var(--blue); }
+    .dados-sub  .subcard-title { color: var(--teal); }
+    .gov-sub    .subcard-title { color: var(--purple); }
+
+    .subcard-body { padding: 14px; }
+
+    /* ── Mini grid ───────────────────────────────────────── */
+    .mini-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .mini-grid.cols-1 { grid-template-columns: 1fr; }
+    .mini-grid.cols-2x2 { grid-template-columns: repeat(2, 1fr); }
+
+    .span-2 { grid-column: span 2; }
+
+    .mini-box {
+      border: 1px solid var(--border-light);
+      border-radius: var(--r-sm);
+      padding: 12px;
+      background: var(--surface);
+    }
+
+    /* ── Remove cubo ─────────────────────────────────────── */
+    .remove-cubo-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-3);
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      transition: background 0.15s, color 0.15s;
+      font-family: inherit;
+      font-weight: 500;
+    }
+
+    .remove-cubo-btn:hover { background: #fff0f0; color: #ff3b30; }
+
+    /* ── Add cubo area ───────────────────────────────────── */
+    .add-cubo-area {
+      display: flex;
+      justify-content: center;
+      padding: 4px;
+    }
+
+    /* ── Print ───────────────────────────────────────────── */
+    @media print {
+      body { background: #fff; padding: 0; }
+      .toolbar, .add-item-btn, .list-del, .add-cubo-area, .remove-cubo-btn,
+      .top-nav, .site-footer { display: none !important; }
+      .page { max-width: 100%; }
+      .card, .dmc-header { box-shadow: none; }
+      [contenteditable]:empty { display: none; }
+    }
+
+    /* ── Responsive ──────────────────────────────────────── */
+    @media (max-width: 980px) {
+      .canvas-row-2    { grid-template-columns: 1fr; }
+      .gov-grid        { grid-template-columns: 1fr; }
+      .mini-grid       { grid-template-columns: 1fr; }
+      .mini-grid.cols-2x2 { grid-template-columns: 1fr; }
+      .span-2          { grid-column: auto; }
+      .dmc-header      { grid-template-columns: 1fr; }
+      .meta-row-2      { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      body { padding: 12px; }
+      .dmc-header { padding: 24px 20px; }
+      .dmc-header h1 { font-size: 30px; }
+    }
+
+    /* ── Navegação e rodapé Inteli (adicionados ao integrar ao site) ─ */
+    .top-nav {
+      max-width: 1400px;
+      margin: 0 auto 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .top-nav a {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+      color: var(--text-2);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      border-radius: 20px;
+      padding: 7px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .top-nav a:hover { background: var(--bg); border-color: var(--text-2); color: var(--text); }
+    .site-footer {
+      max-width: 1400px;
+      margin: 36px auto 0;
+      padding: 22px 20px;
+      text-align: center;
+      border-top: 1px solid var(--border);
+      color: var(--text-2);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .site-footer strong { color: var(--text); }
+  </style>
+</head>
+<body>
+<div class="top-nav">
+  <a href="../home-module-11-eng-software.html">← Voltar ao módulo</a>
+</div>
+<div class="page">
+
+  <!-- ── Toolbar ─────────────────────────────────────────── -->
+  <div class="toolbar">
+    <span class="save-indicator" id="save-indicator">Não salvo</span>
+    <div class="toolbar-right">
+      <button class="btn" onclick="exportPDF()">↓ PDF</button>
+      <button class="btn" onclick="exportJSON()">↓ Exportar JSON</button>
+      <label class="btn" style="cursor:pointer;">
+        ↑ Importar JSON
+        <input type="file" accept=".json" onchange="importJSON(event)" style="display:none;">
+      </label>
+      <button class="btn btn-primary" onclick="saveNow()">Salvar</button>
+    </div>
+  </div>
+
+  <!-- ── Header ─────────────────────────────────────────── -->
+  <div class="dmc-header">
+    <div>
+      <div class="header-eyebrow">Artefato de documentação</div>
+      <h1>Data Model Canvas</h1>
+      <h2>Data Warehouse</h2>
+    </div>
+    <div class="dmc-meta">
+      <div class="meta-field">
+        <label>Parceiro / Cliente</label>
+        <input type="text" id="m-parceiro" placeholder="Nome do parceiro ou cliente">
+      </div>
+      <div class="meta-row-2">
+        <div class="meta-field">
+          <label>Data</label>
+          <input type="date" id="m-data">
+        </div>
+        <div class="meta-field">
+          <label>Versão</label>
+          <input type="text" id="m-versao" placeholder="v1.0">
+        </div>
+      </div>
+      <div class="meta-field">
+        <label>Grupo / Equipe</label>
+        <input type="text" id="m-grupo" placeholder="Nome do grupo ou equipe">
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Canvas ─────────────────────────────────────────── -->
+  <div class="canvas">
+
+    <!-- Row 1: Negócio + Consumo -->
+    <div class="canvas-row-2">
+
+      <!-- Negócio -->
+      <div class="card negocio">
+        <div class="card-head">
+          <div class="card-head-left">
+            <div class="card-dot"></div>
+            <span class="card-title">Negócio</span>
+          </div>
+          <span class="card-subtitle">Contexto, valor e processos que justificam o DW</span>
+        </div>
+        <div class="card-body">
+          <div class="sections-stack">
+
+            <div class="section-box">
+              <div class="section-label">
+                <span class="section-num">1</span>
+                <span class="section-name">Objetivos de negócio</span>
+              </div>
+              <p class="section-prompt">Quais resultados, decisões ou indicadores o DW deve apoiar?</p>
+              <ul class="editable-list" id="n1">
+                <li><span class="list-bullet"></span><div contenteditable="true" data-ph="Digite um objetivo..."></div><button class="list-del" onclick="delItem(this)">×</button></li>
+                <li><span class="list-bullet"></span><div contenteditable="true" data-ph="Digite um objetivo..."></div><button class="list-del" onclick="delItem(this)">×</button></li>
+              </ul>
+              <button class="add-item-btn" onclick="addItem('n1','Digite um objetivo...')">+ adicionar</button>
+            </div>
+
+            <div class="section-box">
+              <div class="section-label">
+                <span class="section-num">2</span>
+                <span class="section-name">Perguntas analíticas</span>
+              </div>
+              <p class="section-prompt">Quais perguntas o DW precisa responder para gerar valor?</p>
+              <ul class="editable-list" id="n2">
+                <li><span class="list-bullet"></span><div contenteditable="true" data-ph="Digite uma pergunta..."></div><button class="list-del" onclick="delItem(this)">×</button></li>
+                <li><span class="list-bullet"></span><div contenteditable="true" data-ph="Digite uma pergunta..."></div><button class="list-del" onclick="delItem(this)">×</button></li>
+              </ul>
+              <button class="add-item-btn" onclick="addItem('n2','Digite uma pergunta...')">+ adicionar</button>
+            </div>
+
+            <div class="section-box">
+              <div class="section-label">
+                <span class="section-num">3</span>
+                <span class="section-name">Processos de negócio</span>
+              </div>
+              <p class="section-prompt">Quais processos serão representados nos cubos analíticos?</p>
+              <ul class="editable-list" id="n3">
+                <li><span class="list-bullet"></span><div contenteditable="true" data-ph="Digite um processo..."></div><button class="list-del" onclick="delItem(this)">×</button></li>
+                <li><span class="list-bullet"></span><div contenteditable="true" data-ph="Digite um processo..."></div><button class="list-del" onclick="delItem(this)">×</button></li>
+              </ul>
+              <button class="add-item-btn" onclick="addItem('n3','Digite um processo...')">+ adicionar</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Consumo Analítico -->
+      <div class="card consumo">
+        <div class="card-head">
+          <div class="card-head-left">
+            <div class="card-dot"></div>
+            <span class="card-title">Consumo Analítico</span>
+          </div>
+          <span class="card-subtitle">Como os dados serão usados por pessoas e sistemas</span>
+        </div>
+        <div class="card-body">
+          <div class="sections-stack">
+
+            <div class="section-box">
+              <div class="section-label">
+                <span class="section-num">4</span>
+                <span class="section-name">Indicadores e métricas-chave</span>
+              </div>
+              <p class="section-prompt">Quais KPIs precisam aparecer nos relatórios, painéis ou análises?</p>
+              <ul class="editable-list" id="c4">
+                <li><span class="list-bullet"></span><div contenteditable="true" data-ph="Digite um indicador..."></div><button class="list-del" onclick="delItem(this)">×</button></li>
+                <li><span class="list-bullet"></span><div contenteditable="true" data-ph="Digite um indicador..."></div><button class="list-del" onclick="delItem(this)">×</button></li>
+              </ul>
+              <button class="add-item-btn" onclick="addItem('c4','Digite um indicador...')">+ adicionar</button>
+            </div>
+
+            <div class="section-box">
+              <div class="section-label">
+                <span class="section-num">5</span>
+                <span class="section-name">Usuários e formas de consumo</span>
+              </div>
+              <p class="section-prompt">Quem usará os dados e por quais meios?</p>
+              <ul class="editable-list" id="c5">
+                <li><span class="list-bullet"></span><div contenteditable="true" data-ph="Digite um usuário ou canal..."></div><button class="list-del" onclick="delItem(this)">×</button></li>
+                <li><span class="list-bullet"></span><div contenteditable="true" data-ph="Digite um usuário ou canal..."></div><button class="list-del" onclick="delItem(this)">×</button></li>
+              </ul>
+              <button class="add-item-btn" onclick="addItem('c5','Digite um usuário ou canal...')">+ adicionar</button>
+            </div>
+
+            <div class="section-box">
+              <div class="section-label">
+                <span class="section-num">6</span>
+                <span class="section-name">Decisões e riscos abertos</span>
+              </div>
+              <p class="section-prompt">Quais decisões ainda precisam ser tomadas ou validadas?</p>
+              <ul class="editable-list" id="c6">
+                <li><span class="list-bullet"></span><div contenteditable="true" data-ph="Digite uma decisão ou risco..."></div><button class="list-del" onclick="delItem(this)">×</button></li>
+                <li><span class="list-bullet"></span><div contenteditable="true" data-ph="Digite uma decisão ou risco..."></div><button class="list-del" onclick="delItem(this)">×</button></li>
+              </ul>
+              <button class="add-item-btn" onclick="addItem('c6','Digite uma decisão ou risco...')">+ adicionar</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /row-2 -->
+
+    <!-- Row 2: Governança Corporativa -->
+    <div class="card governanca">
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="card-dot"></div>
+          <span class="card-title">Governança Corporativa</span>
+        </div>
+        <span class="card-subtitle">Políticas gerais que orientam todos os cubos do DW</span>
+      </div>
+      <div class="card-body">
+        <div class="gov-grid">
+
+          <div class="section-box">
+            <div class="section-label">
+              <span class="section-num">7</span>
+              <span class="section-name">Papéis e responsáveis</span>
+            </div>
+            <p class="section-prompt">Quem responde pelos dados no projeto?</p>
+            <div class="checklist">
+              <div class="check-field"><span>Data Owner:</span><input type="text" id="g-owner" placeholder=""></div>
+              <div class="check-field"><span>Data Steward:</span><input type="text" id="g-steward" placeholder=""></div>
+              <div class="check-field"><span>Data Custodian:</span><input type="text" id="g-custodian" placeholder=""></div>
+              <div class="check-field"><span>Resp. técnico:</span><input type="text" id="g-tecnico" placeholder=""></div>
+            </div>
+          </div>
+
+          <div class="section-box">
+            <div class="section-label">
+              <span class="section-num">8</span>
+              <span class="section-name">Políticas e conformidade</span>
+            </div>
+            <p class="section-prompt">Quais regras corporativas, legais ou éticas se aplicam?</p>
+            <div class="checklist">
+              <div class="check-field"><span>LGPD/GDPR:</span><input type="text" id="g-lgpd" placeholder=""></div>
+              <div class="check-field"><span>Seg. informação:</span><input type="text" id="g-seg" placeholder=""></div>
+              <div class="check-field"><span>Compartilhamento:</span><input type="text" id="g-comp" placeholder=""></div>
+              <div class="check-field"><span>Uso ético/legal:</span><input type="text" id="g-etico" placeholder=""></div>
+            </div>
+          </div>
+
+          <div class="section-box">
+            <div class="section-label">
+              <span class="section-num">9</span>
+              <span class="section-name">Metadados e maturidade</span>
+            </div>
+            <p class="section-prompt">Como catálogo, KPIs e maturidade serão acompanhados?</p>
+            <div class="checklist">
+              <div class="check-field"><span>Catálogo de dados:</span><input type="text" id="g-catalogo" placeholder=""></div>
+              <div class="check-field"><span>KPIs de governança:</span><input type="text" id="g-kpis" placeholder=""></div>
+              <div class="check-field"><span>Modelo de maturidade:</span><input type="text" id="g-maturidade" placeholder=""></div>
+              <div class="check-field"><span>Plano de evolução:</span><input type="text" id="g-evolucao" placeholder=""></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Cubos (dinâmicos) -->
+    <div id="cubos-container" style="display:grid;gap:16px;"></div>
+
+    <!-- Add cubo -->
+    <div class="add-cubo-area">
+      <button class="btn btn-primary" onclick="addCubo()">+ Adicionar Cubo</button>
+    </div>
+
+  </div><!-- /canvas -->
+</div><!-- /page -->
+
+<!-- ── Cubo template ──────────────────────────────────────── -->
+<template id="cubo-tpl">
+  <div class="card cubo" data-cid="">
+    <div class="card-head">
+      <div class="card-head-left">
+        <div class="card-dot"></div>
+        <span class="card-title cubo-num"></span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span class="card-subtitle">Modelo dimensional · Dados · Governança</span>
+        <button class="remove-cubo-btn" onclick="removeCubo(this)">Remover</button>
+      </div>
+    </div>
+    <div class="card-body">
+
+      <div class="cubo-name-row">
+        <span class="cubo-name-label">Nome do cubo:</span>
+        <input type="text" class="cubo-name-input" placeholder="Nome do cubo analítico">
+      </div>
+
+      <div class="cubo-subcards">
+
+        <!-- Modelo Dimensional -->
+        <div class="subcard modelo-sub">
+          <div class="subcard-head">
+            <div class="subcard-dot"></div>
+            <span class="subcard-title">Modelo Dimensional</span>
+          </div>
+          <div class="subcard-body">
+            <div class="mini-grid">
+
+              <div class="mini-box">
+                <div class="section-label"><span class="section-num">a</span><span class="section-name">Grão</span></div>
+                <p class="section-prompt">Menor nível de detalhe da tabela fato.</p>
+                <ul class="editable-list">
+                  <li><span class="list-bullet"></span><div contenteditable="true" data-ph="Descreva o grão..."></div><button class="list-del" onclick="delItem(this)">×</button></li>
+                </ul>
+                <button class="add-item-btn" onclick="addItemBtn(this,'Descreva o grão...')">+ adicionar</button>
+              </div>
+
+              <div class="mini-box">
+                <div class="section-label"><span class="section-num">b</span><span class="section-name">Estrutura</span></div>
+                <div class="checklist" style="margin-top:6px;">
+                  <div class="check-row"><input type="checkbox"><span>Star Schema</span></div>
+                  <div class="check-row"><input type="checkbox"><span>Snowflake Schema</span></div>
+                  <div class="check-field" style="margin-top:2px;"><span>Outro:</span><input type="text" placeholder=""></div>
+                </div>
+              </div>
+
+              <div class="mini-box">
+                <div class="section-label"><span class="section-num">c</span><span class="section-name">Tipo de fato</span></div>
+                <div class="checklist" style="margin-top:6px;">
+                  <div class="check-row"><input type="checkbox"><span>Transaction Fact</span></div>
+                  <div class="check-row"><input type="checkbox"><span>Periodic Snapshot</span></div>
+                  <div class="check-row"><input type="checkbox"><span>Accumulating Snapshot</span></div>
+                </div>
+              </div>
+
+              <div class="mini-box">
+                <div class="section-label"><span class="section-num">d</span><span class="section-name">Fatos / Eventos</span></div>
+                <p class="section-prompt">Eventos mensuráveis armazenados.</p>
+                <ul class="editable-list">
+                  <li><span class="list-bullet"></span><div contenteditable="true" data-ph="Digite um fato..."></div><button class="list-del" onclick="delItem(this)">×</button></li>
+                </ul>
+                <button class="add-item-btn" onclick="addItemBtn(this,'Digite um fato...')">+ adicionar</button>
+              </div>
+
+              <div class="mini-box">
+                <div class="section-label"><span class="section-num">e</span><span class="section-name">Métricas</span></div>
+                <p class="section-prompt">Medidas e cálculos principais.</p>
+                <ul class="editable-list">
+                  <li><span class="list-bullet"></span><div contenteditable="true" data-ph="Digite uma métrica..."></div><button class="list-del" onclick="delItem(this)">×</button></li>
+                </ul>
+                <button class="add-item-btn" onclick="addItemBtn(this,'Digite uma métrica...')">+ adicionar</button>
+              </div>
+
+              <div class="mini-box">
+                <div class="section-label"><span class="section-num">f</span><span class="section-name">Dimensões</span></div>
+                <p class="section-prompt">Perspectivas de análise.</p>
+                <ul class="editable-list">
+                  <li><span class="list-bullet"></span><div contenteditable="true" data-ph="Digite uma dimensão..."></div><button class="list-del" onclick="delItem(this)">×</button></li>
+                </ul>
+                <button class="add-item-btn" onclick="addItemBtn(this,'Digite uma dimensão...')">+ adicionar</button>
+              </div>
+
+              <div class="mini-box span-2">
+                <div class="section-label"><span class="section-num">g</span><span class="section-name">Dimensões especiais</span></div>
+                <div class="checklist" style="margin-top:6px;">
+                  <div class="check-field"><span>Bridge Tables:</span><input type="text" placeholder=""></div>
+                  <div class="check-field"><span>Junk Dimensions:</span><input type="text" placeholder=""></div>
+                  <div class="check-field"><span>Dim. conformadas:</span><input type="text" placeholder=""></div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Dados -->
+        <div class="subcard dados-sub">
+          <div class="subcard-head">
+            <div class="subcard-dot"></div>
+            <span class="subcard-title">Dados</span>
+          </div>
+          <div class="subcard-body">
+            <div class="mini-grid">
+
+              <div class="mini-box">
+                <div class="section-label"><span class="section-num">h</span><span class="section-name">Fontes</span></div>
+                <p class="section-prompt">Origem dos dados do cubo.</p>
+                <ul class="editable-list">
+                  <li><span class="list-bullet"></span><div contenteditable="true" data-ph="Digite uma fonte..."></div><button class="list-del" onclick="delItem(this)">×</button></li>
+                </ul>
+                <button class="add-item-btn" onclick="addItemBtn(this,'Digite uma fonte...')">+ adicionar</button>
+              </div>
+
+              <div class="mini-box">
+                <div class="section-label"><span class="section-num">i</span><span class="section-name">Transformações</span></div>
+                <p class="section-prompt">Tratamentos, integrações e regras de negócio.</p>
+                <ul class="editable-list">
+                  <li><span class="list-bullet"></span><div contenteditable="true" data-ph="Digite uma transformação..."></div><button class="list-del" onclick="delItem(this)">×</button></li>
+                </ul>
+                <button class="add-item-btn" onclick="addItemBtn(this,'Digite uma transformação...')">+ adicionar</button>
+              </div>
+
+              <div class="mini-box">
+                <div class="section-label"><span class="section-num">j</span><span class="section-name">Qualidade</span></div>
+                <p class="section-prompt">Validações obrigatórias.</p>
+                <ul class="editable-list">
+                  <li><span class="list-bullet"></span><div contenteditable="true" data-ph="Digite uma validação..."></div><button class="list-del" onclick="delItem(this)">×</button></li>
+                </ul>
+                <button class="add-item-btn" onclick="addItemBtn(this,'Digite uma validação...')">+ adicionar</button>
+              </div>
+
+              <div class="mini-box">
+                <div class="section-label"><span class="section-num">k</span><span class="section-name">Histórico / SCD</span></div>
+                <p class="section-prompt">Mudanças no tempo.</p>
+                <ul class="editable-list">
+                  <li><span class="list-bullet"></span><div contenteditable="true" data-ph="Descreva o SCD..."></div><button class="list-del" onclick="delItem(this)">×</button></li>
+                </ul>
+                <button class="add-item-btn" onclick="addItemBtn(this,'Descreva o SCD...')">+ adicionar</button>
+              </div>
+
+              <div class="mini-box span-2">
+                <div class="section-label"><span class="section-num">l</span><span class="section-name">Otimização</span></div>
+                <div class="checklist" style="margin-top:6px;">
+                  <div class="check-field"><span>Particionamento:</span><input type="text" placeholder=""></div>
+                  <div class="check-field"><span>Materializações/agregações:</span><input type="text" placeholder=""></div>
+                  <div class="check-field"><span>Índices/clustering/ordenação:</span><input type="text" placeholder=""></div>
+                  <div class="check-field"><span>Queries críticas (benchmark):</span><input type="text" placeholder=""></div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Governança do cubo -->
+        <div class="subcard gov-sub">
+          <div class="subcard-head">
+            <div class="subcard-dot"></div>
+            <span class="subcard-title">Governança</span>
+          </div>
+          <div class="subcard-body">
+            <div class="mini-grid cols-2x2">
+
+              <div class="mini-box">
+                <div class="section-label"><span class="section-num">m</span><span class="section-name">Classificação</span></div>
+                <div class="checklist" style="margin-top:6px;">
+                  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                    <div class="check-row"><input type="checkbox"><span>Público</span></div>
+                    <div class="check-row"><input type="checkbox"><span>Interno</span></div>
+                    <div class="check-row"><input type="checkbox"><span>Confidencial</span></div>
+                    <div class="check-row"><input type="checkbox"><span>Restrito</span></div>
+                  </div>
+                  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;">
+                    <div class="check-row"><input type="checkbox"><span>Dado pessoal</span></div>
+                    <div class="check-row"><input type="checkbox"><span>Dado sensível</span></div>
+                    <div class="check-row"><input type="checkbox"><span>Dado crítico</span></div>
+                  </div>
+                  <div class="check-field" style="margin-top:4px;"><span>Criticidade:</span><input type="text" placeholder=""></div>
+                </div>
+              </div>
+
+              <div class="mini-box">
+                <div class="section-label"><span class="section-num">n</span><span class="section-name">Acesso e auditoria</span></div>
+                <div class="checklist" style="margin-top:6px;">
+                  <div class="check-field"><span>Perfis autorizados:</span><input type="text" placeholder=""></div>
+                  <div class="check-field"><span>Controle de acesso:</span><input type="text" placeholder=""></div>
+                  <div class="check-field"><span>Trilha de auditoria:</span><input type="text" placeholder=""></div>
+                </div>
+              </div>
+
+              <div class="mini-box">
+                <div class="section-label"><span class="section-num">o</span><span class="section-name">Ciclo de vida</span></div>
+                <div class="checklist" style="margin-top:6px;">
+                  <div class="check-field"><span>Retenção:</span><input type="text" placeholder=""></div>
+                  <div class="check-field"><span>Arquivamento:</span><input type="text" placeholder=""></div>
+                  <div class="check-field"><span>Descarte:</span><input type="text" placeholder=""></div>
+                </div>
+              </div>
+
+              <div class="mini-box">
+                <div class="section-label"><span class="section-num">p</span><span class="section-name">Catálogo e KPIs</span></div>
+                <div class="checklist" style="margin-top:6px;">
+                  <div class="check-field"><span>Metadados obrigatórios:</span><input type="text" placeholder=""></div>
+                  <div class="check-field"><span>KPI de qualidade:</span><input type="text" placeholder=""></div>
+                  <div class="check-field"><span>KPI de governança:</span><input type="text" placeholder=""></div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /cubo-subcards -->
+    </div><!-- /card-body -->
+  </div><!-- /card.cubo -->
+</template>
+
+<script>
+  /* ── List helpers ─────────────────────────────────────── */
+  function makeLi(ph) {
+    const li = document.createElement('li');
+    li.innerHTML = `<span class="list-bullet"></span><div contenteditable="true" data-ph="${ph}"></div><button class="list-del" onclick="delItem(this)">×</button>`;
+    li.querySelector('[contenteditable]').addEventListener('input', touch);
+    return li;
+  }
+
+  function addItem(listId, ph) {
+    const ul = document.getElementById(listId);
+    const li = makeLi(ph);
+    ul.appendChild(li);
+    li.querySelector('[contenteditable]').focus();
+    touch();
+  }
+
+  function addItemBtn(btn, ph) {
+    const ul = btn.previousElementSibling;
+    const li = makeLi(ph);
+    ul.appendChild(li);
+    li.querySelector('[contenteditable]').focus();
+    touch();
+  }
+
+  function delItem(btn) {
+    const li = btn.closest('li');
+    const ul = li.parentElement;
+    if (ul.children.length > 1) li.remove();
+    else li.querySelector('[contenteditable]').textContent = '';
+    touch();
+  }
+
+  /* ── Cubo helpers ─────────────────────────────────────── */
+  let cuboCount = 0;
+
+  function addCubo() {
+    cuboCount++;
+    const tpl  = document.getElementById('cubo-tpl');
+    const node = tpl.content.cloneNode(true);
+    const card = node.querySelector('.card.cubo');
+    card.dataset.cid = cuboCount;
+    card.querySelector('.cubo-num').textContent = `Cubo #${cuboCount}`;
+    attachListeners(card);
+    document.getElementById('cubos-container').appendChild(node);
+    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    touch();
+  }
+
+  function removeCubo(btn) {
+    if (!confirm('Remover este cubo?')) return;
+    btn.closest('.card.cubo').remove();
+    renumberCubos();
+    touch();
+  }
+
+  function renumberCubos() {
+    document.querySelectorAll('#cubos-container .card.cubo').forEach((c, i) => {
+      c.querySelector('.cubo-num').textContent = `Cubo #${i + 1}`;
+    });
+    cuboCount = document.querySelectorAll('#cubos-container .card.cubo').length;
+  }
+
+  /* ── Event listeners ──────────────────────────────────── */
+  function attachListeners(root) {
+    root.querySelectorAll('[contenteditable]').forEach(el => el.addEventListener('input', touch));
+    root.querySelectorAll('input').forEach(el => {
+      el.addEventListener('input',  touch);
+      el.addEventListener('change', touch);
+    });
+  }
+
+  /* ── Save / Load ──────────────────────────────────────── */
+  const STORE_KEY = 'dmc-v2';
+  let saveTimer   = null;
+
+  function touch() {
+    clearTimeout(saveTimer);
+    setIndicator('unsaved');
+    saveTimer = setTimeout(saveNow, 1800);
+  }
+
+  function setIndicator(state) {
+    const el = document.getElementById('save-indicator');
+    if (state === 'saved') {
+      el.textContent = 'Salvo';
+      el.className   = 'save-indicator saved';
+    } else {
+      el.textContent = 'Não salvo';
+      el.className   = 'save-indicator';
+    }
+  }
+
+  function saveNow() {
+    clearTimeout(saveTimer);
+    try {
+      const data = { cubosHTML: document.getElementById('cubos-container').innerHTML };
+
+      // inputs with id
+      document.querySelectorAll('input[id]').forEach(el => {
+        data[el.id] = el.type === 'checkbox' ? el.checked : el.value;
+      });
+
+      // contenteditable with id
+      document.querySelectorAll('[contenteditable][id]').forEach(el => {
+        data[el.id] = el.innerHTML;
+      });
+
+      // indexed fallback for unid'd elements (static sections only)
+      document.querySelectorAll('[contenteditable]:not([id])').forEach((el, i) => {
+        data[`ce_${i}`] = el.innerHTML;
+      });
+      document.querySelectorAll('input:not([id])').forEach((el, i) => {
+        data[`inp_${i}`] = el.type === 'checkbox' ? el.checked : el.value;
+      });
+
+      localStorage.setItem(STORE_KEY, JSON.stringify(data));
+      setIndicator('saved');
+      setTimeout(() => setIndicator('saved'), 2000);
+    } catch(e) {
+      console.warn('Save failed', e);
+    }
+  }
+
+  function loadSaved() {
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      if (!raw) return false;
+      const data = JSON.parse(raw);
+
+      // Restore cubos
+      if (data.cubosHTML !== undefined) {
+        document.getElementById('cubos-container').innerHTML = data.cubosHTML;
+        cuboCount = document.querySelectorAll('#cubos-container .card.cubo').length;
+        attachListeners(document.getElementById('cubos-container'));
+      }
+
+      // Restore inputs with id
+      document.querySelectorAll('input[id]').forEach(el => {
+        if (data[el.id] === undefined) return;
+        if (el.type === 'checkbox') el.checked = data[el.id];
+        else el.value = data[el.id];
+      });
+
+      // Restore indexed contenteditable
+      document.querySelectorAll('[contenteditable]:not([id])').forEach((el, i) => {
+        if (data[`ce_${i}`] !== undefined) el.innerHTML = data[`ce_${i}`];
+      });
+      document.querySelectorAll('input:not([id])').forEach((el, i) => {
+        if (data[`inp_${i}`] === undefined) return;
+        if (el.type === 'checkbox') el.checked = data[`inp_${i}`];
+        else el.value = data[`inp_${i}`];
+      });
+
+      setIndicator('saved');
+      return true;
+    } catch(e) {
+      console.warn('Load failed', e);
+      return false;
+    }
+  }
+
+  function exportPDF() { window.print(); }
+
+  function exportJSON() {
+    saveNow();
+    const raw  = localStorage.getItem(STORE_KEY);
+    if (!raw) return alert('Nada para exportar. Preencha algum campo primeiro.');
+    const name = (document.getElementById('m-parceiro').value || 'dmc').replace(/\s+/g, '_');
+    const blob = new Blob([raw], { type: 'application/json' });
+    const a    = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(blob),
+      download: `${name}_dmc.json`
+    });
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function importJSON(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        JSON.parse(ev.target.result); // validate
+        localStorage.setItem(STORE_KEY, ev.target.result);
+        location.reload();
+      } catch {
+        alert('Arquivo JSON inválido.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  }
+
+  /* ── Init ─────────────────────────────────────────────── */
+  document.addEventListener('DOMContentLoaded', () => {
+    attachListeners(document);
+
+    const restored = loadSaved();
+    if (!restored) {
+      addCubo();
+      addCubo();
+    }
+  });
+</script>
+<footer class="site-footer">
+  Material criado pelo professor <strong>Afonso Brandão</strong> para o <strong>Inteli</strong>.<br>
+  🔓 Licença de leitura aberta
+</footer>
+</body>
+</html>
