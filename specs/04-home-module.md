@@ -14,7 +14,7 @@ Esta especificação define os padrões para criação das páginas home de cada
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Projeto N - Curso - Inteli</title>
+  <title>Módulo N - Curso - Inteli</title>
   
   <!-- Favicon -->
   <link rel="icon" href="data:image/svg+xml,<svg...>📚</svg>">
@@ -45,7 +45,7 @@ Esta especificação define os padrões para criação das páginas home de cada
   <header class="module-header">
     <div class="container">
       <div class="module-badge">Curso</div>
-      <h1>Projeto N - Nome do Módulo</h1>
+      <h1>Módulo N - Nome do Módulo</h1>
       <h3>Descrição curta do módulo</h3>
     </div>
   </header>
@@ -103,7 +103,7 @@ Esta especificação define os padrões para criação das páginas home de cada
 <header class="module-header">
   <div class="container">
     <div class="module-badge">Administração em Tecnologia</div>
-    <h1>Projeto 5 - Modelagem Financeira e Valuation</h1>
+    <h1>Módulo 5 - Modelagem Financeira e Valuation</h1>
     <h3>Modelagem financeira de uma empresa ou projeto e avaliação de seu valor de mercado</h3>
   </div>
 </header>
@@ -403,7 +403,7 @@ Os testes em `tests/home_pages.spec.ts` verificam:
 ```html
 <header class="module-header" style="background: #2e2640;">
   <div class="module-badge">Administração em Tecnologia</div>
-  <h1>Projeto 5 - Modelagem Financeira e Valuation</h1>
+  <h1>Módulo 5 - Modelagem Financeira e Valuation</h1>
 </header>
 ```
 
@@ -412,7 +412,7 @@ Os testes em `tests/home_pages.spec.ts` verificam:
 ```html
 <header class="module-header" style="background: #89cea5;">
   <div class="module-badge">Sistemas de Informação</div>
-  <h1>Projeto 9 - Dashboards Gerenciais</h1>
+  <h1>Módulo 9 - Dashboards Gerenciais</h1>
 </header>
 ```
 
@@ -421,7 +421,7 @@ Os testes em `tests/home_pages.spec.ts` verificam:
 ```html
 <header class="module-header" style="background: #ff4545;">
   <div class="module-badge">Engenharia de Software</div>
-  <h1>Projeto 5 - Sistema Digital de Processamento Distribuído</h1>
+  <h1>Módulo 5 - Sistema Digital de Processamento Distribuído</h1>
 </header>
 ```
 

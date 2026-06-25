@@ -87,7 +87,7 @@ Define a estrutura padrão de uma aula, incluindo capa, agenda e sequência de s
 
 ```json
 {
-  "module": "Projeto N - Nome do Módulo",
+  "module": "Módulo N - Nome do Módulo",
   "lesson_title": "Título da Aula",
   "professor": "Nome do Professor",
   "slides_structure": [
@@ -138,7 +138,7 @@ Define a estrutura padrão de uma aula, incluindo capa, agenda e sequência de s
 
 ```json
 {
-  "module": "Projeto 9 - Sistemas de Informação",
+  "module": "Módulo 9 - Sistemas de Informação",
   "lesson_title": "Setup de Máquina + Discovery de Dados",
   "professor": "Afonso Lelis",
   "slides_structure": [
@@ -200,7 +200,7 @@ Define metadados específicos de cada módulo, incluindo descrição, aulas e di
 ```json
 {
   "module": {
-    "name": "Projeto N",
+    "name": "Módulo N",
     "course": "Nome do Curso",
     "description": "Descrição detalhada do módulo"
   },
@@ -259,7 +259,7 @@ Objeto com disciplinas e seus tópicos:
 ```json
 {
   "module": {
-    "name": "Projeto 5",
+    "name": "Módulo 5",
     "course": "Administração - Tecnologia",
     "description": "Modelagem financeira e valuation – Modelagem financeira de uma empresa ou projeto e uma avaliação de seu valor de mercado (valuation)"
   },

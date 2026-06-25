@@ -14,7 +14,7 @@ Esta especificação define os padrões para criação de materiais de leitura e
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aula N - Material Escrito | Projeto X</title>
+  <title>Aula N - Material Escrito | Módulo X</title>
   
   <!-- Favicon (opcional) -->
   <link rel="icon" href="data:image/svg+xml,<svg...>📖</svg>">
@@ -83,7 +83,7 @@ Esta especificação define os padrões para criação de materiais de leitura e
   <header class="page-header">
     <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2">
       <div>
-        <div class="module-badge">Projeto X • Curso</div>
+        <div class="module-badge">Módulo X • Curso</div>
         <h1 class="h3 mb-1">Aula N - Material Escrito</h1>
         <div>Título da Aula</div>
       </div>
@@ -434,7 +434,7 @@ Use `pages/module-X/materials/lesson-1-material.html` como referência para novo
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Aula 1 - Material Escrito | Projeto 5</title>
+  <title>Aula 1 - Material Escrito | Módulo 5</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="../../css/inteli-styles.css" rel="stylesheet">
   <style>
@@ -450,7 +450,7 @@ Use `pages/module-X/materials/lesson-1-material.html` como referência para novo
   <header class="page-header">
     <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2">
       <div>
-        <div class="module-badge">Projeto 5 • Administração + Tech</div>
+        <div class="module-badge">Módulo 5 • Administração + Tech</div>
         <h1 class="h3 mb-1">Aula 1 - Material Escrito</h1>
         <div>Estatística e Análise de Dados em Planilhas</div>
       </div>

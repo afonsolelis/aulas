@@ -121,7 +121,7 @@ Total: 7 diretórios, 32 arquivos
 ```json
 {
   "module": {
-    "name": "Projeto 5 - Administração e Tecnologia",
+    "name": "Módulo 5 - Administração e Tecnologia",
     "course": "Administração e Tecnologia",
     "description": "..."
   },

@@ -179,7 +179,7 @@ function animCover() {
     <div class="g2" style="gap:14px;">
       <div class="box acc" id="ag0">
         <h3>📋 Bloco 1 — Visão Geral do Módulo</h3>
-        <p>Projeto 6, contexto do problema, entregáveis do módulo e expectativas.</p>
+        <p>Módulo 6, contexto do problema, entregáveis do módulo e expectativas.</p>
       </div>
       <div class="box" id="ag1">
         <h3>📚 Bloco 2 — SWEBOK</h3>

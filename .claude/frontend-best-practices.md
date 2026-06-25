@@ -455,7 +455,7 @@ function copyCode(button) {
 ```json
 {
   "module": {
-    "name": "Projeto X - Nome do Módulo",
+    "name": "Módulo X - Nome do Módulo",
     "course": "Nome do Curso",
     "description": "Descrição detalhada do módulo e objetivos de aprendizagem"
   },

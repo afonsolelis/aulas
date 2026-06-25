@@ -265,14 +265,14 @@ test('Header deve ter a tag do curso e o nome do projeto formatado', async ({ pa
   const h1 = page.locator('.module-header h1');
   const h3 = page.locator('.module-header h3');
   
-  await expect(h1).toContainText(/Projeto \d+/);
+  await expect(h1).toContainText(/Módulo \d+/);
   await expect(h3).not.toBeEmpty();
 });
 ```
 
 **O que valida:**
 - Badge do curso visível
-- H1 contém "Projeto N"
+- H1 contém "Módulo N"
 - H3 tem descrição não vazia
 
 #### Teste: Seções obrigatórias
