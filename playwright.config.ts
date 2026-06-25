@@ -13,7 +13,15 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        // Permite usar um Chromium/Chrome do sistema (ex.: Brave) quando o
+        // browser empacotado do Playwright não pôde ser baixado. Sem a env,
+        // o comportamento padrão (browser empacotado) é mantido — inclusive no CI.
+        launchOptions: process.env.PW_EXECUTABLE_PATH
+          ? { executablePath: process.env.PW_EXECUTABLE_PATH }
+          : {},
+      },
     },
   ],
 });
