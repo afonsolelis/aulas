@@ -28,9 +28,9 @@ const publishedModuleHomes = [
   'pages/home-module-6-eng-software.html',
   'pages/home-module-9-sistemas-informacao.html',
   'pages/home-module-11-eng-software.html',
+  'pages/home-module-7-sistemas-informacao.html',
 ];
 const underConstructionHomes = [
-  'pages/home-module-7-sistemas-informacao.html',
   'pages/home-module-8-sistemas-informacao.html',
 ];
 const autoestudoFiles = getHtmlFilesCached('pages/autoestudos');
@@ -585,11 +585,10 @@ test.describe('config-json.md - Arquivos de Configuração JSON', () => {
   });
 
   test('módulos em construção (placeholder simples) não devem ter diretório de módulo criado', () => {
-    // Módulo 11 saiu da lista: as aulas do Prof. Afonso (Computação 2) já têm
-    // slides e material publicados em pages/module-11-eng-software/, embora as
-    // aulas dos demais professores sigam em preparação (home ainda "Em construção").
+    // Módulos 11 e 7 saíram da lista: já têm a estrutura das aulas publicada com
+    // slides e material (placeholders) em pages/module-*/, embora o conteúdo siga
+    // em preparação pelos professores responsáveis (home ainda "Em construção").
     const placeholderHomes = [
-      'pages/home-module-7-sistemas-informacao.html',
       'pages/home-module-8-sistemas-informacao.html',
     ];
 
