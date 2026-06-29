@@ -27,11 +27,11 @@ const publishedModuleHomes = [
   'pages/home-module-5-eng-software.html',
   'pages/home-module-6-eng-software.html',
   'pages/home-module-9-sistemas-informacao.html',
+  'pages/home-module-11-eng-software.html',
 ];
 const underConstructionHomes = [
   'pages/home-module-7-sistemas-informacao.html',
   'pages/home-module-8-sistemas-informacao.html',
-  'pages/home-module-11-eng-software.html',
 ];
 const autoestudoFiles = getHtmlFilesCached('pages/autoestudos');
 const module2Slides = getHtmlFilesCached('pages/module-2-common/slides');
