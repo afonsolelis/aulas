@@ -1,13 +1,18 @@
 ---
 name: validar-slides
-description: Valida visualmente decks de slides HTML (e demais páginas) via MCP do Chrome — não Playwright. Percorre slide a slide, detecta overflow do conteúdo em relação ao footer, elementos invisíveis após animação e nós cortados, e captura screenshots para inspeção. Use após criar ou editar qualquer slide-lesson-*.html ou página de pages/, e sempre que precisar ver o renderizado real (o binário do Playwright não funciona nesta máquina).
+description: Valida visualmente decks de slides HTML (e demais páginas) via MCP do Chrome — não Playwright. Percorre slide a slide, detecta overflow do conteúdo em relação ao footer, elementos invisíveis após animação e nós cortados, e captura screenshots para inspeção. Use após criar ou editar qualquer slide-lesson-*.html ou página de pages/, para inspeção interativa (screenshots, dirigir o Chrome real). Para checagem headless rápida de overflow/console, prefira `npm run validate:slides`.
 type: reference
 ---
 
 # Validar Slides (MCP do Chrome)
 
-Esta skill substitui a antiga validação visual via Playwright. Nesta máquina o Chromium
-empacotado do Playwright **não funciona** (binário ausente/quebrado), então os antigos
+> **Atualização:** o Playwright voltou a funcionar nesta máquina (browsers do Chromium
+> instalados). Para checagem **headless** rápida de overflow e erros de console, prefira
+> `npm run validate:slides -- <path>` (`scripts/validate-slides.mjs`). Use esta skill para
+> **inspeção interativa** (screenshots, dirigir o Chrome real) quando um MCP de browser
+> estiver conectado (`mcp__claude-in-chrome__*` ou `mcp__playwright__*`).
+
+Historicamente, os antigos
 `tests/ux-audit-*.spec.ts` e os scripts de captura/validação em `scripts/*.mjs` que importavam
 `@playwright/test` (`capture-slides.mjs`, `audit-cardiff-slides.mjs`, `validate-*.mjs`,
 `debug-*.mjs`) foram **removidos**. A validação visual passa a ser feita pelo **MCP do Chrome**

@@ -6,7 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Run tests — specs de filesystem (NÃO abrem browser; ~1.5s). Para validação
-# visual de slides/páginas use a skill /validar-slides (MCP do Chrome).
+# visual de slides/páginas use `npm run validate:slides -- <path>` (Playwright
+# headless) ou a skill /validar-slides (MCP do Chrome, se conectado).
 npm test
 
 # Run a single test file
@@ -23,17 +24,24 @@ npx playwright show-report
 
 > **Note:** Husky runs `npm test` as a pre-commit hook. Tests must pass before any commit lands.
 
-### Validação visual de slides/páginas — usar MCP do Chrome
+### Validação visual de slides/páginas
 
-Nesta máquina o Chromium empacotado do Playwright **não funciona** (binário ausente/quebrado).
 Os specs de filesystem (`index`, `specs-compliance`, `calendar-consistency`,
 `index-json-coverage`) não abrem browser — só leem arquivos com `fs` — e continuam rodando
-normalmente em `npm test`. Mas **qualquer validação visual** (ver o slide/página renderizado,
-screenshots, detecção de overflow) deve ser feita pelo **MCP do Chrome**
-(`mcp__claude-in-chrome__*`), que dirige o Chrome real do sistema — não pelo Playwright. Os
-scripts de captura/validação que importavam `@playwright/test` foram removidos; restam apenas
-geradores em `scripts/` (`export-cardiff-pdf`, `prerender-mermaid`, `preview-material-print`),
-que ainda dependem do binário do Playwright e só funcionam onde ele estiver disponível.
+normalmente em `npm test`. Para **validação visual** (overflow do conteúdo em relação ao
+footer e erros de console), o Playwright **está funcional** nesta máquina (browsers do
+Chromium instalados). Use:
+
+```bash
+npm run validate:slides -- pages/inteli-camp/slides/slide-lesson-1.html
+```
+
+que renderiza o deck headless em 1280×720 e 1920×1080 e reporta `OVERFLOW` / `TIGHT` e erros
+de console (`scripts/validate-slides.mjs`; aceita vários caminhos). Para inspeção interativa
+(screenshots, dirigir o Chrome real), a skill **`/validar-slides`** usa o MCP do Chrome
+(`mcp__claude-in-chrome__*` ou `mcp__playwright__*`) — **quando** um MCP de browser estiver
+conectado. Os geradores em `scripts/` (`export-cardiff-pdf`, `prerender-mermaid`,
+`preview-material-print`) também dependem do binário do Playwright.
 
 Use a skill **`/validar-slides`** (`.claude/skills/validar-slides/SKILL.md`), que tem o passo a
 passo: suba `npx http-server . -p 8123 -c-1 &` (o `navigate` recusa `file://`), carregue as
