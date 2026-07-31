@@ -612,7 +612,6 @@
         ↑ Importar JSON
         <input type="file" accept=".json" onchange="importJSON(event)" style="display:none;">
       </label>
-      <button class="btn btn-primary" onclick="saveNow()">Salvar</button>
     </div>
   </div>
 
@@ -1054,10 +1053,12 @@
 
 <script>
   /* ── List helpers ─────────────────────────────────────── */
-  function makeLi(ph) {
+  function makeLi(ph, value = '') {
     const li = document.createElement('li');
     li.innerHTML = `<span class="list-bullet"></span><div contenteditable="true" data-ph="${ph}"></div><button class="list-del" onclick="delItem(this)">×</button>`;
-    li.querySelector('[contenteditable]').addEventListener('input', touch);
+    const editable = li.querySelector('[contenteditable]');
+    editable.textContent = value;
+    editable.addEventListener('input', touch);
     return li;
   }
 
@@ -1088,7 +1089,7 @@
   /* ── Cubo helpers ─────────────────────────────────────── */
   let cuboCount = 0;
 
-  function addCubo() {
+  function addCubo(shouldNotify = true) {
     cuboCount++;
     const tpl  = document.getElementById('cubo-tpl');
     const node = tpl.content.cloneNode(true);
@@ -1097,8 +1098,11 @@
     card.querySelector('.cubo-num').textContent = `Cubo #${cuboCount}`;
     attachListeners(card);
     document.getElementById('cubos-container').appendChild(node);
-    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    touch();
+    if (shouldNotify) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      touch();
+    }
+    return card;
   }
 
   function removeCubo(btn) {
@@ -1126,7 +1130,73 @@
 
   /* ── Save / Load ──────────────────────────────────────── */
   const STORE_KEY = 'dmc-v2';
+  const SCHEMA_VERSION = 1;
+  const STATIC_LISTS = {
+    objetivosNegocio: 'n1',
+    perguntasNegocio: 'n2',
+    processosNegocio: 'n3',
+    indicadoresConsumo: 'c4',
+    usuariosCanais: 'c5',
+    decisoesRiscos: 'c6'
+  };
+  const CUBE_LIST_KEYS = [
+    'grao', 'fatos', 'metricas', 'dimensoes',
+    'fontes', 'transformacoes', 'qualidade', 'scd'
+  ];
+  const CUBE_INPUT_KEYS = [
+    'nome', 'starSchema', 'snowflakeSchema', 'outroSchema',
+    'transactionFact', 'periodicSnapshot', 'accumulatingSnapshot',
+    'bridgeTables', 'junkDimensions', 'dimensoesConformadas',
+    'particionamento', 'materializacoesAgregacoes', 'indicesClusteringOrdenacao', 'queriesCriticas',
+    'classificacaoPublico', 'classificacaoInterno', 'classificacaoConfidencial', 'classificacaoRestrito',
+    'dadoPessoal', 'dadoSensivel', 'dadoCritico', 'criticidade',
+    'perfisAutorizados', 'controleAcesso', 'trilhaAuditoria',
+    'retencao', 'arquivamento', 'descarte',
+    'metadadosObrigatorios', 'kpiQualidade', 'kpiGovernanca'
+  ];
   let saveTimer   = null;
+
+  function readInput(el) {
+    return el.type === 'checkbox' ? el.checked : el.value;
+  }
+
+  function writeInput(el, value) {
+    if (el.type === 'checkbox') el.checked = Boolean(value);
+    else el.value = value == null ? '' : String(value);
+  }
+
+  function readList(ul) {
+    return [...ul.querySelectorAll(':scope > li [contenteditable]')]
+      .map(el => el.textContent || '');
+  }
+
+  function writeList(ul, values) {
+    const placeholder = ul.querySelector('[contenteditable]')?.dataset.ph || '';
+    const items = Array.isArray(values) && values.length ? values : [''];
+    ul.replaceChildren(...items.map(value => makeLi(placeholder, String(value ?? ''))));
+  }
+
+  function serializeCube(card, index) {
+    const inputs = [...card.querySelectorAll('input')];
+    const fields = {};
+    CUBE_INPUT_KEYS.forEach((key, i) => { fields[key] = readInput(inputs[i]); });
+
+    const lists = {};
+    const cubeLists = [...card.querySelectorAll('ul.editable-list')];
+    CUBE_LIST_KEYS.forEach((key, i) => { lists[key] = readList(cubeLists[i]); });
+
+    return { id: `cubo-${index + 1}`, fields, lists };
+  }
+
+  function restoreCube(card, cube) {
+    const inputs = [...card.querySelectorAll('input')];
+    CUBE_INPUT_KEYS.forEach((key, i) => {
+      if (cube.fields && Object.hasOwn(cube.fields, key)) writeInput(inputs[i], cube.fields[key]);
+    });
+
+    const cubeLists = [...card.querySelectorAll('ul.editable-list')];
+    CUBE_LIST_KEYS.forEach((key, i) => writeList(cubeLists[i], cube.lists?.[key]));
+  }
 
   function touch() {
     clearTimeout(saveTimer);
@@ -1148,24 +1218,24 @@
   function saveNow() {
     clearTimeout(saveTimer);
     try {
-      const data = { cubosHTML: document.getElementById('cubos-container').innerHTML };
+      const data = {
+        schemaVersion: SCHEMA_VERSION,
+        metadata: {
+          parceiro: document.getElementById('m-parceiro').value,
+          data: document.getElementById('m-data').value,
+          versao: document.getElementById('m-versao').value,
+          grupo: document.getElementById('m-grupo').value
+        },
+        negocioEConsumo: {},
+        governancaCorporativa: {},
+        cubos: [...document.querySelectorAll('#cubos-container .card.cubo')].map(serializeCube)
+      };
 
-      // inputs with id
-      document.querySelectorAll('input[id]').forEach(el => {
-        data[el.id] = el.type === 'checkbox' ? el.checked : el.value;
+      Object.entries(STATIC_LISTS).forEach(([key, id]) => {
+        data.negocioEConsumo[key] = readList(document.getElementById(id));
       });
-
-      // contenteditable with id
-      document.querySelectorAll('[contenteditable][id]').forEach(el => {
-        data[el.id] = el.innerHTML;
-      });
-
-      // indexed fallback for unid'd elements (static sections only)
-      document.querySelectorAll('[contenteditable]:not([id])').forEach((el, i) => {
-        data[`ce_${i}`] = el.innerHTML;
-      });
-      document.querySelectorAll('input:not([id])').forEach((el, i) => {
-        data[`inp_${i}`] = el.type === 'checkbox' ? el.checked : el.value;
+      document.querySelectorAll('input[id^="g-"]').forEach(el => {
+        data.governancaCorporativa[el.id.slice(2)] = readInput(el);
       });
 
       localStorage.setItem(STORE_KEY, JSON.stringify(data));
@@ -1181,30 +1251,28 @@
       const raw = localStorage.getItem(STORE_KEY);
       if (!raw) return false;
       const data = JSON.parse(raw);
+      if (data.schemaVersion !== SCHEMA_VERSION || !Array.isArray(data.cubos)) return false;
 
-      // Restore cubos
-      if (data.cubosHTML !== undefined) {
-        document.getElementById('cubos-container').innerHTML = data.cubosHTML;
-        cuboCount = document.querySelectorAll('#cubos-container .card.cubo').length;
-        attachListeners(document.getElementById('cubos-container'));
-      }
-
-      // Restore inputs with id
-      document.querySelectorAll('input[id]').forEach(el => {
-        if (data[el.id] === undefined) return;
-        if (el.type === 'checkbox') el.checked = data[el.id];
-        else el.value = data[el.id];
+      const metadataIds = {
+        parceiro: 'm-parceiro', data: 'm-data', versao: 'm-versao', grupo: 'm-grupo'
+      };
+      Object.entries(metadataIds).forEach(([key, id]) => {
+        writeInput(document.getElementById(id), data.metadata?.[key]);
+      });
+      Object.entries(STATIC_LISTS).forEach(([key, id]) => {
+        writeList(document.getElementById(id), data.negocioEConsumo?.[key]);
+      });
+      document.querySelectorAll('input[id^="g-"]').forEach(el => {
+        const key = el.id.slice(2);
+        if (Object.hasOwn(data.governancaCorporativa || {}, key)) {
+          writeInput(el, data.governancaCorporativa[key]);
+        }
       });
 
-      // Restore indexed contenteditable
-      document.querySelectorAll('[contenteditable]:not([id])').forEach((el, i) => {
-        if (data[`ce_${i}`] !== undefined) el.innerHTML = data[`ce_${i}`];
-      });
-      document.querySelectorAll('input:not([id])').forEach((el, i) => {
-        if (data[`inp_${i}`] === undefined) return;
-        if (el.type === 'checkbox') el.checked = data[`inp_${i}`];
-        else el.value = data[`inp_${i}`];
-      });
+      document.getElementById('cubos-container').replaceChildren();
+      cuboCount = 0;
+      data.cubos.forEach(cube => restoreCube(addCubo(false), cube));
+      if (!data.cubos.length) addCubo(false);
 
       setIndicator('saved');
       return true;
@@ -1236,7 +1304,10 @@
     const reader = new FileReader();
     reader.onload = ev => {
       try {
-        JSON.parse(ev.target.result); // validate
+        const data = JSON.parse(ev.target.result);
+        if (data.schemaVersion !== SCHEMA_VERSION || !Array.isArray(data.cubos)) {
+          throw new Error('Formato não suportado');
+        }
         localStorage.setItem(STORE_KEY, ev.target.result);
         location.reload();
       } catch {
