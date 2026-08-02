@@ -28,27 +28,38 @@ npx playwright show-report
 
 Os specs de filesystem (`index`, `specs-compliance`, `calendar-consistency`,
 `index-json-coverage`) não abrem browser — só leem arquivos com `fs` — e continuam rodando
-normalmente em `npm test`. Para **validação visual** (overflow do conteúdo em relação ao
-footer e erros de console), o Playwright **está funcional** nesta máquina (browsers do
-Chromium instalados). Use:
+normalmente em `npm test`.
+
+Para **validação visual** (overflow, ocupação da tela e erros de console) use
+`scripts/validate-slides.mjs`, que renderiza o deck em 1280×720 e 1920×1080 e reporta
+`OVERFLOW` / `OVERFLOW-TOP` (reprovam) e `TIGHT` / `SPARSE` (avisos), além de erros de
+console. Reconhece as duas estruturas de deck do acervo: a artesanal (`.slide` + `.sc` +
+`.slide-footer`) e a gerada do módulo 11 (`.lesson-slide` + `.lesson-footer`).
+
+> **O binário do Chromium do Playwright NÃO está instalado nesta máquina** — `npm run
+> validate:slides` sozinho falha com `LAUNCH-FAIL`. Também **não há nenhum MCP de browser
+> conectado** (nem `mcp__claude-in-chrome__*`, nem `mcp__playwright__*`), então a skill
+> `/validar-slides` não roda como está escrita.
+
+O caminho que funciona é reaproveitar o **Brave instalado via Flatpak** por CDP — a biblioteca
+do Playwright está instalada, só falta o browser:
 
 ```bash
-npm run validate:slides -- pages/inteli-camp/slides/slide-lesson-1.html
+python3 -m http.server 8123 &                      # o Flatpak tem shared=network
+flatpak run com.brave.Browser --headless=new \
+  --remote-debugging-port=9222 --remote-allow-origins='*' \
+  --user-data-dir=/tmp/brave-cdp --no-first-run &  # o sandbox enxerga /tmp
+
+PW_CDP_URL=http://127.0.0.1:9222 PW_BASE_URL=http://127.0.0.1:8123 \
+  node scripts/validate-slides.mjs pages/module-11-eng-software/slides/slide-lesson-1.html
 ```
 
-que renderiza o deck headless em 1280×720 e 1920×1080 e reporta `OVERFLOW` / `TIGHT` e erros
-de console (`scripts/validate-slides.mjs`; aceita vários caminhos). Para inspeção interativa
-(screenshots, dirigir o Chrome real), a skill **`/validar-slides`** usa o MCP do Chrome
-(`mcp__claude-in-chrome__*` ou `mcp__playwright__*`) — **quando** um MCP de browser estiver
-conectado. Os geradores em `scripts/` (`export-cardiff-pdf`, `prerender-mermaid`,
-`preview-material-print`) também dependem do binário do Playwright.
+`PW_BASE_URL` serve por HTTP em vez de `file://`, necessário porque o browser roda em sandbox.
+Sem essas variáveis o script mantém o comportamento antigo (lança o Chromium próprio).
+Ao terminar: `pkill -f "com.brave.Browser --headless"` e `pkill -f "http.server 8123"`.
 
-Use a skill **`/validar-slides`** (`.claude/skills/validar-slides/SKILL.md`), que tem o passo a
-passo: suba `npx http-server . -p 8123 -c-1 &` (o `navigate` recusa `file://`), carregue as
-ferramentas com `ToolSearch` numa única chamada, abra `http://127.0.0.1:8123/<path>` e use
-`computer`/`javascript_tool`/`read_console_messages` para inspecionar (overflow vs footer,
-elementos invisíveis após animação, nós cortados). O agente `slide-builder` também segue esse
-fluxo ao construir/editar decks.
+Os geradores em `scripts/` (`export-cardiff-pdf`, `prerender-mermaid`,
+`preview-material-print`) ainda dependem do binário do Playwright e não têm essa alternativa.
 
 ## Architecture
 
