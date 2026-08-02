@@ -1,17 +1,475 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Módulo 11 — Aula 1 — Material — Inteli</title>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <title>Aula 1 — Spec-Driven Development — Material — Inteli</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="../../../css/inteli-styles.css" rel="stylesheet">
-  <link href="../lesson-content.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ac:#dc2626; --hi:#f87171; --dk:#2e2640; --gr:#0d9488; --re:#dc2626; --am:#d97706;
+      --text:#1e293b; --muted:#64748b; --border:#e2e8f0; --bg:#f8fafc; --card:#ffffff;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family:'Manrope',sans-serif; color:var(--text); background:var(--bg); }
+
+    /* ── Progress bar ── */
+    #progress-bar { position:fixed; top:0; left:0; height:3px; background:linear-gradient(90deg,var(--ac),var(--hi)); width:0%; z-index:9999; transition:width .1s; }
+
+    /* ── Floating nav ── */
+    #float-nav { position:fixed; bottom:28px; right:28px; display:flex; flex-direction:column; gap:8px; z-index:9998; opacity:0; pointer-events:none; transform:translateY(12px); transition:opacity .3s,transform .3s; }
+    #float-nav.visible { opacity:1; pointer-events:auto; transform:translateY(0); }
+    .fn-btn { display:flex; align-items:center; gap:6px; padding:10px 16px; border-radius:999px; font-size:.82rem; font-weight:700; text-decoration:none; box-shadow:0 4px 18px rgba(0,0,0,.25); transition:transform .15s,box-shadow .15s; white-space:nowrap; }
+    .fn-btn:hover { transform:translateY(-2px); box-shadow:0 6px 24px rgba(0,0,0,.32); text-decoration:none; }
+    .fn-btn-slides { background:white; color:var(--ac); border:2px solid var(--ac); }
+    .fn-btn-back   { background:var(--dk); color:white; }
+
+    /* ── Header ── */
+    .mat-header { background:linear-gradient(135deg,#2e2640 0%,#7a2230 50%,#dc2626 100%); color:white; padding:40px 0 32px; }
+    .mat-header h1 { font-size:2.2rem; font-weight:800; margin:0 0 8px; }
+    .mat-header .subtitle { font-size:1rem; opacity:.85; margin:0 0 20px; }
+    .mat-badge { background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.3); color:white; padding:4px 14px; border-radius:999px; font-size:.78rem; font-weight:700; display:inline-block; margin-bottom:12px; }
+
+    /* ── Layout ── */
+    .mat-layout { display:grid; grid-template-columns:260px 1fr; gap:32px; max-width:1200px; margin:0 auto; padding:40px 24px; }
+    @media(max-width:900px){ .mat-layout { grid-template-columns:1fr; } .mat-sidebar { display:none; } }
+
+    /* ── Sidebar ── */
+    .mat-sidebar { position:sticky; top:24px; max-height:calc(100vh - 48px); overflow-y:auto; align-self:start; }
+    .mat-toc { background:var(--card); border-radius:14px; padding:20px; border:1px solid var(--border); box-shadow:0 2px 8px rgba(0,0,0,.05); }
+    .mat-toc h4 { font-size:.8rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:0 0 12px; }
+    .mat-toc a { display:block; color:var(--muted); text-decoration:none; font-size:.82rem; padding:4px 0 4px 12px; border-left:2px solid transparent; transition:all .2s; line-height:1.3; }
+    .mat-toc a:hover, .mat-toc a.active { color:var(--ac); border-left-color:var(--ac); }
+
+    /* ── Article ── */
+    .mat-article { min-width:0; }
+    .mat-section { margin-bottom:56px; }
+    .mat-section h2 { font-size:1.75rem; font-weight:800; color:var(--dk); padding-bottom:12px; border-bottom:2px solid var(--border); margin:0 0 24px; scroll-margin-top:80px; }
+    .mat-section h3 { font-size:1.2rem; font-weight:700; color:var(--dk); margin:32px 0 12px; scroll-margin-top:80px; }
+    .mat-section p { line-height:1.8; margin-bottom:16px; font-size:.97rem; color:#374151; }
+    .mat-section ul, .mat-section ol { padding-left:1.5rem; margin-bottom:16px; }
+    .mat-section li { line-height:1.75; font-size:.97rem; color:#374151; margin-bottom:6px; }
+    .mat-section strong { color:var(--dk); }
+    .mat-section code { background:#fdeaea; color:#b91c1c; padding:1px 6px; border-radius:4px; font-family:'JetBrains Mono',monospace; font-size:.85em; }
+
+    /* ── Callout boxes ── */
+    .callout { border-radius:12px; padding:16px 20px; margin:20px 0; border-left:4px solid; }
+    .callout-info  { background:#eff6ff; border-color:#3b82f6; }
+    .callout-warn  { background:#fffbeb; border-color:#f59e0b; }
+    .callout-danger{ background:#fef2f2; border-color:#ef4444; }
+    .callout-tip   { background:#f0fdf4; border-color:#22c55e; }
+    .callout-deep  { background:#f5f3ff; border-color:#8b5cf6; }
+    .callout-label { font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; margin-bottom:6px; }
+    .callout-info  .callout-label { color:#3b82f6; }
+    .callout-warn  .callout-label { color:#f59e0b; }
+    .callout-danger .callout-label { color:#ef4444; }
+    .callout-tip   .callout-label { color:#22c55e; }
+    .callout-deep  .callout-label { color:#8b5cf6; }
+    .callout p { margin:0; font-size:.91rem; line-height:1.65; color:#374151; }
+    .callout code { background:rgba(0,0,0,.06); color:#b91c1c; padding:1px 6px; border-radius:4px; font-family:'JetBrains Mono',monospace; font-size:.85em; }
+
+    /* ── Tabelas ── */
+    .mat-table { width:100%; border-collapse:collapse; margin:20px 0; font-size:.9rem; }
+    .mat-table th { background:var(--dk); color:white; text-align:left; padding:10px 14px; font-weight:700; font-size:.85rem; }
+    .mat-table td { padding:10px 14px; border-bottom:1px solid var(--border); line-height:1.6; color:#374151; vertical-align:top; }
+    .mat-table tr:nth-child(even) td { background:#fbfcfe; }
+    .mat-table-wrap { overflow-x:auto; }
+
+    /* ── Blocos de código ── */
+    pre.code { background:#272822; color:#f8f8f2; border-radius:10px; padding:18px 20px; overflow-x:auto; font-family:'JetBrains Mono',monospace; font-size:.82rem; line-height:1.65; margin:18px 0; }
+    pre.code .cm { color:#8292a2; }
+  </style>
 </head>
-<body data-lesson="1">
-  <main id="lesson-material"></main>
-  <footer class="text-center py-4 border-top">Material criado pelo professor <strong>Afonso Brandão</strong> · <a href="../slides/slide-lesson-1.html">Slides</a> · <a href="../../home-module-11-eng-software.html">Módulo 11</a></footer>
-  <script src="../lesson-content.js"></script>
-  <script>window.renderLessonMaterial(document.getElementById('lesson-material'));</script>
+<body>
+  <div id="progress-bar"></div>
+
+  <!-- Floating nav (aparece após rolar além do cabeçalho) -->
+  <div id="float-nav">
+    <a href="../slides/slide-lesson-1.html" class="fn-btn fn-btn-slides">▶ Slides</a>
+    <a href="../../home-module-11-eng-software.html" class="fn-btn fn-btn-back">← Módulo</a>
+  </div>
+
+  <header class="mat-header">
+    <div class="container">
+      <div class="mat-badge">Módulo 11 · Engenharia de Software · Computação 2</div>
+      <h1>Spec-Driven Development</h1>
+      <p class="subtitle">Aula 1 — Material de Leitura · Prof. Afonso Brandão · 04/08/2026</p>
+      <div class="d-flex gap-2 flex-wrap">
+        <a href="../slides/slide-lesson-1.html" class="btn btn-light btn-sm">▶ Slides</a>
+        <a href="../planos/lesson-1-plano.html" class="btn btn-outline-light btn-sm">📋 Plano de ensino</a>
+        <a href="../../home-module-11-eng-software.html" class="btn btn-outline-light btn-sm">← Voltar ao Módulo</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="mat-layout">
+    <aside class="mat-sidebar">
+      <nav class="mat-toc">
+        <h4>Nesta aula</h4>
+        <a href="#s1">1. Por que especificar antes</a>
+        <a href="#s2">2. Vocabulário: SSoT, RF e RNF</a>
+        <a href="#s3">3. Qualidade não funcional (ISO 25010)</a>
+        <a href="#s4">4. Anatomia de uma especificação</a>
+        <a href="#s5">5. ADR — registro de decisão</a>
+        <a href="#s6">6. A sequência documental</a>
+        <a href="#s7">7. Pipeline de elicitação</a>
+        <a href="#s8">8. OpenAPI e Gherkin</a>
+        <a href="#s9">9. Especificação e IA</a>
+        <a href="#s10">10. Verificação e refinamento</a>
+        <a href="#s11">11. Exemplo completo</a>
+        <a href="#s12">12. Laboratório</a>
+        <a href="#s13">13. Referências</a>
+      </nav>
+    </aside>
+
+    <article class="mat-article">
+
+      <section class="mat-section" id="s1">
+        <h2>1. Por que especificar antes</h2>
+        <p>Iniciar a implementação sem uma definição formal do comportamento esperado produz um conjunto previsível de consequências: retrabalho, contratos de API inconsistentes entre times, desalinhamento com quem pediu o sistema, testes que cobrem o que foi construído em vez do que era exigido e dívida técnica acumulada por decisões nunca registradas.</p>
+        <p>O ponto não é falta de capacidade técnica. É que a ambiguidade só se manifesta quando o código já existe, e nesse momento corrigi-la custa muito mais do que teria custado resolvê-la por escrito.</p>
+        <p><strong>Spec-Driven Development</strong> (SDD) é a metodologia na qual a especificação técnica é a <strong>única fonte de verdade</strong> — <em>Single Source of Truth</em>, SSoT. O código deriva da especificação, os testes a verificam, a documentação a reflete e a geração assistida por inteligência artificial opera dentro dos seus limites.</p>
+        <div class="callout callout-danger">
+          <div class="callout-label">Erro comum</div>
+          <p>Tratar a especificação como documentação escrita depois da entrega. Se ela não precede o código, ela não governa nada — apenas descreve.</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="s2">
+        <h2>2. Vocabulário: SSoT, requisito funcional e não funcional</h2>
+        <h3>Single Source of Truth</h3>
+        <p>Princípio de arquitetura da informação segundo o qual cada informação relevante reside em <strong>um único artefato autoritário</strong>, do qual todas as demais representações derivam. Quando duas versões divergem, a fonte única prevalece: as cópias são reconciliadas com ela, jamais o inverso.</p>
+
+        <h3>Requisito funcional (RF)</h3>
+        <p>Descreve <strong>o que o sistema deve fazer</strong> — funções e comportamentos observáveis. Exemplo: <em>"O sistema deve permitir o registro de usuário a partir de nome e endereço de e-mail."</em></p>
+
+        <h3>Requisito não funcional (RNF)</h3>
+        <p>Descreve <strong>como o sistema deve se comportar</strong> — qualidade, desempenho, segurança, operação. Exemplo: <em>"O registro deve concluir em no máximo 2 segundos sob carga nominal."</em></p>
+        <div class="callout callout-warn">
+          <div class="callout-label">Critério de aceitação de um RNF</div>
+          <p>Um requisito não funcional sem número, janela de medição e instrumento não é requisito — é desejo. "Deve ser rápido" não é verificável; "p95 ≤ 200 ms medido em cache frio, com falha declarada acima disso" é.</p>
+        </div>
+
+        <h3>SDD e TDD não competem</h3>
+        <p><strong>TDD</strong> (Test-Driven Development) escreve testes antes do código e fixa a correção interna da implementação. <strong>SDD</strong> descreve interfaces, contratos e metas antes, e é o que fundamenta o TDD. A especificação define a verdade; o TDD a implementa. Um projeto pode ter TDD sem SDD — e nesse caso testa corretamente a coisa errada.</p>
+      </section>
+
+      <section class="mat-section" id="s3">
+        <h2>3. Qualidade não funcional: ISO/IEC 25010:2023</h2>
+        <p>A norma ISO/IEC 25010 define um modelo de qualidade de produto de software com nove características. Sua função em uma especificação é impedir que requisitos de qualidade permaneçam implícitos ou subjetivos: para cada característica pertinente ao componente, atribui-se uma métrica, um limite e um instrumento.</p>
+        <div class="mat-table-wrap">
+          <table class="mat-table">
+            <tr><th style="width:28%">Característica</th><th>O que cobre</th></tr>
+            <tr><td>Adequação funcional</td><td>Correção, completude e pertinência das funções entregues.</td></tr>
+            <tr><td>Eficiência de desempenho</td><td>Tempo de resposta, uso de recursos e capacidade.</td></tr>
+            <tr><td>Compatibilidade</td><td>Coexistência e interoperabilidade com outros sistemas.</td></tr>
+            <tr><td>Interação (usabilidade)</td><td>Apreensibilidade, operabilidade e proteção contra erro do usuário.</td></tr>
+            <tr><td>Confiabilidade</td><td>Maturidade, disponibilidade, tolerância a falhas e recuperabilidade.</td></tr>
+            <tr><td>Segurança</td><td>Confidencialidade, integridade, não repúdio e autenticidade.</td></tr>
+            <tr><td>Manutenibilidade</td><td>Modularidade, reusabilidade, testabilidade e modificabilidade.</td></tr>
+            <tr><td>Flexibilidade</td><td>Adaptabilidade, escalabilidade e instalabilidade.</td></tr>
+            <tr><td>Proteção (<em>safety</em>)</td><td>Operação em estado seguro, alerta de risco e recuperação controlada.</td></tr>
+          </table>
+        </div>
+        <div class="callout callout-info">
+          <div class="callout-label">Aplicação seletiva</div>
+          <p>Nem toda característica se aplica a todo componente. Interação é irrelevante em um pipeline de dados sem interface; proteção é decisiva em sistema embarcado. Declare explicitamente as descartadas — a omissão silenciosa é indistinguível do esquecimento.</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="s4">
+        <h2>4. Anatomia de uma especificação</h2>
+        <p>Uma especificação madura tem seis seções. A ordem importa: cada uma restringe a seguinte.</p>
+
+        <h3>Seção 1 — Visão e escopo</h3>
+        <p>Por que o sistema existe, quem são os usuários e qual problema resolve. Inclui o que está fora de escopo. Exemplo: <em>"Sistema de cotação que reduz o tempo de resposta ao cliente de 24 h para menos de 5 min."</em></p>
+
+        <h3>Seção 2 — Requisitos funcionais</h3>
+        <p>Numerados (<code>RF-001</code>, <code>RF-002</code>) para que testes e código possam citá-los. Cada um declara descrição, pré-condições e pós-condições. Exemplo: <em>"RF-001: usuário autenticado cria cotação. Pré: sessão válida. Pós: <code>quoteId</code> gerado e persistido."</em></p>
+
+        <h3>Seção 3 — Requisitos não funcionais</h3>
+        <p>Numerados (<code>RNF-001</code>), cada um com métrica, limite numérico e instrumento de verificação. Exemplo: <em>"RNF-001: latência p95 ≤ 100 ms, medida no gateway, em janela de 30 dias."</em></p>
+
+        <h3>Seção 4 — Contrato de API</h3>
+        <p>Rotas, métodos, parâmetros, <em>payloads</em>, códigos de status e exemplos, expressos em OpenAPI 3.1. Deve incluir ao menos um caminho de erro por rota.</p>
+
+        <h3>Seção 5 — Modelo de dados</h3>
+        <p>Entidades, atributos, tipos, chaves e restrições de integridade — <strong>sem citar produto</strong>. Exemplo: <em>Quote { id: UUID, chave primária; customerId: UUID, chave estrangeira; total: Decimal, não nulo; createdAt: Timestamp }</em>.</p>
+
+        <h3>Seção 6 — Cenários de teste</h3>
+        <p>Critérios de aceite em Gherkin, um por regra de negócio. Cada cenário deve falhar antes de a implementação existir.</p>
+
+        <div class="callout callout-danger">
+          <div class="callout-label">Fronteira que não se atravessa</div>
+          <p>A especificação não menciona linguagem, framework ou banco de dados. "Usar PostgreSQL" é decisão de tecnologia e pertence a um ADR, não a um requisito. Misturar as duas coisas impede trocar a tecnologia sem reescrever o comportamento esperado.</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="s5">
+        <h2>5. ADR — Architecture Decision Record</h2>
+        <p>Um ADR registra uma decisão arquitetural significativa: o contexto que a motivou, as alternativas consideradas, a escolha feita e as consequências assumidas. Captura o <strong>porquê</strong> da estrutura, não o <strong>como</strong> da implementação.</p>
+        <h3>Estrutura</h3>
+        <ul>
+          <li><strong>Título</strong> — identificador e enunciado. <em>ADR-001: processamento assíncrono de cotações via fila.</em></li>
+          <li><strong>Status</strong> — <em>proposto</em>, <em>aceito</em>, <em>substituído</em> ou <em>obsoleto</em>.</li>
+          <li><strong>Contexto</strong> — a restrição real que exige uma decisão.</li>
+          <li><strong>Decisão</strong> — a escolha, em termos estruturais, sem produto.</li>
+          <li><strong>Alternativas</strong> — ao menos uma opção descartada, com o motivo.</li>
+          <li><strong>Consequências</strong> — o que fica pior, não apenas o que melhora.</li>
+        </ul>
+        <h3>Exemplo mínimo</h3>
+        <pre class="code"><span class="cm"># ADR-001 — Processamento assíncrono de cotações</span>
+Status: aceito
+
+Contexto:   RNF-002 exige resposta em menos de 2 s. O cálculo de
+            desconto por volume percorre o catálogo e não cabe na
+            janela síncrona.
+
+Decisão:    A criação da cotação responde imediatamente com o
+            identificador; o cálculo ocorre fora do ciclo de
+            requisição, em fila de processamento.
+
+Descartado: Cálculo síncrono com cache do catálogo — o cache
+            invalidaria a cada alteração de preço, sem ganho
+            estável.
+
+Consequências: introduz um componente de fila e um estado
+            intermediário "em processamento" visível ao cliente.
+            Exige garantia de entrega e política de reprocessamento.</pre>
+        <div class="callout callout-tip">
+          <div class="callout-label">Por que o ADR vem antes da spec</div>
+          <p>O ADR justifica a estrutura que aparecerá na especificação. Sem ele, a spec parece arbitrária a quem chega depois: "por que existe uma fila aqui?" passa a ter resposta rastreável — ADR-001. Um ADR escrito depois da decisão, para justificá-la, é ata, não raciocínio.</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="s6">
+        <h2>6. A sequência documental</h2>
+        <p>Antes de qualquer linha de código, e antes de qualquer escolha de tecnologia, cinco artefatos se sucedem. Cada um responde a uma pergunta distinta.</p>
+        <div class="mat-table-wrap">
+          <table class="mat-table">
+            <tr><th style="width:22%">Artefato</th><th style="width:22%">Autoria</th><th>Responde a</th></tr>
+            <tr><td><strong>1. Problema</strong></td><td>Produto e stakeholders</td><td>O que não funciona hoje e por quê. Contexto de negócio, lacunas, restrições e métricas de sucesso. Não é técnico.</td></tr>
+            <tr><td><strong>2. ADRs</strong></td><td>Arquitetura e liderança técnica</td><td>Como a solução se estrutura. Padrões, decomposição, limites de módulo. Independente de tecnologia.</td></tr>
+            <tr><td><strong>3. Especificação</strong></td><td>Arquitetura e time</td><td>Qual é o comportamento esperado. RF, RNF, contrato de API, modelo de dados, cenários. Ainda sem tecnologia.</td></tr>
+            <tr><td><strong>4. Escolha de tecnologia</strong></td><td>Arquitetura</td><td>Com o quê será construído. Linguagem, banco, framework — registrado em ADR próprio e justificado contra a especificação.</td></tr>
+            <tr><td><strong>5. Plano de implementação</strong></td><td>Time, com apoio de IA</td><td>Quais módulos realizam a especificação. Classes, funções, fluxo.</td></tr>
+          </table>
+        </div>
+        <div class="callout callout-warn">
+          <div class="callout-label">Invariante</div>
+          <p>Problema → ADR → especificação → tecnologia → implementação. A escolha de tecnologia entra em quarto lugar, não em primeiro. Quando ela antecede a especificação, o comportamento esperado passa a ser derivado da ferramenta disponível — e não o contrário.</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="s7">
+        <h2>7. Pipeline de elicitação</h2>
+        <p>Da análise do negócio até a implementação, seis estágios:</p>
+        <ol>
+          <li><strong>Modelagem de processos (IDEF0).</strong> Análise <em>as-is</em>: o que a organização faz hoje, quais são os atores, os fluxos e as lacunas.</li>
+          <li><strong>Modelagem arquitetural (RM-ODP).</strong> Casos de uso, entidades e diagramas de sequência, organizados em pontos de vista.</li>
+          <li><strong>Esqueleto do software.</strong> Estrutura de diretórios, limites de módulo, composição de ambiente. Projeto vazio, mas estruturalmente completo.</li>
+          <li><strong>Documentos de especificação.</strong> Consolidação em Markdown e YAML, formatos legíveis por máquina — <strong>autoria integralmente humana</strong>.</li>
+          <li><strong>Testes que falham (TDD).</strong> Contratos comportamentais expressos como pré-condições, pós-condições e invariantes.</li>
+          <li><strong>Implementação.</strong> Somente aqui o código é escrito, manualmente ou com apoio de IA, para fazer os testes passarem e atender às metas não funcionais.</li>
+        </ol>
+        <h3>RM-ODP e os cinco pontos de vista</h3>
+        <p>O modelo ISO/IEC 10746 descreve sistemas distribuídos em cinco perspectivas complementares, o que evita misturar intenção de negócio, modelo de dados e detalhe tecnológico no mesmo documento:</p>
+        <ul>
+          <li><strong>Enterprise</strong> — propósito, papéis e políticas.</li>
+          <li><strong>Information</strong> — semântica e estrutura da informação.</li>
+          <li><strong>Computational</strong> — decomposição funcional e interfaces.</li>
+          <li><strong>Engineering</strong> — distribuição, comunicação e infraestrutura.</li>
+          <li><strong>Technology</strong> — escolhas concretas de produto.</li>
+        </ul>
+        <div class="callout callout-info">
+          <div class="callout-label">Observação</div>
+          <p>A ordem dos pontos de vista espelha a sequência documental da seção 6: <em>Technology</em> é o último, não o primeiro.</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="s8">
+        <h2>8. Linguagens de contrato: OpenAPI e Gherkin</h2>
+        <h3>OpenAPI 3.1</h3>
+        <p>Especificação padronizada, legível por máquina, expressa em YAML ou JSON. Descreve rotas, métodos, parâmetros, <em>schemas</em> e códigos de status, constituindo o contrato explícito entre quem produz e quem consome a API. A partir dela é possível gerar documentação navegável, validadores de requisição e esqueletos de cliente.</p>
+        <pre class="code">paths:
+  /api/v1/quotes/{id}:
+    get:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Cotação encontrada }
+        '403': { description: Cotação pertence a outro cliente }
+        '404': { description: Cotação inexistente }</pre>
+
+        <h3>Gherkin</h3>
+        <p>Linguagem estruturada de cenários no formato Dado/Quando/Então, legível pelo negócio e interpretável por ferramenta de teste. Cada cenário corresponde a um critério de aceite verificável.</p>
+        <pre class="code">Cenário: desconto por volume
+  Dado um pedido com 12 unidades do produto A
+  Quando calculo o total da cotação
+  Então o desconto aplicado é de 5%
+
+Cenário: cliente inativo
+  Dado um cliente com cadastro inativo
+  Quando solicito uma cotação
+  Então a resposta é 400 e nenhuma cotação é persistida</pre>
+        <div class="callout callout-danger">
+          <div class="callout-label">Erro comum</div>
+          <p>Escrever cenários que descrevem cliques de interface. Gherkin fixa regra de negócio, não roteiro de navegação — um cenário que menciona botões quebra a cada mudança de layout, sem que nenhuma regra tenha mudado.</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="s9">
+        <h2>9. Especificação e inteligência artificial</h2>
+        <p>Modelos generativos produzem código sintaticamente correto com facilidade. O que não produzem, a partir de instrução vaga, é aderência a requisitos não funcionais e a conhecimento de domínio ausente do enunciado. Diante disso, a especificação cumpre três papéis:</p>
+        <ul>
+          <li><strong>Restringe</strong> — limita o espaço de soluções e impede decisões arquiteturais improvisadas pelo modelo.</li>
+          <li><strong>Codifica</strong> — carrega conhecimento de domínio que o modelo não possui internamente.</li>
+          <li><strong>Verifica</strong> — define metas mensuráveis aplicadas depois da geração.</li>
+        </ul>
+        <h3>Comportamentos que o modelo não infere</h3>
+        <p>Há classes de requisito que nunca emergem de uma instrução em linguagem livre. O processamento de eventos complexos é o caso típico: análise de fluxos contínuos que correlacionam múltiplos eventos ao longo do tempo — sequências, ausência de evento, agregações em janela. Um requisito como <em>"alertar após três falhas de autenticação em menos de um minuto"</em> depende de janela, ordem e critério de reinício que precisam estar declarados na especificação.</p>
+        <div class="callout callout-deep">
+          <div class="callout-label">Método de trabalho</div>
+          <p>Passe a especificação e os testes como contexto, em vez de descrever a tarefa em linguagem livre. Diante de um desvio, peça correção contra o desvio medido — sem reabrir a especificação. Limite o número de iterações e escale quando o limite for atingido.</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="s10">
+        <h2>10. Verificação e refinamento iterativo</h2>
+        <p>Cada característica de qualidade tem estratégia própria de verificação. Associar cada RNF a um instrumento é o que separa uma meta de uma intenção.</p>
+        <div class="mat-table-wrap">
+          <table class="mat-table">
+            <tr><th style="width:34%">Característica</th><th>Estratégia de verificação</th></tr>
+            <tr><td>Eficiência de desempenho</td><td>Perfilamento de tempo e de consumo de recursos sob carga representativa.</td></tr>
+            <tr><td>Confiabilidade</td><td>Injeção de falhas, teste de degradação e verificação do caminho de recuperação.</td></tr>
+            <tr><td>Segurança</td><td>Análise estática, varredura de segredos e auditoria de dependências.</td></tr>
+            <tr><td>Manutenibilidade</td><td>Complexidade ciclomática, acoplamento e taxa de duplicação.</td></tr>
+          </table>
+        </div>
+        <h3>O ciclo</h3>
+        <p>O código é gerado, verificado contra as metas e, havendo desvio, o relatório retorna ao modelo acompanhado da especificação original e da instrução de correção. Segue-se nova geração e nova verificação, até que todas as metas sejam atendidas ou até o limite de iterações definido — momento em que o caso é escalado e o <em>trade-off</em>, registrado.</p>
+        <div class="callout callout-warn">
+          <div class="callout-label">Verificação não é etapa opcional</div>
+          <p>Sem instrumento de medida, a especificação permanece uma intenção não confirmada. Código que passa nos testes funcionais e viola a meta de latência não atende ao requisito: compilar não é cumprir.</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="s11">
+        <h2>11. Exemplo completo: endpoint de cotação</h2>
+        <p>Especificação reduzida, mas completa nas seis seções, do endpoint usado como referência na aula.</p>
+        <pre class="code"><span class="cm"># POST /api/v1/quotes — Criar cotação</span>
+
+<span class="cm">## Visão</span>
+Permitir que o cliente obtenha o preço de um conjunto de itens
+sem intervenção humana, reduzindo o tempo de resposta comercial.
+
+<span class="cm">## Requisitos funcionais</span>
+RF-001  Criar cotação a partir de customerId e lista de itens.
+RF-002  Aplicar desconto de 5% quando a quantidade do item for ≥ 10.
+RF-003  Rejeitar cotação de cliente inativo.
+
+<span class="cm">## Requisitos não funcionais</span>
+RNF-001 Latência p95 ≤ 100 ms, medida no gateway.
+RNF-002 Idempotência garantida pelo cabeçalho Idempotency-Key.
+RNF-003 Erro de banco resulta em 500 genérico, sem stack trace.
+RNF-004 Lógica de desconto isolada em função própria e testável.
+
+<span class="cm">## Contrato</span>
+POST /api/v1/quotes
+Cabeçalho: Idempotency-Key (UUID, obrigatório)
+Corpo: { customerId: uuid,
+         items: [ { productId: uuid, quantity: int ≥ 1,
+                    priceUnit: decimal > 0 } ] }
+201 → { quoteId: uuid, total: decimal }
+400 → payload inválido ou cliente inativo
+500 → erro interno
+
+<span class="cm">## Modelo de dados</span>
+Quote     { id UUID PK, customerId UUID FK, total Decimal NOT NULL,
+            createdAt Timestamp NOT NULL }
+QuoteItem { quoteId UUID FK, productId UUID, quantity Int,
+            priceUnit Decimal, PK (quoteId, productId) }
+
+<span class="cm">## Cenários</span>
+Dado 12 unidades a 10,00, Quando crio a cotação,
+  Então o total é 114,00 e o desconto aplicado é de 5%.
+Dado a mesma Idempotency-Key de uma cotação existente,
+  Quando repito a requisição, Então retorna o mesmo quoteId
+  e nenhuma cotação nova é criada.</pre>
+        <div class="callout callout-tip">
+          <div class="callout-label">O que observar no exemplo</div>
+          <p>Nenhuma linha menciona linguagem, framework ou banco. O total de 114,00 é verificável por cálculo — 12 × 10,00 = 120,00, menos 5% — e o cenário falha até existir implementação. As quatro metas não funcionais têm instrumento associado.</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="s12">
+        <h2>12. Laboratório</h2>
+        <p>Em dupla, aproximadamente 30 minutos.</p>
+        <ol>
+          <li>Escolha uma funcionalidade do projeto do seu grupo — por exemplo, cancelamento de pedido ou consulta de faturamento.</li>
+          <li>Escreva a especificação em Markdown com as seis seções: visão, RF numerados, RNF numerados, contrato, modelo de dados e cenários. No mínimo três metas não funcionais <strong>verificáveis</strong>, cada uma com métrica, limite e instrumento.</li>
+          <li>Registre em um ADR curto a principal decisão estrutural, incluindo a alternativa descartada e a consequência assumida.</li>
+          <li>Escreva os cenários Gherkin que fixam as regras. Confirme que todos falham antes de existir implementação.</li>
+          <li>Passe a especificação e os testes como contexto para um modelo generativo e peça a implementação do endpoint.</li>
+          <li>Execute análise estática, perfilamento de latência e um teste de falha para validar as metas não funcionais.</li>
+          <li>Havendo desvio, devolva o resultado medido ao modelo e peça refinamento <strong>sem alterar a especificação original</strong>.</li>
+        </ol>
+        <div class="callout callout-info">
+          <div class="callout-label">Questão de fechamento</div>
+          <p>O código gerado a partir de especificação e testes escritos previamente ficou mais aderente ao esperado do que o produzido sem essa disciplina prévia? Onde exatamente a diferença apareceu — no comportamento funcional ou nas metas de qualidade?</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="s13">
+        <h2>13. Referências</h2>
+        <ul>
+          <li>ISO/IEC 25010:2023 — <em>Systems and software Quality Requirements and Evaluation: product quality model</em>.</li>
+          <li>ISO/IEC 10746 — <em>Reference Model for Open Distributed Processing</em> (RM-ODP).</li>
+          <li>OpenAPI Specification 3.1 — OpenAPI Initiative.</li>
+          <li>Cucumber — <em>Gherkin Reference</em>.</li>
+          <li>MADR — <em>Markdown Any Decision Records</em>.</li>
+          <li>Nygard, M. — <em>Documenting Architecture Decisions</em>.</li>
+        </ul>
+      </section>
+
+    </article>
+  </div>
+
+  <footer class="inteli-footer mt-auto py-4 bg-light border-top">
+    <div class="container text-center">
+      <p class="mb-1">
+        Material criado pelo professor <strong>Afonso Brandão</strong>
+        para o <strong>Inteli</strong>.
+      </p>
+      <small class="text-muted">🔓 Licença de leitura aberta</small>
+    </div>
+  </footer>
+
+  <script>
+    // Barra de progresso de leitura e destaque do sumário
+    const bar = document.getElementById('progress-bar');
+    const floatNav = document.getElementById('float-nav');
+    const links = [...document.querySelectorAll('.mat-toc a')];
+    const sections = links.map((a) => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+
+    function onScroll() {
+      const h = document.documentElement;
+      const scrolled = h.scrollTop / (h.scrollHeight - h.clientHeight || 1);
+      bar.style.width = (scrolled * 100) + '%';
+      floatNav.classList.toggle('visible', h.scrollTop > 320);
+
+      let active = 0;
+      sections.forEach((s, i) => { if (s.getBoundingClientRect().top <= 120) active = i; });
+      links.forEach((a, i) => a.classList.toggle('active', i === active));
+    }
+    document.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  </script>
 </body>
 </html>
