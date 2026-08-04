@@ -18,6 +18,7 @@
         'Distinguir requisito funcional, requisito não funcional e decisão arquitetural, indicando onde cada um é registrado.',
         'Escrever uma especificação com visão, requisitos, contrato de API, modelo de dados e cenários de aceite.',
         'Registrar uma decisão arquitetural em ADR, com contexto, alternativa descartada e consequências.',
+        'Descrever os modelos de dados, estático e dinâmico em notação textual versionada, derivando os diagramas do próprio texto.',
         'Verificar código gerado por IA contra metas mensuráveis, sem alterar a especificação original.'
       ],
       sections: [
@@ -82,6 +83,16 @@
           pitfall: 'Cenários que descrevem cliques de interface. Gherkin fixa regra de negócio, não roteiro de navegação.'
         },
         {
+          nav: 'Modelagem como código', title: 'Modeling as code',
+          text: 'Os modelos do sistema são descritos em notação textual versionada junto da especificação. São três: entidade-relacionamento para os dados, diagrama de classes para a estrutura estática e diagrama de sequência para o comportamento dinâmico. A demonstração ao vivo percorre os três sobre um sistema de biblioteca com três entidades persistidas e cinco classes de domínio.',
+          checklist: [
+            'Mantenha o modelo em texto (Mermaid, PlantUML) no repositório da spec, não como imagem anexada.',
+            'Declare cardinalidades e chaves no modelo de dados antes de escrever qualquer DDL.',
+            'Represente o caminho de erro no diagrama de sequência, não apenas o fluxo de sucesso.'
+          ],
+          pitfall: 'Diagrama exportado como imagem e desatualizado em relação ao código. Sem diff, a divergência entre modelo e implementação passa despercebida.'
+        },
+        {
           nav: 'SDD e IA', title: 'Geração assistida',
           text: 'A especificação restringe o espaço de soluções, codifica conhecimento de domínio que o modelo não possui e define o critério de verificação aplicado depois da geração.',
           checklist: [
@@ -102,7 +113,7 @@
           pitfall: 'Verificação como revisão manual no fim. Sem instrumento, a spec permanece intenção não confirmada.'
         }
       ],
-      deliverable: 'Uma spec Markdown com contrato OpenAPI, modelo de dados, cenários Gherkin, três metas de qualidade mensuráveis e um ADR curto com alternativa descartada.',
+      deliverable: 'Uma spec Markdown com contrato OpenAPI, modelos em Mermaid (entidade-relacionamento, classes e sequência), cenários Gherkin, três metas de qualidade mensuráveis e um ADR curto com alternativa descartada.',
       references: ['ISO/IEC 25010:2023 — Product quality model', 'OpenAPI Specification 3.1', 'Cucumber — Gherkin Reference', 'MADR — Markdown Any Decision Records']
     },
 

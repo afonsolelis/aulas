@@ -8,7 +8,32 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="../../../css/inteli-styles.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'base',
+      themeVariables: {
+        fontFamily: 'Manrope, sans-serif',
+        primaryColor: '#fee2e2',
+        primaryTextColor: '#1e293b',
+        primaryBorderColor: '#dc2626',
+        lineColor: '#4b5563',
+        secondaryColor: '#dbeafe',
+        tertiaryColor: '#dcfce7',
+        actorBkg: '#fee2e2',
+        actorBorder: '#dc2626',
+        actorTextColor: '#2e2640'
+      },
+      class: { useMaxWidth: true },
+      sequence: { useMaxWidth: true, mirrorActors: false, boxMargin: 10, messageMargin: 32, noteMargin: 10, wrap: false, actorMargin: 44 },
+      er: { useMaxWidth: true, layoutDirection: 'LR' }
+    });
+    window.mermaid = mermaid;
+  </script>
   <style>
+    .mermaid { display:flex; justify-content:center; padding:18px 8px; background:#fbfbfd; border:1px solid #e2e8f0; border-radius:10px; overflow-x:auto; font-family:'Manrope',sans-serif !important; min-height:60px; margin-bottom:1rem; }
+    .mermaid svg { max-width:100%; height:auto; }
     :root {
       --ac:#dc2626; --hi:#f87171; --dk:#2e2640; --gr:#0d9488; --re:#dc2626; --am:#d97706;
       --text:#1e293b; --muted:#64748b; --border:#e2e8f0; --bg:#f8fafc; --card:#ffffff;
@@ -117,11 +142,12 @@
         <a href="#s6">6. A sequência documental</a>
         <a href="#s7">7. Pipeline de elicitação</a>
         <a href="#s8">8. OpenAPI e Gherkin</a>
-        <a href="#s9">9. Especificação e IA</a>
-        <a href="#s10">10. Verificação e refinamento</a>
-        <a href="#s11">11. Exemplo completo</a>
-        <a href="#s12">12. Laboratório</a>
-        <a href="#s13">13. Referências</a>
+        <a href="#s9">9. Modelagem como código</a>
+        <a href="#s10">10. Especificação e IA</a>
+        <a href="#s11">11. Verificação e refinamento</a>
+        <a href="#s12">12. Exemplo completo</a>
+        <a href="#s13">13. Aplicação após a aula</a>
+        <a href="#s14">14. Referências</a>
       </nav>
     </aside>
 
@@ -325,7 +351,173 @@ Cenário: cliente inativo
       </section>
 
       <section class="mat-section" id="s9">
-        <h2>9. Especificação e inteligência artificial</h2>
+        <h2>9. Modelagem como código</h2>
+        <p>Entende-se por modelagem como código (<em>modeling as code</em>) a prática de descrever os modelos do sistema em notação textual — Mermaid, PlantUML ou Structurizr DSL — mantida no mesmo repositório da especificação. O diagrama é gerado a partir do texto por ferramenta; a fonte de verdade é o texto, não a imagem.</p>
+        <p>A consequência prática é dupla: o modelo passa a ser revisado por <em>diff</em> em <em>pull request</em>, como qualquer outro artefato, e a divergência entre o que foi modelado e o que foi implementado torna-se visível no histórico. Um diagrama exportado como imagem e anexado a um documento não oferece nenhuma dessas garantias.</p>
+        <p>Três modelos são exigidos em toda especificação: o <strong>modelo de dados</strong>, que fundamenta o <em>schema</em> de persistência; o <strong>modelo estático</strong>, que delimita responsabilidades entre classes; e o <strong>modelo dinâmico</strong>, que fixa a ordem das interações e os caminhos de erro. Os exemplos a seguir descrevem um sistema de biblioteca com três entidades persistidas e cinco classes de domínio.</p>
+
+        <h3>9.1 Modelo de dados: entidade-relacionamento</h3>
+        <p>O diagrama entidade-relacionamento declara entidades, atributos, chaves primárias e estrangeiras e cardinalidades. É o antecedente do <em>schema</em>: nenhuma tabela deve existir sem correspondência aqui.</p>
+        <pre class="code"><span class="cm"># modelos/dados.mmd</span>
+erDiagram
+  LIVRO  ||--o{ EMPRESTIMO : origina
+  LEITOR ||--o{ EMPRESTIMO : realiza
+  LIVRO {
+    uuid id PK
+    text isbn UK
+    text titulo
+    int exemplares
+  }
+  LEITOR {
+    uuid id PK
+    text email UK
+    bool ativo
+  }
+  EMPRESTIMO {
+    uuid id PK
+    uuid livro_id FK
+    uuid leitor_id FK
+    date prevista
+    date efetiva
+  }</pre>
+        <div class="mermaid">erDiagram
+  LIVRO  ||--o{ EMPRESTIMO : origina
+  LEITOR ||--o{ EMPRESTIMO : realiza
+  LIVRO {
+    uuid id PK
+    text isbn UK
+    text titulo
+    int exemplares
+  }
+  LEITOR {
+    uuid id PK
+    text email UK
+    bool ativo
+  }
+  EMPRESTIMO {
+    uuid id PK
+    uuid livro_id FK
+    uuid leitor_id FK
+    date prevista
+    date efetiva
+  }</div>
+        <div class="callout callout-info">
+          <div class="callout-label">Decisão que o diagrama torna explícita</div>
+          <p>A cardinalidade <code>||--o{</code> fixa que um livro origina zero ou muitos empréstimos. O campo <code>efetiva</code> nulo identifica empréstimo em aberto: trata-se de decisão de modelagem que deve constar da especificação, sob pena de ser reinventada de forma divergente por cada implementação.</p>
+        </div>
+
+        <h3>9.2 Modelo estático: diagrama de classes</h3>
+        <p>O diagrama de classes descreve a estrutura do domínio em memória: atributos, operações e dependências entre classes. Nem toda classe corresponde a uma tabela — a distinção entre estrutura persistida e estrutura de comportamento é uma das razões de existir o modelo estático.</p>
+        <pre class="code"><span class="cm"># modelos/estatico.mmd</span>
+classDiagram
+  direction LR
+  class Livro {
+    +UUID id
+    +String isbn
+    +int exemplares
+    +disponivel() bool
+  }
+  class Leitor {
+    +UUID id
+    +bool ativo
+  }
+  class Emprestimo {
+    +Date prevista
+    +Date efetiva
+    +emAtraso(hoje) bool
+  }
+  class PoliticaEmprestimo {
+    +int prazoDias
+    +int limitePorLeitor
+    +validar(leitor, livro)
+  }
+  class ServicoEmprestimo {
+    +registrar(leitor, livro)
+    +devolver(emprestimo)
+  }
+  ServicoEmprestimo --&gt; PoliticaEmprestimo
+  ServicoEmprestimo --&gt; Emprestimo
+  Emprestimo --&gt; Livro
+  Emprestimo --&gt; Leitor</pre>
+        <div class="mermaid">classDiagram
+  direction LR
+  class Livro {
+    +UUID id
+    +String isbn
+    +int exemplares
+    +disponivel() bool
+  }
+  class Leitor {
+    +UUID id
+    +bool ativo
+  }
+  class Emprestimo {
+    +Date prevista
+    +Date efetiva
+    +emAtraso(hoje) bool
+  }
+  class PoliticaEmprestimo {
+    +int prazoDias
+    +int limitePorLeitor
+    +validar(leitor, livro)
+  }
+  class ServicoEmprestimo {
+    +registrar(leitor, livro)
+    +devolver(emprestimo)
+  }
+  ServicoEmprestimo --> PoliticaEmprestimo
+  ServicoEmprestimo --> Emprestimo
+  Emprestimo --> Livro
+  Emprestimo --> Leitor</div>
+        <p>Das cinco classes, três correspondem às entidades persistidas e duas existem apenas em memória. <code>PoliticaEmprestimo</code> concentra as regras de prazo e limite, que mudam por decisão institucional e não devem exigir alteração de esquema; <code>ServicoEmprestimo</code> orquestra a operação sem conhecer detalhes de persistência.</p>
+
+        <h3>9.3 Modelo dinâmico: diagrama de sequência</h3>
+        <p>O diagrama de sequência fixa a ordem das mensagens trocadas em uma operação e, sobretudo, os caminhos de erro. O bloco <code>alt</code> representa a bifurcação entre recusa e aprovação; cada ramo corresponde a um cenário Gherkin e a um código de status declarado no contrato OpenAPI.</p>
+        <pre class="code"><span class="cm"># modelos/dinamico.mmd</span>
+sequenceDiagram
+  actor A as Atendente
+  participant API as POST /emprestimos
+  participant S as ServicoEmprestimo
+  participant P as PoliticaEmprestimo
+  participant R as Repositorio
+  A->>API: leitor_id, livro_id
+  API->>S: registrar(leitor, livro)
+  S->>P: validar(leitor, livro)
+  alt limite excedido ou sem exemplar
+    P-->>S: recusa(motivo)
+    S-->>API: 422 motivo
+  else apto
+    P-->>S: aprovado(prazo 14d)
+    S->>R: salvar(emprestimo)
+    R-->>S: emprestimo
+    S-->>API: 201 emprestimo
+  end</pre>
+        <div class="mermaid">sequenceDiagram
+  actor A as Atendente
+  participant API as POST /emprestimos
+  participant S as ServicoEmprestimo
+  participant P as PoliticaEmprestimo
+  participant R as Repositorio
+  A->>API: leitor_id, livro_id
+  API->>S: registrar(leitor, livro)
+  S->>P: validar(leitor, livro)
+  alt limite excedido ou sem exemplar
+    P-->>S: recusa(motivo)
+    S-->>API: 422 motivo
+  else apto
+    P-->>S: aprovado(prazo 14d)
+    S->>R: salvar(emprestimo)
+    R-->>S: emprestimo
+    S-->>API: 201 emprestimo
+  end</div>
+        <div class="callout callout-warn">
+          <div class="callout-label">Erro comum</div>
+          <p>Modelar apenas o caminho de sucesso. A ausência do ramo de recusa no modelo dinâmico produz implementação sem tratamento de erro e contrato sem código de falha, defeito que só se manifesta em produção.</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="s10">
+        <h2>10. Especificação e inteligência artificial</h2>
         <p>Modelos generativos produzem código sintaticamente correto com facilidade. O que não produzem, a partir de instrução vaga, é aderência a requisitos não funcionais e a conhecimento de domínio ausente do enunciado. Diante disso, a especificação cumpre três papéis:</p>
         <ul>
           <li><strong>Restringe</strong> — limita o espaço de soluções e impede decisões arquiteturais improvisadas pelo modelo.</li>
@@ -340,8 +532,8 @@ Cenário: cliente inativo
         </div>
       </section>
 
-      <section class="mat-section" id="s10">
-        <h2>10. Verificação e refinamento iterativo</h2>
+      <section class="mat-section" id="s11">
+        <h2>11. Verificação e refinamento iterativo</h2>
         <p>Cada característica de qualidade tem estratégia própria de verificação. Associar cada RNF a um instrumento é o que separa uma meta de uma intenção.</p>
         <div class="mat-table-wrap">
           <table class="mat-table">
@@ -360,8 +552,8 @@ Cenário: cliente inativo
         </div>
       </section>
 
-      <section class="mat-section" id="s11">
-        <h2>11. Exemplo completo: endpoint de cotação</h2>
+      <section class="mat-section" id="s12">
+        <h2>12. Exemplo completo: endpoint de cotação</h2>
         <p>Especificação reduzida, mas completa nas seis seções, do endpoint usado como referência na aula.</p>
         <pre class="code"><span class="cm"># POST /api/v1/quotes — Criar cotação</span>
 
@@ -408,13 +600,14 @@ Dado a mesma Idempotency-Key de uma cotação existente,
         </div>
       </section>
 
-      <section class="mat-section" id="s12">
-        <h2>12. Laboratório</h2>
-        <p>Em dupla, aproximadamente 30 minutos.</p>
+      <section class="mat-section" id="s13">
+        <h2>13. Aplicação após a aula</h2>
+        <p>A aula reserva o encerramento para a demonstração conduzida pelo professor sobre o sistema de biblioteca. A aplicação do método pelo estudante ocorre após a aula, sobre o projeto do próprio grupo, no roteiro abaixo.</p>
         <ol>
           <li>Escolha uma funcionalidade do projeto do seu grupo — por exemplo, cancelamento de pedido ou consulta de faturamento.</li>
           <li>Escreva a especificação em Markdown com as seis seções: visão, RF numerados, RNF numerados, contrato, modelo de dados e cenários. No mínimo três metas não funcionais <strong>verificáveis</strong>, cada uma com métrica, limite e instrumento.</li>
           <li>Registre em um ADR curto a principal decisão estrutural, incluindo a alternativa descartada e a consequência assumida.</li>
+          <li>Produza os três modelos em Mermaid, versionados junto da especificação: entidade-relacionamento, diagrama de classes e diagrama de sequência da operação principal, este último com o caminho de erro explícito.</li>
           <li>Escreva os cenários Gherkin que fixam as regras. Confirme que todos falham antes de existir implementação.</li>
           <li>Passe a especificação e os testes como contexto para um modelo generativo e peça a implementação do endpoint.</li>
           <li>Execute análise estática, perfilamento de latência e um teste de falha para validar as metas não funcionais.</li>
@@ -426,8 +619,8 @@ Dado a mesma Idempotency-Key de uma cotação existente,
         </div>
       </section>
 
-      <section class="mat-section" id="s13">
-        <h2>13. Referências</h2>
+      <section class="mat-section" id="s14">
+        <h2>14. Referências</h2>
         <ul>
           <li>ISO/IEC 25010:2023 — <em>Systems and software Quality Requirements and Evaluation: product quality model</em>.</li>
           <li>ISO/IEC 10746 — <em>Reference Model for Open Distributed Processing</em> (RM-ODP).</li>
