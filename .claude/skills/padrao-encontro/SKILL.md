@@ -86,9 +86,26 @@ execução. Editar o HTML injetado à mão é inútil — a próxima execução 
 
 O componente visual vive em dois arquivos compartilhados, não em cada página:
 
-- `css/inteli-styles.css` — classes `.pdf-export-btn` e `.encontro-meta`, e as regras de
-  `@media print` que transformam o deck em uma página por slide.
+- `css/encontro.css` — classes `.pdf-export-btn` e `.encontro-meta`, e a folha de impressão
+  A4. O injetor acrescenta o `<link>` a **toda** página de aula: 27 delas não importam
+  `css/inteli-styles.css`, e nelas o botão ficava sem estilo e o PDF saía sem paginação.
 - `js/encontro-pdf.js` — monta o nome do arquivo e aciona a impressão.
+
+## Folha de impressão
+
+O PDF sai em **A4 retrato**, margens 16/14/18 mm. As páginas do acervo são feitas para tela
+— deck em 16:9, altura presa ao viewport —, e a folha de impressão as remonta como
+documento:
+
+- os slides passam a fluir em sequência, separados por filete, de modo que mais de um bloco
+  ocupa a mesma folha e o papel não fica com metade em branco;
+- caixas, tabelas, grades e diagramas nunca são partidos entre páginas, e cabeçalho de bloco
+  não fica órfão no pé da folha;
+- controles de navegação, sumário lateral, botões do cabeçalho e o próprio botão de
+  exportação não são impressos;
+- sombras e desfoques são removidos; as cores de fundo são preservadas
+  (`print-color-adjust: exact`);
+- a ficha do encontro fecha o documento em folha própria.
 
 ### Três famílias de página
 

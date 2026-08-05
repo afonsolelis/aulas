@@ -99,6 +99,14 @@ for (const pagina of cfg.paginas) {
       expect(html, 'script js/encontro-pdf.js não referenciado').toMatch(/src="[^"]*js\/encontro-pdf\.js"/);
     });
 
+    test('carrega a folha de estilo do padrão (botão e impressão A4)', () => {
+      const html = readRepoFile(pagina.path);
+      const link = /<link[^>]+href="([^"]*css\/encontro\.css)"/.exec(html);
+      expect(link, 'css/encontro.css não referenciado — sem ele o botão fica sem estilo e o PDF não sai em A4').not.toBeNull();
+      const abs = path.resolve(REPO, path.dirname(pagina.path), link![1]);
+      expect(fs.existsSync(abs), `caminho não resolve: ${link![1]} em ${pagina.path}`).toBe(true);
+    });
+
     test('o script de exportação resolve por caminho relativo válido', () => {
       const html = readRepoFile(pagina.path);
       const src = /src="([^"]*js\/encontro-pdf\.js)"/.exec(html);

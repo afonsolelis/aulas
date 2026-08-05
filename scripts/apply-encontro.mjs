@@ -28,6 +28,8 @@ const MARK = {
   metaEnd: '<!-- encontro:meta:end -->',
   pdfStart: '<!-- encontro:pdf:start -->',
   pdfEnd: '<!-- encontro:pdf:end -->',
+  cssStart: '<!-- encontro:css:start -->',
+  cssEnd: '<!-- encontro:css:end -->',
 };
 
 const esc = (v) =>
@@ -70,7 +72,26 @@ function limpar(html) {
   const bloco = (a, b) => new RegExp(`\\s*${a}[\\s\\S]*?${b}`, 'g');
   return html
     .replace(bloco(MARK.metaStart, MARK.metaEnd), '')
-    .replace(bloco(MARK.pdfStart, MARK.pdfEnd), '');
+    .replace(bloco(MARK.pdfStart, MARK.pdfEnd), '')
+    .replace(bloco(MARK.cssStart, MARK.cssEnd), '');
+}
+
+/**
+ * Garante a folha de estilo do padrão de encontro. Nem toda página de aula
+ * importa css/inteli-styles.css — sem o link explícito, o botão fica sem
+ * estilo e a folha de impressão A4 não se aplica.
+ */
+function injetarCss(html, rel) {
+  const link =
+    `\n${MARK.cssStart}\n` +
+    `<link rel="stylesheet" href="${rel}css/encontro.css">\n` +
+    `${MARK.cssEnd}`;
+  const head = html.lastIndexOf('</head>');
+  if (head >= 0) return html.slice(0, head) + link + '\n' + html.slice(head);
+  const body = /<body[^>]*>/i.exec(html);
+  if (!body) return link + html;
+  const at = body.index + body[0].length;
+  return html.slice(0, at) + link + html.slice(at);
 }
 
 /** Índice logo após o fechamento do elemento aberto em `open`. */
@@ -196,7 +217,9 @@ function main() {
       relatorio.texto++;
     }
 
-    html = injetarBotao(html, botaoHtml(enc, pg.seq, toRoot(pg.path)));
+    const rel = toRoot(pg.path);
+    html = injetarCss(html, rel);
+    html = injetarBotao(html, botaoHtml(enc, pg.seq, rel));
 
     if (!check) fs.writeFileSync(abs, html);
     relatorio.aplicadas++;
