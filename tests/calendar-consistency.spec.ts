@@ -36,7 +36,9 @@ function extractDatesFromHome(html: string): string[] {
 
 test.describe('config/calendar.json - Consistência com cards das homes', () => {
   test('o trimestre tem código, datas e professor preenchidos', () => {
-    expect(calendar.trimester.code).toMatch(/^\d{4}-T[1-4]$/);
+    // Aceita a nomenclatura do Inteli (`2026-2A`, ano + semestre + bloco) e o
+    // formato antigo por trimestre (`2026-T2`), ainda presente em registros anteriores.
+    expect(calendar.trimester.code).toMatch(/^\d{4}-(T[1-4]|[1-2][AB])$/);
     expect(calendar.trimester.start).toMatch(dateRegex);
     expect(calendar.trimester.end).toMatch(dateRegex);
     expect(calendar.trimester.professor.length).toBeGreaterThan(0);
