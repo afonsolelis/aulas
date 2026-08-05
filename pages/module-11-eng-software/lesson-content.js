@@ -792,6 +792,22 @@
 
   window.module11Lesson = lesson;
 
+  // Ficha do encontro — objetivo de aprendizagem, estratégia e estrutura.
+  // Exigida em toda página de aula do acervo; ver .claude/skills/padrao-encontro/SKILL.md.
+  const estrategia =
+    'Exposição por blocos, cada um encerrado por checklist de aplicação, seguida de laboratório ' +
+    'com entrega: ' + lesson.deliverable;
+
+  const fichaEncontro = () =>
+    `<section class="encontro-meta" data-encontro-ficha>` +
+    `<h2>Sobre este encontro</h2>` +
+    `<p class="encontro-ref">${esc(lesson.title)} · ${esc(lesson.date)} · Prof. Afonso Brandão</p>` +
+    `<div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>${esc(lesson.objective)}</p></div>` +
+    `<div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>${esc(estrategia)}</p></div>` +
+    `<div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol>` +
+    agenda.map((a) => `<li>${esc(a.nav)} — ${esc(a.text)}</li>`).join('') +
+    `</ol></div></section>`;
+
   window.renderLessonSlides = function (root) {
     const slides = [
       `<article class="lesson-slide lesson-cover"><span class="lesson-kicker">Módulo 11 · Engenharia de Software · Aula ${esc(lessonId)}</span><h1>${esc(lesson.title)}</h1><p>${esc(lesson.subtitle)}</p><small>Computação 2 · Prof. Afonso Brandão · ${esc(lesson.date)}</small></article>`,
@@ -806,7 +822,9 @@
 
       `<article class="lesson-slide"><span class="lesson-kicker">Laboratório</span><h2>Entregável da aula</h2><div class="lesson-callout"><strong>${esc(lesson.deliverable)}</strong></div><div class="lesson-card lesson-wide"><h3>Critérios de aceite</h3><ol><li>O artefato declara o requisito funcional e ao menos um requisito não funcional mensurável.</li><li>A decisão estrutural está registrada em ADR, com alternativa descartada e consequência.</li><li>Existe ao menos um cenário de aceite que falha antes da implementação.</li><li>Há dono, forma de operação e caminho de reprocessamento.</li></ol></div></article>`,
 
-      `<article class="lesson-slide"><span class="lesson-kicker">Fechamento</span><h2>Leve para o projeto</h2><div class="lesson-grid">${lesson.references.map((x, i) => `<div class="lesson-card"><b>Ref. ${i + 1}</b><p>${esc(x)}</p></div>`).join('')}</div><div class="lesson-callout">A pergunta final: <strong>qual decisão fica mais segura depois deste artefato?</strong></div></article>`
+      `<article class="lesson-slide"><span class="lesson-kicker">Fechamento</span><h2>Leve para o projeto</h2><div class="lesson-grid">${lesson.references.map((x, i) => `<div class="lesson-card"><b>Ref. ${i + 1}</b><p>${esc(x)}</p></div>`).join('')}</div><div class="lesson-callout">A pergunta final: <strong>qual decisão fica mais segura depois deste artefato?</strong></div></article>`,
+
+      `<article class="lesson-slide encontro-slide"><span class="lesson-kicker">Ficha do encontro</span>${fichaEncontro()}</article>`
     ];
     root.innerHTML = slides.join('');
     return slides.length;
@@ -818,6 +836,7 @@
       : '';
 
     root.innerHTML = `<header class="material-head"><span>Módulo 11 · Engenharia de Software · Computação 2</span><h1>${esc(lesson.title)}</h1><p>${esc(lesson.subtitle)} · Prof. Afonso Brandão · ${esc(lesson.date)}</p></header><div class="material-body">`
+      + fichaEncontro()
       + `<section class="material-box"><h2>Objetivo da aula</h2><p>${esc(lesson.objective)}</p><h3>Ao final você deve conseguir</h3><ul>${lesson.outcomes.map((o) => `<li>${esc(o)}</li>`).join('')}</ul></section>`
       + `<section class="material-box"><h2>Roteiro</h2><ol>${agenda.map((a) => `<li><strong>${esc(a.nav)}</strong> — ${esc(a.text)}</li>`).join('')}</ol></section>`
       + lesson.sections.map((s, i) => `<section class="material-section"><h2>${i + 1}. ${esc(s.title)}</h2><p>${esc(s.text)}</p><h3>Checklist de aplicação</h3><ul>${checklistOf(s)}</ul><div class="material-note"><strong>Erro comum:</strong> ${esc(s.pitfall)}</div></section>`).join('')
@@ -832,6 +851,7 @@
       : '';
 
     root.innerHTML = `<header class="plan-head"><span>Módulo 11 · Plano de Ensino</span><h1>Aula ${esc(lessonId)} — ${esc(lesson.title)}</h1><p>Professor: Afonso Brandão · ${esc(lesson.date)}</p></header><main class="plan-body">`
+      + fichaEncontro()
       + `<section><h2>Ementa</h2><p>${esc(lesson.subtitle)} ${esc(lesson.objective)}</p></section>`
       + `<section><h2>Objetivos de aprendizagem</h2><ul>${lesson.outcomes.map((o) => `<li>${esc(o)}</li>`).join('')}</ul></section>`
       + `<section><h2>Metodologia e cronograma</h2><ol>${agenda.map((a) => `<li><strong>${esc(a.nav)}:</strong> ${esc(a.text)}</li>`).join('')}</ol></section>`
