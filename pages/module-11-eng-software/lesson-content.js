@@ -118,171 +118,7 @@
     },
 
     5: {
-      title: 'Modelagem de Data Warehouse IV', date: '20/08/2026',
-      subtitle: 'Modelagem dimensional avançada para fatos, histórico e decisões analíticas.',
-      objective: 'Projetar um modelo dimensional com grão explícito, dimensões conformadas, fatos aditivos e estratégia de histórico adequada ao negócio.',
-      outcomes: [
-        'Declarar o grão de uma tabela de fato e defender a escolha diante do processo de negócio.',
-        'Classificar medidas como aditivas, semi-aditivas ou não aditivas e prever onde a soma quebra.',
-        'Escolher a estratégia de histórico (SCD 0, 1, 2 ou 3) a partir da pergunta analítica.',
-        'Especificar testes que detectam dupla contagem e violação de integridade referencial.'
-      ],
-      sections: [
-        {
-          nav: 'Do processo ao grão', title: 'Grão antes da tabela',
-          text: 'Declare o evento representado por uma linha. Sem grão, métricas misturam níveis, duplicam valores e tornam joins perigosos.',
-          checklist: [
-            'Escreva o grão em uma frase no singular: "uma linha representa…".',
-            'Confirme que toda medida da tabela existe nesse nível.',
-            'Verifique que a chave composta do grão é única na tabela.'
-          ],
-          pitfall: 'Definir o grão depois de escolher as colunas. O grão vem do processo de negócio, não do que a origem oferece.'
-        },
-        {
-          nav: 'Fatos e medidas', title: 'Fatos',
-          text: 'Separe fatos transacionais, snapshots periódicos e snapshots acumulativos. Classifique medidas como aditivas, semi-aditivas ou não aditivas.',
-          checklist: [
-            'Classifique cada medida e registre a classificação junto da coluna.',
-            'Marque as semi-aditivas com a dimensão em que a soma é inválida.',
-            'Guarde numerador e denominador em vez de razões já calculadas.'
-          ],
-          pitfall: 'Somar saldo ao longo do tempo. Saldo é semi-aditivo: soma entre contas, nunca entre datas.'
-        },
-        {
-          nav: 'Dimensões', title: 'Dimensões',
-          text: 'Use dimensões conformadas, chaves substitutas, dimensões degeneradas e dimensões de papel para permitir análise consistente entre processos.',
-          checklist: [
-            'Use chave substituta e preserve a chave natural como atributo.',
-            'Conforme as dimensões compartilhadas antes de criar a segunda fato.',
-            'Registre papel e alias quando a mesma dimensão entra duas vezes.'
-          ],
-          pitfall: 'Cada área criar sua própria dimensão de produto. Sem conformação, dois relatórios corretos discordam.'
-        },
-        {
-          nav: 'Histórico e SCD', title: 'SCD',
-          text: 'Compare SCD 0, 1, 2 e 3. Escolha pelo significado histórico: sobrescrever quando o passado não importa; versionar quando a análise precisa reconstruir o contexto.',
-          checklist: [
-            'Pergunte se a análise precisa reconstruir o passado; se não, SCD 1 basta.',
-            'Em SCD 2, defina data de início, data de fim e indicador de vigência.',
-            'Garanta que todo join com dimensão versionada filtra por vigência.'
-          ],
-          pitfall: 'Aplicar SCD 2 a tudo por precaução. Histórico sem pergunta associada é custo de armazenamento e risco de join errado.'
-        },
-        {
-          nav: 'Casos difíceis', title: 'Casos difíceis',
-          text: 'Trate fatos sem medida, fatos de cobertura, late-arriving dimensions, mudanças retroativas, pontes para cardinalidade muitos-para-muitos e calendário fiscal.',
-          checklist: [
-            'Para muitos-para-muitos, use tabela ponte com fator de alocação.',
-            'Trate late-arriving dimension com registro inferido, não com rejeição.',
-            'Separe calendário fiscal do civil quando os períodos divergirem.'
-          ],
-          pitfall: 'Resolver muitos-para-muitos com join direto. O resultado infla a medida silenciosamente.'
-        },
-        {
-          nav: 'Qualidade do modelo', title: 'Qualidade',
-          text: 'Teste unicidade da chave, integridade referencial, cobertura temporal, reconciliação com a origem e ausência de dupla contagem.',
-          checklist: [
-            'Teste unicidade da chave do grão a cada carga.',
-            'Reconcilie totais com a origem e declare a tolerância aceita.',
-            'Verifique cobertura temporal e ausência de vigências sobrepostas.'
-          ],
-          pitfall: 'Validar apenas contagem de linhas. Dupla contagem preserva a contagem e destrói a soma.'
-        }
-      ],
-      sdd: {
-        rf: 'RF-001 — Permitir o recálculo da margem de qualquer venda usando o preço vigente na data do evento.',
-        rnf: 'RNF-001 — Reconciliação com a origem dentro de ±0,1%; nenhuma chave do grão duplicada; nenhuma vigência sobreposta em dimensão versionada.',
-        adr: 'ADR-DW-01 — SCD 2 em dimensao_produto e SCD 1 em dimensao_cliente. Alternativa descartada: SCD 2 em ambas, que elevaria o volume sem pergunta de negócio associada. Consequência: todo join com produto passa a exigir filtro de vigência.',
-        gherkin: 'Dado um produto cujo preço mudou em 10/03, Quando consulto a margem de uma venda de 05/03, Então o cálculo usa o preço anterior e não o vigente hoje.'
-      },
-      deliverable: 'Modelo dimensional documentado: grão declarado, fatos, dimensões, SCD escolhido com justificativa, regras de carga e cinco testes de qualidade.',
-      references: ['Kimball & Ross — The Data Warehouse Toolkit', 'Ralph Kimball — Slowly Changing Dimensions', 'Inmon — Building the Data Warehouse', 'dbt — Testing and documentation concepts']
-    },
-
-    6: {
-      title: 'Otimização de Datawarehouses', date: '21/08/2026',
-      subtitle: 'Desempenho, custo e previsibilidade sem otimização por tentativa e erro.',
-      objective: 'Diagnosticar gargalos de consulta e escolher particionamento, clustering, materialização e modelagem com base em evidências.',
-      outcomes: [
-        'Diagnosticar a causa de uma consulta lenta a partir do plano de execução.',
-        'Escolher particionamento e clustering pelos predicados reais do workload.',
-        'Decidir entre view, tabela incremental e agregada considerando freshness e custo.',
-        'Comprovar ganho com benchmark controlado e evidência antes/depois.'
-      ],
-      sections: [
-        {
-          nav: 'Medir antes de otimizar', title: 'Sintoma e causa',
-          text: 'Tempo alto pode vir de leitura excessiva, join explosivo, skew, baixa seletividade, concorrência, fila ou rede. Comece pelo perfil da consulta.',
-          checklist: [
-            'Colete a consulta real do usuário, não uma versão simplificada.',
-            'Registre tempo, bytes lidos e custo antes de qualquer alteração.',
-            'Formule uma hipótese de causa antes de mexer no código.'
-          ],
-          pitfall: 'Otimizar pela intuição. Sem baseline registrado, não há como provar que melhorou.'
-        },
-        {
-          nav: 'Plano de execução', title: 'Plano de execução',
-          text: 'Leia bytes lidos, cardinalidade estimada versus real, etapas de shuffle, spills, scans completos e operadores que concentram tempo.',
-          checklist: [
-            'Compare cardinalidade estimada e real para detectar estatística defasada.',
-            'Procure shuffle, spill e full scan antes de olhar a sintaxe.',
-            'Identifique o operador que concentra tempo, não o que parece complexo.'
-          ],
-          pitfall: 'Reescrever SQL sem ler o plano. A maior parte do ganho vem de leitura evitada, não de sintaxe.'
-        },
-        {
-          nav: 'Particionamento', title: 'Particionamento',
-          text: 'Particione por colunas usadas em filtros temporais ou de domínio. Evite partições pequenas demais, alta cardinalidade e partições que ninguém filtra.',
-          checklist: [
-            'Particione pela coluna presente no filtro da maioria das consultas.',
-            'Dimensione a partição para arquivos entre 128 MB e 1 GB.',
-            'Meça o pruning: confirme quantas partições o plano descartou.'
-          ],
-          pitfall: 'Particionar por coluna de alta cardinalidade, como identificador de cliente. Gera milhares de partições minúsculas e piora tudo.'
-        },
-        {
-          nav: 'Clustering e índices', title: 'Clustering e índices',
-          text: 'Organize dados pelos predicados mais frequentes. Índices ajudam workloads seletivos; em engines colunares, compressão e pruning geralmente importam mais.',
-          checklist: [
-            'Ordene pelos predicados mais frequentes, do mais seletivo ao menos.',
-            'Em engine colunar, avalie compressão e pruning antes de índice.',
-            'Reavalie o clustering quando o padrão de consulta mudar.'
-          ],
-          pitfall: 'Trazer o hábito de índice do OLTP para o colunar. Ali o ganho vem de descartar blocos, não de apontar linhas.'
-        },
-        {
-          nav: 'Materialização', title: 'Materialização',
-          text: 'Escolha entre view, tabela incremental, snapshot e aggregate table. Defina freshness, custo de atualização e consumidor antes de materializar.',
-          checklist: [
-            'Declare o freshness aceitável antes de materializar.',
-            'Some o custo de atualização ao custo de consulta na comparação.',
-            'Nomeie o consumidor: materialização sem consumidor é custo puro.'
-          ],
-          pitfall: 'Criar a tabela agregada e manter a consulta original disponível. Duas fontes para a mesma métrica divergem em semanas.'
-        },
-        {
-          nav: 'Benchmark', title: 'Benchmark',
-          text: 'Compare baseline e candidato com o mesmo dataset, cache controlado, métricas de latência, bytes processados, custo e qualidade do resultado.',
-          checklist: [
-            'Use o mesmo dataset e controle o cache entre execuções.',
-            'Repita a medição e reporte mediana e p95, não o melhor caso.',
-            'Verifique que o resultado do candidato é idêntico ao do baseline.'
-          ],
-          pitfall: 'Medir com cache quente e comemorar o ganho. O usuário paga o caminho frio.'
-        }
-      ],
-      sdd: {
-        rf: 'RF-002 — Disponibilizar a consulta de receita por região e mês ao analista, sob demanda, sem agendamento prévio.',
-        rnf: 'RNF-002 — p95 ≤ 2 s e no máximo 20 GB varridos por execução, medidos com cache frio.',
-        adr: 'ADR-DW-02 — Particionar fato_vendas por data_venda e clusterizar por regiao_id. Alternativa descartada: índice secundário, sem efeito relevante em engine colunar. Consequência: consulta sem filtro de data varre a tabela inteira e precisa ser bloqueada na camada semântica.',
-        gherkin: 'Dado fato_vendas particionada por data_venda, Quando consulto um intervalo de sete dias, Então o plano lê no máximo sete partições e não executa varredura completa.'
-      },
-      deliverable: 'Relatório de otimização com baseline medido, hipótese de causa, alteração aplicada, evidência antes/depois e recomendação de operação.',
-      references: ['Use the Index, Luke!', 'Apache Spark SQL Performance Tuning', 'BigQuery — Optimize query computation', 'Snowflake — Micro-partitions and clustering']
-    },
-
-    7: {
-      title: 'Arquitetura de Dados', date: '24/08/2026',
+      title: 'Arquitetura de Dados', date: '20/08/2026',
       subtitle: 'Decisões estruturais para uma plataforma de dados confiável, evolutiva e governável.',
       objective: 'Desenhar uma arquitetura de dados conectando fontes, ingestão, armazenamento, processamento, consumo, segurança e operação.',
       outcomes: [
@@ -363,8 +199,172 @@
       references: ['TOGAF — Architecture Development Method', 'DAMA-DMBOK2', 'ISO/IEC 42010 — Architecture descriptions', 'AWS Well-Architected Framework']
     },
 
+    6: {
+      title: 'Modelagem de Warehouses IV', date: '21/08/2026',
+      subtitle: 'Modelagem dimensional avançada para fatos, histórico e decisões analíticas.',
+      objective: 'Projetar um modelo dimensional com grão explícito, dimensões conformadas, fatos aditivos e estratégia de histórico adequada ao negócio.',
+      outcomes: [
+        'Declarar o grão de uma tabela de fato e defender a escolha diante do processo de negócio.',
+        'Classificar medidas como aditivas, semi-aditivas ou não aditivas e prever onde a soma quebra.',
+        'Escolher a estratégia de histórico (SCD 0, 1, 2 ou 3) a partir da pergunta analítica.',
+        'Especificar testes que detectam dupla contagem e violação de integridade referencial.'
+      ],
+      sections: [
+        {
+          nav: 'Do processo ao grão', title: 'Grão antes da tabela',
+          text: 'Declare o evento representado por uma linha. Sem grão, métricas misturam níveis, duplicam valores e tornam joins perigosos.',
+          checklist: [
+            'Escreva o grão em uma frase no singular: "uma linha representa…".',
+            'Confirme que toda medida da tabela existe nesse nível.',
+            'Verifique que a chave composta do grão é única na tabela.'
+          ],
+          pitfall: 'Definir o grão depois de escolher as colunas. O grão vem do processo de negócio, não do que a origem oferece.'
+        },
+        {
+          nav: 'Fatos e medidas', title: 'Fatos',
+          text: 'Separe fatos transacionais, snapshots periódicos e snapshots acumulativos. Classifique medidas como aditivas, semi-aditivas ou não aditivas.',
+          checklist: [
+            'Classifique cada medida e registre a classificação junto da coluna.',
+            'Marque as semi-aditivas com a dimensão em que a soma é inválida.',
+            'Guarde numerador e denominador em vez de razões já calculadas.'
+          ],
+          pitfall: 'Somar saldo ao longo do tempo. Saldo é semi-aditivo: soma entre contas, nunca entre datas.'
+        },
+        {
+          nav: 'Dimensões', title: 'Dimensões',
+          text: 'Use dimensões conformadas, chaves substitutas, dimensões degeneradas e dimensões de papel para permitir análise consistente entre processos.',
+          checklist: [
+            'Use chave substituta e preserve a chave natural como atributo.',
+            'Conforme as dimensões compartilhadas antes de criar a segunda fato.',
+            'Registre papel e alias quando a mesma dimensão entra duas vezes.'
+          ],
+          pitfall: 'Cada área criar sua própria dimensão de produto. Sem conformação, dois relatórios corretos discordam.'
+        },
+        {
+          nav: 'Histórico e SCD', title: 'SCD',
+          text: 'Compare SCD 0, 1, 2 e 3. Escolha pelo significado histórico: sobrescrever quando o passado não importa; versionar quando a análise precisa reconstruir o contexto.',
+          checklist: [
+            'Pergunte se a análise precisa reconstruir o passado; se não, SCD 1 basta.',
+            'Em SCD 2, defina data de início, data de fim e indicador de vigência.',
+            'Garanta que todo join com dimensão versionada filtra por vigência.'
+          ],
+          pitfall: 'Aplicar SCD 2 a tudo por precaução. Histórico sem pergunta associada é custo de armazenamento e risco de join errado.'
+        },
+        {
+          nav: 'Casos difíceis', title: 'Casos difíceis',
+          text: 'Trate fatos sem medida, fatos de cobertura, late-arriving dimensions, mudanças retroativas, pontes para cardinalidade muitos-para-muitos e calendário fiscal.',
+          checklist: [
+            'Para muitos-para-muitos, use tabela ponte com fator de alocação.',
+            'Trate late-arriving dimension com registro inferido, não com rejeição.',
+            'Separe calendário fiscal do civil quando os períodos divergirem.'
+          ],
+          pitfall: 'Resolver muitos-para-muitos com join direto. O resultado infla a medida silenciosamente.'
+        },
+        {
+          nav: 'Qualidade do modelo', title: 'Qualidade',
+          text: 'Teste unicidade da chave, integridade referencial, cobertura temporal, reconciliação com a origem e ausência de dupla contagem.',
+          checklist: [
+            'Teste unicidade da chave do grão a cada carga.',
+            'Reconcilie totais com a origem e declare a tolerância aceita.',
+            'Verifique cobertura temporal e ausência de vigências sobrepostas.'
+          ],
+          pitfall: 'Validar apenas contagem de linhas. Dupla contagem preserva a contagem e destrói a soma.'
+        }
+      ],
+      sdd: {
+        rf: 'RF-001 — Permitir o recálculo da margem de qualquer venda usando o preço vigente na data do evento.',
+        rnf: 'RNF-001 — Reconciliação com a origem dentro de ±0,1%; nenhuma chave do grão duplicada; nenhuma vigência sobreposta em dimensão versionada.',
+        adr: 'ADR-DW-01 — SCD 2 em dimensao_produto e SCD 1 em dimensao_cliente. Alternativa descartada: SCD 2 em ambas, que elevaria o volume sem pergunta de negócio associada. Consequência: todo join com produto passa a exigir filtro de vigência.',
+        gherkin: 'Dado um produto cujo preço mudou em 10/03, Quando consulto a margem de uma venda de 05/03, Então o cálculo usa o preço anterior e não o vigente hoje.'
+      },
+      deliverable: 'Modelo dimensional documentado: grão declarado, fatos, dimensões, SCD escolhido com justificativa, regras de carga e cinco testes de qualidade.',
+      references: ['Kimball & Ross — The Data Warehouse Toolkit', 'Ralph Kimball — Slowly Changing Dimensions', 'Inmon — Building the Data Warehouse', 'dbt — Testing and documentation concepts']
+    },
+
+    7: {
+      title: 'Otimização de Data Warehouses', date: '24/08/2026',
+      subtitle: 'Desempenho, custo e previsibilidade sem otimização por tentativa e erro.',
+      objective: 'Diagnosticar gargalos de consulta e escolher particionamento, clustering, materialização e modelagem com base em evidências.',
+      outcomes: [
+        'Diagnosticar a causa de uma consulta lenta a partir do plano de execução.',
+        'Escolher particionamento e clustering pelos predicados reais do workload.',
+        'Decidir entre view, tabela incremental e agregada considerando freshness e custo.',
+        'Comprovar ganho com benchmark controlado e evidência antes/depois.'
+      ],
+      sections: [
+        {
+          nav: 'Medir antes de otimizar', title: 'Sintoma e causa',
+          text: 'Tempo alto pode vir de leitura excessiva, join explosivo, skew, baixa seletividade, concorrência, fila ou rede. Comece pelo perfil da consulta.',
+          checklist: [
+            'Colete a consulta real do usuário, não uma versão simplificada.',
+            'Registre tempo, bytes lidos e custo antes de qualquer alteração.',
+            'Formule uma hipótese de causa antes de mexer no código.'
+          ],
+          pitfall: 'Otimizar pela intuição. Sem baseline registrado, não há como provar que melhorou.'
+        },
+        {
+          nav: 'Plano de execução', title: 'Plano de execução',
+          text: 'Leia bytes lidos, cardinalidade estimada versus real, etapas de shuffle, spills, scans completos e operadores que concentram tempo.',
+          checklist: [
+            'Compare cardinalidade estimada e real para detectar estatística defasada.',
+            'Procure shuffle, spill e full scan antes de olhar a sintaxe.',
+            'Identifique o operador que concentra tempo, não o que parece complexo.'
+          ],
+          pitfall: 'Reescrever SQL sem ler o plano. A maior parte do ganho vem de leitura evitada, não de sintaxe.'
+        },
+        {
+          nav: 'Particionamento', title: 'Particionamento',
+          text: 'Particione por colunas usadas em filtros temporais ou de domínio. Evite partições pequenas demais, alta cardinalidade e partições que ninguém filtra.',
+          checklist: [
+            'Particione pela coluna presente no filtro da maioria das consultas.',
+            'Dimensione a partição para arquivos entre 128 MB e 1 GB.',
+            'Meça o pruning: confirme quantas partições o plano descartou.'
+          ],
+          pitfall: 'Particionar por coluna de alta cardinalidade, como identificador de cliente. Gera milhares de partições minúsculas e piora tudo.'
+        },
+        {
+          nav: 'Clustering e índices', title: 'Clustering e índices',
+          text: 'Organize dados pelos predicados mais frequentes. Índices ajudam workloads seletivos; em engines colunares, compressão e pruning geralmente importam mais.',
+          checklist: [
+            'Ordene pelos predicados mais frequentes, do mais seletivo ao menos.',
+            'Em engine colunar, avalie compressão e pruning antes de índice.',
+            'Reavalie o clustering quando o padrão de consulta mudar.'
+          ],
+          pitfall: 'Trazer o hábito de índice do OLTP para o colunar. Ali o ganho vem de descartar blocos, não de apontar linhas.'
+        },
+        {
+          nav: 'Materialização', title: 'Materialização',
+          text: 'Escolha entre view, tabela incremental, snapshot e aggregate table. Defina freshness, custo de atualização e consumidor antes de materializar.',
+          checklist: [
+            'Declare o freshness aceitável antes de materializar.',
+            'Some o custo de atualização ao custo de consulta na comparação.',
+            'Nomeie o consumidor: materialização sem consumidor é custo puro.'
+          ],
+          pitfall: 'Criar a tabela agregada e manter a consulta original disponível. Duas fontes para a mesma métrica divergem em semanas.'
+        },
+        {
+          nav: 'Benchmark', title: 'Benchmark',
+          text: 'Compare baseline e candidato com o mesmo dataset, cache controlado, métricas de latência, bytes processados, custo e qualidade do resultado.',
+          checklist: [
+            'Use o mesmo dataset e controle o cache entre execuções.',
+            'Repita a medição e reporte mediana e p95, não o melhor caso.',
+            'Verifique que o resultado do candidato é idêntico ao do baseline.'
+          ],
+          pitfall: 'Medir com cache quente e comemorar o ganho. O usuário paga o caminho frio.'
+        }
+      ],
+      sdd: {
+        rf: 'RF-002 — Disponibilizar a consulta de receita por região e mês ao analista, sob demanda, sem agendamento prévio.',
+        rnf: 'RNF-002 — p95 ≤ 2 s e no máximo 20 GB varridos por execução, medidos com cache frio.',
+        adr: 'ADR-DW-02 — Particionar fato_vendas por data_venda e clusterizar por regiao_id. Alternativa descartada: índice secundário, sem efeito relevante em engine colunar. Consequência: consulta sem filtro de data varre a tabela inteira e precisa ser bloqueada na camada semântica.',
+        gherkin: 'Dado fato_vendas particionada por data_venda, Quando consulto um intervalo de sete dias, Então o plano lê no máximo sete partições e não executa varredura completa.'
+      },
+      deliverable: 'Relatório de otimização com baseline medido, hipótese de causa, alteração aplicada, evidência antes/depois e recomendação de operação.',
+      references: ['Use the Index, Luke!', 'Apache Spark SQL Performance Tuning', 'BigQuery — Optimize query computation', 'Snowflake — Micro-partitions and clustering']
+    },
+
     10: {
-      title: 'Armazenamento em Grande Escala', date: '02/09/2026',
+      title: 'Armazenamento em Grande Escala', date: '01/09/2026',
       subtitle: 'Como guardar petabytes com desempenho, governança e custo previsível.',
       objective: 'Escolher formatos, organização física, camadas de armazenamento e políticas de ciclo de vida para dados em escala.',
       outcomes: [
@@ -446,7 +446,7 @@
     },
 
     12: {
-      title: 'Coleta e Extração', date: '08/09/2026',
+      title: 'Coleta e Extração', date: '09/09/2026',
       subtitle: 'Da origem ao dado bruto com completude, rastreabilidade e reprocessamento seguro.',
       objective: 'Projetar uma extração resiliente para banco, API, arquivo e evento, preservando watermark, schema, auditoria e idempotência.',
       outcomes: [
@@ -610,7 +610,7 @@
     },
 
     15: {
-      title: 'Métricas e Telemetria em ETL', date: '21/09/2026',
+      title: 'Métricas e Telemetria em ETLs', date: '21/09/2026',
       subtitle: 'Operar pipelines como produto: medir, explicar e recuperar.',
       objective: 'Definir observabilidade para ETL com métricas de serviço, qualidade de dados, logs estruturados, lineage e alertas acionáveis.',
       outcomes: [
