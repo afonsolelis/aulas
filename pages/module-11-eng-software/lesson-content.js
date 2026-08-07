@@ -117,6 +117,214 @@
       references: ['ISO/IEC 25010:2023 — Product quality model', 'OpenAPI Specification 3.1', 'Cucumber — Gherkin Reference', 'MADR — Markdown Any Decision Records']
     },
 
+    2: {
+      title: 'Modelagem de Data Warehouse I', date: '10/08/2026',
+      professor: 'Hermano Peixoto', discipline: 'Computação 1',
+      subtitle: 'Do banco operacional ao banco analítico: fundamentos de Data Warehouse e o vocabulário da modelagem dimensional.',
+      objective: 'Diferenciar sistemas operacionais e analíticos, aplicar os fundamentos da modelagem dimensional e iniciar, no projeto do próprio squad, a identificação de processos de negócio, fatos e dimensões candidatos.',
+      outcomes: [
+        'Explicar a função de um Data Warehouse no apoio à tomada de decisão, em contraste com um banco operacional.',
+        'Diferenciar sistemas OLTP e OLAP quanto a objetivo, estrutura e desempenho.',
+        'Descrever a modelagem dimensional como abordagem central de um Data Warehouse, incluindo star e snowflake schema.',
+        'Identificar os papéis da tabela fato e das tabelas dimensão em um processo de negócio.',
+        'Avaliar granularidade e integridade referencial como critérios de qualidade de um modelo dimensional.',
+        'Agrupar perguntas de negócio reais por processo para esboçar cubos analíticos candidatos.'
+      ],
+      timebox: [
+        { label: 'Teoria — fundamentos de Data Warehouse e modelagem dimensional', minutes: 40 },
+        { label: 'Atividade guiada — nota fiscal do supermercado (exemplo resolvido)', minutes: 35 },
+        { label: 'Atividade do projeto — Data Model Canvas do squad', minutes: 45 }
+      ],
+      preClass: [
+        {
+          title: 'Data Warehouse: o que é? Conceitos e fundamentos de DW',
+          topics: ['Definição e objetivo do DW', 'Vantagens, desvantagens e características', 'Segurança', 'Visões de Kimball e Inmon', 'Data Warehouse × Data Mart', 'DW versus BI', 'OLAP × Data Warehouse', 'Etapas de criação de um DW', 'Data Lake × Data Warehouse', 'Data Warehouse Toolkit (Kimball)'],
+          url: 'https://cetax.com.br/data-warehouse/'
+        },
+        {
+          title: 'O que é modelagem de dados dimensionais?',
+          topics: ['Origem e conceito da modelagem dimensional', 'Estrutura do modelo dimensional', 'Exemplo prático', 'Processo de modelagem em etapas', 'Modelo multidimensional (cubos de dados)', 'Benefícios e limitações da abordagem'],
+          url: 'https://www.astera.com/pt/knowledge-center/dimensional-modeling-guide/'
+        },
+        {
+          title: 'Características de um Data Warehouse — OLTP vs OLAP',
+          topics: ['Diferença entre OLTP e OLAP', 'Papel de um Data Warehouse', 'Características fundamentais de um DW', 'Modelo dimensional como base do OLAP', 'Fluxo ETL para preencher o DW'],
+          url: 'https://www.youtube.com/watch?v=d85QJThmqVo&t=8s'
+        },
+        {
+          title: 'Modelagem do Data Warehouse — Introdução',
+          topics: ['Importância do DW na Ciência de Dados', 'Esquemas estrela e floco-de-neve', 'Tabelas de fatos e dimensões', 'Granularidade dos dados', 'Processo de ETL', 'Benefícios da modelagem dimensional'],
+          url: 'https://www.youtube.com/watch?v=8I2nYKb73Yo&t=1s'
+        }
+      ],
+      sections: [
+        {
+          nav: 'Por que um Data Warehouse', title: 'DW e a tomada de decisão',
+          text: 'Um Data Warehouse existe para sustentar decisão, não para operar transações. Ele consolida dados de múltiplas fontes operacionais em uma estrutura otimizada para consulta analítica, histórico e comparação — o oposto do desenho de um banco transacional.',
+          checklist: [
+            'Identifique, no seu projeto, uma decisão que hoje depende de cruzamento manual entre planilhas ou ferramentas.',
+            'Separe o dado que serve para operar do dado que serve para decidir.',
+            'Aponte quais fontes operacionais do seu projeto alimentariam o Data Warehouse.'
+          ],
+          pitfall: 'Tratar o DW como "mais um banco de dados". Sem propósito analítico declarado, ele só reproduz os mesmos problemas do banco operacional em outra tecnologia.'
+        },
+        {
+          nav: 'OLTP vs OLAP', title: 'Dois bancos, dois propósitos',
+          text: 'Sistemas OLTP priorizam transações curtas, normalização e concorrência de escrita. Sistemas OLAP priorizam leitura analítica, desnormalização controlada e consultas que agregam grandes volumes históricos.',
+          checklist: [
+            'Classifique cada fonte de dado do seu projeto como predominantemente OLTP ou OLAP.',
+            'Explique por que uma consulta analítica pesada direto no banco operacional arrisca a operação.',
+            'Justifique por que redundância controlada é aceitável em OLAP e indesejada em OLTP.'
+          ],
+          pitfall: 'Rodar relatórios analíticos pesados direto no banco operacional. A concorrência entre transação e consulta analítica degrada os dois usos ao mesmo tempo.'
+        },
+        {
+          nav: 'Modelagem dimensional', title: 'A abordagem central do DW',
+          text: 'A modelagem dimensional organiza o Data Warehouse em torno de processos de negócio, medidos por fatos e descritos por dimensões. Star schema e snowflake schema são as duas formas físicas mais comuns de implementar essa estrutura.',
+          checklist: [
+            'Escolha um processo de negócio do seu projeto — não uma tabela já existente — como ponto de partida.',
+            'Diferencie star schema e snowflake schema pelo grau de normalização das dimensões.',
+            'Explique por que a modelagem dimensional favorece a consulta em vez da economia de espaço.'
+          ],
+          pitfall: 'Copiar o modelo entidade-relacionamento operacional direto para o DW. O modelo operacional otimiza escrita; o modelo dimensional otimiza leitura analítica — são estruturas diferentes por design, não por acidente.'
+        },
+        {
+          nav: 'Tabelas fato e dimensão', title: 'Fatos e dimensões',
+          text: 'A tabela fato armazena os eventos mensuráveis — as métricas — no grão escolhido. As tabelas dimensão armazenam o contexto descritivo que permite filtrar, agrupar e explicar essas métricas.',
+          checklist: [
+            'Para cada fato candidato, escreva a métrica numérica que ele mede.',
+            'Para cada dimensão candidata, liste os atributos descritivos que ela traria.',
+            'Verifique que toda dimensão candidata responderia a uma pergunta de negócio real do seu projeto.'
+          ],
+          pitfall: 'Colocar um atributo puramente descritivo dentro da tabela fato. Isso infla a fato e impede reaproveitar a dimensão em outro processo de negócio.'
+        },
+        {
+          nav: 'Granularidade e integridade', title: 'Grão e integridade',
+          text: 'O grão declara o que uma linha da fato representa. Sem essa frase explícita, métricas se misturam em níveis diferentes e joins produzem contagem duplicada. Integridade referencial garante que toda chave da fato exista na dimensão correspondente.',
+          checklist: [
+            'Escreva o grão do seu fato candidato em uma frase no singular: "uma linha representa…".',
+            'Confirme que toda métrica do fato existe de fato nesse grão.',
+            'Verifique que nenhuma chave estrangeira da fato pode apontar para um valor ausente na dimensão.'
+          ],
+          pitfall: 'Definir o grão depois de escolher as colunas disponíveis. O grão nasce do processo de negócio, não da tabela de origem que já existe.'
+        },
+        {
+          nav: 'Das perguntas aos cubos', title: 'Do negócio ao cubo analítico',
+          text: 'Cada cubo analítico nasce de um grupo de perguntas de negócio que compartilham o mesmo processo e o mesmo grão candidato. Antes de desenhar qualquer tabela, agrupar essas perguntas por processo já indica quantos cubos o projeto provavelmente precisa.',
+          checklist: [
+            'Agrupe as perguntas de negócio do seu projeto por processo, não pela área que perguntou.',
+            'Para cada grupo, identifique se as perguntas pedem contagem, duração, taxa ou soma.',
+            'Nomeie o cubo candidato pelo processo que ele mede, não pela tabela de origem disponível.'
+          ],
+          pitfall: 'Criar um cubo por pergunta isolada. Perguntas diferentes que compartilham o mesmo grão devem virar um único cubo, não vários fatos redundantes.'
+        }
+      ],
+      sdd: {
+        rf: 'RF-101 — Permitir consultar a taxa de adesão de uma pesquisa por empresa e por período, sem depender de cruzamento manual em planilha.',
+        rnf: 'RNF-101 — O grão do cubo de participação é único por combinação de pesquisa, empresa e respondente; nenhuma chave da fato referencia uma dimensão ausente.',
+        adr: 'ADR-DW-00 — Modelar por processo de negócio (o ciclo de vida da pesquisa) em vez de espelhar as tabelas de origem. Alternativa descartada: manter o esquema idêntico ao das planilhas e sistemas atuais, o que reproduziria a fragmentação existente em outra tecnologia. Consequência: cada fonte precisa ser mapeada para o fato e as dimensões do cubo antes de qualquer carga.',
+        gherkin: 'Dado um cubo de participação em pesquisas modelado com grão por respondente, Quando uma nova pesquisa é encerrada, Então a taxa de adesão por empresa pode ser calculada sem alterar a estrutura do modelo.'
+      },
+      warmup: {
+        title: 'Atividade guiada — nota fiscal do supermercado',
+        duration: '35 min · antes da atividade do projeto',
+        goal: 'Aplicar o método a um caso conhecido e totalmente resolvido, para chegar na atividade do projeto já com o modelo dimensional na mão.',
+        intro: 'Esta parte usa uma nota fiscal de supermercado sintetizada — fictícia, mas com valores e itens realistas — como exemplo de trabalho. Diferente da atividade do projeto, aqui o professor resolve o modelo junto com a turma: o objetivo é praticar o método antes de aplicá-lo a um problema aberto.',
+        receipt: {
+          store: { name: 'Mercado Vale Verde Ltda', cnpj: '12.345.678/0001-90', address: 'Rua das Palmeiras, 450 — Centro — Vale Verde/SP', doc: 'Documento Auxiliar da Nota Fiscal de Consumidor Eletrônica (NFC-e)' },
+          meta: '05/08/2026 18:42:10 · Loja 02 · PDV 05 · Doc 004821 · Operador: Silva',
+          items: [
+            { desc: 'Água mineral 1,5L c/gás', qty: '2 UN', unit: '3,50', total: '7,00' },
+            { desc: 'Refrigerante cola 2L', qty: '1 UN', unit: '8,90', total: '8,90' },
+            { desc: 'Iogurte natural morango 170g', qty: '4 UN', unit: '2,80', total: '11,20' },
+            { desc: 'Leite UHT integral 1L', qty: '6 UN', unit: '4,60', total: '27,60' },
+            { desc: 'Desconto campanha (leite) −15%', qty: '—', unit: '—', total: '−4,14' },
+            { desc: 'Café torrado e moído 500g', qty: '1 UN', unit: '18,90', total: '18,90' },
+            { desc: 'Arroz branco tipo 1 5kg', qty: '1 UN', unit: '24,90', total: '24,90' },
+            { desc: 'Feijão carioca 1kg', qty: '2 UN', unit: '7,50', total: '15,00' },
+            { desc: 'Farinha de trigo 1kg', qty: '1 UN', unit: '5,20', total: '5,20' },
+            { desc: 'Peito de frango', qty: '1,850 kg', unit: '14,90', total: '27,57' },
+            { desc: 'Tomate', qty: '0,760 kg', unit: '6,80', total: '5,17' },
+            { desc: 'Banana prata', qty: '1,230 kg', unit: '5,50', total: '6,77' },
+            { desc: 'Pão francês', qty: '0,420 kg', unit: '16,80', total: '7,06' },
+            { desc: 'Detergente líquido 500ml', qty: '3 UN', unit: '2,30', total: '6,90' },
+            { desc: 'Papel higiênico 12 rolos', qty: '1 UN', unit: '22,90', total: '22,90' }
+          ],
+          totalItems: 14,
+          totalValue: '190,93',
+          payment: 'Cartão de débito · Valor pago R$ 190,93',
+          footer: ['Consumidor — CPF 123.456.789-00 (exemplo fictício)', 'NFC-e nº 000456 · Série 001 · 05/08/2026 18:42:10', 'Protocolo de autorização: 135260000012345 (fictício)']
+        },
+        note: 'Loja, endereço, CNPJ, CPF e chave de nota são fictícios — sintetizados para este exercício, e não a transcrição de um documento real.',
+        questions: [
+          'Qual o produto (ou categoria) mais vendido, por loja e por período?',
+          'Qual o ticket médio por cliente e como ele varia por forma de pagamento?',
+          'Qual o impacto de uma campanha promocional no volume vendido do produto descontado?',
+          'Qual a participação de cada departamento (bebidas, laticínios, hortifruti, carnes, padaria, limpeza) no faturamento?',
+          'Como o mix de compra varia por dia da semana e por horário?'
+        ],
+        model: {
+          grao: 'Uma linha representa um item vendido dentro de um cupom fiscal — um produto, em uma data e hora, em uma loja, por um operador de caixa, dentro de uma venda.',
+          fato: 'Fato_Venda_Item',
+          metricas: ['Quantidade vendida (aditiva)', 'Valor de desconto (aditiva)', 'Valor total do item (aditiva)', 'Valor unitário (não aditiva — nunca some valores unitários entre linhas)'],
+          dimensoes: [
+            { nome: 'Produto', hierarquia: 'Produto → Subcategoria → Categoria → Departamento' },
+            { nome: 'Tempo', hierarquia: 'Data → Mês → Trimestre → Ano (mais o atributo Hora do dia)' },
+            { nome: 'Loja', hierarquia: 'Loja → Cidade → Região' },
+            { nome: 'Cliente', hierarquia: 'CPF quando informado; "não identificado" quando ausente na nota' },
+            { nome: 'Operador de caixa', hierarquia: 'sem hierarquia adicional' },
+            { nome: 'Forma de pagamento', hierarquia: 'sem hierarquia adicional' },
+            { nome: 'Campanha promocional', hierarquia: 'dimensão degenerada — indicador de desconto aplicado ao item' }
+          ],
+          esquema: 'Estrela (star schema): nenhuma dimensão acima exige normalização adicional para esta primeira modelagem.'
+        },
+        transition: 'Guarde este modelo como referência — grão, fato, métricas e dimensões seguem o mesmo raciocínio que vocês vão aplicar agora ao projeto, mas o cubo do projeto ninguém resolve por vocês.'
+      },
+      activity: {
+        title: 'Atividade em sala — Iniciando a modelagem do DW do projeto',
+        duration: '45 min · última parte da aula',
+        goal: 'Rascunhar, no Data Model Canvas do projeto, ao menos um cubo analítico candidato: grão, fatos/métricas candidatos e dimensões candidatas.',
+        intro: 'Com o método praticado na nota fiscal, o trabalho agora é sobre o projeto do seu squad. Tenha em mãos a TAPI do projeto e, se possível, o dmc.json já iniciado. O professor circula para orientar — peça direcionamento sempre que travar, mas a modelagem é do grupo.',
+        steps: [
+          { title: 'Reúna as perguntas', text: 'Levante as perguntas de negócio da TAPI do seu projeto (seção de perguntas de negócio ou equivalente). Não invente perguntas novas agora — parta do que a área parceira já perguntou.' },
+          { title: 'Agrupe por processo', text: 'Agrupe as perguntas por processo de negócio, não por quem perguntou. Perguntas que dependem do mesmo evento de origem tendem a virar o mesmo cubo.' },
+          { title: 'Declare o grão candidato', text: 'Para cada grupo, escreva o grão candidato em uma frase no singular. Teste o grão perguntando se toda pergunta do grupo pode ser respondida agregando linhas nesse nível.' },
+          { title: 'Nomeie o cubo', text: 'Nomeie o cubo pelo processo de negócio que ele mede — não pela tabela ou planilha de origem disponível hoje.' },
+          { title: 'Liste fatos e métricas candidatos', text: 'No grão declarado, liste o que se conta, soma, mede ou calcula: contagens, durações, taxas e valores.' },
+          { title: 'Liste dimensões candidatas', text: 'Liste os eixos pelos quais alguém vai querer filtrar ou agrupar essa métrica: quem, o quê, quando, onde, como.' },
+          { title: 'Registre no canvas', text: 'Abra o Data Model Canvas do módulo e registre o cubo — repita o processo para quantos cubos candidatos surgirem.' }
+        ],
+        checks: [
+          'Essa métrica existe de fato nesse grão, ou pertence a um grão mais fino ou mais grosso?',
+          'Duas perguntas do grupo pedem métricas em unidades diferentes (contagem vs. duração)? Isso é normal dentro do mesmo cubo, desde que compartilhem o grão.',
+          'Essa dimensão poderia ser reaproveitada por outro cubo do mesmo projeto — ela é candidata a dimensão conformada?'
+        ],
+        avoid: [
+          'Não comece pela planilha ou tabela disponível; comece pela pergunta de negócio.',
+          'Não crie um cubo por pergunta isolada — agrupe antes de nomear.',
+          'Não tente resolver granularidade fina, SCD ou performance nesta aula: o foco de hoje é grão, fatos e dimensões candidatos. Isso continua nas próximas aulas de modelagem de DW.'
+        ],
+        worked: {
+          text: 'Este raciocínio usa perguntas reais de um projeto do módulo — a Central de Pesquisas de um sindicato setorial — só para ilustrar o método. Ele não resolve o cubo do seu projeto.',
+          questions: [
+            '"Quantas pesquisas foram realizadas por período?"',
+            '"Qual a taxa de adesão por pesquisa e por empresa?"',
+            '"Qual o tempo médio de tabulação das respostas?"'
+          ],
+          note: 'As duas primeiras perguntas compartilham o mesmo processo — a participação de uma empresa em uma pesquisa — o que sugere que pertencem ao mesmo cubo. A terceira mede outro evento, a etapa de tabulação, o que sugere um grão e possivelmente um cubo diferentes. Confirmar isso — e ir além dele — é o trabalho do seu grupo com o próprio projeto.'
+        },
+        tool: { label: 'Abrir o Data Model Canvas', href: '../data-model-canvas.html' },
+        acceptance: [
+          'O canvas tem ao menos um cubo com nome e grão declarados em uma frase no singular.',
+          'O cubo lista ao menos um fato/métrica candidato coerente com o grão.',
+          'O cubo lista ao menos uma dimensão candidata coerente com o grão.',
+          'O grupo consegue justificar, em voz alta, por que aquelas perguntas de negócio pertencem ao mesmo cubo.'
+        ]
+      },
+      deliverable: 'Um rascunho do Data Model Canvas do projeto com ao menos um cubo analítico candidato: grão declarado, fatos/métricas candidatos e dimensões candidatas. Não é necessário completar SCD, otimização ou governança do cubo nesta aula.',
+      references: ['Kimball & Ross — The Data Warehouse Toolkit', 'Inmon — Building the Data Warehouse', 'Cetax — Data Warehouse: conceitos e fundamentos', 'Astera — Guia de modelagem de dados dimensionais']
+    },
+
     5: {
       title: 'Arquitetura de Dados', date: '20/08/2026',
       subtitle: 'Decisões estruturais para uma plataforma de dados confiável, evolutiva e governável.',
@@ -775,13 +983,38 @@
   };
 
   const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const DEFAULT_PROF = 'Afonso Brandão';
+  const DEFAULT_DISC = 'Computação 2';
   const lessonId = document.body.dataset.lesson;
   const lesson = lessons[Number(lessonId)];
   if (!lesson) return;
 
   // A agenda é derivada de sections — rótulo e texto vêm sempre do mesmo objeto.
-  const agenda = lesson.sections.map((s) => ({ nav: s.nav, text: s.text }));
+  // Quando a aula tem atividade guiada e/ou atividade prática, elas entram ao final da agenda, nessa ordem.
+  const agenda = lesson.sections.map((s) => ({ nav: s.nav, text: s.text }))
+    .concat(lesson.warmup ? [{ nav: lesson.warmup.title, text: lesson.warmup.goal }] : [])
+    .concat(lesson.activity ? [{ nav: lesson.activity.title, text: lesson.activity.goal }] : []);
   const checklistOf = (s) => s.checklist.map((c) => `<li>${esc(c)}</li>`).join('');
+
+  // Renderiza uma nota fiscal sintetizada (dados fictícios) como tabela, reaproveitado por slides e material.
+  const receiptTableHtml = (r) => `<div class="receipt-wrap"><table class="receipt-table">`
+    + `<caption>${esc(r.store.name)} · CNPJ ${esc(r.store.cnpj)}<br>${esc(r.store.address)}<br>${esc(r.store.doc)}<br>${esc(r.meta)}</caption>`
+    + `<thead><tr><th>Descrição</th><th>Qtd.</th><th>Vl. unit.</th><th>Vl. total</th></tr></thead>`
+    + `<tbody>${r.items.map((it) => `<tr><td>${esc(it.desc)}</td><td>${esc(it.qty)}</td><td>${esc(it.unit)}</td><td>${esc(it.total)}</td></tr>`).join('')}</tbody>`
+    + `<tfoot><tr><td colspan="3">Qtde. total de itens</td><td>${esc(r.totalItems)}</td></tr><tr><td colspan="3">Valor a pagar (R$)</td><td>${esc(r.totalValue)}</td></tr><tr><td colspan="4">${esc(r.payment)}</td></tr></tfoot>`
+    + `</table><ul class="receipt-footer">${r.footer.map((f) => `<li>${esc(f)}</li>`).join('')}</ul></div>`;
+
+  // Critérios de aceite e rubrica: aulas com atividade prática usam os critérios
+  // de verificação da própria atividade em vez da rubrica genérica de artefato SDD.
+  const acceptance = (lesson.activity && lesson.activity.acceptance) || [
+    'O artefato declara o requisito funcional e ao menos um requisito não funcional mensurável.',
+    'A decisão estrutural está registrada em ADR, com alternativa descartada e consequência.',
+    'Existe ao menos um cenário de aceite que falha antes da implementação.',
+    'Há dono, forma de operação e caminho de reprocessamento.'
+  ];
+  const evaluationList = lesson.activity
+    ? acceptance.map((a) => `<li>${esc(a)}</li>`).join('')
+    : '<li>Clareza do problema e do contrato: 25%</li><li>Correção técnica e tratamento de exceções: 30%</li><li>Testabilidade, qualidade e operação: 25%</li><li>Comunicação e justificativa das decisões: 20%</li>';
 
   const SDD_LABELS = [
     ['rf', 'Requisito funcional', 'o que o sistema deve fazer'],
@@ -801,7 +1034,7 @@
   const fichaEncontro = () =>
     `<section class="encontro-meta" data-encontro-ficha>` +
     `<h2>Sobre este encontro</h2>` +
-    `<p class="encontro-ref">${esc(lesson.title)} · ${esc(lesson.date)} · Prof. Afonso Brandão</p>` +
+    `<p class="encontro-ref">${esc(lesson.title)} · ${esc(lesson.date)} · Prof. ${esc(lesson.professor || DEFAULT_PROF)}</p>` +
     `<div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>${esc(lesson.objective)}</p></div>` +
     `<div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>${esc(estrategia)}</p></div>` +
     `<div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol>` +
@@ -810,7 +1043,9 @@
 
   window.renderLessonSlides = function (root) {
     const slides = [
-      `<article class="lesson-slide lesson-cover"><span class="lesson-kicker">Módulo 11 · Engenharia de Software · Aula ${esc(lessonId)}</span><h1>${esc(lesson.title)}</h1><p>${esc(lesson.subtitle)}</p><small>Computação 2 · Prof. Afonso Brandão · ${esc(lesson.date)}</small></article>`,
+      `<article class="lesson-slide lesson-cover"><span class="lesson-kicker">Módulo 11 · Engenharia de Software · Aula ${esc(lessonId)}</span><h1>${esc(lesson.title)}</h1><p>${esc(lesson.subtitle)}</p><small>${esc(lesson.discipline || DEFAULT_DISC)} · Prof. ${esc(lesson.professor || DEFAULT_PROF)} · ${esc(lesson.date)}</small></article>`,
+
+      ...(lesson.timebox ? [`<article class="lesson-slide"><span class="lesson-kicker">Cronograma</span><h2>Como o tempo será dividido</h2><div class="lesson-grid">${lesson.timebox.map((t) => `<div class="lesson-card"><b>${t.minutes} min</b><p>${esc(t.label)}</p></div>`).join('')}</div></article>`] : []),
 
       `<article class="lesson-slide"><span class="lesson-kicker">Agenda</span><h2>Como vamos trabalhar</h2><div class="lesson-grid">${agenda.map((a, i) => `<div class="lesson-card"><b>${String(i + 1).padStart(2, '0')}</b><h3>${esc(a.nav)}</h3><p>${esc(a.text)}</p></div>`).join('')}</div></article>`,
 
@@ -820,7 +1055,20 @@
 
       ...(lesson.sdd ? [`<article class="lesson-slide"><span class="lesson-kicker">Ponte com a Aula 1 · Spec-Driven Development</span><h2>Como este tema vira especificação</h2><div class="lesson-grid">${SDD_LABELS.map(([k, label, hint]) => `<div class="lesson-card"><b>${esc(label)}</b><h3 class="lesson-hint">${esc(hint)}</h3><p>${esc(lesson.sdd[k])}</p></div>`).join('')}</div></article>`] : []),
 
-      `<article class="lesson-slide"><span class="lesson-kicker">Laboratório</span><h2>Entregável da aula</h2><div class="lesson-callout"><strong>${esc(lesson.deliverable)}</strong></div><div class="lesson-card lesson-wide"><h3>Critérios de aceite</h3><ol><li>O artefato declara o requisito funcional e ao menos um requisito não funcional mensurável.</li><li>A decisão estrutural está registrada em ADR, com alternativa descartada e consequência.</li><li>Existe ao menos um cenário de aceite que falha antes da implementação.</li><li>Há dono, forma de operação e caminho de reprocessamento.</li></ol></div></article>`,
+      ...(lesson.warmup ? [
+        `<article class="lesson-slide"><span class="lesson-kicker">${esc(lesson.warmup.duration)}</span><h2>${esc(lesson.warmup.title)}</h2><div class="lesson-callout"><strong>${esc(lesson.warmup.goal)}</strong></div><div class="lesson-card lesson-wide"><p>${esc(lesson.warmup.intro)}</p></div></article>`,
+        `<article class="lesson-slide"><span class="lesson-kicker">Documento de trabalho</span><h2>Nota fiscal sintetizada</h2>${receiptTableHtml(lesson.warmup.receipt)}<div class="lesson-hint" style="margin-top:8px;">${esc(lesson.warmup.note)}</div></article>`,
+        `<article class="lesson-slide"><span class="lesson-kicker">Passo 1</span><h2>Perguntas analíticas</h2><div class="lesson-grid">${lesson.warmup.questions.map((q, i) => `<div class="lesson-card"><b>Pergunta ${i + 1}</b><p>${esc(q)}</p></div>`).join('')}</div></article>`,
+        `<article class="lesson-slide"><span class="lesson-kicker">Modelo de referência</span><h2>Grão, fato e dimensões resolvidos</h2><div class="lesson-callout"><strong>Grão:</strong> ${esc(lesson.warmup.model.grao)}</div><div class="lesson-split"><div class="lesson-card"><h3>${esc(lesson.warmup.model.fato)}</h3><p><strong>Métricas</strong></p><ul>${lesson.warmup.model.metricas.map((m) => `<li>${esc(m)}</li>`).join('')}</ul></div><div class="lesson-card"><h3>Dimensões</h3><ul>${lesson.warmup.model.dimensoes.map((d) => `<li><strong>${esc(d.nome)}:</strong> ${esc(d.hierarquia)}</li>`).join('')}</ul></div></div><div class="lesson-warn"><strong>${esc(lesson.warmup.model.esquema)}</strong><br>${esc(lesson.warmup.transition)}</div></article>`
+      ] : []),
+
+      ...(lesson.activity ? [
+        `<article class="lesson-slide"><span class="lesson-kicker">${esc(lesson.activity.duration)}</span><h2>${esc(lesson.activity.title)}</h2><div class="lesson-callout"><strong>${esc(lesson.activity.goal)}</strong></div><div class="lesson-card lesson-wide"><p>${esc(lesson.activity.intro)}</p></div></article>`,
+        `<article class="lesson-slide"><span class="lesson-kicker">Método</span><h2>Do negócio ao cubo, passo a passo</h2><div class="lesson-grid">${lesson.activity.steps.map((s, i) => `<div class="lesson-card"><b>Passo ${i + 1}</b><h3>${esc(s.title)}</h3><p>${esc(s.text)}</p></div>`).join('')}</div></article>`,
+        `<article class="lesson-slide"><span class="lesson-kicker">Exemplo ilustrativo</span><h2>O raciocínio, não a resposta</h2><div class="lesson-split"><div class="lesson-card"><p>${esc(lesson.activity.worked.text)}</p><ul>${lesson.activity.worked.questions.map((q) => `<li>${esc(q)}</li>`).join('')}</ul><p>${esc(lesson.activity.worked.note)}</p></div><div class="lesson-card"><h3>Não faça isso</h3><ul>${lesson.activity.avoid.map((a) => `<li>${esc(a)}</li>`).join('')}</ul></div></div><div class="lesson-warn"><strong>Verifique antes de seguir:</strong> ${lesson.activity.checks.map((c) => esc(c)).join(' · ')}</div></article>`
+      ] : []),
+
+      `<article class="lesson-slide"><span class="lesson-kicker">Laboratório</span><h2>Entregável da aula</h2><div class="lesson-callout"><strong>${esc(lesson.deliverable)}</strong></div><div class="lesson-card lesson-wide"><h3>Critérios de aceite</h3><ol>${evaluationList}</ol></div></article>`,
 
       `<article class="lesson-slide"><span class="lesson-kicker">Fechamento</span><h2>Leve para o projeto</h2><div class="lesson-grid">${lesson.references.map((x, i) => `<div class="lesson-card"><b>Ref. ${i + 1}</b><p>${esc(x)}</p></div>`).join('')}</div><div class="lesson-callout">A pergunta final: <strong>qual decisão fica mais segura depois deste artefato?</strong></div></article>`,
 
@@ -835,13 +1083,33 @@
       ? `<section class="material-box"><h2>Ponte com a Aula 1 — como este tema vira especificação</h2><p>Os conceitos abaixo não são acessórios da aula: são a forma pela qual o tema entra na especificação do projeto, no vocabulário estabelecido na Aula 1.</p><div class="material-sdd">${SDD_LABELS.map(([k, label, hint]) => `<div><b>${esc(label)} — ${esc(hint)}</b>${esc(lesson.sdd[k])}</div>`).join('')}</div></section>`
       : '';
 
-    root.innerHTML = `<header class="material-head"><span>Módulo 11 · Engenharia de Software · Computação 2</span><h1>${esc(lesson.title)}</h1><p>${esc(lesson.subtitle)} · Prof. Afonso Brandão · ${esc(lesson.date)}</p></header><div class="material-body">`
+    const preClass = lesson.preClass
+      ? `<section class="material-box"><h2>Estudo prévio — antes da aula</h2><p>Estude os materiais abaixo antes do encontro presencial; a aula pressupõe essa leitura e não repete o conteúdo do zero.</p>${lesson.preClass.map((m, i) => `<div class="material-note"><strong>${i + 1}. <a href="${esc(m.url)}" target="_blank" rel="noopener noreferrer">${esc(m.title)}</a></strong><ul>${m.topics.map((t) => `<li>${esc(t)}</li>`).join('')}</ul></div>`).join('')}</section>`
+      : '';
+
+    const timeboxSection = lesson.timebox
+      ? `<section class="material-box"><h2>Como o tempo será dividido</h2><ul>${lesson.timebox.map((t) => `<li><strong>${t.minutes} min</strong> — ${esc(t.label)}</li>`).join('')}</ul></section>`
+      : '';
+
+    const warmupSection = lesson.warmup
+      ? `<section class="material-box"><h2>${esc(lesson.warmup.title)}</h2><p><strong>${esc(lesson.warmup.duration)}.</strong> ${esc(lesson.warmup.goal)}</p><p>${esc(lesson.warmup.intro)}</p>${receiptTableHtml(lesson.warmup.receipt)}<p class="material-note">${esc(lesson.warmup.note)}</p><h3>Perguntas analíticas</h3><ol>${lesson.warmup.questions.map((q) => `<li>${esc(q)}</li>`).join('')}</ol><h3>Modelo de referência (resolvido)</h3><p><strong>Grão:</strong> ${esc(lesson.warmup.model.grao)}</p><p><strong>Fato:</strong> ${esc(lesson.warmup.model.fato)}</p><h4>Métricas</h4><ul>${lesson.warmup.model.metricas.map((m) => `<li>${esc(m)}</li>`).join('')}</ul><h4>Dimensões</h4><ul>${lesson.warmup.model.dimensoes.map((d) => `<li><strong>${esc(d.nome)}:</strong> ${esc(d.hierarquia)}</li>`).join('')}</ul><p><strong>Esquema:</strong> ${esc(lesson.warmup.model.esquema)}</p><div class="material-note">${esc(lesson.warmup.transition)}</div></section>`
+      : '';
+
+    const activitySection = lesson.activity
+      ? `<section class="material-box"><h2>${esc(lesson.activity.title)}</h2><p><strong>${esc(lesson.activity.duration)}.</strong> ${esc(lesson.activity.goal)}</p><p>${esc(lesson.activity.intro)}</p><h3>Método, passo a passo</h3><ol>${lesson.activity.steps.map((s) => `<li><strong>${esc(s.title)}:</strong> ${esc(s.text)}</li>`).join('')}</ol><h3>Perguntas de verificação</h3><ul>${lesson.activity.checks.map((c) => `<li>${esc(c)}</li>`).join('')}</ul><h3>O que não fazer</h3><ul>${lesson.activity.avoid.map((a) => `<li>${esc(a)}</li>`).join('')}</ul><div class="material-note"><strong>Exemplo ilustrativo — o raciocínio, não a resposta.</strong> ${esc(lesson.activity.worked.text)}<ul>${lesson.activity.worked.questions.map((q) => `<li>${esc(q)}</li>`).join('')}</ul>${esc(lesson.activity.worked.note)}</div><p><a href="${esc(lesson.activity.tool.href)}">${esc(lesson.activity.tool.label)}</a></p></section>`
+      : '';
+
+    root.innerHTML = `<header class="material-head"><span>Módulo 11 · Engenharia de Software · ${esc(lesson.discipline || DEFAULT_DISC)}</span><h1>${esc(lesson.title)}</h1><p>${esc(lesson.subtitle)} · Prof. ${esc(lesson.professor || DEFAULT_PROF)} · ${esc(lesson.date)}</p></header><div class="material-body">`
       + fichaEncontro()
+      + timeboxSection
+      + preClass
       + `<section class="material-box"><h2>Objetivo da aula</h2><p>${esc(lesson.objective)}</p><h3>Ao final você deve conseguir</h3><ul>${lesson.outcomes.map((o) => `<li>${esc(o)}</li>`).join('')}</ul></section>`
       + `<section class="material-box"><h2>Roteiro</h2><ol>${agenda.map((a) => `<li><strong>${esc(a.nav)}</strong> — ${esc(a.text)}</li>`).join('')}</ol></section>`
       + lesson.sections.map((s, i) => `<section class="material-section"><h2>${i + 1}. ${esc(s.title)}</h2><p>${esc(s.text)}</p><h3>Checklist de aplicação</h3><ul>${checklistOf(s)}</ul><div class="material-note"><strong>Erro comum:</strong> ${esc(s.pitfall)}</div></section>`).join('')
       + sdd
-      + `<section class="material-box"><h2>Entregável e avaliação</h2><p>${esc(lesson.deliverable)}</p><ul><li>Clareza do problema e do contrato: 25%</li><li>Correção técnica e tratamento de exceções: 30%</li><li>Testabilidade, qualidade e operação: 25%</li><li>Comunicação e justificativa das decisões: 20%</li></ul></section>`
+      + warmupSection
+      + activitySection
+      + `<section class="material-box"><h2>Entregável e avaliação</h2><p>${esc(lesson.deliverable)}</p><ul>${evaluationList}</ul></section>`
       + `<section class="material-box"><h2>Referências</h2><ul>${lesson.references.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></section></div>`;
   };
 
@@ -850,13 +1118,33 @@
       ? `<section><h2>Articulação com a Aula 1 (Spec-Driven Development)</h2><ul>${SDD_LABELS.map(([k, label]) => `<li><strong>${esc(label)}:</strong> ${esc(lesson.sdd[k])}</li>`).join('')}</ul></section>`
       : '';
 
-    root.innerHTML = `<header class="plan-head"><span>Módulo 11 · Plano de Ensino</span><h1>Aula ${esc(lessonId)} — ${esc(lesson.title)}</h1><p>Professor: Afonso Brandão · ${esc(lesson.date)}</p></header><main class="plan-body">`
+    const preClass = lesson.preClass
+      ? `<section><h2>Estudo prévio exigido</h2><p>A aula pressupõe que os alunos tenham estudado, antes do encontro, os seguintes materiais:</p><ul>${lesson.preClass.map((m) => `<li><a href="${esc(m.url)}" target="_blank" rel="noopener noreferrer">${esc(m.title)}</a></li>`).join('')}</ul></section>`
+      : '';
+
+    const timeboxPlan = lesson.timebox
+      ? `<section><h2>Como o tempo será dividido</h2><ul>${lesson.timebox.map((t) => `<li><strong>${t.minutes} min</strong> — ${esc(t.label)}</li>`).join('')}</ul></section>`
+      : '';
+
+    const warmupPlan = lesson.warmup
+      ? `<section><h2>${esc(lesson.warmup.title)}</h2><p><strong>${esc(lesson.warmup.duration)}.</strong> ${esc(lesson.warmup.goal)} O professor resolve o modelo junto com a turma, usando uma nota fiscal de supermercado sintetizada (dados fictícios) como exemplo de trabalho — diferente da atividade do projeto, aqui o resultado é apresentado.</p><p>${esc(lesson.warmup.transition)}</p></section>`
+      : '';
+
+    const activityPlan = lesson.activity
+      ? `<section><h2>${esc(lesson.activity.title)}</h2><p><strong>${esc(lesson.activity.duration)}.</strong> ${esc(lesson.activity.goal)} O professor orienta com perguntas e critérios de verificação, sem fornecer a solução do modelo.</p><ol>${lesson.activity.steps.map((s) => `<li><strong>${esc(s.title)}:</strong> ${esc(s.text)}</li>`).join('')}</ol></section>`
+      : '';
+
+    root.innerHTML = `<header class="plan-head"><span>Módulo 11 · Plano de Ensino</span><h1>Aula ${esc(lessonId)} — ${esc(lesson.title)}</h1><p>Professor: ${esc(lesson.professor || DEFAULT_PROF)} · ${esc(lesson.date)}</p></header><main class="plan-body">`
       + fichaEncontro()
       + `<section><h2>Ementa</h2><p>${esc(lesson.subtitle)} ${esc(lesson.objective)}</p></section>`
+      + timeboxPlan
+      + preClass
       + `<section><h2>Objetivos de aprendizagem</h2><ul>${lesson.outcomes.map((o) => `<li>${esc(o)}</li>`).join('')}</ul></section>`
       + `<section><h2>Metodologia e cronograma</h2><ol>${agenda.map((a) => `<li><strong>${esc(a.nav)}:</strong> ${esc(a.text)}</li>`).join('')}</ol></section>`
       + sdd
-      + `<section><h2>Avaliação</h2><p>Entrega individual ou em grupo do artefato descrito no material, com apresentação curta e revisão por pares. ${esc(lesson.deliverable)}</p><ul><li>Clareza do problema e do contrato: 25%</li><li>Correção técnica e tratamento de exceções: 30%</li><li>Testabilidade, qualidade e operação: 25%</li><li>Comunicação e justificativa das decisões: 20%</li></ul></section>`
+      + warmupPlan
+      + activityPlan
+      + `<section><h2>Avaliação</h2><p>Entrega individual ou em grupo do artefato descrito no material, com apresentação curta e revisão por pares. ${esc(lesson.deliverable)}</p><ul>${evaluationList}</ul></section>`
       + `<section><h2>Bibliografia</h2><ul>${lesson.references.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></section></main>`;
   };
 })();

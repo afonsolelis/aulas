@@ -158,10 +158,15 @@ border: 1px solid rgba(255,255,255,0.18);
 
 Tests run against local `file://` URLs (no server needed). They validate:
 - `tests/index.spec.ts` — index card links point to `pages/home-*.html` and files exist on disk; course card header colors match the design system
-- `tests/specs-compliance.spec.ts` — validates all specs including home pages, routes naming, slides, and lesson cards
+- `tests/specs-compliance.spec.ts` — validates all specs in `specs/` including home pages, routes naming, slides, and lesson cards
 - `tests/calendar-consistency.spec.ts` — validates that `config/calendar.json` dates match the `📅 dd/mm/yyyy` shown in each lesson card of the active modules' homes
+- `tests/index-json-coverage.spec.ts` — validates that every `.html` in `pages/` (plus `index.html`) has exactly one entry in `index.json` (Key Rule 7)
 
 When adding a new module/lesson, ensure the corresponding file exists on disk before committing or tests will fail.
+
+### `specs/` — Normative Rules
+
+`specs/` contém as regras normativas por escrito que `tests/specs-compliance.spec.ts` valida automaticamente: naming de rotas (`routes-naming.md`), formato de slides (`slides-format.md`, `slides-footer.md`), homes de módulo (`home-pages.md`), cards de aula (`lesson-cards.md`) e de módulo na index (`index-module-cards.md`), materiais de leitura (`lesson-materials.md`), e regras específicas por módulo. Consulte o spec relevante antes de criar/alterar slides, materiais ou home pages — ver `specs/README.md` para o índice completo.
 
 ### `config/calendar.json` — Trimester & Active Modules
 
@@ -198,3 +203,7 @@ Dates are stored as `dd/mm/yyyy` strings to match exactly what is rendered in th
    - **Removeu/renomeou** → remova ou ajuste o `path` da entrada.
    - **Alterou o conteúdo** de forma relevante → reescreva o `summary` (1–2 frases, registro acadêmico, sem marketing) e o `title` se mudou.
    - Mantenha `type` (`index`, `home`, `slide`, `material`, `plano`, `aula`, `autoestudo`, `desafio`, `ferramenta`, `referencia`, `tutorial`, `perfil`) e `module` coerentes com o caminho. Todo `.html` em `pages/` deve ter exatamente uma entrada — nem faltando, nem sobrando.
+
+## Nested Projects
+
+`module_guidelines/es_06/` e `module_guidelines/in_02/` são subprojetos independentes (propostas, sprints, artefatos de disciplinas específicas) com seus **próprios** `CLAUDE.md`/`AGENTS.md` — não fazem parte da arquitetura do portal HTML acima e suas regras não se aplicam fora dessas pastas.
