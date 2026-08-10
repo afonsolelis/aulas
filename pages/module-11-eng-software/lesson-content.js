@@ -325,6 +325,159 @@
       references: ['Kimball & Ross — The Data Warehouse Toolkit', 'Inmon — Building the Data Warehouse', 'Cetax — Data Warehouse: conceitos e fundamentos', 'Astera — Guia de modelagem de dados dimensionais']
     },
 
+    3: {
+      title: 'Modelagem de Data Warehouse II', date: '12/08/2026',
+      professor: 'Hermano Peixoto', discipline: 'Computação 1',
+      subtitle: 'Star schema, snowflake schema e o ciclo de vida de um modelo dimensional maduro.',
+      objective: 'Aplicar os critérios de normalização, comparação e ciclo de vida da modelagem dimensional para decidir, com justificativa, entre star schema e snowflake schema em cada dimensão do Data Warehouse do projeto.',
+      outcomes: [
+        'Descrever a estrutura e as características de um star schema, incluindo o papel da tabela fato e das dimensões desnormalizadas.',
+        'Explicar o snowflake schema e sua relação com a normalização das tabelas dimensão.',
+        'Comparar vantagens e desvantagens entre star schema e snowflake schema por critério: desempenho de consulta, redundância, integridade e manutenção.',
+        'Projetar esquemas relacionais de Data Warehouse aplicando star schema e snowflake schema conforme a hierarquia de cada dimensão.',
+        'Identificar boas práticas de modelagem e documentação de esquemas dimensionais.',
+        'Descrever o ciclo de vida de modelagem de um Data Warehouse, do levantamento de requisitos à manutenção contínua.',
+        'Aplicar os conceitos de star e snowflake schema aos cubos do Data Warehouse do próprio projeto, iniciados na Aula 2.',
+        'Avaliar escalabilidade, flexibilidade e desempenho de star e snowflake schema em cenários reais de plataforma analítica.'
+      ],
+      timebox: [
+        { label: 'Teoria — star schema, snowflake schema, boas práticas e ciclo de vida da modelagem de DW', minutes: 60 },
+        { label: 'Atividade do projeto — formalização do esquema dimensional no Data Model Canvas', minutes: 60 }
+      ],
+      preClass: [
+        {
+          title: 'Esquema em estrela versus esquema em floco de neve: diferenças e casos de uso',
+          topics: ['Introdução aos esquemas dimensionais', 'O que é star schema', 'Vantagens e desvantagens do star schema', 'O que é snowflake schema', 'Vantagens e limitações do snowflake schema', 'Comparativo estruturado star versus snowflake', 'Casos de uso recomendados', 'Exemplos em SQL'],
+          url: 'https://www.datacamp.com/pt/blog/star-schema-vs-snowflake-schema'
+        },
+        {
+          title: '20 práticas recomendadas de data warehouse',
+          topics: ['Otimização de performance', 'Segurança e governança', 'Arquitetura com escalabilidade', 'Automação', 'Qualidade de dados', 'Processo de ETL robusto', 'Planejamento estratégico e time especializado', 'Ferramentas, recursos técnicos, testes e validações'],
+          url: 'https://www.astera.com/pt/type/blog/data-warehouse-best-practices'
+        },
+        {
+          title: 'Data Warehouse: requisitos e metodologias de modelagem',
+          topics: ['Dados, informação e conhecimento; gestão da informação versus gestão do conhecimento', 'Definição e características de um Data Warehouse: orientado a assunto, integrado, temporal, não volátil', 'Modelagem entidade-relacionamento e modelagem multidimensional (star e snowflake)', 'Metadados, data mart e granularidade de dados', 'Arquiteturas top-down e bottom-up e o processo de data warehousing (ETL)', 'Abordagens de levantamento de requisitos: orientada a dados, a requisitos e a metas', 'Metodologias de desenvolvimento focadas em requisitos: Hadden-Kelly, Business Development Lifecycle, Golfarelli & Rizzi, Conceptual Data Warehouse Design, Iterations'],
+          url: 'https://www.maxwell.vrac.puc-rio.br/15136/15136_4.PDF'
+        },
+        {
+          title: 'Boas práticas para modelagem de dados no BigQuery utilizando esquemas star/snowflake',
+          topics: ['Introdução aos esquemas star e snowflake', 'Princípios de modelagem no BigQuery', 'Dicas para dimensões', 'Otimização da tabela de fatos', 'Teste e refinamento de performance'],
+          url: 'https://medium.com/@nayyarabernardo/boas-pr%C3%A1ticas-para-modelagem-de-dados-no-bigquery-utilizando-esquemas-star-snowflake-d8399c178ac6'
+        }
+      ],
+      sections: [
+        {
+          nav: 'Star Schema', title: 'Star Schema: estrutura e características',
+          text: 'O star schema organiza a tabela fato no centro, ligada diretamente a tabelas dimensão desnormalizadas. Cada dimensão concentra todos os seus atributos descritivos em uma única tabela, mesmo quando esses atributos formam uma hierarquia natural.',
+          checklist: [
+            'Verifique que cada dimensão do seu cubo está representada em uma única tabela, sem tabelas intermediárias.',
+            'Confirme que a tabela fato referencia as dimensões por chave substituta, não pela chave natural da origem.',
+            'Liste os atributos hierárquicos que hoje estão todos dentro da mesma tabela dimensão, como categoria e departamento dentro de produto.'
+          ],
+          pitfall: 'Tratar star schema como "o esquema simples" sem avaliar o custo da redundância. Redundância controlada é uma troca deliberada por desempenho de leitura, não uma ausência de modelagem.'
+        },
+        {
+          nav: 'Snowflake Schema', title: 'Snowflake Schema e normalização das dimensões',
+          text: 'O snowflake schema normaliza as tabelas dimensão em múltiplos níveis hierárquicos, cada um em sua própria tabela relacionada por chave estrangeira. Reduz redundância, mas aumenta o número de joins necessários para responder a uma consulta.',
+          checklist: [
+            'Identifique, em cada dimensão candidata, os níveis hierárquicos que poderiam virar tabelas separadas.',
+            'Estime quantos joins adicionais a normalização de uma dimensão específica introduziria em uma consulta típica.',
+            'Verifique se a redundância eliminada corresponde a um volume de dados que justifica a normalização.'
+          ],
+          pitfall: 'Normalizar uma dimensão pequena e estável só porque normalização é apresentada como boa prática geral. O ganho de espaço é irrelevante quando a tabela tem poucas linhas e muda raramente.'
+        },
+        {
+          nav: 'Star × Snowflake', title: 'Comparando as duas abordagens',
+          text: 'Star schema favorece consultas mais simples e rápidas ao custo de redundância; snowflake schema favorece integridade e economia de espaço ao custo de mais joins. A escolha é por dimensão, não uma decisão única para todo o Data Warehouse.',
+          checklist: [
+            'Para cada dimensão do seu cubo, registre se a prioridade é velocidade de consulta ou economia de espaço e integridade.',
+            'Verifique se a ferramenta de consulta ou BI do seu projeto penaliza consultas com muitos joins.',
+            'Documente a decisão por dimensão, não como uma regra geral aplicada a todo o modelo.'
+          ],
+          pitfall: 'Escolher um esquema único para todo o Data Warehouse por convenção da equipe. Dimensões diferentes, dentro do mesmo cubo, podem justificar escolhas diferentes.'
+        },
+        {
+          nav: 'Boas práticas de modelagem', title: 'Boas práticas de modelagem e documentação',
+          text: 'Nomenclatura consistente, chave substituta, granularidade documentada, versionamento do modelo e testes de qualidade sustentam um esquema dimensional, independentemente de star ou snowflake ser a escolha.',
+          checklist: [
+            'Padronize prefixos e nomes de tabela (fato_, dimensao_) e aplique-os a todos os cubos do projeto, não só ao mais recente.',
+            'Documente a granularidade e a estrutura escolhida junto da definição de cada cubo, não em um documento separado.',
+            'Associe cada dimensão a um teste mínimo de qualidade, como unicidade de chave e ausência de referência quebrada.'
+          ],
+          pitfall: 'Tratar documentação como etapa posterior à modelagem. Sem registro no momento da decisão, a justificativa se perde e a próxima pessoa repete a discussão.'
+        },
+        {
+          nav: 'Ciclo de vida do DW', title: 'O ciclo de vida da modelagem de um Data Warehouse',
+          text: 'A modelagem de um Data Warehouse não termina na primeira versão do esquema: passa por levantamento de requisitos, modelagem conceitual, lógica e física, e manutenção contínua conforme novas perguntas de negócio surgem. Metodologias como Hadden-Kelly, o Business Development Lifecycle e o Conceptual Data Warehouse Design formalizam essas etapas.',
+          checklist: [
+            'Identifique em qual etapa do ciclo de vida de modelagem o cubo do seu projeto está hoje.',
+            'Distinga levantamento de requisitos orientado a dados, orientado a requisitos e orientado a metas, e identifique qual predominou no seu caso.',
+            'Aponte o que falta para o cubo avançar da etapa atual para a próxima.'
+          ],
+          pitfall: 'Tratar a primeira versão do esquema como definitiva. Um Data Warehouse maduro é revisado a cada novo requisito de negócio, não construído uma única vez.'
+        },
+        {
+          nav: 'Escalabilidade e desempenho', title: 'Avaliando escalabilidade, flexibilidade e desempenho',
+          text: 'A escolha entre star e snowflake também depende da plataforma de execução: engines colunares modernos, como o BigQuery, toleram desnormalização com pruning eficiente, o que costuma favorecer star mesmo quando a normalização pareceria mais adequada apenas no papel.',
+          checklist: [
+            'Verifique qual engine ou banco o projeto usará para consultar o Data Warehouse.',
+            'Avalie se a plataforma penaliza joins entre múltiplas tabelas de dimensão normalizadas.',
+            'Estime se o volume de dados do seu projeto realmente justifica a economia de espaço da normalização.'
+          ],
+          pitfall: 'Escolher snowflake por presumir que "escala melhor" sem testar. Em plataformas colunares, mais joins costuma custar mais do que a redundância evitada.'
+        }
+      ],
+      sdd: {
+        rf: 'RF-102 — Permitir consultar métricas por qualquer nível hierárquico de uma dimensão, como produto, subcategoria e categoria, sem exigir remodelagem da tabela fato a cada novo nível de análise.',
+        rnf: 'RNF-102 — A estrutura escolhida, star ou snowflake, está documentada por dimensão, com a justificativa da normalização registrada no Data Model Canvas do projeto.',
+        adr: 'ADR-DW-03 — Star schema como padrão para as dimensões do cubo de participação, com normalização (snowflake) restrita a dimensões de hierarquia extensa e alta repetição de atributos. Alternativa descartada: normalizar todas as dimensões por padrão, o que multiplicaria joins sem ganho de espaço relevante no volume atual do projeto. Consequência: a decisão precisa ser revisitada caso o volume de dados cresça significativamente.',
+        gherkin: 'Dado um cubo com a dimensão Produto modelada em snowflake, Quando um analista consulta o total vendido agrupado por categoria, Então o resultado é obtido por join entre fato, produto e categoria, sem alterar a tabela fato.'
+      },
+      activity: {
+        title: 'Atividade em sala — Formalizando o esquema dimensional do projeto',
+        duration: '60 min · segunda metade da aula',
+        goal: 'Para os cubos já esboçados no Data Model Canvas, decidir e justificar o esquema — star ou snowflake — de cada dimensão, aplicando os critérios de normalização e as boas práticas apresentadas.',
+        intro: 'Retome o Data Model Canvas iniciado na Aula 2. O trabalho agora não é criar cubos novos, mas aprofundar cada cubo já esboçado — Grão, Estrutura, Fatos/Eventos, Métricas, Dimensões e Dimensões especiais — decidindo star ou snowflake para cada dimensão e registrando a justificativa. O professor circula para orientar: peça direcionamento sempre que travar, mas a decisão e a justificativa são do grupo.',
+        steps: [
+          { title: 'Reabra o canvas', text: 'Abra o dmc.json exportado na Aula 2, ou o canvas salvo no navegador, e revise os cubos, grãos e dimensões candidatas já registrados.' },
+          { title: 'Avalie cada dimensão', text: 'Para cada dimensão candidata, verifique se ela contém atributos hierárquicos ou repetitivos que poderiam ser normalizados em tabelas separadas, como produto → subcategoria → categoria.' },
+          { title: 'Aplique o critério de normalização', text: 'Decida star ou snowflake por dimensão a partir do critério de normalização, não por preferência estética: redundância aceitável favorece star; hierarquia extensa e repetição custosa favorecem snowflake.' },
+          { title: 'Marque a estrutura no canvas', text: 'Marque a caixa correspondente (Star Schema ou Snowflake Schema) na seção Estrutura de cada cubo e registre, ao lado, a justificativa da escolha.' },
+          { title: 'Revise dimensões especiais', text: 'Verifique se alguma dimensão exige bridge table para relação muitos-para-muitos, junk dimension para atributos de baixa cardinalidade, ou é candidata a dimensão conformada entre cubos.' },
+          { title: 'Confira boas práticas', text: 'Revise o cubo contra os critérios de boas práticas apresentados: nomenclatura consistente, chave substituta, granularidade documentada e ausência de mistura entre grãos.' },
+          { title: 'Posicione no ciclo de vida', text: 'Identifique em qual etapa do ciclo de vida de modelagem — levantamento de requisitos, modelagem conceitual, lógica, física ou manutenção — o cubo se encontra hoje, e o que falta para a etapa seguinte.' }
+        ],
+        checks: [
+          'A dimensão escolhida como snowflake tem de fato uma hierarquia com múltiplos níveis, ou a normalização foi aplicada sem necessidade?',
+          'A justificativa registrada cita o critério — redundância, hierarquia, custo de join — e não apenas a preferência do grupo?',
+          'Alguma dimensão pode ser conformada e reaproveitada por mais de um cubo do projeto?'
+        ],
+        avoid: [
+          'Não decida o esquema por padrão, como "todo mundo usa star"; decida por dimensão, a partir da hierarquia real dos dados.',
+          'Não misture star e snowflake dentro da mesma dimensão sem justificar — a mistura parcial deve ser deliberada, não acidental.',
+          'Não tente resolver performance ou SCD nesta aula: o foco de hoje é estrutura, normalização e ciclo de vida.'
+        ],
+        worked: {
+          text: 'Este exemplo ilustra o raciocínio com uma dimensão de produto genérica — não é a resposta para a dimensão do seu projeto.',
+          questions: [
+            'Star: dimensao_produto traz categoria e departamento como colunas repetidas na própria linha do produto.',
+            'Snowflake: dimensao_produto referencia dimensao_categoria, que referencia dimensao_departamento, cada nível em sua própria tabela.'
+          ],
+          note: 'A escolha depende de quanto a hierarquia se repete e de quantos produtos compartilham a mesma categoria: hierarquia estável e repetição alta favorecem normalizar; hierarquia rasa ou que muda pouco favorece manter desnormalizado. Decidir isso para a dimensão real do seu projeto é o trabalho do grupo.'
+        },
+        tool: { label: 'Abrir o Data Model Canvas', href: '../data-model-canvas.html' },
+        acceptance: [
+          'Cada cubo do canvas tem a Estrutura (Star ou Snowflake) marcada, com justificativa registrada por escrito.',
+          'Ao menos uma dimensão foi avaliada quanto à necessidade de normalização, com o critério explicitado.',
+          'As dimensões especiais (bridge, junk, conformada) foram avaliadas para os cubos em que se aplicam.',
+          'O grupo consegue indicar em qual etapa do ciclo de vida de modelagem o cubo se encontra e o que falta para avançar.'
+        ]
+      },
+      deliverable: 'O Data Model Canvas do projeto atualizado com, para cada cubo já iniciado: a estrutura (star ou snowflake) decidida e justificada por dimensão, as dimensões especiais avaliadas e a etapa do ciclo de vida de modelagem identificada. Não é necessário resolver otimização de desempenho ou estratégia de SCD nesta aula.',
+      references: ['DataCamp — Star Schema vs Snowflake Schema: diferenças e casos de uso', 'Astera — 20 práticas recomendadas de data warehouse', 'Maxwell PUC-Rio — Data Warehouse: requisitos e metodologias de modelagem', 'Medium (Nayyara Bernardo) — Boas práticas para modelagem Star/Snowflake no BigQuery']
+    },
+
     5: {
       title: 'Arquitetura de Dados', date: '20/08/2026',
       subtitle: 'Decisões estruturais para uma plataforma de dados confiável, evolutiva e governável.',
