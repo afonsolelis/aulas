@@ -41,6 +41,12 @@ Para cada aula `N` da tabela acima:
 - Entradas correspondentes em `/index.json` (`title` e `summary`), obrigatórias sempre que
   o conteúdo ou o título mudar — ver Key Rule 7 do `CLAUDE.md`.
 - Card da aula na home `pages/home-module-11-eng-software.html`, quando o título mudar.
+- **Mesclar (merge) o próprio pull request** das aulas 2, 3 e 4 no GitHub, desde que o PR
+  contenha apenas alterações dentro deste escopo permitido e os testes automatizados
+  (`npm test`, via CI ou hook de pre-commit) tenham passado. Autorização declarada por
+  Hermano em sessão com o agente em 10/08/2026, ainda **não ratificada por escrito pelo
+  professor titular** — sinalizar isso ao Prof. Afonso na primeira oportunidade e atualizar
+  esta linha quando ele confirmar.
 
 #### Alterações não permitidas
 
@@ -51,7 +57,9 @@ Para cada aula `N` da tabela acima:
   conteúdo de outro módulo.
 - **Arquivos globais de estrutura:** `css/inteli-styles.css`, `tests/`, `scripts/`,
   `config/calendar.json`, `index.html`.
-- **`git push` direto na `main`.** As alterações entram por branch e pull request.
+- **`git push` direto na `main`** (sem PR) e **merge de PR que saia do escopo permitido**
+  acima (ex.: mistura alteração em aula de outro docente ou em arquivo global). Nesses
+  casos, as alterações entram por branch e pull request revisado pelo professor titular.
 
 ## Obrigações de qualquer docente colaborador
 
