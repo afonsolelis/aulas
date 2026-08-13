@@ -1,22 +1,1537 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏛️</text></svg>">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Módulo 11 — Aula 5 — Material — Inteli</title>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <title>Aula 5 — Arquitetura de Dados — Material — Inteli</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="../../../css/inteli-styles.css" rel="stylesheet">
-  <link href="../lesson-content.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'base',
+      themeVariables: {
+        fontFamily: 'Manrope, sans-serif',
+        primaryColor: '#fee2e2',
+        primaryTextColor: '#1e293b',
+        primaryBorderColor: '#dc2626',
+        lineColor: '#4b5563',
+        secondaryColor: '#dbeafe',
+        tertiaryColor: '#dcfce7'
+      },
+      flowchart: { useMaxWidth: true, curve: 'basis' },
+      sequence: { useMaxWidth: true, mirrorActors: false, boxMargin: 10, messageMargin: 32, noteMargin: 10, actorMargin: 44 }
+    });
+    window.mermaid = mermaid;
+  </script>
+  <style>
+    .mermaid { display:flex; justify-content:center; padding:18px 8px; background:#fbfbfd; border:1px solid #e2e8f0; border-radius:10px; overflow-x:auto; font-family:'Manrope',sans-serif !important; min-height:60px; margin-bottom:1rem; }
+    .mermaid svg { max-width:100%; height:auto; }
+    :root {
+      --ac:#dc2626; --hi:#f87171; --dk:#2e2640; --gr:#0d9488; --re:#dc2626; --am:#d97706;
+      --bl:#1863dc; --pu:#855ede;
+      --text:#1e293b; --muted:#64748b; --border:#e2e8f0; --bg:#f8fafc; --card:#ffffff;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family:'Manrope',sans-serif; color:var(--text); background:var(--bg); }
+
+    /* ── Progress bar ── */
+    #progress-bar { position:fixed; top:0; left:0; height:3px; background:linear-gradient(90deg,var(--ac),var(--hi)); width:0%; z-index:9999; transition:width .1s; }
+
+    /* ── Floating nav ── */
+    #float-nav { position:fixed; bottom:28px; right:28px; display:flex; flex-direction:column; gap:8px; z-index:9998; opacity:0; pointer-events:none; transform:translateY(12px); transition:opacity .3s,transform .3s; }
+    #float-nav.visible { opacity:1; pointer-events:auto; transform:translateY(0); }
+    .fn-btn { display:flex; align-items:center; gap:6px; padding:10px 16px; border-radius:999px; font-size:.82rem; font-weight:700; text-decoration:none; box-shadow:0 4px 18px rgba(0,0,0,.25); transition:transform .15s,box-shadow .15s; white-space:nowrap; }
+    .fn-btn:hover { transform:translateY(-2px); box-shadow:0 6px 24px rgba(0,0,0,.32); text-decoration:none; }
+    .fn-btn-slides { background:white; color:var(--ac); border:2px solid var(--ac); }
+    .fn-btn-back   { background:var(--dk); color:white; }
+
+    /* ── Header ── */
+    .mat-header { background:linear-gradient(135deg,#2e2640 0%,#7a2230 50%,#dc2626 100%); color:white; padding:40px 0 32px; }
+    .mat-header h1 { font-size:2.2rem; font-weight:800; margin:0 0 8px; }
+    .mat-header .subtitle { font-size:1rem; opacity:.85; margin:0 0 20px; }
+    .mat-badge { background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.3); color:white; padding:4px 14px; border-radius:999px; font-size:.78rem; font-weight:700; display:inline-block; margin-bottom:12px; }
+
+    /* ── Layout ── */
+    .mat-layout { display:grid; grid-template-columns:280px 1fr; gap:32px; max-width:1240px; margin:0 auto; padding:40px 24px; }
+    @media(max-width:900px){ .mat-layout { grid-template-columns:1fr; } .mat-sidebar { display:none; } }
+
+    /* ── Sidebar ── */
+    .mat-sidebar { position:sticky; top:24px; max-height:calc(100vh - 48px); overflow-y:auto; align-self:start; }
+    .mat-toc { background:var(--card); border-radius:14px; padding:20px; border:1px solid var(--border); box-shadow:0 2px 8px rgba(0,0,0,.05); }
+    .mat-toc h4 { font-size:.8rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:0 0 12px; }
+    .mat-toc a { display:flex; justify-content:space-between; gap:8px; color:var(--muted); text-decoration:none; font-size:.82rem; padding:5px 0 5px 12px; border-left:2px solid transparent; transition:all .2s; line-height:1.3; }
+    .mat-toc a:hover, .mat-toc a.active { color:var(--ac); border-left-color:var(--ac); }
+    .mat-toc .t { font-variant-numeric:tabular-nums; font-size:.72rem; opacity:.7; white-space:nowrap; }
+    .toc-total { margin-top:12px; padding-top:12px; border-top:1px solid var(--border); font-size:.75rem; color:var(--muted); }
+    .toc-total strong { color:var(--ac); }
+
+    /* ── Article ── */
+    .mat-article { min-width:0; }
+    .mat-section { margin-bottom:56px; }
+    .mat-section h2 { font-size:1.75rem; font-weight:800; color:var(--dk); padding-bottom:12px; border-bottom:2px solid var(--border); margin:0 0 10px; scroll-margin-top:80px; }
+    .mat-section h3 { font-size:1.2rem; font-weight:700; color:var(--dk); margin:32px 0 12px; scroll-margin-top:80px; }
+    .mat-section h4 { font-size:1rem; font-weight:700; color:var(--dk); margin:22px 0 8px; }
+    .mat-section p { line-height:1.8; margin-bottom:16px; font-size:.97rem; color:#374151; }
+    .mat-section ul, .mat-section ol { padding-left:1.5rem; margin-bottom:16px; }
+    .mat-section li { line-height:1.75; font-size:.97rem; color:#374151; margin-bottom:6px; }
+    .mat-section strong { color:var(--dk); }
+    .mat-section code { background:#fdeaea; color:#b91c1c; padding:1px 6px; border-radius:4px; font-family:'JetBrains Mono',monospace; font-size:.85em; }
+
+    /* ── Marcador de tempo de leitura ── */
+    .read-time { display:inline-flex; align-items:center; gap:6px; background:#f1f5f9; color:var(--muted); border:1px solid var(--border); border-radius:999px; padding:3px 12px; font-size:.72rem; font-weight:700; margin-bottom:22px; }
+
+    /* ── Callout boxes ── */
+    .callout { border-radius:12px; padding:16px 20px; margin:20px 0; border-left:4px solid; }
+    .callout-info  { background:#eff6ff; border-color:#3b82f6; }
+    .callout-warn  { background:#fffbeb; border-color:#f59e0b; }
+    .callout-danger{ background:#fef2f2; border-color:#ef4444; }
+    .callout-tip   { background:#f0fdf4; border-color:#22c55e; }
+    .callout-deep  { background:#f5f3ff; border-color:#8b5cf6; }
+    .callout-label { font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; margin-bottom:6px; }
+    .callout-info  .callout-label { color:#3b82f6; }
+    .callout-warn  .callout-label { color:#f59e0b; }
+    .callout-danger .callout-label { color:#ef4444; }
+    .callout-tip   .callout-label { color:#22c55e; }
+    .callout-deep  .callout-label { color:#8b5cf6; }
+    .callout p { margin:0 0 10px; font-size:.91rem; line-height:1.7; color:#374151; }
+    .callout p:last-child { margin-bottom:0; }
+    .callout ul, .callout ol { margin:8px 0 0; padding-left:1.3rem; }
+    .callout li { font-size:.91rem; line-height:1.65; }
+    .callout code { background:rgba(0,0,0,.06); color:#b91c1c; padding:1px 6px; border-radius:4px; font-family:'JetBrains Mono',monospace; font-size:.85em; }
+
+    /* ── Tabelas ── */
+    .mat-table { width:100%; border-collapse:collapse; margin:20px 0; font-size:.9rem; }
+    .mat-table th { background:var(--dk); color:white; text-align:left; padding:10px 14px; font-weight:700; font-size:.85rem; }
+    .mat-table td { padding:10px 14px; border-bottom:1px solid var(--border); line-height:1.6; color:#374151; vertical-align:top; }
+    .mat-table tr:nth-child(even) td { background:#fbfcfe; }
+    .mat-table-wrap { overflow-x:auto; }
+
+    /* ── Blocos de código ── */
+    pre.code { background:#272822; color:#f8f8f2; border-radius:10px; padding:18px 20px; overflow-x:auto; font-family:'JetBrains Mono',monospace; font-size:.82rem; line-height:1.65; margin:18px 0; }
+    pre.code .cm { color:#8292a2; }
+    pre.code .kw { color:#f92672; }
+    pre.code .st { color:#e6db74; }
+    pre.code .nu { color:#ae81ff; }
+
+    /* ── Figuras e diagramas ── */
+    figure.fig { margin:24px 0; background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px 20px 14px; box-shadow:0 2px 8px rgba(0,0,0,.04); }
+    figure.fig svg { display:block; width:100%; height:auto; max-width:100%; }
+    figure.fig figcaption { margin-top:12px; padding-top:10px; border-top:1px dashed var(--border); font-size:.8rem; color:var(--muted); line-height:1.6; }
+    figure.fig figcaption b { color:var(--dk); }
+    .fig-scroll { overflow-x:auto; }
+
+    /* ── Scroll reveal ── */
+    .sr { opacity:0; transform:translateY(20px); transition:opacity .6s, transform .6s; }
+    .sr.vis { opacity:1; transform:none; }
+    @media (prefers-reduced-motion: reduce) { .sr { opacity:1; transform:none; transition:none; } }
+
+    /* ── Exercício ── */
+    .exercise { background:#fff7ed; border:1px solid #fed7aa; border-radius:12px; padding:18px 20px; margin:22px 0; }
+    .exercise h4 { margin:0 0 10px; font-size:.95rem; color:#9a3412; }
+    .exercise .answer { border-top:1px dashed #fdba74; margin-top:12px; padding-top:12px; }
+    .exercise summary { cursor:pointer; font-weight:700; font-size:.85rem; color:#9a3412; }
+    .exercise p, .exercise li { font-size:.92rem; }
+
+    /* ── Anti-padrão ── */
+    .anti { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:20px 0; }
+    @media(max-width:700px){ .anti { grid-template-columns:1fr; } }
+    .anti-box { border-radius:12px; padding:14px 16px; font-size:.9rem; line-height:1.65; }
+    .anti-bad  { background:#fef2f2; border:1px solid #fecaca; }
+    .anti-good { background:#f0fdf4; border:1px solid #bbf7d0; }
+    .anti-box b { display:block; margin-bottom:6px; font-size:.78rem; text-transform:uppercase; letter-spacing:.06em; }
+    .anti-bad b  { color:#b91c1c; }
+    .anti-good b { color:#15803d; }
+
+    /* ── Checklist interativo ── */
+    .check-list { list-style:none; padding:0 !important; margin:18px 0; }
+    .check-list li { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px 16px 12px 44px; margin-bottom:8px; position:relative; cursor:pointer; transition:all .2s; font-size:.93rem; }
+    .check-list li::before { content:''; position:absolute; left:14px; top:50%; transform:translateY(-50%); width:18px; height:18px; border:2px solid var(--border); border-radius:5px; transition:all .2s; }
+    .check-list li:hover { border-color:var(--ac); }
+    .check-list li.done { background:#f0fdf4; border-color:#86efac; color:var(--muted); text-decoration:line-through; }
+    .check-list li.done::before { background:#22c55e; border-color:#22c55e; }
+    .check-list li.done::after { content:'✓'; position:absolute; left:18px; top:50%; transform:translateY(-50%); color:white; font-size:.8rem; font-weight:800; }
+
+    /* ── Glossário ── */
+    .gloss { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:12px; margin:20px 0; }
+    .gloss div { background:var(--card); border:1px solid var(--border); border-left:3px solid var(--ac); border-radius:10px; padding:12px 14px; font-size:.88rem; line-height:1.6; color:#374151; }
+    .gloss b { display:block; color:var(--dk); margin-bottom:3px; }
+
+    /* ── Caso fio condutor ── */
+    .case { background:linear-gradient(135deg,#faf5ff 0%,#eff6ff 100%); border:1px solid #ddd6fe; border-left:4px solid var(--pu); border-radius:12px; padding:18px 20px; margin:22px 0; }
+    .case .callout-label { color:var(--pu); }
+    .case p, .case li { font-size:.92rem; line-height:1.7; color:#374151; }
+
+    /* ── Footer ── */
+    .inteli-footer { background:var(--dk); color:white; padding:32px 0; margin-top:40px; text-align:center; }
+    .inteli-footer p { margin:10px 0 4px; font-size:.9rem; }
+    .inteli-footer small { opacity:.7; font-size:.78rem; }
+    .inteli-footer a { color:#f87171; }
+  </style>
 
 <!-- encontro:css:start -->
 <link rel="stylesheet" href="../../../css/encontro.css">
 <!-- encontro:css:end -->
 </head>
 <body data-lesson="5">
-  <main id="lesson-material"></main>
-  <footer class="text-center py-4 border-top">Material criado pelo professor <strong>Afonso Brandão</strong> · <a href="../slides/slide-lesson-5.html">Slides</a> · <a href="../../home-module-11-eng-software.html">Módulo 11</a></footer>
-  <script src="../lesson-content.js"></script>
-  <script>window.renderLessonMaterial(document.getElementById('lesson-material'));</script>
+  <div id="progress-bar"></div>
+
+  <!-- Floating nav (aparece após rolar além do cabeçalho) -->
+  <div id="float-nav">
+    <a href="../slides/slide-lesson-5.html" class="fn-btn fn-btn-slides">▶ Slides</a>
+    <a href="../../home-module-11-eng-software.html" class="fn-btn fn-btn-back">← Módulo</a>
+  </div>
+
+  <header class="mat-header">
+    <div class="container">
+      <div class="mat-badge">Módulo 11 · Engenharia de Software · Computação 2</div>
+      <h1>Arquitetura de Dados</h1>
+      <p class="subtitle">Aula 5 — Material de Leitura · Prof. Afonso Brandão · 20/08/2026 · leitura estimada de 1h30</p>
+      <div class="d-flex gap-2 flex-wrap">
+        <a href="../slides/slide-lesson-5.html" class="btn btn-light btn-sm">▶ Slides</a>
+        <a href="../planos/lesson-5-plano.html" class="btn btn-outline-light btn-sm">📋 Plano de ensino</a>
+        <a href="../../home-module-11-eng-software.html" class="btn btn-outline-light btn-sm">← Voltar ao Módulo</a>
+      </div>
+    </div>
+  </header>
+
+<!-- encontro:meta:start -->
+<div class="container" style="max-width:1100px;margin:24px auto 0;padding:0 16px;"><section class="encontro-meta" data-encontro-ficha><h2>Sobre este encontro</h2><p class="encontro-ref">Arquitetura de Dados · 20/08/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>Desenhar uma arquitetura de dados conectando fontes, ingestão, armazenamento, processamento, consumo, segurança e operação.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>Exposição por blocos, cada um encerrado por checklist de aplicação, seguida de laboratório com entrega: Diagrama de arquitetura com fluxo ponta a ponta, decisões registradas em ADR, requisitos não funcionais, riscos e plano de evolução.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol><li>Requisitos arquiteturais — Arquitetura responde a volume, velocidade, variedade, criticidade, retenção, compliance, orçamento e perfil dos consumidores.</li><li>Camadas e responsabilidades — Separe ingestão, armazenamento bruto, dados tratados, serving/semântica e consumo. Cada camada deve ter contrato, dono e política de qualidade.</li><li>Padrões de plataforma — Compare data warehouse, data lake, lakehouse, hub-and-spoke e data mesh. O padrão só é adequado quando resolve restrições reais.</li><li>Batch e streaming — Batch simplifica consistência e custo; streaming reduz latência e aumenta a complexidade operacional. Avalie se a decisão precisa ser tomada em segundos.</li><li>Governança e segurança — Inclua catálogo, ownership, classificação, lineage, retenção, mascaramento, controle de acesso e resposta a incidentes desde o desenho.</li><li>Resiliência e evolução — Defina idempotência, replay, dead-letter, backup, RPO, RTO, observabilidade e estratégia de evolução de schema.</li></ol></div></section></div>
+<!-- encontro:meta:end -->
+
+<div class="mat-layout">
+    <aside class="mat-sidebar">
+      <nav class="mat-toc">
+        <h4>Nesta aula</h4>
+        <a href="#s1"><span>1. O problema que a arquitetura resolve</span><span class="t">6 min</span></a>
+        <a href="#s2"><span>2. Requisitos arquiteturais</span><span class="t">9 min</span></a>
+        <a href="#s3"><span>3. Camadas e responsabilidades</span><span class="t">11 min</span></a>
+        <a href="#s4"><span>4. Padrões de plataforma</span><span class="t">8 min</span></a>
+        <a href="#s5"><span>5. Batch e streaming</span><span class="t">11 min</span></a>
+        <a href="#s6"><span>6. Governança e segurança</span><span class="t">10 min</span></a>
+        <a href="#s7"><span>7. Resiliência e evolução</span><span class="t">13 min</span></a>
+        <a href="#s8"><span>8. RM-ODP: cinco pontos de vista</span><span class="t">4 min</span></a>
+        <a href="#s9"><span>9. Ponte com a Aula 1</span><span class="t">3 min</span></a>
+        <a href="#s10"><span>10. Estudo de caso integrado</span><span class="t">9 min</span></a>
+        <a href="#s11"><span>11. Catálogo de anti-padrões</span><span class="t">2 min</span></a>
+        <a href="#s12"><span>12. Entregável e critérios</span><span class="t">2 min</span></a>
+        <a href="#s13"><span>13. Glossário</span><span class="t">1 min</span></a>
+        <a href="#s14"><span>14. Referências</span><span class="t">1 min</span></a>
+        <div class="toc-total">Leitura integral: <strong>90 minutos</strong></div>
+      </nav>
+    </aside>
+
+    <article class="mat-article">
+
+      <!-- ════════════════ SEÇÃO 1 ════════════════ -->
+      <section class="mat-section" id="s1">
+        <h2>1. O problema que a arquitetura resolve</h2>
+        <span class="read-time">⏱ 6 minutos</span>
+
+        <p>Toda organização que opera sistemas produz dados antes de decidir o que fazer com eles. O primeiro relatório nasce de uma consulta direta ao banco de produção. O segundo nasce de uma planilha que alguém exporta toda segunda-feira. O terceiro nasce de um script que copia tabelas durante a madrugada. Nenhuma dessas decisões é irracional isoladamente: cada uma resolve um problema imediato com o menor esforço disponível naquele momento.</p>
+
+        <p>A dificuldade aparece na soma. Após dois anos, a organização possui dezenas de rotas de dados não documentadas, três definições incompatíveis de <em>receita líquida</em>, um banco de produção sobrecarregado por consultas analíticas e nenhum registro de quem depende de quê. Quando um campo muda de nome na origem, ninguém consegue prever quais relatórios param de funcionar. Entende-se por <strong>arquitetura de dados</strong> precisamente o conjunto de decisões que impede esse desfecho — e, uma vez tomadas, decisões de reversão custosa.</p>
+
+        <div class="callout callout-info">
+          <div class="callout-label">Definição</div>
+          <p>Arquitetura de dados é a descrição estrutural de como os dados de uma organização são adquiridos, armazenados, transformados, servidos, protegidos e operados, incluindo as decisões que produziram essa estrutura e as consequências aceitas em cada decisão. A norma ISO/IEC/IEEE 42010 estabelece que uma descrição arquitetural existe para atender às preocupações de partes interessadas identificadas; sem essas partes e suas preocupações declaradas, não há critério para julgar a arquitetura como adequada ou inadequada.</p>
+        </div>
+
+        <h3>Arquitetura não é o desenho, é a justificativa</h3>
+
+        <p>Um diagrama de caixas conectadas por setas comunica topologia, mas não comunica arquitetura. Duas organizações podem produzir diagramas idênticos por motivos opostos: uma escolheu processamento em lote porque a decisão de negócio ocorre uma vez ao dia; a outra escolheu o mesmo porque não dispunha de equipe para operar processamento contínuo. As topologias coincidem, as arquiteturas divergem, e apenas o registro das justificativas permite distinguir uma da outra quando a restrição mudar.</p>
+
+        <p>Essa distinção tem consequência prática direta. Quando um novo integrante propõe migrar a plataforma para processamento em tempo real, a resposta adequada não é <em>a arquitetura atual é em lote</em>, e sim <em>a decisão de operar em lote foi registrada na ADR-ARQ-04, cuja premissa era a inexistência de decisão de negócio sensível a latência inferior a uma hora; se essa premissa deixou de valer, a decisão deve ser reavaliada</em>. Arquitetura documentada converte discussão de preferência em discussão de premissa.</p>
+
+        <h3>O caso que acompanha este material</h3>
+
+        <div class="case">
+          <div class="callout-label">Estudo de caso — Rede Aurora</div>
+          <p>A <strong>Rede Aurora</strong> é uma rede varejista fictícia utilizada como fio condutor de todas as seções deste material. Os dados abaixo são sintetizados para fins didáticos e não representam organização real.</p>
+          <ul>
+            <li><strong>Operação:</strong> 180 lojas físicas e um comércio eletrônico, em quatro estados.</li>
+            <li><strong>Volume:</strong> aproximadamente 2,4 milhões de itens de cupom por dia, com pico de 6 milhões em datas promocionais.</li>
+            <li><strong>Sistemas de origem:</strong> ponto de venda (PDV), plataforma de comércio eletrônico, sistema de gestão empresarial, programa de fidelidade e uma planilha mantida pela área de compras.</li>
+            <li><strong>Consumidores:</strong> uma equipe de inteligência de negócio que produz relatórios diários, dois cientistas de dados que treinam modelos de previsão de demanda, e a diretoria comercial.</li>
+            <li><strong>Restrição declarada:</strong> a decisão de reposição de estoque ocorre uma vez por dia, às 7h; a decisão de bloqueio de fraude em pagamento ocorre em segundos.</li>
+          </ul>
+          <p>Cada seção deste material aplica seu conteúdo a esse caso. Ao final, a Seção 10 consolida a arquitetura completa da Rede Aurora, com as decisões justificadas.</p>
+        </div>
+
+        <h3>Como percorrer este material</h3>
+
+        <p>O material está organizado em quatorze seções, com tempo estimado indicado ao início de cada uma e no sumário lateral. A leitura integral demanda aproximadamente noventa minutos. As seções 2 a 7 correspondem aos seis blocos do encontro presencial e encerram-se com o mesmo checklist de aplicação utilizado em aula; as seções 8 a 11 aprofundam o tema além do que o tempo do encontro permite; as seções 12 a 14 sustentam a produção do entregável.</p>
+
+        <p>Quatro exercícios resolvidos estão distribuídos ao longo do texto. A resolução permanece recolhida por padrão, e recomenda-se formular a própria resposta antes de expandi-la — o exercício perde a função diagnóstica quando a resolução é lida primeiro. Os diagramas não são ilustrações do texto: cada um introduz distinção que o texto não enuncia integralmente, e a leitura que os ignora perde parte do argumento.</p>
+
+        <h3>Onde esta aula se encaixa no módulo</h3>
+
+        <p>As aulas anteriores trataram da modelagem dimensional: grão, tabelas de fato, dimensões, esquemas estrela e floco de neve. Modelagem responde à pergunta <em>como os dados devem ser organizados para serem consultados</em>. Arquitetura responde a uma pergunta anterior e mais ampla: <em>por onde os dados entram, onde repousam, quem os transforma, quem os consome, quem responde quando falham e o que acontece quando a estrutura precisa mudar</em>. Um modelo dimensional correto dentro de uma arquitetura sem contratos, sem donos e sem plano de recuperação continua produzindo relatórios incorretos — apenas com tabelas mais bem desenhadas.</p>
+
+        <div class="callout callout-danger">
+          <div class="callout-label">Erro comum</div>
+          <p>Escolher o padrão antes de conhecer a restrição. A adoção de uma tecnologia por difusão de mercado, e não por exigência declarada, produz custo de operação sem ganho de decisão.</p>
+        </div>
+      </section>
+
+      <!-- ════════════════ SEÇÃO 2 ════════════════ -->
+      <section class="mat-section" id="s2">
+        <h2>2. Requisitos arquiteturais: comece pelas decisões</h2>
+        <span class="read-time">⏱ 9 minutos</span>
+
+        <p>Arquitetura responde a restrições. Enquanto as restrições permanecerem enunciadas em termos qualitativos — <em>muitos dados</em>, <em>precisa ser rápido</em>, <em>não pode cair</em> —, não existe critério para escolher entre alternativas, porque qualquer alternativa as satisfaz retoricamente. O primeiro trabalho arquitetural consiste em converter adjetivos em números.</p>
+
+        <h3>As oito dimensões de restrição</h3>
+
+        <div class="mat-table-wrap">
+          <table class="mat-table">
+            <tr><th style="width:19%">Dimensão</th><th style="width:34%">Pergunta que a torna mensurável</th><th>Exemplo na Rede Aurora</th></tr>
+            <tr><td><strong>Volume</strong></td><td>Quantos registros por dia, com que tamanho médio, e qual a taxa de crescimento anual?</td><td>2,4 milhões de itens/dia; pico de 6 milhões; crescimento de 18% ao ano.</td></tr>
+            <tr><td><strong>Velocidade</strong></td><td>Qual o intervalo máximo aceitável entre o fato ocorrer e o dado ficar disponível?</td><td>15 minutos após o fechamento do caixa para o BI; 2 segundos para antifraude.</td></tr>
+            <tr><td><strong>Variedade</strong></td><td>Quantos formatos distintos e quantos sistemas de origem, com que estabilidade de esquema?</td><td>Cinco origens; uma delas é planilha com esquema instável.</td></tr>
+            <tr><td><strong>Criticidade</strong></td><td>Que decisão de negócio para se o dado ficar indisponível, e qual o prejuízo por hora?</td><td>A reposição diária para; a fraude deixa de ser bloqueada em tempo real.</td></tr>
+            <tr><td><strong>Retenção</strong></td><td>Por quanto tempo cada classe de dado deve ser mantida, e o que ocorre depois?</td><td>Cupom fiscal por 5 anos por exigência fiscal; dado pessoal do fidelidade por 2 anos.</td></tr>
+            <tr><td><strong>Conformidade</strong></td><td>Que dados são pessoais ou sensíveis, e que base legal autoriza cada uso?</td><td>CPF e histórico de compra do fidelidade, sob a LGPD.</td></tr>
+            <tr><td><strong>Orçamento</strong></td><td>Qual o custo mensal aceitável de infraestrutura, licenças e pessoal de operação?</td><td>Limite declarado de custo mensal e uma pessoa dedicada à operação.</td></tr>
+            <tr><td><strong>Consumidores</strong></td><td>Quem consulta, com que ferramenta, com que competência técnica e com que frequência?</td><td>BI com ferramenta visual; ciência de dados com Python e acesso a dado granular.</td></tr>
+          </table>
+        </div>
+
+        <p>A última dimensão é a mais frequentemente omitida e a que mais determina o desenho. Uma plataforma cujos consumidores são analistas de negócio com ferramenta visual exige uma camada semântica estável, com métricas nomeadas e pré-agregadas. Uma plataforma cujos consumidores são cientistas de dados exige acesso ao dado granular, inclusive ao registro bruto anterior à limpeza, porque a limpeza descarta exatamente os desvios que interessam ao modelo. A Rede Aurora possui os dois perfis, e essa coexistência — não uma tendência de mercado — é o que justificará o padrão adotado na Seção 4.</p>
+
+        <h3>Do requisito à decisão: o funil arquitetural</h3>
+
+        <figure class="fig sr">
+          <div class="fig-scroll">
+          <svg viewBox="0 0 860 320" role="img" aria-labelledby="f1t f1d" xmlns="http://www.w3.org/2000/svg">
+            <title id="f1t">Funil que converte restrições em decisões arquiteturais registradas</title>
+            <desc id="f1d">Diagrama em quatro estágios: restrições qualitativas são convertidas em restrições numéricas, que geram alternativas comparáveis, das quais uma é escolhida e registrada em ADR com a alternativa descartada e a consequência aceita.</desc>
+
+            <!-- estágio 1 -->
+            <rect x="8" y="60" width="170" height="150" rx="12" fill="#fef2f2" stroke="#fecaca"/>
+            <text x="93" y="86" text-anchor="middle" font-size="12.5" font-weight="800" fill="#b91c1c" font-family="Manrope,sans-serif">1. Enunciado vago</text>
+            <text x="93" y="112" text-anchor="middle" font-size="11" fill="#7f1d1d" font-family="Manrope,sans-serif">“muitos dados”</text>
+            <text x="93" y="132" text-anchor="middle" font-size="11" fill="#7f1d1d" font-family="Manrope,sans-serif">“precisa ser rápido”</text>
+            <text x="93" y="152" text-anchor="middle" font-size="11" fill="#7f1d1d" font-family="Manrope,sans-serif">“não pode cair”</text>
+            <text x="93" y="180" text-anchor="middle" font-size="10.5" font-style="italic" fill="#991b1b" font-family="Manrope,sans-serif">não decide nada</text>
+
+            <!-- seta -->
+            <path d="M182 135 L212 135" stroke="#9ca3af" stroke-width="2" marker-end="url(#ar1)"/>
+
+            <!-- estágio 2 -->
+            <rect x="216" y="45" width="180" height="180" rx="12" fill="#eff6ff" stroke="#bfdbfe"/>
+            <text x="306" y="71" text-anchor="middle" font-size="12.5" font-weight="800" fill="#1d4ed8" font-family="Manrope,sans-serif">2. Restrição numérica</text>
+            <text x="306" y="97" text-anchor="middle" font-size="11" fill="#1e3a8a" font-family="Manrope,sans-serif">2,4 M itens/dia</text>
+            <text x="306" y="117" text-anchor="middle" font-size="11" fill="#1e3a8a" font-family="Manrope,sans-serif">pico 6 M</text>
+            <text x="306" y="137" text-anchor="middle" font-size="11" fill="#1e3a8a" font-family="Manrope,sans-serif">disponível em 15 min</text>
+            <text x="306" y="157" text-anchor="middle" font-size="11" fill="#1e3a8a" font-family="Manrope,sans-serif">retenção 5 anos</text>
+            <text x="306" y="177" text-anchor="middle" font-size="11" fill="#1e3a8a" font-family="Manrope,sans-serif">RPO 1 h · RTO 4 h</text>
+            <text x="306" y="203" text-anchor="middle" font-size="10.5" font-style="italic" fill="#1d4ed8" font-family="Manrope,sans-serif">agora é verificável</text>
+
+            <path d="M400 135 L430 135" stroke="#9ca3af" stroke-width="2" marker-end="url(#ar1)"/>
+
+            <!-- estágio 3 -->
+            <rect x="434" y="45" width="180" height="180" rx="12" fill="#f5f3ff" stroke="#ddd6fe"/>
+            <text x="524" y="71" text-anchor="middle" font-size="12.5" font-weight="800" fill="#6d28d9" font-family="Manrope,sans-serif">3. Alternativas</text>
+            <text x="524" y="99" text-anchor="middle" font-size="11" fill="#4c1d95" font-family="Manrope,sans-serif">A. Warehouse fechado</text>
+            <text x="524" y="123" text-anchor="middle" font-size="11" fill="#4c1d95" font-family="Manrope,sans-serif">B. Data lake puro</text>
+            <text x="524" y="147" text-anchor="middle" font-size="11" fill="#4c1d95" font-family="Manrope,sans-serif">C. Lakehouse</text>
+            <text x="524" y="171" text-anchor="middle" font-size="11" fill="#4c1d95" font-family="Manrope,sans-serif">D. Data mesh</text>
+            <text x="524" y="199" text-anchor="middle" font-size="10.5" font-style="italic" fill="#6d28d9" font-family="Manrope,sans-serif">comparáveis entre si</text>
+
+            <path d="M618 135 L648 135" stroke="#9ca3af" stroke-width="2" marker-end="url(#ar1)"/>
+
+            <!-- estágio 4 -->
+            <rect x="652" y="60" width="200" height="150" rx="12" fill="#f0fdf4" stroke="#bbf7d0"/>
+            <text x="752" y="86" text-anchor="middle" font-size="12.5" font-weight="800" fill="#15803d" font-family="Manrope,sans-serif">4. Decisão em ADR</text>
+            <text x="752" y="112" text-anchor="middle" font-size="11" fill="#14532d" font-family="Manrope,sans-serif">escolha: C</text>
+            <text x="752" y="132" text-anchor="middle" font-size="11" fill="#14532d" font-family="Manrope,sans-serif">descartada: A (esquema fixo)</text>
+            <text x="752" y="152" text-anchor="middle" font-size="11" fill="#14532d" font-family="Manrope,sans-serif">consequência: catálogo</text>
+            <text x="752" y="172" text-anchor="middle" font-size="11" fill="#14532d" font-family="Manrope,sans-serif">e compactação com dono</text>
+            <text x="752" y="196" text-anchor="middle" font-size="10.5" font-style="italic" fill="#15803d" font-family="Manrope,sans-serif">reavaliável no futuro</text>
+
+            <!-- rodapé -->
+            <text x="430" y="268" text-anchor="middle" font-size="11.5" font-weight="700" fill="#2e2640" font-family="Manrope,sans-serif">A qualidade da decisão no estágio 4 é limitada pela precisão obtida no estágio 2.</text>
+            <text x="430" y="290" text-anchor="middle" font-size="11" fill="#64748b" font-family="Manrope,sans-serif">Saltar do estágio 1 para o 4 produz escolha por preferência, não por requisito.</text>
+
+            <defs>
+              <marker id="ar1" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+                <path d="M0,0 L0,6.4 L8,3.2 z" fill="#9ca3af"/>
+              </marker>
+            </defs>
+          </svg>
+          </div>
+          <figcaption><b>Figura 1.</b> O funil arquitetural. Cada estágio só é legítimo se o anterior estiver completo; a ausência do estágio 2 torna o estágio 3 uma lista de preferências e o estágio 4, uma justificativa construída após a escolha.</figcaption>
+        </figure>
+
+        <h3>Requisitos não funcionais verificáveis</h3>
+
+        <p>Um requisito não funcional exige três componentes para ser verificável: uma métrica, um limite numérico e um instrumento de medição. A ausência de qualquer um deles impede a construção de um cenário de aceite, e um requisito sem cenário de aceite não é passível de reprovação — logo, não governa nada.</p>
+
+        <div class="anti">
+          <div class="anti-box anti-bad">
+            <b>Não verificável</b>
+            “A plataforma deve ser rápida e confiável, com alta disponibilidade dos dados de vendas.”
+            <br><br>Não há métrica, limite nem instrumento. Qualquer implementação pode ser declarada conforme.
+          </div>
+          <div class="anti-box anti-good">
+            <b>Verificável</b>
+            “RNF-003 — O dado de venda deve estar disponível na camada de consumo em até 15 minutos após o fechamento da origem, medido pela diferença entre o carimbo de tempo do evento e o de inserção na camada gold, apurado no percentil 95 da janela diária.”
+          </div>
+        </div>
+
+        <div class="exercise">
+          <h4>Exercício resolvido 2.1 — converter enunciado em restrição</h4>
+          <p>A diretoria da Rede Aurora afirma: <em>“precisamos saber as vendas em tempo real”</em>. Converta esse enunciado em restrição verificável, ou demonstre que ele não se sustenta.</p>
+          <details class="answer">
+            <summary>Ver resolução</summary>
+            <p>O procedimento consiste em perguntar qual decisão muda em função da latência. Ao investigar, verifica-se que a diretoria consulta o painel de vendas uma vez ao dia, pela manhã, e que a decisão associada — ajuste de reposição — é executada às 7h, uma vez por dia.</p>
+            <p>A latência exigida pela decisão é, portanto, de horas, não de segundos. O enunciado original não se sustenta como requisito de tempo real. A restrição verificável correspondente é: <code>dado de venda do dia anterior disponível até as 6h30, no percentil 95 dos dias úteis</code>.</p>
+            <p>Observe-se que existe, na mesma organização, uma decisão genuinamente sensível a segundos: o bloqueio de transação fraudulenta. A conclusão correta não é que a Rede Aurora dispensa baixa latência, e sim que a baixa latência é exigida por <strong>um</strong> caso de uso específico, e o custo de operá-la deve incidir apenas sobre esse caso — não sobre a plataforma inteira.</p>
+          </details>
+        </div>
+
+        <div class="callout callout-tip">
+          <div class="callout-label">Checklist de aplicação</div>
+          <ul>
+            <li>Escreva as restrições em números: volume, latência, retenção, orçamento.</li>
+            <li>Identifique a decisão de negócio que a plataforma precisa sustentar.</li>
+            <li>Descarte explicitamente ao menos uma alternativa, com o motivo registrado.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ════════════════ SEÇÃO 3 ════════════════ -->
+      <section class="mat-section" id="s3">
+        <h2>3. Camadas e responsabilidades</h2>
+        <span class="read-time">⏱ 11 minutos</span>
+
+        <p>A estruturação em camadas é o mecanismo pelo qual uma plataforma de dados isola mudanças. Cada camada recebe um contrato de entrada, um contrato de saída, um responsável nomeado e uma política de qualidade declarada. Quando uma origem altera o nome de um campo, a mudança é absorvida na fronteira de ingestão e não se propaga até o relatório da diretoria — desde que as camadas sejam distintas em responsabilidade, e não apenas em nome.</p>
+
+        <h3>As cinco camadas canônicas</h3>
+
+        <figure class="fig sr">
+          <div class="fig-scroll">
+          <svg viewBox="0 -34 880 398" role="img" aria-labelledby="f2t f2d" xmlns="http://www.w3.org/2000/svg">
+            <title id="f2t">As cinco camadas de uma plataforma de dados com contrato, dono e política de qualidade</title>
+            <desc id="f2d">Fluxo horizontal da esquerda para a direita passando por ingestão, armazenamento bruto, dados tratados, camada de serviço e consumo. Abaixo de cada camada indicam-se contrato de saída, responsável e política de qualidade. Uma seta tracejada de baixo indica a proibição de salto de camada.</desc>
+
+            <!-- camadas -->
+            <g font-family="Manrope,sans-serif">
+              <rect x="10" y="40" width="158" height="92" rx="11" fill="#fee2e2" stroke="#fca5a5"/>
+              <text x="89" y="70" text-anchor="middle" font-size="13" font-weight="800" fill="#991b1b">Ingestão</text>
+              <text x="89" y="92" text-anchor="middle" font-size="10.5" fill="#7f1d1d">extrai da origem</text>
+              <text x="89" y="110" text-anchor="middle" font-size="10.5" fill="#7f1d1d">sem transformar</text>
+
+              <rect x="186" y="40" width="158" height="92" rx="11" fill="#ffedd5" stroke="#fdba74"/>
+              <text x="265" y="70" text-anchor="middle" font-size="13" font-weight="800" fill="#9a3412">Bruto</text>
+              <text x="265" y="92" text-anchor="middle" font-size="10.5" fill="#7c2d12">cópia fiel e imutável</text>
+              <text x="265" y="110" text-anchor="middle" font-size="10.5" fill="#7c2d12">particionada por data</text>
+
+              <rect x="362" y="40" width="158" height="92" rx="11" fill="#dbeafe" stroke="#93c5fd"/>
+              <text x="441" y="70" text-anchor="middle" font-size="13" font-weight="800" fill="#1d4ed8">Tratado</text>
+              <text x="441" y="92" text-anchor="middle" font-size="10.5" fill="#1e3a8a">tipado, deduplicado</text>
+              <text x="441" y="110" text-anchor="middle" font-size="10.5" fill="#1e3a8a">regras de qualidade</text>
+
+              <rect x="538" y="40" width="158" height="92" rx="11" fill="#ede9fe" stroke="#c4b5fd"/>
+              <text x="617" y="70" text-anchor="middle" font-size="13" font-weight="800" fill="#6d28d9">Serviço</text>
+              <text x="617" y="92" text-anchor="middle" font-size="10.5" fill="#4c1d95">modelo dimensional</text>
+              <text x="617" y="110" text-anchor="middle" font-size="10.5" fill="#4c1d95">métricas nomeadas</text>
+
+              <rect x="714" y="40" width="158" height="92" rx="11" fill="#dcfce7" stroke="#86efac"/>
+              <text x="793" y="70" text-anchor="middle" font-size="13" font-weight="800" fill="#15803d">Consumo</text>
+              <text x="793" y="92" text-anchor="middle" font-size="10.5" fill="#14532d">BI, modelos, APIs</text>
+              <text x="793" y="110" text-anchor="middle" font-size="10.5" fill="#14532d">nunca escreve</text>
+
+              <!-- setas entre camadas -->
+              <path d="M170 86 L184 86" stroke="#6b7280" stroke-width="2.2" marker-end="url(#ar2)"/>
+              <path d="M346 86 L360 86" stroke="#6b7280" stroke-width="2.2" marker-end="url(#ar2)"/>
+              <path d="M522 86 L536 86" stroke="#6b7280" stroke-width="2.2" marker-end="url(#ar2)"/>
+              <path d="M698 86 L712 86" stroke="#6b7280" stroke-width="2.2" marker-end="url(#ar2)"/>
+
+              <!-- faixa de contratos -->
+              <text x="14" y="170" font-size="10.5" font-weight="800" fill="#2e2640">CONTRATO DE SAÍDA</text>
+              <text x="89" y="196" text-anchor="middle" font-size="10" fill="#475569">arquivo bruto</text>
+              <text x="89" y="212" text-anchor="middle" font-size="10" fill="#475569">+ metadado de carga</text>
+              <text x="265" y="196" text-anchor="middle" font-size="10" fill="#475569">esquema declarado</text>
+              <text x="265" y="212" text-anchor="middle" font-size="10" fill="#475569">imutável e datado</text>
+              <text x="441" y="196" text-anchor="middle" font-size="10" fill="#475569">tabela tipada</text>
+              <text x="441" y="212" text-anchor="middle" font-size="10" fill="#475569">chave única garantida</text>
+              <text x="617" y="196" text-anchor="middle" font-size="10" fill="#475569">fato e dimensão</text>
+              <text x="617" y="212" text-anchor="middle" font-size="10" fill="#475569">métrica versionada</text>
+              <text x="793" y="196" text-anchor="middle" font-size="10" fill="#475569">consulta somente</text>
+              <text x="793" y="212" text-anchor="middle" font-size="10" fill="#475569">leitura</text>
+
+              <line x1="10" y1="228" x2="872" y2="228" stroke="#e2e8f0" stroke-width="1.5"/>
+
+              <text x="14" y="252" font-size="10.5" font-weight="800" fill="#2e2640">DONO</text>
+              <text x="89" y="276" text-anchor="middle" font-size="10" fill="#475569">Eng. de dados</text>
+              <text x="265" y="276" text-anchor="middle" font-size="10" fill="#475569">Eng. de dados</text>
+              <text x="441" y="276" text-anchor="middle" font-size="10" fill="#475569">Eng. analítica</text>
+              <text x="617" y="276" text-anchor="middle" font-size="10" fill="#475569">Eng. analítica</text>
+              <text x="793" y="276" text-anchor="middle" font-size="10" fill="#475569">Área de negócio</text>
+
+              <line x1="10" y1="292" x2="872" y2="292" stroke="#e2e8f0" stroke-width="1.5"/>
+
+              <text x="14" y="316" font-size="10.5" font-weight="800" fill="#2e2640">POLÍTICA DE QUALIDADE</text>
+              <text x="89" y="340" text-anchor="middle" font-size="10" fill="#475569">carga completa</text>
+              <text x="265" y="340" text-anchor="middle" font-size="10" fill="#475569">nada é descartado</text>
+              <text x="441" y="340" text-anchor="middle" font-size="10" fill="#475569">testes de validade</text>
+              <text x="617" y="340" text-anchor="middle" font-size="10" fill="#475569">métrica reconciliada</text>
+              <text x="793" y="340" text-anchor="middle" font-size="10" fill="#475569">uso monitorado</text>
+
+              <!-- proibição de salto: traçada acima das caixas para não cruzar a tabela -->
+              <path d="M793 38 C 793 -26, 265 -26, 265 38" stroke="#dc2626" stroke-width="2" stroke-dasharray="7 5" fill="none" marker-end="url(#arx)"/>
+              <rect x="404" y="-20" width="220" height="26" rx="8" fill="#fef2f2" stroke="#fecaca"/>
+              <text x="514" y="-2" text-anchor="middle" font-size="11" font-weight="800" fill="#b91c1c">salto de camada: proibido</text>
+            </g>
+            <defs>
+              <marker id="ar2" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+                <path d="M0,0 L0,6.4 L8,3.2 z" fill="#6b7280"/>
+              </marker>
+              <marker id="arx" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+                <path d="M0,0 L0,6.4 L8,3.2 z" fill="#dc2626"/>
+              </marker>
+            </defs>
+          </svg>
+          </div>
+          <figcaption><b>Figura 2.</b> Camadas com contrato, dono e política de qualidade. A linha tracejada representa o acesso direto do consumo ao dado bruto, prática que anula o isolamento pretendido pela estruturação em camadas.</figcaption>
+        </figure>
+
+        <p>A nomenclatura <strong>bronze, prata e ouro</strong>, difundida por plataformas de <em>lakehouse</em>, corresponde às camadas de bruto, tratado e serviço. A escolha do vocabulário é indiferente; o que importa é a existência de contratos distintos. Uma organização que possui três esquemas de banco chamados <code>bronze</code>, <code>silver</code> e <code>gold</code> contendo as mesmas colunas, com as mesmas regras e o mesmo responsável, não possui três camadas: possui uma camada e duas cópias, com o custo de armazenamento triplicado e nenhum ganho de isolamento.</p>
+
+        <h3>Por que a camada bruta deve ser imutável</h3>
+
+        <p>A camada de armazenamento bruto guarda a cópia fiel do que a origem entregou, sem correção, sem tipagem e sem descarte. Essa exigência costuma parecer desperdício até o primeiro incidente. Quando se descobre, três meses após a implantação, que a regra de conversão de moeda estava incorreta, a existência do dado bruto permite reprocessar todo o histórico com a regra corrigida. Sua ausência torna o erro permanente, porque a informação original foi destruída no momento da transformação.</p>
+
+        <div class="callout callout-deep">
+          <div class="callout-label">Aprofundamento</div>
+          <p>A imutabilidade da camada bruta implementa, no domínio de dados, o mesmo princípio que o <em>log</em> de transações implementa em bancos de dados e que o histórico de <em>commits</em> implementa em sistemas de controle de versão: preservar a sequência de fatos permite reconstruir qualquer estado derivado. O estado atual é uma projeção do histórico; se apenas a projeção é armazenada, toda revisão da regra de projeção torna-se irrealizável.</p>
+        </div>
+
+        <h3>O contrato de dados na prática</h3>
+
+        <p>Contrato de dados é a especificação, acordada entre produtor e consumidor, do formato, da semântica e das garantias de qualidade de um conjunto de dados. Sua função é converter uma expectativa implícita em obrigação verificável: sem contrato, o produtor não sabe o que pode alterar sem causar dano, e o consumidor não sabe com o que pode contar.</p>
+
+        <p>O contrato deve ser um artefato versionado no repositório, e não um acordo verbal. O exemplo abaixo especifica a saída da camada tratada para a tabela de itens de venda da Rede Aurora.</p>
+
+        <pre class="code"><span class="cm"># contratos/silver.item_venda.yaml</span>
+<span class="kw">nome:</span> silver.item_venda
+<span class="kw">versao:</span> <span class="st">"2.1.0"</span>
+<span class="kw">dono:</span> engenharia-de-dados
+<span class="kw">origem:</span> bronze.cupom_item
+<span class="kw">particionamento:</span> data_particao <span class="cm"># diário; habilita reprocessamento idempotente</span>
+
+<span class="kw">chave_unica:</span> [id_cupom, sequencia_item]
+
+<span class="kw">campos:</span>
+  - <span class="kw">nome:</span> id_cupom
+    <span class="kw">tipo:</span> string
+    <span class="kw">obrigatorio:</span> true
+  - <span class="kw">nome:</span> valor_total_com_imposto
+    <span class="kw">tipo:</span> decimal(12,2)
+    <span class="kw">obrigatorio:</span> true
+    <span class="kw">semantica:</span> <span class="st">"valor do item incluindo tributos incidentes"</span>
+  - <span class="kw">nome:</span> id_cliente_substituto
+    <span class="kw">tipo:</span> string
+    <span class="kw">obrigatorio:</span> false
+    <span class="kw">classificacao:</span> pseudonimizado <span class="cm"># CPF não trafega a partir desta camada</span>
+
+<span class="kw">garantias:</span>
+  - <span class="kw">regra:</span> unicidade(chave_unica)
+    <span class="kw">acao_se_violada:</span> rejeitar_carga
+  - <span class="kw">regra:</span> valor_total_com_imposto &gt;= <span class="nu">0</span>
+    <span class="kw">acao_se_violada:</span> rejeitar_carga
+  - <span class="kw">regra:</span> completude(id_cupom) == <span class="nu">100</span>%
+    <span class="kw">acao_se_violada:</span> rejeitar_carga
+  - <span class="kw">regra:</span> contagem_diaria &gt;= <span class="nu">0.8</span> * media_movel_7d
+    <span class="kw">acao_se_violada:</span> alertar_dono <span class="cm"># queda abrupta indica falha na origem</span>
+
+<span class="kw">evolucao:</span>
+  <span class="kw">politica:</span> retrocompatibilidade_obrigatoria
+  <span class="kw">prazo_de_transicao_dias:</span> <span class="nu">30</span></pre>
+
+        <p>Três elementos desse contrato merecem destaque. O campo <code>semantica</code> registra o significado por extenso, o que torna detectável a alteração descrita ao final da Seção 7 — mudar o significado mantendo nome e tipo. O par <code>regra</code> e <code>acao_se_violada</code> distingue as violações que interrompem a carga daquelas que apenas notificam: rejeitar a carga por queda de volume seria excessivo, pois um feriado produz legitimamente menos cupons, mas ignorá-la impediria detectar a falha silenciosa de uma origem. E o bloco <code>evolucao</code> declara antecipadamente a política, de modo que a discussão sobre a admissibilidade de uma mudança ocorra antes dela, e não durante o incidente que ela causou.</p>
+
+        <h3>A camada de serviço e o vocabulário do negócio</h3>
+
+        <p>A camada de serviço é onde reside o modelo dimensional estudado nas aulas anteriores, e é também onde as métricas recebem definição única. Se <em>receita líquida</em> for calculada dentro de cada relatório, existirão tantas definições quantos forem os relatórios, e a divergência entre elas será descoberta em reunião de diretoria. Definir a métrica uma vez, na camada de serviço, com versionamento, é o que permite responder à pergunta <em>por que os dois números diferem</em> antes que ela seja feita.</p>
+
+        <div class="case">
+          <div class="callout-label">Aplicação — Rede Aurora</div>
+          <p>A área de compras mantém uma planilha com o custo negociado por fornecedor. Trata-se de origem de esquema instável: colunas são renomeadas sem aviso e linhas de totalização aparecem no meio dos dados.</p>
+          <p><strong>Decisão adotada:</strong> a planilha é ingerida sem transformação para a camada bruta, preservando inclusive as linhas de totalização. A remoção dessas linhas e a normalização dos nomes de coluna ocorrem na transição para a camada tratada, onde um teste de validade rejeita a carga caso o número de colunas divirja do esquema declarado. A área de compras é nomeada dona do contrato de entrada; a engenharia de dados é dona do contrato de saída da camada tratada.</p>
+          <p><strong>Consequência aceita:</strong> quando a planilha muda de formato, a carga falha de maneira visível na fronteira, em vez de propagar valores incorretos silenciosamente até o relatório de margem.</p>
+        </div>
+
+        <div class="exercise">
+          <h4>Exercício resolvido 3.1 — diagnosticar camadas falsas</h4>
+          <p>Uma equipe apresenta a seguinte arquitetura: <code>raw.vendas</code>, <code>stg.vendas</code> e <code>dw.vendas</code>, todas com as mesmas 42 colunas, carregadas pela mesma rotina, mantidas pela mesma pessoa. Qual o diagnóstico?</p>
+          <details class="answer">
+            <summary>Ver resolução</summary>
+            <p>Não existem três camadas. A identidade de colunas indica ausência de transformação entre os estágios; a identidade de rotina indica ausência de contratos independentes; a identidade de responsável indica ausência de fronteira organizacional. O arranjo constitui uma camada única replicada três vezes.</p>
+            <p>O custo é imediato: triplica-se o armazenamento e o tempo de carga, e mantém-se a propagação direta de qualquer alteração da origem até o consumo. A correção consiste em definir o que cada transição deve garantir — por exemplo, tipagem e deduplicação entre <code>raw</code> e <code>stg</code>, e conformação dimensional entre <code>stg</code> e <code>dw</code> — e em declarar o teste que verifica cada garantia. Se nenhuma garantia distinta puder ser enunciada para uma transição, a camada correspondente deve ser eliminada.</p>
+          </details>
+        </div>
+
+        <div class="callout callout-danger">
+          <div class="callout-label">Erro comum</div>
+          <p>Camadas que só diferem no nome do esquema. Sem contrato distinto, trata-se de uma camada única com três cópias.</p>
+        </div>
+
+        <div class="callout callout-tip">
+          <div class="callout-label">Checklist de aplicação</div>
+          <ul>
+            <li>Dê a cada camada um contrato de entrada e de saída.</li>
+            <li>Nomeie o responsável por qualidade e por incidente.</li>
+            <li>Proíba salto de camada: o consumo não lê o dado bruto.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ════════════════ SEÇÃO 4 ════════════════ -->
+      <section class="mat-section" id="s4">
+        <h2>4. Padrões de plataforma</h2>
+        <span class="read-time">⏱ 8 minutos</span>
+
+        <p>Os padrões descritos a seguir são respostas históricas a restrições distintas. Nenhum deles é sucessor universal do anterior, ainda que a literatura comercial frequentemente os apresente em ordem cronológica sugerindo progresso. O critério de escolha é a correspondência entre o que o padrão resolve e o que a organização declarou como restrição.</p>
+
+        <h3>Comparação estruturada</h3>
+
+        <div class="mat-table-wrap">
+          <table class="mat-table">
+            <tr><th style="width:16%">Padrão</th><th style="width:26%">Restrição que resolve</th><th style="width:26%">Custo que introduz</th><th>Pressuposto organizacional</th></tr>
+            <tr>
+              <td><strong>Data warehouse</strong></td>
+              <td>Consulta analítica rápida e consistente sobre dados estruturados, com métricas reconciliadas.</td>
+              <td>Esquema definido antes da carga; dado não estruturado fica fora; alteração de modelo é lenta.</td>
+              <td>Requisitos analíticos relativamente estáveis e conhecidos.</td>
+            </tr>
+            <tr>
+              <td><strong>Data lake</strong></td>
+              <td>Armazenamento barato de grande volume e de qualquer formato, com esquema aplicado na leitura.</td>
+              <td>Ausência de garantias transacionais e de esquema; degrada-se em repositório inexplorável sem catálogo.</td>
+              <td>Equipe capaz de impor governança sem que a tecnologia a imponha.</td>
+            </tr>
+            <tr>
+              <td><strong>Lakehouse</strong></td>
+              <td>Coexistência de consumo analítico estruturado e acesso granular para ciência de dados sobre o mesmo armazenamento.</td>
+              <td>Dependência de catálogo, de formato tabular transacional e de rotina de compactação de arquivos.</td>
+              <td>Equipe de engenharia capaz de operar o catálogo e a manutenção física.</td>
+            </tr>
+            <tr>
+              <td><strong>Hub-and-spoke</strong></td>
+              <td>Necessidade de repositório central conciliado com áreas que exigem autonomia de modelagem.</td>
+              <td>Risco de divergência entre o centro e as pontas; exige conformação de dimensões.</td>
+              <td>Autoridade central reconhecida para arbitrar definições conflitantes.</td>
+            </tr>
+            <tr>
+              <td><strong>Data mesh</strong></td>
+              <td>Gargalo de uma equipe central única atendendo muitos domínios com conhecimento que ela não possui.</td>
+              <td>Duplicação de esforço; exige plataforma de autoatendimento e governança federada.</td>
+              <td>Times de domínio com autonomia real, orçamento próprio e capacidade de operar seus dados.</td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="callout callout-warn">
+          <div class="callout-label">Critério de decisão</div>
+          <p>A coluna determinante é a última. <em>Data mesh</em> é, antes de uma decisão tecnológica, uma decisão de estrutura organizacional: transfere a responsabilidade pelo dado aos times que o produzem. Uma organização que adota a topologia sem transferir a responsabilidade obtém os custos da descentralização somados aos gargalos da centralização.</p>
+        </div>
+
+        <h3>Topologias comparadas</h3>
+
+        <figure class="fig sr">
+          <div class="fig-scroll">
+          <svg viewBox="0 0 880 300" role="img" aria-labelledby="f3t f3d" xmlns="http://www.w3.org/2000/svg">
+            <title id="f3t">Comparação entre topologia centralizada, hub-and-spoke e data mesh</title>
+            <desc id="f3d">Três esquemas lado a lado. À esquerda, quatro origens convergem para um repositório central único que serve todos os consumidores. Ao centro, um repositório central alimenta repositórios departamentais. À direita, cada domínio publica seu próprio produto de dados sobre uma plataforma comum de autoatendimento.</desc>
+            <g font-family="Manrope,sans-serif">
+              <!-- centralizado -->
+              <text x="140" y="24" text-anchor="middle" font-size="12.5" font-weight="800" fill="#2e2640">Centralizado</text>
+              <circle cx="60" cy="70" r="16" fill="#fee2e2" stroke="#fca5a5"/><text x="60" y="74" text-anchor="middle" font-size="9" fill="#991b1b">PDV</text>
+              <circle cx="60" cy="120" r="16" fill="#fee2e2" stroke="#fca5a5"/><text x="60" y="124" text-anchor="middle" font-size="9" fill="#991b1b">ERP</text>
+              <circle cx="60" cy="170" r="16" fill="#fee2e2" stroke="#fca5a5"/><text x="60" y="174" text-anchor="middle" font-size="9" fill="#991b1b">Web</text>
+              <circle cx="60" cy="220" r="16" fill="#fee2e2" stroke="#fca5a5"/><text x="60" y="224" text-anchor="middle" font-size="9" fill="#991b1b">CRM</text>
+              <rect x="106" y="120" width="70" height="50" rx="9" fill="#ede9fe" stroke="#c4b5fd"/>
+              <text x="141" y="142" text-anchor="middle" font-size="10" font-weight="700" fill="#4c1d95">repositório</text>
+              <text x="141" y="157" text-anchor="middle" font-size="10" font-weight="700" fill="#4c1d95">central</text>
+              <path d="M76 70 L106 132" stroke="#9ca3af" stroke-width="1.6"/>
+              <path d="M76 120 L104 138" stroke="#9ca3af" stroke-width="1.6"/>
+              <path d="M76 170 L104 152" stroke="#9ca3af" stroke-width="1.6"/>
+              <path d="M76 220 L106 160" stroke="#9ca3af" stroke-width="1.6"/>
+              <circle cx="222" cy="120" r="15" fill="#dcfce7" stroke="#86efac"/><text x="222" y="124" text-anchor="middle" font-size="9" fill="#14532d">BI</text>
+              <circle cx="222" cy="170" r="15" fill="#dcfce7" stroke="#86efac"/><text x="222" y="174" text-anchor="middle" font-size="9" fill="#14532d">DS</text>
+              <path d="M176 138 L207 124" stroke="#9ca3af" stroke-width="1.6"/>
+              <path d="M176 152 L207 166" stroke="#9ca3af" stroke-width="1.6"/>
+              <text x="140" y="266" text-anchor="middle" font-size="10" fill="#64748b">uma equipe, um gargalo,</text>
+              <text x="140" y="282" text-anchor="middle" font-size="10" fill="#64748b">definição única</text>
+
+              <line x1="290" y1="30" x2="290" y2="270" stroke="#e2e8f0" stroke-width="1.5"/>
+
+              <!-- hub and spoke -->
+              <text x="440" y="24" text-anchor="middle" font-size="12.5" font-weight="800" fill="#2e2640">Hub-and-spoke</text>
+              <circle cx="340" cy="90" r="15" fill="#fee2e2" stroke="#fca5a5"/><text x="340" y="94" text-anchor="middle" font-size="9" fill="#991b1b">PDV</text>
+              <circle cx="340" cy="150" r="15" fill="#fee2e2" stroke="#fca5a5"/><text x="340" y="154" text-anchor="middle" font-size="9" fill="#991b1b">ERP</text>
+              <rect x="388" y="98" width="66" height="46" rx="9" fill="#ede9fe" stroke="#c4b5fd"/>
+              <text x="421" y="118" text-anchor="middle" font-size="10" font-weight="700" fill="#4c1d95">hub</text>
+              <text x="421" y="133" text-anchor="middle" font-size="9" fill="#4c1d95">conformado</text>
+              <path d="M355 92 L388 112" stroke="#9ca3af" stroke-width="1.6"/>
+              <path d="M355 148 L388 132" stroke="#9ca3af" stroke-width="1.6"/>
+              <rect x="486" y="60" width="70" height="34" rx="8" fill="#dbeafe" stroke="#93c5fd"/><text x="521" y="82" text-anchor="middle" font-size="9.5" fill="#1e3a8a">mart comercial</text>
+              <rect x="486" y="104" width="70" height="34" rx="8" fill="#dbeafe" stroke="#93c5fd"/><text x="521" y="126" text-anchor="middle" font-size="9.5" fill="#1e3a8a">mart logística</text>
+              <rect x="486" y="148" width="70" height="34" rx="8" fill="#dbeafe" stroke="#93c5fd"/><text x="521" y="170" text-anchor="middle" font-size="9.5" fill="#1e3a8a">mart finanças</text>
+              <path d="M454 112 L486 78" stroke="#9ca3af" stroke-width="1.6"/>
+              <path d="M454 121 L486 121" stroke="#9ca3af" stroke-width="1.6"/>
+              <path d="M454 130 L486 164" stroke="#9ca3af" stroke-width="1.6"/>
+              <text x="440" y="266" text-anchor="middle" font-size="10" fill="#64748b">autonomia departamental</text>
+              <text x="440" y="282" text-anchor="middle" font-size="10" fill="#64748b">com dimensão conformada</text>
+
+              <line x1="592" y1="30" x2="592" y2="270" stroke="#e2e8f0" stroke-width="1.5"/>
+
+              <!-- mesh -->
+              <text x="736" y="24" text-anchor="middle" font-size="12.5" font-weight="800" fill="#2e2640">Data mesh</text>
+              <rect x="628" y="52" width="96" height="40" rx="9" fill="#fff7ed" stroke="#fdba74"/>
+              <text x="676" y="70" text-anchor="middle" font-size="9.5" font-weight="700" fill="#9a3412">domínio Vendas</text>
+              <text x="676" y="84" text-anchor="middle" font-size="8.5" fill="#9a3412">publica produto</text>
+              <rect x="628" y="102" width="96" height="40" rx="9" fill="#fff7ed" stroke="#fdba74"/>
+              <text x="676" y="120" text-anchor="middle" font-size="9.5" font-weight="700" fill="#9a3412">domínio Estoque</text>
+              <text x="676" y="134" text-anchor="middle" font-size="8.5" fill="#9a3412">publica produto</text>
+              <rect x="628" y="152" width="96" height="40" rx="9" fill="#fff7ed" stroke="#fdba74"/>
+              <text x="676" y="170" text-anchor="middle" font-size="9.5" font-weight="700" fill="#9a3412">domínio Fidelidade</text>
+              <text x="676" y="184" text-anchor="middle" font-size="8.5" fill="#9a3412">publica produto</text>
+              <rect x="628" y="202" width="216" height="40" rx="8" fill="#f1f5f9" stroke="#cbd5e1"/>
+              <text x="736" y="218" text-anchor="middle" font-size="10" font-weight="700" fill="#334155">plataforma de autoatendimento</text>
+              <text x="736" y="233" text-anchor="middle" font-size="10" font-weight="700" fill="#334155">+ governança federada</text>
+              <circle cx="800" cy="72" r="15" fill="#dcfce7" stroke="#86efac"/><text x="800" y="76" text-anchor="middle" font-size="9" fill="#14532d">BI</text>
+              <circle cx="800" cy="140" r="15" fill="#dcfce7" stroke="#86efac"/><text x="800" y="144" text-anchor="middle" font-size="9" fill="#14532d">DS</text>
+              <path d="M724 72 L785 72" stroke="#9ca3af" stroke-width="1.6"/>
+              <path d="M724 122 L785 136" stroke="#9ca3af" stroke-width="1.6"/>
+              <path d="M724 172 L787 148" stroke="#9ca3af" stroke-width="1.6"/>
+              <text x="736" y="266" text-anchor="middle" font-size="10" fill="#64748b">exige times de domínio com</text>
+              <text x="736" y="282" text-anchor="middle" font-size="10" fill="#64748b">autonomia e orçamento reais</text>
+            </g>
+          </svg>
+          </div>
+          <figcaption><b>Figura 3.</b> Três topologias e seus pressupostos. A topologia da direita transfere a responsabilidade pelo dado ao domínio que o produz; adotá-la sem essa transferência preserva o gargalo central e acrescenta o custo da distribuição.</figcaption>
+        </figure>
+
+        <h3>O custo de governança e por que ele é subestimado</h3>
+
+        <p>A comparação entre padrões costuma restringir-se ao custo de infraestrutura, que é visível, mensurável e cotado por fornecedores. O custo de governança é invisível na proposta e dominante na operação, pois consiste majoritariamente em tempo de pessoas. Ao avaliar um padrão candidato, devem ser estimados ao menos cinco itens recorrentes.</p>
+
+        <ul>
+          <li><strong>Catalogação.</strong> Registro e manutenção da descrição de cada conjunto de dados publicado, incluindo significado dos campos e responsável.</li>
+          <li><strong>Manutenção física.</strong> Compactação de arquivos, reorganização de partições e expurgo de versões antigas — atividades que não produzem valor visível e cuja omissão degrada a consulta progressivamente.</li>
+          <li><strong>Revisão de acessos.</strong> Verificação periódica de quem detém quais privilégios, com revogação do que deixou de ser necessário.</li>
+          <li><strong>Conciliação de definições.</strong> Arbitragem entre áreas que calculam a mesma métrica de modos distintos, atividade tanto mais frequente quanto mais descentralizado for o padrão.</li>
+          <li><strong>Resposta a incidentes.</strong> Tempo dedicado à investigação e correção de falhas de carga e de qualidade, proporcional ao número de componentes independentes.</li>
+        </ul>
+
+        <p>A relevância dessa estimativa aparece na comparação entre padrões centralizados e distribuídos. A distribuição reduz o gargalo da equipe central e aumenta os itens de conciliação e de resposta a incidentes, porque multiplica o número de produtores independentes. Uma organização com uma única equipe de dados que adota topologia distribuída não elimina o gargalo — ela o mantém e acrescenta o custo de coordenação entre produtores que não existem.</p>
+
+        <h3>O princípio da simplicidade suficiente</h3>
+
+        <p>Entre padrões que atendem às restrições declaradas, deve-se adotar o mais simples. A justificativa não é estética: cada elemento adicional da plataforma consome capacidade de operação, e a capacidade de operação é o recurso mais escasso em equipes pequenas. Uma arquitetura que a equipe não consegue operar em regime de incidente é, do ponto de vista da disponibilidade, pior do que uma arquitetura menos sofisticada que ela domina.</p>
+
+        <div class="case">
+          <div class="callout-label">Aplicação — Rede Aurora</div>
+          <p><strong>Alternativas consideradas.</strong> (A) Data warehouse fechado; (B) data lake puro; (C) lakehouse; (D) data mesh.</p>
+          <p><strong>Descarte de A:</strong> a exigência de esquema fixo antes da carga é incompatível com a planilha de compras, de esquema instável, e com o acesso granular exigido pelos cientistas de dados.</p>
+          <p><strong>Descarte de B:</strong> a ausência de garantias transacionais impede o reprocessamento seguro de partições, exigido pelo cenário de aceite da recuperação.</p>
+          <p><strong>Descarte de D:</strong> a organização possui uma única equipe de dados, sem times de domínio com orçamento próprio; o pressuposto organizacional do padrão não se verifica.</p>
+          <p><strong>Escolha: C, lakehouse.</strong> Atende à coexistência dos dois perfis de consumo sobre o mesmo armazenamento. <strong>Consequência aceita:</strong> dependência de catálogo e de rotina periódica de compactação de arquivos pequenos, cuja responsabilidade deve ser atribuída nominalmente.</p>
+        </div>
+
+        <div class="callout callout-danger">
+          <div class="callout-label">Erro comum</div>
+          <p>Adotar <em>data mesh</em> sem times de domínio com autonomia real. O padrão pressupõe organização, não apenas tecnologia.</p>
+        </div>
+
+        <div class="callout callout-tip">
+          <div class="callout-label">Checklist de aplicação</div>
+          <ul>
+            <li>Liste a restrição concreta que cada padrão candidato resolve.</li>
+            <li>Estime o custo de governança, não apenas o de infraestrutura.</li>
+            <li>Prefira o padrão mais simples que atenda às restrições.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ════════════════ SEÇÃO 5 ════════════════ -->
+      <section class="mat-section" id="s5">
+        <h2>5. Batch e streaming</h2>
+        <span class="read-time">⏱ 11 minutos</span>
+
+        <p>O processamento em lote agrupa registros por intervalo de tempo e os processa em conjunto. O processamento contínuo trata cada evento à medida que ocorre. A diferença aparente é de latência; a diferença substantiva é de complexidade operacional, e é esta que determina o custo total.</p>
+
+        <h3>O que cada modelo simplifica e o que complica</h3>
+
+        <div class="mat-table-wrap">
+          <table class="mat-table">
+            <tr><th style="width:24%">Aspecto</th><th style="width:38%">Lote</th><th>Contínuo</th></tr>
+            <tr><td><strong>Latência típica</strong></td><td>De minutos a horas.</td><td>De milissegundos a segundos.</td></tr>
+            <tr><td><strong>Correção de erro</strong></td><td>Reexecuta-se a janela inteira; o estado final é determinístico.</td><td>Exige reprocessamento do fluxo com controle de posição e tratamento de estado parcial.</td></tr>
+            <tr><td><strong>Dado atrasado</strong></td><td>Entra na próxima execução sem tratamento especial.</td><td>Exige política explícita de janela e de tolerância a atraso.</td></tr>
+            <tr><td><strong>Custo de infraestrutura</strong></td><td>Recursos alocados apenas durante a execução.</td><td>Recursos permanentemente alocados, mesmo em períodos ociosos.</td></tr>
+            <tr><td><strong>Custo de operação</strong></td><td>Falha é detectada e corrigida na janela seguinte.</td><td>Falha exige resposta imediata; exige plantão e observabilidade contínua.</td></tr>
+            <tr><td><strong>Depuração</strong></td><td>Entrada reproduzível: a mesma janela pode ser reexecutada.</td><td>Estado efêmero: reproduzir a condição exige registro do fluxo.</td></tr>
+          </table>
+        </div>
+
+        <h3>O teste da decisão</h3>
+
+        <p>A pergunta que determina a escolha não é <em>com que rapidez o dado pode chegar</em>, e sim <em>qual decisão muda por saber o dado mais cedo</em>. Se nenhuma ação humana ou automática ocorre entre a chegada do dado às 7h e a sua chegada às 7h15, os quinze minutos de diferença não possuem valor econômico, e o custo de obtê-los é integralmente desperdiçado.</p>
+
+        <figure class="fig sr">
+          <div class="fig-scroll">
+          <svg viewBox="0 0 860 400" role="img" aria-labelledby="f4t f4d" xmlns="http://www.w3.org/2000/svg">
+            <title id="f4t">Relação entre latência exigida e custo operacional, com faixa de valor real da decisão</title>
+            <desc id="f4d">Gráfico de linha decrescente da esquerda para a direita mostrando que o custo operacional cresce acentuadamente à medida que a latência exigida diminui. Marcam-se três casos de uso da Rede Aurora: relatório diário em lote, painel de reposição em micro-lote e antifraude em processamento contínuo.</desc>
+            <g font-family="Manrope,sans-serif">
+              <!-- eixos -->
+              <line x1="70" y1="330" x2="820" y2="330" stroke="#94a3b8" stroke-width="1.8"/>
+              <line x1="70" y1="40" x2="70" y2="330" stroke="#94a3b8" stroke-width="1.8"/>
+              <text x="445" y="372" text-anchor="middle" font-size="12" font-weight="700" fill="#2e2640">Latência exigida (menor para a direita)</text>
+              <text x="24" y="185" text-anchor="middle" font-size="12" font-weight="700" fill="#2e2640" transform="rotate(-90 24 185)">Custo operacional</text>
+
+              <!-- marcas eixo x -->
+              <text x="150" y="350" text-anchor="middle" font-size="10.5" fill="#64748b">24 h</text>
+              <text x="310" y="350" text-anchor="middle" font-size="10.5" fill="#64748b">1 h</text>
+              <text x="470" y="350" text-anchor="middle" font-size="10.5" fill="#64748b">15 min</text>
+              <text x="630" y="350" text-anchor="middle" font-size="10.5" fill="#64748b">1 min</text>
+              <text x="780" y="350" text-anchor="middle" font-size="10.5" fill="#64748b">1 s</text>
+
+              <!-- grade -->
+              <g stroke="#eef2f7" stroke-width="1">
+                <line x1="150" y1="40" x2="150" y2="330"/>
+                <line x1="310" y1="40" x2="310" y2="330"/>
+                <line x1="470" y1="40" x2="470" y2="330"/>
+                <line x1="630" y1="40" x2="630" y2="330"/>
+                <line x1="780" y1="40" x2="780" y2="330"/>
+              </g>
+
+              <!-- curva de custo -->
+              <path d="M110 312 C 260 305, 380 285, 470 250 C 570 210, 660 140, 800 58"
+                    fill="none" stroke="#dc2626" stroke-width="3.2"/>
+              <text x="700" y="110" font-size="11" font-weight="700" fill="#dc2626">custo operacional</text>
+
+              <!-- faixa de regime -->
+              <rect x="70" y="40" width="400" height="290" fill="#f0fdf4" opacity=".5"/>
+              <rect x="470" y="40" width="180" height="290" fill="#fffbeb" opacity=".6"/>
+              <rect x="650" y="40" width="170" height="290" fill="#fef2f2" opacity=".55"/>
+              <text x="270" y="62" text-anchor="middle" font-size="11" font-weight="800" fill="#15803d">lote</text>
+              <text x="560" y="62" text-anchor="middle" font-size="11" font-weight="800" fill="#b45309">micro-lote</text>
+              <text x="735" y="62" text-anchor="middle" font-size="11" font-weight="800" fill="#b91c1c">contínuo</text>
+
+              <!-- pontos de caso de uso -->
+              <circle cx="150" cy="311" r="7" fill="#15803d" stroke="white" stroke-width="2"/>
+              <text x="162" y="300" font-size="10.5" fill="#14532d" font-weight="700">Relatório fiscal diário</text>
+              <text x="162" y="316" font-size="10" fill="#3f6212">decisão ocorre 1×/dia</text>
+
+              <circle cx="470" cy="250" r="7" fill="#b45309" stroke="white" stroke-width="2"/>
+              <text x="482" y="238" font-size="10.5" fill="#78350f" font-weight="700">Painel de reposição</text>
+              <text x="482" y="254" font-size="10" fill="#92400e">decisão ocorre às 7h</text>
+
+              <circle cx="790" cy="66" r="7" fill="#b91c1c" stroke="white" stroke-width="2"/>
+              <text x="612" y="176" font-size="10.5" fill="#7f1d1d" font-weight="700">Antifraude no pagamento</text>
+              <text x="612" y="192" font-size="10" fill="#991b1b">decisão ocorre em segundos</text>
+              <path d="M742 186 L784 76" stroke="#b91c1c" stroke-width="1.4" stroke-dasharray="4 4"/>
+            </g>
+          </svg>
+          </div>
+          <figcaption><b>Figura 4.</b> Custo operacional em função da latência exigida. A adoção de processamento contínuo justifica-se apenas para os casos de uso situados na faixa da direita; aplicá-lo a toda a plataforma desloca todos os casos para essa faixa de custo sem alterar as decisões que eles sustentam.</figcaption>
+        </figure>
+
+        <h3>Como dimensionar a janela do lote</h3>
+
+        <p>Definida a opção pelo processamento em lote, resta escolher a frequência de execução. A escolha é frequentemente arbitrada por hábito — <em>toda madrugada</em> —, quando decorre de três restrições verificáveis.</p>
+
+        <p>A primeira é o <strong>momento da decisão</strong>. Se a reposição de estoque é decidida às 7h, a carga deve concluir antes desse horário, com margem suficiente para uma reexecução em caso de falha. Uma carga que termina às 6h55 e falha uma vez por mês descumpre o requisito em todos os meses.</p>
+
+        <p>A segunda é a <strong>disponibilidade da origem</strong>. O sistema de ponto de venda encerra o movimento das lojas em horários distintos, e extrair antes do fechamento da última loja produz dados incompletos que serão silenciosamente tratados como completos. A janela precisa iniciar após a garantia de fechamento, não após o horário nominal.</p>
+
+        <p>A terceira é a <strong>duração da execução somada à margem de recuperação</strong>. Se a carga leva 40 minutos e o RTO declarado é de 4 horas, iniciar às 3h oferece margem para duas tentativas antes das 7h. Iniciar às 6h não oferece nenhuma, e o RTO declarado torna-se inatingível por construção — independentemente da qualidade da implementação.</p>
+
+        <div class="callout callout-info">
+          <div class="callout-label">Regra derivada</div>
+          <p>O horário de início da janela deve satisfazer: <code>início ≥ fechamento da origem</code> e <code>início + (duração × tentativas previstas) ≤ momento da decisão</code>. Quando as duas condições são incompatíveis, a restrição precisa ser renegociada explicitamente — antecipar o fechamento da origem, reduzir a duração ou postergar a decisão. Nenhuma das três é escolha da engenharia isoladamente.</p>
+        </div>
+
+        <h3>Adoção por caso de uso</h3>
+
+        <p>A conclusão prática é que lote e processamento contínuo coexistem na mesma arquitetura. A decisão é tomada por caso de uso, não por plataforma. A Rede Aurora opera o antifraude em fluxo contínuo, com uma janela de estado de poucos minutos, e mantém todo o restante em lote horário e diário. O evento de pagamento é gravado no barramento uma única vez e consumido por dois caminhos independentes: o consumidor contínuo, que decide o bloqueio, e o consumidor em lote, que alimenta a camada bruta.</p>
+
+        <div class="callout callout-deep">
+          <div class="callout-label">Aprofundamento — arquiteturas lambda e kappa</div>
+          <p>A <strong>arquitetura lambda</strong> mantém dois caminhos de processamento sobre os mesmos dados: um caminho em lote, que produz o resultado correto com atraso, e um caminho contínuo, que produz resultado aproximado imediatamente; o consumo combina ambos. Seu custo característico é a manutenção de duas implementações da mesma regra de negócio, com risco permanente de divergência entre elas.</p>
+          <p>A <strong>arquitetura kappa</strong> elimina o caminho em lote e trata o histórico como reprodução do fluxo desde o início, mantendo uma única implementação. Exige que o barramento retenha o histórico por período suficiente e que o processamento seja capaz de reprocessar em velocidade muito superior à de produção. A escolha entre ambas depende de a organização conseguir sustentar duas implementações ou um barramento com retenção longa.</p>
+        </div>
+
+        <div class="exercise">
+          <h4>Exercício resolvido 5.1 — justificar ou recusar a migração</h4>
+          <p>A área de tecnologia propõe migrar toda a ingestão da Rede Aurora para processamento contínuo, argumentando que a plataforma se tornará <em>tempo real</em>. Elabore a resposta arquitetural.</p>
+          <details class="answer">
+            <summary>Ver resolução</summary>
+            <p>A resposta deve identificar, para cada consumidor, a decisão sustentada e a latência que ela exige. Para o relatório fiscal, a decisão é mensal; para o painel de reposição, diária às 7h; para o antifraude, imediata.</p>
+            <p>Apenas o terceiro consumidor exige latência de segundos, e ele já opera em fluxo contínuo. A migração dos dois primeiros elevaria o custo de infraestrutura, por manter recursos permanentemente alocados, e o custo de operação, por exigir resposta imediata a falhas que hoje são corrigidas na janela seguinte — sem alterar nenhuma decisão de negócio.</p>
+            <p>A proposta deve, portanto, ser recusada em sua forma geral. A formulação aceitável seria: <em>migrar para processamento contínuo os casos de uso cuja decisão associada ocorra em intervalo inferior a X</em>, com X derivado das restrições declaradas na Seção 2. Registra-se a recusa em ADR, com a premissa explícita, de modo que a decisão possa ser reaberta caso surja um caso de uso sensível a latência.</p>
+          </details>
+        </div>
+
+        <div class="callout callout-danger">
+          <div class="callout-label">Erro comum</div>
+          <p>Migrar toda a plataforma para processamento contínuo por uma latência que nenhum consumidor utiliza. A complexidade operacional aumenta sem ganho de decisão.</p>
+        </div>
+
+        <div class="callout callout-tip">
+          <div class="callout-label">Checklist de aplicação</div>
+          <ul>
+            <li>Pergunte se alguma decisão muda por saber o dado em segundos.</li>
+            <li>Compare o custo operacional, não apenas o de processamento.</li>
+            <li>Adote processamento contínuo por caso de uso, não para a plataforma inteira.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ════════════════ SEÇÃO 6 ════════════════ -->
+      <section class="mat-section" id="s6">
+        <h2>6. Governança e segurança</h2>
+        <span class="read-time">⏱ 10 minutos</span>
+
+        <p>Governança de dados é o conjunto de processos que estabelece quem decide o quê a respeito dos dados, sob quais regras e com qual responsabilidade. O DAMA-DMBOK a posiciona no centro das demais funções de gestão de dados, e não como atividade posterior, porque cada função — qualidade, segurança, metadados, arquitetura — depende de uma atribuição de autoridade previamente definida.</p>
+
+        <h3>Os componentes exigidos desde o desenho</h3>
+
+        <div class="mat-table-wrap">
+          <table class="mat-table">
+            <tr><th style="width:20%">Componente</th><th style="width:40%">Função</th><th>Consequência da ausência</th></tr>
+            <tr><td><strong>Catálogo</strong></td><td>Registrar quais conjuntos de dados existem, o que significam e onde residem.</td><td>Recriação de conjuntos já existentes e consultas sobre tabelas obsoletas.</td></tr>
+            <tr><td><strong>Propriedade</strong></td><td>Nomear quem responde pela qualidade e pelos incidentes de cada conjunto.</td><td>Incidente sem responsável designado permanece aberto indefinidamente.</td></tr>
+            <tr><td><strong>Classificação</strong></td><td>Rotular o dado quanto à sensibilidade antes de qualquer movimentação.</td><td>Dado pessoal replicado para ambientes sem controle de acesso adequado.</td></tr>
+            <tr><td><strong>Linhagem</strong></td><td>Registrar a origem de cada campo e as transformações aplicadas.</td><td>Impossibilidade de avaliar o impacto de uma alteração na origem.</td></tr>
+            <tr><td><strong>Retenção</strong></td><td>Definir por quanto tempo cada classe é mantida e como é descartada.</td><td>Acúmulo indefinido, com custo crescente e exposição desnecessária.</td></tr>
+            <tr><td><strong>Mascaramento</strong></td><td>Reduzir a identificabilidade em ambientes que não exigem o dado original.</td><td>Base de desenvolvimento contendo dados pessoais reais.</td></tr>
+            <tr><td><strong>Controle de acesso</strong></td><td>Conceder o privilégio mínimo necessário, por perfil e por finalidade.</td><td>Acesso amplo concedido por conveniência e nunca revisto.</td></tr>
+            <tr><td><strong>Resposta a incidente</strong></td><td>Definir o procedimento de detecção, contenção, notificação e correção.</td><td>Improvisação sob pressão, com prazos legais descumpridos.</td></tr>
+          </table>
+        </div>
+
+        <h3>Linhagem: por que ela é condição de avaliação de impacto</h3>
+
+        <p>Linhagem é o registro verificável do percurso de um dado desde a origem até o consumo, incluindo as transformações intermediárias. Sua utilidade concentra-se em dois momentos. No primeiro, quando uma origem anuncia alteração de esquema, a linhagem responde a quais tabelas e relatórios essa alteração atinge. No segundo, quando um número é contestado, a linhagem permite percorrer o caminho inverso até o registro de origem e identificar em que transformação a divergência foi introduzida.</p>
+
+        <div class="mermaid">
+flowchart LR
+  PDV[("PDV<br/>cupom_item")] --> BR["bronze.cupom_item<br/><small>cópia fiel</small>"]
+  ERP[("ERP<br/>produto")] --> BP["bronze.produto"]
+  PL[("Planilha<br/>custo negociado")] --> BC["bronze.custo"]
+  BR --> SI["silver.item_venda<br/><small>tipado, deduplicado</small>"]
+  BP --> SP["silver.produto"]
+  BC --> SC["silver.custo"]
+  SI --> FV["gold.fato_venda"]
+  SP --> DP["gold.dim_produto"]
+  SC --> FV
+  FV --> M1["métrica<br/>receita_liquida"]
+  FV --> M2["métrica<br/>margem_bruta"]
+  DP --> M2
+  M1 --> BI["Painel comercial"]
+  M2 --> BI
+  SI --> DS["Modelo de previsão<br/>de demanda"]
+  classDef org fill:#fee2e2,stroke:#dc2626,color:#7f1d1d;
+  classDef brz fill:#ffedd5,stroke:#f59e0b,color:#7c2d12;
+  classDef slv fill:#dbeafe,stroke:#3b82f6,color:#1e3a8a;
+  classDef gld fill:#ede9fe,stroke:#8b5cf6,color:#4c1d95;
+  classDef con fill:#dcfce7,stroke:#22c55e,color:#14532d;
+  class PDV,ERP,PL org;
+  class BR,BP,BC brz;
+  class SI,SP,SC slv;
+  class FV,DP,M1,M2 gld;
+  class BI,DS con;
+        </div>
+
+        <p>O grafo acima permite responder, sem inspeção manual de código, a duas perguntas de operação. Primeira: se a planilha de custo deixar de ser entregue, quais consumidores são afetados? O caminho indica que <code>margem_bruta</code> e o painel comercial degradam, enquanto o modelo de previsão de demanda permanece íntegro, pois deriva de <code>silver.item_venda</code>. Segunda: o modelo de previsão consome a camada tratada e não a de serviço, o que constitui exceção deliberada à regra de proibição de salto de camada — deve, portanto, estar registrada em ADR, com a justificativa de que o modelo exige granularidade anterior à agregação dimensional.</p>
+
+        <h3>Proteção de dados pessoais</h3>
+
+        <p>A Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018) impõe à arquitetura exigências que não podem ser satisfeitas posteriormente sem reconstrução. Entre elas, a finalidade declarada para cada tratamento, a minimização — coletar e reter apenas o necessário à finalidade —, e a capacidade de localizar e eliminar os dados de um titular mediante solicitação. Esta última exigência é decisiva: uma plataforma que replica identificadores pessoais por dezenas de tabelas derivadas, sem linhagem, não consegue atender a um pedido de eliminação sem varredura manual.</p>
+
+        <div class="case">
+          <div class="callout-label">Aplicação — Rede Aurora</div>
+          <p><strong>Classificação.</strong> O CPF e o histórico individual de compra do programa de fidelidade são classificados como dados pessoais; o cupom fiscal sem vínculo com titular é classificado como dado operacional.</p>
+          <p><strong>Decisão de desenho.</strong> O CPF é substituído por um identificador substituto na transição da camada bruta para a tratada, e a correspondência entre ambos é mantida em uma única tabela, com acesso restrito e registro de consulta. As tabelas derivadas passam a referenciar apenas o identificador substituto.</p>
+          <p><strong>Consequência.</strong> A eliminação dos dados de um titular exige a remoção de uma linha na tabela de correspondência e a reexecução das rotinas de agregação, em vez de varredura por dezenas de tabelas. O ambiente de desenvolvimento recebe apenas o identificador substituto, o que elimina a presença de dado pessoal fora de produção.</p>
+        </div>
+
+        <div class="exercise">
+          <h4>Exercício resolvido 6.1 — atender a um pedido de eliminação</h4>
+          <p>Um cliente do programa de fidelidade solicita a eliminação de seus dados pessoais. Descreva o que a arquitetura da Rede Aurora precisa oferecer para que o pedido seja atendido, e o que ocorreria em uma plataforma sem essas propriedades.</p>
+          <details class="answer">
+            <summary>Ver resolução</summary>
+            <p>São necessárias três propriedades. A <strong>classificação</strong> identifica quais conjuntos contêm dados pessoais, evitando varredura exaustiva. A <strong>linhagem</strong> indica quais tabelas derivadas incorporaram esses dados. A <strong>pseudonimização na fronteira</strong> concentra a correspondência entre pessoa e identificador em uma única tabela.</p>
+            <p>Com elas, o procedimento reduz-se a remover a linha correspondente na tabela de correspondência e reexecutar as agregações afetadas, indicadas pela linhagem. Os registros de venda permanecem, agora definitivamente desvinculados do titular, o que preserva a obrigação fiscal de retenção por cinco anos sem manter o vínculo pessoal.</p>
+            <p>Sem essas propriedades, seria necessário inspecionar o conteúdo de todas as tabelas em busca de identificadores, sem garantia de completude, e o resultado não seria demonstrável perante uma fiscalização. Observe-se que a exigência de eliminação convive com a de retenção fiscal: a arquitetura precisa separar o dado da transação do vínculo com a pessoa, pois eliminar a transação violaria outra obrigação legal.</p>
+          </details>
+        </div>
+
+        <div class="callout callout-danger">
+          <div class="callout-label">Erro comum</div>
+          <p>Governança tratada como fase posterior. Catalogar mil tabelas já existentes custa mais do que catalogar a primeira no momento de sua criação, e a classificação retroativa exige inspeção de conteúdo que a classificação prévia dispensa.</p>
+        </div>
+
+        <div class="callout callout-tip">
+          <div class="callout-label">Checklist de aplicação</div>
+          <ul>
+            <li>Classifique os dados sensíveis antes de mover qualquer byte.</li>
+            <li>Garanta linhagem verificável da origem ao consumo.</li>
+            <li>Defina retenção e descarte, não apenas acumulação.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ════════════════ SEÇÃO 7 ════════════════ -->
+      <section class="mat-section" id="s7">
+        <h2>7. Resiliência e evolução</h2>
+        <span class="read-time">⏱ 13 minutos</span>
+
+        <p>Uma plataforma de dados falha. Origens ficam indisponíveis, cargas são interrompidas pela metade, registros chegam duplicados, esquemas mudam sem aviso. A qualidade arquitetural não se mede pela ausência de falhas, e sim pela previsibilidade do comportamento quando elas ocorrem.</p>
+
+        <h3>Idempotência como pré-condição do reprocessamento</h3>
+
+        <p>Uma operação é <strong>idempotente</strong> quando sua aplicação repetida produz o mesmo resultado de uma única aplicação. Em ingestão de dados, isso significa que reexecutar a carga do dia 12 deve deixar o sistema no mesmo estado em que ficaria se ela tivesse executado uma única vez com sucesso. A propriedade não é automática: uma rotina que insere registros incondicionalmente duplica-os a cada reexecução.</p>
+
+        <div class="anti">
+          <div class="anti-box anti-bad">
+            <b>Não idempotente</b>
+            <code>INSERT INTO fato_venda SELECT * FROM staging;</code>
+            <br><br>A reexecução após falha parcial duplica os registros já inseridos. O total de vendas passa a divergir da origem, e a correção exige identificar manualmente o que foi inserido duas vezes.
+          </div>
+          <div class="anti-box anti-good">
+            <b>Idempotente</b>
+            <code>DELETE FROM fato_venda WHERE data_particao = '2026-08-12'; INSERT INTO fato_venda SELECT * FROM staging WHERE data_particao = '2026-08-12';</code>
+            <br><br>A substituição da partição inteira produz sempre o mesmo estado final, independentemente do número de execuções.
+          </div>
+        </div>
+
+        <p>A estratégia de substituição de partição é a mais simples e deve ser preferida quando a janela de reprocessamento é delimitável por data. Quando não é — por exemplo, em correções que afetam registros arbitrários —, a alternativa é a operação de mesclagem com chave de negócio declarada, que atualiza o registro existente em vez de inserir um novo. Em ambos os casos, a condição necessária é a existência de uma chave que identifique inequivocamente o registro na origem.</p>
+
+        <p>A operação de mesclagem exige a declaração explícita da chave de negócio. O exemplo a seguir aplica-se à camada tratada da Rede Aurora e é idempotente por construção: executá-la duas vezes com a mesma entrada produz exatamente o mesmo estado.</p>
+
+        <pre class="code"><span class="cm">-- Carga idempotente por mesclagem, com chave de negócio declarada.</span>
+<span class="cm">-- Reexecutar esta instrução não duplica registros nem altera o resultado.</span>
+<span class="kw">MERGE INTO</span> silver.item_venda <span class="kw">AS</span> destino
+<span class="kw">USING</span> (
+    <span class="cm">-- A deduplicação na origem é obrigatória: MERGE falha ou produz</span>
+    <span class="cm">-- resultado não determinístico se a fonte trouxer a chave repetida.</span>
+    <span class="kw">SELECT</span> id_cupom, sequencia_item, valor_total_com_imposto, data_particao,
+           <span class="kw">ROW_NUMBER</span>() <span class="kw">OVER</span> (
+             <span class="kw">PARTITION BY</span> id_cupom, sequencia_item
+             <span class="kw">ORDER BY</span> extraido_em <span class="kw">DESC</span>
+           ) <span class="kw">AS</span> ordem
+    <span class="kw">FROM</span> bronze.cupom_item
+    <span class="kw">WHERE</span> data_particao = <span class="st">'2026-08-12'</span>
+    <span class="kw">QUALIFY</span> ordem = <span class="nu">1</span>
+) <span class="kw">AS</span> origem
+<span class="kw">ON</span>  destino.id_cupom      = origem.id_cupom
+<span class="kw">AND</span> destino.sequencia_item = origem.sequencia_item
+
+<span class="kw">WHEN MATCHED THEN UPDATE SET</span>
+    valor_total_com_imposto = origem.valor_total_com_imposto,
+    atualizado_em           = <span class="kw">CURRENT_TIMESTAMP</span>
+
+<span class="kw">WHEN NOT MATCHED THEN INSERT</span>
+    (id_cupom, sequencia_item, valor_total_com_imposto, data_particao)
+<span class="kw">VALUES</span>
+    (origem.id_cupom, origem.sequencia_item,
+     origem.valor_total_com_imposto, origem.data_particao);</pre>
+
+        <p>Duas condições sustentam a idempotência dessa instrução. A primeira é a existência de uma chave que identifique o registro na origem — sem ela, não há critério para distinguir atualização de inserção, e a operação degenera em acréscimo. A segunda é a deduplicação prévia da fonte: quando a mesma chave aparece duas vezes no conjunto de origem, a especificação do SQL não determina qual das versões prevalece, e o resultado varia entre execuções, o que anula justamente a propriedade que se pretendia obter.</p>
+
+        <div class="callout callout-warn">
+          <div class="callout-label">Ordem de implantação</div>
+          <p>A idempotência deve ser garantida antes de habilitar qualquer mecanismo de reprocessamento automático. Um mecanismo de nova tentativa aplicado sobre uma rotina não idempotente converte uma falha transitória em corrupção de dados, e a corrupção é descoberta muito depois, quando o número já foi utilizado em decisão.</p>
+        </div>
+
+        <h3>Fila de mensagens não processáveis</h3>
+
+        <p>Registros que falham repetidamente no processamento não devem interromper o fluxo nem ser descartados. O destino adequado é uma fila de mensagens não processáveis, na qual permanecem íntegros, com o registro do erro que os impediu de prosseguir, disponíveis para inspeção e reprocessamento após a correção. Descartá-los produz perda silenciosa; mantê-los na fila principal produz bloqueio indefinido do fluxo.</p>
+
+        <h3>RPO e RTO: dois números distintos</h3>
+
+        <p>O <strong>objetivo de ponto de recuperação</strong> (RPO) declara quanto dado a organização aceita perder, medido em tempo: um RPO de uma hora significa que, após um incidente, admite-se a perda de até uma hora de dados anteriores à falha. O <strong>objetivo de tempo de recuperação</strong> (RTO) declara em quanto tempo o serviço deve voltar a operar. São grandezas independentes: uma organização pode exigir RPO baixo e tolerar RTO alto, e a recíproca.</p>
+
+        <figure class="fig sr">
+          <div class="fig-scroll">
+          <svg viewBox="0 0 860 300" role="img" aria-labelledby="f5t f5d" xmlns="http://www.w3.org/2000/svg">
+            <title id="f5t">Linha do tempo de um incidente indicando RPO antes da falha e RTO após a falha</title>
+            <desc id="f5d">Linha do tempo horizontal com o último ponto de recuperação à esquerda, o instante da falha ao centro e a retomada da operação à direita. O intervalo entre o último ponto de recuperação e a falha corresponde ao RPO, ou seja, ao dado perdido. O intervalo entre a falha e a retomada corresponde ao RTO, ou seja, ao tempo indisponível.</desc>
+            <g font-family="Manrope,sans-serif">
+              <!-- linha do tempo -->
+              <line x1="50" y1="150" x2="810" y2="150" stroke="#334155" stroke-width="2.5"/>
+              <polygon points="810,150 798,145 798,155" fill="#334155"/>
+              <text x="790" y="178" font-size="10.5" fill="#64748b">tempo</text>
+
+              <!-- faixa RPO -->
+              <rect x="150" y="96" width="260" height="54" fill="#fef2f2" stroke="#fecaca"/>
+              <text x="280" y="118" text-anchor="middle" font-size="12.5" font-weight="800" fill="#b91c1c">RPO — dado perdido</text>
+              <text x="280" y="138" text-anchor="middle" font-size="11" fill="#7f1d1d">meta declarada: 1 hora</text>
+
+              <!-- faixa RTO -->
+              <rect x="410" y="96" width="300" height="54" fill="#fffbeb" stroke="#fde68a"/>
+              <text x="560" y="118" text-anchor="middle" font-size="12.5" font-weight="800" fill="#b45309">RTO — serviço indisponível</text>
+              <text x="560" y="138" text-anchor="middle" font-size="11" fill="#78350f">meta declarada: 4 horas</text>
+
+              <!-- marcos -->
+              <circle cx="150" cy="150" r="8" fill="#15803d" stroke="white" stroke-width="2.5"/>
+              <line x1="150" y1="150" x2="150" y2="205" stroke="#15803d" stroke-width="1.4" stroke-dasharray="4 4"/>
+              <text x="150" y="224" text-anchor="middle" font-size="11" font-weight="700" fill="#15803d">último ponto</text>
+              <text x="150" y="240" text-anchor="middle" font-size="11" font-weight="700" fill="#15803d">de recuperação</text>
+              <text x="150" y="258" text-anchor="middle" font-size="10" fill="#3f6212">03h00 — cópia íntegra</text>
+
+              <circle cx="410" cy="150" r="9" fill="#dc2626" stroke="white" stroke-width="2.5"/>
+              <line x1="410" y1="150" x2="410" y2="205" stroke="#dc2626" stroke-width="1.4" stroke-dasharray="4 4"/>
+              <text x="410" y="224" text-anchor="middle" font-size="11" font-weight="800" fill="#b91c1c">falha</text>
+              <text x="410" y="242" text-anchor="middle" font-size="10" fill="#991b1b">04h00 — corrupção detectada</text>
+
+              <circle cx="710" cy="150" r="8" fill="#1863dc" stroke="white" stroke-width="2.5"/>
+              <line x1="710" y1="150" x2="710" y2="205" stroke="#1863dc" stroke-width="1.4" stroke-dasharray="4 4"/>
+              <text x="710" y="224" text-anchor="middle" font-size="11" font-weight="700" fill="#1863dc">operação retomada</text>
+              <text x="710" y="242" text-anchor="middle" font-size="10" fill="#1e40af">08h00 — dentro da meta</text>
+
+              <!-- setas de medida -->
+              <path d="M150 84 L410 84" stroke="#dc2626" stroke-width="1.6" marker-start="url(#tk)" marker-end="url(#tk)"/>
+              <path d="M410 84 L710 84" stroke="#b45309" stroke-width="1.6" marker-start="url(#tk2)" marker-end="url(#tk2)"/>
+
+              <!-- nota -->
+              <rect x="50" y="268" width="760" height="24" rx="7" fill="#f1f5f9"/>
+              <text x="430" y="285" text-anchor="middle" font-size="11" font-weight="700" fill="#334155">Um RPO declarado sem teste de restauração é estimativa; o valor real só é conhecido após a primeira recuperação executada.</text>
+
+              <defs>
+                <marker id="tk" markerWidth="7" markerHeight="9" refX="3.5" refY="4.5" orient="auto">
+                  <line x1="3.5" y1="0" x2="3.5" y2="9" stroke="#dc2626" stroke-width="2"/>
+                </marker>
+                <marker id="tk2" markerWidth="7" markerHeight="9" refX="3.5" refY="4.5" orient="auto">
+                  <line x1="3.5" y1="0" x2="3.5" y2="9" stroke="#b45309" stroke-width="2"/>
+                </marker>
+              </defs>
+            </g>
+          </svg>
+          </div>
+          <figcaption><b>Figura 5.</b> RPO e RTO em uma linha do tempo de incidente. O RPO é determinado pela frequência das cópias de segurança; o RTO, pela velocidade do procedimento de restauração. Reduzir um deles não reduz o outro.</figcaption>
+        </figure>
+
+        <p>Do diagrama decorre uma consequência de projeto frequentemente ignorada: o RPO é função da frequência com que se produzem pontos de recuperação, ao passo que o RTO é função da velocidade do procedimento de restauração. Exigir RPO de cinco minutos implica produzir pontos de recuperação a cada cinco minutos; exigir RTO de trinta minutos implica dispor de um procedimento testado que conclua nesse prazo. São investimentos distintos, e declará-los conjuntamente sem distinguir suas causas leva a dimensionamento incorreto.</p>
+
+        <div class="callout callout-danger">
+          <div class="callout-label">Erro comum</div>
+          <p>Cópia de segurança que nunca foi restaurada. Sem teste de recuperação executado, o RTO declarado é estimativa não verificada, e a primeira verificação ocorrerá durante o incidente.</p>
+        </div>
+
+        <h3>Evolução de esquema e compatibilidade</h3>
+
+        <p>Esquemas mudam. A política de evolução deve declarar, antes da primeira mudança, quais alterações são admitidas sem coordenação com os consumidores e quais exigem versionamento e prazo de transição. A distinção baseia-se em dois conceitos: uma alteração é <strong>retrocompatível</strong> quando consumidores escritos para o esquema antigo continuam operando sobre o novo; é <strong>compatível para frente</strong> quando consumidores escritos para o esquema novo operam sobre dados no formato antigo.</p>
+
+        <div class="mat-table-wrap">
+          <table class="mat-table">
+            <tr><th style="width:36%">Alteração</th><th style="width:20%">Retrocompatível</th><th>Procedimento exigido</th></tr>
+            <tr><td>Acrescentar campo opcional com valor padrão</td><td><strong style="color:#15803d">Sim</strong></td><td>Implantação direta; comunicar no catálogo.</td></tr>
+            <tr><td>Acrescentar campo obrigatório sem padrão</td><td><strong style="color:#b91c1c">Não</strong></td><td>Introduzir como opcional, preencher o histórico e só então torná-lo obrigatório.</td></tr>
+            <tr><td>Remover campo</td><td><strong style="color:#b91c1c">Não</strong></td><td>Marcar como obsoleto, verificar a linhagem, notificar consumidores e remover após o prazo declarado.</td></tr>
+            <tr><td>Renomear campo</td><td><strong style="color:#b91c1c">Não</strong></td><td>Equivale a acrescentar e remover: manter ambos durante a transição.</td></tr>
+            <tr><td>Ampliar tipo (inteiro para longo)</td><td><strong style="color:#15803d">Sim</strong></td><td>Implantação direta; verificar limites nos consumidores.</td></tr>
+            <tr><td>Restringir tipo (texto para inteiro)</td><td><strong style="color:#b91c1c">Não</strong></td><td>Exige nova versão da tabela e migração coordenada.</td></tr>
+            <tr><td>Alterar semântica sem alterar o tipo</td><td><strong style="color:#b91c1c">Não</strong></td><td>Mudança mais perigosa: não é detectável por validação automática. Exige novo nome de campo.</td></tr>
+          </table>
+        </div>
+
+        <div class="callout callout-warn">
+          <div class="callout-label">A alteração mais perigosa</div>
+          <p>A última linha da tabela merece atenção particular. Alterar o significado de <code>valor_total</code> de <em>valor com imposto</em> para <em>valor sem imposto</em>, mantendo nome e tipo, não é detectado por nenhuma validação de esquema. Todos os consumidores continuam operando, e todos passam a produzir números incorretos. A regra decorrente é: quando a semântica muda, o nome deve mudar.</p>
+        </div>
+
+        <div class="exercise">
+          <h4>Exercício resolvido 7.1 — projetar o reprocessamento</h4>
+          <p>A carga da camada tratada da Rede Aurora falhou no dia 12, após inserir aproximadamente metade dos registros. Descreva o procedimento de correção e a propriedade arquitetural que o torna possível.</p>
+          <details class="answer">
+            <summary>Ver resolução</summary>
+            <p>O procedimento consiste em reexecutar a carga da partição correspondente ao dia 12 a partir da camada bruta, que preserva a cópia fiel da origem. Como a rotina substitui a partição inteira em vez de inserir incrementalmente, o estado final é idêntico ao de uma execução única bem-sucedida, e os registros parcialmente inseridos são eliminados pela própria substituição.</p>
+            <p>Em seguida, as tabelas da camada de serviço derivadas dessa partição são reconstruídas. A linhagem indica quais são, o que evita reconstruir a camada inteira.</p>
+            <p>Três propriedades tornam o procedimento possível: a <strong>imutabilidade da camada bruta</strong>, que preserva a entrada original; a <strong>idempotência</strong> da rotina, que garante ausência de duplicação; e o <strong>particionamento por data</strong>, que delimita o escopo do reprocessamento. A ausência de qualquer uma delas converte a correção em intervenção manual de resultado incerto.</p>
+          </details>
+        </div>
+
+        <div class="callout callout-tip">
+          <div class="callout-label">Checklist de aplicação</div>
+          <ul>
+            <li>Defina RPO e RTO por domínio e execute o teste de recuperação.</li>
+            <li>Garanta idempotência antes de habilitar reprocessamento.</li>
+            <li>Estabeleça a política de evolução de esquema e o que quebra compatibilidade.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ════════════════ SEÇÃO 8 ════════════════ -->
+      <section class="mat-section" id="s8">
+        <h2>8. RM-ODP: cinco pontos de vista sobre a mesma arquitetura</h2>
+        <span class="read-time">⏱ 4 minutos</span>
+
+        <p>O <em>Reference Model of Open Distributed Processing</em> (RM-ODP), normalizado como ISO/IEC 10746, estabelece que um sistema distribuído deve ser descrito por cinco pontos de vista complementares. Cada ponto de vista responde a preocupações de partes interessadas distintas, e nenhum deles é redutível aos demais. Sua utilidade em arquitetura de dados é diagnóstica: permite identificar qual aspecto do sistema permaneceu não especificado.</p>
+
+        <div class="mat-table-wrap">
+          <table class="mat-table">
+            <tr><th style="width:16%">Ponto de vista</th><th style="width:30%">Pergunta que responde</th><th>Aplicação à plataforma da Rede Aurora</th></tr>
+            <tr><td><strong>Empresa</strong></td><td>Qual o propósito, o escopo e as políticas que regem o sistema?</td><td>Sustentar as decisões de reposição diária e de bloqueio de fraude; políticas de retenção fiscal de cinco anos e de tratamento de dado pessoal sob a LGPD.</td></tr>
+            <tr><td><strong>Informação</strong></td><td>Que informação existe, com que significado e sob que regras de integridade?</td><td>Modelo dimensional da camada de serviço: fato de venda no grão de item de cupom, dimensões de produto, loja, tempo e cliente; definição única de receita líquida.</td></tr>
+            <tr><td><strong>Computação</strong></td><td>Em que componentes o sistema se decompõe e quais interfaces os conectam?</td><td>Rotinas de ingestão, transformação, publicação de métricas e consumidores; contratos de saída de cada camada, conforme a Seção 3.</td></tr>
+            <tr><td><strong>Engenharia</strong></td><td>Que mecanismos de infraestrutura suportam a distribuição e a comunicação?</td><td>Armazenamento de objetos particionado, formato tabular transacional, barramento de eventos para o antifraude, catálogo e orquestrador.</td></tr>
+            <tr><td><strong>Tecnologia</strong></td><td>Que produtos concretos implementam os mecanismos escolhidos?</td><td>Escolhas específicas de produto, substituíveis sem alterar os demais pontos de vista, desde que os contratos sejam preservados.</td></tr>
+          </table>
+        </div>
+
+        <p>A separação entre os dois últimos pontos de vista é a que produz maior efeito prático. Decisões de engenharia — particionar por data, exigir formato transacional, adotar barramento de eventos — condicionam a arquitetura de modo duradouro. Decisões de tecnologia — qual produto específico implementa o armazenamento — devem ser substituíveis. Uma arquitetura descrita exclusivamente por nomes de produtos não permite avaliar o que se perde ao trocá-los, porque o requisito que cada produto atendia nunca foi enunciado.</p>
+
+        <div class="callout callout-info">
+          <div class="callout-label">Uso diagnóstico</div>
+          <p>Ao revisar uma descrição arquitetural, verifique se os cinco pontos de vista estão contemplados. A omissão mais frequente é a do ponto de vista de empresa: descreve-se com precisão o que o sistema faz e como é construído, sem enunciar qual decisão organizacional ele existe para sustentar. Nessa condição, não há critério para avaliar se a arquitetura é adequada.</p>
+        </div>
+      </section>
+
+      <!-- ════════════════ SEÇÃO 9 ════════════════ -->
+      <section class="mat-section" id="s9">
+        <h2>9. Ponte com a Aula 1: como este tema vira especificação</h2>
+        <span class="read-time">⏱ 3 minutos</span>
+
+        <p>Os conceitos desta aula entram no projeto pelo vocabulário estabelecido na Aula 1. Uma decisão arquitetural que não se converte em requisito, decisão registrada e cenário verificável permanece como intenção, e intenções não governam implementações. A seguir, a tradução completa do tema para os quatro artefatos do desenvolvimento orientado a especificação.</p>
+
+        <h3>Requisito funcional</h3>
+        <div class="callout callout-info">
+          <div class="callout-label">RF-003</div>
+          <p>Servir dados de vendas tratados ao BI e ao time de ciência de dados a partir de uma origem única.</p>
+        </div>
+
+        <h3>Requisito não funcional</h3>
+        <div class="callout callout-warn">
+          <div class="callout-label">RNF-003</div>
+          <p>Dado disponível na camada de consumo em até 15 minutos após o fechamento da origem; RPO de 1 hora e RTO de 4 horas, comprovados em teste de recuperação.</p>
+        </div>
+
+        <h3>Decisão registrada</h3>
+        <div class="callout callout-deep">
+          <div class="callout-label">ADR-ARQ-01</div>
+          <p><strong>Decisão.</strong> Adotar <em>lakehouse</em> com camadas bronze, prata e ouro, em vez de <em>data warehouse</em> fechado.</p>
+          <p><strong>Contexto.</strong> Esquema evolutivo, com origem de esquema instável, e dois perfis de consumo com necessidades distintas: consulta dimensional estável para o BI e acesso granular para ciência de dados.</p>
+          <p><strong>Alternativa descartada.</strong> <em>Data warehouse</em> fechado, por exigir esquema fixo antes da carga e não atender ao acesso granular.</p>
+          <p><strong>Consequência aceita.</strong> Dependência de catálogo e de rotina de compactação; o custo de governança aumenta e exige responsável nominalmente declarado.</p>
+        </div>
+
+        <h3>Cenário de aceite</h3>
+        <pre class="code"><span class="cm"># Cenário que deve falhar antes da implementação</span>
+<span class="kw">Funcionalidade:</span> Reprocessamento de partição sem duplicação
+
+  <span class="kw">Cenário:</span> Recuperar carga interrompida da camada prata
+    <span class="kw">Dado</span> que a carga da camada prata falhou no dia 12
+      <span class="kw">E</span> que a camada bronze preserva a cópia íntegra da origem
+    <span class="kw">Quando</span> eu reprocesso a partição desse dia
+    <span class="kw">Então</span> a camada ouro é reconstruída sem duplicar registros
+      <span class="kw">E</span> a contagem de itens coincide com a da origem
+      <span class="kw">E</span> a linhagem aponta a nova execução</pre>
+
+        <p>O cenário acima possui a propriedade exigida de um critério de aceite: ele falha antes da implementação. Uma rotina de carga que insere incondicionalmente reprova na terceira asserção, e a reprovação é automática, dispensando inspeção humana. Um requisito de resiliência enunciado apenas como <em>o sistema deve ser resiliente</em> não produz reprovação alguma e, por consequência, não impõe restrição ao implementador.</p>
+      </section>
+
+      <!-- ════════════════ SEÇÃO 10 ════════════════ -->
+      <section class="mat-section" id="s10">
+        <h2>10. Estudo de caso integrado: a arquitetura da Rede Aurora</h2>
+        <span class="read-time">⏱ 9 minutos</span>
+
+        <p>As seções anteriores produziram decisões isoladas. Esta seção as consolida em uma descrição arquitetural única, no formato exigido como entregável da aula. O objetivo é demonstrar que cada elemento do diagrama corresponde a uma restrição declarada, e não a uma escolha de conveniência.</p>
+
+        <h3>Fluxo ponta a ponta</h3>
+
+        <div class="mermaid">
+flowchart LR
+  subgraph OR["Origens"]
+    PDV[/"PDV — 180 lojas<br/>2,4 M itens/dia"/]
+    ECM[/"Comércio eletrônico"/]
+    ERP[/"ERP — produto e fiscal"/]
+    FID[/"Fidelidade — dado pessoal"/]
+    PLA[/"Planilha de compras<br/>esquema instável"/]
+  end
+
+  subgraph IN["Ingestão"]
+    BUS{{"Barramento<br/>de eventos"}}
+    LOT["Extração em lote<br/>horária e diária"]
+  end
+
+  subgraph AR["Armazenamento"]
+    BRZ[("Bronze<br/>bruto imutável")]
+    SLV[("Prata<br/>tipado, sem CPF")]
+    GLD[("Ouro<br/>fato e dimensão")]
+  end
+
+  subgraph CO["Consumo"]
+    ANF["Antifraude<br/>decisão em segundos"]
+    BI["Painel comercial<br/>decisão às 7h"]
+    DS["Previsão de demanda<br/>granularidade fina"]
+    FIS["Relatório fiscal<br/>retenção 5 anos"]
+  end
+
+  PDV --> BUS
+  PDV --> LOT
+  ECM --> BUS
+  ECM --> LOT
+  ERP --> LOT
+  FID --> LOT
+  PLA --> LOT
+  BUS --> ANF
+  BUS --> BRZ
+  LOT --> BRZ
+  BRZ --> SLV
+  SLV --> GLD
+  GLD --> BI
+  GLD --> FIS
+  SLV -.->|"exceção registrada<br/>em ADR-ARQ-07"| DS
+
+  classDef org fill:#fee2e2,stroke:#dc2626,color:#7f1d1d;
+  classDef ing fill:#ffedd5,stroke:#f59e0b,color:#7c2d12;
+  classDef arm fill:#dbeafe,stroke:#3b82f6,color:#1e3a8a;
+  classDef con fill:#dcfce7,stroke:#22c55e,color:#14532d;
+  class PDV,ECM,ERP,FID,PLA org;
+  class BUS,LOT ing;
+  class BRZ,SLV,GLD arm;
+  class ANF,BI,DS,FIS con;
+  style OR fill:#ffffff,stroke:#cbd5e1,color:#334155;
+  style IN fill:#ffffff,stroke:#cbd5e1,color:#334155;
+  style AR fill:#ffffff,stroke:#cbd5e1,color:#334155;
+  style CO fill:#ffffff,stroke:#cbd5e1,color:#334155;
+        </div>
+
+        <p>Três elementos do diagrama merecem justificativa explícita, pois sem ela pareceriam arbitrários.</p>
+
+        <p><strong>O barramento alimenta dois destinos.</strong> O evento de pagamento é publicado uma única vez e consumido por dois caminhos independentes: o antifraude, que decide em segundos, e a camada bruta, que preserva o registro para o histórico. Essa duplicação de consumo, e não de produção, é o que permite atender à latência exigida por um caso de uso sem impor processamento contínuo aos demais.</p>
+
+        <p><strong>A ciência de dados consome a camada prata.</strong> A linha tracejada representa uma exceção deliberada à proibição de salto de camada, estabelecida na Seção 3. A justificativa é que os modelos de previsão exigem granularidade anterior à agregação dimensional, e a camada ouro já a perdeu. Por constituir exceção a uma regra declarada, a decisão exige registro próprio em ADR — caso contrário, tornar-se-ia precedente informal para novos saltos, e a regra deixaria de existir na prática.</p>
+
+        <p><strong>A substituição do CPF ocorre na transição para a camada prata.</strong> A camada bruta preserva o dado original, sob acesso restrito, porque a imutabilidade é condição do reprocessamento. A partir da camada prata, apenas o identificador substituto circula, o que limita a superfície de exposição sem impedir a correção retroativa de regras.</p>
+
+        <h3>Quadro de decisões registradas</h3>
+
+        <div class="mat-table-wrap">
+          <table class="mat-table">
+            <tr><th style="width:13%">Identificador</th><th style="width:26%">Decisão</th><th style="width:26%">Restrição que a motiva</th><th>Consequência aceita</th></tr>
+            <tr><td><strong>ADR-ARQ-01</strong></td><td>Adotar <em>lakehouse</em> com três camadas.</td><td>Dois perfis de consumo e uma origem de esquema instável.</td><td>Dependência de catálogo e de rotina de compactação, com responsável nomeado.</td></tr>
+            <tr><td><strong>ADR-ARQ-02</strong></td><td>Manter processamento em lote para toda a plataforma, exceto o antifraude.</td><td>Somente o bloqueio de fraude possui decisão sensível a segundos.</td><td>O painel comercial não reflete vendas do dia corrente antes da janela seguinte.</td></tr>
+            <tr><td><strong>ADR-ARQ-03</strong></td><td>Substituir o CPF por identificador na transição para a camada prata.</td><td>LGPD: minimização e capacidade de eliminação por titular.</td><td>Consultas que exijam o CPF original dependem de acesso restrito e auditado.</td></tr>
+            <tr><td><strong>ADR-ARQ-04</strong></td><td>Particionar por data e reprocessar por substituição de partição.</td><td>RPO de 1 hora e RTO de 4 horas, com reprocessamento sem duplicação.</td><td>Correções que não se delimitam por data exigem operação de mesclagem específica.</td></tr>
+            <tr><td><strong>ADR-ARQ-07</strong></td><td>Permitir que a ciência de dados consuma a camada prata.</td><td>Modelos exigem granularidade anterior à agregação.</td><td>Alterações na camada prata passam a ter dois grupos de consumidores a notificar.</td></tr>
+          </table>
+        </div>
+
+        <h3>Riscos declarados e plano de evolução</h3>
+
+        <div class="mat-table-wrap">
+          <table class="mat-table">
+            <tr><th style="width:32%">Risco</th><th style="width:34%">Sinal observável</th><th>Resposta planejada</th></tr>
+            <tr><td>Planilha de compras muda de formato sem aviso.</td><td>Teste de esquema rejeita a carga na fronteira.</td><td>Carga falha de modo visível; a área de compras é acionada como dona do contrato de entrada.</td></tr>
+            <tr><td>Acúmulo de arquivos pequenos degrada a consulta.</td><td>Tempo de resposta do painel cresce sem aumento de volume.</td><td>Rotina periódica de compactação, com responsável e frequência declarados.</td></tr>
+            <tr><td>Crescimento de 18% ao ano ultrapassa o orçamento.</td><td>Custo mensal aproxima-se do limite declarado.</td><td>Política de retenção diferenciada por camada; dado bruto além de dois anos migra para armazenamento de acesso infrequente.</td></tr>
+            <tr><td>Surgimento de novo caso de uso sensível a latência.</td><td>Demanda de decisão em intervalo inferior a 15 minutos.</td><td>Reabertura da ADR-ARQ-02; a premissa registrada torna a reavaliação objetiva.</td></tr>
+          </table>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-label">Observação sobre o entregável</div>
+          <p>O quadro de riscos é parte da descrição arquitetural, não anexo opcional. Um risco declarado com sinal observável e resposta planejada transforma um evento futuro em procedimento conhecido; um risco não declarado transforma o mesmo evento em incidente.</p>
+        </div>
+      </section>
+
+      <!-- ════════════════ SEÇÃO 11 ════════════════ -->
+      <section class="mat-section" id="s11">
+        <h2>11. Catálogo de anti-padrões</h2>
+        <span class="read-time">⏱ 2 minutos</span>
+
+        <p>Os arranjos a seguir reaparecem com frequência em plataformas de dados. Cada um deles é localmente razoável e globalmente prejudicial, o que explica sua persistência.</p>
+
+        <h3>Camadas nominais</h3>
+        <p>Três esquemas com nomes distintos, mesmas colunas, mesma rotina e mesmo responsável. Diagnóstico e correção foram tratados no Exercício 3.1. O sinal característico é a impossibilidade de enunciar qual garantia distinta cada transição oferece.</p>
+
+        <h3>Consulta analítica sobre o banco de produção</h3>
+        <p>Relatórios executados diretamente sobre a base transacional. O arranjo funciona enquanto o volume é pequeno e falha de modo correlacionado: a consulta pesada degrada o sistema que atende ao cliente, e a degradação ocorre justamente nos períodos de maior movimento, quando ambos são mais exigidos.</p>
+
+        <h3>Transformação na ferramenta de visualização</h3>
+        <p>Regras de negócio implementadas dentro do painel. A regra passa a existir em um artefato que não é versionado, não é testado e não é reutilizável; quando um segundo painel precisa da mesma métrica, ela é reimplementada, e as duas implementações divergem sem que ninguém seja notificado.</p>
+
+        <h3>Retenção indefinida por omissão</h3>
+        <p>Ausência de política de descarte. O custo cresce de modo monotônico e a exposição a dados pessoais permanece muito além da finalidade que autorizou a coleta. A omissão não é neutra: em matéria de dado pessoal, reter sem finalidade declarada é tratamento sem base legal.</p>
+
+        <h3>Acesso concedido por conveniência</h3>
+        <p>Privilégios amplos atribuídos para resolver um bloqueio pontual e nunca revistos. A revisão periódica de acessos deve constar do desenho, com frequência declarada, pois a tendência natural do conjunto de privilégios é crescer.</p>
+
+        <div class="callout callout-warn">
+          <div class="callout-label">Traço comum</div>
+          <p>Todos os anti-padrões acima decorrem da mesma origem: uma decisão tomada sob pressão de prazo, que resolve o problema imediato e não é registrada como provisória. A ausência de registro impede que ela seja reavaliada quando a pressão cessa, e a solução temporária torna-se estrutura permanente.</p>
+        </div>
+      </section>
+
+      <!-- ════════════════ SEÇÃO 12 ════════════════ -->
+      <section class="mat-section" id="s12">
+        <h2>12. Entregável, critérios de aceite e verificação</h2>
+        <span class="read-time">⏱ 2 minutos</span>
+
+        <div class="callout callout-info">
+          <div class="callout-label">Entregável da aula</div>
+          <p>Diagrama de arquitetura com fluxo ponta a ponta, decisões registradas em ADR, requisitos não funcionais, riscos e plano de evolução.</p>
+        </div>
+
+        <h3>Critérios de aceite</h3>
+        <ol>
+          <li>O artefato declara o requisito funcional e ao menos um requisito não funcional mensurável.</li>
+          <li>A decisão estrutural está registrada em ADR, com alternativa descartada e consequência aceita.</li>
+          <li>Existe ao menos um cenário de aceite que falha antes da implementação.</li>
+          <li>Há responsável nomeado, forma de operação e caminho de reprocessamento.</li>
+        </ol>
+
+        <h3>Verificação antes da entrega</h3>
+        <p>Percorra a lista abaixo aplicando cada item ao seu próprio artefato. Os itens podem ser marcados diretamente nesta página.</p>
+
+        <ul class="check-list" id="checklist">
+          <li>As restrições estão escritas em números, não em adjetivos.</li>
+          <li>Está declarada a decisão de negócio que a plataforma sustenta.</li>
+          <li>Ao menos uma alternativa foi descartada, com o motivo registrado.</li>
+          <li>Cada camada possui contrato de entrada, contrato de saída e responsável nomeado.</li>
+          <li>Nenhum consumidor lê a camada bruta, ou a exceção está registrada em ADR.</li>
+          <li>A escolha do padrão de plataforma cita a restrição concreta que ele resolve.</li>
+          <li>O custo de governança do padrão adotado foi estimado, e não apenas o de infraestrutura.</li>
+          <li>Existe justificativa por caso de uso para cada trecho em processamento contínuo.</li>
+          <li>Os dados sensíveis estão classificados antes de qualquer movimentação.</li>
+          <li>A linhagem permite responder quem é afetado por uma alteração na origem.</li>
+          <li>Há política de retenção e de descarte declarada por classe de dado.</li>
+          <li>RPO e RTO estão declarados por domínio, com teste de recuperação previsto.</li>
+          <li>As rotinas de carga são idempotentes antes de qualquer reprocessamento automático.</li>
+          <li>A política de evolução de esquema declara o que quebra compatibilidade.</li>
+          <li>Os riscos possuem sinal observável e resposta planejada.</li>
+          <li>Existe ao menos um cenário de aceite que reprova a implementação atual.</li>
+        </ul>
+
+        <div class="callout callout-tip">
+          <div class="callout-label">Critério final</div>
+          <p>A pergunta que encerra o trabalho: <strong>qual decisão fica mais segura depois deste artefato?</strong> Se nenhuma decisão da organização se torna mais segura, o artefato descreveu uma infraestrutura sem enunciar a sua finalidade.</p>
+        </div>
+      </section>
+
+      <!-- ════════════════ SEÇÃO 13 ════════════════ -->
+      <section class="mat-section" id="s13">
+        <h2>13. Glossário</h2>
+        <span class="read-time">⏱ 1 minuto</span>
+
+        <div class="gloss">
+          <div><b>ADR</b> Registro de decisão arquitetural. Documento breve que enuncia contexto, decisão, alternativas descartadas e consequências aceitas.</div>
+          <div><b>Camada bruta</b> Armazenamento da cópia fiel e imutável do que a origem entregou, sem correção nem descarte.</div>
+          <div><b>Camada de serviço</b> Camada que expõe o modelo dimensional e as métricas com definição única e versionada.</div>
+          <div><b>Compatibilidade retroativa</b> Propriedade de uma alteração de esquema que permite a consumidores escritos para a versão anterior continuarem operando.</div>
+          <div><b>Contrato de dados</b> Especificação do formato, da semântica e das garantias de qualidade acordadas entre produtor e consumidor.</div>
+          <div><b>Fila de não processáveis</b> Destino de registros que falharam repetidamente, preservados com o erro associado para inspeção posterior.</div>
+          <div><b>Idempotência</b> Propriedade segundo a qual a aplicação repetida de uma operação produz o mesmo resultado de uma única aplicação.</div>
+          <div><b>Lakehouse</b> Padrão que combina armazenamento de objetos de baixo custo com garantias transacionais e catálogo, atendendo a consumo estruturado e granular.</div>
+          <div><b>Linhagem</b> Registro verificável do percurso de um dado da origem ao consumo, incluindo as transformações aplicadas.</div>
+          <div><b>Minimização</b> Princípio segundo o qual apenas os dados necessários à finalidade declarada devem ser coletados e retidos.</div>
+          <div><b>RPO</b> Objetivo de ponto de recuperação: quantidade máxima de dados, medida em tempo, cuja perda é admitida após um incidente.</div>
+          <div><b>RTO</b> Objetivo de tempo de recuperação: prazo máximo admitido entre a falha e o retorno da operação.</div>
+          <div><b>Salto de camada</b> Acesso direto de uma camada a outra não adjacente, que anula o isolamento pretendido pela estruturação.</div>
+          <div><b>Substituição de partição</b> Estratégia de carga que remove e reescreve integralmente a partição alvo, conferindo idempotência à rotina.</div>
+        </div>
+      </section>
+
+      <!-- ════════════════ SEÇÃO 14 ════════════════ -->
+      <section class="mat-section" id="s14">
+        <h2>14. Referências</h2>
+        <span class="read-time">⏱ 1 minuto</span>
+
+        <ul>
+          <li><strong>TOGAF — Architecture Development Method.</strong> Método iterativo de desenvolvimento de arquitetura corporativa, com ênfase na rastreabilidade entre requisitos e decisões.</li>
+          <li><strong>DAMA-DMBOK2 — Data Management Body of Knowledge.</strong> Corpo de conhecimento em gestão de dados; posiciona a governança como função central e não posterior.</li>
+          <li><strong>ISO/IEC/IEEE 42010 — Architecture description.</strong> Norma que estabelece partes interessadas, preocupações e pontos de vista como elementos obrigatórios de uma descrição arquitetural.</li>
+          <li><strong>ISO/IEC 10746 — RM-ODP.</strong> Modelo de referência para processamento distribuído aberto; origem dos cinco pontos de vista tratados na Seção 8.</li>
+          <li><strong>AWS Well-Architected Framework.</strong> Conjunto de pilares e questões de avaliação aplicáveis à revisão de arquiteturas, incluindo excelência operacional e confiabilidade.</li>
+          <li><strong>Lei nº 13.709/2018 — Lei Geral de Proteção de Dados Pessoais.</strong> Base normativa das exigências de finalidade, minimização e eliminação tratadas na Seção 6.</li>
+        </ul>
+
+        <div class="callout callout-deep">
+          <div class="callout-label">Continuidade no módulo</div>
+          <p>As aulas seguintes retomam a camada de serviço desta arquitetura para aprofundar a modelagem dimensional — grão, tabelas de fato, dimensões de variação lenta — e, posteriormente, a observabilidade das rotinas que a alimentam. A arquitetura desenhada aqui é o contexto no qual esses temas se aplicam.</p>
+        </div>
+      </section>
+
+    </article>
+  </div>
+
+  <footer class="inteli-footer">
+    <div class="container text-center">
+      <p>Material criado pelo professor <strong>Afonso Brandão</strong> para o <strong>Inteli</strong>.</p>
+      <p><a href="../slides/slide-lesson-5.html">Slides da aula</a> · <a href="../planos/lesson-5-plano.html">Plano de ensino</a> · <a href="../../home-module-11-eng-software.html">Módulo 11</a></p>
+      <small>Conteúdo de leitura aberta · Aula 5 — Arquitetura de Dados · 20/08/2026</small>
+    </div>
+  </footer>
+
+  <script>
+    // ── Barra de progresso de leitura e navegação flutuante ──
+    (function () {
+      const bar = document.getElementById('progress-bar');
+      const floatNav = document.getElementById('float-nav');
+      const header = document.querySelector('.mat-header');
+      function onScroll() {
+        const h = document.documentElement;
+        const max = h.scrollHeight - h.clientHeight;
+        bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+        if (header.getBoundingClientRect().bottom < 0) floatNav.classList.add('visible');
+        else floatNav.classList.remove('visible');
+      }
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+    })();
+
+    // ── Sumário lateral: destaca a seção visível ──
+    (function () {
+      const links = [...document.querySelectorAll('.mat-toc a')];
+      const sections = [...document.querySelectorAll('.mat-section[id]')];
+      if (!links.length || !sections.length) return;
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          links.forEach((a) => a.classList.remove('active'));
+          const link = document.querySelector('.mat-toc a[href="#' + entry.target.id + '"]');
+          if (link) link.classList.add('active');
+        });
+      }, { rootMargin: '-10% 0px -80% 0px' });
+      sections.forEach((s) => observer.observe(s));
+    })();
+
+    // ── Revelação de figuras ao rolar ──
+    (function () {
+      const items = document.querySelectorAll('.sr');
+      if (!items.length) return;
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) { entry.target.classList.add('vis'); observer.unobserve(entry.target); }
+        });
+      }, { threshold: 0.12 });
+      items.forEach((el) => observer.observe(el));
+    })();
+
+    // ── Checklist de verificação ──
+    (function () {
+      const list = document.getElementById('checklist');
+      if (!list) return;
+      list.addEventListener('click', (event) => {
+        const item = event.target.closest('li');
+        if (item) item.classList.toggle('done');
+      });
+    })();
+  </script>
+
 <!-- encontro:pdf:start -->
 <button type="button" class="pdf-export-btn" data-encontro-data="2026-08-20" data-encontro-docente="Afonso" data-encontro-seq="02" title="Exportar esta página em PDF com o nome padronizado">📄 Exportar PDF</button>
 <script src="../../../js/encontro-pdf.js" defer></script>
