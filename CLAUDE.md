@@ -203,6 +203,7 @@ Dates are stored as `dd/mm/yyyy` strings to match exactly what is rendered in th
    - **Removeu/renomeou** → remova ou ajuste o `path` da entrada.
    - **Alterou o conteúdo** de forma relevante → reescreva o `summary` (1–2 frases, registro acadêmico, sem marketing) e o `title` se mudou.
    - Mantenha `type` (`index`, `home`, `slide`, `material`, `plano`, `aula`, `autoestudo`, `desafio`, `ferramenta`, `referencia`, `tutorial`, `perfil`) e `module` coerentes com o caminho. Todo `.html` em `pages/` deve ter exatamente uma entrada — nem faltando, nem sobrando.
+8. **Todo deck `slide-lesson-*.html` de módulo do 1º ou 2º ano (número do módulo ≤ 8) deve ter, sempre, o slide de cronômetro de daily (15 min) logo após a capa — SLIDE 2.** Módulos do 3º ano (número ≥ 9) não incluem esse slide. Reuse o padrão HTML/CSS/JS existente (ex.: `pages/module-2-common/slides/slide-lesson-1.html`, `pages/module-6-eng-software/slides/slide-lesson-1.html`) — timer regressivo de 15:00, botões Iniciar/Resetar, tags do ritual (o que fiz / o que vou fazer / bloqueios / progresso). Detalhamento completo da regra e do checklist de implementação em `.claude/agents/slide-builder.md` (seção "Mapeamento módulo → ano").
 
 ## Nested Projects
 

@@ -7,57 +7,959 @@
   <title>Aula 2 — Análise e Carga de Dados — Material — Inteli</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="../../../css/inteli-styles.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'base',
+      themeVariables: {
+        fontFamily: 'Manrope, sans-serif',
+        primaryColor: '#dcfce7',
+        primaryTextColor: '#1e293b',
+        primaryBorderColor: '#2f8f78',
+        lineColor: '#4b5563',
+        secondaryColor: '#dbeafe',
+        tertiaryColor: '#fef3c7'
+      },
+      flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' }
+    });
+    window.mermaid = mermaid;
+  </script>
   <style>
-    body { font-family:'Manrope',sans-serif; color:#1e293b; background:#f8fafc; }
-    .material-header { background:linear-gradient(135deg,#1e2a24 0%,#2f8f78 55%,#89cea5 100%); color:#fff; padding:40px 0; }
-    .wip-box { background:#fff; border:1px solid #e2e8f0; border-left:5px solid #89cea5; border-radius:14px; padding:28px; margin:30px 0; }
-    .badge-wip { display:inline-block; padding:6px 16px; border-radius:999px; background:rgba(137,206,165,.18); color:#2f8f78; font-weight:700; border:1px solid rgba(47,143,120,.35); }
+    .mermaid { display:flex; justify-content:center; padding:18px 8px; background:#fbfbfd; border:1px solid #e2e8f0; border-radius:10px; overflow-x:auto; font-family:'Manrope',sans-serif !important; min-height:60px; margin-bottom:1rem; }
+    .mermaid svg { max-width:100%; height:auto; }
+    :root {
+      --ac:#2f8f78; --hi:#89cea5; --dk:#2e2640; --gr:#0d9488; --re:#dc2626; --am:#d97706;
+      --text:#1e293b; --muted:#64748b; --border:#e2e8f0; --bg:#f8fafc; --card:#ffffff;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family:'Manrope',sans-serif; color:var(--text); background:var(--bg); }
+
+    /* ── Barra de progresso ── */
+    #progress-bar { position:fixed; top:0; left:0; height:3px; background:linear-gradient(90deg,var(--ac),var(--hi)); width:0%; z-index:9999; transition:width .1s; }
+
+    /* ── Navegação flutuante ── */
+    #float-nav { position:fixed; bottom:28px; right:28px; display:flex; flex-direction:column; gap:8px; z-index:9998; opacity:0; pointer-events:none; transform:translateY(12px); transition:opacity .3s,transform .3s; }
+    #float-nav.visible { opacity:1; pointer-events:auto; transform:translateY(0); }
+    .fn-btn { display:flex; align-items:center; gap:6px; padding:10px 16px; border-radius:999px; font-size:.82rem; font-weight:700; text-decoration:none; box-shadow:0 4px 18px rgba(0,0,0,.25); transition:transform .15s,box-shadow .15s; white-space:nowrap; }
+    .fn-btn:hover { transform:translateY(-2px); box-shadow:0 6px 24px rgba(0,0,0,.32); text-decoration:none; }
+    .fn-btn-slides { background:white; color:var(--ac); border:2px solid var(--ac); }
+    .fn-btn-back   { background:var(--dk); color:white; }
+
+    /* ── Cabeçalho ── */
+    .mat-header { background:linear-gradient(135deg,#1e2a24 0%,#2f8f78 55%,#89cea5 100%); color:white; padding:40px 0 32px; }
+    .mat-header h1 { font-size:2.2rem; font-weight:800; margin:0 0 8px; }
+    .mat-header .subtitle { font-size:1rem; opacity:.85; margin:0 0 20px; }
+    .mat-badge { background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.3); color:white; padding:4px 14px; border-radius:999px; font-size:.78rem; font-weight:700; display:inline-block; margin-bottom:12px; }
+
+    /* ── Layout ── */
+    .mat-layout { display:grid; grid-template-columns:260px 1fr; gap:32px; max-width:1200px; margin:0 auto; padding:40px 24px; }
+    @media(max-width:900px){ .mat-layout { grid-template-columns:1fr; } .mat-sidebar { display:none; } }
+
+    /* ── Sumário ── */
+    .mat-sidebar { position:sticky; top:24px; max-height:calc(100vh - 48px); overflow-y:auto; align-self:start; }
+    .mat-toc { background:var(--card); border-radius:14px; padding:20px; border:1px solid var(--border); box-shadow:0 2px 8px rgba(0,0,0,.05); }
+    .mat-toc h4 { font-size:.8rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:0 0 12px; }
+    .mat-toc a { display:block; color:var(--muted); text-decoration:none; font-size:.82rem; padding:4px 0 4px 12px; border-left:2px solid transparent; transition:all .2s; line-height:1.3; }
+    .mat-toc a:hover, .mat-toc a.active { color:var(--ac); border-left-color:var(--ac); }
+
+    /* ── Artigo ── */
+    .mat-article { min-width:0; }
+    .mat-section { margin-bottom:56px; }
+    .mat-section h2 { font-size:1.75rem; font-weight:800; color:var(--dk); padding-bottom:12px; border-bottom:2px solid var(--border); margin:0 0 24px; scroll-margin-top:80px; }
+    .mat-section h3 { font-size:1.2rem; font-weight:700; color:var(--dk); margin:32px 0 12px; scroll-margin-top:80px; }
+    .mat-section p { line-height:1.8; margin-bottom:16px; font-size:.97rem; color:#374151; }
+    .mat-section ul, .mat-section ol { padding-left:1.5rem; margin-bottom:16px; }
+    .mat-section li { line-height:1.75; font-size:.97rem; color:#374151; margin-bottom:6px; }
+    .mat-section strong { color:var(--dk); }
+    .mat-section code { background:#eaf6f1; color:#1e6f5c; padding:1px 6px; border-radius:4px; font-family:'JetBrains Mono',monospace; font-size:.85em; }
+
+    /* ── Caixas de destaque ── */
+    .callout { border-radius:12px; padding:16px 20px; margin:20px 0; border-left:4px solid; }
+    .callout-info  { background:#eff6ff; border-color:#3b82f6; }
+    .callout-warn  { background:#fffbeb; border-color:#f59e0b; }
+    .callout-danger{ background:#fef2f2; border-color:#ef4444; }
+    .callout-tip   { background:#f0fdf4; border-color:#22c55e; }
+    .callout-deep  { background:#f5f3ff; border-color:#8b5cf6; }
+    .callout-label { font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; margin-bottom:6px; }
+    .callout-info  .callout-label { color:#3b82f6; }
+    .callout-warn  .callout-label { color:#f59e0b; }
+    .callout-danger .callout-label { color:#ef4444; }
+    .callout-tip   .callout-label { color:#22c55e; }
+    .callout-deep  .callout-label { color:#8b5cf6; }
+    .callout p { margin:0 0 8px; font-size:.91rem; line-height:1.65; color:#374151; }
+    .callout p:last-child { margin-bottom:0; }
+    .callout code { background:rgba(0,0,0,.06); color:#1e6f5c; padding:1px 6px; border-radius:4px; font-family:'JetBrains Mono',monospace; font-size:.85em; }
+
+    /* ── Enunciado normativo ── */
+    .rule { background:#f7fdfa; border:1px solid #cfe8dd; border-left:4px solid var(--ac); border-radius:10px; padding:14px 18px; margin:18px 0; font-size:.94rem; line-height:1.7; color:#1f3d34; }
+    .rule .rid { font-weight:800; color:var(--ac); margin-right:8px; font-family:'JetBrains Mono',monospace; }
+
+    /* ── Tabelas ── */
+    .mat-table { width:100%; border-collapse:collapse; margin:20px 0; font-size:.9rem; }
+    .mat-table th { background:var(--dk); color:white; text-align:left; padding:10px 14px; font-weight:700; font-size:.85rem; }
+    .mat-table td { padding:10px 14px; border-bottom:1px solid var(--border); line-height:1.6; color:#374151; vertical-align:top; }
+    .mat-table tr:nth-child(even) td { background:#fbfcfe; }
+    .mat-table-wrap { overflow-x:auto; }
+
+    /* ── Blocos de código ── */
+    .code-block { position:relative; margin:18px 0; }
+    .code-block .code-cap { font-size:.76rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin-bottom:6px; }
+    .code-block pre { background:#152a22; color:#e6f3ec; border:1px solid #24483b; border-radius:12px; padding:16px 18px; overflow-x:auto; margin:0; }
+    .code-block code { background:none; color:inherit; padding:0; font-family:'JetBrains Mono',monospace; font-size:.83rem; line-height:1.65; }
+    .copy-btn { position:absolute; top:30px; right:12px; background:rgba(255,255,255,.1); color:#cfe8dd; border:1px solid rgba(255,255,255,.22); border-radius:8px; font-size:.72rem; font-weight:700; padding:4px 10px; cursor:pointer; font-family:'Manrope',sans-serif; transition:background .15s; }
+    .copy-btn:hover { background:rgba(255,255,255,.2); }
+    .copy-btn.done { background:#2f8f78; border-color:#2f8f78; color:white; }
   </style>
+
 
 <!-- encontro:css:start -->
 <link rel="stylesheet" href="../../../css/encontro.css">
 <!-- encontro:css:end -->
 </head>
 <body>
-  <div class="material-header">
-    <div class="container d-flex justify-content-between align-items-center flex-wrap gap-3">
-      <div>
-        <small class="text-uppercase fw-bold" style="letter-spacing:.15em;">Módulo 7 · Semana 3 · Sistemas de Informação</small>
-        <h1 class="mt-2 mb-1">Aula 2 — Análise e Carga de Dados</h1>
-        <p class="mb-0">Material de leitura · Professor(a): Afonso Brandão</p>
-      </div>
-      <div class="d-flex gap-2">
+  <div id="progress-bar"></div>
+
+  <!-- Navegação flutuante (aparece após rolar além do cabeçalho) -->
+  <div id="float-nav">
+    <a href="../slides/slide-lesson-2.html" class="fn-btn fn-btn-slides">▶ Slides</a>
+    <a href="../../home-module-7-sistemas-informacao.html" class="fn-btn fn-btn-back">← Módulo</a>
+  </div>
+
+  <header class="mat-header">
+    <div class="container">
+      <div class="mat-badge">Módulo 7 · Sistemas de Informação · Sistemas de Gestão e Governança Empresarial</div>
+      <h1>Análise e preparação de dados para carga no SAP</h1>
+      <p class="subtitle">Aula 2 — Material de Leitura · Prof. Afonso Brandão · 18/08/2026</p>
+      <div class="d-flex gap-2 flex-wrap">
         <a href="../slides/slide-lesson-2.html" class="btn btn-light btn-sm">▶ Slides</a>
+        <a href="../planos/lesson-2-plano.html" class="btn btn-outline-light btn-sm">📋 Plano de ensino</a>
         <a href="../../home-module-7-sistemas-informacao.html" class="btn btn-outline-light btn-sm">← Voltar ao Módulo</a>
       </div>
     </div>
-  </div>
+  </header>
+
+
 <!-- encontro:meta:start -->
-<div class="container" style="max-width:1100px;margin:24px auto 0;padding:0 16px;"><section class="encontro-meta" data-encontro-ficha><h2>Sobre este encontro</h2><p class="encontro-ref">Análise e Carga de Dados · 18/08/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>Ao final do encontro, o estudante deve ser capaz de aplicar ao projeto os conceitos de Análise e Carga de Dados. Escopo do encontro: Importação, manipulação e análise de dados de planilhas com Python no Jupyter Notebook (pandas, openpyxl): leitura de Excel com múltiplas abas, tratamento e filtragem.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>Exposição dialogada dos conceitos, alternada com aplicação guiada ao projeto do grupo, e fechamento com verificação do entendimento.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol><li>Abertura: retomada do encontro anterior e enunciado do objetivo do dia</li><li>Desenvolvimento: exposição dos conceitos centrais do tema</li><li>Aplicação: exercício ou discussão dirigida sobre o projeto do grupo</li><li>Fechamento: síntese, verificação do entendimento e encaminhamentos</li></ol></div></section></div>
+<div class="container" style="max-width:1100px;margin:24px auto 0;padding:0 16px;"><section class="encontro-meta" data-encontro-ficha><h2>Sobre este encontro</h2><p class="encontro-ref">Análise e Carga de Dados · 18/08/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>Ao final do encontro, o estudante deve ser capaz de perfilar uma base legada em planilha, especificar e aplicar em Python as regras de limpeza, padronização e validação exigidas pelo objeto de migração do SAP, e emitir o arquivo de carga acompanhado do relatório de exceções e da reconciliação de totais.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>Exposição dialogada em quatro blocos, cada um seguido da execução imediata do trecho correspondente do notebook no Google Colab sobre uma base legada com defeitos conhecidos; o encontro encerra com a produção, por grupo, do arquivo de carga e do relatório de exceções do objeto de migração escolhido no projeto do parceiro.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol><li>Bloco 1 (30 min) — Migração de dados na implantação: escopo dos objetos, ferramentas de carga do SAP e anatomia do template de migração</li><li>Bloco 2 (35 min) — Perfilagem e qualidade: dimensões de qualidade, conformidade técnica dos campos e validação contra domínios de configuração</li><li>Bloco 3 (40 min) — Prática em Google Colab: ingestão da planilha multiabas, transformação, quarentena de registros e emissão do arquivo de carga</li><li>Bloco 4 (15 min) — Reconciliação, ensaios de carga e cutover: critérios de aceite, tratamento de erros e governança dos dados</li></ol></div></section></div>
 <!-- encontro:meta:end -->
+<div class="mat-layout">
+    <aside class="mat-sidebar">
+      <nav class="mat-toc">
+        <h4>Nesta aula</h4>
+        <a href="#s1">1. A migração no projeto de implantação</a>
+        <a href="#s2">2. O ciclo da migração de dados</a>
+        <a href="#s3">3. Escopo: objetos e critério de corte</a>
+        <a href="#s4">4. Ferramentas de carga do SAP</a>
+        <a href="#s5">5. Anatomia do modelo de carga</a>
+        <a href="#s6">6. Dimensões de qualidade de dados</a>
+        <a href="#s7">7. Perfilagem da base legada</a>
+        <a href="#s8">8. Conformidade técnica dos campos</a>
+        <a href="#s9">9. Domínios e mapeamento de-para</a>
+        <a href="#s10">10. Duplicidade e consolidação</a>
+        <a href="#s11">11. Dependência e sequência de carga</a>
+        <a href="#s12">12. O notebook: ambiente e base do caso</a>
+        <a href="#s13">13. Ingestão e perfilagem</a>
+        <a href="#s14">14. Transformações canônicas</a>
+        <a href="#s15">15. Validação e quarentena</a>
+        <a href="#s16">16. Emissão do arquivo de carga</a>
+        <a href="#s17">17. Reconciliação e totais de controle</a>
+        <a href="#s18">18. Ensaios de carga e cutover</a>
+        <a href="#s19">19. Governança e antipadrões</a>
+        <a href="#s20">20. Atividade e critérios de aceitação</a>
+        <a href="#s21">21. Referências</a>
+      </nav>
+    </aside>
 
+    <article class="mat-article">
 
+      <section class="mat-section" id="s1">
+        <h2>1. A migração no projeto de implantação</h2>
+        <p>A aula anterior tratou das regras que governam a operação e de onde cada uma deve ser implementada no sistema de gestão. Esta aula trata do insumo sem o qual nenhuma regra pode ser exercida: os dados. Um sistema corretamente configurado, alimentado com cadastro incompleto ou incorreto, produz decisões incorretas com a mesma eficiência com que produziria as corretas.</p>
+        <p>A migração de dados é frequentemente tratada como tarefa de infraestrutura, executada nos dias que antecedem a entrada em operação. Essa leitura é a origem de boa parte dos atrasos observados em implantação. A carga propriamente dita é um procedimento breve; o trabalho que a viabiliza — extrair, medir, corrigir, mapear e validar — é análise de dados, consome semanas e depende de decisões que somente a área de negócio pode tomar.</p>
+        <p>Adota-se, ao longo desta aula, o caso já apresentado na Aula 1: a distribuidora de peças de reposição industrial, que está implantando um sistema de gestão empresarial e precisa transferir, do sistema legado, o cadastro de materiais e os saldos de estoque. O extrato disponível é uma planilha com duas abas — condição frequente em empresas de médio porte, em que o sistema legado não oferece exportação estruturada.</p>
+        <div class="callout callout-danger">
+          <div class="callout-label">Erro recorrente</div>
+          <p>Examinar a base legada apenas quando o ambiente de destino já está configurado. Nesse momento, os defeitos de cadastro deixam de ser problema de dados e passam a ser problema de cronograma, porque não há mais folga para as decisões de negócio que a correção exige.</p>
+        </div>
+        <p>Ao final da preparação, o grupo deve ser capaz de apresentar três artefatos, e não apenas um arquivo:</p>
+        <ul>
+          <li><strong>O arquivo de carga</strong>, no formato exigido pelo objeto de migração de destino.</li>
+          <li><strong>O relatório de exceções</strong>, com todo registro rejeitado e o motivo da rejeição.</li>
+          <li><strong>A reconciliação</strong>, que confronta contagens e somatórios entre a origem e o destino.</li>
+        </ul>
+        <p>A ausência de qualquer um deles impede afirmar que a carga foi bem-sucedida: sem exceções não se sabe o que ficou de fora; sem reconciliação não se sabe se o que entrou corresponde ao que existia.</p>
+      </section>
 
+      <section class="mat-section" id="s2">
+        <h2>2. O ciclo da migração de dados</h2>
+        <p>O trabalho organiza-se em sete etapas, percorridas integralmente a cada ensaio de carga. O ciclo não é linear: as exceções produzidas na reconciliação realimentam a limpeza.</p>
+        <div class="mermaid">
+flowchart LR
+  A[Extração<br/>do legado] --> B[Perfilagem<br/>diagnóstico]
+  B --> C[Limpeza e<br/>enriquecimento]
+  C --> D[Mapeamento<br/>de-para]
+  D --> E[Transformação<br/>ao layout de destino]
+  E --> F[Carga<br/>no ambiente]
+  F --> G[Reconciliação<br/>e aceite]
+  G -.->|exceções| C
+        </div>
+        <div class="mat-table-wrap">
+          <table class="mat-table">
+            <tr><th style="width:22%">Etapa</th><th style="width:40%">Produto</th><th>Responsabilidade</th></tr>
+            <tr><td><strong>Extração</strong></td><td>Extrato do sistema legado, com data e hora de corte registradas.</td><td>Equipe do sistema legado, com acompanhamento do projeto.</td></tr>
+            <tr><td><strong>Perfilagem</strong></td><td>Diagnóstico quantitativo por campo e por registro.</td><td>Equipe de dados do projeto.</td></tr>
+            <tr><td><strong>Limpeza</strong></td><td>Base corrigida e lista de decisões pendentes.</td><td>Equipe de dados; decisões cabem ao dono do dado.</td></tr>
+            <tr><td><strong>Mapeamento</strong></td><td>Tabelas de correspondência entre valores de origem e de destino.</td><td>Área de negócio, com apoio da consultoria funcional.</td></tr>
+            <tr><td><strong>Transformação</strong></td><td>Arquivo no layout do objeto de migração.</td><td>Equipe de dados.</td></tr>
+            <tr><td><strong>Carga</strong></td><td>Registros criados no ambiente, com registro de erros.</td><td>Equipe funcional e técnica.</td></tr>
+            <tr><td><strong>Reconciliação</strong></td><td>Confronto de totais e aceite formal.</td><td>Dono do dado na área de negócio.</td></tr>
+          </table>
+        </div>
+        <div class="rule">
+          <span class="rid">RM-01</span> Toda transformação aplicada à base legada deve ser reexecutável a partir do extrato original. Correção manual no arquivo de carga, sem alteração correspondente no código, constitui perda de rastreabilidade.
+        </div>
+        <p>A justificativa da regra é operacional, não estilística. Entre o primeiro ensaio e o cutover, o extrato é gerado novamente diversas vezes, porque a operação continua a produzir dados. Correções aplicadas manualmente ao arquivo de um ensaio se perdem no ensaio seguinte, e o mesmo defeito reaparece. Somente a correção codificada sobrevive à substituição do extrato.</p>
+      </section>
 
+      <section class="mat-section" id="s3">
+        <h2>3. Escopo: objetos de migração e critério de corte</h2>
+        <p>Chama-se <strong>objeto de migração</strong> o conjunto de dados que constitui uma entidade do sistema de destino e que é carregado como unidade: material, parceiro de negócios, saldo de estoque, título em aberto. Cada objeto possui estrutura própria, campos obrigatórios próprios e dependências próprias.</p>
+        <h3>Dados mestres e dados transacionais</h3>
+        <p>Os <strong>dados mestres</strong> descrevem entidades estáveis: plano de contas, centros de custo, parceiro de negócios nos papéis de cliente e de fornecedor, material com seus dados gerais e por centro, listas técnicas e condições de preço. São migrados os registros ativos; cadastros sem movimento no período de corte são candidatos a descarte, com a decisão registrada e assinada pelo dono do dado.</p>
+        <p>Os <strong>dados transacionais</strong> descrevem posições e movimentos: saldos de estoque por material e centro, títulos em aberto a receber e a pagar, pedidos de compra e de venda pendentes, saldos contábeis de abertura. A prática consolidada é migrar <em>posições em aberto</em>, não o histórico completo. O histórico permanece consultável no sistema legado, mantido em modo de consulta, ou em repositório analítico.</p>
+        <div class="callout callout-warn">
+          <div class="callout-label">Consequência de cronograma</div>
+          <p>Cada objeto acrescentado ao escopo acrescenta um ciclo completo de perfilagem, transformação, ensaio e reconciliação. A ampliação de escopo sem revisão de prazo é causa frequente de atraso no cutover, e a decisão de ampliá-lo pertence ao patrocinador do projeto, não à equipe técnica.</p>
+        </div>
+        <h3>Critério de corte</h3>
+        <p>O critério de corte deve ser declarado por escrito e por objeto. Exemplos aplicáveis ao caso da distribuidora:</p>
+        <ul>
+          <li>Materiais com movimento nos últimos 24 meses ou com saldo de estoque diferente de zero.</li>
+          <li>Clientes com pedido faturado nos últimos 36 meses ou com título em aberto.</li>
+          <li>Títulos em aberto na data de corte, independentemente da data de emissão.</li>
+          <li>Saldos de estoque na data de corte, conforme inventário confirmado.</li>
+        </ul>
+        <p>O critério reduz volume e, sobretudo, reduz esforço de correção: não se investe trabalho de análise em cadastro que não será utilizado. A contrapartida é que o critério precisa ser decidido cedo, porque governa tudo o que vem depois.</p>
+      </section>
 
+      <section class="mat-section" id="s4">
+        <h2>4. Ferramentas de carga do SAP</h2>
+        <p>O ambiente SAP oferece mais de um caminho para inserção de dados em massa. A escolha condiciona o formato exigido do arquivo, mas não altera o trabalho de preparação, que é objeto desta aula.</p>
+        <div class="mat-table-wrap">
+          <table class="mat-table">
+            <tr><th style="width:24%">Recurso</th><th style="width:38%">Uso previsto</th><th>Entrada esperada</th></tr>
+            <tr><td><strong>Migration Cockpit</strong><br><em>Migrate Your Data</em></td><td>Instrumento padrão de migração no S/4HANA, com objetos pré-configurados por área funcional e validações próprias.</td><td>Planilha no modelo publicado pelo próprio objeto, ou tabelas de preparação alimentadas por carga externa.</td></tr>
+            <tr><td><strong>BAPI e interfaces de serviço</strong></td><td>Cargas recorrentes, integração contínua com sistema externo, ou objetos sem cobertura pelo instrumento padrão.</td><td>Estrutura de parâmetros da interface, alimentada por programa.</td></tr>
+            <tr><td><strong>IDoc</strong></td><td>Troca assíncrona de documentos entre sistemas, com reprocessamento de mensagens com erro.</td><td>Mensagem estruturada em segmentos e campos definidos.</td></tr>
+            <tr><td><strong>Entrada manual assistida</strong></td><td>Volumes residuais e cadastros de exceção que não compensam automação.</td><td>Digitação com conferência dupla e registro de quem executou.</td></tr>
+          </table>
+        </div>
+        <p>O <em>Migration Cockpit</em> opera segundo dois modos de transferência, cuja disponibilidade depende da versão e do modo de implantação: transferência por arquivo, em que o modelo de planilha é preenchido e enviado, e transferência por tabelas de preparação, em que os dados são gravados em estruturas intermediárias do banco e lidos pelo instrumento. O primeiro modo é o adequado ao volume e ao contexto desta aula.</p>
+        <div class="callout callout-info">
+          <div class="callout-label">Verificação obrigatória no projeto</div>
+          <p>Confirmar com o parceiro, antes de definir o layout de saída, qual a versão do produto e qual o instrumento de carga homologado. O modelo de planilha varia entre versões e entre modos de implantação, e o layout obtido de outra fonte — apostila, repositório público, projeto anterior — costuma divergir do exigido pelo ambiente de destino.</p>
+        </div>
+        <p>Ferramentas de gerações anteriores, como o <em>Legacy System Migration Workbench</em>, ainda são encontradas em ambientes existentes, mas não constituem o caminho recomendado para novos projetos em S/4HANA. Quando surgirem em documentação do parceiro, devem ser tratadas como informação sobre o legado, não como orientação de projeto.</p>
+      </section>
 
-  <main class="container py-4" style="max-width:880px;">
-    <p class="lead">Importação, manipulação e análise de dados de planilhas com Python no Jupyter Notebook (pandas, openpyxl): leitura de Excel com múltiplas abas, tratamento e filtragem.</p>
+      <section class="mat-section" id="s5">
+        <h2>5. Anatomia do modelo de carga</h2>
+        <p>O objeto de migração publica um modelo de planilha que é, simultaneamente, formulário e especificação. Ler esse modelo antes de escrever qualquer código é o que evita retrabalho.</p>
+        <h3>O que o modelo declara</h3>
+        <ul>
+          <li><strong>Uma aba por estrutura do objeto.</strong> O objeto material, por exemplo, separa dados gerais, textos descritivos, dados por centro e dados de unidade alternativa. Cada aba é uma tabela distinta, ligada às demais pela chave do objeto.</li>
+          <li><strong>Nome técnico do campo</strong>, além do rótulo em linguagem de negócio. É pelo nome técnico que o código deve se orientar, porque o rótulo varia com o idioma.</li>
+          <li><strong>Obrigatoriedade</strong>: campo-chave, obrigatório ou opcional. Campo-chave identifica o registro e não admite repetição na mesma aba.</li>
+          <li><strong>Tipo, comprimento máximo e formato</strong> esperado para cada campo.</li>
+        </ul>
+        <div class="callout callout-warn">
+          <div class="callout-label">Cuidado com a posição do cabeçalho</div>
+          <p>As primeiras linhas do modelo contêm metadados — nome técnico, rótulo, indicação de obrigatoriedade — e o número da linha em que os dados efetivamente começam varia conforme a versão. Localize essa linha programaticamente, pela ocorrência dos nomes técnicos, em vez de fixar um número no código.</p>
+        </div>
+        <div class="rule">
+          <span class="rid">RM-02</span> É obrigatório que a estrutura do arquivo de carga seja derivada do modelo publicado pelo objeto de migração da versão em uso, e não de exemplo obtido de outra fonte.
+        </div>
+        <p>Para o caso da distribuidora, a estrutura simplificada adotada no notebook desta aula é a seguinte. Os nomes técnicos correspondem aos campos usuais do cadastro de material e de estoque e servem ao exercício; no projeto, devem ser substituídos pelos do modelo real do parceiro.</p>
+        <div class="mat-table-wrap">
+          <table class="mat-table">
+            <tr><th style="width:16%">Campo</th><th style="width:26%">Conteúdo</th><th style="width:14%">Regra</th><th>Observação</th></tr>
+            <tr><td><code>MATNR</code></td><td>Código do material</td><td>Chave</td><td>Alinhado à direita com zeros quando puramente numérico.</td></tr>
+            <tr><td><code>MAKTX</code></td><td>Descrição do material</td><td>Obrigatório</td><td>Comprimento máximo de 40 caracteres.</td></tr>
+            <tr><td><code>MEINS</code></td><td>Unidade de medida básica</td><td>Obrigatório</td><td>Valor constante da tabela de unidades do ambiente.</td></tr>
+            <tr><td><code>MATKL</code></td><td>Grupo de mercadorias</td><td>Obrigatório</td><td>Valor existente na configuração.</td></tr>
+            <tr><td><code>WERKS</code></td><td>Centro</td><td>Chave por centro</td><td>Centro previamente existente no ambiente.</td></tr>
+            <tr><td><code>BRGEW</code> / <code>NTGEW</code></td><td>Peso bruto e peso líquido</td><td>Opcional</td><td>Peso bruto não pode ser inferior ao líquido.</td></tr>
+            <tr><td><code>LABST</code></td><td>Quantidade em estoque utilizável</td><td>Obrigatório no objeto de estoque</td><td>Valor numérico não negativo.</td></tr>
+          </table>
+        </div>
+      </section>
 
-    <div class="wip-box">
-      <span class="badge-wip">🚧 Em construção</span>
-      <h2 class="h4 mt-3">Material em preparação</h2>
-      <p class="mb-0">Este material é um placeholder. O conteúdo de leitura desta aula está sendo preparado pelo(a) Professor(a) Afonso Brandão. Por enquanto, consulte os <a href="../slides/slide-lesson-2.html">slides</a> da aula.</p>
-    </div>
-  </main>
+      <section class="mat-section" id="s6">
+        <h2>6. Dimensões de qualidade de dados</h2>
+        <p>Qualidade de dados não é juízo geral sobre a base: é um conjunto de dimensões, cada uma correspondendo a uma verificação específica e, na maior parte dos casos, programável.</p>
+        <div class="mat-table-wrap">
+          <table class="mat-table">
+            <tr><th style="width:20%">Dimensão</th><th style="width:40%">Pergunta que responde</th><th>Verificação no caso da distribuidora</th></tr>
+            <tr><td><strong>Completude</strong></td><td>Os campos obrigatórios estão preenchidos?</td><td>Material sem unidade de medida básica.</td></tr>
+            <tr><td><strong>Unicidade</strong></td><td>Cada objeto do mundo real aparece uma única vez?</td><td>O mesmo rolamento cadastrado sob dois códigos.</td></tr>
+            <tr><td><strong>Validade</strong></td><td>O valor pertence ao domínio admitido pelo destino?</td><td>Grupo de mercadorias inexistente na configuração.</td></tr>
+            <tr><td><strong>Consistência</strong></td><td>Os valores concordam entre si e entre fontes?</td><td>Peso bruto inferior ao peso líquido.</td></tr>
+            <tr><td><strong>Acurácia</strong></td><td>O valor corresponde ao fato do mundo real?</td><td>Saldo divergente da contagem física do inventário.</td></tr>
+            <tr><td><strong>Integridade referencial</strong></td><td>As referências apontam para registros existentes?</td><td>Saldo de estoque em centro ainda não cadastrado.</td></tr>
+            <tr><td><strong>Atualidade</strong></td><td>O dado reflete a situação na data de corte?</td><td>Extrato gerado antes do último faturamento do dia.</td></tr>
+          </table>
+        </div>
+        <p>Completude, unicidade, validade, consistência, integridade referencial e atualidade são decidíveis sobre a própria base, por código. A <strong>acurácia</strong> não é: verificar se o saldo registrado corresponde ao estoque efetivamente existente exige confronto com o mundo — inventário físico, confirmação com o cliente, extrato bancário. Essa distinção é operacionalmente relevante, porque delimita o que a equipe de dados pode resolver sozinha e o que exige mobilização da operação.</p>
+        <div class="callout callout-tip">
+          <div class="callout-label">Como usar as dimensões</div>
+          <p>Cada dimensão vira uma coluna do relatório de perfilagem e, depois, uma função de validação no notebook. A lista de dimensões é o roteiro de verificação, não vocabulário decorativo.</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="s7">
+        <h2>7. Perfilagem da base legada</h2>
+        <p>Perfilagem é a medição sistemática da base antes de qualquer correção. Seu produto é quantitativo: não "o cadastro está ruim", mas "417 dos 3.184 materiais não têm unidade de medida; 62 descrições excedem 40 caracteres; 19 códigos aparecem mais de uma vez".</p>
+        <h3>O que medir</h3>
+        <ul>
+          <li><strong>Por coluna:</strong> contagem de vazios, contagem de valores distintos, distribuição dos valores mais frequentes, comprimento mínimo e máximo.</li>
+          <li><strong>Por padrão:</strong> conformidade a expressão regular esperada, presença de caracteres de controle e de espaços duplicados, mistura de tipos na mesma coluna, sentinelas como <code>0</code>, <code>-1</code>, <code>N/A</code> e <code>a definir</code>.</li>
+          <li><strong>Por registro:</strong> duplicidade pela chave natural, duplicidade aproximada por descrição normalizada, registros órfãos em relação a outra aba, registros fora do critério de corte.</li>
+        </ul>
+        <div class="callout callout-danger">
+          <div class="callout-label">Ordem de trabalho</div>
+          <p>A perfilagem antecede a limpeza. Escrever transformações antes de medir a base produz código que corrige defeitos supostos e ignora os existentes — e, pior, cria a impressão de que a base foi tratada.</p>
+        </div>
+        <p>A tabela de perfil é entregue ao dono do dado, e não apenas consumida pelo grupo. Ela converte a discussão sobre qualidade em discussão sobre números e produz a lista de decisões que a área de negócio precisa tomar: o que fazer com os 417 materiais sem unidade, quais dos 19 códigos duplicados permanecem, se as 62 descrições longas são abreviadas por regra ou revisadas uma a uma.</p>
+      </section>
+
+      <section class="mat-section" id="s8">
+        <h2>8. Conformidade técnica dos campos</h2>
+        <p>Antes de qualquer avaliação de negócio, o arquivo precisa satisfazer regras de formato. A rejeição por formato é a mais comum no primeiro ensaio e a mais barata de evitar.</p>
+        <h3>Códigos com zeros à esquerda</h3>
+        <p>Campos de código de comprimento fixo são armazenados com alinhamento à direita e preenchimento com zeros quando o valor é puramente numérico; valores que contêm letras permanecem alinhados à esquerda. O material <code>100234</code>, em um campo de 18 posições, é armazenado como <code>000000000000100234</code>, ao passo que <code>ROL-6205</code> permanece inalterado.</p>
+        <p>O defeito surge no extrato: ao abrir a planilha, o aplicativo interpreta o código como número e descarta os zeros iniciais. A perda é irreversível a partir do arquivo, porque não há como distinguir, depois, entre um código que tinha zeros e outro que não tinha. Daí a exigência de ler toda a planilha como texto.</p>
+        <h3>Datas</h3>
+        <p>Campos de data são armazenados no formato ano-mês-dia sem separadores. O extrato costuma trazer três representações simultâneas na mesma coluna: texto no formato brasileiro <code>12/03/2019</code>, texto ambíguo <code>03/12/2019</code> e número serial da planilha. A conversão exige declarar o formato de origem explicitamente, e nunca depender de inferência automática.</p>
+        <h3>Números decimais</h3>
+        <p>Extratos brasileiros trazem milhar com ponto e decimal com vírgula. O valor <code>1.234,50</code> convertido por inferência resulta em <code>1.23450</code> ou em erro, conforme a biblioteca. A conversão deve ser explícita e o resultado deve ser verificado por somatório antes e depois.</p>
+        <h3>Unidades de medida</h3>
+        <p>A unidade deve corresponder a um código existente na tabela de unidades do ambiente, no idioma de manutenção. Um mesmo conceito costuma aparecer no legado sob várias grafias — <code>UN</code>, <code>un</code>, <code>PÇ</code>, <code>peça</code>, <code>PC&nbsp;</code> —, todas designando unidade discreta. A padronização exige tabela de correspondência, tratada na seção seguinte.</p>
+        <h3>Comprimento e caixa</h3>
+        <p>Campos de texto possuem comprimento máximo, e campos de chave são convertidos para maiúsculas. Descrições excedentes precisam de decisão, não de corte automático.</p>
+        <div class="rule">
+          <span class="rid">RM-03</span> É proibido truncar silenciosamente valor que exceda o comprimento do campo de destino. O registro deve ser encaminhado à quarentena com o motivo declarado, para decisão do responsável pelo dado.
+        </div>
+        <p>A justificativa é de negócio: a descrição do material é o que o comprador e o almoxarife leem para identificar a peça. Um corte automático em 40 caracteres pode eliminar exatamente a medida que distingue duas peças semelhantes, e o efeito só aparece meses depois, na forma de compra errada.</p>
+      </section>
+
+      <section class="mat-section" id="s9">
+        <h2>9. Domínios e mapeamento de-para</h2>
+        <p>Campos de domínio admitem apenas valores previamente configurados no ambiente de destino: unidade de medida, grupo de mercadorias, tipo de material, condição de pagamento, centro, depósito. O valor do legado raramente coincide com o do destino, e a correspondência é decisão de negócio.</p>
+        <h3>Estrutura da tabela de-para</h3>
+        <ul>
+          <li><strong>Valor de origem</strong>, exatamente como consta no extrato, incluindo variações de caixa e espaços.</li>
+          <li><strong>Valor de destino</strong>, existente na configuração do ambiente.</li>
+          <li><strong>Responsável pela decisão e data</strong>, porque a correspondência é decisão revisável.</li>
+          <li><strong>Tratamento do valor não mapeado</strong>: rejeitar o registro ou atribuir valor padrão declarado.</li>
+        </ul>
+        <div class="mat-table-wrap">
+          <table class="mat-table">
+            <tr><th style="width:26%">Origem</th><th style="width:18%">Destino</th><th>Observação</th></tr>
+            <tr><td><code>UN</code>, <code>un</code>, <code>PÇ</code>, <code>peça</code>, <code>PC</code></td><td><code>PC</code></td><td>Unidade discreta.</td></tr>
+            <tr><td><code>KG</code>, <code>Kg</code>, <code>quilo</code></td><td><code>KG</code></td><td>Massa.</td></tr>
+            <tr><td><code>M</code>, <code>metro</code>, <code>mt</code></td><td><code>M</code></td><td>Comprimento.</td></tr>
+            <tr><td><code>CX12</code></td><td><code>CX</code></td><td>Exige fator de conversão declarado como unidade alternativa.</td></tr>
+            <tr><td>vazio, <code>—</code>, <code>N/A</code></td><td>rejeitar</td><td>Não há valor padrão admissível para unidade básica.</td></tr>
+          </table>
+        </div>
+        <div class="callout callout-danger">
+          <div class="callout-label">Antipadrão</div>
+          <p>Atribuir valor padrão a todo registro cujo valor de origem não esteja mapeado, para eliminar a rejeição. O procedimento produz um arquivo que carrega integralmente e uma base que descreve incorretamente a operação. A rejeição existe para provocar decisão, não para ser contornada.</p>
+        </div>
+        <p>O mapeamento é dado de projeto: vive em arquivo próprio, versionado junto ao código, e é revisado pela área de negócio. Constantes de correspondência embutidas no meio do notebook não são auditáveis nem reutilizáveis entre ensaios.</p>
+      </section>
+
+      <section class="mat-section" id="s10">
+        <h2>10. Duplicidade e consolidação</h2>
+        <p>Duplicidade é a presença de mais de um registro para o mesmo objeto do mundo real. É comum em bases legadas mantidas por vários usuários ao longo de anos, e sua correção envolve decisão de negócio.</p>
+        <h3>Detecção</h3>
+        <ul>
+          <li><strong>Exata:</strong> coincidência da chave natural após normalização — código do material, documento fiscal do cliente, par material e centro.</li>
+          <li><strong>Aproximada:</strong> descrições equivalentes após remoção de acentos, pontuação e espaços redundantes, ou comparação por similaridade textual. Produz candidatos, não conclusões.</li>
+        </ul>
+        <h3>Consolidação</h3>
+        <p>Escolhido o registro que permanece, o critério deve ser declarado: maior completude de campos, movimentação mais recente, ou decisão explícita do dono do dado. O que se preserva depois é tão importante quanto a escolha: a tabela de correspondência entre o identificador descartado e o mantido é artefato permanente do projeto, porque documentos históricos, integrações e relatórios do legado continuam a referenciar o código antigo.</p>
+        <div class="rule">
+          <span class="rid">RM-04</span> É obrigatório que toda consolidação de registros duplicados preserve a correspondência entre o identificador de origem e o identificador mantido no sistema de destino.
+        </div>
+      </section>
+
+      <section class="mat-section" id="s11">
+        <h2>11. Dependência e sequência de carga</h2>
+        <p>Objetos de migração possuem dependências, e a ordem de carga é restrição de integridade, não preferência de organização. Não é possível carregar saldo de estoque de um material que ainda não existe, nem título de um cliente ainda não criado.</p>
+        <div class="mermaid">
+flowchart LR
+  CFG[Configuração<br/>centros, depósitos, grupos] --> CTA[Plano de contas<br/>centros de custo]
+  CFG --> BP[Parceiro de negócios<br/>cliente e fornecedor]
+  CFG --> MAT[Material<br/>dados gerais e por centro]
+  MAT --> EST[Saldos<br/>de estoque]
+  BP --> TIT[Títulos<br/>em aberto]
+  CTA --> TIT
+  MAT --> PED[Pedidos<br/>em aberto]
+  BP --> PED
+        </div>
+        <p>Duas consequências práticas decorrem do grafo de dependências.</p>
+        <ul>
+          <li><strong>Para a validação:</strong> a verificação de integridade referencial de um objeto deve usar a lista de chaves <em>efetivamente carregadas</em> do objeto antecedente, e não a lista prevista. Apenas a primeira reflete o que existe no ambiente; a segunda inclui registros que podem ter sido rejeitados.</li>
+          <li><strong>Para o cronograma:</strong> a falha na carga de um objeto antecedente bloqueia todos os dependentes. O ensaio percorre a sequência completa justamente para expor esse encadeamento antes da janela de cutover, quando não há tempo de reagir.</li>
+        </ul>
+      </section>
+
+      <section class="mat-section" id="s12">
+        <h2>12. O notebook: ambiente e base do caso</h2>
+        <p>O trabalho prático é realizado no <a href="https://colab.research.google.com" target="_blank" rel="noopener noreferrer">Google Colab</a>, que já disponibiliza <code>pandas</code> e <code>openpyxl</code> sem instalação. Cada célula desta seção e das seguintes compõe um notebook único, executável na ordem apresentada.</p>
+        <div class="callout callout-info">
+          <div class="callout-label">Preparação</div>
+          <p>Acesse <code>colab.research.google.com</code>, crie um notebook, renomeie-o para <code>carga-sap-&lt;objeto&gt;-&lt;grupo&gt;.ipynb</code> e conceda acesso de leitura ao professor. Execute a célula de verificação abaixo antes de prosseguir.</p>
+        </div>
+        <div class="code-block">
+          <div class="code-cap">Célula 1 — verificação do ambiente</div>
+          <pre><code>import pandas as pd
+import openpyxl, sys
+
+print('python  ', sys.version.split()[0])
+print('pandas  ', pd.__version__)
+print('openpyxl', openpyxl.__version__)</code></pre>
+        </div>
+        <h3>A base do caso</h3>
+        <p>Para que o notebook seja executável por todos os grupos desde o início da aula, a célula seguinte gera o extrato legado da distribuidora. A base é sintética e contém, propositalmente, os defeitos discutidos nas seções 6 a 10: códigos sem zeros à esquerda, descrição excedente, unidades com grafias divergentes, grupo de mercadorias fora do domínio, centro inexistente, decimais no padrão brasileiro, datas em formatos misturados, duplicidade e um saldo de estoque órfão.</p>
+        <div class="code-block">
+          <div class="code-cap">Célula 2 — geração do extrato legado com defeitos conhecidos</div>
+          <pre><code>import pandas as pd
+
+materiais = pd.DataFrame([
+    # codigo   descricao                                         unidade grupo    centro peso_bruto peso_liquido dt_criacao
+    ['100234', 'Rolamento rigido de esferas 6205 2RS',            'UN',  'ROLAM', '1000', '0,132', '0,128', '12/03/2019'],
+    ['100235', 'Rolamento  rigido  de esferas 6206 ZZ',           'un',  'ROLAM', '1000', '0,198', '0,190', '12/03/2019'],
+    ['100236', 'Correia dentada perfil HTD 8M largura 30mm passo 8mm reforcada', 'PC', 'CORRE', '1000', '0,450', '0,440', '05/07/2020'],
+    ['100237', 'Graxa multiuso litio EP2 balde 20kg',             'KG',  'LUBRI', '1000', '20,500', '20,000', '18/11/2021'],
+    ['100238', 'Retentor 35x52x7 nitrilica',                      'PC',  'RETEN', '2000', '0,015', '0,014', '02/02/2022'],
+    ['100239', 'Mangueira hidraulica 1/2 pol R2AT',               'M',   'MANGU', '2000', '1,100', '1,050', '30/09/2022'],
+    ['100240', 'Parafuso sextavado M10x50 classe 8.8 zincado',    'PÇ',  'FIXAD', '1000', '0,048', '0,046', '14/01/2023'],
+    ['100241', 'Oleo hidraulico ISO VG 68 tambor 200L',           'peça','LUBRI', '3000', '180,000', '178,000', '2023-04-22'],
+    ['100242', 'Sensor indutivo M12 PNP NA 4mm',                  '',    'SENSO', '2000', '0,090', '0,088', '11/08/2023'],
+    ['100243', 'Valvula solenoide 3/2 vias 24VCC',               'PC',  'PNEUM', '1000', '0,320', '0,315', '27/05/2024'],
+    ['100234', 'Rolamento rigido de esferas 6205 2RS',            'PC',  'ROLAM', '1000', '0,132', '0,128', '12/03/2019'],
+    ['ROL-778','Rolamento conico 30206 importado',                'PC',  'XXXXX', '1000', '0,260', '0,255', '09/09/2021'],
+], columns=['CODIGO','DESCRICAO','UNIDADE','GRUPO','CENTRO',
+            'PESO_BRUTO','PESO_LIQUIDO','DT_CRIACAO'])
+
+estoque = pd.DataFrame([
+    ['100234', '1000', '0001', '184,000'],
+    ['100235', '1000', '0001', '96,000'],
+    ['100236', '1000', '0001', '12,000'],
+    ['100237', '1000', '0002', '7,500'],
+    ['100238', '2000', '0001', '340,000'],
+    ['100239', '2000', '0001', '58,250'],
+    ['100240', '1000', '0001', '2.400,000'],
+    ['100241', '3000', '0001', '3,000'],
+    ['100243', '1000', '0001', '0,000'],
+    ['100999', '1000', '0001', '15,000'],   # material inexistente na aba Materiais
+], columns=['CODIGO','CENTRO','DEPOSITO','QUANTIDADE'])
+
+with pd.ExcelWriter('extrato_legado.xlsx', engine='openpyxl') as saida:
+    materiais.to_excel(saida, sheet_name='Materiais', index=False)
+    estoque.to_excel(saida, sheet_name='Estoque', index=False)
+
+print('extrato_legado.xlsx gerado:', len(materiais), 'materiais,', len(estoque), 'saldos')</code></pre>
+        </div>
+        <div class="callout callout-tip">
+          <div class="callout-label">No projeto do parceiro</div>
+          <p>Substitua a célula 2 pelo carregamento do extrato real, mantendo inalterado todo o restante do notebook. Se o extrato ainda não estiver disponível, o grupo trabalha sobre esta base até obtê-lo — o código não muda, apenas a origem.</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="s13">
+        <h2>13. Ingestão e perfilagem</h2>
+        <p>A ingestão obedece a duas exigências que decorrem diretamente da seção 8: ler tudo como texto e não permitir conversões automáticas de valores ausentes.</p>
+        <div class="code-block">
+          <div class="code-cap">Célula 3 — ingestão de todas as abas</div>
+          <pre><code># dtype=str preserva zeros à esquerda e evita que códigos virem números.
+# keep_default_na=False mantém 'NA' e 'N/A' como texto, para que a
+# perfilagem possa distinguir campo vazio de campo preenchido com sentinela.
+abas = pd.read_excel('extrato_legado.xlsx', sheet_name=None,
+                     dtype=str, keep_default_na=False)
+
+for nome, df in abas.items():
+    print(f'{nome:&lt;12} {df.shape[0]:&gt;5} linhas  {df.shape[1]:&gt;3} colunas')
+
+materiais = abas['Materiais'].copy()
+estoque   = abas['Estoque'].copy()
+
+TOTAL_MATERIAIS = len(materiais)   # guardado para a reconciliação
+TOTAL_ESTOQUE   = len(estoque)</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-cap">Célula 4 — perfilagem por coluna</div>
+          <pre><code>def perfilar(df):
+    """Uma linha por coluna: vazios, cardinalidade, comprimento e exemplo."""
+    linhas = []
+    for col in df.columns:
+        s = df[col].astype(str).str.strip()
+        nao_vazios = s[s != '']
+        linhas.append({
+            'campo': col,
+            'vazios': int((s == '').sum()),
+            'distintos': int(s.nunique()),
+            'compr_min': int(nao_vazios.str.len().min()) if len(nao_vazios) else 0,
+            'compr_max': int(nao_vazios.str.len().max()) if len(nao_vazios) else 0,
+            'exemplo': nao_vazios.iloc[0] if len(nao_vazios) else '',
+        })
+    return pd.DataFrame(linhas)
+
+display(perfilar(materiais))</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-cap">Célula 5 — perfilagem dos campos de domínio e da chave</div>
+          <pre><code># distribuição dos valores de cada campo de domínio
+for campo in ['UNIDADE', 'GRUPO', 'CENTRO']:
+    print(f'\n--- {campo} ---')
+    print(materiais[campo].str.strip().value_counts(dropna=False))
+
+# duplicidade pela chave natural
+dups = materiais[materiais.duplicated(subset=['CODIGO'], keep=False)]
+print('\ncódigos duplicados:', dups['CODIGO'].nunique(),
+      '| linhas envolvidas:', len(dups))
+display(dups)
+
+# integridade referencial entre as duas abas
+orfaos = estoque[~estoque['CODIGO'].isin(materiais['CODIGO'])]
+print('\nsaldos sem material correspondente:', len(orfaos))
+display(orfaos)</code></pre>
+        </div>
+        <div class="callout callout-info">
+          <div class="callout-label">Leitura do resultado</div>
+          <p>A perfilagem da base do caso deve expor: cinco grafias para a mesma unidade discreta (<code>UN</code>, <code>un</code>, <code>PC</code>, <code>PÇ</code>, <code>peça</code>) e uma unidade vazia; um grupo de mercadorias fora do domínio; um centro inexistente no destino; um código repetido em duas linhas; duas descrições acima de 40 caracteres; e um saldo de estoque sem material correspondente.</p>
+          <p>Confirme cada ocorrência antes de escrever qualquer transformação. É esse hábito, e não o código, que se transfere para o projeto do parceiro.</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="s14">
+        <h2>14. Transformações canônicas</h2>
+        <p>Cada regra de transformação é escrita como função que recebe um valor e devolve um valor, sem depender do <em>DataFrame</em>. A separação permite verificar a regra com poucos casos — inclusive os de fronteira — antes de aplicá-la a milhares de registros.</p>
+        <div class="code-block">
+          <div class="code-cap">Célula 6 — funções de transformação</div>
+          <pre><code>import re
+import unicodedata
+
+def codigo_com_zeros(valor, tamanho=18):
+    """Numérico: alinha à direita com zeros. Alfanumérico: mantém como está."""
+    v = (valor or '').strip().upper()
+    return v.zfill(tamanho) if v.isdigit() else v
+
+def texto_limpo(valor):
+    """Remove espaços redundantes e caracteres de controle. Não trunca."""
+    v = unicodedata.normalize('NFC', valor or '')
+    v = ''.join(c for c in v if unicodedata.category(c)[0] != 'C')
+    return re.sub(r'\s+', ' ', v).strip()
+
+def decimal_br(valor):
+    """'1.234,50' -&gt; 1234.5 ; valor inválido ou vazio -&gt; None"""
+    v = (valor or '').strip().replace('.', '').replace(',', '.')
+    return float(v) if re.fullmatch(r'-?\d+(\.\d+)?', v) else None
+
+def data_iso(valor):
+    """Aceita dd/mm/aaaa e aaaa-mm-dd; devolve aaaammdd ou None."""
+    v = (valor or '').strip()
+    for formato in ('%d/%m/%Y', '%Y-%m-%d'):
+        try:
+            return pd.to_datetime(v, format=formato).strftime('%Y%m%d')
+        except (ValueError, TypeError):
+            continue
+    return None
+
+# verificação das regras antes da aplicação em massa
+assert codigo_com_zeros('100234') == '000000000000100234'
+assert codigo_com_zeros('ROL-778') == 'ROL-778'
+assert texto_limpo('Rolamento  rigido  de esferas') == 'Rolamento rigido de esferas'
+assert decimal_br('2.400,000') == 2400.0
+assert decimal_br('n/d') is None
+assert data_iso('12/03/2019') == '20190312'
+assert data_iso('2023-04-22') == '20230422'
+print('regras verificadas')</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-cap">Célula 7 — aplicação e mapeamento de domínio</div>
+          <pre><code># Tabelas de-para: dado de projeto, revisado pela área de negócio.
+DEPARA_UNIDADE = {
+    'UN': 'PC', 'PÇ': 'PC', 'PC': 'PC', 'PEÇA': 'PC', 'PECA': 'PC',
+    'KG': 'KG', 'QUILO': 'KG',
+    'M': 'M', 'METRO': 'M', 'MT': 'M',
+}
+GRUPOS_CONFIGURADOS = {'ROLAM', 'CORRE', 'LUBRI', 'RETEN',
+                       'MANGU', 'FIXAD', 'SENSO', 'PNEUM'}
+CENTROS_CARREGADOS  = {'1000', '2000'}   # obtidos do ambiente de destino
+
+def unidade_destino(valor):
+    return DEPARA_UNIDADE.get(texto_limpo(valor).upper())   # None se não mapeado
+
+materiais['MATNR'] = materiais['CODIGO'].map(codigo_com_zeros)
+materiais['MAKTX'] = materiais['DESCRICAO'].map(texto_limpo)
+materiais['MEINS'] = materiais['UNIDADE'].map(unidade_destino)
+materiais['MATKL'] = materiais['GRUPO'].map(lambda v: texto_limpo(v).upper())
+materiais['WERKS'] = materiais['CENTRO'].map(lambda v: texto_limpo(v))
+materiais['BRGEW'] = materiais['PESO_BRUTO'].map(decimal_br)
+materiais['NTGEW'] = materiais['PESO_LIQUIDO'].map(decimal_br)
+materiais['ERSDA'] = materiais['DT_CRIACAO'].map(data_iso)
+
+display(materiais[['CODIGO','MATNR','MAKTX','MEINS','MATKL','WERKS','BRGEW','ERSDA']])</code></pre>
+        </div>
+        <div class="callout callout-warn">
+          <div class="callout-label">Sobre o valor não mapeado</div>
+          <p>A função <code>unidade_destino</code> devolve <code>None</code> quando o valor de origem não consta da tabela, em vez de atribuir um padrão. A ausência é detectada na validação e produz rejeição explícita, que é o comportamento exigido pela seção 9.</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="s15">
+        <h2>15. Validação e quarentena</h2>
+        <p>A validação percorre cada registro e acumula os motivos de rejeição. O registro reprovado não é descartado: é separado em quarentena, com o motivo em linguagem compreensível por quem não escreveu o código, porque quem decide sobre ele é o dono do dado.</p>
+        <div class="callout callout-danger">
+          <div class="callout-label">Armadilha do valor ausente</div>
+          <p>Quando uma função de transformação devolve <code>None</code>, o valor é convertido em <code>NaN</code> ao ser atribuído a uma coluna numérica do <em>DataFrame</em>. E <code>NaN</code> é <strong>verdadeiro</strong> em contexto booleano: a verificação <code>if not valor</code> não detecta a ausência, e <code>if valor is None</code> tampouco, porque o objeto já não é <code>None</code>.</p>
+          <p>O efeito é silencioso e grave: o registro sem unidade de medida passa pela validação, entra no arquivo de carga e é rejeitado apenas pelo sistema de destino — ou, pior, é aceito com valor indevido. Por isso a validação abaixo começa por uma função <code>ausente</code>, que trata os três casos: <code>None</code>, <code>NaN</code> e texto vazio.</p>
+        </div>
+        <div class="code-block">
+          <div class="code-cap">Célula 8 — validação registro a registro</div>
+          <pre><code>LIMITE_DESCRICAO = 40
+
+def ausente(valor):
+    """True para None, NaN e texto vazio.
+
+    Necessária porque o None devolvido pelas funções de transformação é
+    convertido em NaN ao entrar na coluna, e NaN é VERDADEIRO em contexto
+    booleano: 'if not valor' não detecta a ausência. Ver seção 15.
+    """
+    return pd.isna(valor) or str(valor).strip() == ''
+
+def validar_material(linha):
+    erros = []
+    if ausente(linha['MATNR']):
+        erros.append('código ausente')
+    if ausente(linha['MAKTX']):
+        erros.append('descrição ausente')
+    elif len(linha['MAKTX']) &gt; LIMITE_DESCRICAO:
+        erros.append(f'descrição com {len(linha["MAKTX"])} caracteres '
+                     f'(limite {LIMITE_DESCRICAO})')
+    if ausente(linha['MEINS']):
+        erros.append(f'unidade "{linha["UNIDADE"]}" fora do de-para')
+    if linha['MATKL'] not in GRUPOS_CONFIGURADOS:
+        erros.append(f'grupo "{linha["MATKL"]}" inexistente na configuração')
+    if linha['WERKS'] not in CENTROS_CARREGADOS:
+        erros.append(f'centro "{linha["WERKS"]}" não carregado no destino')
+    if ausente(linha['BRGEW']):
+        erros.append('peso bruto inválido ou ausente')
+    elif not ausente(linha['NTGEW']) and linha['BRGEW'] &lt; linha['NTGEW']:
+        erros.append('peso bruto inferior ao peso líquido')
+    if ausente(linha['ERSDA']):
+        erros.append('data de criação em formato não reconhecido')
+    return '; '.join(erros)
+
+materiais['erros'] = materiais.apply(validar_material, axis=1)
+
+# duplicidade é propriedade do conjunto, não da linha: avaliada à parte
+duplicados = materiais.duplicated(subset=['MATNR'], keep=False)
+materiais.loc[duplicados, 'erros'] = materiais.loc[duplicados, 'erros'].apply(
+    lambda e: '; '.join(filter(None, [e, 'código duplicado no extrato']))
+)
+
+aprovados  = materiais[materiais['erros'] == ''].copy()
+quarentena = materiais[materiais['erros'] != ''].copy()
+
+print(len(aprovados), 'aprovados |', len(quarentena), 'em quarentena')
+assert len(aprovados) + len(quarentena) == TOTAL_MATERIAIS
+display(quarentena[['CODIGO','DESCRICAO','erros']])</code></pre>
+        </div>
+        <div class="rule">
+          <span class="rid">RM-05</span> É obrigatório que a soma dos registros aprovados e dos registros em quarentena seja igual ao total lido do extrato. Registro que desaparece entre a leitura e a saída indica defeito na transformação.
+        </div>
+        <p>A verificação é feita pela asserção da célula 8. Sem ela, uma operação de junção mal formulada ou um filtro indevido pode eliminar registros sem qualquer sinal — e a perda só apareceria na reconciliação, ou, pior, não apareceria.</p>
+        <div class="code-block">
+          <div class="code-cap">Célula 9 — validação do objeto dependente</div>
+          <pre><code># A integridade referencial usa as chaves EFETIVAMENTE aprovadas,
+# não a lista original de materiais (ver seção 11).
+MATERIAIS_CARREGADOS = set(aprovados['MATNR'])
+
+estoque['MATNR'] = estoque['CODIGO'].map(codigo_com_zeros)
+estoque['WERKS'] = estoque['CENTRO'].map(lambda v: texto_limpo(v))
+estoque['LGORT'] = estoque['DEPOSITO'].map(lambda v: texto_limpo(v))
+estoque['LABST'] = estoque['QUANTIDADE'].map(decimal_br)
+
+def validar_estoque(linha):
+    erros = []
+    if linha['MATNR'] not in MATERIAIS_CARREGADOS:
+        erros.append('material não carregado no destino')
+    if linha['WERKS'] not in CENTROS_CARREGADOS:
+        erros.append(f'centro "{linha["WERKS"]}" não carregado no destino')
+    if ausente(linha['LABST']):
+        erros.append('quantidade inválida ou ausente')
+    elif linha['LABST'] &lt; 0:
+        erros.append('quantidade negativa')
+    return '; '.join(erros)
+
+estoque['erros'] = estoque.apply(validar_estoque, axis=1)
+estoque_ok  = estoque[estoque['erros'] == ''].copy()
+estoque_qtn = estoque[estoque['erros'] != ''].copy()
+
+print(len(estoque_ok), 'saldos aprovados |', len(estoque_qtn), 'em quarentena')
+assert len(estoque_ok) + len(estoque_qtn) == TOTAL_ESTOQUE
+display(estoque_qtn[['CODIGO','CENTRO','QUANTIDADE','erros']])</code></pre>
+        </div>
+        <div class="callout callout-tip">
+          <div class="callout-label">Efeito em cascata, visível</div>
+          <p>Materiais rejeitados na célula 8 provocam a rejeição dos saldos correspondentes na célula 9. O encadeamento é exatamente o do grafo de dependências da seção 11, e é essa propagação que o ensaio de carga precisa expor antes do cutover.</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="s16">
+        <h2>16. Emissão do arquivo de carga</h2>
+        <p>O arquivo de carga é escrito sobre o modelo publicado pelo objeto de migração, preservando o cabeçalho. A localização da linha de dados é feita por busca dos nomes técnicos, conforme a seção 5.</p>
+        <div class="code-block">
+          <div class="code-cap">Célula 10 — escrita sobre o modelo do objeto</div>
+          <pre><code>from openpyxl import load_workbook
+
+def escrever_no_modelo(caminho_modelo, aba, df, campo_ancora, destino):
+    """Escreve df sob o cabeçalho técnico do modelo, sem alterá-lo."""
+    wb = load_workbook(caminho_modelo)
+    ws = wb[aba]
+
+    colunas, primeira_linha = None, None
+    for linha in ws.iter_rows(min_row=1, max_row=12):
+        valores = [(c.value or '') for c in linha]
+        if campo_ancora in valores:
+            colunas = {v: i for i, v in enumerate(valores, start=1) if v}
+            primeira_linha = linha[0].row + 1
+            break
+    if colunas is None:
+        raise ValueError(f'cabeçalho com {campo_ancora} não encontrado em {aba}')
+
+    for deslocamento, (_, reg) in enumerate(df.iterrows()):
+        for campo, coluna in colunas.items():
+            if campo in reg.index:
+                ws.cell(row=primeira_linha + deslocamento,
+                        column=coluna, value=reg[campo])
+
+    wb.save(destino)
+    print(destino, '→', len(df), 'registros a partir da linha', primeira_linha)</code></pre>
+        </div>
+        <p>Quando o modelo oficial do parceiro ainda não estiver disponível, o exercício emite a planilha diretamente, com os nomes técnicos na primeira linha. A substituição posterior pelo modelo real afeta apenas esta célula.</p>
+        <div class="code-block">
+          <div class="code-cap">Célula 11 — saída do ensaio</div>
+          <pre><code>ENSAIO = 'ensaio1'
+
+CAMPOS_MATERIAL = ['MATNR','MAKTX','MEINS','MATKL','WERKS','BRGEW','NTGEW','ERSDA']
+CAMPOS_ESTOQUE  = ['MATNR','WERKS','LGORT','LABST']
+
+with pd.ExcelWriter(f'carga_material_{ENSAIO}.xlsx', engine='openpyxl') as saida:
+    aprovados[CAMPOS_MATERIAL].to_excel(saida, sheet_name='Basic Data', index=False)
+    estoque_ok[CAMPOS_ESTOQUE].to_excel(saida, sheet_name='Stock', index=False)
+
+with pd.ExcelWriter(f'excecoes_{ENSAIO}.xlsx', engine='openpyxl') as saida:
+    quarentena[['CODIGO','DESCRICAO','UNIDADE','GRUPO','CENTRO','erros']] \
+        .to_excel(saida, sheet_name='Materiais', index=False)
+    estoque_qtn[['CODIGO','CENTRO','DEPOSITO','QUANTIDADE','erros']] \
+        .to_excel(saida, sheet_name='Estoque', index=False)
+
+print('arquivos do', ENSAIO, 'gerados')</code></pre>
+        </div>
+        <p>O nome de cada arquivo identifica o objeto e o ensaio. Os arquivos de ensaios anteriores são preservados: a comparação entre eles demonstra a evolução da qualidade da base e é a evidência que sustenta a decisão de autorizar o cutover.</p>
+      </section>
+
+      <section class="mat-section" id="s17">
+        <h2>17. Reconciliação e totais de controle</h2>
+        <p>A reconciliação confronta origem e destino por meio de totais de controle. Sem ela, a única afirmação possível sobre a carga é que o arquivo foi aceito — o que não é o mesmo que afirmar que os dados estão corretos.</p>
+        <h3>Totais que se confrontam</h3>
+        <ul>
+          <li>Contagem de registros por objeto e por agrupamento relevante — centro, grupo de mercadorias, segmento de cliente.</li>
+          <li>Somatório dos campos quantitativos: quantidade em estoque, valor de títulos em aberto, saldo contábil.</li>
+          <li>Contagem de valores distintos em campos-chave.</li>
+          <li>Registros em quarentena, agrupados por motivo.</li>
+        </ul>
+        <div class="code-block">
+          <div class="code-cap">Célula 12 — reconciliação</div>
+          <pre><code>origem  = estoque.assign(QTD=estoque['QUANTIDADE'].map(decimal_br)) \
+                 .groupby('CENTRO')['QTD'].sum()
+destino = estoque_ok.groupby('WERKS')['LABST'].sum()
+
+conf = pd.concat([origem, destino], axis=1,
+                 keys=['origem', 'destino']).fillna(0)
+conf['diferenca'] = conf['destino'] - conf['origem']
+display(conf)
+
+print('\ndivergências:')
+display(conf[conf['diferenca'] != 0])
+
+print('\nquarentena por motivo:')
+display(quarentena['erros'].str.split('; ').explode().value_counts())</code></pre>
+        </div>
+        <div class="rule">
+          <span class="rid">RM-06</span> É obrigatório que toda divergência de reconciliação seja explicada por registro em quarentena identificado. Divergência sem explicação impede o aceite da carga, ainda que o volume envolvido seja pequeno.
+        </div>
+        <p>Na base do caso, a reconciliação fecha no centro <code>2000</code> e apresenta divergência nos centros <code>1000</code> e <code>3000</code>. Ambas são integralmente explicadas pela quarentena: no centro <code>1000</code>, pelos saldos dos materiais rejeitados por descrição excedente e por duplicidade; no centro <code>3000</code>, pelo centro inexistente no destino. Essa correspondência — cada unidade de diferença atribuída a um registro identificado — é o que se apresenta ao dono do dado para obter o aceite.</p>
+        <p>Observe a magnitude: cinco saldos rejeitados retiram do destino 2.614 unidades, das quais 2.400 correspondem a um único item de alto giro. A taxa de rejeição medida em registros não é proporcional ao impacto medido em quantidade, e ambas as medidas devem constar do relatório apresentado à área de negócio.</p>
+        <div class="callout callout-danger">
+          <div class="callout-label">Divergência pequena não é divergência aceitável</div>
+          <p>Diferença de poucas unidades em um somatório costuma indicar registro perdido em uma junção, e não erro de arredondamento. A investigação é obrigatória: o mesmo defeito que produz diferença pequena em ensaio produz diferença grande com o volume completo do cutover.</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="s18">
+        <h2>18. Ensaios de carga e cutover</h2>
+        <p>A carga definitiva não é evento inédito: é a repetição de um procedimento já executado e cronometrado. Os ensaios existem para que a primeira execução do procedimento não coincida com a janela em que a operação está parada.</p>
+        <div class="mat-table-wrap">
+          <table class="mat-table">
+            <tr><th style="width:20%">Ensaio</th><th style="width:38%">Propósito</th><th>Critério de saída</th></tr>
+            <tr><td><strong>Primeiro</strong></td><td>Validar o formato do arquivo e expor os defeitos estruturais da base.</td><td>Arquivo aceito pelo instrumento de carga; perfil de erros quantificado.</td></tr>
+            <tr><td><strong>Segundo</strong></td><td>Verificar a eficácia das correções e a integridade entre objetos dependentes.</td><td>Taxa de rejeição dentro do limite acordado; reconciliação fechada nos objetos principais.</td></tr>
+            <tr><td><strong>Final</strong></td><td>Reproduzir integralmente o procedimento e medir a duração de cada etapa.</td><td>Janela de execução compatível com a acordada; plano de retorno testado.</td></tr>
+            <tr><td><strong>Cutover</strong></td><td>Executar a carga com o extrato da data de corte.</td><td>Reconciliação assinada pelo dono do dado; autorização de entrada em operação.</td></tr>
+          </table>
+        </div>
+        <p>A partir do segundo ensaio, mede-se também a duração de cada etapa. A janela de cutover é finita e frequentemente noturna ou de fim de semana; etapa cuja duração não foi medida é risco não dimensionado. O plano de retorno — a decisão sobre o que fazer se a carga falhar no meio — é parte do ensaio final, não improviso do dia.</p>
+        <div class="callout callout-info">
+          <div class="callout-label">Reexecução e idempotência</div>
+          <p>Carga interrompida precisa ser retomada sem duplicar o que já entrou. Verifique, antes de reexecutar, quais chaves já existem no destino e carregue apenas o complemento. Reexecução cega é a origem mais comum de registros duplicados em produção.</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="s19">
+        <h2>19. Governança e antipadrões</h2>
+        <h3>Responsabilidade sobre o dado</h3>
+        <ul>
+          <li>Cada objeto de migração possui um responsável identificado na área de negócio, que decide sobre exceções e assina a reconciliação. A equipe técnica executa; não decide o conteúdo.</li>
+          <li>As decisões de descarte, consolidação e valor padrão são registradas com data e autor.</li>
+          <li>O código de transformação e as tabelas de-para são versionados junto ao projeto, e não mantidos apenas no ambiente de notebook.</li>
+        </ul>
+        <h3>Dados pessoais</h3>
+        <p>Extratos de clientes, fornecedores e empregados contêm dados pessoais, e a proteção exigida pela Lei Geral de Proteção de Dados Pessoais não se restringe ao sistema: alcança as planilhas intermediárias, os notebooks e as pastas em que os arquivos são armazenados durante o projeto.</p>
+        <ul>
+          <li>O tratamento exige base legal e finalidade declarada, também na fase de migração.</li>
+          <li>Ambientes de ensaio devem utilizar dados descaracterizados sempre que o teste não exigir o valor real.</li>
+          <li>A retenção dos extratos intermediários é limitada e declarada, com eliminação ao final do projeto.</li>
+          <li>O acesso aos arquivos é restrito aos integrantes da equipe de migração.</li>
+        </ul>
+        <div class="callout callout-danger">
+          <div class="callout-label">Antipadrões</div>
+          <p><strong>Correção manual no arquivo de carga</strong>, sem alterar o código que o gera: o defeito reaparece no ensaio seguinte.</p>
+          <p><strong>Valor padrão para eliminar rejeição</strong>: produz arquivo que carrega e base que descreve a operação de forma incorreta.</p>
+          <p><strong>Migração do histórico completo</strong> por ausência de critério de corte: multiplica o esforço de correção sobre dados que não serão utilizados.</p>
+          <p><strong>Carga declarada concluída sem reconciliação</strong>: afirma-se que o arquivo foi aceito, não que os dados estão corretos.</p>
+          <p><strong>Extrato com dados pessoais em pasta pessoal</strong>, sem controle de acesso nem prazo de eliminação.</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="s20">
+        <h2>20. Atividade e critérios de aceitação</h2>
+        <p>A atividade é conduzida em aula e concluída no bloco de desenvolvimento do projeto. Seu produto é insumo direto da aula de testes e cutover no contexto de sistemas empresariais.</p>
+        <h3>Roteiro</h3>
+        <ol>
+          <li>Escolher um objeto de migração pertinente ao caso do parceiro — material, cliente, fornecedor, saldo de estoque ou título em aberto.</li>
+          <li>Obter o extrato legado em planilha, com pelo menos duas abas relacionadas. Na indisponibilidade do extrato real, utilizar a base sintética da seção 12.</li>
+          <li>Ingerir com <code>dtype=str</code> e produzir a tabela de perfilagem, incluindo campos de domínio, duplicidade e registros órfãos.</li>
+          <li>Declarar as regras de transformação, uma função por regra, com verificação por asserção.</li>
+          <li>Declarar o mapeamento de-para de pelo menos um campo de domínio, com o tratamento previsto para o valor não mapeado.</li>
+          <li>Validar registro a registro, separar a quarentena e emitir o arquivo de carga.</li>
+          <li>Apresentar a reconciliação de contagens e somatórios, com cada divergência atribuída a registros identificados.</li>
+        </ol>
+        <h3>Critérios de aceitação do produto</h3>
+        <ul>
+          <li>O notebook executa do início ao fim, sem intervenção manual, a partir do extrato original.</li>
+          <li>A soma de aprovados e quarentena iguala o total lido, verificada por asserção no próprio notebook.</li>
+          <li>Todo registro em quarentena possui motivo legível por quem não escreveu o código.</li>
+          <li>Nenhum valor de domínio é atribuído por omissão; valor não mapeado produz rejeição explícita.</li>
+          <li>Nenhum valor é truncado silenciosamente.</li>
+          <li>A reconciliação é apresentada como tabela, com as divergências explicadas por registros identificados.</li>
+          <li>Os arquivos de saída identificam o objeto e o ensaio no nome.</li>
+        </ul>
+        <div class="callout callout-info">
+          <div class="callout-label">Entrega</div>
+          <p>Notebook no Google Colab com acesso concedido ao professor, acompanhado do arquivo de carga e do relatório de exceções gerados. O notebook é o artefato avaliado: arquivos produzidos sem o código que os gera não atendem aos critérios.</p>
+        </div>
+        <div class="callout callout-tip">
+          <div class="callout-label">Questão de fechamento</div>
+          <p>Dos registros encaminhados à quarentena pelo grupo, quantos decorrem de defeito de formato, corrigível por código, e quantos exigem decisão de negócio? A proporção entre os dois indica quanto do prazo de migração depende da disponibilidade do dono do dado, e não da equipe técnica.</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="s21">
+        <h2>21. Referências</h2>
+        <ul>
+          <li>SAP — <a href="https://help.sap.com/docs/SAP_S4HANA_ON-PREMISE" target="_blank" rel="noopener noreferrer">Documentação do SAP S/4HANA</a>, seção de migração de dados e do <em>Migration Cockpit</em>.</li>
+          <li>DAMA International — <em>DAMA-DMBOK: Data Management Body of Knowledge</em>. 2. ed. Technics Publications, 2017. Capítulos de qualidade de dados e de integração e interoperabilidade.</li>
+          <li>ISO/IEC 25012 — <em>Data Quality Model</em>. Dimensões de qualidade de dados.</li>
+          <li>McKinney, W. — <em>Python for Data Analysis</em>. 3. ed. O'Reilly, 2022.</li>
+          <li><a href="https://pandas.pydata.org/docs/" target="_blank" rel="noopener noreferrer">Documentação do pandas</a> — <code>read_excel</code>, <code>ExcelWriter</code>, tratamento de valores ausentes.</li>
+          <li><a href="https://openpyxl.readthedocs.io/" target="_blank" rel="noopener noreferrer">Documentação do openpyxl</a> — leitura e escrita em planilhas preservando formatação.</li>
+          <li>Brasil — <a href="https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm" target="_blank" rel="noopener noreferrer">Lei nº 13.709/2018</a>, Lei Geral de Proteção de Dados Pessoais.</li>
+          <li>Redman, T. — <em>Data Driven: Profiting from Your Most Important Business Asset</em>. Harvard Business Review Press, 2008.</li>
+        </ul>
+      </section>
+
+    </article>
+  </div>
 
   <footer class="inteli-footer mt-auto py-4 bg-light border-top">
     <div class="container text-center">
-      <p class="mb-1">Material criado pelo professor <strong>Afonso Brandão</strong> para o <strong>Inteli</strong>.</p>
+      <p class="mb-1">
+        Material criado pelo professor <strong>Afonso Brandão</strong>
+        para o <strong>Inteli</strong>.
+      </p>
       <small class="text-muted">🔓 Licença de leitura aberta</small>
     </div>
   </footer>
+
+  <script>
+    // Barra de progresso de leitura e destaque do sumário
+    const bar = document.getElementById('progress-bar');
+    const floatNav = document.getElementById('float-nav');
+    const links = [...document.querySelectorAll('.mat-toc a')];
+    const sections = links.map((a) => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+
+    function onScroll() {
+      const h = document.documentElement;
+      const scrolled = h.scrollTop / (h.scrollHeight - h.clientHeight || 1);
+      bar.style.width = (scrolled * 100) + '%';
+      floatNav.classList.toggle('visible', h.scrollTop > 320);
+
+      let active = 0;
+      sections.forEach((s, i) => { if (s.getBoundingClientRect().top <= 120) active = i; });
+      links.forEach((a, i) => a.classList.toggle('active', i === active));
+    }
+    document.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    // Botão de cópia em cada bloco de código
+    document.querySelectorAll('.code-block').forEach((bloco) => {
+      const codigo = bloco.querySelector('code');
+      if (!codigo) return;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'copy-btn';
+      btn.textContent = 'copiar';
+      btn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(codigo.textContent);
+          btn.textContent = 'copiado';
+          btn.classList.add('done');
+          setTimeout(() => { btn.textContent = 'copiar'; btn.classList.remove('done'); }, 1600);
+        } catch (e) {
+          btn.textContent = 'selecione e copie';
+        }
+      });
+      bloco.appendChild(btn);
+    });
+  </script>
 <!-- encontro:pdf:start -->
 <button type="button" class="pdf-export-btn" data-encontro-data="2026-08-18" data-encontro-docente="Afonso" data-encontro-seq="02" title="Exportar esta página em PDF com o nome padronizado">📄 Exportar PDF</button>
 <script src="../../../js/encontro-pdf.js" defer></script>
