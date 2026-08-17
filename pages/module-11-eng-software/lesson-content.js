@@ -478,6 +478,202 @@
       references: ['DataCamp — Star Schema vs Snowflake Schema: diferenças e casos de uso', 'Astera — 20 práticas recomendadas de data warehouse', 'Maxwell PUC-Rio — Data Warehouse: requisitos e metodologias de modelagem', 'Medium (Nayyara Bernardo) — Boas práticas para modelagem Star/Snowflake no BigQuery']
     },
 
+    4: {
+      title: 'Modelagem de Data Warehouse III', date: '18/08/2026',
+      professor: 'Hermano Peixoto', discipline: 'Computação 1',
+      subtitle: 'Bridge tables, junk dimensions e Slowly Changing Dimensions: modelagem dimensional avançada para casos que o star/snowflake básico não resolve sozinho.',
+      objective: 'Aplicar bridge tables, junk dimensions e a estratégia de Slowly Changing Dimensions (tipos 1, 2 ou 3) mais adequada a cada dimensão do Data Warehouse.',
+      outcomes: [
+        'Explicar quando um relacionamento muitos-para-muitos entre fato e dimensão exige uma bridge table, e não uma chave estrangeira direta.',
+        'Modelar uma bridge table com peso de alocação quando uma métrica aditiva precisa ser distribuída sem dupla contagem.',
+        'Identificar atributos de baixa cardinalidade dispersos na fato ou em dimensões e agrupá-los em uma junk dimension coerente.',
+        'Diferenciar SCD tipo 1, tipo 2 e tipo 3 pelo tratamento dado ao histórico e escolher entre eles a partir da pergunta analítica.',
+        'Avaliar o impacto de cada estratégia de SCD sobre relatórios históricos e sobre o custo de join.',
+        'Relacionar versionamento de dados dimensionais e versionamento de código como práticas complementares de rastreabilidade.'
+      ],
+      timebox: [
+        { label: 'Teoria — bridge tables, junk dimensions, SCD (tipos 1, 2 e 3) e versionamento de dados, com demonstração aplicada ao projeto', minutes: 60 },
+        { label: 'Ponderada em Sala — atividade avaliativa individual, entregue em Google Docs via Adalove', minutes: 60 }
+      ],
+      preClass: [
+        {
+          title: 'Bridge Tables',
+          topics: ['Definição', 'Funções principais', 'Exemplo prático', 'Diferenciação'],
+          url: 'https://www.ibm.com/docs/en/cognos-analytics/12.1.0?topic=relationships-bridge-tables'
+        },
+        {
+          title: 'Design Tip #113 Creating, Using, and Maintaining Junk Dimensions',
+          topics: ['Definição de Junk Dimension', 'Construção inicial', 'Exemplos práticos', 'Integração com o fato', 'Manutenção do junk dimension', 'Considerações de implementação'],
+          url: 'https://www.kimballgroup.com/2009/06/design-tip-113-creating-using-and-maintaining-junk-dimensions'
+        },
+        {
+          title: 'Slowly Changing Dimensions: What they are and why they matter',
+          topics: ['O que são Slowly Changing Dimensions (SCDs)', 'Impacto de modelos incorretos', 'Tipos de SCD explicados', 'Como implementar SCD em DW', 'Técnicas de manutenção', 'Cultura de dados orientada ao histórico'],
+          url: 'https://www.thoughtspot.com/data-trends/data-modeling/slowly-changing-dimensions-in-data-warehouse'
+        },
+        {
+          title: 'Como Implementar Versionamento de Dados em Projetos de Engenharia de Dados',
+          topics: ['Conceito e importância do versionamento de dados', 'Benefícios do versionamento', 'Ferramentas e tecnologias para versionamento', 'Organização e metadados', 'Integração e automação', 'Boas práticas complementares', 'Benefícios tangíveis', 'Desafios na implementação'],
+          url: 'https://cabecatech.com/dados/como-implementar-versionamento-de-dados-em-projetos-de-engenharia-de-dados'
+        }
+      ],
+      sections: [
+        {
+          nav: 'Bridge Tables', title: 'Bridge Tables: resolvendo relações muitos-para-muitos',
+          text: 'Uma bridge table resolve um relacionamento muitos-para-muitos entre a fato e uma dimensão, quando o grão da fato é mais grosso do que essa relação. Uma pesquisa da Central de Pesquisas reúne até 60 empresas participantes: a bridge_pesquisa_empresa liga as duas com uma linha por combinação e, quando uma contagem de participação precisa ser distribuída entre as empresas sem inflar o total, um peso de alocação (por exemplo, 1 dividido pelo número de empresas daquela pesquisa).',
+          checklist: [
+            'No cubo do seu projeto, identifique uma dimensão que se relaciona com a fato em cardinalidade muitos-para-muitos, não um-para-muitos.',
+            'Decida se a bridge table precisa de peso de alocação, avaliando se a métrica que passaria por ela é genuinamente fracionável entre os membros da dimensão.',
+            'Nomeie as colunas da bridge: as duas chaves estrangeiras e, se aplicável, o peso de alocação.'
+          ],
+          pitfall: 'Somar, através da bridge table, uma métrica que pertence à pesquisa inteira e não é fracionável por empresa — como o tempo de tabulação. Peso de alocação só resolve métricas genuinamente atribuíveis por empresa, como uma contagem de participação; as demais simplesmente não devem ser somadas através da bridge.',
+          diagram: `erDiagram
+    FATO_PESQUISA ||--o{ BRIDGE_PESQUISA_EMPRESA : possui
+    DIMENSAO_EMPRESA ||--o{ BRIDGE_PESQUISA_EMPRESA : participa
+    FATO_PESQUISA {
+        int pesquisa_id PK
+        int total_respondentes
+    }
+    BRIDGE_PESQUISA_EMPRESA {
+        int pesquisa_id FK
+        int empresa_id FK
+        float peso_alocacao
+    }
+    DIMENSAO_EMPRESA {
+        int empresa_id PK
+        string porte
+        string segmento
+    }`
+        },
+        {
+          nav: 'Junk Dimensions', title: 'Junk Dimensions: agrupando atributos de baixa cardinalidade',
+          text: 'Uma junk dimension agrupa, em uma única tabela, atributos independentes e de baixa cardinalidade que variam linha a linha na fato — não um atributo fixo do cubo inteiro. Se cada pesquisa da Central de Pesquisas carregasse sua própria combinação de classificação e sensibilidade de dado (público, interno, confidencial, restrito, pessoal, sensível, crítico), essas sete flags seriam candidatas a uma única dimensao_classificacao_dado.',
+          checklist: [
+            'Confirme que o atributo varia linha a linha na fato — se for constante para o cubo inteiro, é metadado de catálogo/governança, não dimensão joinável.',
+            'Verifique se esses atributos aparecem juntos com frequência e não têm hierarquia entre si — sinal de que pertencem à mesma junk dimension.',
+            'Estime quantas combinações realmente ocorrem nos dados: carregue só as observadas, não o produto cartesiano completo.'
+          ],
+          pitfall: 'Criar uma dimensão separada para cada flag booleana. Cada uma vira uma dimensão de duas linhas e mais um join trivial — o join sobra, mas o discernimento analítico não aumenta.',
+          diagram: `erDiagram
+    FATO_PESQUISA }o--|| DIMENSAO_CLASSIFICACAO_DADO : classificada_por
+    FATO_PESQUISA {
+        int pesquisa_id PK
+        int classificacao_sk FK
+    }
+    DIMENSAO_CLASSIFICACAO_DADO {
+        int classificacao_sk PK
+        string classificacao
+        boolean dado_pessoal
+        boolean dado_sensivel
+        boolean dado_critico
+    }`
+        },
+        {
+          nav: 'SCD — Tipos 1, 2 e 3', title: 'Slowly Changing Dimensions: tipos 1, 2 e 3',
+          text: 'Uma Slowly Changing Dimension trata a mudança de um atributo ao longo do tempo. O tipo 1 sobrescreve o valor e apaga o histórico; o tipo 2 cria uma nova linha versionada, com data de início, data de fim e indicador de vigência; o tipo 3 guarda só o valor anterior em uma coluna extra. Na dimensao_empresa, porte e segmento pedem SCD 2 quando a análise exige o valor vigente na data da pesquisa; os demais atributos cadastrais bastam com SCD 1.',
+          checklist: [
+            'Para cada atributo que muda, pergunte se alguma métrica histórica precisa refletir o valor vigente na data do evento — se sim, é candidato a SCD 2.',
+            'Verifique se o atributo muda com frequência incompatível com SCD 2 (mudanças diárias explodiriam o volume da dimensão).',
+            'Confirme, para SCD 3, que uma única coluna de "valor anterior" basta — nenhuma pergunta de negócio pede a segunda ou terceira mudança anterior.'
+          ],
+          pitfall: 'Escolher SCD 2 para toda a dimensão por precaução, sem verificar se cada atributo tem uma pergunta analítica que depende do histórico. Isso multiplica linhas e exige filtro de vigência em joins que nunca precisariam dele.',
+          diagram: `flowchart LR
+    subgraph COL1[" "]
+        direction TB
+        subgraph SCD1["SCD Tipo 1 — sobrescreve"]
+            A1["empresa 42 · porte Médio"] -->|atualiza| A2["empresa 42 · porte Grande"]
+        end
+        subgraph SCD2["SCD Tipo 2 — versiona"]
+            B1["sk 101 · empresa 42 · porte Médio · até 2026-03"] --> B2["sk 102 · empresa 42 · porte Grande · vigente"]
+        end
+    end
+    subgraph SCD3["SCD Tipo 3 — atributo alternativo"]
+        C1["empresa 42 · porte_atual Grande · porte_anterior Médio"]
+    end
+    SCD1 ~~~ SCD2
+    COL1 ~~~ SCD3
+    style COL1 fill:none,stroke:none`
+        },
+        {
+          nav: 'Impacto do SCD na análise', title: 'O impacto de cada estratégia na análise e nos relatórios',
+          text: 'A escolha do SCD muda o que um relatório histórico mostra. Em SCD 1, um relatório de adesão por porte de empresa em 2025 mostraria hoje o porte atual, distorcendo a série histórica; em SCD 2, a fato referencia a chave substituta da versão vigente na data da pesquisa, e o join de consulta é direto. O cuidado é garantir que a fato aponte pela chave substituta, não pela chave natural — caso contrário, ou em consultas retroativas pontuais, é preciso filtrar por vigência para não duplicar linhas.',
+          checklist: [
+            'Para um atributo já classificado como SCD 1, aponte um relatório histórico que ele silenciosamente distorceria se a análise precisasse do valor passado.',
+            'Confirme que a fato referencia a chave substituta da versão vigente da dimensão SCD 2 — não apenas a chave natural.',
+            'Verifique se algum relatório do projeto une uma dimensão SCD 2 pela chave natural sem filtrar vigência.'
+          ],
+          pitfall: 'Resolver a versão da dimensão só na hora da consulta, unindo pela chave natural em vez de referenciar a chave substituta correta da dimensão. Sem essa referência, esquecer o filtro de vigência multiplica cada linha da fato pelo número de versões da dimensão, inflando contagens e somas sem erro visível.'
+        },
+        {
+          nav: 'Versionamento e rastreabilidade', title: 'Versionamento de dados dimensionais e rastreabilidade',
+          text: 'Versionar dado dimensional (SCD 2) e versionar código de transformação (git) são práticas complementares: uma preserva o histórico do dado, a outra o histórico da lógica que o produziu. A rastreabilidade ponta a ponta que o projeto exige — da solicitação de uma pesquisa à publicação — depende das duas; backup recupera um estado, mas não explica a trajetória de mudanças entre eles.',
+          checklist: [
+            'Verifique se o pipeline do seu projeto versiona o código de transformação separadamente do dado.',
+            'Para uma dimensão SCD 2, confirme que é possível responder "qual era o valor vigente nesta data" sem depender de backup.',
+            'Aponte, na TAPI do seu projeto, a exigência de rastreabilidade que depende diretamente de uma dimensão versionada.'
+          ],
+          pitfall: 'Tratar backup como estratégia de versionamento. Backup restaura um ponto no tempo; não permite consultar o histórico completo nem explicar por que o dado mudou entre duas datas.'
+        }
+      ],
+      sdd: {
+        rf: 'RF-104 — Permitir consultar qualquer pesquisa passada por atributos de empresas participantes (porte, segmento) sem inflar métricas aditivas e sem depender do cadastro atual da empresa.',
+        rnf: 'RNF-104 — A bridge_pesquisa_empresa nunca introduz dupla contagem em métrica aditiva da fato; nenhuma vigência de dimensao_empresa (SCD 2) fica sobreposta.',
+        adr: 'ADR-DW-04 — Bridge table para a relação muitos-para-muitos entre pesquisa e empresa, com peso de alocação; junk dimension única para as sete flags de classificação e sensibilidade do dado que variam por pesquisa; SCD 2 restrito a porte e segmento em dimensao_empresa, e SCD 1 nos demais atributos cadastrais. Alternativa descartada: chave estrangeira direta de empresa na fato de pesquisa — inviável pela cardinalidade muitos-para-muitos — e SCD 2 em toda a dimensão empresa, o que multiplicaria linhas sem pergunta analítica associada às demais colunas. Consequência: todo join entre a fato e a dimensao_empresa passa a exigir filtro de vigência.',
+        gherkin: 'Dado que a empresa X mudou de porte em março, Quando consulto a representatividade de mercado de uma pesquisa realizada em janeiro, Então o resultado usa o porte vigente em janeiro e nenhuma métrica aparece duplicada pela bridge table.'
+      },
+      activity: {
+        title: 'Ponderada em Sala — Bridge Tables, Junk Dimensions e SCD aplicados ao projeto',
+        duration: '60 min · segunda metade da aula · atividade avaliativa individual',
+        goal: 'Aplicar bridge table, junk dimension e a estratégia de SCD mais adequada a pelo menos um cubo já modelado no Data Model Canvas do projeto, documentando a solução — com diagrama visual (Mermaid) e justificativa técnica — em um Google Docs individual.',
+        intro: 'Esta atividade é avaliativa — vale nota — e será corrigida pelos critérios de avaliação ao final desta aula. Retome o Data Model Canvas das Aulas 2 e 3 apenas como referência: ele é um documento do grupo, e a resposta desta Ponderada não deve ser escrita nele. Documente sua resposta em um Google Docs próprio e entregue o link no card desta Ponderada no Adalove. Diferente das atividades anteriores, aqui o resultado entregue é o que conta para a nota; ainda assim, peça orientação ao professor sempre que travar.',
+        steps: [
+          { title: 'Releia o canvas', text: 'Retome, apenas como referência, os cubos, o grão, as dimensões e a estrutura (star ou snowflake) já registrados nas Aulas 2 e 3 — não escreva sua resposta no canvas.' },
+          { title: 'Encontre a relação N:N', text: 'Identifique um relacionamento muitos-para-muitos candidato a bridge table entre a fato e alguma dimensão do seu cubo — ou justifique por escrito por que nenhum existe.' },
+          { title: 'Modele a bridge table', text: 'Nomeie a tabela e defina as colunas: as chaves estrangeiras envolvidas e, se alguma métrica aditiva for somada através dela, o peso de alocação.' },
+          { title: 'Encontre atributos de baixa cardinalidade', text: 'Identifique atributos de baixa cardinalidade dispersos na fato ou nas dimensões do seu cubo, candidatos a junk dimension.' },
+          { title: 'Modele a junk dimension', text: 'Liste as combinações relevantes desses atributos e defina a chave substituta da junk dimension.' },
+          { title: 'Escolha o SCD por dimensão', text: 'Para ao menos duas dimensões do cubo escolhido — incluindo qualquer uma que exigir histórico — classifique a necessidade e escolha SCD 1, 2 ou 3, justificando pela pergunta de negócio, nunca por padrão.' },
+          { title: 'Documente no Google Docs', text: 'Escreva a solução completa — bridge table, junk dimension, estratégia de SCD e as justificativas — em um Google Docs individual, criado só para esta Ponderada.' },
+          { title: 'Desenhe um diagrama Mermaid', text: 'Inclua no documento um diagrama visual (Mermaid) da sua solução — por exemplo, o esquema da bridge table com a fato e a dimensão, ou a comparação entre as estratégias de SCD escolhidas.' },
+          { title: 'Entregue no Adalove', text: 'Compartilhe o Google Docs com permissão de visualização e cole o link no card desta Ponderada no Adalove.' }
+        ],
+        checks: [
+          'A bridge table resolve de fato uma cardinalidade muitos-para-muitos, ou o relacionamento já era um-para-muitos e não precisa dela?',
+          'A junk dimension agrupa atributos realmente de baixa cardinalidade, ou esconde uma dimensão que merece existir sozinha?',
+          'A escolha de SCD está justificada pela pergunta analítica, não por "seguir o padrão da última aula"?',
+          'O diagrama Mermaid representa a solução do seu cubo, não um exemplo genérico copiado da aula?'
+        ],
+        avoid: [
+          'Não aplique bridge table a um relacionamento um-para-muitos — isso é modelagem direta com chave estrangeira simples.',
+          'Não escolha SCD 2 para toda dimensão por precaução; declare o custo (volume, complexidade de join) de cada escolha.',
+          'Não registre a resposta desta Ponderada no Data Model Canvas do projeto — ele é um documento do grupo; a entrega é o Google Docs individual, com o link no Adalove.'
+        ],
+        worked: {
+          text: 'Este raciocínio usa o projeto Central de Pesquisas (Sindusfarma) apenas para ilustrar o método — não resolve o cubo do seu projeto.',
+          questions: [
+            'Uma pesquisa é respondida por até 60 empresas, e cada empresa responde a várias pesquisas ao longo do tempo → candidato a bridge table entre fato_pesquisa e dimensao_empresa.',
+            'Se a classificação de dado (público, interno, confidencial, restrito, pessoal, sensível, crítico) variar de pesquisa para pesquisa, essas sete flags booleanas → candidatas a uma única junk dimension de governança.',
+            'O porte e o segmento de uma empresa mudam raramente, mas afetam a leitura de representatividade de mercado por período → candidato a SCD 2; o nome do contato, se mudar, provavelmente não precisa de histórico → SCD 1 basta.'
+          ],
+          note: 'Confirmar essas hipóteses com os dados reais do próprio projeto é o seu trabalho nesta Ponderada.'
+        },
+        tool: { label: 'Abrir o Data Model Canvas do projeto (consulta — a resposta vai no Google Docs)', href: '../data-model-canvas.html' },
+        acceptance: [
+          'Relacionamento muitos-para-muitos identificado e resolvido com bridge table modelada (colunas e peso de alocação, quando aplicável).',
+          'Atributos de baixa cardinalidade agrupados em ao menos uma junk dimension coerente, com chave substituta.',
+          'Estratégia de SCD (1, 2 ou 3) escolhida e justificada para ao menos duas dimensões do cubo, a partir da pergunta analítica, não por padrão.',
+          'Diagrama visual (Mermaid) da solução incluído no documento, representando a bridge table, a junk dimension ou a estratégia de SCD escolhida.'
+        ]
+      },
+      evaluationLabel: 'Critérios de avaliação',
+      deliverable: 'Um Google Docs individual com bridge table, junk dimension e estratégia de SCD para pelo menos um cubo do projeto, incluindo um diagrama visual (Mermaid) da solução, com o link entregue no card desta Ponderada em Sala no Adalove — atividade avaliativa individual, corrigida pelos critérios de avaliação desta aula.',
+      submissionNotice: [
+        'O link do Google Docs desta resposta deve estar registrado no repositório das ponderadas, em um arquivo commitado — não basta colar o link solto no card do Adalove.',
+        'Todo uso de IA generativa na solução desta Ponderada exige o chat salvo e commitado no repositório das ponderadas, com o link apresentado no topo do Google Docs da resposta, identificado como "Interação com IA Generativa".'
+      ],
+      references: ['Kimball & Ross — The Data Warehouse Toolkit (bridge tables e junk dimensions)', 'Kimball Group — Design Tip #113: Creating, Using, and Maintaining Junk Dimensions', 'ThoughtSpot — Slowly Changing Dimensions: What They Are and Why They Matter', 'Cabeça Tech — Como Implementar Versionamento de Dados em Projetos de Engenharia de Dados']
+    },
+
     5: {
       title: 'Arquitetura de Dados', date: '20/08/2026',
       subtitle: 'Decisões estruturais para uma plataforma de dados confiável, evolutiva e governável.',
@@ -1204,7 +1400,10 @@
 
       `<article class="lesson-slide"><span class="lesson-kicker">Objetivo</span><h2>O que você precisa conseguir fazer</h2><div class="lesson-callout"><strong>${esc(lesson.objective)}</strong></div><div class="lesson-grid">${lesson.outcomes.map((o, i) => `<div class="lesson-card"><b>Resultado ${i + 1}</b><p>${esc(o)}</p></div>`).join('')}</div></article>`,
 
-      ...lesson.sections.map((s, i) => `<article class="lesson-slide"><span class="lesson-kicker">Bloco ${i + 1} · ${esc(s.nav)}</span><h2>${esc(s.title)}</h2><div class="lesson-split"><div class="lesson-card"><p>${esc(s.text)}</p></div><div class="lesson-card"><h3>Checklist de aplicação</h3><ul>${checklistOf(s)}</ul></div></div><div class="lesson-warn"><strong>Erro comum:</strong> ${esc(s.pitfall)}</div></article>`),
+      ...lesson.sections.flatMap((s, i) => [
+        `<article class="lesson-slide"><span class="lesson-kicker">Bloco ${i + 1} · ${esc(s.nav)}</span><h2>${esc(s.title)}</h2><div class="lesson-split"><div class="lesson-card"><p>${esc(s.text)}</p></div><div class="lesson-card"><h3>Checklist de aplicação</h3><ul>${checklistOf(s)}</ul></div></div><div class="lesson-warn"><strong>Erro comum:</strong> ${esc(s.pitfall)}</div></article>`,
+        ...(s.diagram ? [`<article class="lesson-slide"><span class="lesson-kicker">Bloco ${i + 1} · ${esc(s.nav)}</span><h2>Exemplo visual</h2><div class="mermaid-wrap medium"><div class="mermaid">${s.diagram}</div></div></article>`] : [])
+      ]),
 
       ...(lesson.sdd ? [`<article class="lesson-slide"><span class="lesson-kicker">Ponte com a Aula 1 · Spec-Driven Development</span><h2>Como este tema vira especificação</h2><div class="lesson-grid">${SDD_LABELS.map(([k, label, hint]) => `<div class="lesson-card"><b>${esc(label)}</b><h3 class="lesson-hint">${esc(hint)}</h3><p>${esc(lesson.sdd[k])}</p></div>`).join('')}</div></article>`] : []),
 
@@ -1221,7 +1420,7 @@
         `<article class="lesson-slide"><span class="lesson-kicker">Exemplo ilustrativo</span><h2>O raciocínio, não a resposta</h2><div class="lesson-split"><div class="lesson-card"><p>${esc(lesson.activity.worked.text)}</p><ul>${lesson.activity.worked.questions.map((q) => `<li>${esc(q)}</li>`).join('')}</ul><p>${esc(lesson.activity.worked.note)}</p></div><div class="lesson-card"><h3>Não faça isso</h3><ul>${lesson.activity.avoid.map((a) => `<li>${esc(a)}</li>`).join('')}</ul></div></div><div class="lesson-warn"><strong>Verifique antes de seguir:</strong> ${lesson.activity.checks.map((c) => esc(c)).join(' · ')}</div></article>`
       ] : []),
 
-      `<article class="lesson-slide"><span class="lesson-kicker">Laboratório</span><h2>Entregável da aula</h2><div class="lesson-callout"><strong>${esc(lesson.deliverable)}</strong></div><div class="lesson-card lesson-wide"><h3>Critérios de aceite</h3><ol>${evaluationList}</ol></div></article>`,
+      `<article class="lesson-slide"><span class="lesson-kicker">Laboratório</span><h2>Entregável da aula</h2><div class="lesson-callout"><strong>${esc(lesson.deliverable)}</strong></div><div class="lesson-card lesson-wide"><h3>${esc(lesson.evaluationLabel || 'Critérios de aceite')}</h3><ol>${evaluationList}</ol></div>${lesson.submissionNotice ? `<div class="lesson-warn"><strong>Atenção — regras de entrega:</strong><ul style="margin:6px 0 0;padding-left:1.2rem;">${lesson.submissionNotice.map((n) => `<li>${esc(n)}</li>`).join('')}</ul></div>` : ''}</article>`,
 
       `<article class="lesson-slide"><span class="lesson-kicker">Fechamento</span><h2>Leve para o projeto</h2><div class="lesson-grid">${lesson.references.map((x, i) => `<div class="lesson-card"><b>Ref. ${i + 1}</b><p>${esc(x)}</p></div>`).join('')}</div><div class="lesson-callout">A pergunta final: <strong>qual decisão fica mais segura depois deste artefato?</strong></div></article>`,
 
@@ -1258,7 +1457,7 @@
       + preClass
       + `<section class="material-box"><h2>Objetivo da aula</h2><p>${esc(lesson.objective)}</p><h3>Ao final você deve conseguir</h3><ul>${lesson.outcomes.map((o) => `<li>${esc(o)}</li>`).join('')}</ul></section>`
       + `<section class="material-box"><h2>Roteiro</h2><ol>${agenda.map((a) => `<li><strong>${esc(a.nav)}</strong> — ${esc(a.text)}</li>`).join('')}</ol></section>`
-      + lesson.sections.map((s, i) => `<section class="material-section"><h2>${i + 1}. ${esc(s.title)}</h2><p>${esc(s.text)}</p><h3>Checklist de aplicação</h3><ul>${checklistOf(s)}</ul><div class="material-note"><strong>Erro comum:</strong> ${esc(s.pitfall)}</div></section>`).join('')
+      + lesson.sections.map((s, i) => `<section class="material-section"><h2>${i + 1}. ${esc(s.title)}</h2><p>${esc(s.text)}</p>${s.diagram ? `<div class="mermaid-wrap medium"><div class="mermaid">${s.diagram}</div></div>` : ''}<h3>Checklist de aplicação</h3><ul>${checklistOf(s)}</ul><div class="material-note"><strong>Erro comum:</strong> ${esc(s.pitfall)}</div></section>`).join('')
       + sdd
       + warmupSection
       + activitySection
