@@ -757,85 +757,196 @@
     },
 
     6: {
-      title: 'Modelagem de Warehouses IV', date: '21/08/2026',
-      subtitle: 'Modelagem dimensional avançada para fatos, histórico e decisões analíticas.',
-      objective: 'Projetar um modelo dimensional com grão explícito, dimensões conformadas, fatos aditivos e estratégia de histórico adequada ao negócio.',
+      title: 'Modelagem de Data Warehouse IV', date: '21/08/2026',
+      subtitle: 'O lado da fato: tipos de tabela fato, aditividade das medidas e a prova de que o modelo não produz número errado.',
+      objective: 'Classificar a tabela fato de cada cubo do projeto quanto ao tipo, classificar cada medida quanto à aditividade e especificar os testes que provam a correção do modelo dimensional.',
       outcomes: [
-        'Declarar o grão de uma tabela de fato e defender a escolha diante do processo de negócio.',
-        'Classificar medidas como aditivas, semi-aditivas ou não aditivas e prever onde a soma quebra.',
-        'Escolher a estratégia de histórico (SCD 0, 1, 2 ou 3) a partir da pergunta analítica.',
-        'Especificar testes que detectam dupla contagem e violação de integridade referencial.'
+        'Distinguir fato transacional, snapshot periódico e snapshot acumulativo pelo evento que uma linha representa.',
+        'Preencher com critério o campo Tipo de fato do Data Model Canvas, decidido até aqui sem base conceitual.',
+        'Classificar cada medida como aditiva, semi-aditiva ou não aditiva e declarar a dimensão em que a soma deixa de valer.',
+        'Modelar fatos sem medida e fatos de cobertura para responder perguntas sobre eventos que não ocorreram.',
+        'Tratar fatos e dimensões de chegada tardia e correções retroativas sem descartar registros.',
+        'Especificar os cinco testes que provam a correção do modelo e registrá-los como contrato de qualidade da camada de serviço.'
+      ],
+      timebox: [
+        { label: 'Teoria — tipos de fato, aditividade, fatos sem medida, tempo difícil e a prova do modelo', minutes: 60 },
+        { label: 'Laboratório — diagnóstico de um modelo defeituoso', minutes: 35 },
+        { label: 'Fechamento do canvas — campos Tipo de fato e Qualidade nos cubos do projeto', minutes: 25 }
+      ],
+      preClass: [
+        {
+          title: 'Modelagem dimensional — tabelas de fatos',
+          topics: ['Estrutura da tabela de fatos', 'Chave primária e chaves de dimensão', 'Medidas e atributos de auditoria', 'Tipos de tabela de fatos', 'Tipos de medida', 'Tabelas de fatos sem fatos', 'Tabelas de fatos agregadas'],
+          url: 'https://learn.microsoft.com/pt-br/fabric/data-warehouse/dimensional-modeling-fact-tables'
+        },
+        {
+          title: 'Modelagem dimensional — tabelas de dimensões',
+          topics: ['Chave alternativa e chaves naturais', 'Atributos de acompanhamento histórico', 'Gerenciar alterações históricas', 'Membros da dimensão especial', 'Calendário e hora', 'Dimensões conformes'],
+          url: 'https://learn.microsoft.com/pt-br/fabric/data-warehouse/dimensional-modeling-dimension-tables'
+        },
+        {
+          title: 'Dimensional Modeling Techniques — Kimball Group',
+          topics: ['Fact table structure', 'Transaction, periodic snapshot e accumulating snapshot fact tables', 'Additive, semi-additive e non-additive facts', 'Factless fact tables', 'Late arriving dimensions'],
+          url: 'https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
+        },
+        {
+          title: 'Data tests — dbt',
+          topics: ['Testes singulares e testes genéricos', 'unique e not_null', 'relationships e accepted_values', 'Severidade e limiar de falha', 'Execução dos testes durante a carga'],
+          url: 'https://docs.getdbt.com/docs/build/data-tests'
+        }
       ],
       sections: [
         {
-          nav: 'Do processo ao grão', title: 'Grão antes da tabela',
-          text: 'Declare o evento representado por uma linha. Sem grão, métricas misturam níveis, duplicam valores e tornam joins perigosos.',
+          nav: 'Tipos de tabela fato', title: 'Transacional, snapshot periódico e snapshot acumulativo',
+          text: 'O tipo da tabela fato decorre do evento que uma linha representa. O fato transacional registra um evento no instante em que ocorre. O snapshot periódico fotografa um estado em intervalos regulares, e gera linha mesmo quando nada aconteceu. O snapshot acumulativo mantém uma linha por processo e a atualiza a cada marco atingido, o que permite medir a duração entre etapas. O Data Model Canvas do projeto pede essa classificação no campo Tipo de fato desde a Aula 2.',
           checklist: [
-            'Escreva o grão em uma frase no singular: "uma linha representa…".',
-            'Confirme que toda medida da tabela existe nesse nível.',
-            'Verifique que a chave composta do grão é única na tabela.'
+            'Para cada cubo do seu projeto, escreva se a linha nasce de um evento, de uma fotografia periódica ou de um processo com marcos.',
+            'Confirme que o snapshot periódico gera linha em período sem movimento — caso contrário, o zero desaparece da série histórica.',
+            'Identifique se algum cubo mede duração entre etapas: esse é o sinal de snapshot acumulativo.'
           ],
-          pitfall: 'Definir o grão depois de escolher as colunas. O grão vem do processo de negócio, não do que a origem oferece.'
+          pitfall: 'Classificar como transacional todo cubo cuja origem é uma tabela de eventos. O que define o tipo é o que uma linha representa no cubo, não o formato do arquivo de origem.',
+          diagram: `flowchart LR
+    subgraph T["Transacional<br/>uma linha por evento"]
+        direction TB
+        T1["resposta enviada<br/>12/03 09:14"]
+        T2["resposta enviada<br/>12/03 09:51"]
+    end
+    subgraph P["Snapshot periódico<br/>uma linha por período"]
+        direction TB
+        P1["mar/2026<br/>412 respondentes ativos"]
+        P2["abr/2026<br/>0 respondentes ativos"]
+    end
+    subgraph A["Snapshot acumulativo<br/>uma linha por processo, atualizada a cada marco"]
+        direction TB
+        A1["pesquisa 88 · aberta 01/03"]
+        A2["encerrada 20/03 · tabulada 27/03"]
+        A3["publicada · ainda em aberto"]
+    end
+    T ~~~ P
+    P ~~~ A`
         },
         {
-          nav: 'Fatos e medidas', title: 'Fatos',
-          text: 'Separe fatos transacionais, snapshots periódicos e snapshots acumulativos. Classifique medidas como aditivas, semi-aditivas ou não aditivas.',
+          nav: 'Aditividade das medidas', title: 'Medidas aditivas, semi-aditivas e não aditivas',
+          text: 'Uma medida aditiva pode ser somada em qualquer dimensão. Uma medida semi-aditiva soma em algumas dimensões e não em outras: um total de respondentes ativos soma entre empresas, nunca ao longo do tempo. Uma medida não aditiva não soma em dimensão alguma — taxas, percentuais e médias pertencem a essa classe, e o modelo deve guardar o numerador e o denominador em vez do resultado já calculado.',
           checklist: [
-            'Classifique cada medida e registre a classificação junto da coluna.',
-            'Marque as semi-aditivas com a dimensão em que a soma é inválida.',
-            'Guarde numerador e denominador em vez de razões já calculadas.'
+            'Classifique cada métrica dos seus cubos e registre a classificação junto da coluna, não em documento separado.',
+            'Para cada medida semi-aditiva, escreva explicitamente a dimensão em que a soma é inválida.',
+            'Substitua toda taxa já calculada na fato pelo par numerador e denominador.'
           ],
-          pitfall: 'Somar saldo ao longo do tempo. Saldo é semi-aditivo: soma entre contas, nunca entre datas.'
+          pitfall: 'Guardar a taxa de adesão como coluna da fato. A média das taxas de cada pesquisa não é a taxa do conjunto: apenas o numerador e o denominador permitem agregar corretamente em qualquer recorte.',
+          diagram: `flowchart LR
+    M["medida do cubo"] --> Q{"soma em qual dimensão?"}
+    Q -->|"em todas"| A1["Aditiva<br/>respostas recebidas"]
+    Q -->|"em algumas"| A2["Semi-aditiva<br/>respondentes ativos<br/>soma entre empresas,<br/>nunca entre datas"]
+    Q -->|"em nenhuma"| A3["Não aditiva<br/>taxa de adesão<br/>guarde numerador<br/>e denominador"]`
         },
         {
-          nav: 'Dimensões', title: 'Dimensões',
-          text: 'Use dimensões conformadas, chaves substitutas, dimensões degeneradas e dimensões de papel para permitir análise consistente entre processos.',
+          nav: 'Fatos sem medida', title: 'Fatos sem medida e fatos de cobertura',
+          text: 'Nem todo fato tem métrica. Um fato sem medida registra a ocorrência de um evento por meio das chaves que o descrevem, e responde a perguntas de contagem. Um fato de cobertura registra o que era possível — as empresas elegíveis a responder uma pesquisa — e, confrontado com o fato de eventos, permite responder o que não aconteceu: quais empresas elegíveis não responderam.',
           checklist: [
-            'Use chave substituta e preserve a chave natural como atributo.',
-            'Conforme as dimensões compartilhadas antes de criar a segunda fato.',
-            'Registre papel e alias quando a mesma dimensão entra duas vezes.'
+            'Identifique uma pergunta do seu projeto que exija saber o que não ocorreu.',
+            'Verifique se essa pergunta pode ser respondida sem uma tabela do que era elegível — em geral não pode.',
+            'Confirme que o fato sem medida tem grão declarado, mesmo sem nenhuma coluna numérica.'
           ],
-          pitfall: 'Cada área criar sua própria dimensão de produto. Sem conformação, dois relatórios corretos discordam.'
+          pitfall: 'Tentar responder o que não aconteceu apenas com a tabela de eventos. A ausência de linha não distingue quem não foi convidado de quem foi convidado e não respondeu.',
+          diagram: `erDiagram
+    DIMENSAO_PESQUISA ||--o{ FATO_COBERTURA_ELEGIVEL : define
+    DIMENSAO_EMPRESA ||--o{ FATO_COBERTURA_ELEGIVEL : elegivel_em
+    DIMENSAO_PESQUISA ||--o{ FATO_RESPOSTA : recebe
+    DIMENSAO_EMPRESA ||--o{ FATO_RESPOSTA : responde
+    FATO_COBERTURA_ELEGIVEL {
+        int pesquisa_sk FK
+        int empresa_sk FK
+    }
+    FATO_RESPOSTA {
+        int pesquisa_sk FK
+        int empresa_sk FK
+        int respostas_recebidas
+    }`
         },
         {
-          nav: 'Histórico e SCD', title: 'SCD',
-          text: 'Compare SCD 0, 1, 2 e 3. Escolha pelo significado histórico: sobrescrever quando o passado não importa; versionar quando a análise precisa reconstruir o contexto.',
+          nav: 'Tempo difícil', title: 'Chegada tardia, correção retroativa e calendário',
+          text: 'Um fato de chegada tardia é o evento que chega depois do período a que pertence. Uma dimensão de chegada tardia é o registro cuja descrição ainda não existe quando o fato chega, e a resposta é criar um membro inferido, não rejeitar a linha. Correções retroativas exigem decidir se o número já publicado é reescrito ou versionado. O calendário deve existir como tabela de dimensão, com o ano fiscal separado do civil quando os períodos divergirem.',
           checklist: [
-            'Pergunte se a análise precisa reconstruir o passado; se não, SCD 1 basta.',
-            'Em SCD 2, defina data de início, data de fim e indicador de vigência.',
-            'Garanta que todo join com dimensão versionada filtra por vigência.'
+            'Defina o que o pipeline faz quando o fato chega sem a dimensão correspondente: rejeita, descarta ou cria membro inferido.',
+            'Declare se uma correção retroativa reescreve o número já publicado ou gera nova versão do período.',
+            'Verifique se o seu projeto trata a data como tabela de dimensão ou como função aplicada na consulta.'
           ],
-          pitfall: 'Aplicar SCD 2 a tudo por precaução. Histórico sem pergunta associada é custo de armazenamento e risco de join errado.'
+          pitfall: 'Rejeitar o fato cuja dimensão ainda não existe. O evento é real e desaparece do relatório; o membro inferido preserva o fato e é completado quando a descrição chega.'
         },
         {
-          nav: 'Casos difíceis', title: 'Casos difíceis',
-          text: 'Trate fatos sem medida, fatos de cobertura, late-arriving dimensions, mudanças retroativas, pontes para cardinalidade muitos-para-muitos e calendário fiscal.',
+          nav: 'A prova do modelo', title: 'Os cinco testes e o contrato da camada de serviço',
+          text: 'Um modelo dimensional se prova por teste executável, não por revisão visual. Cinco testes cobrem os erros que produzem número errado sem gerar erro visível: unicidade da chave do grão, integridade referencial entre fato e dimensão, ausência de vigências sobrepostas nas dimensões versionadas, reconciliação de totais com a origem dentro de uma tolerância declarada e ausência de dupla contagem em métricas que atravessam bridge tables. Esses testes são o contrato de qualidade da camada de serviço desenhada no encontro anterior.',
           checklist: [
-            'Para muitos-para-muitos, use tabela ponte com fator de alocação.',
-            'Trate late-arriving dimension com registro inferido, não com rejeição.',
-            'Separe calendário fiscal do civil quando os períodos divergirem.'
+            'Escreva os cinco testes para um cubo do seu projeto, cada um com o erro que detecta.',
+            'Declare a tolerância aceita na reconciliação com a origem, em número.',
+            'Defina o que acontece quando um teste falha: a carga é interrompida, o dado é publicado com aviso ou o período é reprocessado.'
           ],
-          pitfall: 'Resolver muitos-para-muitos com join direto. O resultado infla a medida silenciosamente.'
-        },
-        {
-          nav: 'Qualidade do modelo', title: 'Qualidade',
-          text: 'Teste unicidade da chave, integridade referencial, cobertura temporal, reconciliação com a origem e ausência de dupla contagem.',
-          checklist: [
-            'Teste unicidade da chave do grão a cada carga.',
-            'Reconcilie totais com a origem e declare a tolerância aceita.',
-            'Verifique cobertura temporal e ausência de vigências sobrepostas.'
-          ],
-          pitfall: 'Validar apenas contagem de linhas. Dupla contagem preserva a contagem e destrói a soma.'
+          pitfall: 'Validar apenas a contagem de linhas. A dupla contagem por bridge table preserva a contagem de linhas da fato e destrói toda soma que passa por ela.',
+          diagram: `flowchart LR
+    C["carga do cubo"] --> T1["unicidade da<br/>chave do grão"]
+    T1 --> T2["integridade<br/>referencial"]
+    T2 --> T3["vigências não<br/>sobrepostas"]
+    T3 --> T4["reconciliação<br/>com a origem"]
+    T4 --> T5["ausência de<br/>dupla contagem"]
+    T5 --> OK["publica na camada<br/>de serviço"]
+    T1 -.->|falha| STOP["interrompe e<br/>registra o erro"]
+    T4 -.->|falha| STOP`
         }
       ],
       sdd: {
-        rf: 'RF-001 — Permitir o recálculo da margem de qualquer venda usando o preço vigente na data do evento.',
-        rnf: 'RNF-001 — Reconciliação com a origem dentro de ±0,1%; nenhuma chave do grão duplicada; nenhuma vigência sobreposta em dimensão versionada.',
-        adr: 'ADR-DW-01 — SCD 2 em dimensao_produto e SCD 1 em dimensao_cliente. Alternativa descartada: SCD 2 em ambas, que elevaria o volume sem pergunta de negócio associada. Consequência: todo join com produto passa a exigir filtro de vigência.',
-        gherkin: 'Dado um produto cujo preço mudou em 10/03, Quando consulto a margem de uma venda de 05/03, Então o cálculo usa o preço anterior e não o vigente hoje.'
+        rf: 'RF-106 — Permitir apurar, para qualquer pesquisa encerrada, quantas empresas elegíveis não responderam, sem depender de conferência manual.',
+        rnf: 'RNF-106 — Nenhuma chave do grão duplicada; reconciliação de totais com a origem dentro de 0,5%; nenhuma métrica aditiva somada através de bridge table sem peso de alocação.',
+        adr: 'ADR-DW-06 — Snapshot acumulativo para o ciclo de vida da pesquisa, com um marco por etapa, em vez de fato transacional por mudança de status. Alternativa descartada: registrar cada mudança de status como evento, o que exigiria reconstruir a duração entre etapas a cada consulta. Consequência: a linha do snapshot é atualizada, e não apenas inserida, o que exige carga idempotente e teste de unicidade a cada execução.',
+        gherkin: 'Dado um cubo de participação com fato de cobertura das empresas elegíveis, Quando uma pesquisa é encerrada, Então é possível listar as empresas elegíveis sem resposta sem alterar a estrutura do modelo.'
       },
-      deliverable: 'Modelo dimensional documentado: grão declarado, fatos, dimensões, SCD escolhido com justificativa, regras de carga e cinco testes de qualidade.',
-      references: ['Kimball & Ross — The Data Warehouse Toolkit', 'Ralph Kimball — Slowly Changing Dimensions', 'Inmon — Building the Data Warehouse', 'dbt — Testing and documentation concepts']
+      activity: {
+        title: 'Atividade em sala — Diagnóstico de um modelo defeituoso e fechamento do canvas',
+        duration: '60 min · segunda metade da aula',
+        goal: 'Encontrar, em um modelo dimensional de aparência correta, os defeitos que produzem número errado, e em seguida fechar no Data Model Canvas do projeto os campos Tipo de fato e Qualidade de cada cubo.',
+        intro: 'A atividade tem duas partes. Na primeira, o grupo diagnostica um modelo com defeitos plantados: nomear o erro, dizer qual número ele distorce e propor a correção estrutural. Na segunda, o grupo retoma o Data Model Canvas do próprio projeto e preenche os dois campos que permaneceram abertos desde a Aula 2. Esta atividade não é avaliativa — a Ponderada do módulo foi realizada no encontro anterior.',
+        stepsTitle: 'Método, passo a passo',
+        steps: [
+          { title: 'Leia o modelo entregue', text: 'Percorra o modelo defeituoso apresentado a seguir. Ele descreve um cubo de participação em pesquisas com aparência correta: grão declarado, dimensões nomeadas e métricas de nome plausível.' },
+          { title: 'Nomeie o erro', text: 'Para cada defeito, declare qual princípio foi violado: aditividade, dupla contagem, vigência de dimensão versionada ou granularidade do tempo.' },
+          { title: 'Descreva o número distorcido', text: 'Diga qual relatório passa a mostrar número errado e em que direção — para mais ou para menos.' },
+          { title: 'Proponha a correção estrutural', text: 'Corrija o modelo, não a consulta. Um filtro acrescentado ao relatório não conserta um modelo que permite o erro.' },
+          { title: 'Classifique o tipo de fato', text: 'No dmc.json do seu grupo, classifique a fato de cada cubo como transacional, snapshot periódico ou snapshot acumulativo, e registre a justificativa pelo que uma linha representa.' },
+          { title: 'Revise a aditividade das métricas', text: 'Percorra as métricas já registradas e marque cada uma como aditiva, semi-aditiva ou não aditiva; substitua toda taxa calculada pelo par numerador e denominador.' },
+          { title: 'Escreva os cinco testes', text: 'Para cada cubo, registre no campo Qualidade os cinco testes, cada um com o erro que detecta e a tolerância, quando houver.' },
+          { title: 'Exporte o canvas', text: 'Exporte o dmc.json atualizado e versione no repositório do grupo, junto da justificativa das classificações.' }
+        ],
+        checks: [
+          'Algum cubo do seu projeto mede duração entre etapas e permanece classificado como transacional?',
+          'Alguma métrica registrada é uma taxa já calculada, que deveria ser substituída por numerador e denominador?',
+          'Os cinco testes registrados nomeiam o erro que cada um detecta, ou apenas o campo que verificam?'
+        ],
+        avoid: [
+          'Não corrija o modelo defeituoso alterando a consulta: o defeito está na estrutura.',
+          'Não classifique o tipo de fato pelo formato do arquivo de origem; classifique pelo que uma linha do cubo representa.',
+          'Não registre "validar os dados" como teste: um teste nomeia o erro que detecta e o que acontece quando falha.'
+        ],
+        worked: {
+          text: 'O modelo abaixo descreve um cubo de participação em pesquisas e tem aparência correta. Há cinco defeitos plantados, e nenhum deles gera mensagem de erro: todos produzem número errado silenciosamente.',
+          questions: [
+            'A fato guarda uma coluna taxa_de_adesao já calculada, e o relatório de adesão por setor tira a média dessa coluna.',
+            'A fato guarda respondentes_ativos por dia, e o painel mensal soma essa coluna ao longo do mês.',
+            'A bridge entre pesquisa e empresa não tem peso de alocação, e o total de respondentes é somado através dela.',
+            'A dimensao_empresa é SCD 2, e a consulta a une pela chave natural, sem filtrar vigência.',
+            'A data existe apenas como função de conversão aplicada na consulta, e o calendário fiscal do parceiro começa em abril.'
+          ],
+          note: 'Para cada item, nomeie o princípio violado, o número distorcido e a correção estrutural. A discussão é conduzida ao final da atividade.'
+        },
+        tool: { label: 'Abrir o Data Model Canvas', href: '../data-model-canvas.html' },
+        acceptance: [
+          'Os cinco defeitos do modelo apresentado foram identificados, com o princípio violado nomeado em cada um.',
+          'Cada cubo do canvas tem o campo Tipo de fato preenchido, com justificativa pelo que uma linha representa.',
+          'Cada métrica do canvas está classificada como aditiva, semi-aditiva ou não aditiva, e nenhuma taxa permanece armazenada já calculada.',
+          'O campo Qualidade de cada cubo registra os cinco testes, cada um com o erro que detecta.'
+        ]
+      },
+      deliverable: 'O Data Model Canvas do projeto com os campos Tipo de fato e Qualidade preenchidos para cada cubo, as métricas classificadas quanto à aditividade e o dmc.json atualizado versionado no repositório do grupo.',
+      references: ['Kimball & Ross — The Data Warehouse Toolkit (tipos de tabela fato e aditividade)', 'Microsoft Learn — Modelagem dimensional: tabelas de fatos', 'Microsoft Learn — Modelagem dimensional: tabelas de dimensões', 'dbt — Data tests']
     },
 
     7: {
