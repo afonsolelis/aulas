@@ -684,6 +684,11 @@
         'Comparar batch e streaming pela latência que a decisão de negócio realmente exige.',
         'Registrar riscos, RPO, RTO e plano de evolução de schema em ADR.'
       ],
+      timebox: [
+        { label: 'Abertura — regras da atividade e retomada do caminho entre as bases de origem e o cubo analítico', minutes: 15 },
+        { label: 'Ponderada em Sala — atividade avaliativa individual, manuscrita e sem consulta', minutes: 120 }
+      ],
+      estrategia: 'Abertura curta de retomada do caminho entre as bases de origem e o cubo analítico, seguida da Ponderada em Sala: atividade avaliativa individual de 120 minutos, manuscrita em folhas distribuídas pelo professor e sem consulta, que consolida a modelagem dimensional das Aulas 2, 3 e 4 e a ancora nas decisões arquiteturais desta aula.',
       sections: [
         {
           nav: 'Requisitos arquiteturais', title: 'Comece pelas decisões',
@@ -752,7 +757,51 @@
         adr: 'ADR-ARQ-01 — Lakehouse com camadas bronze, silver e gold, em vez de warehouse fechado. Contexto: schema evolutivo e dois perfis de consumo com necessidades distintas. Consequência: dependência de catálogo e de rotina de compactação; o custo de governança sobe e precisa de dono declarado.',
         gherkin: 'Dado que a carga da camada silver falhou no dia 12, Quando reprocesso a partição desse dia, Então a camada gold é reconstruída sem duplicar registros e o lineage aponta a nova execução.'
       },
-      deliverable: 'Diagrama de arquitetura com fluxo ponta a ponta, decisões registradas em ADR, requisitos não funcionais, riscos e plano de evolução.',
+      activity: {
+        title: 'Ponderada em Sala — Do dado de origem ao cubo do projeto',
+        slideOnly: true,
+        duration: '120 min · atividade avaliativa individual · manuscrita e sem consulta',
+        goal: 'Reconstruir à mão, sem consulta, um cubo analítico do próprio grupo e o caminho que leva das bases de origem do parceiro até ele, justificando por escrito cada decisão de modelagem e de arquitetura.',
+        intro: 'Esta atividade é avaliativa, individual e vale 3,0 pontos. As folhas são distribuídas pelo professor e toda a resposta é manuscrita nelas. Não é permitido consultar material da disciplina, repositório do grupo, dmc.json, anotações, dispositivos eletrônicos ou assistente de IA. O Data Model Canvas do seu grupo foi construído em conjunto: aqui verifica-se o que cada um sabe reconstruir e justificar sozinho. Todos os grupos trabalham sobre o mesmo parceiro e as mesmas bases de origem — o que distingue as respostas é a modelagem do seu grupo e a qualidade da justificativa.',
+        stepsTitle: 'As oito questões da atividade',
+        steps: [
+          { title: 'Questão 1 — Cubo e grão', text: 'Nomeie um cubo analítico do Data Model Canvas do seu grupo e declare o grão em uma frase no singular: "uma linha representa…". Justifique por que esse grão responde às perguntas de negócio associadas ao cubo.' },
+          { title: 'Questão 2 — Fato, métricas e dimensões', text: 'Desenhe o esquema do cubo: a tabela fato com suas métricas e as dimensões ligadas a ela. Marque as cardinalidades, indique a chave substituta de cada dimensão e assinale onde a chave natural foi preservada.' },
+          { title: 'Questão 3 — Estrutura e dimensões especiais', text: 'Para cada dimensão, escreva Star ou Snowflake e a justificativa em uma linha, citando o critério — redundância, hierarquia ou custo de join. Indique onde o cubo exige bridge table, junk dimension ou dimensão conformada, e a estratégia de SCD de cada dimensão que muda no tempo.' },
+          { title: 'Questão 4 — Fontes e camadas', text: 'Para cada base de origem do parceiro, indique o que ela alimenta no seu cubo — fato, dimensão ou nenhuma — e em qual camada da plataforma ela aterrissa. Explique por que nenhum consumidor deve ler a camada bruta.' },
+          { title: 'Questão 5 — Contrato e transformações', text: 'Escreva o contrato de dados da entrada da camada tratada — formato, semântica e garantia de qualidade — e três regras de transformação que o dado bruto precisa sofrer até chegar ao seu cubo.' },
+          { title: 'Questão 6 — Qualidade', text: 'Escreva três validações obrigatórias que impedem esse cubo de publicar número errado. Para cada uma, declare o erro específico que ela detecta e o que deve acontecer quando ela falha.' },
+          { title: 'Questão 7 — Mudança de requisito', text: 'As empresas participantes mudam de porte e de segmento ao longo do tempo, e a diretoria passa a exigir a comparação da representatividade de mercado entre dois períodos distintos. Indique o que muda no seu modelo, em quais campos do canvas, e qual decisão anterior permanece válida.' },
+          { title: 'Questão 8 — Decisão registrada', text: 'Registre a decisão mais cara do seu modelo em uma ADR manuscrita, com os quatro campos: contexto, decisão, alternativa descartada e consequência aceita.' }
+        ],
+        checks: [
+          'Toda métrica declarada existe de fato no grão que você escreveu, ou alguma pertence a um grão mais fino?',
+          'Cada escolha entre star e snowflake tem o critério escrito ao lado, e não apenas a caixa marcada?',
+          'Cada validação da Questão 6 nomeia o erro que detecta, e não apenas o campo que verifica?',
+          'A ADR da Questão 8 tem os quatro campos preenchidos, incluindo a alternativa descartada?'
+        ],
+        avoid: [
+          'Não descreva a arquitetura genérica de um data warehouse: responda sobre o cubo e as bases do seu projeto.',
+          'Não marque star ou snowflake sem justificar pelo critério — a caixa marcada, sozinha, não pontua.',
+          'Não confunda a base de origem com a camada bruta: a origem é do parceiro, a camada bruta já é da sua plataforma.',
+          'Não entregue desenho sem justificativa escrita: o que se avalia é a decisão, não o traço.'
+        ],
+        acceptance: [
+          'Parte I — Cubo do projeto (1,0 ponto): grão em frase singular e coerente com as métricas (0,4); esquema com cardinalidades e chaves substitutas (0,3); estrutura e dimensões especiais justificadas por critério (0,3).',
+          'Parte II — Da origem ao cubo (1,0 ponto): bases de origem mapeadas por destino e por camada (0,4); contrato de dados nos três elementos e três regras de transformação (0,3); três validações, cada uma com o erro que detecta (0,3).',
+          'Parte III — Decisão sob mudança (1,0 ponto): campos corretamente impactados e decisão que permanece válida identificada (0,6); ADR manuscrita com os quatro campos (0,4).',
+          'Faixas de referência: até 1,2 não deu a largada; de 1,2 a 2,1 faltas graves; de 2,1 a 2,7 chegou lá; acima de 2,7 foi além.'
+        ]
+      },
+      evaluationLabel: 'Critérios de avaliação — 3,0 pontos',
+      deliverableKicker: 'Avaliação',
+      deliverableTitle: 'O que é entregue',
+      deliverable: 'A folha manuscrita entregue ao final do encontro, com as oito questões respondidas: o cubo do grupo reconstruído, o caminho das bases de origem até o cubo e a resposta à mudança de requisito, com a decisão registrada em ADR. Atividade avaliativa individual, sem consulta, no valor de 3,0 pontos.',
+      submissionNotice: [
+        'A atividade é manuscrita nas folhas distribuídas pelo professor; respostas em qualquer outro suporte não são consideradas.',
+        'Não é permitido consultar material da disciplina, repositório do grupo, dmc.json, anotações, dispositivos eletrônicos ou assistente de IA durante a atividade.',
+        'Identifique todas as folhas com nome completo, turma e grupo antes de começar; a entrega ocorre em mãos, ao professor, ao final do encontro.'
+      ],
       references: ['TOGAF — Architecture Development Method', 'DAMA-DMBOK2', 'ISO/IEC 42010 — Architecture descriptions', 'AWS Well-Architected Framework']
     },
 
@@ -1376,9 +1425,9 @@
 
   // Ficha do encontro — objetivo de aprendizagem, estratégia e estrutura.
   // Exigida em toda página de aula do acervo; ver .claude/skills/padrao-encontro/SKILL.md.
-  const estrategia =
-    'Exposição por blocos, cada um encerrado por checklist de aplicação, seguida de laboratório ' +
-    'com entrega: ' + lesson.deliverable;
+  const estrategia = lesson.estrategia ||
+    ('Exposição por blocos, cada um encerrado por checklist de aplicação, seguida de laboratório ' +
+    'com entrega: ' + lesson.deliverable);
 
   const fichaEncontro = () =>
     `<section class="encontro-meta" data-encontro-ficha>` +
@@ -1416,11 +1465,13 @@
 
       ...(lesson.activity ? [
         `<article class="lesson-slide"><span class="lesson-kicker">${esc(lesson.activity.duration)}</span><h2>${esc(lesson.activity.title)}</h2><div class="lesson-callout"><strong>${esc(lesson.activity.goal)}</strong></div><div class="lesson-card lesson-wide"><p>${esc(lesson.activity.intro)}</p></div></article>`,
-        `<article class="lesson-slide"><span class="lesson-kicker">Método</span><h2>Do negócio ao cubo, passo a passo</h2><div class="lesson-grid">${lesson.activity.steps.map((s, i) => `<div class="lesson-card"><b>Passo ${i + 1}</b><h3>${esc(s.title)}</h3><p>${esc(s.text)}</p></div>`).join('')}</div></article>`,
-        `<article class="lesson-slide"><span class="lesson-kicker">Exemplo ilustrativo</span><h2>O raciocínio, não a resposta</h2><div class="lesson-split"><div class="lesson-card"><p>${esc(lesson.activity.worked.text)}</p><ul>${lesson.activity.worked.questions.map((q) => `<li>${esc(q)}</li>`).join('')}</ul><p>${esc(lesson.activity.worked.note)}</p></div><div class="lesson-card"><h3>Não faça isso</h3><ul>${lesson.activity.avoid.map((a) => `<li>${esc(a)}</li>`).join('')}</ul></div></div><div class="lesson-warn"><strong>Verifique antes de seguir:</strong> ${lesson.activity.checks.map((c) => esc(c)).join(' · ')}</div></article>`
+        `<article class="lesson-slide"><span class="lesson-kicker">Método</span><h2>${esc(lesson.activity.stepsTitle || 'Do negócio ao cubo, passo a passo')}</h2><div class="lesson-grid">${lesson.activity.steps.map((s, i) => `<div class="lesson-card"><b>Passo ${i + 1}</b><h3>${esc(s.title)}</h3><p>${esc(s.text)}</p></div>`).join('')}</div></article>`,
+        (lesson.activity.worked
+          ? `<article class="lesson-slide"><span class="lesson-kicker">Exemplo ilustrativo</span><h2>O raciocínio, não a resposta</h2><div class="lesson-split"><div class="lesson-card"><p>${esc(lesson.activity.worked.text)}</p><ul>${lesson.activity.worked.questions.map((q) => `<li>${esc(q)}</li>`).join('')}</ul><p>${esc(lesson.activity.worked.note)}</p></div><div class="lesson-card"><h3>Não faça isso</h3><ul>${lesson.activity.avoid.map((a) => `<li>${esc(a)}</li>`).join('')}</ul></div></div><div class="lesson-warn"><strong>Verifique antes de seguir:</strong> ${lesson.activity.checks.map((c) => esc(c)).join(' · ')}</div></article>`
+          : `<article class="lesson-slide"><span class="lesson-kicker">Antes de entregar</span><h2>Regras e verificação</h2><div class="lesson-split"><div class="lesson-card"><h3>Não faça isso</h3><ul>${lesson.activity.avoid.map((a) => `<li>${esc(a)}</li>`).join('')}</ul></div><div class="lesson-card"><h3>Verifique antes de entregar</h3><ul>${lesson.activity.checks.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></div></div></article>`)
       ] : []),
 
-      `<article class="lesson-slide"><span class="lesson-kicker">Laboratório</span><h2>Entregável da aula</h2><div class="lesson-callout"><strong>${esc(lesson.deliverable)}</strong></div><div class="lesson-card lesson-wide"><h3>${esc(lesson.evaluationLabel || 'Critérios de aceite')}</h3><ol>${evaluationList}</ol></div>${lesson.submissionNotice ? `<div class="lesson-warn"><strong>Atenção — regras de entrega:</strong><ul style="margin:6px 0 0;padding-left:1.2rem;">${lesson.submissionNotice.map((n) => `<li>${esc(n)}</li>`).join('')}</ul></div>` : ''}</article>`,
+      `<article class="lesson-slide"><span class="lesson-kicker">${esc(lesson.deliverableKicker || 'Laboratório')}</span><h2>${esc(lesson.deliverableTitle || 'Entregável da aula')}</h2><div class="lesson-callout"><strong>${esc(lesson.deliverable)}</strong></div><div class="lesson-card lesson-wide"><h3>${esc(lesson.evaluationLabel || 'Critérios de aceite')}</h3><ol>${evaluationList}</ol></div>${lesson.submissionNotice ? `<div class="lesson-warn"><strong>Atenção — regras de entrega:</strong><ul style="margin:6px 0 0;padding-left:1.2rem;">${lesson.submissionNotice.map((n) => `<li>${esc(n)}</li>`).join('')}</ul></div>` : ''}</article>`,
 
       `<article class="lesson-slide"><span class="lesson-kicker">Fechamento</span><h2>Leve para o projeto</h2><div class="lesson-grid">${lesson.references.map((x, i) => `<div class="lesson-card"><b>Ref. ${i + 1}</b><p>${esc(x)}</p></div>`).join('')}</div><div class="lesson-callout">A pergunta final: <strong>qual decisão fica mais segura depois deste artefato?</strong></div></article>`,
 
@@ -1447,7 +1498,9 @@
       ? `<section class="material-box"><h2>${esc(lesson.warmup.title)}</h2><p><strong>${esc(lesson.warmup.duration)}.</strong> ${esc(lesson.warmup.goal)}</p><p>${esc(lesson.warmup.intro)}</p>${receiptTableHtml(lesson.warmup.receipt)}<p class="material-note">${esc(lesson.warmup.note)}</p><h3>Perguntas analíticas</h3><ol>${lesson.warmup.questions.map((q) => `<li>${esc(q)}</li>`).join('')}</ol><h3>Modelo de referência (resolvido)</h3><p><strong>Grão:</strong> ${esc(lesson.warmup.model.grao)}</p><p><strong>Fato:</strong> ${esc(lesson.warmup.model.fato)}</p><h4>Métricas</h4><ul>${lesson.warmup.model.metricas.map((m) => `<li>${esc(m)}</li>`).join('')}</ul><h4>Dimensões</h4><ul>${lesson.warmup.model.dimensoes.map((d) => `<li><strong>${esc(d.nome)}:</strong> ${esc(d.hierarquia)}</li>`).join('')}</ul><p><strong>Esquema:</strong> ${esc(lesson.warmup.model.esquema)}</p><div class="material-note">${esc(lesson.warmup.transition)}</div></section>`
       : '';
 
-    const activitySection = lesson.activity
+    const activitySection = (lesson.activity && lesson.activity.slideOnly)
+      ? `<section class="material-box"><h2>${esc(lesson.activity.title)}</h2><p><strong>${esc(lesson.activity.duration)}.</strong> ${esc(lesson.activity.goal)}</p><p class="material-note">O enunciado completo desta atividade avaliativa é apresentado em sala, no slide da aula, e não é publicado antecipadamente.</p></section>`
+      : lesson.activity
       ? `<section class="material-box"><h2>${esc(lesson.activity.title)}</h2><p><strong>${esc(lesson.activity.duration)}.</strong> ${esc(lesson.activity.goal)}</p><p>${esc(lesson.activity.intro)}</p><h3>Método, passo a passo</h3><ol>${lesson.activity.steps.map((s) => `<li><strong>${esc(s.title)}:</strong> ${esc(s.text)}</li>`).join('')}</ol><h3>Perguntas de verificação</h3><ul>${lesson.activity.checks.map((c) => `<li>${esc(c)}</li>`).join('')}</ul><h3>O que não fazer</h3><ul>${lesson.activity.avoid.map((a) => `<li>${esc(a)}</li>`).join('')}</ul><div class="material-note"><strong>Exemplo ilustrativo — o raciocínio, não a resposta.</strong> ${esc(lesson.activity.worked.text)}<ul>${lesson.activity.worked.questions.map((q) => `<li>${esc(q)}</li>`).join('')}</ul>${esc(lesson.activity.worked.note)}</div><p><a href="${esc(lesson.activity.tool.href)}">${esc(lesson.activity.tool.label)}</a></p></section>`
       : '';
 
@@ -1461,7 +1514,9 @@
       + sdd
       + warmupSection
       + activitySection
-      + `<section class="material-box"><h2>Entregável e avaliação</h2><p>${esc(lesson.deliverable)}</p><ul>${evaluationList}</ul></section>`
+      + ((lesson.activity && lesson.activity.slideOnly)
+        ? `<section class="material-box"><h2>Entregável e avaliação</h2><p>${esc(lesson.deliverable)}</p><p class="material-note">Os critérios de avaliação são apresentados em sala, junto do enunciado.</p></section>`
+        : `<section class="material-box"><h2>Entregável e avaliação</h2><p>${esc(lesson.deliverable)}</p><ul>${evaluationList}</ul></section>`)
       + `<section class="material-box"><h2>Referências</h2><ul>${lesson.references.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></section></div>`;
   };
 
@@ -1482,7 +1537,9 @@
       ? `<section><h2>${esc(lesson.warmup.title)}</h2><p><strong>${esc(lesson.warmup.duration)}.</strong> ${esc(lesson.warmup.goal)} O professor resolve o modelo junto com a turma, usando uma nota fiscal de supermercado sintetizada (dados fictícios) como exemplo de trabalho — diferente da atividade do projeto, aqui o resultado é apresentado.</p><p>${esc(lesson.warmup.transition)}</p></section>`
       : '';
 
-    const activityPlan = lesson.activity
+    const activityPlan = (lesson.activity && lesson.activity.slideOnly)
+      ? `<section><h2>${esc(lesson.activity.title)}</h2><p><strong>${esc(lesson.activity.duration)}.</strong> ${esc(lesson.activity.goal)}</p><p>O enunciado completo é apresentado em sala, no slide da aula, e não é publicado antecipadamente.</p></section>`
+      : lesson.activity
       ? `<section><h2>${esc(lesson.activity.title)}</h2><p><strong>${esc(lesson.activity.duration)}.</strong> ${esc(lesson.activity.goal)} O professor orienta com perguntas e critérios de verificação, sem fornecer a solução do modelo.</p><ol>${lesson.activity.steps.map((s) => `<li><strong>${esc(s.title)}:</strong> ${esc(s.text)}</li>`).join('')}</ol></section>`
       : '';
 
@@ -1496,7 +1553,9 @@
       + sdd
       + warmupPlan
       + activityPlan
-      + `<section><h2>Avaliação</h2><p>Entrega individual ou em grupo do artefato descrito no material, com apresentação curta e revisão por pares. ${esc(lesson.deliverable)}</p><ul>${evaluationList}</ul></section>`
+      + ((lesson.activity && lesson.activity.slideOnly)
+        ? `<section><h2>Avaliação</h2><p>${esc(lesson.deliverable)}</p><p>Os critérios de avaliação são apresentados em sala, junto do enunciado.</p></section>`
+        : `<section><h2>Avaliação</h2><p>Entrega individual ou em grupo do artefato descrito no material, com apresentação curta e revisão por pares. ${esc(lesson.deliverable)}</p><ul>${evaluationList}</ul></section>`)
       + `<section><h2>Bibliografia</h2><ul>${lesson.references.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></section></main>`;
   };
 })();
