@@ -1,30 +1,32 @@
-# Sprint 3 - Arquitetura e Primeira Versao do Backend
+# Sprint 3 - Art. 9 [WAD] - Arquitetura da solução, Art. 8 [código] - 1ª Versão do Sistema Web - WebAPI
 
-## Descricao
+## Descrição
 
-Este artefato consolida a transicao da modelagem para a implementacao. O objetivo e descrever a arquitetura da aplicacao e entregar a primeira versao funcional do backend com WebAPI operante.
+Consolida as entregas da sprint:
+
+- **Art. 9 [WAD] - Arquitetura da solução** (peso 3)
+- **Art. 8 [código] - 1ª Versão do Sistema Web - WebAPI** (peso 3)
+- **Art. 7 [WAD] - Protótipo de Alta Fidelidade e Guia de Estilos** (peso 3)
+- **Art. 6 [WAD] - Lógica Proposicional das consultas SQL** (peso 2)
 
 ## O que deve conter
 
-- arquitetura da aplicacao em padrao MVC
-- diagrama de classes das camadas principais
-- modelagem dinamica com diagrama de sequencia UML de ao menos um fluxo prioritario
-- primeira versao funcional do sistema
-- WebAPI documentada
-- endpoints principais implementados
-- evolucao dos requisitos nao funcionais por eixos com foco computacional
-- relatorio de desenvolvimento da primeira versao
+- Art. 9 [WAD] - Arquitetura da solução: Este artefato abrange a documentação técnica e os diagramas que descrevem
+a arquitetura do sistema, além da rastreabilidade entre requisitos e
+implementação.
 
-## Criterios de aceite
+Arquitetura em Camadas (seção 3.2.1)
+O…
+- Art. 8 [código] - 1ª Versão do Sistema Web - WebAPI: Neste artefato, o grupo deve entregar a primeira versão funcional do backend com WebAPI operante. O sistema deve ser capaz de subir localmente sem erros impeditivos, com os endpoints principais…
+- Art. 7 [WAD] - Protótipo de Alta Fidelidade e Guia de Estilos: Preencher seções 3.4 e 3.5 do WAD, com o Guia de Estilos e o Protótipo de Alta Fidelidade do projeto.
+Critérios de avaliação
+• Conteúdo coerente com o objetivo proposto na entrega. 
+• Organização dos…
+- Art. 6 [WAD] - Lógica Proposicional das consultas SQL: Preencher seção 3.6.4. do WAD, conforme template markdown oferecido pelos professores de Matemática, contendo ao menos 3 (três) consultas SQL utilizadas em sua aplicação web.
+Critérios de…
 
-- a arquitetura identifica com clareza as camadas principais do sistema e suas responsabilidades
-- o padrao MVC esta refletido tanto na documentacao quanto na organizacao do codigo
-- o diagrama de classes contempla os componentes centrais das camadas `Controller`, `Service`, `Repository` e `Model`
-- o diagrama de sequencia UML descreve corretamente um fluxo prioritario do sistema, incluindo interacao entre camadas, entrada, processamento e resposta
-- a modelagem dinamica esta coerente com os endpoints implementados e com a arquitetura descrita
-- a primeira versao do backend sobe localmente sem erros impeditivos
-- os endpoints principais previstos para a sprint estao implementados e acessiveis
-- a documentacao da WebAPI informa endereco, metodo, parametros de entrada e formatos de resposta
-- os RNFs foram evoluidos do nivel conceitual para decisoes tecnicas de validacao, tratamento de erro, desempenho, testabilidade e manutencao
-- existe coerencia entre os endpoints implementados, os requisitos priorizados e as regras de negocio mapeadas
-- o relatorio de desenvolvimento registra de forma objetiva o que foi implementado, o que nao foi concluido e quais dificuldades tecnicas surgiram
+## Critérios de aceite
+
+- as entregas refletem o estado atual do código e da documentação
+- os RNFs cobrem os 8 eixos da ISO/IEC 25010 com métricas verificáveis
+- a RTM está atualizada sem lacunas nos fluxos priorizados

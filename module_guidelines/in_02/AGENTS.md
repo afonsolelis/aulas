@@ -3,11 +3,11 @@
 ## Project Structure & Module Organization
 This repository is documentation-first and does not contain runnable application code. Keep content in the folder that matches its teaching purpose:
 
-- `aulas/`: lecture notes for `aula_01.md` through `aula_11.md`
+- `aulas/`: lecture notes for `aula_01.md` through `aula_32.md`
 - `autoestudos/`: deeper study guides plus [`autoestudos/indice.md`](./autoestudos/indice.md) for reading order
 - `artefatos/`: sprint deliverable templates such as `sprint_01_artefato.md`
 - `ponderadas/`: assessment guides and supporting material
-- Root files like `requisitos.md`, `refactor.txt`, `QWEN.md`, and `CLAUDE.md`: cross-cutting context
+- Root files like `requisitos.md`, `QWEN.md`, and `CLAUDE.md`: cross-cutting context
 
 Prefer updating existing documents instead of creating parallel versions of the same topic.
 
@@ -16,7 +16,6 @@ There is no build pipeline or test runner configured at the repository root. Use
 
 - `rg --files`: inspect the content map quickly
 - `git diff --stat`: review scope before committing
-- `sed -n '1,120p' path/to/file.md`: verify a section in terminal
 
 Validation is primarily manual: confirm heading structure, internal links, file names, and consistency with RM-ODP, RTM, and the 8 RNF axes described in the repository context files.
 

@@ -1,28 +1,21 @@
-# Sprint 1 - Modelagem do Dominio e Requisitos
+# Sprint 1 - Art. 3 [WAD] - Requisitos, Art. 2 [WAD] - Entendimento do usuário
 
-## Descricao
+## Descrição
 
-Este artefato consolida a base tecnica inicial do projeto. O objetivo e definir o dominio do sistema, os requisitos funcionais prioritarios, as regras de negocio e a estrutura inicial de rastreabilidade que vai orientar a implementacao.
+Consolida as entregas da sprint:
+
+- **Art. 3 [WAD] - Requisitos** (peso 3)
+- **Art. 2 [WAD] - Entendimento do usuário** (peso 2)
+- **Art. 1 [WAD] - Entendimento do negócio** (peso 4)
 
 ## O que deve conter
 
-- minimundo do sistema
-- atores e responsabilidades principais
-- requisitos funcionais priorizados
-- regras de negocio numeradas
-- requisitos nao funcionais organizados por eixos, em nivel conceitual
-- criterios de aceite tecnicos dos fluxos prioritarios
-- matriz inicial de rastreabilidade entre requisito e regra
+- Art. 3 [WAD] - Requisitos: Preencher seção 3.1 do WAD, com os Requisitos Funcionais (RF), Regras de Negócio (RN), Requisitos Não Funcionais (RNF) organizados pelos 8 eixos da ISO/IEC 25010 e Matriz de Rastreabilidade RF → RN →…
+- Art. 2 [WAD] - Entendimento do usuário: Preencher seções 2.2 e 2.3 do WAD, com Personas e User Stories, considerando o problema trazido pela instituição parceira e as potenciais pessoas usuárias da solução. As User Stories deverão estar no…
+- Art. 1 [WAD] - Entendimento do negócio: Template do WAD (Web Application Document): https://git.inteli.edu.br/templates/primeiro-ano/in02/template_m2 [https://git.inteli.edu.br/templates/primeiro-ano/in02/template_m2] Faça uma cópia desta…
 
-## Criterios de aceite
+## Critérios de aceite
 
-- o minimundo delimita claramente o escopo do sistema, indicando o que pertence e o que nao pertence ao projeto
-- os atores principais estao identificados com papeis distintos e coerentes com o dominio
-- os requisitos funcionais estao escritos de forma objetiva, verificavel e sem ambiguidade
-- os requisitos nao funcionais estao identificados e distribuidos de forma coerente pelos eixos de qualidade adotados no projeto
-- cada eixo de RNF possui ao menos um requisito ou uma justificativa explicita para sua ausencia naquele momento
-- os RNFs desta sprint estabelecem uma base inicial que podera ser refinada nas sprints seguintes sem perder rastreabilidade
-- cada requisito funcional priorizado possui ao menos um criterio de aceite tecnico associado
-- as regras de negocio estao numeradas e redigidas de forma que possam ser implementadas e testadas
-- existe correspondencia explicita entre requisito funcional e regra de negocio
-- a matriz inicial de rastreabilidade permite seguir de `RF -> RN` sem lacunas nos fluxos priorizados
+- as entregas refletem o estado atual do código e da documentação
+- os RNFs cobrem os 8 eixos da ISO/IEC 25010 com métricas verificáveis
+- a RTM está atualizada sem lacunas nos fluxos priorizados

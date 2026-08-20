@@ -1,0 +1,54 @@
+# Autoestudo: Artigo Científico: Princípio de Pareto na identificação dos principais problemas nas empresas
+
+## Sumário
+1. [Contexto e Objetivo](#contexto-e-objetivo)
+2. [Conceitos-Chave](#conceitos-chave)
+3. [Aplicação no Projeto](#aplicação-no-projeto)
+4. [Checklist de Estudo](#checklist-de-estudo)
+5. [Referências](#referências)
+
+---
+
+## Contexto e Objetivo
+
+Faça a leitura do artigo "Utilização da ferramenta Diagrama de Pareto para auxiliar na identificação dos principais problemas nas empresas". O objetivo desse artigo é investigar quais são as características do Diagrama de
+Pareto e demonstrar a importância da aplicação do mesmo nas empresas listadas em livros e artigos científicos e a utilização do Diagrama de Pareto em indústria de alimentos.
+
+**Eixo disciplinar:** Matemática e Física
+**Assuntos:** —
+**Duração recomendada:** 0 min
+
+---
+
+## Conceitos-Chave
+
+Os assuntos centrais deste autoestudo são:
+
+- **—**
+
+Cada conceito deve ser compreendido a ponto de o aluno conseguir explicá-lo com as próprias palavras e aplicá-lo ao projeto em andamento.
+
+---
+
+## Aplicação no Projeto
+
+Relacione o conteúdo deste autoestudo ao projeto do squad:
+
+- Como este conceito se manifesta no domínio do parceiro?
+- Quais decisões de arquitetura ou modelagem ele influencia?
+- Que artefato (RF, RN, RNF, diagrama, teste) ele sustenta?
+
+---
+
+## Checklist de Estudo
+
+- [ ] Li o material indicado
+- [ ] Consigo explicar os conceitos-chave com minhas palavras
+- [ ] Identifiquei como o conceito se aplica ao projeto
+- [ ] Anotei dúvidas para levar à aula
+
+---
+
+## Referências
+
+- https://unisalesiano.com.br/aracatuba/wp-content/uploads/2020/12/Artigo-Utilizacao-da-ferramenta-Diagrama-de-Pareto-para-auxiliar-na-identificacao-dos-principais-problemas-nas-empresas-Pronto.pdf

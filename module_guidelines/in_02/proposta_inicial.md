@@ -1,409 +1,521 @@
-# Resumo Prático: Aulas com foco em RM-ODP + RNF (8 Eixos) ISO12746
+# Resumo Prático: Aulas com foco em RM-ODP + RNF (8 Eixos) ISO/IEC 25010
 
 ## Visão Geral por Bloco
 
 - **Bloco 1: O Quê (Enterprise + Information)**
-  - Aulas 1-3 → Problema, Regras de Negócio, Dados
+  - Sprints 1 → Enterprise
 - **Bloco 2: Como (Computational)**
-  - Aulas 4-6 → Comportamento, Componentes, Interfaces
-- **Bloco 3: Onde (Engineering + Technology)**
-  - Aulas 7-11 → Distribuição, Integração, Deploy
+  - Sprints 2 e 3 → Computational
+- **Bloco 2: Como (Computational)**
+  - Sprints 4 e 5 → Computational
 
 ---
 
-# Bloco 1: O Quê (Aulas 1-3)
+# Bloco 1: O Quê (Enterprise + Information)
 
-## Aula 1 - Introdução aos Sistemas Web
-- **Visão RM-ODP:** Enterprise (início)
-- **RF:** Listar 3-5 funcionalidades básicas do parceiro
-- **RNF (8 eixos):** Identificar 1 requisito por eixo (nível conceitual)
-- **Artefato:** Mapa de atores + Lista inicial de RF/RNF
-
-### Checklist:
-- [ ] Quem são os usuários? (Usabilidade)
-- [ ] Qual disponibilidade mínima? (Confiabilidade)
-- [ ] Tempo máximo de resposta aceitável? (Desempenho)
-- [ ] Quem fará manutenção? (Suportabilidade)
-- [ ] Quais dados são sensíveis? (Segurança)
-- [ ] Volume esperado de usuários/dados? (Capacidade)
-- [ ] Padrões obrigatórios da organização? (Restrições)
-- [ ] Processos/times a respeitar? (Organizacionais)
-
-## Aula 2 - Banco de Dados I
+## Aula — Introdução aos Sistemas Web
 - **Visão RM-ODP:** Enterprise + Information
-- **RF:** Mapear funcionalidades que dependem dos dados
-- **RNF (8 eixos):** Foco em Confiabilidade (integridade) + Segurança (dados sensíveis)
-- **Artefato:** Minimundo + Regras de Negócio consolidadas
+- **Eixo:** Computação
+- **Artefato:** Introdução aos conceitos fundamentais de engenharia de software para web, abordando a extração formal de requisitos iniciais, delineação do escopo arquitetural e a construção embrionária da visão…
 
-### Checklist:
-- [ ] Delimitar escopo (fronteiras do sistema)
-- [ ] Listar 5-10 regras de negócio numeradas (RN01, RN02...)
-- [ ] Identificar entidades principais e seus ciclos de vida
-- [ ] Classificar dados: públicos vs. restritos
+### Checklist (8 eixos RNF):
+- [ ] Usabilidade
+- [ ] Confiabilidade
+- [ ] Desempenho
+- [ ] Suportabilidade
+- [ ] Segurança
+- [ ] Capacidade
+- [ ] Restrições de Design
+- [ ] Organizacionais
 
-## Aula 3 - Banco de Dados II
-- **Visão RM-ODP:** Information (predominante)
-- **RF:** Garantir que modelo suporte CRUD principal
-- **RNF (8 eixos):** Desempenho (índices) + Suportabilidade (normalização)
-- **Artefato:** ER → DER → Modelo Físico (PostgreSQL)
+## Aula — Banco de Dados I - Conceitos, Modelos e SQL Básico
+- **Visão RM-ODP:** Enterprise + Information
+- **Eixo:** Computação
+- **Artefato:** Transição técnica da visão de negócios para a visão da informação, formalizando as entidades relacionais, extração de invariantes estritos e o estabelecimento axiomático do Minimundo que governará a…
 
-### Checklist:
-- [ ] ER com entidades e relacionamentos
-- [ ] DER com cardinalidades e chaves
-- [ ] Migrations DDL criadas
-- [ ] Rastreabilidade: RN → Entidade → Tabela
+### Checklist (8 eixos RNF):
+- [ ] Usabilidade
+- [ ] Confiabilidade
+- [ ] Desempenho
+- [ ] Suportabilidade
+- [ ] Segurança
+- [ ] Capacidade
+- [ ] Restrições de Design
+- [ ] Organizacionais
 
----
+## Aula — Contexto do parceiro + Conceitos fundamentais de produtos, Ciclo de vida do Produto (CVP)
+- **Visão RM-ODP:** Enterprise + Information
+- **Eixo:** Negócios
+- **Artefato:** Ao final da aula, os alunos terão uma compreensão clara dos conceitos fundamentais de produtos e como eles se aplicam ao gerenciamento de produtos e serviços. Eles também estarão preparados para…
 
-# Bloco 2: Como (Aulas 4-6)
+### Checklist (8 eixos RNF):
+- [ ] Usabilidade
+- [ ] Confiabilidade
+- [ ] Desempenho
+- [ ] Suportabilidade
+- [ ] Segurança
+- [ ] Capacidade
+- [ ] Restrições de Design
+- [ ] Organizacionais
 
-## Aula 4 - Back-end I
-- **Visão RM-ODP:** Computational (início)
-- **RF:** Detalhar pré-condições, fluxo principal, validações
-- **RNF (8 eixos):** Usabilidade (mensagens) + Segurança (validação entrada)
-- **Artefato:** Diagrama de Classes + Sequência (1 fluxo) + TDD iniciado
+## Aula — Personas e User Stories
+- **Visão RM-ODP:** Enterprise + Information
+- **Eixo:** User Experience
+- **Artefato:** Nesta instrução aprenderemos sobre Personas, uma das documentações mais importantes para seu time ao longo do projeto. Projetamos nossas soluções para determinadas pessoas, portanto precisamos…
 
-### Checklist:
-- [ ] Diagrama de Classes (camadas: Controller, Service, Repository, Model)
-- [ ] Diagrama de Sequência (fluxo de sucesso)
-- [ ] 1 teste Jest por caso de uso (Red → Green)
-- [ ] Contratos de entrada/saída definidos
-
-## Aula 5 - Back-end II
-- **Visão RM-ODP:** Computational (aprofundamento)
-- **RF:** Delimitar regra de negócio por RF (matriz RF × RN)
-- **RNF (8 eixos):** Suportabilidade (testes) + Desempenho (latência)
-- **Artefato:** Endpoints CRUD + UML atualizado + Suite Jest expandida
-
-### Checklist:
-- [ ] Matriz RF → RN → Teste
-- [ ] Endpoints de leitura e escrita funcionando
-- [ ] Testes para: sucesso, falha de validação, regra violada
-- [ ] Diagramas UML atualizados conforme implementação
-
-## Aula 6 - Back-end III
-- **Visão RM-ODP:** Computational (consolidação)
-- **RF:** Validar aderência completa das regras implementadas
-- **RNF (8 eixos):** Todos os 8 eixos revisados (nível introdutório)
-- **Artefato:** Backend consolidado + RTM parcial + Jest ampliado
-
-### Checklist:
-- [ ] Cada RN representada em ≥1 teste
-- [ ] Fluxos alternativos testados
-- [ ] RTM: RF → RN → Teste → Evidência
-- [ ] Revisão dos 8 eixos de RNF (tabela simples)
+### Checklist (8 eixos RNF):
+- [ ] Usabilidade
+- [ ] Confiabilidade
+- [ ] Desempenho
+- [ ] Suportabilidade
+- [ ] Segurança
+- [ ] Capacidade
+- [ ] Restrições de Design
+- [ ] Organizacionais
 
 ---
 
-# Bloco 3: Onde (Aulas 7-11)
+# Bloco 2: Como (Computational)
 
-## Aula 7 - Front-end I
-- **Visão RM-ODP:** Engineering (início) + Technology
-- **RF:** Mapear componente de interface → função backend
-- **RNF (8 eixos):** Usabilidade (persona) + Confiabilidade (tratamento erro)
-- **Artefato:** Telas iniciais + RTM atualizado + Contratos front-back
+## Aula — Liderança em situações de conflito
+- **Visão RM-ODP:** Computational
+- **Eixo:** Liderança
+- **Artefato:** O que são situações de conflito e como anfitriá-las?
+Como as Tecnologias de Convivência têtm mudado a forma de nos relacionarmos no trabalho?
+Por que trazer a Comunicação Não-Violenta para equipes de…
 
-### Checklist:
-- [ ] Frontend com telas principais implementadas
-- [ ] Cada tela vinculada a RF específico
-- [ ] Contratos de integração definidos (entradas, saídas, erros)
-- [ ] Personas → Necessidade → RF → Endpoint → Tela
-- [ ] Testes Jest ajustados se houve mudança de contrato
+### Checklist (8 eixos RNF):
+- [ ] Usabilidade
+- [ ] Confiabilidade
+- [ ] Desempenho
+- [ ] Suportabilidade
+- [ ] Segurança
+- [ ] Capacidade
+- [ ] Restrições de Design
+- [ ] Organizacionais
 
-## Aula 8 - Front-end II
-- **Visão RM-ODP:** Engineering (comunicação)
-- **RF:** Refinar fluxos dinâmicos (cenários principais e alternativos)
-- **RNF (8 eixos):** Confiabilidade (retry/timeout) + Desempenho (latência)
-- **Artefato:** Integração assíncrona + Documentação de contratos
+## Aula — Estatística descritiva
+- **Visão RM-ODP:** Computational
+- **Eixo:** Matemática e Física
+- **Artefato:** O encontro irá abordar as bases da estatística descritiva com foco nos métodos de tabulação e resumo dos dados. Serão explorados os conceitos e cálculos para as medidas de tendência central (média,…
 
-### Checklist:
-- [ ] Chamadas assíncronas implementadas
-- [ ] Estados: carregamento, sucesso, erro
-- [ ] Tratamento de falha de rede (timeout, retry)
-- [ ] Fluxos principais executáveis de ponta a ponta pela interface
-- [ ] RTM com evidências de integração
+### Checklist (8 eixos RNF):
+- [ ] Usabilidade
+- [ ] Confiabilidade
+- [ ] Desempenho
+- [ ] Suportabilidade
+- [ ] Segurança
+- [ ] Capacidade
+- [ ] Restrições de Design
+- [ ] Organizacionais
 
-## Aula 9 - Front-end III
-- **Visão RM-ODP:** Technology (interface concreta)
-- **RF:** Fechamento do RTM com comprovação de atendimento
-- **RNF (8 eixos):** Usabilidade (consistência) + Segurança (mensagens)
-- **Artefato:** Interface final + RTM completo + Doc final da sprint
+## Aula — Design de Interfaces e Prototipação de Baixa Fidelidade
+- **Visão RM-ODP:** Computational
+- **Eixo:** User Experience
+- **Artefato:** Nesta instrução vamos começar a colocar no papel, literalmente, as ideias para nossa aplicação web! Discutiremos aspectos gerais de interfaces de aplicações web, considerando sua estruturação de…
 
-### Checklist:
-- [ ] RTM completo (persona → teste → evidência)
-- [ ] RNF introdutórios registrados (tabela de atendimento)
-- [ ] Documentação consolidada
-- [ ] README com instruções de execução e validação da interface integrada
-- [ ] Testes Jest estáveis
+### Checklist (8 eixos RNF):
+- [ ] Usabilidade
+- [ ] Confiabilidade
+- [ ] Desempenho
+- [ ] Suportabilidade
+- [ ] Segurança
+- [ ] Capacidade
+- [ ] Restrições de Design
+- [ ] Organizacionais
 
-## Aula 10 - Testes e Automação
-- **Visão RM-ODP:** Computational + Engineering (qualidade)
-- **RF:** Confirmar rastreabilidade após refatorações
-- **RNF (8 eixos):** Suportabilidade (legibilidade, manutenção)
-- **Artefato:** Suite Jest refatorada + RTM atualizado + revisão dos fluxos críticos com autenticação/autorização
+## Aula — Banco de Dados II - Create, Read, Update, Delete
+- **Visão RM-ODP:** Computational
+- **Eixo:** Computação
+- **Artefato:** Aprofundamento algorítmico na modelagem relacional formal e tradução mecânica do modelo conceitual para o modelo físico em SGBD, cravando rastreabilidade analítica desde a regra de negócio até as…
 
-### Checklist:
-- [ ] Identificar duplicações, lacunas, baixa legibilidade
-- [ ] Refatorar testes (clareza, isolamento)
-- [ ] Manter cobertura de fluxos críticos
-- [ ] Revisar impactos de autenticação/autorização após refatorações
-- [ ] RTM atualizado pós-refatoração
+### Checklist (8 eixos RNF):
+- [ ] Usabilidade
+- [ ] Confiabilidade
+- [ ] Desempenho
+- [ ] Suportabilidade
+- [ ] Segurança
+- [ ] Capacidade
+- [ ] Restrições de Design
+- [ ] Organizacionais
 
-## Aula 11 - Mergulhando nas Redes
-- **Visão RM-ODP:** Engineering (transparências)
-- **RF:** Incluir cenários de falha de rede nos fluxos
-- **RNF (8 eixos):** Confiabilidade (disponibilidade) + Desempenho (latência)
-- **Artefato:** Mapa de RNF de comunicação + autenticação/autorização simples com sessão + Evidências finais
+## Aula — Back-end I - Node.js, models e controllers
+- **Visão RM-ODP:** Computational
+- **Eixo:** Computação
+- **Artefato:** Sustentação do design computacional algorítmico do sistema. Transforma propriedades atômicas do negócio em diagramas isolados comportamentais, empregando formalmente a técnica TDD para aprovação…
 
-### Checklist:
-- [ ] Fundamentos HTTP/IP aplicados ao projeto
-- [ ] Estratégias de robustez (timeout, retry, circuit breaker)
-- [ ] Autenticação com senha hasheada persistida no banco
-- [ ] Sessão baseada em `session id` implementada
-- [ ] Regras de autorização aplicadas nas rotas e fluxos principais
-- [ ] RNF de comunicação validado (nível 1º ano)
-- [ ] Documentação final da sprint/trilha
+### Checklist (8 eixos RNF):
+- [ ] Usabilidade
+- [ ] Confiabilidade
+- [ ] Desempenho
+- [ ] Suportabilidade
+- [ ] Segurança
+- [ ] Capacidade
+- [ ] Restrições de Design
+- [ ] Organizacionais
 
----
+## Aula — Estudando o Mercado
+- **Visão RM-ODP:** Computational
+- **Eixo:** Negócios
+- **Artefato:** Nesta aula abordaremos a elaboração eficaz de pesquisas de mercado, explorando desde a formulação de questionários claros e objetivos até a escolha das fontes mais relevantes para levantamento de…
 
-# Matrizes e Templates
+### Checklist (8 eixos RNF):
+- [ ] Usabilidade
+- [ ] Confiabilidade
+- [ ] Desempenho
+- [ ] Suportabilidade
+- [ ] Segurança
+- [ ] Capacidade
+- [ ] Restrições de Design
+- [ ] Organizacionais
 
-## Matriz Resumo: Visões RM-ODP por Aula
+## Aula — Lógica proposicional
+- **Visão RM-ODP:** Computational
+- **Eixo:** Matemática e Física
+- **Artefato:** O encontro irá abordar os conceitos fundamentais da lógica proposicional, incluindo proposições, operadores lógicos, tabelas-verdade, equivalências lógicas e implicações. Serão desenvolvidas…
 
-| Aula | Visão Principal | Visões Secundárias  | Entregável de Modelagem           |
-|------|-----------------|---------------------|-----------------------------------|
-|  1   | Enterprise      | -                   | Atores + RF/RNF iniciais          |
-|  2   | Enterprise      | Information         | Minimundo + RN consolidadas       |
-|  3   | Information     | -                   | ER → DER → Físico                 |
-|  4   | Computational   | Information         | Classes + Sequência (1 fluxo)     |
-|  5   | Computational   | -                   | Sequência atualizado + Matriz RF×RN|
-|  6   | Computational   | -                   | RTM parcial + 8 eixos RNF         |
-|  7   | Engineering     | Technology          | Frontend inicial + Telas + Contratos front-back |
-|  8   | Engineering     | -                   | Integração assíncrona + Falhas de rede + Fluxos ponta a ponta |
-|  9   | Technology      | Engineering         | RTM completo + Doc final + README da interface |
-| 10   | Computational   | Engineering         | Suite Jest refatorada + revisão de auth |
-| 11   | Engineering     | -                   | RNF comunicação + autenticação/sessão + Evidências |
+### Checklist (8 eixos RNF):
+- [ ] Usabilidade
+- [ ] Confiabilidade
+- [ ] Desempenho
+- [ ] Suportabilidade
+- [ ] Segurança
+- [ ] Capacidade
+- [ ] Restrições de Design
+- [ ] Organizacionais
 
-## Matriz de Rastreabilidade RM-ODP × RNF
+## Aula — Banco de Dados III - Joins
+- **Visão RM-ODP:** Computational
+- **Eixo:** Computação
+- **Artefato:** Sustentação do design computacional algorítmico do sistema. Transforma propriedades atômicas do negócio em diagramas isolados comportamentais, empregando formalmente a técnica TDD para aprovação…
 
-| VISÃO         | USAB | CONF | DES  | SUP  | SEG  | CAP  | REST | ORG |
-|---------------|------|------|------|------|------|------|------|-----|
-| Enterprise    |  ✓   |  ✓   |  ✓   |  ✓   |  ✓   |  ✓   |  ✓   |  ✓  |
-| Information   |  ✓   |  ✓   |  ✓   |  ✓   |  ✓   |  ✓   |  ✓   |  ✓  |
-| Computational |  ✓   |  ✓   |  ✓   |  ✓   |  ✓   |  ✓   |  ✓   |  ✓  |
-| Engineering   |  ✓   |  ✓   |  ✓   |  ✓   |  ✓   |  ✓   |  ✓   |  ✓  |
-| Technology    |  ✓   |  ✓   |  ✓   |  ✓   |  ✓   |  ✓   |  ✓   |  ✓  |
-
----
-
-# Template de Documentação por Aula
-
-## Aula X - [Título]
-
-### 1. Visão RM-ODP Trabalhada
-- [ ] Enterprise / Information / Computational / Engineering / Technology
-
-### 2. Requisitos Funcionais (RF)
-
-| ID  | Descrição                          | Status        |
-|-----|------------------------------------|---------------|
-| RF001 | ...                              | Implementado  |
-
-### 3. Requisitos Não Funcionais (8 eixos)
-
-| Eixo              | Requisito                    | Como atendido            |
-|-------------------|------------------------------|--------------------------|
-| Usabilidade       | ...                          | ...                      |
-| Confiabilidade    | ...                          | ...                      |
-| Desempenho        | ...                          | ...                      |
-| Suportabilidade   | ...                          | ...                      |
-| Segurança         | ...                          | ...                      |
-| Capacidade        | ...                          | ...                      |
-| Restrições de Design | ...                       | ...                      |
-| Organizacionais   | ...                          | ...                      |
-
-### 4. Artefatos de Modelagem
-- [ ] Link/nome do artefato (ER, DER, Classes, Sequência, etc.)
-
-### 5. Rastreabilidade
-- RN01 → RF001 → Teste001 → Evidência
-- ...
-
-### 6. Evidências
-- [ ] Screenshots, logs de teste, prints de execução
+### Checklist (8 eixos RNF):
+- [ ] Usabilidade
+- [ ] Confiabilidade
+- [ ] Desempenho
+- [ ] Suportabilidade
+- [ ] Segurança
+- [ ] Capacidade
+- [ ] Restrições de Design
+- [ ] Organizacionais
 
 ---
 
-# Exemplo Prático: Feature "Cadastro de Cliente"
+# Bloco 2: Como (Computational)
 
-**Visão Enterprise**
-- Regra: "Todo cliente deve ter CPF único"
-- Ator: "Atendente"
-- RF001: Cadastrar cliente
-- RNF-Usabilidade: "Atendente com treinamento básico"
+## Aula — Posicionamento do produto - 4 Ps
+- **Visão RM-ODP:** Computational
+- **Eixo:** Negócios
+- **Artefato:** Esta aula irá apresentar os conceitos fundamentais do posicionamento do produto, incluindo os 4 P"s: Produto, Preço, Praça e Promoção. Os alunos aprenderão como cada um dos 4 P"s é importante para…
 
-↓
+### Checklist (8 eixos RNF):
+- [ ] Usabilidade
+- [ ] Confiabilidade
+- [ ] Desempenho
+- [ ] Suportabilidade
+- [ ] Segurança
+- [ ] Capacidade
+- [ ] Restrições de Design
+- [ ] Organizacionais
 
-**Visão Information**
-- Entidade: Cliente (cpf, nome, email, data_nascimento)
-- Invariante: "cpf não pode ser repetido"
-- RNF-Confiabilidade: "Validação de CPF obrigatória"
+## Aula — Prototipação de Alta Fidelidade e Guia de Estilos
+- **Visão RM-ODP:** Computational
+- **Eixo:** User Experience
+- **Artefato:** Prototipação de Alta Fidelidade e Guia de Estilos
 
-↓
+### Checklist (8 eixos RNF):
+- [ ] Usabilidade
+- [ ] Confiabilidade
+- [ ] Desempenho
+- [ ] Suportabilidade
+- [ ] Segurança
+- [ ] Capacidade
+- [ ] Restrições de Design
+- [ ] Organizacionais
 
-**Visão Computational**
-- `Controller.Cliente.post()`
-- `Service.Cliente.criar()`
-- `Repository.Cliente.save()`
-- RNF-Segurança: "Validar input, sanitizar dados"
+## Aula — Back-end II - Endpoints de leitura e escrita com documentação própria
+- **Visão RM-ODP:** Computational
+- **Eixo:** Computação
+- **Artefato:** Descrição da Aula
+Alargamento da visão Computational focando inteiramente na elaboração coesa de Endpoints que acoplem com mínima fricção as regras de negócio mapeadas, estabelecendo interfaces…
 
-↓
+### Checklist (8 eixos RNF):
+- [ ] Usabilidade
+- [ ] Confiabilidade
+- [ ] Desempenho
+- [ ] Suportabilidade
+- [ ] Segurança
+- [ ] Capacidade
+- [ ] Restrições de Design
+- [ ] Organizacionais
 
-**Visão Engineering**
-- Canal: HTTP POST `/clientes`
-- Transparência de falha: "Retornar 409 se CPF duplicado"
-- RNF-Desempenho: "Resposta em < 500ms"
+## Aula — Integral indefinida: conceitos e principais técnicas de integração.
+- **Visão RM-ODP:** Computational
+- **Eixo:** Matemática e Física
+- **Artefato:** O encontro irá introduzir o conceito de integral indefinida como processo de antiderivada, abordando as técnicas básicas de integração. Serão apresentadas técnicas algébricas para resolver integrais…
 
-↓
+### Checklist (8 eixos RNF):
+- [ ] Usabilidade
+- [ ] Confiabilidade
+- [ ] Desempenho
+- [ ] Suportabilidade
+- [ ] Segurança
+- [ ] Capacidade
+- [ ] Restrições de Design
+- [ ] Organizacionais
 
-**Visão Technological**
-- Node.js + Express + PostgreSQL
-- Índice único em `cliente.cpf`
-- RNF-Suportabilidade: "Teste Jest para CPF duplicado"
+## Aula — Conceitos de branding
+- **Visão RM-ODP:** Computational
+- **Eixo:** Negócios
+- **Artefato:** Esta aula abordará os conceitos fundamentais de branding. Os alunos aprenderão sobre o que é branding, por que é importante e como criar uma marca forte e coerente. Eles aprenderão sobre as…
+
+### Checklist (8 eixos RNF):
+- [ ] Usabilidade
+- [ ] Confiabilidade
+- [ ] Desempenho
+- [ ] Suportabilidade
+- [ ] Segurança
+- [ ] Capacidade
+- [ ] Restrições de Design
+- [ ] Organizacionais
+
+## Aula — Front-end 1 - HTML, DOM e Javascript
+- **Visão RM-ODP:** Computational
+- **Eixo:** Computação
+- **Artefato:** Descrição da Aula
+Tradução tangível das necessidades conceituais da matriz Enterprise e da Interação Cognitiva (Personas) em requisitos reativos de interfaces web cliente-servidor, instanciando…
+
+### Checklist (8 eixos RNF):
+- [ ] Usabilidade
+- [ ] Confiabilidade
+- [ ] Desempenho
+- [ ] Suportabilidade
+- [ ] Segurança
+- [ ] Capacidade
+- [ ] Restrições de Design
+- [ ] Organizacionais
+
+## Aula — Integral definida: técnicas e aplicações.
+- **Visão RM-ODP:** Computational
+- **Eixo:** Matemática e Física
+- **Artefato:** O encontro irá desenvolver os conceitos da integral definida, incluindo o Teorema Fundamental do Cálculo, cálculo de áreas sob curvas e técnicas de integração por substituição. Será destacada sua…
+
+### Checklist (8 eixos RNF):
+- [ ] Usabilidade
+- [ ] Confiabilidade
+- [ ] Desempenho
+- [ ] Suportabilidade
+- [ ] Segurança
+- [ ] Capacidade
+- [ ] Restrições de Design
+- [ ] Organizacionais
+
+## Aula — Liderança, vulnerabilidade e relação com as críticas
+- **Visão RM-ODP:** Computational
+- **Eixo:** Liderança
+- **Artefato:** Como agimos em relação às críticas? 
+Como podemos escolher novos comportamentos que considerem os valores de todos os envolvidos para fortalecer a confiança e a probabilidade de sucesso no…
+
+### Checklist (8 eixos RNF):
+- [ ] Usabilidade
+- [ ] Confiabilidade
+- [ ] Desempenho
+- [ ] Suportabilidade
+- [ ] Segurança
+- [ ] Capacidade
+- [ ] Restrições de Design
+- [ ] Organizacionais
 
 ---
 
-# Legenda dos 8 Eixos de RNF (SWEBOK)
+# Bloco 3: Onde (Engineering + Technology)
 
-- **USAB - Usabilidade:** Facilidade de uso, aprendizado e satisfação
-- **CONF - Confiabilidade:** Disponibilidade, tolerância a falhas, recuperabilidade
-- **DES - Desempenho:** Tempo de resposta, throughput, utilização de recursos
-- **SUP - Suportabilidade:** Manutenibilidade, escalabilidade, testabilidade
-- **SEG - Segurança:** Confidencialidade, integridade, autenticidade
-- **CAP - Capacidade:** Armazenamento, capacidade de processamento
-- **REST - Restrições Design:** Padrões, linguagens, plataformas, interfaces
-- **ORG - Organizacionais:** Processos, times, políticas da organização
+## Aula — Zeros de funções e integração numérica
+- **Visão RM-ODP:** Engineering + Technology
+- **Eixo:** Matemática e Física
+- **Artefato:** O encontro irá abordar métodos para a determinação dos zeros de funções, como o método da bisseção e de Newton-Raphson, além de apresentar técnicas de integração numérica, como os métodos dos…
+
+### Checklist (8 eixos RNF):
+- [ ] Usabilidade
+- [ ] Confiabilidade
+- [ ] Desempenho
+- [ ] Suportabilidade
+- [ ] Segurança
+- [ ] Capacidade
+- [ ] Restrições de Design
+- [ ] Organizacionais
+
+## Aula — Front-end 2 - Javascript, chamadas assíncronas e Redes
+- **Visão RM-ODP:** Engineering + Technology
+- **Eixo:** Computação
+- **Artefato:** Descrição da Aula
+Exposição pragmática da dimensionalidade assíncrona da máquina virtual Javascript (V8), lidando com Event Loops contínuos na resolução temporal de chamadas assíncronas e controle…
+
+### Checklist (8 eixos RNF):
+- [ ] Usabilidade
+- [ ] Confiabilidade
+- [ ] Desempenho
+- [ ] Suportabilidade
+- [ ] Segurança
+- [ ] Capacidade
+- [ ] Restrições de Design
+- [ ] Organizacionais
+
+## Aula — Desenvolvimento de novos produtos - Business Model Canvas
+- **Visão RM-ODP:** Engineering + Technology
+- **Eixo:** Negócios
+- **Artefato:** Os alunos aprenderão sobre o Business Model Canvas, uma ferramenta útil para visualizar e validar ideias de negócios. Eles aprenderão a usar o Business Model Canvas para desenhar modelos de negócios…
+
+### Checklist (8 eixos RNF):
+- [ ] Usabilidade
+- [ ] Confiabilidade
+- [ ] Desempenho
+- [ ] Suportabilidade
+- [ ] Segurança
+- [ ] Capacidade
+- [ ] Restrições de Design
+- [ ] Organizacionais
+
+## Aula — Grafos, árvores e coloração de grafos.
+- **Visão RM-ODP:** Engineering + Technology
+- **Eixo:** Matemática e Física
+- **Artefato:** O encontro irá introduzir os conceitos fundamentais de grafos e árvores, incluindo a definição formal dessas estruturas, identificação de vértices, arestas e laços. Serão abordados também os…
+
+### Checklist (8 eixos RNF):
+- [ ] Usabilidade
+- [ ] Confiabilidade
+- [ ] Desempenho
+- [ ] Suportabilidade
+- [ ] Segurança
+- [ ] Capacidade
+- [ ] Restrições de Design
+- [ ] Organizacionais
+
+## Aula — Usabilidade, Avaliação Heurística e acessibilidade.
+- **Visão RM-ODP:** Engineering + Technology
+- **Eixo:** User Experience
+- **Artefato:** O encontro de hoje apresenta os seguintes conceitos: 1) A Usabilidade é fundamental para garantir que os usuários possam utilizar o produto digital de forma eficiente e eficaz, aumentando a…
+
+### Checklist (8 eixos RNF):
+- [ ] Usabilidade
+- [ ] Confiabilidade
+- [ ] Desempenho
+- [ ] Suportabilidade
+- [ ] Segurança
+- [ ] Capacidade
+- [ ] Restrições de Design
+- [ ] Organizacionais
+
+## Aula — Testes e automação
+- **Visão RM-ODP:** Engineering + Technology
+- **Eixo:** Computação
+- **Artefato:** Descrição da Aula
+Metodologia pesada sobre reengenharia arquitetural contínua via refatorações estatísticas. Mitigação formal em Débitos Técnicos usando abordagens rigorosas de isolamento sintático…
+
+### Checklist (8 eixos RNF):
+- [ ] Usabilidade
+- [ ] Confiabilidade
+- [ ] Desempenho
+- [ ] Suportabilidade
+- [ ] Segurança
+- [ ] Capacidade
+- [ ] Restrições de Design
+- [ ] Organizacionais
 
 ---
 
-# Atividades Ponderadas (3) - Proposta
+# Bloco 3: Onde (Engineering + Technology)
 
-As 3 atividades ponderadas foram desenhadas para avaliar o progresso do aluno ao longo de cada BLOCO, com foco em modelagem, requisitos e rastreabilidade.
+## Aula — Construindo um Plano de Marketing
+- **Visão RM-ODP:** Engineering + Technology
+- **Eixo:** Negócios
+- **Artefato:** Nesta aula, você aprenderá como desenvolver, de forma prática, um Plano de Marketing completo para seu negócio, começando pela análise detalhada do mercado, com foco na compreensão do ambiente,…
 
-## Ponderada 1 - Modelagem Enterprise e Information (Bloco 1 - Aulas 1-3)
-**Título:** Modelagem de Dados Relacionais e UML do Projeto (Individual)
+### Checklist (8 eixos RNF):
+- [ ] Usabilidade
+- [ ] Confiabilidade
+- [ ] Desempenho
+- [ ] Suportabilidade
+- [ ] Segurança
+- [ ] Capacidade
+- [ ] Restrições de Design
+- [ ] Organizacionais
 
-**Objetivo:** Consolidar o entendimento do domínio do parceiro por meio da modelagem de dados e da modelagem UML estática/dinâmica do próprio projeto, aplicando as visões Enterprise e Information do RM-ODP.
+## Aula — Testes com usuários
+- **Visão RM-ODP:** Engineering + Technology
+- **Eixo:** User Experience
+- **Artefato:** O teste de dados é uma técnica que envolve a realização de testes com um grupo de usuários que representa a população alvo do site ou aplicativo. O objetivo é obter informações sobre como os usuários…
 
-**Escopo:**
-- Baseada nas aulas de modelagem de dados relacionais e de UML.
-- Cada aluno deve produzir, individualmente:
-  - Diagrama UML de Classes do próprio projeto (entidades, atributos, relacionamentos e responsabilidades)
-  - Diagrama UML de Sequência de pelo menos 1 fluxo principal (ex.: cadastro ou consulta)
-  - Modelo de dados relacional coerente com os diagramas (ER/DER simplificado)
+### Checklist (8 eixos RNF):
+- [ ] Usabilidade
+- [ ] Confiabilidade
+- [ ] Desempenho
+- [ ] Suportabilidade
+- [ ] Segurança
+- [ ] Capacidade
+- [ ] Restrições de Design
+- [ ] Organizacionais
 
-**Entregáveis:**
-- [ ] Documento com minimundo resumido e principais regras de negócio
-- [ ] UML de Classes + UML de Sequência
-- [ ] Modelo relacional com chaves e cardinalidades
-- [ ] Rastreabilidade básica: regra de negócio → entidade → classe → fluxo
-- [ ] Tabela de 8 eixos de RNF (nível conceitual) preenchida
+## Aula — Front-end 3 - CSS e Javascript
+- **Visão RM-ODP:** Engineering + Technology
+- **Eixo:** Computação
+- **Artefato:** Descrição da Aula
+Comprovação empírica estrita das heurísticas front-end contra a Matriz de Rastreabilidade. Estágio focando na eliminação calculada da carga cognitiva visual através da resposta…
 
-**Critérios de Avaliação:**
+### Checklist (8 eixos RNF):
+- [ ] Usabilidade
+- [ ] Confiabilidade
+- [ ] Desempenho
+- [ ] Suportabilidade
+- [ ] Segurança
+- [ ] Capacidade
+- [ ] Restrições de Design
+- [ ] Organizacionais
 
-| Critério                              | Peso |
-|---------------------------------------|------|
-| Coerência entre regras de negócio e modelagem | 25%  |
-| Corretude de entidades, relacionamentos e cardinalidades | 25%  |
-| Clareza da sequência entre camadas do sistema | 20%  |
-| Rastreabilidade RN → Entidade → RF    | 15%  |
-| Identificação dos 8 eixos de RNF (nível conceitual) | 15%  |
+## Aula — PMI, PMBok e Agile, Metodologia Crisp
+- **Visão RM-ODP:** Engineering + Technology
+- **Eixo:** Negócios
+- **Artefato:** Esta aula irá apresentar três importantes metodologias de gerenciamento de projetos: PMI, PMBOK e Agile. O objetivo desta aula é fornecer aos alunos uma compreensão geral dessas metodologias e como…
 
-**Vínculo com RM-ODP:**
-- Visão Enterprise: Atores, regras de negócio, objetivos
-- Visão Information: Entidades, relacionamentos, invariantes de dados
+### Checklist (8 eixos RNF):
+- [ ] Usabilidade
+- [ ] Confiabilidade
+- [ ] Desempenho
+- [ ] Suportabilidade
+- [ ] Segurança
+- [ ] Capacidade
+- [ ] Restrições de Design
+- [ ] Organizacionais
 
-## Ponderada 2 - Regras de Negócio Traduzidas em Testes (Bloco 2 - Aulas 4-6)
-**Título:** Regras de Negócio Traduzidas em Testes (TDD com Jest)
+## Aula — Vieses Cognitivos e Realidade Social
+- **Visão RM-ODP:** Engineering + Technology
+- **Eixo:** Liderança
+- **Artefato:** Qual é a relação entre vieses inconscientes e tomadas de decisão? Como podemos tomar decisões éticas a partir da CNV? Neste encontro discutiremos dois importantes pré-requisitos para tomarmos…
 
-**Objetivo:** Transformar regras de negócio em comportamento verificável por testes automatizados no backend, aplicando a visão Computational do RM-ODP e garantindo rastreabilidade entre RF, RN e testes.
+### Checklist (8 eixos RNF):
+- [ ] Usabilidade
+- [ ] Confiabilidade
+- [ ] Desempenho
+- [ ] Suportabilidade
+- [ ] Segurança
+- [ ] Capacidade
+- [ ] Restrições de Design
+- [ ] Organizacionais
 
-**Escopo:**
-- Selecionar RF prioritários do projeto.
-- Delimitar regras de negócio por RF.
-- Implementar testes em Jest usando ciclo TDD (Red → Green → Refactor).
+## Aula — Mergulhando nas Redes
+- **Visão RM-ODP:** Engineering + Technology
+- **Eixo:** Computação
+- **Artefato:** Descrição da Aula
+Avaliação da engenharia aplicada no caos topológico distribuído e nas inferências probabilísticas de comunicação, construindo malha web tolerante à falha não-silenciosa baseando-se…
 
-**Entregáveis:**
-- [ ] Matriz RF → Regra de Negócio → Caso de Teste
-- [ ] Suite de testes Jest com cenários positivos e negativos (mínimo 2 testes por RF: 1 sucesso + 1 falha)
-- [ ] Evidências de execução dos testes e refatoração quando necessário
-- [ ] Diagramas UML (Classes + Sequência) atualizados conforme implementação
-- [ ] Tabela de 8 eixos de RNF (nível computacional) preenchida
+### Checklist (8 eixos RNF):
+- [ ] Usabilidade
+- [ ] Confiabilidade
+- [ ] Desempenho
+- [ ] Suportabilidade
+- [ ] Segurança
+- [ ] Capacidade
+- [ ] Restrições de Design
+- [ ] Organizacionais
 
-**Critérios de Avaliação:**
-
-| Critério                              | Peso |
-|---------------------------------------|------|
-| Cobertura de regras de negócio relevantes | 30%  |
-| Qualidade e legibilidade dos testes   | 25%  |
-| Aderência ao TDD e consistência com os RF | 20%  |
-| Rastreabilidade RF → RN → Teste       | 15%  |
-| Tratamento dos 8 eixos de RNF (nível computacional) | 10%  |
-
-**Vínculo com RM-ODP:**
-- Visão Computational: Objetos/componentes, interfaces, comportamento
-- Foco em: Controller, Service, Repository, Model
-- Transparências tratadas: acesso, concorrência, falha
-
-## Ponderada 3 - Integração Front-Back Orientada a Requisitos e RTM (Bloco 3 - Aulas 7-11)
-**Título:** Integração Front-Back Orientada a Requisitos e RTM
-
-**Objetivo:** Validar a entrega integrada com foco no atendimento dos requisitos, rastreabilidade documental e estabilidade técnica, aplicando as visões Engineering e Technology do RM-ODP.
-
-**Escopo:**
-- Integrar telas prioritárias (guiadas por personas de UX) aos endpoints do backend.
-- Atualizar contratos quando necessário e refletir mudanças em testes Jest.
-- Fechar RTM com evidências de atendimento de RF e RNF introdutórios.
-
-**Entregáveis:**
-- [ ] RTM completo (persona → necessidade → RF → endpoint → tela → teste → evidência)
-- [ ] Documentação final de requisitos e mudanças de contrato
-- [ ] Evidências de testes Jest após ajustes de integração
-- [ ] Mapa de RNF de comunicação validado (nível 1º ano)
-- [ ] Diagrama de Implantação (Engineering + Technology)
-
-**Critérios de Avaliação:**
-
-| Critério                              | Peso |
-|---------------------------------------|------|
-| Atendimento funcional dos RF priorizados | 30%  |
-| Qualidade da rastreabilidade e da documentação (RTM) | 25%  |
-| Estabilidade da integração comprovada por testes | 20%  |
-| Tratamento de falhas de rede e cenários alternativos | 15%  |
-| Atendimento dos 8 eixos de RNF (nível engineering/technology) | 10%  |
-
-**Vínculo com RM-ODP:**
-- Visão Engineering: Canais de comunicação, transparências, QoS
-- Visão Technology: Tecnologias concretas, deployment, middleware
-- Foco em: HTTP, timeout, retry, tratamento de erro, contratos
-
-## Matriz de Avaliação das Ponderadas
-
-| Ponderada | Bloco | Visões RM-ODP         | Foco Principal              |
-|-----------|-------|-----------------------|-----------------------------|
-|     1     |  1-3  | Enterprise + Info     | Modelagem de dados + UML    |
-|     2     |  4-6  | Computational         | TDD + Regras de Negócio     |
-|     3     | 7-11  | Engineering + Tech    | Integração + RTM + RNF      |
-
-## Matriz de RNF por Ponderada
-
-| Eixo            | Pond. 1      | Pond. 2      | Pond. 3      |
-|-----------------|--------------|--------------|--------------|
-| Usabilidade     | Conceitual   | Mensagens    | Persona/UX   |
-| Confiabilidade  | Integridade  | Exceções     | Retry/Timeout|
-| Desempenho      | -            | Latência     | Latência     |
-| Suportabilidade | Normalização | Testes       | Logs/Métricas|
-| Segurança       | Classificação| Validação    | HTTPS/Token  |
-| Capacidade      | Volume       | Paginação    | Conexões     |
-| Restrições      | Padrões      | MVC/SOLID    | Tech Stack   |
-| Organizacionais | Processos    | Integração   | Deploy       |
+---
