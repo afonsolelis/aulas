@@ -676,6 +676,13 @@
 
     5: {
       title: 'Arquitetura de Dados', date: '20/08/2026',
+      // O encontro é dedicado à Ponderada em Sala: o deck traz apenas o enunciado.
+      slidesActivityOnly: true,
+      estrutura: [
+        'Abertura (15 min) — regras da atividade e retomada do caminho entre as bases de origem do parceiro e o cubo analítico do grupo',
+        'Ponderada em Sala (120 min) — oito questões manuscritas, individuais e sem consulta, sobre o cubo do próprio grupo',
+        'Encerramento — recolhimento das folhas e encaminhamento para a Aula 6'
+      ],
       subtitle: 'Decisões estruturais para uma plataforma de dados confiável, evolutiva e governável.',
       objective: 'Desenhar uma arquitetura de dados conectando fontes, ingestão, armazenamento, processamento, consumo, segurança e operação.',
       outcomes: [
@@ -1547,10 +1554,37 @@
     `<div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>${esc(lesson.objective)}</p></div>` +
     `<div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>${esc(estrategia)}</p></div>` +
     `<div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol>` +
-    agenda.map((a) => `<li>${esc(a.nav)} — ${esc(a.text)}</li>`).join('') +
+    // Encontros cuja condução difere da sequência de sections declaram a
+    // estrutura própria; sem ela, a agenda é derivada como nas demais aulas.
+    (lesson.estrutura
+      ? lesson.estrutura.map((e) => `<li>${esc(e)}</li>`).join('')
+      : agenda.map((a) => `<li>${esc(a.nav)} — ${esc(a.text)}</li>`).join('')) +
     `</ol></div></section>`;
 
+  // Slides do enunciado da atividade avaliativa, compartilhados entre o deck
+  // completo e o deck dedicado à prova.
+  const activitySlides = () => (lesson.activity ? [
+        `<article class="lesson-slide"><span class="lesson-kicker">${esc(lesson.activity.duration)}</span><h2>${esc(lesson.activity.title)}</h2><div class="lesson-callout"><strong>${esc(lesson.activity.goal)}</strong></div><div class="lesson-card lesson-wide"><p>${esc(lesson.activity.intro)}</p></div></article>`,
+        `<article class="lesson-slide"><span class="lesson-kicker">Método</span><h2>${esc(lesson.activity.stepsTitle || 'Do negócio ao cubo, passo a passo')}</h2><div class="lesson-grid">${lesson.activity.steps.map((s, i) => `<div class="lesson-card"><b>Passo ${i + 1}</b><h3>${esc(s.title)}</h3><p>${esc(s.text)}</p></div>`).join('')}</div></article>`,
+        (lesson.activity.worked
+          ? `<article class="lesson-slide"><span class="lesson-kicker">Exemplo ilustrativo</span><h2>O raciocínio, não a resposta</h2><div class="lesson-split"><div class="lesson-card"><p>${esc(lesson.activity.worked.text)}</p><ul>${lesson.activity.worked.questions.map((q) => `<li>${esc(q)}</li>`).join('')}</ul><p>${esc(lesson.activity.worked.note)}</p></div><div class="lesson-card"><h3>Não faça isso</h3><ul>${lesson.activity.avoid.map((a) => `<li>${esc(a)}</li>`).join('')}</ul></div></div><div class="lesson-warn"><strong>Verifique antes de seguir:</strong> ${lesson.activity.checks.map((c) => esc(c)).join(' · ')}</div></article>`
+          : `<article class="lesson-slide"><span class="lesson-kicker">Antes de entregar</span><h2>Regras e verificação</h2><div class="lesson-split"><div class="lesson-card"><h3>Não faça isso</h3><ul>${lesson.activity.avoid.map((a) => `<li>${esc(a)}</li>`).join('')}</ul></div><div class="lesson-card"><h3>Verifique antes de entregar</h3><ul>${lesson.activity.checks.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></div></div></article>`)
+  ] : []);
+
   window.renderLessonSlides = function (root) {
+    // Encontros dedicados à avaliação: o deck traz apenas o enunciado da
+    // atividade. O conteúdo conceitual permanece no material de leitura, que
+    // não é exibido em sala para não servir de consulta durante a prova.
+    if (lesson.slidesActivityOnly && lesson.activity) {
+      const prova = [
+        `<article class="lesson-slide lesson-cover"><span class="lesson-kicker">Módulo 11 · Engenharia de Software · Aula ${esc(lessonId)} · Atividade avaliativa</span><h1>${esc(lesson.title)}</h1><p>${esc(lesson.activity.title)}</p><small>${esc(lesson.discipline || DEFAULT_DISC)} · Prof. ${esc(lesson.professor || DEFAULT_PROF)} · ${esc(lesson.date)}</small></article>`,
+        ...activitySlides(),
+        `<article class="lesson-slide encontro-slide"><span class="lesson-kicker">Ficha do encontro</span>${fichaEncontro()}</article>`
+      ];
+      root.innerHTML = prova.join('');
+      return prova.length;
+    }
+
     const slides = [
       `<article class="lesson-slide lesson-cover"><span class="lesson-kicker">Módulo 11 · Engenharia de Software · Aula ${esc(lessonId)}</span><h1>${esc(lesson.title)}</h1><p>${esc(lesson.subtitle)}</p><small>${esc(lesson.discipline || DEFAULT_DISC)} · Prof. ${esc(lesson.professor || DEFAULT_PROF)} · ${esc(lesson.date)}</small></article>`,
 
@@ -1574,13 +1608,7 @@
         `<article class="lesson-slide"><span class="lesson-kicker">Modelo de referência</span><h2>Grão, fato e dimensões resolvidos</h2><div class="lesson-callout"><strong>Grão:</strong> ${esc(lesson.warmup.model.grao)}</div><div class="lesson-split"><div class="lesson-card"><h3>${esc(lesson.warmup.model.fato)}</h3><p><strong>Métricas</strong></p><ul>${lesson.warmup.model.metricas.map((m) => `<li>${esc(m)}</li>`).join('')}</ul></div><div class="lesson-card"><h3>Dimensões</h3><ul>${lesson.warmup.model.dimensoes.map((d) => `<li><strong>${esc(d.nome)}:</strong> ${esc(d.hierarquia)}</li>`).join('')}</ul></div></div><div class="lesson-warn"><strong>${esc(lesson.warmup.model.esquema)}</strong><br>${esc(lesson.warmup.transition)}</div></article>`
       ] : []),
 
-      ...(lesson.activity ? [
-        `<article class="lesson-slide"><span class="lesson-kicker">${esc(lesson.activity.duration)}</span><h2>${esc(lesson.activity.title)}</h2><div class="lesson-callout"><strong>${esc(lesson.activity.goal)}</strong></div><div class="lesson-card lesson-wide"><p>${esc(lesson.activity.intro)}</p></div></article>`,
-        `<article class="lesson-slide"><span class="lesson-kicker">Método</span><h2>${esc(lesson.activity.stepsTitle || 'Do negócio ao cubo, passo a passo')}</h2><div class="lesson-grid">${lesson.activity.steps.map((s, i) => `<div class="lesson-card"><b>Passo ${i + 1}</b><h3>${esc(s.title)}</h3><p>${esc(s.text)}</p></div>`).join('')}</div></article>`,
-        (lesson.activity.worked
-          ? `<article class="lesson-slide"><span class="lesson-kicker">Exemplo ilustrativo</span><h2>O raciocínio, não a resposta</h2><div class="lesson-split"><div class="lesson-card"><p>${esc(lesson.activity.worked.text)}</p><ul>${lesson.activity.worked.questions.map((q) => `<li>${esc(q)}</li>`).join('')}</ul><p>${esc(lesson.activity.worked.note)}</p></div><div class="lesson-card"><h3>Não faça isso</h3><ul>${lesson.activity.avoid.map((a) => `<li>${esc(a)}</li>`).join('')}</ul></div></div><div class="lesson-warn"><strong>Verifique antes de seguir:</strong> ${lesson.activity.checks.map((c) => esc(c)).join(' · ')}</div></article>`
-          : `<article class="lesson-slide"><span class="lesson-kicker">Antes de entregar</span><h2>Regras e verificação</h2><div class="lesson-split"><div class="lesson-card"><h3>Não faça isso</h3><ul>${lesson.activity.avoid.map((a) => `<li>${esc(a)}</li>`).join('')}</ul></div><div class="lesson-card"><h3>Verifique antes de entregar</h3><ul>${lesson.activity.checks.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></div></div></article>`)
-      ] : []),
+      ...activitySlides(),
 
       `<article class="lesson-slide"><span class="lesson-kicker">${esc(lesson.deliverableKicker || 'Laboratório')}</span><h2>${esc(lesson.deliverableTitle || 'Entregável da aula')}</h2><div class="lesson-callout"><strong>${esc(lesson.deliverable)}</strong></div><div class="lesson-card lesson-wide"><h3>${esc(lesson.evaluationLabel || 'Critérios de aceite')}</h3><ol>${evaluationList}</ol></div>${lesson.submissionNotice ? `<div class="lesson-warn"><strong>Atenção — regras de entrega:</strong><ul style="margin:6px 0 0;padding-left:1.2rem;">${lesson.submissionNotice.map((n) => `<li>${esc(n)}</li>`).join('')}</ul></div>` : ''}</article>`,
 
