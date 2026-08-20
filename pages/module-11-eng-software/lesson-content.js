@@ -1563,6 +1563,15 @@
 
   // Slides do enunciado da atividade avaliativa, compartilhados entre o deck
   // completo e o deck dedicado à prova.
+  // Distribui itens em telas de no máximo `porTela`, preservando a numeração.
+  const paginar = (itens, porTela) => itens
+    .map((item, i) => ({ ...item, n: i + 1 }))
+    .reduce((telas, item, i) => {
+      if (i % porTela === 0) telas.push([]);
+      telas[telas.length - 1].push(item);
+      return telas;
+    }, []);
+
   const activitySlides = () => (lesson.activity ? [
         `<article class="lesson-slide"><span class="lesson-kicker">${esc(lesson.activity.duration)}</span><h2>${esc(lesson.activity.title)}</h2><div class="lesson-callout"><strong>${esc(lesson.activity.goal)}</strong></div><div class="lesson-card lesson-wide"><p>${esc(lesson.activity.intro)}</p></div></article>`,
         `<article class="lesson-slide"><span class="lesson-kicker">Método</span><h2>${esc(lesson.activity.stepsTitle || 'Do negócio ao cubo, passo a passo')}</h2><div class="lesson-grid">${lesson.activity.steps.map((s, i) => `<div class="lesson-card"><b>Passo ${i + 1}</b><h3>${esc(s.title)}</h3><p>${esc(s.text)}</p></div>`).join('')}</div></article>`,
@@ -1578,11 +1587,16 @@
     if (lesson.slidesActivityOnly && lesson.activity) {
       const prova = [
         `<article class="lesson-slide lesson-cover"><span class="lesson-kicker">Módulo 11 · Engenharia de Software · Aula ${esc(lessonId)} · Atividade avaliativa</span><h1>${esc(lesson.title)}</h1><p>${esc(lesson.activity.title)}</p><small>${esc(lesson.discipline || DEFAULT_DISC)} · Prof. ${esc(lesson.professor || DEFAULT_PROF)} · ${esc(lesson.date)}</small></article>`,
-        ...activitySlides(),
+        `<article class="lesson-slide"><span class="lesson-kicker">${esc(lesson.activity.duration)}</span><h2>${esc(lesson.activity.title)}</h2><div class="lesson-callout"><strong>${esc(lesson.activity.goal)}</strong></div><div class="lesson-card lesson-wide"><p>${esc(lesson.activity.intro)}</p></div></article>`,
+        ...paginar(lesson.activity.steps, 4).map((grupo, pagina, todas) =>
+          `<article class="lesson-slide"><span class="lesson-kicker">${esc(lesson.activity.stepsTitle || 'Atividade')}${todas.length > 1 ? ` · ${pagina + 1} de ${todas.length}` : ''}</span><h2>Questões ${grupo[0].n} a ${grupo[grupo.length - 1].n}</h2><div class="lesson-split" style="grid-template-columns:repeat(2,minmax(0,1fr));">${grupo.map((s) => `<div class="lesson-card"><h3>${esc(s.title)}</h3><p>${esc(s.text)}</p></div>`).join('')}</div></article>`),
+        (lesson.activity.avoid && lesson.activity.checks
+          ? `<article class="lesson-slide"><span class="lesson-kicker">Antes de entregar</span><h2>Regras e verificação</h2><div class="lesson-split"><div class="lesson-card"><h3>Não faça isso</h3><ul>${lesson.activity.avoid.map((a) => `<li>${esc(a)}</li>`).join('')}</ul></div><div class="lesson-card"><h3>Verifique antes de entregar</h3><ul>${lesson.activity.checks.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></div></div></article>`
+          : ''),
         `<article class="lesson-slide encontro-slide"><span class="lesson-kicker">Ficha do encontro</span>${fichaEncontro()}</article>`
       ];
-      root.innerHTML = prova.join('');
-      return prova.length;
+      root.innerHTML = prova.filter(Boolean).join('');
+      return prova.filter(Boolean).length;
     }
 
     const slides = [
