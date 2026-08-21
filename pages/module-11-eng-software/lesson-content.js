@@ -812,195 +812,312 @@
 
     6: {
       title: 'Modelagem de Data Warehouse IV', date: '21/08/2026',
-      subtitle: 'O lado da fato: tipos de tabela fato, aditividade das medidas e a prova de que o modelo não produz número errado.',
-      objective: 'Classificar a tabela fato de cada cubo do projeto quanto ao tipo, classificar cada medida quanto à aditividade e especificar os testes que provam a correção do modelo dimensional.',
+      subtitle: 'Da estrela isolada à arquitetura dimensional corporativa: Bus Matrix, dimensões conformadas, constelações de fatos e evolução incremental.',
+      objective: 'Projetar uma arquitetura dimensional corporativa que integre múltiplos processos de negócio por meio de uma Bus Matrix, dimensões conformadas e fatos com grãos e tipos explicitamente definidos.',
       outcomes: [
-        'Distinguir fato transacional, snapshot periódico e snapshot acumulativo pelo evento que uma linha representa.',
-        'Preencher com critério o campo Tipo de fato do Data Model Canvas, decidido até aqui sem base conceitual.',
-        'Classificar cada medida como aditiva, semi-aditiva ou não aditiva e declarar a dimensão em que a soma deixa de valer.',
-        'Modelar fatos sem medida e fatos de cobertura para responder perguntas sobre eventos que não ocorreram.',
-        'Tratar fatos e dimensões de chegada tardia e correções retroativas sem descartar registros.',
-        'Especificar os cinco testes que provam a correção do modelo e registrá-los como contrato de qualidade da camada de serviço.'
+        'Explicar como dimensões conformadas integram análises entre processos sem fundir fatos de grãos diferentes.',
+        'Construir uma Bus Matrix com processos nas linhas, dimensões nas colunas e prioridade incremental de implementação.',
+        'Distinguir fatos transacionais, snapshots periódicos e snapshots acumulativos pelo evento representado por cada linha.',
+        'Projetar uma constelação de fatos na qual múltiplos Data Marts reutilizam dimensões corporativas governadas.',
+        'Definir contratos semânticos para dimensões e métricas compartilhadas, incluindo chave, domínio, granularidade, owner e política histórica.',
+        'Planejar a evolução incremental do Data Warehouse sem quebrar análises cross-functional já publicadas.'
       ],
       timebox: [
-        { label: 'Teoria — tipos de fato, aditividade, fatos sem medida, tempo difícil e a prova do modelo', minutes: 60 },
-        { label: 'Laboratório — diagnóstico de um modelo defeituoso', minutes: 35 },
-        { label: 'Fechamento do canvas — campos Tipo de fato e Qualidade nos cubos do projeto', minutes: 25 }
+        { label: 'Fundamentos — arquitetura bus, dimensões conformadas, Bus Matrix, tipos de fato e Fact Constellation', minutes: 55 },
+        { label: 'Laboratório — blueprint dimensional corporativo do projeto', minutes: 50 },
+        { label: 'Revisão cruzada, decisões de governança e versionamento do artefato', minutes: 15 }
       ],
       preClass: [
         {
+          title: 'Enterprise Data Warehouse Bus Architecture — Kimball Group',
+          topics: ['Desenvolvimento incremental por processo', 'Dimensões conformadas como mecanismo de integração', 'Visão estratégica top-down e entregas bottom-up'],
+          url: 'https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/kimball-data-warehouse-bus-architecture/'
+        },
+        {
+          title: 'Enterprise Data Warehouse Bus Matrix — Kimball Group',
+          topics: ['Processos nas linhas', 'Dimensões nas colunas', 'Conformidade identificada por coluna', 'Priorização de uma linha por vez'],
+          url: 'https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/enterprise-data-warehouse-bus-matrix/'
+        },
+        {
+          title: 'Conformed Dimensions — Kimball Group',
+          topics: ['Atributos e domínios compatíveis', 'Reutilização entre fatos', 'Drill-across', 'Governança compartilhada com o negócio'],
+          url: 'https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/conformed-dimension/'
+        },
+        {
           title: 'Modelagem dimensional — tabelas de fatos',
-          topics: ['Estrutura da tabela de fatos', 'Chave primária e chaves de dimensão', 'Medidas e atributos de auditoria', 'Tipos de tabela de fatos', 'Tipos de medida', 'Tabelas de fatos sem fatos', 'Tabelas de fatos agregadas'],
+          topics: ['Grão e chaves de dimensão', 'Fato transacional', 'Snapshot periódico', 'Snapshot acumulativo'],
           url: 'https://learn.microsoft.com/pt-br/fabric/data-warehouse/dimensional-modeling-fact-tables'
         },
         {
           title: 'Modelagem dimensional — tabelas de dimensões',
-          topics: ['Chave alternativa e chaves naturais', 'Atributos de acompanhamento histórico', 'Gerenciar alterações históricas', 'Membros da dimensão especial', 'Calendário e hora', 'Dimensões conformes'],
+          topics: ['Chaves substitutas e naturais', 'Atributos históricos', 'Dimensões conformadas', 'Dimensões de role-playing'],
           url: 'https://learn.microsoft.com/pt-br/fabric/data-warehouse/dimensional-modeling-dimension-tables'
-        },
-        {
-          title: 'Dimensional Modeling Techniques — Kimball Group',
-          topics: ['Fact table structure', 'Transaction, periodic snapshot e accumulating snapshot fact tables', 'Additive, semi-additive e non-additive facts', 'Factless fact tables', 'Late arriving dimensions'],
-          url: 'https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/'
-        },
-        {
-          title: 'Data tests — dbt',
-          topics: ['Testes singulares e testes genéricos', 'unique e not_null', 'relationships e accepted_values', 'Severidade e limiar de falha', 'Execução dos testes durante a carga'],
-          url: 'https://docs.getdbt.com/docs/build/data-tests'
         }
       ],
       sections: [
         {
-          nav: 'Tipos de tabela fato', title: 'Transacional, snapshot periódico e snapshot acumulativo',
-          text: 'O tipo da tabela fato decorre do evento que uma linha representa. O fato transacional registra um evento no instante em que ocorre. O snapshot periódico fotografa um estado em intervalos regulares, e gera linha mesmo quando nada aconteceu. O snapshot acumulativo mantém uma linha por processo e a atualiza a cada marco atingido, o que permite medir a duração entre etapas. O Data Model Canvas do projeto pede essa classificação no campo Tipo de fato desde a Aula 2.',
+          nav: 'Da estrela ao barramento', title: 'Arquitetura dimensional corporativa',
+          text: 'Um modelo estrela resolve um processo de negócio. Um Data Warehouse corporativo precisa integrar vários processos sem misturar fatos de grãos incompatíveis. Na arquitetura bus de Kimball, cada processo evolui como uma entrega incremental, enquanto dimensões conformadas funcionam como interfaces estáveis entre as estrelas. A integração ocorre pela reutilização de contexto e semântica, não pela criação de uma tabela fato universal.',
           checklist: [
-            'Para cada cubo do seu projeto, escreva se a linha nasce de um evento, de uma fotografia periódica ou de um processo com marcos.',
-            'Confirme que o snapshot periódico gera linha em período sem movimento — caso contrário, o zero desaparece da série histórica.',
-            'Identifique se algum cubo mede duração entre etapas: esse é o sinal de snapshot acumulativo.'
+            'Liste os processos de negócio, não os sistemas de origem nem os departamentos da organização.',
+            'Declare a pergunta e o grão próprios de cada processo antes de procurar dimensões compartilhadas.',
+            'Defina quais entregas podem entrar em produção isoladamente e quais contratos precisam ser corporativos desde o início.'
           ],
-          pitfall: 'Classificar como transacional todo cubo cuja origem é uma tabela de eventos. O que define o tipo é o que uma linha representa no cubo, não o formato do arquivo de origem.',
+          pitfall: 'Criar uma fato corporativa única para todos os processos. Fatos com grãos diferentes não devem ser unidos linha a linha; eles são analisados em conjunto por dimensões conformadas.',
           diagram: `flowchart LR
-    subgraph T["Transacional<br/>uma linha por evento"]
-        direction TB
-        T1["resposta enviada<br/>12/03 09:14"]
-        T2["resposta enviada<br/>12/03 09:51"]
-    end
-    subgraph P["Snapshot periódico<br/>uma linha por período"]
-        direction TB
-        P1["mar/2026<br/>412 respondentes ativos"]
-        P2["abr/2026<br/>0 respondentes ativos"]
-    end
-    subgraph A["Snapshot acumulativo<br/>uma linha por processo, atualizada a cada marco"]
-        direction TB
-        A1["pesquisa 88 · aberta 01/03"]
-        A2["encerrada 20/03 · tabulada 27/03"]
-        A3["publicada · ainda em aberto"]
-    end
+    P1["Processo: participação"] --> F1["Fato de respostas"]
+    P2["Processo: publicação"] --> F2["Fato de ciclo da pesquisa"]
+    P3["Processo: mercado"] --> F3["Snapshot de representatividade"]
+    D1["Dimensão Empresa conformada"] --- F1
+    D1 --- F2
+    D1 --- F3
+    D2["Dimensão Data conformada"] --- F1
+    D2 --- F2
+    D2 --- F3`
+        },
+        {
+          nav: 'Dimensões conformadas', title: 'A interface entre processos de negócio',
+          text: 'Uma dimensão é conformada quando mantém significado, domínio e estrutura compatíveis em diferentes fatos. A conformidade exige mais que repetir o nome da tabela: chave corporativa, definição dos atributos, hierarquias, tratamento histórico, valores desconhecidos e ownership precisam obedecer ao mesmo contrato. Com isso, relatórios podem executar drill-across e alinhar medidas de fatos distintos por Empresa, Data, Pesquisa ou Segmento.',
+          checklist: [
+            'Escolha uma chave corporativa estável e documente como cada fonte é mapeada para ela.',
+            'Compare nome, domínio, granularidade e hierarquia dos atributos usados por processos diferentes.',
+            'Defina owner, política SCD e procedimento de mudança antes de publicar a dimensão como conformada.'
+          ],
+          pitfall: 'Chamar duas dimensões de dim_empresa e assumir que são conformadas. Se porte, segmento, chave ou vigência significam coisas diferentes, o mesmo filtro produz grupos incompatíveis.',
+          diagram: `flowchart LR
+    F1["Fato Resposta"] --- E["Dimensão Empresa<br/>chave, porte, segmento, vigência"]
+    F2["Fato Participação Mensal"] --- E
+    F3["Fato Ciclo da Pesquisa"] --- E
+    F1 --- D["Dimensão Data<br/>civil e fiscal"]
+    F2 --- D
+    F3 --- D`
+        },
+        {
+          nav: 'Bus Matrix', title: 'O blueprint do Data Warehouse corporativo',
+          text: 'A Bus Matrix cruza processos de negócio nas linhas com dimensões nas colunas. Uma célula marcada indica que aquela dimensão participa do processo. A leitura horizontal valida o contexto de cada fato; a leitura vertical mostra onde a dimensão deve ser conformada. A matriz também orienta o roadmap: implementa-se uma linha por vez, preservando os contratos corporativos das colunas já publicadas.',
+          checklist: [
+            'Use verbos de negócio nas linhas: responder pesquisa, publicar indicador, acompanhar participação.',
+            'Marque apenas dimensões aplicáveis ao grão do processo, não todas as dimensões disponíveis.',
+            'Associe a cada linha prioridade, owner, fato, grão e tipo de tabela fato.'
+          ],
+          pitfall: 'Colocar tabelas, arquivos ou sistemas nas linhas. A Bus Matrix representa processos mensuráveis do negócio; sistemas são fontes e podem mudar sem alterar o processo.',
+          diagram: `flowchart LR
+    P1["Responder pesquisa"] --> D1["Data"]
+    P1 --> D2["Empresa"]
+    P1 --> D3["Pesquisa"]
+    P2["Acompanhar participação"] --> D1
+    P2 --> D2
+    P2 --> D3
+    P2 --> D4["Segmento"]
+    P3["Publicar indicador"] --> D1
+    P3 --> D3
+    P3 --> D5["Canal"]`
+        },
+        {
+          nav: 'Tipos de tabela fato', title: 'Transacional, snapshot periódico e snapshot acumulativo',
+          text: 'Cada linha da Bus Matrix conduz a uma ou mais tabelas fato. O fato transacional registra um evento atômico e normalmente só recebe inserções. O snapshot periódico fotografa o estado em intervalos regulares, inclusive quando o valor é zero. O snapshot acumulativo mantém uma linha por processo e atualiza as datas dos marcos até sua conclusão. O tipo decorre da frase do grão, não da tecnologia de origem.',
+          checklist: [
+            'Escreva “uma linha representa...” para cada processo antes de escolher o tipo da fato.',
+            'Confirme que o snapshot periódico produz linha em período sem movimento, para preservar zeros.',
+            'Use snapshot acumulativo quando a análise depende da duração entre marcos do mesmo processo.'
+          ],
+          pitfall: 'Classificar a fato pelo formato do arquivo de origem. Uma origem transacional pode alimentar um snapshot periódico; o que decide o tipo é o significado da linha analítica.',
+          diagram: `flowchart LR
+    T["Transacional<br/>uma linha por resposta enviada"]
+    P["Snapshot periódico<br/>uma linha por empresa e mês"]
+    A["Snapshot acumulativo<br/>uma linha por ciclo de pesquisa"]
     T ~~~ P
     P ~~~ A`
         },
         {
-          nav: 'Aditividade das medidas', title: 'Medidas aditivas, semi-aditivas e não aditivas',
-          text: 'Uma medida aditiva pode ser somada em qualquer dimensão. Uma medida semi-aditiva soma em algumas dimensões e não em outras: um total de respondentes ativos soma entre empresas, nunca ao longo do tempo. Uma medida não aditiva não soma em dimensão alguma — taxas, percentuais e médias pertencem a essa classe, e o modelo deve guardar o numerador e o denominador em vez do resultado já calculado.',
+          nav: 'Fact Constellation', title: 'Múltiplos fatos, contexto compartilhado',
+          text: 'Uma Fact Constellation organiza múltiplas tabelas fato que compartilham dimensões conformadas. Cada estrela preserva seu grão, frequência e métricas; a constelação explicita como elas convivem no mesmo ambiente. Data Marts deixam de ser ilhas quando reutilizam as mesmas dimensões corporativas e fatos conformados. A análise cross-functional ocorre por drill-across: cada fato é agregado separadamente no mesmo nível dimensional e os resultados são alinhados, sem join direto fato com fato.',
           checklist: [
-            'Classifique cada métrica dos seus cubos e registre a classificação junto da coluna, não em documento separado.',
-            'Para cada medida semi-aditiva, escreva explicitamente a dimensão em que a soma é inválida.',
-            'Substitua toda taxa já calculada na fato pelo par numerador e denominador.'
+            'Mantenha uma declaração de grão independente para cada fato da constelação.',
+            'Identifique quais dimensões são realmente conformadas e quais pertencem apenas a um processo.',
+            'Descreva uma pergunta cross-functional e o nível dimensional comum usado para alinhar os resultados.'
           ],
-          pitfall: 'Guardar a taxa de adesão como coluna da fato. A média das taxas de cada pesquisa não é a taxa do conjunto: apenas o numerador e o denominador permitem agregar corretamente em qualquer recorte.',
-          diagram: `flowchart LR
-    M["medida do cubo"] --> Q{"soma em qual dimensão?"}
-    Q -->|"em todas"| A1["Aditiva<br/>respostas recebidas"]
-    Q -->|"em algumas"| A2["Semi-aditiva<br/>respondentes ativos<br/>soma entre empresas,<br/>nunca entre datas"]
-    Q -->|"em nenhuma"| A3["Não aditiva<br/>taxa de adesão<br/>guarde numerador<br/>e denominador"]`
-        },
-        {
-          nav: 'Fatos sem medida', title: 'Fatos sem medida e fatos de cobertura',
-          text: 'Nem todo fato tem métrica. Um fato sem medida registra a ocorrência de um evento por meio das chaves que o descrevem, e responde a perguntas de contagem. Um fato de cobertura registra o que era possível — as empresas elegíveis a responder uma pesquisa — e, confrontado com o fato de eventos, permite responder o que não aconteceu: quais empresas elegíveis não responderam.',
-          checklist: [
-            'Identifique uma pergunta do seu projeto que exija saber o que não ocorreu.',
-            'Verifique se essa pergunta pode ser respondida sem uma tabela do que era elegível — em geral não pode.',
-            'Confirme que o fato sem medida tem grão declarado, mesmo sem nenhuma coluna numérica.'
-          ],
-          pitfall: 'Tentar responder o que não aconteceu apenas com a tabela de eventos. A ausência de linha não distingue quem não foi convidado de quem foi convidado e não respondeu.',
+          pitfall: 'Fazer join direto entre duas fatos no nível atômico. Se ambas têm várias linhas para a mesma dimensão, o join multiplica registros e distorce métricas.',
           diagram: `erDiagram
-    DIMENSAO_PESQUISA ||--o{ FATO_COBERTURA_ELEGIVEL : define
-    DIMENSAO_EMPRESA ||--o{ FATO_COBERTURA_ELEGIVEL : elegivel_em
-    DIMENSAO_PESQUISA ||--o{ FATO_RESPOSTA : recebe
-    DIMENSAO_EMPRESA ||--o{ FATO_RESPOSTA : responde
-    FATO_COBERTURA_ELEGIVEL {
-        int pesquisa_sk FK
-        int empresa_sk FK
-    }
-    FATO_RESPOSTA {
-        int pesquisa_sk FK
-        int empresa_sk FK
-        int respostas_recebidas
-    }`
+    DIM_EMPRESA ||--o{ FATO_RESPOSTA : contextualiza
+    DIM_EMPRESA ||--o{ FATO_PARTICIPACAO_MENSAL : contextualiza
+    DIM_PESQUISA ||--o{ FATO_RESPOSTA : contextualiza
+    DIM_PESQUISA ||--o{ FATO_CICLO_PESQUISA : contextualiza
+    DIM_DATA ||--o{ FATO_RESPOSTA : data_resposta
+    DIM_DATA ||--o{ FATO_PARTICIPACAO_MENSAL : mes_referencia
+    DIM_DATA ||--o{ FATO_CICLO_PESQUISA : marcos`
         },
         {
-          nav: 'Tempo difícil', title: 'Chegada tardia, correção retroativa e calendário',
-          text: 'Um fato de chegada tardia é o evento que chega depois do período a que pertence. Uma dimensão de chegada tardia é o registro cuja descrição ainda não existe quando o fato chega, e a resposta é criar um membro inferido, não rejeitar a linha. Correções retroativas exigem decidir se o número já publicado é reescrito ou versionado. O calendário deve existir como tabela de dimensão, com o ano fiscal separado do civil quando os períodos divergirem.',
+          nav: 'Governança e evolução', title: 'Consistência semântica com entrega incremental',
+          text: 'A arquitetura bus permite implementar uma linha da matriz por vez, mas cada nova entrega deve respeitar os contratos publicados. Para dimensões conformadas, o contrato inclui chave, atributos, domínios, hierarquias, granularidade, política histórica, owner e compatibilidade. Para métricas compartilhadas, inclui fórmula, unidade, comportamento de agregação, filtros e versão. Mudanças aditivas preservam consumidores; mudanças semânticas exigem versionamento e plano de migração.',
           checklist: [
-            'Defina o que o pipeline faz quando o fato chega sem a dimensão correspondente: rejeita, descarta ou cria membro inferido.',
-            'Declare se uma correção retroativa reescreve o número já publicado ou gera nova versão do período.',
-            'Verifique se o seu projeto trata a data como tabela de dimensão ou como função aplicada na consulta.'
+            'Escolha a primeira linha da matriz por valor, viabilidade e capacidade de estabelecer dimensões reutilizáveis.',
+            'Classifique cada mudança como compatível, aditiva ou quebradora antes de alterar uma dimensão conformada.',
+            'Defina owner e fórum de decisão para atributos e métricas usados por mais de uma área.'
           ],
-          pitfall: 'Rejeitar o fato cuja dimensão ainda não existe. O evento é real e desaparece do relatório; o membro inferido preserva o fato e é completado quando a descrição chega.'
-        },
-        {
-          nav: 'A prova do modelo', title: 'Os cinco testes e o contrato da camada de serviço',
-          text: 'Um modelo dimensional se prova por teste executável, não por revisão visual. Cinco testes cobrem os erros que produzem número errado sem gerar erro visível: unicidade da chave do grão, integridade referencial entre fato e dimensão, ausência de vigências sobrepostas nas dimensões versionadas, reconciliação de totais com a origem dentro de uma tolerância declarada e ausência de dupla contagem em métricas que atravessam bridge tables. Esses testes são o contrato de qualidade da camada de serviço desenhada no encontro anterior.',
-          checklist: [
-            'Escreva os cinco testes para um cubo do seu projeto, cada um com o erro que detecta.',
-            'Declare a tolerância aceita na reconciliação com a origem, em número.',
-            'Defina o que acontece quando um teste falha: a carga é interrompida, o dado é publicado com aviso ou o período é reprocessado.'
-          ],
-          pitfall: 'Validar apenas a contagem de linhas. A dupla contagem por bridge table preserva a contagem de linhas da fato e destrói toda soma que passa por ela.',
+          pitfall: 'Permitir que cada Data Mart copie e adapte a dimensão corporativa. A entrega local fica rápida, mas porte, segmento e calendário passam a divergir e impedem análise integrada.',
           diagram: `flowchart LR
-    C["carga do cubo"] --> T1["unicidade da<br/>chave do grão"]
-    T1 --> T2["integridade<br/>referencial"]
-    T2 --> T3["vigências não<br/>sobrepostas"]
-    T3 --> T4["reconciliação<br/>com a origem"]
-    T4 --> T5["ausência de<br/>dupla contagem"]
-    T5 --> OK["publica na camada<br/>de serviço"]
-    T1 -.->|falha| STOP["interrompe e<br/>registra o erro"]
-    T4 -.->|falha| STOP`
+    R1["Release 1<br/>Participação"] --> C1["Empresa + Data<br/>contratos v1"]
+    C1 --> R2["Release 2<br/>Publicação"]
+    R2 --> C2["Pesquisa + Canal<br/>contratos v1"]
+    C2 --> R3["Release 3<br/>Mercado"]
+    R3 --> V["Análise cross-functional<br/>semântica governada"]`
         }
       ],
+      continuity: {
+        title: 'De onde a aula parte e para onde leva',
+        text: 'A Aula 5 estabeleceu o caminho das fontes até as camadas com contrato e dono. As Aulas 2 a 4 produziram estrelas por processo. Esta aula liga essas estrelas em um barramento corporativo, e o resultado é a análise que atravessa processos sem perder significado.',
+        steps: [
+          { when: 'Aula 5', what: 'Fontes e camadas' },
+          { when: 'Aulas 2–4', what: 'Estrelas por processo' },
+          { when: 'Aula 6', what: 'Barramento corporativo' },
+          { when: 'Resultado', what: 'Análise cross-functional' }
+        ],
+        note: 'Uma coleção de Data Marts não forma um Data Warehouse corporativo. A integração começa quando processos diferentes reutilizam dimensões com contratos realmente compatíveis.'
+      },
+      conformity: {
+        entity: 'DIM_EMPRESA',
+        intro: 'Conformidade é um contrato, não um nome de tabela. A dimensão abaixo é reutilizada pelos fatos de participação, publicação e mercado: uma mudança local altera todos os relatórios cross-functional. Os seis campos a seguir são o que precisa estar decidido e publicado antes de declarar a dimensão conformada.',
+        fields: [
+          { label: 'Chave corporativa', text: 'Como CNPJ e os identificadores de cada fonte convergem para uma única entidade.' },
+          { label: 'Domínio dos atributos', text: 'Valores válidos para porte, segmento, região e situação cadastral.' },
+          { label: 'Granularidade', text: 'Empresa, estabelecimento ou grupo econômico: apenas um pode ser o grão da dimensão.' },
+          { label: 'Política histórica', text: 'Quais mudanças usam SCD 1, SCD 2 ou outra estratégia explicitamente declarada.' },
+          { label: 'Hierarquias', text: 'Segmento, porte e região precisam agregar da mesma forma em todos os fatos.' },
+          { label: 'Owner e evolução', text: 'Quem aprova mudanças e como os consumidores existentes são migrados.' }
+        ],
+        test: {
+          title: 'Teste de conformidade',
+          intro: 'Se o mesmo filtro separa empresas em grupos diferentes conforme o relatório, não há integração. Compare atributo por atributo antes de publicar a dimensão como corporativa.',
+          rows: [
+            { attribute: 'Chave', bad: 'CNPJ em um fato, identificador local em outro', good: 'empresa_sk corporativa em todos os fatos' },
+            { attribute: 'Porte', bad: 'faixas de faturamento diferentes por área', good: 'domínio único governado' },
+            { attribute: 'Segmento', bad: 'taxonomias locais por sistema de origem', good: 'hierarquia única e documentada' },
+            { attribute: 'Histórico', bad: 'um relatório usa o atributo atual, outro o vigente', good: 'política SCD documentada e aplicada' }
+          ],
+          note: 'Drill-across só é confiável quando os atributos usados para alinhar resultados têm nome, domínio e conteúdo compatíveis.'
+        }
+      },
+      busMatrix: {
+        intro: 'A matriz cruza processos de negócio nas linhas com dimensões nas colunas, e o número na linha indica a prioridade de implementação. A célula marcada mostra onde o contexto é necessário; a coluna com várias marcas mostra onde a conformidade produz integração.',
+        columns: ['Data', 'Empresa', 'Pesquisa', 'Segmento', 'Canal'],
+        rows: [
+          { priority: 1, process: 'Responder pesquisa', marks: [true, true, true, true, false] },
+          { priority: 2, process: 'Acompanhar participação', marks: [true, true, true, true, false] },
+          { priority: 3, process: 'Publicar indicador', marks: [true, false, true, true, true] },
+          { priority: 4, process: 'Analisar mercado', marks: [true, true, false, true, false] }
+        ],
+        axes: [
+          { label: 'Linhas', text: 'verbos do negócio, não sistemas, arquivos ou departamentos.' },
+          { label: 'Colunas', text: 'contexto reutilizável, não toda dimensão disponível.' }
+        ],
+        reading: {
+          intro: 'A leitura horizontal valida o processo; a leitura vertical revela a integração. A mesma matriz orienta modelagem, governança e roadmap.',
+          horizontal: {
+            title: 'Leitura horizontal — uma linha por entrega incremental',
+            questions: ['Qual processo está sendo medido?', 'Qual é o grão da fato?', 'Quais dimensões descrevem esse grão?', 'Qual tipo de fato representa o processo?']
+          },
+          vertical: {
+            title: 'Leitura vertical — uma coluna por contrato compartilhado',
+            questions: ['Em quais processos a dimensão aparece?', 'Os atributos têm o mesmo domínio?', 'Quem governa chave, SCD e hierarquia?', 'Qual mudança quebraria consumidores?']
+          },
+          note: 'Implemente uma linha por vez, mas trate as colunas compartilhadas como produto corporativo desde a primeira entrega.'
+        }
+      },
+      drillAcross: {
+        question: 'Participação e tempo de publicação por segmento e trimestre.',
+        intro: 'A pergunta atravessa dois fatos de grãos diferentes. Ela se responde por drill-across — agregação separada e alinhamento posterior —, nunca por join direto entre as fatos.',
+        correct: [
+          'Agregue a participação por Segmento e Trimestre.',
+          'Agregue o tempo de publicação no mesmo nível dimensional.',
+          'Alinhe os dois resultados pelos atributos conformados.'
+        ],
+        incorrect: [
+          'Unir cada resposta diretamente a cada linha do ciclo de publicação.',
+          'Gerar relação muitos-para-muitos entre fatos com grãos diferentes.',
+          'Multiplicar linhas e distorcer as medidas antes da agregação.'
+        ],
+        note: 'Fatos se encontram depois de agregados, no nível comum das dimensões conformadas.'
+      },
+      semantics: {
+        intro: 'Dimensão e métrica compartilhadas exigem decisões explícitas, porque o contrato precisa sobreviver às fronteiras organizacionais. Cinco perguntas precisam ter resposta escrita antes da publicação.',
+        items: [
+          { title: 'Definição', text: 'O que “empresa ativa” ou “participação” significa para todas as áreas?' },
+          { title: 'Domínio', text: 'Quais valores, hierarquias e unidades são aceitos?' },
+          { title: 'Histórico', text: 'O relatório usa o atributo atual ou o vigente no momento do evento?' },
+          { title: 'Ownership', text: 'Quem aprova uma mudança usada por mais de um processo?' },
+          { title: 'Compatibilidade', text: 'A alteração é aditiva ou exige nova versão e plano de migração?' }
+        ],
+        note: 'Copiar uma dimensão para acelerar uma entrega local reduz o tempo hoje e cria dívida semântica corporativa amanhã.'
+      },
+      roadmap: {
+        intro: 'A entrega é bottom-up, uma linha da matriz por vez, orientada por um blueprint top-down. Cada release reutiliza ou evolui formalmente os contratos já publicados.',
+        releases: [
+          { id: 'Release 1', title: 'Responder pesquisa', text: 'Entrega o primeiro valor analítico e estabelece Data, Empresa e Pesquisa.', chip: 'contratos v1' },
+          { id: 'Release 2', title: 'Acompanhar participação', text: 'Reutiliza as três dimensões e adiciona o snapshot mensal.', chip: 'reuso, sem cópia' },
+          { id: 'Release 3', title: 'Publicar indicador', text: 'Reutiliza Data e Pesquisa; adiciona Canal e os marcos do ciclo.', chip: 'extensão aditiva' },
+          { id: 'Release 4', title: 'Análise integrada', text: 'Drill-across compara participação, publicação e mercado.', chip: 'cross-functional' }
+        ],
+        note: 'O roadmap prioriza valor e viabilidade, mas toda nova linha deve reutilizar ou evoluir formalmente os contratos existentes.'
+      },
+      closing: 'O Data Warehouse torna-se corporativo quando cada processo preserva seu grão, as dimensões preservam o significado e cada nova entrega amplia o barramento sem criar uma nova verdade local.',
       sdd: {
-        rf: 'RF-106 — Permitir apurar, para qualquer pesquisa encerrada, quantas empresas elegíveis não responderam, sem depender de conferência manual.',
-        rnf: 'RNF-106 — Nenhuma chave do grão duplicada; reconciliação de totais com a origem dentro de 0,5%; nenhuma métrica aditiva somada através de bridge table sem peso de alocação.',
-        adr: 'ADR-DW-06 — Snapshot acumulativo para o ciclo de vida da pesquisa, com um marco por etapa, em vez de fato transacional por mudança de status. Alternativa descartada: registrar cada mudança de status como evento, o que exigiria reconstruir a duração entre etapas a cada consulta. Consequência: a linha do snapshot é atualizada, e não apenas inserida, o que exige carga idempotente e teste de unicidade a cada execução.',
-        gherkin: 'Dado um cubo de participação com fato de cobertura das empresas elegíveis, Quando uma pesquisa é encerrada, Então é possível listar as empresas elegíveis sem resposta sem alterar a estrutura do modelo.'
+        rf: 'RF-106 — Permitir comparar participação, publicação e representatividade de mercado por empresa, segmento e período usando dimensões corporativas comuns.',
+        rnf: 'RNF-106 — Empresa, Data, Pesquisa e Segmento devem manter chave, domínio, granularidade e política histórica compatíveis em todos os fatos; qualquer mudança quebradora exige nova versão do contrato.',
+        adr: 'ADR-DW-06 — Adotar a arquitetura bus de Kimball, implementando um processo por vez e integrando-os por dimensões conformadas. Alternativa descartada: Data Marts autônomos com cópias locais das dimensões. Consequência: as dimensões compartilhadas exigem ownership e governança antes da primeira publicação.',
+        gherkin: 'Dadas as fatos de resposta e participação mensal vinculadas às mesmas dimensões Empresa, Pesquisa e Data, Quando o analista compara os processos por segmento e trimestre, Então os resultados são alinhados por atributos conformados sem join direto entre as fatos.'
       },
       activity: {
-        title: 'Atividade em sala — Diagnóstico de um modelo defeituoso e fechamento do canvas',
-        duration: '60 min · segunda metade da aula',
-        goal: 'Encontrar, em um modelo dimensional de aparência correta, os defeitos que produzem número errado, e em seguida fechar no Data Model Canvas do projeto os campos Tipo de fato e Qualidade de cada cubo.',
-        intro: 'A atividade tem duas partes. Na primeira, o grupo diagnostica um modelo com defeitos plantados: nomear o erro, dizer qual número ele distorce e propor a correção estrutural. Na segunda, o grupo retoma o Data Model Canvas do próprio projeto e preenche os dois campos que permaneceram abertos desde a Aula 2. Esta atividade não é avaliativa — a Ponderada do módulo foi realizada no encontro anterior.',
-        stepsTitle: 'Método, passo a passo',
+        title: 'Laboratório — Blueprint dimensional corporativo',
+        duration: '50 min · construção em grupo',
+        goal: 'Integrar ao menos três processos do projeto em uma Bus Matrix e uma Fact Constellation, definindo dimensões conformadas, tipo e grão de cada fato, governança semântica e ordem incremental de implementação.',
+        intro: 'O grupo parte dos cubos já registrados no Data Model Canvas e deixa de tratá-los como ilhas. A Bus Matrix explicita os processos e o contexto compartilhado; a constelação mostra como os fatos reutilizam as dimensões corporativas; o contrato de conformidade registra as decisões que nenhuma área pode redefinir localmente.',
+        stepsTitle: 'Do portfólio de processos ao blueprint corporativo',
         steps: [
-          { title: 'Leia o modelo entregue', text: 'Percorra o modelo defeituoso apresentado a seguir. Ele descreve um cubo de participação em pesquisas com aparência correta: grão declarado, dimensões nomeadas e métricas de nome plausível.' },
-          { title: 'Nomeie o erro', text: 'Para cada defeito, declare qual princípio foi violado: aditividade, dupla contagem, vigência de dimensão versionada ou granularidade do tempo.' },
-          { title: 'Descreva o número distorcido', text: 'Diga qual relatório passa a mostrar número errado e em que direção — para mais ou para menos.' },
-          { title: 'Proponha a correção estrutural', text: 'Corrija o modelo, não a consulta. Um filtro acrescentado ao relatório não conserta um modelo que permite o erro.' },
-          { title: 'Classifique o tipo de fato', text: 'No dmc.json do seu grupo, classifique a fato de cada cubo como transacional, snapshot periódico ou snapshot acumulativo, e registre a justificativa pelo que uma linha representa.' },
-          { title: 'Revise a aditividade das métricas', text: 'Percorra as métricas já registradas e marque cada uma como aditiva, semi-aditiva ou não aditiva; substitua toda taxa calculada pelo par numerador e denominador.' },
-          { title: 'Escreva os cinco testes', text: 'Para cada cubo, registre no campo Qualidade os cinco testes, cada um com o erro que detecta e a tolerância, quando houver.' },
-          { title: 'Exporte o canvas', text: 'Exporte o dmc.json atualizado e versione no repositório do grupo, junto da justificativa das classificações.' }
+          { title: 'Nomeie os processos', text: 'Liste ao menos três processos mensuráveis usando verbo e objeto. Não use nomes de sistema, arquivo, área ou relatório.' },
+          { title: 'Declare os grãos', text: 'Para cada processo, escreva no singular o que uma linha da fato representa e identifique as perguntas respondidas.' },
+          { title: 'Escolha os tipos de fato', text: 'Classifique cada fato como transacional, snapshot periódico ou snapshot acumulativo e justifique pela frase do grão.' },
+          { title: 'Monte a Bus Matrix', text: 'Coloque processos nas linhas e dimensões nas colunas; marque as células aplicáveis e identifique colunas reutilizadas.' },
+          { title: 'Contrate a conformidade', text: 'Para ao menos duas dimensões compartilhadas, defina chave corporativa, atributos críticos, domínio, granularidade, SCD e owner.' },
+          { title: 'Desenhe a constelação', text: 'Represente fatos e dimensões, distinguindo dimensões conformadas das específicas e evitando qualquer relação fato com fato.' },
+          { title: 'Prove a integração', text: 'Escreva uma pergunta cross-functional e explique o drill-across: agregações separadas, mesmo nível dimensional e alinhamento dos resultados.' },
+          { title: 'Planeje a evolução', text: 'Priorize as linhas da matriz e registre como a próxima entrega reutiliza contratos existentes sem quebrar consumidores.' }
         ],
         checks: [
-          'Algum cubo do seu projeto mede duração entre etapas e permanece classificado como transacional?',
-          'Alguma métrica registrada é uma taxa já calculada, que deveria ser substituída por numerador e denominador?',
-          'Os cinco testes registrados nomeiam o erro que cada um detecta, ou apenas o campo que verificam?'
+          'As linhas da matriz representam processos de negócio ou apenas repetem nomes de sistemas e áreas?',
+          'Duas dimensões com o mesmo nome possuem de fato a mesma chave, domínio, hierarquia e política histórica?',
+          'A pergunta cross-functional pode ser respondida sem unir duas fatos diretamente no nível atômico?',
+          'A ordem de implementação entrega valor por linha sem criar uma nova versão local das dimensões compartilhadas?'
         ],
         avoid: [
-          'Não corrija o modelo defeituoso alterando a consulta: o defeito está na estrutura.',
-          'Não classifique o tipo de fato pelo formato do arquivo de origem; classifique pelo que uma linha do cubo representa.',
-          'Não registre "validar os dados" como teste: um teste nomeia o erro que detecta e o que acontece quando falha.'
+          'Não construa uma única fato corporativa com processos e grãos diferentes.',
+          'Não marque todas as dimensões em todas as linhas da Bus Matrix; marque apenas as aplicáveis ao grão.',
+          'Não declare conformidade apenas porque as tabelas têm o mesmo nome.',
+          'Não faça join direto entre fatos para produzir uma análise cross-functional.'
         ],
         worked: {
-          text: 'O modelo abaixo descreve um cubo de participação em pesquisas e tem aparência correta. Há cinco defeitos plantados, e nenhum deles gera mensagem de erro: todos produzem número errado silenciosamente.',
+          text: 'Exemplo de referência, fora do contexto do projeto: uma rede varejista integra Venda, Estoque e Entrega sem misturar seus grãos.',
           questions: [
-            'A fato guarda uma coluna taxa_de_adesao já calculada, e o relatório de adesão por setor tira a média dessa coluna.',
-            'A fato guarda respondentes_ativos por dia, e o painel mensal soma essa coluna ao longo do mês.',
-            'A bridge entre pesquisa e empresa não tem peso de alocação, e o total de respondentes é somado através dela.',
-            'A dimensao_empresa é SCD 2, e a consulta a une pela chave natural, sem filtrar vigência.',
-            'A data existe apenas como função de conversão aplicada na consulta, e o calendário fiscal do parceiro começa em abril.'
+            'Venda usa fato transacional: uma linha representa um item vendido.',
+            'Estoque usa snapshot periódico: uma linha representa o saldo diário de um produto por loja.',
+            'Entrega usa snapshot acumulativo: uma linha representa o ciclo do pedido, com marcos de separação, expedição e entrega.',
+            'Data, Produto, Loja e Cliente são candidatas a dimensões conformadas, conforme aplicáveis a cada processo.',
+            'A pergunta “venda sem estoque e atraso de entrega por produto e semana” exige drill-across no nível Produto + Data, não join atômico entre as três fatos.'
           ],
-          note: 'Para cada item, nomeie o princípio violado, o número distorcido e a correção estrutural. A discussão é conduzida ao final da atividade.'
+          note: 'Use o exemplo para compreender o raciocínio. O entregável deve representar exclusivamente os processos e as decisões do projeto do grupo.'
         },
         tool: { label: 'Abrir o Data Model Canvas', href: '../data-model-canvas.html' },
         acceptance: [
-          'Os cinco defeitos do modelo apresentado foram identificados, com o princípio violado nomeado em cada um.',
-          'Cada cubo do canvas tem o campo Tipo de fato preenchido, com justificativa pelo que uma linha representa.',
-          'Cada métrica do canvas está classificada como aditiva, semi-aditiva ou não aditiva, e nenhuma taxa permanece armazenada já calculada.',
-          'O campo Qualidade de cada cubo registra os cinco testes, cada um com o erro que detecta.'
+          'A Bus Matrix contém ao menos três processos, suas dimensões aplicáveis e uma ordem de implementação justificada.',
+          'Cada processo possui grão, fato e tipo de tabela fato explicitamente definidos.',
+          'Ao menos duas dimensões conformadas possuem contrato com chave, domínio, granularidade, política histórica e owner.',
+          'A Fact Constellation preserva os grãos e não contém relacionamento direto entre fatos.',
+          'Há uma pergunta cross-functional com o nível dimensional comum e a estratégia de drill-across descritos.',
+          'O plano incremental explica como uma nova linha da matriz reutiliza contratos sem quebrar análises existentes.'
         ]
       },
-      deliverable: 'O Data Model Canvas do projeto com os campos Tipo de fato e Qualidade preenchidos para cada cubo, as métricas classificadas quanto à aditividade e o dmc.json atualizado versionado no repositório do grupo.',
-      references: ['Kimball & Ross — The Data Warehouse Toolkit (tipos de tabela fato e aditividade)', 'Microsoft Learn — Modelagem dimensional: tabelas de fatos', 'Microsoft Learn — Modelagem dimensional: tabelas de dimensões', 'dbt — Data tests']
+      deliverable: 'Blueprint dimensional corporativo do projeto: Bus Matrix priorizada, Fact Constellation, contrato de ao menos duas dimensões conformadas, grão e tipo de cada fato, pergunta cross-functional e plano de evolução incremental, com o dmc.json atualizado e versionado.',
+      references: ['Kimball & Ross — The Data Warehouse Toolkit, 3ª ed.', 'Kimball Group — Enterprise Data Warehouse Bus Architecture', 'Kimball Group — Enterprise Data Warehouse Bus Matrix', 'Kimball Group — Conformed Dimensions', 'Microsoft Learn — Dimensional modeling in Fabric Warehouse']
     },
 
     7: {
@@ -1604,6 +1721,81 @@
     return slides.length;
   };
 
+  // Blocos de aprofundamento — renderizados apenas nas aulas que os declaram.
+  // `mode` é 'material' (versão completa, para leitura) ou 'plan' (condensada,
+  // para condução em sala). Aulas sem esses campos seguem sem nenhuma seção extra.
+  const deepDive = (mode) => {
+    const box = (inner) => `<section class="material-box">${inner}</section>`;
+    const full = mode === 'material';
+    const out = [];
+
+    if (lesson.conformity) {
+      const c = lesson.conformity;
+      out.push(box(`<h2>Contrato da dimensão conformada — ${esc(c.entity)}</h2><p>${esc(c.intro)}</p>`
+        + `<dl class="dd-fields">${c.fields.map((f) => `<div><dt>${esc(f.label)}</dt><dd>${esc(f.text)}</dd></div>`).join('')}</dl>`
+        + (full && c.test
+          ? `<h3>${esc(c.test.title)}</h3><p>${esc(c.test.intro)}</p>`
+            + `<div class="dd-scroll"><table class="dd-table"><thead><tr><th>Atributo</th><th>Não conformada</th><th>Conformada</th></tr></thead><tbody>`
+            + c.test.rows.map((r) => `<tr><th scope="row">${esc(r.attribute)}</th><td class="bad">${esc(r.bad)}</td><td class="good">${esc(r.good)}</td></tr>`).join('')
+            + `</tbody></table></div><div class="material-note">${esc(c.test.note)}</div>`
+          : '')));
+    }
+
+    if (lesson.busMatrix) {
+      const m = lesson.busMatrix;
+      out.push(box(`<h2>Enterprise Data Warehouse Bus Matrix</h2><p>${esc(m.intro)}</p>`
+        + `<div class="dd-scroll"><table class="dd-table matrix"><caption>Legenda: ● a dimensão participa do processo · — não se aplica ao grão daquele processo.</caption>`
+        + `<thead><tr><th>Processo de negócio</th>${m.columns.map((c) => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>`
+        + m.rows.map((r) => `<tr><th scope="row"><span class="dd-prio">${esc(r.priority)}</span> ${esc(r.process)}</th>`
+          + r.marks.map((k, i) => k
+            ? `<td class="on"><span aria-label="${esc(m.columns[i])} participa do processo">●</span></td>`
+            : `<td class="off"><span aria-label="${esc(m.columns[i])} não participa do processo">—</span></td>`).join('')
+          + `</tr>`).join('')
+        + `</tbody></table></div>`
+        + `<ul class="dd-axes">${m.axes.map((a) => `<li><strong>${esc(a.label)}:</strong> ${esc(a.text)}</li>`).join('')}</ul>`
+        + `<h3>Como ler a matriz</h3><p>${esc(m.reading.intro)}</p>`
+        + `<div class="dd-split"><div><h4>${esc(m.reading.horizontal.title)}</h4><ul>${m.reading.horizontal.questions.map((q) => `<li>${esc(q)}</li>`).join('')}</ul></div>`
+        + `<div><h4>${esc(m.reading.vertical.title)}</h4><ul>${m.reading.vertical.questions.map((q) => `<li>${esc(q)}</li>`).join('')}</ul></div></div>`
+        + `<div class="material-note">${esc(m.reading.note)}</div>`));
+    }
+
+    if (lesson.drillAcross) {
+      const d = lesson.drillAcross;
+      out.push(box(`<h2>Análise cross-functional — drill-across</h2>`
+        + `<p><strong>Pergunta:</strong> ${esc(d.question)}</p>`
+        + (full ? `<p>${esc(d.intro)}</p>` : '')
+        + `<div class="dd-split"><div class="dd-ok"><h4>Estratégia correta</h4><ol>${d.correct.map((s) => `<li>${esc(s)}</li>`).join('')}</ol></div>`
+        + `<div class="dd-bad"><h4>Estratégia incorreta</h4><ul>${d.incorrect.map((s) => `<li>${esc(s)}</li>`).join('')}</ul></div></div>`
+        + `<div class="material-note">${esc(d.note)}</div>`));
+    }
+
+    if (lesson.semantics) {
+      out.push(box(`<h2>Governança semântica</h2><p>${esc(lesson.semantics.intro)}</p>`
+        + `<ol class="dd-num">${lesson.semantics.items.map((it) => `<li><b>${esc(it.title)}</b><span>${esc(it.text)}</span></li>`).join('')}</ol>`
+        + `<div class="material-note">${esc(lesson.semantics.note)}</div>`));
+    }
+
+    if (lesson.roadmap) {
+      out.push(box(`<h2>Evolução incremental</h2><p>${esc(lesson.roadmap.intro)}</p>`
+        + `<ol class="dd-releases">${lesson.roadmap.releases.map((r) => `<li><b>${esc(r.id)} — ${esc(r.title)}</b><span>${esc(r.text)}</span><em>${esc(r.chip)}</em></li>`).join('')}</ol>`
+        + `<div class="material-note">${esc(lesson.roadmap.note)}</div>`));
+    }
+
+    return out.join('');
+  };
+
+  // Trilha de continuidade — abre a leitura situando a aula na sequência do módulo.
+  const continuityHtml = (mode) => lesson.continuity
+    ? `<section class="material-box"><h2>${esc(lesson.continuity.title)}</h2>`
+      + (mode === 'material' ? `<p>${esc(lesson.continuity.text)}</p>` : '')
+      + `<ol class="dd-steps">${lesson.continuity.steps.map((s) => `<li><b>${esc(s.when)}</b><span>${esc(s.what)}</span></li>`).join('')}</ol>`
+      + `<div class="material-note">${esc(lesson.continuity.note)}</div></section>`
+    : '';
+
+  const closingHtml = () => lesson.closing
+    ? `<section class="material-box dd-closing"><h2>Síntese</h2><p>${esc(lesson.closing)}</p></section>`
+    : '';
+
   window.renderLessonMaterial = function (root) {
     const sdd = lesson.sdd
       ? `<section class="material-box"><h2>Ponte com a Aula 1 — como este tema vira especificação</h2><p>Os conceitos abaixo não são acessórios da aula: são a forma pela qual o tema entra na especificação do projeto, no vocabulário estabelecido na Aula 1.</p><div class="material-sdd">${SDD_LABELS.map(([k, label, hint]) => `<div><b>${esc(label)} — ${esc(hint)}</b>${esc(lesson.sdd[k])}</div>`).join('')}</div></section>`
@@ -1633,13 +1825,16 @@
       + preClass
       + `<section class="material-box"><h2>Objetivo da aula</h2><p>${esc(lesson.objective)}</p><h3>Ao final você deve conseguir</h3><ul>${lesson.outcomes.map((o) => `<li>${esc(o)}</li>`).join('')}</ul></section>`
       + `<section class="material-box"><h2>Roteiro</h2><ol>${agenda.map((a) => `<li><strong>${esc(a.nav)}</strong> — ${esc(a.text)}</li>`).join('')}</ol></section>`
+      + continuityHtml('material')
       + lesson.sections.map((s, i) => `<section class="material-section"><h2>${i + 1}. ${esc(s.title)}</h2><p>${esc(s.text)}</p>${s.diagram ? `<div class="mermaid-wrap medium"><div class="mermaid">${s.diagram}</div></div>` : ''}<h3>Checklist de aplicação</h3><ul>${checklistOf(s)}</ul><div class="material-note"><strong>Erro comum:</strong> ${esc(s.pitfall)}</div></section>`).join('')
+      + deepDive('material')
       + sdd
       + warmupSection
       + activitySection
       + ((lesson.activity && lesson.activity.slideOnly)
         ? `<section class="material-box"><h2>Entregável e avaliação</h2><p>${esc(lesson.deliverable)}</p><p class="material-note">Os critérios de avaliação são apresentados em sala, junto do enunciado.</p></section>`
         : `<section class="material-box"><h2>Entregável e avaliação</h2><p>${esc(lesson.deliverable)}</p><ul>${evaluationList}</ul></section>`)
+      + closingHtml()
       + `<section class="material-box"><h2>Referências</h2><ul>${lesson.references.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></section></div>`;
   };
 
@@ -1669,16 +1864,19 @@
     root.innerHTML = `<header class="plan-head"><span>Módulo 11 · Plano de Ensino</span><h1>Aula ${esc(lessonId)} — ${esc(lesson.title)}</h1><p>Professor: ${esc(lesson.professor || DEFAULT_PROF)} · ${esc(lesson.date)}</p></header><main class="plan-body">`
       + fichaEncontro()
       + `<section><h2>Ementa</h2><p>${esc(lesson.subtitle)} ${esc(lesson.objective)}</p></section>`
+      + continuityHtml('plan')
       + timeboxPlan
       + preClass
       + `<section><h2>Objetivos de aprendizagem</h2><ul>${lesson.outcomes.map((o) => `<li>${esc(o)}</li>`).join('')}</ul></section>`
       + `<section><h2>Metodologia e cronograma</h2><ol>${agenda.map((a) => `<li><strong>${esc(a.nav)}:</strong> ${esc(a.text)}</li>`).join('')}</ol></section>`
+      + deepDive('plan')
       + sdd
       + warmupPlan
       + activityPlan
       + ((lesson.activity && lesson.activity.slideOnly)
         ? `<section><h2>Avaliação</h2><p>${esc(lesson.deliverable)}</p><p>Os critérios de avaliação são apresentados em sala, junto do enunciado.</p></section>`
         : `<section><h2>Avaliação</h2><p>Entrega individual ou em grupo do artefato descrito no material, com apresentação curta e revisão por pares. ${esc(lesson.deliverable)}</p><ul>${evaluationList}</ul></section>`)
+      + closingHtml()
       + `<section><h2>Bibliografia</h2><ul>${lesson.references.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></section></main>`;
   };
 })();
