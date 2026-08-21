@@ -16,6 +16,29 @@ Definir o padrão obrigatório para páginas de material de leitura do Módulo 2
 <footer>                              ← footer padrão Inteli
 ```
 
+## Páginas geradas em JS
+
+Nem todo material é um arquivo artesanal. No Módulo 11, material e plano de ensino são
+**gerados**: o `.html` tem ~40 linhas e todo o conteúdo nasce de `renderLessonMaterial` /
+`renderLessonPlan`, em `pages/module-11-eng-software/lesson-content.js`.
+
+Para essas páginas, o padrão desta spec vale igualmente — só muda **onde** ele é escrito:
+
+| Elemento | Página artesanal | Página gerada |
+|---|---|---|
+| `#progress-bar` e `#float-nav` | HTML e CSS no próprio arquivo | `mountFloatNav()` no gerador; estilos em `lesson-content.css` |
+| Seções de conteúdo | marcadas à mão | derivadas de `sections`, `activity`, `sdd` … |
+
+Duas consequências práticas:
+
+1. **Não valide lendo o arquivo.** Um spec que faz `expect(html).toContain('float-nav')`
+   passa em branco para a página gerada. Verifique o **gerador** — é o que
+   `tests/module-11-generated-pages.spec.ts` faz — ou o DOM renderizado.
+2. **A nav dos artefatos gerados tem três botões**, não dois, porque a página de plano
+   também precisa alcançar o material: material → `Slides · Plano · Módulo`; plano →
+   `Slides · Material · Módulo`. A guarda de `mountFloatNav()` impede duplicação quando a
+   página já traz a própria nav (materiais artesanais das aulas 1 e 5).
+
 ## Elementos Obrigatórios
 
 ### 1. Barra de Progresso de Leitura

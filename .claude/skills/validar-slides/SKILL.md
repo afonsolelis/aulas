@@ -1,16 +1,25 @@
 ---
 name: validar-slides
-description: Valida visualmente decks de slides HTML (e demais páginas) via MCP do Chrome — não Playwright. Percorre slide a slide, detecta overflow do conteúdo em relação ao footer, elementos invisíveis após animação e nós cortados, e captura screenshots para inspeção. Use após criar ou editar qualquer slide-lesson-*.html ou página de pages/, para inspeção interativa (screenshots, dirigir o Chrome real). Para checagem headless rápida de overflow/console, prefira `npm run validate:slides`.
+description: Valida visualmente decks de slides HTML, materiais e planos via MCP do Chrome ou, quando não há MCP nem browser do Playwright nesta máquina, via Brave por CDP. Percorre slide a slide, detecta overflow do conteúdo em relação ao footer, elementos invisíveis após animação e nós cortados, e captura screenshots para inspeção. Use após criar ou editar qualquer slide-lesson-*.html ou página de pages/, para inspeção interativa (screenshots, dirigir o Chrome real). Para checagem headless rápida de overflow/console, prefira `npm run validate:slides`.
 type: reference
 ---
 
 # Validar Slides (MCP do Chrome)
 
-> **Atualização:** o Playwright voltou a funcionar nesta máquina (browsers do Chromium
-> instalados). Para checagem **headless** rápida de overflow e erros de console, prefira
-> `npm run validate:slides -- <path>` (`scripts/validate-slides.mjs`). Use esta skill para
-> **inspeção interativa** (screenshots, dirigir o Chrome real) quando um MCP de browser
-> estiver conectado (`mcp__claude-in-chrome__*` ou `mcp__playwright__*`).
+> **Estado real desta máquina (verificado em 21/08/2026).** Nenhum dos dois caminhos
+> descritos nesta skill funciona sozinho:
+>
+> - **Playwright não lança browser.** A biblioteca está instalada (1.58.2), mas falta a
+>   revisão que ela exige: existe `chromium-1208` em `~/.cache/ms-playwright/` e **não**
+>   existe `chromium_headless_shell-1208` (só 1228 e 1234). `launch()` falha com
+>   `Executable doesn't exist`, inclusive com `channel:'chromium'` e `--headless=new`.
+>   Logo, `npm run validate:slides` sozinho termina em `LAUNCH-FAIL`.
+> - **Nenhum MCP de browser está conectado** — nem `mcp__claude-in-chrome__*`, nem
+>   `mcp__playwright__*`. O procedimento abaixo não roda como está escrito.
+>
+> **O caminho que funciona** é o Brave via CDP, descrito em [Fallback](#fallback--brave-via-cdp).
+> Corrigir de vez exige `npx playwright install chromium` (baixa ~150 MB) — decisão do
+> usuário, não faça sem pedir.
 
 Historicamente, os antigos
 `tests/ux-audit-*.spec.ts` e os scripts de captura/validação em `scripts/*.mjs` que importavam
@@ -130,6 +139,47 @@ return {
 
 6. **Itere** até nenhum slide sinalizar overflow/tight/clipping E a inspeção visual aprovar.
    Só então declare o deck pronto.
+
+
+## Fallback — Brave via CDP
+
+Reaproveita o Brave instalado por Flatpak, dirigido pela biblioteca do Playwright por CDP.
+É o procedimento usado quando não há browser do Playwright nem MCP conectado, e é o mesmo
+descrito no `CLAUDE.md` da raiz.
+
+```bash
+python3 -m http.server 8123 &                       # o Flatpak tem shared=network
+flatpak run com.brave.Browser --headless=new \
+  --remote-debugging-port=9222 --remote-allow-origins='*' \
+  --user-data-dir=/tmp/brave-cdp --no-first-run &   # o sandbox enxerga /tmp
+sleep 6                                             # o CDP demora a subir
+
+PW_CDP_URL=http://127.0.0.1:9222 PW_BASE_URL=http://127.0.0.1:8123 \
+  node scripts/validate-slides.mjs pages/module-11-eng-software/slides/slide-lesson-6.html
+```
+
+Para inspeção própria, conecte pela biblioteca do repositório — em ESM, importe pelo caminho
+absoluto, porque um script fora do repo não resolve `'playwright'` por nome:
+
+```js
+import { chromium } from '/var/home/afonsolelis/Repos/aulas/node_modules/playwright/index.mjs';
+const browser = await chromium.connectOverCDP('http://127.0.0.1:9222');
+```
+
+Ao terminar, encerre **por PID** — `pkill -f "http.server 8123"` mata o próprio shell que
+executa o comando, porque o padrão casa com a própria linha de comando:
+
+```bash
+ps -eo pid,args --no-headers | grep -E 'com.brave.Browser|htt[p]\.server' \
+  | grep -v grep | awk '{print $1}' | xargs -r kill
+```
+
+### Também vale para material e plano
+
+Esta skill não é só para decks. Material e plano do Módulo 11 são **gerados em JS** — o
+arquivo tem ~40 linhas e o conteúdo só existe depois do `render`. Verificar o padrão desses
+artefatos (ficha, botão de PDF, `#progress-bar`, `#float-nav`, ausência de overflow
+horizontal) exige renderizar a página; ler o HTML do arquivo não revela nada.
 
 ## Por que isso importa
 

@@ -1,19 +1,21 @@
 ---
 name: padrao-encontro
-description: Padrão obrigatório de toda página de aula do acervo — botão de exportação em PDF com o nome de arquivo padronizado pelo Inteli (ANO-MÊS-DIA-Nome-NoSequencial) e ficha do encontro com objetivo de aprendizagem, estratégia e estrutura. Use ao criar ou editar qualquer slide, material, plano ou página de aula, ao registrar um encontro novo e ao investigar falhas do spec tests/encontro-compliance.spec.ts.
+description: Padrão obrigatório de toda página de aula do acervo — botão de exportação em PDF com o nome de arquivo padronizado pelo Inteli (ANO-MÊS-DIA-Nome-NoSequencial), ficha do encontro com objetivo de aprendizagem, estratégia e estrutura, e navegação flutuante (barra de progresso e botões entre slides, material, plano e home do módulo). Use ao criar ou editar qualquer slide, material, plano ou página de aula, ao registrar um encontro novo e ao investigar falhas do spec tests/encontro-compliance.spec.ts.
 type: reference
 ---
 
 # Padrão de Encontro
 
 Toda página de aula do acervo — slides, material de leitura, plano de ensino e página de
-aula — deve satisfazer, **sem exceção**, dois requisitos:
+aula — deve satisfazer, **sem exceção**, três requisitos:
 
 1. **Botão de exportação em PDF**, com o nome de arquivo padronizado pela coordenação.
 2. **Ficha do encontro**, declarando objetivo de aprendizagem, estratégia e estrutura.
+3. **Navegação flutuante**, nas páginas de leitura longa (material e plano) — ver
+   [Navegação flutuante](#navegação-flutuante).
 
 A conformidade é verificada por `tests/encontro-compliance.spec.ts`, que roda em `npm test`
-e, portanto, no hook de pre-commit. Página de aula sem os dois itens não entra no
+e, portanto, no hook de pre-commit. Página de aula sem esses itens não entra no
 repositório.
 
 ## Origem da exigência
@@ -119,14 +121,55 @@ A ficha entra ao **final** dos decks, e não após a capa, porque a maioria dele
 animações por posição de slide (`animMap`): inserir no meio desalinharia todas as animações
 seguintes.
 
+## Navegação flutuante
+
+Além do botão de PDF e da ficha, toda página de aula de leitura longa — **material** e
+**plano de ensino** — carrega dois elementos fixos, definidos em
+[`specs/lesson-materials.md`](../../../specs/lesson-materials.md):
+
+| Elemento | Seletor | Comportamento |
+|---|---|---|
+| Barra de progresso de leitura | `#progress-bar` | Fixa no topo, 3px, largura proporcional ao scroll. |
+| Nav flutuante | `#float-nav` | Canto inferior direito; só recebe `.visible` depois que o cabeçalho sai da tela. |
+
+Os botões da nav levam às **outras duas faces do mesmo encontro** mais a home do módulo —
+nunca menos que isso, porque é por eles que o docente circula entre os artefatos em aula:
+
+| Página | Botões |
+|---|---|
+| Material | `▶ Slides` · `📋 Plano` · `← Módulo` |
+| Plano de ensino | `▶ Slides` · `📖 Material` · `← Módulo` |
+
+Classes: `.fn-btn-slides` (contorno na cor do módulo), `.fn-btn-alt` (contorno escuro) e
+`.fn-btn-back` (sólido escuro). `css/encontro.css` já oculta `#progress-bar` e `#float-nav`
+na impressão, de modo que a exportação em PDF não é afetada.
+
+### Onde isso é implementado
+
+| Família | Como recebe os elementos |
+|---|---|
+| Material artesanal (ex.: `module-11/materials/lesson-5-material.html`) | HTML e CSS próprios, escritos no arquivo |
+| Página gerada em JS (ex.: todo material e plano do Módulo 11) | `mountFloatNav()` em `pages/module-11-eng-software/lesson-content.js`, chamada ao final de `renderLessonMaterial` e `renderLessonPlan` |
+
+`mountFloatNav()` sai pela guarda `if (document.getElementById('float-nav')) return;` quando
+a página já traz a própria nav, então material artesanal e página gerada convivem sem
+duplicar botões.
+
+> **Armadilha.** Um renderizador em JS não é coberto por teste que apenas lê o HTML do
+> arquivo: a página gerada tem 40 linhas e o conteúdo só existe depois do `render`. Foi
+> assim que material e plano do Módulo 11 ficaram sem nav flutuante sem que nenhum teste
+> reprovasse. Ao criar um gerador novo, verifique o padrão **no DOM renderizado**, não no
+> arquivo — `tests/module-11-generated-pages.spec.ts` faz isso lendo o gerador.
+
 ## Ao criar uma aula nova
 
 1. Crie os arquivos da aula normalmente (slides, material, plano).
 2. Registre a aula em `config/module-<módulo>.json`, com `date` e `professor`.
 3. Acrescente o encontro e as páginas a `config/encontros.json`.
 4. Rode `node scripts/apply-encontro.mjs`.
-5. Rode `npm test` — `encontro-compliance` reprova qualquer página de aula sem o padrão.
-6. Sincronize `/index.json` conforme a Key Rule 7 do `CLAUDE.md`.
+5. Em material e plano, confirme a navegação flutuante — no DOM renderizado, não no arquivo.
+6. Rode `npm test` — `encontro-compliance` reprova qualquer página de aula sem o padrão.
+7. Sincronize `/index.json` conforme a Key Rule 7 do `CLAUDE.md`.
 
 ## Redação dos três itens
 

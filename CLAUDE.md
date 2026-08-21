@@ -36,9 +36,13 @@ Para **validação visual** (overflow, ocupação da tela e erros de console) us
 console. Reconhece as duas estruturas de deck do acervo: a artesanal (`.slide` + `.sc` +
 `.slide-footer`) e a gerada do módulo 11 (`.lesson-slide` + `.lesson-footer`).
 
-> **O binário do Chromium do Playwright NÃO está instalado nesta máquina** — `npm run
-> validate:slides` sozinho falha com `LAUNCH-FAIL`. Também **não há nenhum MCP de browser
-> conectado** (nem `mcp__claude-in-chrome__*`, nem `mcp__playwright__*`), então a skill
+> **O Playwright não lança browser nesta máquina** (verificado em 21/08/2026): a biblioteca
+> está instalada (1.58.2), mas falta a revisão que ela exige — há `chromium-1208` em
+> `~/.cache/ms-playwright/` e **não** há `chromium_headless_shell-1208` (só 1228 e 1234).
+> `launch()` falha com `Executable doesn't exist`, inclusive com `channel:'chromium'` ou
+> `--headless=new`, e `npm run validate:slides` sozinho termina em `LAUNCH-FAIL`. Resolver
+> de vez exige `npx playwright install chromium` (~150 MB). Também **não há nenhum MCP de
+> browser conectado** (nem `mcp__claude-in-chrome__*`, nem `mcp__playwright__*`), então a skill
 > `/validar-slides` não roda como está escrita.
 
 O caminho que funciona é reaproveitar o **Brave instalado via Flatpak** por CDP — a biblioteca
