@@ -27,7 +27,13 @@ Para essas páginas, o padrão desta spec vale igualmente — só muda **onde** 
 | Elemento | Página artesanal | Página gerada |
 |---|---|---|
 | `#progress-bar` e `#float-nav` | HTML e CSS no próprio arquivo | `mountFloatNav()` no gerador; estilos em `lesson-content.css` |
+| `.mat-sidebar` com a TOC | lista `<a href="#sN">` escrita à mão | `mountToc()` deriva do DOM: uma entrada por `section`, texto do próprio `h2` e tempo por contagem de palavras |
 | Seções de conteúdo | marcadas à mão | derivadas de `sections`, `activity`, `sdd` … |
+
+Derivar a TOC do DOM, e não de uma lista paralela, é deliberado: a página gerada muda de
+tamanho sempre que um bloco entra no `lesson-content.js`, e um sumário mantido à mão sairia
+de sincronia na primeira alteração. O mesmo vale para o tempo de leitura, estimado a
+200 palavras por minuto sobre o texto realmente renderizado.
 
 Duas consequências práticas:
 

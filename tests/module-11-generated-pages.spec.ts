@@ -8,10 +8,10 @@ import { listHtmlFiles, readRepoFile, resolveRepoPath } from './test-helpers';
  * pages/module-11-eng-software/lesson-content.js.
  *
  * Isso cria um ponto cego: um spec que apenas lê o HTML do arquivo não enxerga
- * nada do que a página mostra. Foi assim que a navegação flutuante exigida por
- * specs/lesson-materials.md ficou ausente de todas essas páginas sem que nenhum
- * teste reprovasse. Este spec fecha a lacuna verificando o GERADOR: se o padrão
- * sair de lá, some de doze páginas de uma vez.
+ * nada do que a página mostra. Foi assim que a navegação flutuante e o sumário
+ * lateral exigidos por specs/lesson-materials.md ficaram ausentes de todas essas
+ * páginas sem que nenhum teste reprovasse. Este spec fecha a lacuna verificando o
+ * GERADOR: se o padrão sair de lá, some de doze páginas de uma vez.
  *
  * Continua sendo um teste de filesystem — lê arquivos com `fs`, não abre browser.
  */
@@ -55,6 +55,38 @@ test.describe('module-11 — páginas geradas (material e plano)', () => {
     ['fn-btn-slides', 'fn-btn-alt', 'fn-btn-back'].forEach((cls) => {
       expect(stylesheet).toContain(`.${cls}`);
     });
+  });
+
+  test('o gerador monta o sumário lateral', () => {
+    expect(generator).toContain('mountToc');
+    expect(generator).toContain('mat-sidebar');
+    expect(generator).toContain('mat-toc');
+    expect(generator).toContain('mat-article');
+  });
+
+  test('material e plano envolvem o corpo no layout com sumário', () => {
+    const layouts = generator.match(/<div class="mat-layout"><aside class="mat-sidebar"><\/aside>/g) ?? [];
+    expect(layouts.length).toBe(2);
+    expect(generator).toMatch(/mountToc\(root, 'Nesta aula'\)/);
+    expect(generator).toMatch(/mountToc\(root, 'Neste plano'\)/);
+  });
+
+  test('o sumário é derivado do DOM, não de uma lista mantida à mão', () => {
+    // Entrada por section renderizada, com texto do próprio h2 e tempo por palavras.
+    expect(generator).toMatch(/querySelectorAll\(':scope > section'\)/);
+    expect(generator).toContain('PALAVRAS_POR_MINUTO');
+    expect(generator).toContain('IntersectionObserver');
+  });
+
+  test('o CSS define o layout de duas colunas e recolhe a coluna em tela estreita', () => {
+    expect(stylesheet).toMatch(/\.mat-layout\s*\{[^}]*display:\s*grid/);
+    expect(stylesheet).toMatch(/\.mat-sidebar\s*\{[^}]*position:\s*sticky/);
+    expect(stylesheet).toContain('.mat-toc a.active');
+    expect(stylesheet).toMatch(/@media \(max-width:960px\)[^}]*\{[\s\S]*?\.mat-sidebar \{ display:none/);
+  });
+
+  test('a impressão continua ocultando o sumário', () => {
+    expect(readRepoFile('css/encontro.css')).toContain('.mat-sidebar');
   });
 
   test('a impressão em PDF continua ocultando os elementos flutuantes', () => {

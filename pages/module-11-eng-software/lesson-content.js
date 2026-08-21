@@ -1784,6 +1784,50 @@
     return out.join('');
   };
 
+  // Sumário lateral exigido por specs/lesson-materials.md. É derivado do DOM já
+  // renderizado — cada `section` vira uma entrada, com o texto do próprio `h2` e o
+  // tempo estimado pela contagem de palavras — em vez de uma lista mantida à mão,
+  // que sairia de sincronia a cada bloco novo. O observador destaca a seção visível.
+  const PALAVRAS_POR_MINUTO = 200;
+
+  const mountToc = (root, titulo) => {
+    const aside = root.querySelector('.mat-sidebar');
+    const artigo = root.querySelector('.mat-article');
+    if (!aside || !artigo) return;
+
+    const secoes = [...artigo.querySelectorAll(':scope > section')];
+    if (secoes.length < 3) return;
+
+    let totalMin = 0;
+    const entradas = secoes.map((sec, i) => {
+      const h2 = sec.querySelector('h2');
+      if (!h2) return null;
+      sec.id = sec.id || `s${i + 1}`;
+      const palavras = (sec.textContent || '').trim().split(/\s+/).filter(Boolean).length;
+      const min = Math.max(1, Math.round(palavras / PALAVRAS_POR_MINUTO));
+      totalMin += min;
+      return { id: sec.id, texto: h2.textContent.trim(), min };
+    }).filter(Boolean);
+
+    const nav = document.createElement('nav');
+    nav.className = 'mat-toc';
+    nav.innerHTML = `<h4>${esc(titulo)}</h4>`
+      + entradas.map((e) => `<a href="#${esc(e.id)}"><span>${esc(e.texto)}</span><span class="t">${e.min} min</span></a>`).join('')
+      + `<div class="toc-total">Leitura integral: <strong>${totalMin} minutos</strong></div>`;
+    aside.append(nav);
+
+    const links = new Map(entradas.map((e) => [e.id, nav.querySelector(`a[href="#${e.id}"]`)]));
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        links.forEach((a) => a && a.classList.remove('active'));
+        const ativo = links.get(entry.target.id);
+        if (ativo) ativo.classList.add('active');
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    secoes.forEach((s) => observer.observe(s));
+  };
+
   // Barra de progresso de leitura e nav flutuante (Slides / Módulo), conforme
   // specs/lesson-materials.md. Os materiais artesanais (aulas 1 e 5) trazem esses
   // elementos no próprio HTML; as páginas geradas os recebem aqui. O float-nav só
@@ -1850,7 +1894,7 @@
       ? `<section class="material-box"><h2>${esc(lesson.activity.title)}</h2><p><strong>${esc(lesson.activity.duration)}.</strong> ${esc(lesson.activity.goal)}</p><p>${esc(lesson.activity.intro)}</p><h3>Método, passo a passo</h3><ol>${lesson.activity.steps.map((s) => `<li><strong>${esc(s.title)}:</strong> ${esc(s.text)}</li>`).join('')}</ol><h3>Perguntas de verificação</h3><ul>${lesson.activity.checks.map((c) => `<li>${esc(c)}</li>`).join('')}</ul><h3>O que não fazer</h3><ul>${lesson.activity.avoid.map((a) => `<li>${esc(a)}</li>`).join('')}</ul><div class="material-note"><strong>Exemplo ilustrativo — o raciocínio, não a resposta.</strong> ${esc(lesson.activity.worked.text)}<ul>${lesson.activity.worked.questions.map((q) => `<li>${esc(q)}</li>`).join('')}</ul>${esc(lesson.activity.worked.note)}</div><p><a href="${esc(lesson.activity.tool.href)}">${esc(lesson.activity.tool.label)}</a></p></section>`
       : '';
 
-    root.innerHTML = `<header class="material-head"><span>Módulo 11 · Engenharia de Software · ${esc(lesson.discipline || DEFAULT_DISC)}</span><h1>${esc(lesson.title)}</h1><p>${esc(lesson.subtitle)} · Prof. ${esc(lesson.professor || DEFAULT_PROF)} · ${esc(lesson.date)}</p></header><div class="material-body">`
+    root.innerHTML = `<header class="material-head"><span>Módulo 11 · Engenharia de Software · ${esc(lesson.discipline || DEFAULT_DISC)}</span><h1>${esc(lesson.title)}</h1><p>${esc(lesson.subtitle)} · Prof. ${esc(lesson.professor || DEFAULT_PROF)} · ${esc(lesson.date)}</p></header><div class="mat-layout"><aside class="mat-sidebar"></aside><article class="mat-article material-body">`
       + fichaEncontro()
       + timeboxSection
       + preClass
@@ -1866,8 +1910,9 @@
         ? `<section class="material-box"><h2>Entregável e avaliação</h2><p>${esc(lesson.deliverable)}</p><p class="material-note">Os critérios de avaliação são apresentados em sala, junto do enunciado.</p></section>`
         : `<section class="material-box"><h2>Entregável e avaliação</h2><p>${esc(lesson.deliverable)}</p><ul>${evaluationList}</ul></section>`)
       + closingHtml()
-      + `<section class="material-box"><h2>Referências</h2><ul>${lesson.references.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></section></div>`;
+      + `<section class="material-box"><h2>Referências</h2><ul>${lesson.references.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></section></article></div>`;
 
+    mountToc(root, 'Nesta aula');
     mountFloatNav('.material-head', [
       { href: `../slides/slide-lesson-${lessonId}.html`, cls: 'fn-btn-slides', label: '▶ Slides' },
       { href: `../planos/lesson-${lessonId}-plano.html`, cls: 'fn-btn-alt', label: '📋 Plano' },
@@ -1898,7 +1943,7 @@
       ? `<section><h2>${esc(lesson.activity.title)}</h2><p><strong>${esc(lesson.activity.duration)}.</strong> ${esc(lesson.activity.goal)} O professor orienta com perguntas e critérios de verificação, sem fornecer a solução do modelo.</p><ol>${lesson.activity.steps.map((s) => `<li><strong>${esc(s.title)}:</strong> ${esc(s.text)}</li>`).join('')}</ol></section>`
       : '';
 
-    root.innerHTML = `<header class="plan-head"><span>Módulo 11 · Plano de Ensino</span><h1>Aula ${esc(lessonId)} — ${esc(lesson.title)}</h1><p>Professor: ${esc(lesson.professor || DEFAULT_PROF)} · ${esc(lesson.date)}</p></header><main class="plan-body">`
+    root.innerHTML = `<header class="plan-head"><span>Módulo 11 · Plano de Ensino</span><h1>Aula ${esc(lessonId)} — ${esc(lesson.title)}</h1><p>Professor: ${esc(lesson.professor || DEFAULT_PROF)} · ${esc(lesson.date)}</p></header><div class="mat-layout"><aside class="mat-sidebar"></aside><main class="mat-article plan-body">`
       + fichaEncontro()
       + `<section><h2>Ementa</h2><p>${esc(lesson.subtitle)} ${esc(lesson.objective)}</p></section>`
       + continuityHtml('plan')
@@ -1914,8 +1959,9 @@
         ? `<section><h2>Avaliação</h2><p>${esc(lesson.deliverable)}</p><p>Os critérios de avaliação são apresentados em sala, junto do enunciado.</p></section>`
         : `<section><h2>Avaliação</h2><p>Entrega individual ou em grupo do artefato descrito no material, com apresentação curta e revisão por pares. ${esc(lesson.deliverable)}</p><ul>${evaluationList}</ul></section>`)
       + closingHtml()
-      + `<section><h2>Bibliografia</h2><ul>${lesson.references.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></section></main>`;
+      + `<section><h2>Bibliografia</h2><ul>${lesson.references.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></section></main></div>`;
 
+    mountToc(root, 'Neste plano');
     mountFloatNav('.plan-head', [
       { href: `../slides/slide-lesson-${lessonId}.html`, cls: 'fn-btn-slides', label: '▶ Slides' },
       { href: `../materials/lesson-${lessonId}-material.html`, cls: 'fn-btn-alt', label: '📖 Material' },

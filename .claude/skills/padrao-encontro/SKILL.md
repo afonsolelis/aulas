@@ -11,8 +11,8 @@ aula — deve satisfazer, **sem exceção**, três requisitos:
 
 1. **Botão de exportação em PDF**, com o nome de arquivo padronizado pela coordenação.
 2. **Ficha do encontro**, declarando objetivo de aprendizagem, estratégia e estrutura.
-3. **Navegação flutuante**, nas páginas de leitura longa (material e plano) — ver
-   [Navegação flutuante](#navegação-flutuante).
+3. **Navegação flutuante e sumário lateral**, nas páginas de leitura longa (material e
+   plano) — ver [Navegação flutuante](#navegação-flutuante).
 
 A conformidade é verificada por `tests/encontro-compliance.spec.ts`, que roda em `npm test`
 e, portanto, no hook de pre-commit. Página de aula sem esses itens não entra no
@@ -131,6 +131,7 @@ Além do botão de PDF e da ficha, toda página de aula de leitura longa — **m
 |---|---|---|
 | Barra de progresso de leitura | `#progress-bar` | Fixa no topo, 3px, largura proporcional ao scroll. |
 | Nav flutuante | `#float-nav` | Canto inferior direito; só recebe `.visible` depois que o cabeçalho sai da tela. |
+| Sumário lateral | `.mat-sidebar` › `.mat-toc` | Coluna sticky de 280px à esquerda do texto, com tempo por seção e total; destaca a seção visível e some abaixo de 960px. |
 
 Os botões da nav levam às **outras duas faces do mesmo encontro** mais a home do módulo —
 nunca menos que isso, porque é por eles que o docente circula entre os artefatos em aula:
@@ -149,11 +150,16 @@ na impressão, de modo que a exportação em PDF não é afetada.
 | Família | Como recebe os elementos |
 |---|---|
 | Material artesanal (ex.: `module-11/materials/lesson-5-material.html`) | HTML e CSS próprios, escritos no arquivo |
-| Página gerada em JS (ex.: todo material e plano do Módulo 11) | `mountFloatNav()` em `pages/module-11-eng-software/lesson-content.js`, chamada ao final de `renderLessonMaterial` e `renderLessonPlan` |
+| Página gerada em JS (ex.: todo material e plano do Módulo 11) | `mountToc()` e `mountFloatNav()` em `pages/module-11-eng-software/lesson-content.js`, chamadas ao final de `renderLessonMaterial` e `renderLessonPlan` |
 
 `mountFloatNav()` sai pela guarda `if (document.getElementById('float-nav')) return;` quando
-a página já traz a própria nav, então material artesanal e página gerada convivem sem
-duplicar botões.
+a página já traz a própria nav, e `mountToc()` só age se encontrar um `.mat-sidebar` vazio —
+então material artesanal e página gerada convivem sem duplicar botões nem sumário.
+
+O sumário da página gerada **não** é uma lista mantida à mão: `mountToc()` percorre as
+`section` já renderizadas, usa o texto do próprio `h2` e estima o tempo de cada uma a
+200 palavras por minuto. Acrescentar um bloco ao `lesson-content.js` atualiza o sumário
+sozinho — não há segunda lista para esquecer.
 
 > **Armadilha.** Um renderizador em JS não é coberto por teste que apenas lê o HTML do
 > arquivo: a página gerada tem 40 linhas e o conteúdo só existe depois do `render`. Foi
@@ -167,7 +173,7 @@ duplicar botões.
 2. Registre a aula em `config/module-<módulo>.json`, com `date` e `professor`.
 3. Acrescente o encontro e as páginas a `config/encontros.json`.
 4. Rode `node scripts/apply-encontro.mjs`.
-5. Em material e plano, confirme a navegação flutuante — no DOM renderizado, não no arquivo.
+5. Em material e plano, confirme a navegação flutuante e o sumário lateral — no DOM renderizado, não no arquivo.
 6. Rode `npm test` — `encontro-compliance` reprova qualquer página de aula sem o padrão.
 7. Sincronize `/index.json` conforme a Key Rule 7 do `CLAUDE.md`.
 
