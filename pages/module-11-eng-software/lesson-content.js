@@ -1784,6 +1784,37 @@
     return out.join('');
   };
 
+  // Barra de progresso de leitura e nav flutuante (Slides / Módulo), conforme
+  // specs/lesson-materials.md. Os materiais artesanais (aulas 1 e 5) trazem esses
+  // elementos no próprio HTML; as páginas geradas os recebem aqui. O float-nav só
+  // aparece depois que o cabeçalho sai da tela. `css/encontro.css` já oculta ambos
+  // na impressão, então a exportação em PDF não é afetada.
+  const mountFloatNav = (headerSelector, links) => {
+    if (document.getElementById('float-nav')) return;
+
+    const bar = document.createElement('div');
+    bar.id = 'progress-bar';
+
+    const nav = document.createElement('div');
+    nav.id = 'float-nav';
+    nav.innerHTML = links
+      .map((l) => `<a href="${esc(l.href)}" class="fn-btn ${esc(l.cls)}">${esc(l.label)}</a>`)
+      .join('');
+
+    document.body.append(bar, nav);
+
+    const header = document.querySelector(headerSelector);
+    const onScroll = () => {
+      const h = document.documentElement;
+      const max = h.scrollHeight - h.clientHeight;
+      bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+      if (header && header.getBoundingClientRect().bottom < 0) nav.classList.add('visible');
+      else nav.classList.remove('visible');
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  };
+
   // Trilha de continuidade — abre a leitura situando a aula na sequência do módulo.
   const continuityHtml = (mode) => lesson.continuity
     ? `<section class="material-box"><h2>${esc(lesson.continuity.title)}</h2>`
@@ -1836,6 +1867,12 @@
         : `<section class="material-box"><h2>Entregável e avaliação</h2><p>${esc(lesson.deliverable)}</p><ul>${evaluationList}</ul></section>`)
       + closingHtml()
       + `<section class="material-box"><h2>Referências</h2><ul>${lesson.references.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></section></div>`;
+
+    mountFloatNav('.material-head', [
+      { href: `../slides/slide-lesson-${lessonId}.html`, cls: 'fn-btn-slides', label: '▶ Slides' },
+      { href: `../planos/lesson-${lessonId}-plano.html`, cls: 'fn-btn-alt', label: '📋 Plano' },
+      { href: '../../home-module-11-eng-software.html', cls: 'fn-btn-back', label: '← Módulo' }
+    ]);
   };
 
   window.renderLessonPlan = function (root) {
@@ -1878,5 +1915,11 @@
         : `<section><h2>Avaliação</h2><p>Entrega individual ou em grupo do artefato descrito no material, com apresentação curta e revisão por pares. ${esc(lesson.deliverable)}</p><ul>${evaluationList}</ul></section>`)
       + closingHtml()
       + `<section><h2>Bibliografia</h2><ul>${lesson.references.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></section></main>`;
+
+    mountFloatNav('.plan-head', [
+      { href: `../slides/slide-lesson-${lessonId}.html`, cls: 'fn-btn-slides', label: '▶ Slides' },
+      { href: `../materials/lesson-${lessonId}-material.html`, cls: 'fn-btn-alt', label: '📖 Material' },
+      { href: '../../home-module-11-eng-software.html', cls: 'fn-btn-back', label: '← Módulo' }
+    ]);
   };
 })();
