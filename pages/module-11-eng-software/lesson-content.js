@@ -825,7 +825,7 @@
       timebox: [
         { label: 'Fundamentos — arquitetura bus, dimensões conformadas, Bus Matrix, tipos de fato e Fact Constellation', minutes: 55 },
         { label: 'Laboratório — blueprint dimensional corporativo do projeto', minutes: 50 },
-        { label: 'Revisão cruzada, decisões de governança e versionamento do artefato', minutes: 15 }
+        { label: 'Apresentações dos cenários cross-functional, decisões de governança e versionamento do artefato', minutes: 15 }
       ],
       preClass: [
         {
@@ -1113,10 +1113,11 @@
           'Ao menos duas dimensões conformadas possuem contrato com chave, domínio, granularidade, política histórica e owner.',
           'A Fact Constellation preserva os grãos e não contém relacionamento direto entre fatos.',
           'Há uma pergunta cross-functional com o nível dimensional comum e a estratégia de drill-across descritos.',
-          'O plano incremental explica como uma nova linha da matriz reutiliza contratos sem quebrar análises existentes.'
+          'O plano incremental explica como uma nova linha da matriz reutiliza contratos sem quebrar análises existentes.',
+          'O grupo apresenta uma pergunta real do parceiro que exige grãos diferentes e demonstra como cada fato é agregada antes do alinhamento dos resultados.'
         ]
       },
-      deliverable: 'Blueprint dimensional corporativo do projeto: Bus Matrix priorizada, Fact Constellation, contrato de ao menos duas dimensões conformadas, grão e tipo de cada fato, pergunta cross-functional e plano de evolução incremental, com o dmc.json atualizado e versionado.',
+      deliverable: 'Blueprint dimensional corporativo do projeto: Bus Matrix priorizada, Fact Constellation, contrato de ao menos duas dimensões conformadas, grão e tipo de cada fato, pergunta cross-functional real do parceiro, estratégia de drill-across apresentada à turma e plano de evolução incremental, com o dmc.json atualizado e versionado.',
       references: ['Kimball & Ross — The Data Warehouse Toolkit, 3ª ed.', 'Kimball Group — Enterprise Data Warehouse Bus Architecture', 'Kimball Group — Enterprise Data Warehouse Bus Matrix', 'Kimball Group — Conformed Dimensions', 'Microsoft Learn — Dimensional modeling in Fabric Warehouse']
     },
 
