@@ -178,18 +178,16 @@ Chame `animateParticles(slides[i])` dentro de cada `animCover/animDaily/animEnce
 
 ## Validação obrigatória com o MCP do Chrome
 
-> **Por que MCP do Chrome e não Playwright:** nesta máquina o Chromium empacotado do
-> Playwright não funciona (falta `chromium_headless_shell-1208` em `~/.cache/ms-playwright/`;
-> `launch()` falha com `Executable doesn't exist`), então os antigos scripts de captura
-> (`scripts/capture-slides.mjs` etc.) foram removidos e qualquer `page.goto/screenshot` falha.
-> A validação visual é feita pelo MCP do Chrome (`mcp__claude-in-chrome__*`), que dirige o
-> Chrome real do sistema — ver a skill `/validar-slides`. As ferramentas são *deferred*:
-> carregue-as uma vez com `ToolSearch` antes de usar (ver passo 0).
+> **Qual caminho usar (atualizado em 21/08/2026).** Para checagem headless de overflow e
+> console, `npm run validate:slides -- <path>` voltou a funcionar sozinho — o browser do
+> Playwright foi reinstalado. Use-o como primeira parada; é mais rápido e não depende de MCP.
 >
-> **Se o MCP do Chrome não estiver conectado** — o que acontece com frequência nesta
-> máquina —, não pule a validação nem declare o deck pronto: use o **Brave via CDP**,
-> descrito em `/validar-slides` (seção *Fallback*) e no `CLAUDE.md` da raiz. Ele dirige um
-> browser real com a mesma biblioteca do Playwright, sem depender do binário empacotado.
+> O MCP do Chrome (`mcp__claude-in-chrome__*`) segue sendo o caminho para **inspeção
+> interativa** — screenshots, dirigir a página, ler o console ao vivo. As ferramentas são
+> *deferred*: carregue-as uma vez com `ToolSearch` antes de usar (ver passo 0). **Quando o
+> MCP não estiver conectado** — o que é o caso hoje —, não pule a validação nem declare o
+> deck pronto: use o **Brave via CDP**, descrito em `/validar-slides` (seção *Fallback*) e no
+> `CLAUDE.md` da raiz.
 
 **Após qualquer alteração em um deck, execute antes de declarar concluído:**
 
@@ -264,7 +262,7 @@ Exemplos de problemas já encontrados por este processo:
 ## Regras complementares
 
 - Commits seguem conventional commits (`feat:`, `fix:`, `chore:`, `docs:`) conforme `CLAUDE.md`.
-- Nunca declare um deck "pronto" sem a validação visual via MCP do Chrome aprovada.
+- Nunca declare um deck "pronto" sem validação visual aprovada — `npm run validate:slides` no mínimo, e MCP do Chrome ou Brave por CDP quando precisar ver a tela.
 - Os testes de filesystem do projeto (`npm test`) — que só leem arquivos com `fs` e não abrem browser — devem continuar passando.
 - Se o deck for novo, adicione o arquivo e garanta que o config do módulo (`config/module-*.json`) e a home (`pages/home-module-*.html`) referenciem o slide em kebab-case (`slide-lesson-N.html`).
 - Quando editar um deck existente do 3º ano que ainda tenha daily (legado), considere removê-lo e avisar o usuário — é padrão institucional do Inteli.

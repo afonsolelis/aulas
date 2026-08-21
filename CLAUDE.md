@@ -36,17 +36,35 @@ Para **validação visual** (overflow, ocupação da tela e erros de console) us
 console. Reconhece as duas estruturas de deck do acervo: a artesanal (`.slide` + `.sc` +
 `.slide-footer`) e a gerada do módulo 11 (`.lesson-slide` + `.lesson-footer`).
 
-> **O Playwright não lança browser nesta máquina** (verificado em 21/08/2026): a biblioteca
-> está instalada (1.58.2), mas falta a revisão que ela exige — há `chromium-1208` em
-> `~/.cache/ms-playwright/` e **não** há `chromium_headless_shell-1208` (só 1228 e 1234).
-> `launch()` falha com `Executable doesn't exist`, inclusive com `channel:'chromium'` ou
-> `--headless=new`, e `npm run validate:slides` sozinho termina em `LAUNCH-FAIL`. Resolver
-> de vez exige `npx playwright install chromium` (~150 MB). Também **não há nenhum MCP de
-> browser conectado** (nem `mcp__claude-in-chrome__*`, nem `mcp__playwright__*`), então a skill
-> `/validar-slides` não roda como está escrita.
+> **O Playwright voltou a funcionar em 21/08/2026** — `npm run validate:slides` roda sozinho,
+> sem CDP. Faltavam as revisões `chromium-1208` e `chromium_headless_shell-1208` que a versão
+> 1.58.2 exige. Continua **sem nenhum MCP de browser conectado** (nem
+> `mcp__claude-in-chrome__*`, nem `mcp__playwright__*`), então a skill `/validar-slides` não
+> roda como está escrita — para inspeção interativa, use o Brave por CDP descrito abaixo.
 
-O caminho que funciona é reaproveitar o **Brave instalado via Flatpak** por CDP — a biblioteca
-do Playwright está instalada, só falta o browser:
+> **Se precisar reinstalar o browser, não use `npx playwright install`.** Nesta máquina ele
+> baixa os 167 MiB até 100% e **trava na extração**, parando em ~18 MB e deixando
+> `chromium-1208/` sem o binário e sem `INSTALLATION_COMPLETE` — provavelmente porque o
+> Bazzite não é um OS oficialmente suportado (o próprio instalador avisa e cai no build de
+> fallback `ubuntu24.04-x64`). Baixar e extrair à mão leva segundos e funciona:
+>
+> ```bash
+> B=https://cdn.playwright.dev/builds/cft/145.0.7632.6/linux64   # versão em node_modules/playwright-core/browsers.json
+> C=~/.cache/ms-playwright
+> curl -sL "$B/chrome-linux64.zip"                -o /tmp/c.zip
+> curl -sL "$B/chrome-headless-shell-linux64.zip" -o /tmp/h.zip
+> unzip -q -o /tmp/c.zip -d "$C/chromium-1208"
+> unzip -q -o /tmp/h.zip -d "$C/chromium_headless_shell-1208"
+> chmod +x "$C/chromium-1208/chrome-linux64/chrome" \
+>          "$C/chromium_headless_shell-1208/chrome-headless-shell-linux64/chrome-headless-shell"
+> touch "$C/chromium-1208/INSTALLATION_COMPLETE" "$C/chromium_headless_shell-1208/INSTALLATION_COMPLETE"
+> ```
+>
+> Ao trocar a versão do Playwright, ajuste a revisão e a `browserVersion` conforme
+> `node_modules/playwright-core/browsers.json`.
+
+Para **inspeção interativa** sem MCP, ainda vale reaproveitar o **Brave instalado via Flatpak**
+por CDP:
 
 ```bash
 python3 -m http.server 8123 &                      # o Flatpak tem shared=network

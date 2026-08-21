@@ -1,25 +1,21 @@
 ---
 name: validar-slides
-description: Valida visualmente decks de slides HTML, materiais e planos via MCP do Chrome ou, quando não há MCP nem browser do Playwright nesta máquina, via Brave por CDP. Percorre slide a slide, detecta overflow do conteúdo em relação ao footer, elementos invisíveis após animação e nós cortados, e captura screenshots para inspeção. Use após criar ou editar qualquer slide-lesson-*.html ou página de pages/, para inspeção interativa (screenshots, dirigir o Chrome real). Para checagem headless rápida de overflow/console, prefira `npm run validate:slides`.
+description: Inspeção visual interativa de decks de slides HTML, materiais e planos — via MCP do Chrome quando conectado, ou via Brave por CDP quando não há MCP. Percorre slide a slide, detecta overflow do conteúdo em relação ao footer, elementos invisíveis após animação e nós cortados, e captura screenshots para inspeção. Use após criar ou editar qualquer slide-lesson-*.html ou página de pages/, para inspeção interativa (screenshots, dirigir o Chrome real). Para checagem headless rápida de overflow/console, prefira `npm run validate:slides`.
 type: reference
 ---
 
 # Validar Slides (MCP do Chrome)
 
-> **Estado real desta máquina (verificado em 21/08/2026).** Nenhum dos dois caminhos
-> descritos nesta skill funciona sozinho:
+> **Estado desta máquina (21/08/2026).**
 >
-> - **Playwright não lança browser.** A biblioteca está instalada (1.58.2), mas falta a
->   revisão que ela exige: existe `chromium-1208` em `~/.cache/ms-playwright/` e **não**
->   existe `chromium_headless_shell-1208` (só 1228 e 1234). `launch()` falha com
->   `Executable doesn't exist`, inclusive com `channel:'chromium'` e `--headless=new`.
->   Logo, `npm run validate:slides` sozinho termina em `LAUNCH-FAIL`.
+> - **O Playwright voltou a funcionar.** As revisões `chromium-1208` e
+>   `chromium_headless_shell-1208` foram instaladas, então `npm run validate:slides -- <path>`
+>   roda sozinho — é o caminho preferido para checagem headless de overflow e console.
+>   Se algum dia faltar de novo, **não** use `npx playwright install`: nesta máquina ele
+>   trava na extração. O `CLAUDE.md` da raiz traz o passo a passo de baixar e extrair à mão.
 > - **Nenhum MCP de browser está conectado** — nem `mcp__claude-in-chrome__*`, nem
->   `mcp__playwright__*`. O procedimento abaixo não roda como está escrito.
->
-> **O caminho que funciona** é o Brave via CDP, descrito em [Fallback](#fallback--brave-via-cdp).
-> Corrigir de vez exige `npx playwright install chromium` (baixa ~150 MB) — decisão do
-> usuário, não faça sem pedir.
+>   `mcp__playwright__*`. O procedimento descrito abaixo não roda como está escrito; para
+>   inspeção interativa, use o [Fallback](#fallback--brave-via-cdp) por CDP.
 
 Historicamente, os antigos
 `tests/ux-audit-*.spec.ts` e os scripts de captura/validação em `scripts/*.mjs` que importavam
@@ -144,8 +140,8 @@ return {
 ## Fallback — Brave via CDP
 
 Reaproveita o Brave instalado por Flatpak, dirigido pela biblioteca do Playwright por CDP.
-É o procedimento usado quando não há browser do Playwright nem MCP conectado, e é o mesmo
-descrito no `CLAUDE.md` da raiz.
+Serve para inspeção interativa enquanto não há MCP conectado, e como rede de segurança se o
+browser do Playwright voltar a faltar. É o mesmo procedimento descrito no `CLAUDE.md` da raiz.
 
 ```bash
 python3 -m http.server 8123 &                       # o Flatpak tem shared=network
