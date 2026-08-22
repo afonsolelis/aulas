@@ -3,51 +3,723 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Módulo 11 — Aula 7 — Inteli</title>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <title>Aula 7 - Otimização de Data Warehouses - Inteli</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="../../../css/inteli-styles.css" rel="stylesheet">
-  <link href="../lesson-content.css" rel="stylesheet">
-
-<!-- encontro:css:start -->
-<link rel="stylesheet" href="../../../css/encontro.css">
-<!-- encontro:css:end -->
+  <link href="../../../css/encontro.css" rel="stylesheet">
+  <link href="slide-lesson-7.css" rel="stylesheet">
 </head>
-<body data-lesson="7" class="lesson-deck">
-  <main id="lesson-slides" class="lesson-slides"></main>
-  <footer class="lesson-footer">
-    <a href="../../home-module-11-eng-software.html">🏠 Módulo 11</a>
-    <button id="prev">← Anterior</button>
-    <span id="counter" class="lesson-counter">1 / 1</span>
-    <button id="next">Próximo →</button>
-    <a href="../materials/lesson-7-material.html">📖 Material</a>
+<body>
+  <main class="slide-container">
+    <!-- Slide 1: Cover -->
+    <section class="slide cover active">
+      <div class="sc cover-layout">
+        <div>
+          <div class="cover-badge rise">Módulo 11 · Engenharia de Software · Aula 7</div>
+          <h1 class="cover-title rise" style="--delay:.07s">Otimização de<br>Data <span>Warehouses</span></h1>
+          <p class="cover-subtitle rise" style="--delay:.14s">Laboratório comparativo de consultas OLAP com ClickHouse e PostgreSQL no DBeaver.</p>
+          <p class="cover-meta rise" style="--delay:.2s">Computação 1 · Prof. Afonso Brandão · 24/08/2026</p>
+          <div class="cover-tags rise" style="--delay:.26s">
+            <span class="cover-tag">MergeTree</span>
+            <span class="cover-tag">Partition Pruning</span>
+            <span class="cover-tag">Skip Index</span>
+            <span class="cover-tag">Materialized View</span>
+          </div>
+        </div>
+        <div class="cover-benchmark rise" style="--delay:.16s" aria-hidden="true">
+          <svg viewBox="0 0 380 380">
+            <line x1="190" y1="190" x2="64" y2="65"></line>
+            <line x1="190" y1="190" x2="316" y2="65"></line>
+            <line x1="190" y1="190" x2="64" y2="315"></line>
+            <line x1="190" y1="190" x2="316" y2="315"></line>
+          </svg>
+          <div class="cover-node center">BENCHMARK</div>
+          <div class="cover-node n1">CLICKHOUSE</div>
+          <div class="cover-node n2">POSTGRESQL</div>
+          <div class="cover-node n3">EXPLAIN<br>PLANS</div>
+          <div class="cover-node n4">EVIDÊNCIAS<br>MENSURÁVEIS</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 2: Continuity -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head dark rise">
+          <p class="eyebrow">Continuidade · das Aulas 2-6 para a Aula 7</p>
+          <h2 class="slide-title">Modelamos o esquema. Agora otimizamos a execução.</h2>
+          <p class="slide-subtitle">Uma arquitetura dimensional só entrega valor quando as consultas respondem dentro do SLA analítico.</p>
+        </header>
+        <div class="continuity rise" style="--delay:.08s">
+          <div class="continuity-step"><small>Aulas 2-4</small><strong>Modelagem dimensional</strong></div>
+          <div class="continuity-step"><small>Aula 5</small><strong>Arquitetura de dados</strong></div>
+          <div class="continuity-step"><small>Aula 6</small><strong>Barramento corporativo</strong></div>
+          <div class="continuity-step focus"><small>Aula 7</small><strong>Otimização física</strong></div>
+        </div>
+        <div class="callout rise" style="--delay:.16s">Partições, índices e agregações pré-processadas não mudam o modelo lógico — mas reduzem drasticamente leitura, I/O e tempo de resposta.</div>
+      </div>
+    </section>
+
+    <!-- Slide 3: Agenda -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head red rise">
+          <p class="eyebrow">Roteiro · 120 minutos</p>
+          <h2 class="slide-title">Dois mecanismos, um método experimental</h2>
+          <p class="slide-subtitle">Cada alteração é isolada, medida e interpretada antes da próxima.</p>
+        </header>
+        <div class="time-grid">
+          <article class="card time-card rise" style="--delay:.05s"><span class="card-label">Bloco 01</span><div class="minutes">10 <span>min</span></div><div><h3>Preparação</h3><p>Conectar ClickHouse e PostgreSQL no DBeaver e criar a baseline.</p></div></article>
+          <article class="card amber time-card rise" style="--delay:.12s"><span class="card-label">Bloco 02</span><div class="minutes">50 <span>min</span></div><div><h3>ClickHouse</h3><p>MergeTree, PARTITION BY, skip index e materialized view incremental.</p></div></article>
+          <article class="card green time-card rise" style="--delay:.19s"><span class="card-label">Bloco 03</span><div class="minutes">50 <span>min</span></div><div><h3>PostgreSQL</h3><p>Particionamento declarativo, BRIN, B-tree, ANALYZE e VACUUM.</p></div></article>
+          <article class="card blue time-card rise" style="--delay:.26s"><span class="card-label">Bloco 04</span><div class="minutes">10 <span>min</span></div><div><h3>Comparação</h3><p>Registrar evidências e registrar a recomendação técnica.</p></div></article>
+        </div>
+        <div class="callout dark rise" style="--delay:.32s;margin-top:12px"><strong>Objetivo:</strong> comprovar por evidência mensurável qual estratégia otimiza cada cenário sem alterar resultados.</div>
+      </div>
+    </section>
+
+    <!-- Slide 4: Method -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head dark rise">
+          <p class="eyebrow">Método experimental</p>
+          <h2 class="slide-title">Uma alteração por rodada, três execuções por cenário</h2>
+          <p class="slide-subtitle">Tempo isolado não basta: linhas, bytes, buffers e cardinalidade explicam a causa da variação.</p>
+        </header>
+        <div class="benchmark-method">
+          <article class="method-hero rise" style="--delay:.05s">
+            <small>Protocolo</small>
+            <h3>Isolar variáveis, medir causalidade</h3>
+            <p>Consulta, dados e conexão permanecem constantes. Registra-se a baseline, aplica-se uma alteração estrutural e repete-se a medição. Cada consulta é executada ao menos três vezes e registra-se a mediana.</p>
+          </article>
+          <div class="checklist">
+            <div class="check-item rise" style="--delay:.09s"><span>✓</span><p>Execute cada consulta ao menos três vezes e registre a mediana.</p></div>
+            <div class="check-item rise" style="--delay:.13s"><span>✓</span><p>Compare resultados antes de comparar desempenho.</p></div>
+            <div class="check-item rise" style="--delay:.17s"><span>✓</span><p>Altere apenas uma estrutura por rodada.</p></div>
+            <div class="check-item rise" style="--delay:.21s"><span>✓</span><p>Capture o plano de execução junto com o tempo medido.</p></div>
+            <div class="check-item rise" style="--delay:.25s"><span>✓</span><p>Distinga redução de leitura de mero efeito de cache.</p></div>
+          </div>
+        </div>
+        <div class="pitfall rise" style="--delay:.29s">Comparar consultas diferentes ou registrar somente a execução mais rápida invalida a conclusão.</div>
+      </div>
+    </section>
+
+    <!-- Slide 5: ClickHouse Overview -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head amber rise">
+          <p class="eyebrow">Bloco 2 · ClickHouse</p>
+          <h2 class="slide-title">MergeTree, ordenação física e partições temporais</h2>
+          <p class="slide-subtitle">No ClickHouse, ORDER BY define a ordenação física e, na ausência de outra declaração, também define a chave primária esparsa.</p>
+        </header>
+        <div class="g2">
+          <article class="card rise" style="--delay:.05s">
+            <span class="card-label">PARTITION BY</span>
+            <h3>Ciclo de vida dos dados</h3>
+            <p>Organiza partes por mês (toYYYYMM). Permite partition pruning e gestão granular de retenção. Não substitui uma chave de ordenação coerente com os filtros frequentes.</p>
+          </article>
+          <article class="card amber rise" style="--delay:.10s">
+            <span class="card-label">PRIMARY KEY + ORDER BY</span>
+            <h3>Chave primária esparsa</h3>
+            <p>Índice esparso que aponta para granules. Mantenha a chave primária como prefixo de ORDER BY. Particionar por identificadores de alta cardinalidade produz excesso de partes.</p>
+          </article>
+          <article class="card green rise" style="--delay:.15s">
+            <span class="card-label">SKIP INDEX</span>
+            <h3>Filtros seletivos fora da PK</h3>
+            <p>Bloom filter descarta granules quando a chave principal não atende a predicado seletivo. Teste o predicado antes e depois de materializar o índice.</p>
+          </article>
+          <article class="card blue rise" style="--delay:.20s">
+            <span class="card-label">MATERIALIZED VIEW</span>
+            <h3>Agregação incremental</h3>
+            <p>Desloca agregações da leitura para a ingestão. Exige tabela de destino SummingMergeTree e backfill explícito para dados históricos.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 6: PostgreSQL Overview -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head green rise">
+          <p class="eyebrow">Bloco 3 · PostgreSQL</p>
+          <h2 class="slide-title">Particionamento declarativo, BRIN e B-tree</h2>
+          <p class="slide-subtitle">BRIN resume faixas físicas; B-tree atende predicados seletivos e ordenados, com maior custo de armazenamento.</p>
+        </header>
+        <div class="g2">
+          <article class="card rise" style="--delay:.05s">
+            <span class="card-label">PARTITIONING</span>
+            <h3>Eliminação de partições</h3>
+            <p>PARTITION BY RANGE permite eliminar partições fora do intervalo da consulta. Confirme no plano quantas partições foram acessadas.</p>
+          </article>
+          <article class="card green rise" style="--delay:.10s">
+            <span class="card-label">BRIN</span>
+            <h3>Block Range INdex</h3>
+            <p>Resume faixas físicas e favorece tabelas extensas correlacionadas com a ordem de armazenamento. Ideal para intervalos temporais fisicamente ordenados.</p>
+          </article>
+          <article class="card blue rise" style="--delay:.15s">
+            <span class="card-label">B-TREE</span>
+            <h3>Índice composto seletivo</h3>
+            <p>(regiao_id, data_venda) INCLUDE (valor) atende filtro combinado de região e tempo. Maior custo de armazenamento e escrita que BRIN.</p>
+          </article>
+          <article class="card amber rise" style="--delay:.20s">
+            <span class="card-label">MAINTENANCE</span>
+            <h3>ANALYZE e VACUUM</h3>
+            <p>ANALYZE atualiza estatísticas do planejador. VACUUM recupera espaço reutilizável. Execute ANALYZE após carga inicial e mudanças relevantes de distribuição.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 7: ClickHouse Steps 1-2 -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head red rise">
+          <p class="eyebrow">ClickHouse · Passos 1 e 2</p>
+          <h2 class="slide-title">Preparar tabelas e gerar dois milhões de vendas</h2>
+          <p class="slide-subtitle">Recria o ambiente e estabelece baseline sem ordenação útil para filtros analíticos.</p>
+        </header>
+        <div class="engine-compare">
+          <article class="engine-panel clickhouse rise" style="--delay:.05s">
+            <div class="engine-header">
+              <div class="engine-logo">🔥</div>
+              <div class="engine-name">ClickHouse — Passo 1</div>
+            </div>
+            <div class="engine-steps">
+              <div class="engine-step">
+                <span class="engine-step-num">1</span>
+                <span class="engine-step-title">Criar fato_vendas_base</span>
+                <p class="engine-step-desc">ORDER BY tuple() — sem chave útil para pruning.</p>
+              </div>
+              <div class="engine-step">
+                <span class="engine-step-num">2</span>
+                <span class="engine-step-title">Criar fato_vendas_otimizada</span>
+                <p class="engine-step-desc">PARTITION BY toYYYYMM(data_venda), PRIMARY KEY (regiao_id, data_venda), ORDER BY (regiao_id, data_venda, produto_id).</p>
+              </div>
+            </div>
+          </article>
+          <article class="engine-panel clickhouse rise" style="--delay:.12s">
+            <div class="engine-header">
+              <div class="engine-logo">🔥</div>
+              <div class="engine-name">ClickHouse — Passo 2</div>
+            </div>
+            <div class="code-block"><span class="code-keyword">INSERT INTO</span> aula_dw.fato_vendas_base
+<span class="code-keyword">SELECT</span>
+    number + <span class="code-number">1</span> <span class="code-keyword">AS</span> venda_id,
+    toDateTime(<span class="code-string">'2025-01-01 00:00:00'</span>)
+        + toIntervalSecond(intDiv(number * <span class="code-number">31536000</span>, <span class="code-number">2000000</span>)) <span class="code-keyword">AS</span> data_venda,
+    toUInt8(number % <span class="code-number">20</span> + <span class="code-number">1</span>) <span class="code-keyword">AS</span> regiao_id,
+    toUInt32(intDiv(number, <span class="code-number">20</span>) % <span class="code-number">100000</span> + <span class="code-number">1</span>) <span class="code-keyword">AS</span> cliente_id,
+    toUInt16(number % <span class="code-number">1000</span> + <span class="code-number">1</span>) <span class="code-keyword">AS</span> produto_id,
+    toDecimal64(<span class="code-number">10</span> + (number % <span class="code-number">50000</span>) / <span class="code-number">100.0</span>, <span class="code-number">2</span>) <span class="code-keyword">AS</span> valor
+<span class="code-keyword">FROM</span> numbers(<span class="code-number">2000000</span>);
+
+<span class="code-comment">-- Copiar para tabela otimizada</span>
+<span class="code-keyword">INSERT INTO</span> aula_dw.fato_vendas_otimizada
+<span class="code-keyword">SELECT</span> * <span class="code-keyword">FROM</span> aula_dw.fato_vendas_base;</div>
+            <div class="observe-box"><strong>Observe:</strong> As duas tabelas devem possuir 2.000.000 de linhas. A tabela otimizada deve apresentar partições mensais.</div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 8: ClickHouse Steps 3-4 -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head amber rise">
+          <p class="eyebrow">ClickHouse · Passos 3 e 4</p>
+          <h2 class="slide-title">Partition pruning e skip index bloom filter</h2>
+          <p class="slide-subtitle">Comparar full scan com partition pruning e avaliar predicado seletivo fora da chave primária.</p>
+        </header>
+        <div class="g2">
+          <article class="card rise" style="--delay:.05s">
+            <span class="card-label">Passo 3</span>
+            <h3>Partition pruning vs full scan</h3>
+            <div class="code-block"><span class="code-keyword">EXPLAIN indexes = 1</span>
+<span class="code-keyword">SELECT</span> count(), sum(valor)
+<span class="code-keyword">FROM</span> aula_dw.fato_vendas_otimizada
+<span class="code-keyword">WHERE</span> regiao_id = <span class="code-number">7</span>
+  <span class="code-keyword">AND</span> data_venda >= toDateTime(<span class="code-string">'2025-07-01 00:00:00'</span>)
+  <span class="code-keyword">AND</span> data_venda <  toDateTime(<span class="code-string">'2025-07-08 00:00:00'</span>);</div>
+            <div class="observe-box"><strong>Observe:</strong> O plano otimizado deve mostrar Partition e PrimaryKey com fração menor de parts e granules.</div>
+          </article>
+          <article class="card amber rise" style="--delay:.12s">
+            <span class="card-label">Passo 4</span>
+            <h3>Skip index bloom_filter</h3>
+            <div class="code-block"><span class="code-keyword">ALTER TABLE</span> aula_dw.fato_vendas_otimizada
+<span class="code-keyword">ADD INDEX</span> idx_cliente cliente_id
+<span class="code-keyword">TYPE</span> bloom_filter(<span class="code-number">0.01</span>) GRANULARITY <span class="code-number">1</span>;
+
+<span class="code-keyword">ALTER TABLE</span> aula_dw.fato_vendas_otimizada
+<span class="code-keyword">MATERIALIZE INDEX</span> idx_cliente
+<span class="code-keyword">SETTINGS</span> mutations_sync = <span class="code-number">1</span>;</div>
+            <div class="observe-box"><strong>Observe:</strong> O segundo plano deve incluir Skip com idx_cliente. O índice só se justifica se reduzir granules para o predicado observado.</div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 9: ClickHouse Step 5 -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head green rise">
+          <p class="eyebrow">ClickHouse · Passo 5</p>
+          <h2 class="slide-title">Materialized view incremental com backfill</h2>
+          <p class="slide-subtitle">Deslocar agregações da leitura para a ingestão e preencher histórico explicitamente.</p>
+        </header>
+        <div class="card rise" style="--delay:.05s">
+          <span class="card-label">Agregação diária por região</span>
+          <h3>SummingMergeTree + Materialized View</h3>
+          <div class="code-block"><span class="code-comment">-- Tabela de destino</span>
+<span class="code-keyword">CREATE TABLE</span> aula_dw.vendas_dia
+(
+    dia Date,
+    regiao_id UInt8,
+    quantidade UInt64,
+    receita Decimal(<span class="code-number">18</span>, <span class="code-number">2</span>)
+)
+<span class="code-keyword">ENGINE =</span> SummingMergeTree
+<span class="code-keyword">PARTITION BY</span> toYYYYMM(dia)
+<span class="code-keyword">ORDER BY</span> (dia, regiao_id);
+
+<span class="code-comment">-- View incremental</span>
+<span class="code-keyword">CREATE MATERIALIZED VIEW</span> aula_dw.mv_vendas_dia
+<span class="code-keyword">TO</span> aula_dw.vendas_dia <span class="code-keyword">AS</span>
+<span class="code-keyword">SELECT</span>
+    toDate(data_venda) <span class="code-keyword">AS</span> dia,
+    regiao_id,
+    count() <span class="code-keyword">AS</span> quantidade,
+    CAST(sum(valor), <span class="code-string">'Decimal(18, 2)'</span>) <span class="code-keyword">AS</span> receita
+<span class="code-keyword">FROM</span> aula_dw.fato_vendas_otimizada
+<span class="code-keyword">GROUP BY</span> dia, regiao_id;
+
+<span class="code-comment">-- Backfill histórico</span>
+<span class="code-keyword">INSERT INTO</span> aula_dw.vendas_dia
+<span class="code-keyword">SELECT</span>
+    toDate(data_venda) <span class="code-keyword">AS</span> dia,
+    regiao_id,
+    count() <span class="code-keyword">AS</span> quantidade,
+    CAST(sum(valor), <span class="code-string">'Decimal(18, 2)'</span>) <span class="code-keyword">AS</span> receita
+<span class="code-keyword">FROM</span> aula_dw.fato_vendas_otimizada
+<span class="code-keyword">GROUP BY</span> dia, regiao_id;</div>
+          <div class="observe-box"><strong>Observe:</strong> As duas consultas diárias devem retornar os mesmos totais antes da inserção adicional. A última inserção deve ser incorporada automaticamente pela materialized view.</div>
+        </div>
+        <div class="pitfall rise" style="--delay:.12s">A materialized view incremental processa novos blocos; ela não preenche automaticamente o histórico já existente.</div>
+      </div>
+    </section>
+
+    <!-- Slide 10: ClickHouse Step 6 -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head blue rise">
+          <p class="eyebrow">ClickHouse · Passo 6</p>
+          <h2 class="slide-title">Consultar métricas executadas via system.query_log</h2>
+          <p class="slide-subtitle">Obter duração, linhas, bytes e memória para as consultas recentes do laboratório.</p>
+        </header>
+        <div class="card rise" style="--delay:.05s">
+          <span class="card-label">system.query_log</span>
+          <h3>Métricas de execução</h3>
+          <div class="code-block"><span class="code-keyword">SYSTEM FLUSH LOGS</span>;
+
+<span class="code-keyword">SELECT</span>
+    event_time,
+    query_duration_ms,
+    read_rows,
+    formatReadableSize(read_bytes) <span class="code-keyword">AS</span> bytes_lidos,
+    formatReadableSize(memory_usage) <span class="code-keyword">AS</span> memoria,
+    left(replaceAll(query, <span class="code-string">'\n'</span>, <span class="code-string">' '</span>), <span class="code-number">120</span>) <span class="code-keyword">AS</span> consulta
+<span class="code-keyword">FROM</span> system.query_log
+<span class="code-keyword">WHERE</span> type = <span class="code-string">'QueryFinish'</span>
+  <span class="code-keyword">AND</span> event_time >= now() - INTERVAL <span class="code-number">15</span> MINUTE
+  <span class="code-keyword">AND</span> has(databases, <span class="code-string">'aula_dw'</span>)
+  <span class="code-keyword">AND</span> query NOT ILIKE <span class="code-string">'%system.query_log%'</span>
+<span class="code-keyword">ORDER BY</span> event_time <span class="code-keyword">DESC</span>
+<span class="code-keyword">LIMIT</span> <span class="code-number">30</span>;</div>
+          <div class="observe-box"><strong>Observe:</strong> Registre a mediana de três execuções e compare read_rows e read_bytes. Caso não possa executar SYSTEM FLUSH LOGS, aguarde a gravação assíncrona.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 11: PostgreSQL Steps 1-2 -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head green rise">
+          <p class="eyebrow">PostgreSQL · Passos 1 e 2</p>
+          <h2 class="slide-title">Particionamento declarativo e geração de dados</h2>
+          <p class="slide-subtitle">Doze partições mensais para 2025 e dados ordenados temporalmente.</p>
+        </header>
+        <div class="engine-compare">
+          <article class="engine-panel postgresql rise" style="--delay:.05s">
+            <div class="engine-header">
+              <div class="engine-logo">🐘</div>
+              <div class="engine-name">PostgreSQL — Passo 1</div>
+            </div>
+            <div class="engine-steps">
+              <div class="engine-step">
+                <span class="engine-step-num">1</span>
+                <span class="engine-step-title">Criar schema aula_dw</span>
+                <p class="engine-step-desc">DROP SCHEMA IF EXISTS aula_dw CASCADE; CREATE SCHEMA aula_dw;</p>
+              </div>
+              <div class="engine-step">
+                <span class="engine-step-num">2</span>
+                <span class="engine-step-title">Criar fato_vendas_part</span>
+                <p class="engine-step-desc">PARTITION BY RANGE (data_venda) com 12 partições mensais (2025_01 a 2025_12).</p>
+              </div>
+            </div>
+          </article>
+          <article class="engine-panel postgresql rise" style="--delay:.12s">
+            <div class="engine-header">
+              <div class="engine-logo">🐘</div>
+              <div class="engine-name">PostgreSQL — Passo 2</div>
+            </div>
+            <div class="code-block"><span class="code-keyword">INSERT INTO</span> aula_dw.fato_vendas_base
+<span class="code-keyword">SELECT</span>
+    g <span class="code-keyword">AS</span> venda_id,
+    timestamp <span class="code-string">'2025-01-01 00:00:00'</span>
+        + (((CAST(g <span class="code-keyword">AS bigint</span>) - <span class="code-number">1</span>) * <span class="code-number">31536000</span> / <span class="code-number">2000000</span>) * interval <span class="code-string">'1 second'</span>) <span class="code-keyword">AS</span> data_venda,
+    CAST((g % <span class="code-number">20</span>) + <span class="code-number">1 AS smallint</span>) <span class="code-keyword">AS</span> regiao_id,
+    CAST((g % <span class="code-number">100000</span>) + <span class="code-number">1 AS integer</span>) <span class="code-keyword">AS</span> cliente_id,
+    CAST((g % <span class="code-number">1000</span>) + <span class="code-number">1 AS integer</span>) <span class="code-keyword">AS</span> produto_id,
+    CAST(<span class="code-number">10</span> + (g % <span class="code-number">50000</span>) / <span class="code-number">100.0 AS numeric</span>(<span class="code-number">12</span>, <span class="code-number">2</span>)) <span class="code-keyword">AS</span> valor
+<span class="code-keyword">FROM</span> generate_series(<span class="code-number">1</span>, <span class="code-number">2000000</span>) <span class="code-keyword">AS</span> g;
+
+<span class="code-keyword">INSERT INTO</span> aula_dw.fato_vendas_part
+<span class="code-keyword">SELECT</span> * <span class="code-keyword">FROM</span> aula_dw.fato_vendas_base;
+
+<span class="code-keyword">ANALYZE</span> aula_dw.fato_vendas_base;
+<span class="code-keyword">ANALYZE</span> aula_dw.fato_vendas_part;</div>
+            <div class="observe-box"><strong>Observe:</strong> As partições devem totalizar 2.000.000 de linhas. ANALYZE fornece estatísticas da tabela base, das folhas e da hierarquia particionada.</div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 12: PostgreSQL Steps 3-4 -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head amber rise">
+          <p class="eyebrow">PostgreSQL · Passos 3 e 4</p>
+          <h2 class="slide-title">Eliminação de partições, BRIN e B-tree</h2>
+          <p class="slide-subtitle">Comparar varredura sequencial, partição eliminada e tipos de índice.</p>
+        </header>
+        <div class="g2">
+          <article class="card rise" style="--delay:.05s">
+            <span class="card-label">Passo 3</span>
+            <h3>Partition elimination</h3>
+            <div class="code-block"><span class="code-keyword">EXPLAIN</span> (<span class="code-keyword">ANALYZE</span>, BUFFERS, SUMMARY)
+<span class="code-keyword">SELECT</span> count(*), sum(valor)
+<span class="code-keyword">FROM</span> aula_dw.fato_vendas_part
+<span class="code-keyword">WHERE</span> data_venda >= timestamp <span class="code-string">'2025-07-01 00:00:00'</span>
+  <span class="code-keyword">AND</span> data_venda <  timestamp <span class="code-string">'2025-07-08 00:00:00'</span>;</div>
+            <div class="observe-box"><strong>Observe:</strong> A consulta particionada deve acessar somente julho. Compare shared hit/read blocks.</div>
+          </article>
+          <article class="card green rise" style="--delay:.12s">
+            <span class="card-label">Passo 4</span>
+            <h3>BRIN vs B-tree</h3>
+            <div class="code-block"><span class="code-comment">-- BRIN para tempo</span>
+<span class="code-keyword">CREATE INDEX</span> fato_vendas_data_brin
+<span class="code-keyword">ON</span> aula_dw.fato_vendas_part <span class="code-keyword">USING</span> brin (data_venda)
+<span class="code-keyword">WITH</span> (pages_per_range = <span class="code-number">32</span>);
+
+<span class="code-comment">-- B-tree composto</span>
+<span class="code-keyword">CREATE INDEX</span> fato_vendas_regiao_data_btree
+<span class="code-keyword">ON</span> aula_dw.fato_vendas_part <span class="code-keyword">USING</span> btree (regiao_id, data_venda)
+<span class="code-keyword">INCLUDE</span> (valor);
+
+<span class="code-keyword">ANALYZE</span> aula_dw.fato_vendas_part;</div>
+            <div class="observe-box"><strong>Observe:</strong> O plano temporal tende a utilizar BRIN; o filtro de região e tempo tende a utilizar B-tree. Compare também o espaço total ocupado.</div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 13: PostgreSQL Steps 5-6 -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head blue rise">
+          <p class="eyebrow">PostgreSQL · Passos 5 e 6</p>
+          <h2 class="slide-title">Materialized view e manutenção operacional</h2>
+          <p class="slide-subtitle">Persistir agregação, refresh concorrente, ANALYZE e VACUUM.</p>
+        </header>
+        <div class="g2">
+          <article class="card rise" style="--delay:.05s">
+            <span class="card-label">Passo 5</span>
+            <h3>Materialized view com refresh concorrente</h3>
+            <div class="code-block"><span class="code-keyword">CREATE MATERIALIZED VIEW</span> aula_dw.mv_vendas_dia <span class="code-keyword">AS</span>
+<span class="code-keyword">SELECT</span>
+    CAST(data_venda <span class="code-keyword">AS date</span>) <span class="code-keyword">AS</span> dia,
+    regiao_id,
+    count(*) <span class="code-keyword">AS</span> quantidade,
+    CAST(sum(valor) <span class="code-keyword">AS numeric</span>(<span class="code-number">18</span>, <span class="code-number">2</span>)) <span class="code-keyword">AS</span> receita
+<span class="code-keyword">FROM</span> aula_dw.fato_vendas_part
+<span class="code-keyword">GROUP BY</span> CAST(data_venda <span class="code-keyword">AS date</span>), regiao_id
+<span class="code-keyword">WITH DATA</span>;
+
+<span class="code-comment">-- Índice UNIQUE para refresh concorrente</span>
+<span class="code-keyword">CREATE UNIQUE INDEX</span> mv_vendas_dia_pk
+<span class="code-keyword">ON</span> aula_dw.mv_vendas_dia (dia, regiao_id);
+
+<span class="code-keyword">REFRESH MATERIALIZED VIEW CONCURRENTLY</span> aula_dw.mv_vendas_dia;</div>
+            <div class="observe-box"><strong>Observe:</strong> A materialized view reduz linhas lidas, mas permanece defasada entre refreshes. O índice UNIQUE permite atualizar sem bloquear leituras.</div>
+          </article>
+          <article class="card amber rise" style="--delay:.12s">
+            <span class="card-label">Passo 6</span>
+            <h3>VACUUM e ANALYZE</h3>
+            <div class="code-block"><span class="code-comment">-- Executar com auto-commit</span>
+<span class="code-keyword">VACUUM</span> (<span class="code-keyword">ANALYZE</span>, VERBOSE) aula_dw.fato_vendas_2025_07;
+<span class="code-keyword">ANALYZE VERBOSE</span> aula_dw.fato_vendas_part;
+
+<span class="code-comment">-- Consultar estatísticas</span>
+<span class="code-keyword">SELECT</span>
+    relname,
+    n_live_tup,
+    n_dead_tup,
+    last_vacuum,
+    last_autovacuum,
+    last_analyze,
+    last_autoanalyze
+<span class="code-keyword">FROM</span> pg_stat_user_tables
+<span class="code-keyword">WHERE</span> schemaname = <span class="code-string">'aula_dw'</span>
+<span class="code-keyword">ORDER BY</span> relname;</div>
+            <div class="observe-box"><strong>Observe:</strong> Execute VACUUM com auto-commit. Compare rows estimadas e reais, shared hit/read blocks, tipo de scan e Execution Time.</div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 14: Benchmark Guide -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head dark rise">
+          <p class="eyebrow">Guia de benchmark</p>
+          <h2 class="slide-title">Seis cenários comparativos com evidência mensurável</h2>
+          <p class="slide-subtitle">Para cada cenário: execute três vezes, registre mediana, capture plano e confira resultado.</p>
+        </header>
+        <table class="benchmark-table rise" style="--delay:.05s">
+          <thead>
+            <tr>
+              <th>Mecanismo</th>
+              <th>Consulta</th>
+              <th>Estratégia</th>
+              <th>Tempo mediano</th>
+              <th>Leitura</th>
+              <th>Plano</th>
+              <th>Resultado confere?</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>ClickHouse</strong></td>
+              <td>Região + 7 dias</td>
+              <td>Base / MergeTree otimizada</td>
+              <td>ms</td>
+              <td>read_rows e read_bytes</td>
+              <td>parts e granules</td>
+              <td>sim/não</td>
+            </tr>
+            <tr>
+              <td><strong>ClickHouse</strong></td>
+              <td>Cliente seletivo</td>
+              <td>Sem / com skip index</td>
+              <td>ms</td>
+              <td>granules</td>
+              <td>Skip</td>
+              <td>sim/não</td>
+            </tr>
+            <tr>
+              <td><strong>ClickHouse</strong></td>
+              <td>Receita diária</td>
+              <td>Fato / agregada</td>
+              <td>ms</td>
+              <td>read_rows</td>
+              <td>Aggregation</td>
+              <td>sim/não</td>
+            </tr>
+            <tr>
+              <td><strong>PostgreSQL</strong></td>
+              <td>Intervalo de 7 dias</td>
+              <td>Heap / partições</td>
+              <td>ms</td>
+              <td>shared hit/read</td>
+              <td>Seq Scan / Append</td>
+              <td>sim/não</td>
+            </tr>
+            <tr>
+              <td><strong>PostgreSQL</strong></td>
+              <td>Região + 7 dias</td>
+              <td>BRIN / B-tree</td>
+              <td>ms</td>
+              <td>buffers</td>
+              <td>Bitmap / Index Scan</td>
+              <td>sim/não</td>
+            </tr>
+            <tr>
+              <td><strong>PostgreSQL</strong></td>
+              <td>Receita diária</td>
+              <td>Fato / materialized view</td>
+              <td>ms</td>
+              <td>buffers</td>
+              <td>Aggregate / Index Scan</td>
+              <td>sim/não</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="callout rise" style="--delay:.12s">Primeira execução pode refletir cache frio; as seguintes caracterizam o caminho aquecido.</div>
+      </div>
+    </section>
+
+    <!-- Slide 15: DBeaver Setup -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head red rise">
+          <p class="eyebrow">Configuração do DBeaver</p>
+          <h2 class="slide-title">Duas conexões separadas, dialetos isolados</h2>
+          <p class="slide-subtitle">Não misture os dialetos: cada roteiro deve permanecer associado à respectiva conexão.</p>
+        </header>
+        <div class="dbeaver-setup">
+          <article class="connection-card rise" style="--delay:.05s">
+            <div class="engine-header">
+              <div class="engine-logo">🔥</div>
+              <div class="engine-name">ClickHouse</div>
+            </div>
+            <p>Informe host, porta HTTP 8123 ou HTTPS 8443, database fornecido, usuário e senha. Teste a conexão antes de abrir o editor.</p>
+          </article>
+          <article class="connection-card rise" style="--delay:.10s">
+            <div class="engine-header">
+              <div class="engine-logo">🐘</div>
+              <div class="engine-name">PostgreSQL</div>
+            </div>
+            <p>Informe host, porta 5432 ou a porta fornecida, database, usuário e senha. Ative SSL quando o provedor exigir.</p>
+          </article>
+        </div>
+        <div class="callout dark rise" style="--delay:.15s;margin-top:12px"><strong>Regras:</strong> Auto-commit ativado no bloco de VACUUM e no refresh concorrente. Não inclua host, usuário ou senha nos scripts compartilhados. Execute um bloco por vez com Ctrl+Enter.</div>
+      </div>
+    </section>
+
+    <!-- Slide 16: SDD Bridge -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head green rise">
+          <p class="eyebrow">Ponte com a Aula 1 · Spec-Driven Development</p>
+          <h2 class="slide-title">A otimização precisa virar especificação verificável</h2>
+          <p class="slide-subtitle">Quatro artefatos tornam a performance mensurável e reproduzível.</p>
+        </header>
+        <div class="g4">
+          <article class="card rise" style="--delay:.04s"><span class="card-label">RF-002</span><h3>Requisito funcional</h3><p>Disponibilizar a receita diária por região para relatórios e painéis analíticos.</p></article>
+          <article class="card amber rise" style="--delay:.10s"><span class="card-label">RNF-002</span><h3>Contrato mensurável</h3><p>Consulta de sete dias atende p95 ≤ 2 s e reduz leitura ≥ 80% em relação à baseline.</p></article>
+          <article class="card violet rise" style="--delay:.16s"><span class="card-label">ADR-DW-02</span><h3>Decisão arquitetural</h3><p>ClickHouse: ordenar por região+data, particionar por mês. PostgreSQL: particionar por mês, B-tree em região+data.</p></article>
+          <article class="card green rise" style="--delay:.22s"><span class="card-label">Cenário de aceite</span><h3>Comportamento esperado</h3><p>Dado o mesmo conjunto de vendas nos dois mecanismos, Quando a consulta otimizada é executada três vezes, Então o resultado é idêntico ao da baseline.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 17: Deliverable -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head dark rise">
+          <p class="eyebrow">Entregável da aula</p>
+          <h2 class="slide-title">Relatório comparativo com evidências mensuráveis</h2>
+          <p class="slide-subtitle">O desenho precisa comunicar integração, governança e evolução.</p>
+        </header>
+        <div class="deliverable">
+          <article class="artifact rise" style="--delay:.05s"><small>Artefato</small><h3>Relatório de benchmark</h3><p>Inclui as seis linhas do benchmark preenchidas, planos de execução antes e depois, interpretação do gargalo e recomendação técnica para o Data Warehouse do projeto.</p></article>
+          <div class="acceptance">
+            <div class="accept rise" style="--delay:.08s"><span>1</span><p>Os dois roteiros SQL executados no DBeaver sem misturar conexões ou dialetos.</p></div>
+            <div class="accept rise" style="--delay:.11s"><span>2</span><p>Registro com ao menos três execuções por cenário apresentando mediana.</p></div>
+            <div class="accept rise" style="--delay:.14s"><span>3</span><p>Cada comparação inclui plano, métrica de leitura e conferência do resultado.</p></div>
+            <div class="accept rise" style="--delay:.17s"><span>4</span><p>Recomendação distingue ClickHouse e PostgreSQL e explicita custo introduzido.</p></div>
+            <div class="accept rise" style="--delay:.20s"><span>5</span><p>Materialização possui estratégia de backfill/refresh e defasagem declarada.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 18: Closing -->
+    <section class="slide">
+      <div class="sc">
+        <p class="eyebrow rise" style="color:var(--red)">Fechamento</p>
+        <div class="final-line rise" style="--delay:.08s">A otimização só é válida quando <em>evidencia</em> redução mensurável de trabalho — não apenas tempo — e mantém o resultado <em>idêntico</em> à baseline.</div>
+        <div class="refs rise" style="--delay:.17s">
+          <span class="ref">ClickHouse Docs — MergeTree table engine</span>
+          <span class="ref">ClickHouse Docs — Data skipping indexes</span>
+          <span class="ref">ClickHouse Docs — Incremental materialized views</span>
+          <span class="ref">PostgreSQL 18 — Table Partitioning</span>
+          <span class="ref">PostgreSQL 18 — Using EXPLAIN</span>
+          <span class="ref">PostgreSQL 18 — Materialized Views and Routine Vacuuming</span>
+        </div>
+        <div class="callout dark rise" style="--delay:.24s;margin-top:22px">Pergunta final: <strong>qual estratégia apresenta evidência suficiente para integrar o Data Warehouse do projeto?</strong></div>
+      </div>
+    </section>
+
+    <!-- Slide 19: Encontro Ficha -->
+    <section class="slide encontro-slide">
+      <div class="sc">
+        <span class="card-label rise">Ficha do encontro</span>
+        <section class="encontro-meta rise" data-encontro-ficha style="--delay:.08s">
+          <h2>Sobre este encontro</h2>
+          <p class="encontro-ref">Otimização de Data Warehouses · 24/08/2026 · Prof. Afonso Brandão</p>
+          <div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>Executar e avaliar técnicas de otimização de consultas OLAP no ClickHouse e no PostgreSQL, registrando evidências obtidas antes e depois de cada alteração.</p></div>
+          <div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>Laboratório guiado no DBeaver, com o mesmo conjunto sintético de vendas nos dois mecanismos. Cada grupo executa os blocos SQL em ordem, interpreta os planos de execução e registra as diferenças de latência, leitura e cardinalidade.</p></div>
+          <div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol><li>Preparação (10 min) — conectar os dois bancos no DBeaver e criar a baseline.</li><li>ClickHouse (50 min) — MergeTree, PARTITION BY, skip index e materialized view.</li><li>PostgreSQL (50 min) — particionamento, BRIN, B-tree, ANALYZE e VACUUM.</li><li>Comparação (10 min) — registrar evidências e recomendação técnica.</li></ol></div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <footer class="slide-footer">
+    <div class="footer-links">
+      <a href="../../home-module-11-eng-software.html" class="back-home">🏠 Módulo 11</a>
+      <a href="../materials/lesson-7-material.html" class="back-home material">📖 Material</a>
+    </div>
+    <div class="nav-wrapper">
+      <button type="button" class="nav-btn" id="prev-btn" onclick="previousSlide()">← Anterior</button>
+      <span class="slide-counter"><span id="current-slide">1</span> / <span id="total-slides">19</span></span>
+      <button type="button" class="nav-btn" id="next-btn" onclick="nextSlide()">Próximo →</button>
+    </div>
+    <button type="button" class="fullscreen-btn" onclick="toggleFullScreen()" title="Tela cheia">⛶</button>
   </footer>
-  <script src="../lesson-content.js"></script>
+
   <script>
-    const root = document.getElementById('lesson-slides');
-    const total = window.renderLessonSlides(root);
-    let current = 0;
-    const items = [...root.children];
-    const counter = document.getElementById('counter');
-    const prev = document.getElementById('prev');
-    const next = document.getElementById('next');
-    function show(index) {
-      current = Math.max(0, Math.min(index, total - 1));
-      items.forEach((item, i) => item.classList.toggle('active', i === current));
-      counter.textContent = (current + 1) + ' / ' + total;
-      prev.disabled = current === 0;
-      next.disabled = current === total - 1;
+    var currentSlide = 0;
+    var slides = Array.from(document.querySelectorAll('.slide'));
+    var totalSlides = slides.length;
+
+    document.getElementById('total-slides').textContent = totalSlides;
+
+    function showSlide(index) {
+      currentSlide = Math.max(0, Math.min(index, totalSlides - 1));
+      slides.forEach(function (slide, i) {
+        slide.classList.toggle('active', i === currentSlide);
+        if (i === currentSlide) slide.scrollTop = 0;
+      });
+      document.getElementById('current-slide').textContent = currentSlide + 1;
+      document.getElementById('prev-btn').disabled = currentSlide === 0;
+      document.getElementById('next-btn').disabled = currentSlide === totalSlides - 1;
     }
-    prev.addEventListener('click', () => show(current - 1));
-    next.addEventListener('click', () => show(current + 1));
-    document.addEventListener('keydown', (event) => {
-      if (event.key === 'ArrowLeft') show(current - 1);
-      if (event.key === 'ArrowRight' || event.key === ' ') { event.preventDefault(); show(current + 1); }
+
+    function nextSlide() { showSlide(currentSlide + 1); }
+    function previousSlide() { showSlide(currentSlide - 1); }
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'ArrowRight' || event.key === ' ') {
+        event.preventDefault();
+        nextSlide();
+      } else if (event.key === 'ArrowLeft') {
+        previousSlide();
+      } else if (event.key.toLowerCase() === 'f') {
+        toggleFullScreen();
+      }
     });
-    show(0);
+
+    showSlide(0);
   </script>
-<!-- encontro:pdf:start -->
-<button type="button" class="pdf-export-btn" data-encontro-data="2026-08-24" data-encontro-docente="Afonso" data-encontro-seq="01" title="Exportar esta página em PDF com o nome padronizado">📄 Exportar PDF</button>
-<script src="../../../js/encontro-pdf.js" defer></script>
-<!-- encontro:pdf:end -->
+  <button type="button" class="pdf-export-btn" data-encontro-data="2026-08-24" data-encontro-docente="Afonso" data-encontro-seq="01" title="Exportar esta página em PDF com o nome padronizado">📄 Exportar PDF</button>
+  <script src="../../../js/encontro-pdf.js" defer></script>
 </body>
 </html>
