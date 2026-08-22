@@ -1123,84 +1123,653 @@
 
     7: {
       title: 'Otimização de Data Warehouses', date: '24/08/2026',
-      subtitle: 'Desempenho, custo e previsibilidade sem otimização por tentativa e erro.',
-      objective: 'Diagnosticar gargalos de consulta e escolher particionamento, clustering, materialização e modelagem com base em evidências.',
+      subtitle: 'Laboratório comparativo de consultas OLAP com ClickHouse e PostgreSQL no DBeaver.',
+      objective: 'Executar e avaliar técnicas de otimização de consultas OLAP no ClickHouse e no PostgreSQL, registrando evidências obtidas antes e depois de cada alteração.',
+      estrategia: 'Laboratório guiado no DBeaver, com o mesmo conjunto sintético de vendas nos dois mecanismos. Cada grupo executa os blocos SQL em ordem, interpreta os planos de execução e registra as diferenças de latência, leitura e cardinalidade.',
+      estrutura: [
+        'Preparação do DBeaver e construção da baseline — 10 min.',
+        'ClickHouse: MergeTree, PARTITION BY, PRIMARY KEY e ORDER BY — 30 min.',
+        'ClickHouse: skip index, materialized view e query_log — 20 min.',
+        'PostgreSQL: particionamento, BRIN, B-tree e EXPLAIN — 30 min.',
+        'PostgreSQL: materialized view, ANALYZE e VACUUM — 20 min.',
+        'Comparação dos resultados e registro da recomendação — 10 min.'
+      ],
+      timebox: [
+        { minutes: 10, label: 'Conectar os dois bancos no DBeaver e criar a baseline.' },
+        { minutes: 50, label: 'Executar o roteiro de otimização no ClickHouse.' },
+        { minutes: 50, label: 'Executar o roteiro de otimização no PostgreSQL.' },
+        { minutes: 10, label: 'Comparar as evidências e registrar a recomendação.' }
+      ],
       outcomes: [
-        'Diagnosticar a causa de uma consulta lenta a partir do plano de execução.',
-        'Escolher particionamento e clustering pelos predicados reais do workload.',
-        'Decidir entre view, tabela incremental e agregada considerando freshness e custo.',
-        'Comprovar ganho com benchmark controlado e evidência antes/depois.'
+        'Interpretar partições, granules, linhas, buffers e cardinalidades em planos de execução.',
+        'Aplicar PARTITION BY, PRIMARY KEY, ORDER BY e skip indexes em tabelas MergeTree.',
+        'Comparar BRIN e B-tree em uma tabela fato particionada no PostgreSQL.',
+        'Construir agregações pré-processadas com materialized views nos dois mecanismos.',
+        'Executar ANALYZE e VACUUM e relacioná-los às estatísticas e à manutenção do PostgreSQL.',
+        'Comprovar o efeito de cada estratégia por meio de um benchmark controlado.'
       ],
       sections: [
         {
-          nav: 'Medir antes de otimizar', title: 'Sintoma e causa',
-          text: 'Tempo alto pode vir de leitura excessiva, join explosivo, skew, baixa seletividade, concorrência, fila ou rede. Comece pelo perfil da consulta.',
+          nav: 'Método experimental', title: 'Uma alteração por rodada',
+          text: 'O benchmark mantém consulta, dados e conexão constantes. Registra-se a baseline, aplica-se uma alteração e repete-se a medição. Tempo isolado não basta: linhas, bytes, buffers e cardinalidade explicam a causa da variação.',
           checklist: [
-            'Colete a consulta real do usuário, não uma versão simplificada.',
-            'Registre tempo, bytes lidos e custo antes de qualquer alteração.',
-            'Formule uma hipótese de causa antes de mexer no código.'
+            'Execute cada consulta ao menos três vezes e registre a mediana.',
+            'Compare resultados antes de comparar desempenho.',
+            'Altere apenas uma estrutura por rodada.'
           ],
-          pitfall: 'Otimizar pela intuição. Sem baseline registrado, não há como provar que melhorou.'
+          pitfall: 'Comparar consultas diferentes ou registrar somente a execução mais rápida invalida a conclusão.'
         },
         {
-          nav: 'Plano de execução', title: 'Plano de execução',
-          text: 'Leia bytes lidos, cardinalidade estimada versus real, etapas de shuffle, spills, scans completos e operadores que concentram tempo.',
+          nav: 'ClickHouse físico', title: 'MergeTree, ordenação e partições',
+          text: 'No ClickHouse, ORDER BY define a ordenação física e, na ausência de outra declaração, também define a chave primária esparsa. PARTITION BY organiza o ciclo de vida e permite partition pruning; não substitui uma chave de ordenação coerente com os filtros frequentes.',
           checklist: [
-            'Compare cardinalidade estimada e real para detectar estatística defasada.',
-            'Procure shuffle, spill e full scan antes de olhar a sintaxe.',
-            'Identifique o operador que concentra tempo, não o que parece complexo.'
+            'Mantenha a chave primária como prefixo de ORDER BY.',
+            'Use partições mensais para o conjunto anual do laboratório.',
+            'Confirme parts e granules selecionados com EXPLAIN indexes = 1.'
           ],
-          pitfall: 'Reescrever SQL sem ler o plano. A maior parte do ganho vem de leitura evitada, não de sintaxe.'
+          pitfall: 'Particionar por identificadores de alta cardinalidade produz excesso de partes e aumenta o custo operacional.'
         },
         {
-          nav: 'Particionamento', title: 'Particionamento',
-          text: 'Particione por colunas usadas em filtros temporais ou de domínio. Evite partições pequenas demais, alta cardinalidade e partições que ninguém filtra.',
+          nav: 'ClickHouse adicional', title: 'Skip index e agregação incremental',
+          text: 'Skip indexes descartam granules quando a chave principal não atende a um predicado seletivo. Materialized views incrementais deslocam agregações da leitura para a ingestão e exigem uma tabela de destino e uma estratégia explícita de backfill.',
           checklist: [
-            'Particione pela coluna presente no filtro da maioria das consultas.',
-            'Dimensione a partição para arquivos entre 128 MB e 1 GB.',
-            'Meça o pruning: confirme quantas partições o plano descartou.'
+            'Teste o predicado antes e depois de materializar o skip index.',
+            'Consulte a tabela de destino com sum para consolidar partes ainda não mescladas.',
+            'Inclua dados históricos por INSERT INTO SELECT após criar a view.'
           ],
-          pitfall: 'Particionar por coluna de alta cardinalidade, como identificador de cliente. Gera milhares de partições minúsculas e piora tudo.'
+          pitfall: 'A materialized view incremental processa novos blocos; ela não preenche automaticamente o histórico já existente.'
         },
         {
-          nav: 'Clustering e índices', title: 'Clustering e índices',
-          text: 'Organize dados pelos predicados mais frequentes. Índices ajudam workloads seletivos; em engines colunares, compressão e pruning geralmente importam mais.',
+          nav: 'PostgreSQL físico', title: 'Particionamento, BRIN e B-tree',
+          text: 'No PostgreSQL, o particionamento declarativo permite eliminar partições fora do intervalo. BRIN resume faixas físicas e favorece tabelas extensas correlacionadas com a ordem de armazenamento; B-tree atende predicados seletivos e ordenados, com maior custo de armazenamento e escrita.',
           checklist: [
-            'Ordene pelos predicados mais frequentes, do mais seletivo ao menos.',
-            'Em engine colunar, avalie compressão e pruning antes de índice.',
-            'Reavalie o clustering quando o padrão de consulta mudar.'
+            'Confirme no plano quantas partições foram acessadas.',
+            'Use BRIN para o intervalo temporal fisicamente correlacionado.',
+            'Use B-tree composta para região e intervalo temporal.'
           ],
-          pitfall: 'Trazer o hábito de índice do OLTP para o colunar. Ali o ganho vem de descartar blocos, não de apontar linhas.'
+          pitfall: 'Criar ambos os índices sem comparar seus tamanhos e planos transfere custo para toda operação de escrita.'
         },
         {
-          nav: 'Materialização', title: 'Materialização',
-          text: 'Escolha entre view, tabela incremental, snapshot e aggregate table. Defina freshness, custo de atualização e consumidor antes de materializar.',
+          nav: 'PostgreSQL operacional', title: 'Estatísticas, manutenção e materialização',
+          text: 'ANALYZE atualiza as estatísticas usadas pelo planejador. VACUUM recupera espaço reutilizável e mantém o mapa de visibilidade. A materialized view persiste o resultado e deve possuir política de atualização compatível com a defasagem admitida pelo consumidor.',
           checklist: [
-            'Declare o freshness aceitável antes de materializar.',
-            'Some o custo de atualização ao custo de consulta na comparação.',
-            'Nomeie o consumidor: materialização sem consumidor é custo puro.'
+            'Execute ANALYZE após a carga inicial e após mudanças relevantes de distribuição.',
+            'Execute VACUUM fora de uma transação explícita no DBeaver.',
+            'Crie índice UNIQUE antes de usar REFRESH MATERIALIZED VIEW CONCURRENTLY.'
           ],
-          pitfall: 'Criar a tabela agregada e manter a consulta original disponível. Duas fontes para a mesma métrica divergem em semanas.'
+          pitfall: 'Uma materialized view sem frequência de atualização definida pode entregar valores corretos para um estado já superado.'
         },
         {
-          nav: 'Benchmark', title: 'Benchmark',
-          text: 'Compare baseline e candidato com o mesmo dataset, cache controlado, métricas de latência, bytes processados, custo e qualidade do resultado.',
+          nav: 'Leitura dos planos', title: 'I/O, CPU e cardinalidade',
+          text: 'No ClickHouse, read_rows, read_bytes, memory_usage e granules selecionados caracterizam o trabalho realizado. No PostgreSQL, buffers hit/read aproximam o comportamento de I/O, actual time localiza operadores custosos e a diferença entre rows estimadas e reais evidencia problemas de cardinalidade.',
           checklist: [
-            'Use o mesmo dataset e controle o cache entre execuções.',
-            'Repita a medição e reporte mediana e p95, não o melhor caso.',
-            'Verifique que o resultado do candidato é idêntico ao do baseline.'
+            'Registre o plano junto com o tempo medido.',
+            'Distinga redução de leitura de mero efeito de cache.',
+            'Verifique se a estratégia mantém o resultado da baseline.'
           ],
-          pitfall: 'Medir com cache quente e comemorar o ganho. O usuário paga o caminho frio.'
+          pitfall: 'Uma redução de tempo sem redução explicável de trabalho não sustenta uma recomendação de arquitetura.'
         }
       ],
-      sdd: {
-        rf: 'RF-002 — Disponibilizar a consulta de receita por região e mês ao analista, sob demanda, sem agendamento prévio.',
-        rnf: 'RNF-002 — p95 ≤ 2 s e no máximo 20 GB varridos por execução, medidos com cache frio.',
-        adr: 'ADR-DW-02 — Particionar fato_vendas por data_venda e clusterizar por regiao_id. Alternativa descartada: índice secundário, sem efeito relevante em engine colunar. Consequência: consulta sem filtro de data varre a tabela inteira e precisa ser bloqueada na camada semântica.',
-        gherkin: 'Dado fato_vendas particionada por data_venda, Quando consulto um intervalo de sete dias, Então o plano lê no máximo sete partições e não executa varredura completa.'
+      dbeaver: {
+        intro: 'Abra um editor SQL separado para cada conexão. Execute um bloco por vez com Ctrl+Enter; use Alt+X apenas quando desejar executar todo o roteiro daquela conexão. O delimitador permanece como ponto e vírgula.',
+        rules: [
+          'Não misture os dialetos: cada roteiro deve permanecer associado à respectiva conexão.',
+          'Mantenha auto-commit ativado no bloco de VACUUM e no refresh concorrente do PostgreSQL.',
+          'Não inclua host, usuário ou senha nos scripts compartilhados.'
+        ],
+        connections: [
+          { engine: 'ClickHouse', text: 'Informe host, porta HTTP 8123 ou HTTPS 8443, database fornecido, usuário e senha. Teste a conexão antes de abrir o editor.' },
+          { engine: 'PostgreSQL', text: 'Informe host, porta 5432 ou a porta fornecida, database, usuário e senha. Ative SSL quando o provedor exigir.' }
+        ]
       },
-      deliverable: 'Relatório de otimização com baseline medido, hipótese de causa, alteração aplicada, evidência antes/depois e recomendação de operação.',
-      references: ['Use the Index, Luke!', 'Apache Spark SQL Performance Tuning', 'BigQuery — Optimize query computation', 'Snowflake — Micro-partitions and clustering']
+      sqlLabs: [
+        {
+          engine: 'ClickHouse', file: 'aula-7-clickhouse.sql',
+          goal: 'Comparar uma MergeTree sem chave útil com uma tabela particionada, ordenada e pré-agregada.',
+          steps: [
+            {
+              title: '1. Preparar as tabelas',
+              purpose: 'Recria o ambiente e estabelece uma baseline sem ordenação útil para os filtros analíticos.',
+              focus: `CREATE TABLE aula_dw.fato_vendas_otimizada (...)
+ENGINE = MergeTree
+PARTITION BY toYYYYMM(data_venda)
+PRIMARY KEY (regiao_id, data_venda)
+ORDER BY (regiao_id, data_venda, produto_id);`,
+              sql: `CREATE DATABASE IF NOT EXISTS aula_dw;
+
+DROP TABLE IF EXISTS aula_dw.mv_vendas_dia;
+DROP TABLE IF EXISTS aula_dw.vendas_dia;
+DROP TABLE IF EXISTS aula_dw.fato_vendas_otimizada;
+DROP TABLE IF EXISTS aula_dw.fato_vendas_base;
+
+CREATE TABLE aula_dw.fato_vendas_base
+(
+    venda_id UInt64,
+    data_venda DateTime,
+    regiao_id UInt8,
+    cliente_id UInt32,
+    produto_id UInt16,
+    valor Decimal(12, 2)
+)
+ENGINE = MergeTree
+ORDER BY tuple();
+
+CREATE TABLE aula_dw.fato_vendas_otimizada
+(
+    venda_id UInt64,
+    data_venda DateTime,
+    regiao_id UInt8,
+    cliente_id UInt32,
+    produto_id UInt16,
+    valor Decimal(12, 2)
+)
+ENGINE = MergeTree
+PARTITION BY toYYYYMM(data_venda)
+PRIMARY KEY (regiao_id, data_venda)
+ORDER BY (regiao_id, data_venda, produto_id);`,
+              observe: 'A chave primária é um prefixo da chave de ordenação. A tabela base usa ORDER BY tuple() e não possui uma chave útil para pruning.'
+            },
+            {
+              title: '2. Gerar dois milhões de vendas',
+              purpose: 'Cria dados determinísticos distribuídos ao longo de 2025 e copia o mesmo conjunto para as duas estruturas.',
+              focus: `INSERT INTO aula_dw.fato_vendas_base
+SELECT ...
+FROM numbers(2000000);
+
+INSERT INTO aula_dw.fato_vendas_otimizada
+SELECT * FROM aula_dw.fato_vendas_base;`,
+              sql: `INSERT INTO aula_dw.fato_vendas_base
+SELECT
+    number + 1 AS venda_id,
+    toDateTime('2025-01-01 00:00:00')
+        + toIntervalSecond(intDiv(number * 31536000, 2000000)) AS data_venda,
+    toUInt8(number % 20 + 1) AS regiao_id,
+    toUInt32(intDiv(number, 20) % 100000 + 1) AS cliente_id,
+    toUInt16(number % 1000 + 1) AS produto_id,
+    toDecimal64(10 + (number % 50000) / 100.0, 2) AS valor
+FROM numbers(2000000);
+
+INSERT INTO aula_dw.fato_vendas_otimizada
+SELECT *
+FROM aula_dw.fato_vendas_base;
+
+SELECT
+    table,
+    sum(rows) AS linhas,
+    count() AS partes,
+    formatReadableSize(sum(bytes_on_disk)) AS armazenamento
+FROM system.parts
+WHERE database = 'aula_dw' AND active
+GROUP BY table
+ORDER BY table;`,
+              observe: 'As duas tabelas devem possuir 2.000.000 de linhas. A tabela otimizada deve apresentar partições mensais.'
+            },
+            {
+              title: '3. Comparar full scan, partition pruning e chave primária',
+              purpose: 'Executa a mesma agregação nas duas tabelas e inspeciona os granules selecionados e o pipeline paralelo.',
+              focus: `EXPLAIN indexes = 1
+SELECT count(), sum(valor)
+FROM aula_dw.fato_vendas_otimizada
+WHERE regiao_id = 7
+  AND data_venda >= '2025-07-01'
+  AND data_venda <  '2025-07-08';`,
+              sql: `EXPLAIN indexes = 1
+SELECT count(), sum(valor)
+FROM aula_dw.fato_vendas_base
+WHERE regiao_id = 7
+  AND data_venda >= toDateTime('2025-07-01 00:00:00')
+  AND data_venda <  toDateTime('2025-07-08 00:00:00');
+
+SELECT count(), sum(valor)
+FROM aula_dw.fato_vendas_base
+WHERE regiao_id = 7
+  AND data_venda >= toDateTime('2025-07-01 00:00:00')
+  AND data_venda <  toDateTime('2025-07-08 00:00:00');
+
+EXPLAIN indexes = 1
+SELECT count(), sum(valor)
+FROM aula_dw.fato_vendas_otimizada
+WHERE regiao_id = 7
+  AND data_venda >= toDateTime('2025-07-01 00:00:00')
+  AND data_venda <  toDateTime('2025-07-08 00:00:00');
+
+SELECT count(), sum(valor)
+FROM aula_dw.fato_vendas_otimizada
+WHERE regiao_id = 7
+  AND data_venda >= toDateTime('2025-07-01 00:00:00')
+  AND data_venda <  toDateTime('2025-07-08 00:00:00');
+
+EXPLAIN PIPELINE
+SELECT regiao_id, count(), sum(valor)
+FROM aula_dw.fato_vendas_otimizada
+WHERE data_venda >= toDateTime('2025-01-01 00:00:00')
+  AND data_venda <  toDateTime('2026-01-01 00:00:00')
+GROUP BY regiao_id;`,
+              observe: 'O plano otimizado deve mostrar Partition e PrimaryKey com uma fração menor de parts e granules. EXPLAIN PIPELINE explicita os processadores paralelos disponíveis.'
+            },
+            {
+              title: '4. Materializar um skip index',
+              purpose: 'Avalia um bloom filter para uma busca seletiva por cliente fora da chave primária.',
+              focus: `ALTER TABLE aula_dw.fato_vendas_otimizada
+ADD INDEX idx_cliente cliente_id
+TYPE bloom_filter(0.01) GRANULARITY 1;
+
+ALTER TABLE aula_dw.fato_vendas_otimizada
+MATERIALIZE INDEX idx_cliente;`,
+              sql: `EXPLAIN indexes = 1
+SELECT count()
+FROM aula_dw.fato_vendas_otimizada
+WHERE regiao_id = 7 AND cliente_id = 50000;
+
+ALTER TABLE aula_dw.fato_vendas_otimizada
+ADD INDEX idx_cliente cliente_id
+TYPE bloom_filter(0.01) GRANULARITY 1;
+
+ALTER TABLE aula_dw.fato_vendas_otimizada
+MATERIALIZE INDEX idx_cliente
+SETTINGS mutations_sync = 1;
+
+EXPLAIN indexes = 1
+SELECT count()
+FROM aula_dw.fato_vendas_otimizada
+WHERE regiao_id = 7 AND cliente_id = 50000;
+
+SELECT count()
+FROM aula_dw.fato_vendas_otimizada
+WHERE regiao_id = 7 AND cliente_id = 50000;
+
+SELECT database, table, name, type, expr, granularity
+FROM system.data_skipping_indices
+WHERE database = 'aula_dw'
+ORDER BY table, name;`,
+              observe: 'O segundo plano deve incluir Skip com o índice idx_cliente. O índice somente se justifica se reduzir granules para o predicado observado.'
+            },
+            {
+              title: '5. Criar uma agregação incremental',
+              purpose: 'Mantém receita e quantidade por dia e região no momento da ingestão e preenche o histórico por backfill.',
+              focus: `CREATE MATERIALIZED VIEW aula_dw.mv_vendas_dia
+TO aula_dw.vendas_dia AS
+SELECT toDate(data_venda) AS dia, regiao_id,
+       count() AS quantidade, sum(valor) AS receita
+FROM aula_dw.fato_vendas_otimizada
+GROUP BY dia, regiao_id;`,
+              sql: `CREATE TABLE aula_dw.vendas_dia
+(
+    dia Date,
+    regiao_id UInt8,
+    quantidade UInt64,
+    receita Decimal(18, 2)
+)
+ENGINE = SummingMergeTree
+PARTITION BY toYYYYMM(dia)
+ORDER BY (dia, regiao_id);
+
+CREATE MATERIALIZED VIEW aula_dw.mv_vendas_dia
+TO aula_dw.vendas_dia AS
+SELECT
+    toDate(data_venda) AS dia,
+    regiao_id,
+    count() AS quantidade,
+    CAST(sum(valor), 'Decimal(18, 2)') AS receita
+FROM aula_dw.fato_vendas_otimizada
+GROUP BY dia, regiao_id;
+
+INSERT INTO aula_dw.vendas_dia
+SELECT
+    toDate(data_venda) AS dia,
+    regiao_id,
+    count() AS quantidade,
+    CAST(sum(valor), 'Decimal(18, 2)') AS receita
+FROM aula_dw.fato_vendas_otimizada
+GROUP BY dia, regiao_id;
+
+SELECT
+    toDate(data_venda) AS dia,
+    count() AS quantidade,
+    sum(valor) AS receita
+FROM aula_dw.fato_vendas_otimizada
+WHERE regiao_id = 7
+  AND data_venda >= toDateTime('2025-07-01 00:00:00')
+  AND data_venda <  toDateTime('2025-08-01 00:00:00')
+GROUP BY dia
+ORDER BY dia;
+
+SELECT
+    dia,
+    sum(quantidade) AS quantidade,
+    sum(receita) AS receita
+FROM aula_dw.vendas_dia
+WHERE regiao_id = 7
+  AND dia >= toDate('2025-07-01')
+  AND dia <  toDate('2025-08-01')
+GROUP BY dia
+ORDER BY dia;
+
+INSERT INTO aula_dw.fato_vendas_otimizada VALUES
+(2000001, toDateTime('2025-07-15 12:00:00'), 7, 50000, 42, 199.90);
+
+SELECT dia, sum(quantidade), sum(receita)
+FROM aula_dw.vendas_dia
+WHERE dia = toDate('2025-07-15') AND regiao_id = 7
+GROUP BY dia;`,
+              observe: 'As duas consultas diárias devem retornar os mesmos totais antes da inserção adicional. A última inserção deve ser incorporada automaticamente pela materialized view.'
+            },
+            {
+              title: '6. Consultar as métricas executadas',
+              purpose: 'Obtém duração, linhas, bytes e memória para as consultas recentes do laboratório.',
+              focus: `SELECT query_duration_ms, read_rows, read_bytes, memory_usage
+FROM system.query_log
+WHERE type = 'QueryFinish'
+ORDER BY event_time DESC;`,
+              sql: `SYSTEM FLUSH LOGS;
+
+SELECT
+    event_time,
+    query_duration_ms,
+    read_rows,
+    formatReadableSize(read_bytes) AS bytes_lidos,
+    formatReadableSize(memory_usage) AS memoria,
+    left(replaceAll(query, '\n', ' '), 120) AS consulta
+FROM system.query_log
+WHERE type = 'QueryFinish'
+  AND event_time >= now() - INTERVAL 15 MINUTE
+  AND has(databases, 'aula_dw')
+  AND query NOT ILIKE '%system.query_log%'
+ORDER BY event_time DESC
+LIMIT 30;`,
+              observe: 'Registre a mediana de três execuções e compare read_rows e read_bytes. Caso o usuário não possa executar SYSTEM FLUSH LOGS, aguarde a gravação assíncrona e execute somente o SELECT.'
+            }
+          ]
+        },
+        {
+          engine: 'PostgreSQL', file: 'aula-7-postgresql.sql',
+          goal: 'Comparar varredura sequencial, eliminação de partições, BRIN, B-tree e materialized view.',
+          steps: [
+            {
+              title: '1. Preparar a tabela base e as partições',
+              purpose: 'Recria o schema e define doze partições mensais para 2025.',
+              focus: `CREATE TABLE aula_dw.fato_vendas_part (...)
+PARTITION BY RANGE (data_venda);
+
+CREATE TABLE aula_dw.fato_vendas_2025_07
+PARTITION OF aula_dw.fato_vendas_part
+FOR VALUES FROM ('2025-07-01') TO ('2025-08-01');`,
+              sql: `DROP SCHEMA IF EXISTS aula_dw CASCADE;
+CREATE SCHEMA aula_dw;
+SET search_path TO aula_dw, public;
+
+CREATE TABLE aula_dw.fato_vendas_base
+(
+    venda_id bigint NOT NULL,
+    data_venda timestamp NOT NULL,
+    regiao_id smallint NOT NULL,
+    cliente_id integer NOT NULL,
+    produto_id integer NOT NULL,
+    valor numeric(12, 2) NOT NULL
+);
+
+CREATE TABLE aula_dw.fato_vendas_part
+(
+    venda_id bigint NOT NULL,
+    data_venda timestamp NOT NULL,
+    regiao_id smallint NOT NULL,
+    cliente_id integer NOT NULL,
+    produto_id integer NOT NULL,
+    valor numeric(12, 2) NOT NULL
+)
+PARTITION BY RANGE (data_venda);
+
+CREATE TABLE aula_dw.fato_vendas_2025_01 PARTITION OF aula_dw.fato_vendas_part FOR VALUES FROM ('2025-01-01') TO ('2025-02-01');
+CREATE TABLE aula_dw.fato_vendas_2025_02 PARTITION OF aula_dw.fato_vendas_part FOR VALUES FROM ('2025-02-01') TO ('2025-03-01');
+CREATE TABLE aula_dw.fato_vendas_2025_03 PARTITION OF aula_dw.fato_vendas_part FOR VALUES FROM ('2025-03-01') TO ('2025-04-01');
+CREATE TABLE aula_dw.fato_vendas_2025_04 PARTITION OF aula_dw.fato_vendas_part FOR VALUES FROM ('2025-04-01') TO ('2025-05-01');
+CREATE TABLE aula_dw.fato_vendas_2025_05 PARTITION OF aula_dw.fato_vendas_part FOR VALUES FROM ('2025-05-01') TO ('2025-06-01');
+CREATE TABLE aula_dw.fato_vendas_2025_06 PARTITION OF aula_dw.fato_vendas_part FOR VALUES FROM ('2025-06-01') TO ('2025-07-01');
+CREATE TABLE aula_dw.fato_vendas_2025_07 PARTITION OF aula_dw.fato_vendas_part FOR VALUES FROM ('2025-07-01') TO ('2025-08-01');
+CREATE TABLE aula_dw.fato_vendas_2025_08 PARTITION OF aula_dw.fato_vendas_part FOR VALUES FROM ('2025-08-01') TO ('2025-09-01');
+CREATE TABLE aula_dw.fato_vendas_2025_09 PARTITION OF aula_dw.fato_vendas_part FOR VALUES FROM ('2025-09-01') TO ('2025-10-01');
+CREATE TABLE aula_dw.fato_vendas_2025_10 PARTITION OF aula_dw.fato_vendas_part FOR VALUES FROM ('2025-10-01') TO ('2025-11-01');
+CREATE TABLE aula_dw.fato_vendas_2025_11 PARTITION OF aula_dw.fato_vendas_part FOR VALUES FROM ('2025-11-01') TO ('2025-12-01');
+CREATE TABLE aula_dw.fato_vendas_2025_12 PARTITION OF aula_dw.fato_vendas_part FOR VALUES FROM ('2025-12-01') TO ('2026-01-01');`,
+              observe: 'A tabela particionada não armazena linhas no objeto pai; cada linha é encaminhada para a partição correspondente.'
+            },
+            {
+              title: '2. Gerar dois milhões de vendas',
+              purpose: 'Cria uma tabela fato em ordem temporal, copia as mesmas linhas para as partições e atualiza as estatísticas.',
+              focus: `INSERT INTO aula_dw.fato_vendas_base
+SELECT ...
+FROM generate_series(1, 2000000) AS g;
+
+INSERT INTO aula_dw.fato_vendas_part
+SELECT * FROM aula_dw.fato_vendas_base;
+
+ANALYZE aula_dw.fato_vendas_part;`,
+              sql: `INSERT INTO aula_dw.fato_vendas_base
+SELECT
+    g AS venda_id,
+    timestamp '2025-01-01 00:00:00'
+        + (((CAST(g AS bigint) - 1) * 31536000 / 2000000) * interval '1 second') AS data_venda,
+    CAST((g % 20) + 1 AS smallint) AS regiao_id,
+    CAST((g % 100000) + 1 AS integer) AS cliente_id,
+    CAST((g % 1000) + 1 AS integer) AS produto_id,
+    CAST(10 + (g % 50000) / 100.0 AS numeric(12, 2)) AS valor
+FROM generate_series(1, 2000000) AS g;
+
+INSERT INTO aula_dw.fato_vendas_part
+SELECT *
+FROM aula_dw.fato_vendas_base;
+
+ANALYZE aula_dw.fato_vendas_base;
+ANALYZE aula_dw.fato_vendas_part;
+
+SELECT
+    CAST(tableoid AS regclass) AS particao,
+    count(*) AS linhas
+FROM aula_dw.fato_vendas_part
+GROUP BY tableoid
+ORDER BY particao;`,
+              observe: 'As partições devem totalizar 2.000.000 de linhas. ANALYZE fornece ao planejador estatísticas da tabela base, das folhas e da hierarquia particionada.'
+            },
+            {
+              title: '3. Comparar varredura e eliminação de partições',
+              purpose: 'Executa a mesma consulta sem índices e identifica quantas relações são lidas.',
+              focus: `EXPLAIN (ANALYZE, BUFFERS, SUMMARY)
+SELECT count(*), sum(valor)
+FROM aula_dw.fato_vendas_part
+WHERE data_venda >= timestamp '2025-07-01'
+  AND data_venda <  timestamp '2025-07-08';`,
+              sql: `EXPLAIN (ANALYZE, BUFFERS, SUMMARY)
+SELECT count(*), sum(valor)
+FROM aula_dw.fato_vendas_base
+WHERE data_venda >= timestamp '2025-07-01 00:00:00'
+  AND data_venda <  timestamp '2025-07-08 00:00:00';
+
+EXPLAIN (ANALYZE, BUFFERS, SUMMARY)
+SELECT count(*), sum(valor)
+FROM aula_dw.fato_vendas_part
+WHERE data_venda >= timestamp '2025-07-01 00:00:00'
+  AND data_venda <  timestamp '2025-07-08 00:00:00';
+
+SET max_parallel_workers_per_gather = 4;
+
+EXPLAIN (ANALYZE, BUFFERS, SUMMARY)
+SELECT date_trunc('month', data_venda) AS mes, sum(valor)
+FROM aula_dw.fato_vendas_base
+GROUP BY mes
+ORDER BY mes;`,
+              observe: 'A consulta particionada deve acessar somente julho. A última consulta pode apresentar Partial Aggregate, Gather ou Gather Merge, conforme os recursos concedidos pelo serviço.'
+            },
+            {
+              title: '4. Comparar BRIN e B-tree',
+              purpose: 'Aplica um índice compacto para tempo e um índice composto para o predicado seletivo de região e tempo.',
+              focus: `CREATE INDEX fato_vendas_data_brin
+ON aula_dw.fato_vendas_part USING brin (data_venda);
+
+CREATE INDEX fato_vendas_regiao_data_btree
+ON aula_dw.fato_vendas_part USING btree (regiao_id, data_venda)
+INCLUDE (valor);`,
+              sql: `CREATE INDEX fato_vendas_data_brin
+ON aula_dw.fato_vendas_part
+USING brin (data_venda)
+WITH (pages_per_range = 32);
+
+CREATE INDEX fato_vendas_regiao_data_btree
+ON aula_dw.fato_vendas_part
+USING btree (regiao_id, data_venda)
+INCLUDE (valor);
+
+ANALYZE aula_dw.fato_vendas_part;
+
+EXPLAIN (ANALYZE, BUFFERS, SUMMARY)
+SELECT count(*), sum(valor)
+FROM aula_dw.fato_vendas_part
+WHERE data_venda >= timestamp '2025-07-01 00:00:00'
+  AND data_venda <  timestamp '2025-07-08 00:00:00';
+
+EXPLAIN (ANALYZE, BUFFERS, SUMMARY)
+SELECT count(*), sum(valor)
+FROM aula_dw.fato_vendas_part
+WHERE regiao_id = 7
+  AND data_venda >= timestamp '2025-07-01 00:00:00'
+  AND data_venda <  timestamp '2025-07-08 00:00:00';
+
+SELECT
+    am.amname AS tipo_indice,
+    pg_size_pretty(CAST(sum(pg_relation_size(idx.oid)) AS bigint)) AS tamanho_total
+FROM pg_class AS idx
+JOIN pg_index AS i ON i.indexrelid = idx.oid
+JOIN pg_class AS tab ON tab.oid = i.indrelid
+JOIN pg_namespace AS ns ON ns.oid = tab.relnamespace
+JOIN pg_am AS am ON am.oid = idx.relam
+WHERE ns.nspname = 'aula_dw'
+  AND tab.relname LIKE 'fato_vendas_2025_%'
+GROUP BY am.amname
+ORDER BY am.amname;`,
+              observe: 'O plano temporal tende a utilizar BRIN; o filtro de região e tempo tende a utilizar B-tree. Compare também o espaço total ocupado por cada método.'
+            },
+            {
+              title: '5. Criar e atualizar a materialized view',
+              purpose: 'Persiste a agregação diária, cria a chave exigida pelo refresh concorrente e compara a leitura com a tabela fato.',
+              focus: `CREATE MATERIALIZED VIEW aula_dw.mv_vendas_dia AS
+SELECT CAST(data_venda AS date) AS dia, regiao_id,
+       count(*) AS quantidade, sum(valor) AS receita
+FROM aula_dw.fato_vendas_part
+GROUP BY CAST(data_venda AS date), regiao_id;
+
+REFRESH MATERIALIZED VIEW CONCURRENTLY aula_dw.mv_vendas_dia;`,
+              sql: `CREATE MATERIALIZED VIEW aula_dw.mv_vendas_dia AS
+SELECT
+    CAST(data_venda AS date) AS dia,
+    regiao_id,
+    count(*) AS quantidade,
+    CAST(sum(valor) AS numeric(18, 2)) AS receita
+FROM aula_dw.fato_vendas_part
+GROUP BY CAST(data_venda AS date), regiao_id
+WITH DATA;
+
+CREATE UNIQUE INDEX mv_vendas_dia_pk
+ON aula_dw.mv_vendas_dia (dia, regiao_id);
+
+ANALYZE aula_dw.mv_vendas_dia;
+
+EXPLAIN (ANALYZE, BUFFERS, SUMMARY)
+SELECT
+    CAST(data_venda AS date) AS dia,
+    count(*) AS quantidade,
+    sum(valor) AS receita
+FROM aula_dw.fato_vendas_part
+WHERE regiao_id = 7
+  AND data_venda >= timestamp '2025-07-01 00:00:00'
+  AND data_venda <  timestamp '2025-08-01 00:00:00'
+GROUP BY CAST(data_venda AS date)
+ORDER BY dia;
+
+EXPLAIN (ANALYZE, BUFFERS, SUMMARY)
+SELECT dia, quantidade, receita
+FROM aula_dw.mv_vendas_dia
+WHERE regiao_id = 7
+  AND dia >= date '2025-07-01'
+  AND dia <  date '2025-08-01'
+ORDER BY dia;
+
+INSERT INTO aula_dw.fato_vendas_part VALUES
+(2000001, timestamp '2025-07-15 12:00:00', 7, 50000, 42, 199.90);
+
+REFRESH MATERIALIZED VIEW CONCURRENTLY aula_dw.mv_vendas_dia;
+
+SELECT *
+FROM aula_dw.mv_vendas_dia
+WHERE dia = date '2025-07-15' AND regiao_id = 7;`,
+              observe: 'A materialized view reduz a quantidade de linhas lidas, mas permanece defasada entre dois refreshes. O índice UNIQUE permite atualizar sem bloquear leituras durante todo o recálculo.'
+            },
+            {
+              title: '6. Executar manutenção e ler os indicadores',
+              purpose: 'Atualiza uma partição e a hierarquia, consulta o histórico de manutenção e relaciona estatísticas ao plano.',
+              focus: `VACUUM (ANALYZE, VERBOSE)
+aula_dw.fato_vendas_2025_07;
+
+ANALYZE VERBOSE aula_dw.fato_vendas_part;`,
+              sql: `VACUUM (ANALYZE, VERBOSE) aula_dw.fato_vendas_2025_07;
+ANALYZE VERBOSE aula_dw.fato_vendas_part;
+
+SELECT
+    relname,
+    n_live_tup,
+    n_dead_tup,
+    last_vacuum,
+    last_autovacuum,
+    last_analyze,
+    last_autoanalyze
+FROM pg_stat_user_tables
+WHERE schemaname = 'aula_dw'
+ORDER BY relname;
+
+EXPLAIN (ANALYZE, BUFFERS, SUMMARY)
+SELECT count(*), sum(valor)
+FROM aula_dw.fato_vendas_part
+WHERE regiao_id = 7
+  AND data_venda >= timestamp '2025-07-01 00:00:00'
+  AND data_venda <  timestamp '2025-07-08 00:00:00';`,
+              observe: 'Execute VACUUM com auto-commit. Compare rows estimadas e reais, shared hit/read blocks, tipo de scan e Execution Time.'
+            }
+          ]
+        }
+      ],
+      benchmarkGuide: {
+        intro: 'Para cada cenário, execute a consulta três vezes e registre a mediana. O primeiro resultado pode refletir cache frio; os seguintes caracterizam o caminho aquecido.',
+        columns: ['Mecanismo', 'Consulta', 'Estratégia', 'Tempo mediano', 'Leitura', 'Plano', 'Resultado confere?'],
+        rows: [
+          ['ClickHouse', 'Região + 7 dias', 'Base / MergeTree otimizada', 'ms', 'read_rows e read_bytes', 'parts e granules', 'sim/não'],
+          ['ClickHouse', 'Cliente seletivo', 'Sem / com skip index', 'ms', 'granules', 'Skip', 'sim/não'],
+          ['ClickHouse', 'Receita diária', 'Fato / agregada', 'ms', 'read_rows', 'Aggregation', 'sim/não'],
+          ['PostgreSQL', 'Intervalo de 7 dias', 'Heap / partições', 'ms', 'shared hit/read', 'Seq Scan / Append', 'sim/não'],
+          ['PostgreSQL', 'Região + 7 dias', 'BRIN / B-tree', 'ms', 'buffers', 'Bitmap / Index Scan', 'sim/não'],
+          ['PostgreSQL', 'Receita diária', 'Fato / materialized view', 'ms', 'buffers', 'Aggregate / Index Scan', 'sim/não']
+        ]
+      },
+      sdd: {
+        rf: 'RF-002 — Disponibilizar a receita diária por região para relatórios e painéis analíticos.',
+        rnf: 'RNF-002 — A consulta de sete dias deve atender p95 menor ou igual a 2 s e reduzir a leitura em pelo menos 80% em relação à baseline, no conjunto de referência.',
+        adr: 'ADR-DW-02 — No ClickHouse, ordenar por região e data e particionar por mês; no PostgreSQL, particionar por mês e aplicar B-tree em região e data. Materializar a receita diária quando a frequência de leitura compensar o custo de atualização.',
+        gherkin: 'Dado o mesmo conjunto de vendas nos dois mecanismos, Quando a consulta otimizada é executada três vezes, Então o resultado é idêntico ao da baseline e a evidência registra plano, leitura e tempo mediano.'
+      },
+      acceptance: [
+        'Os dois roteiros SQL são executados no DBeaver sem misturar conexões ou dialetos.',
+        'O registro contém ao menos três execuções por cenário e apresenta a mediana.',
+        'Cada comparação inclui o plano, a métrica de leitura e a conferência do resultado.',
+        'A recomendação distingue ClickHouse e PostgreSQL e explicita o custo de escrita, armazenamento ou atualização introduzido.',
+        'A materialização possui estratégia de backfill ou refresh e defasagem declarada.'
+      ],
+      deliverable: 'Relatório comparativo com as seis linhas do benchmark, planos de execução antes e depois, interpretação do gargalo e recomendação técnica para o Data Warehouse do projeto.',
+      closingQuestion: 'Qual estratégia apresenta evidência suficiente para integrar o Data Warehouse do projeto?',
+      references: [
+        { label: 'ClickHouse Docs — MergeTree table engine', href: 'https://clickhouse.com/docs/engines/table-engines/mergetree-family/mergetree' },
+        { label: 'ClickHouse Docs — Data skipping indexes', href: 'https://clickhouse.com/docs/optimize/skipping-indexes' },
+        { label: 'ClickHouse Docs — Incremental materialized views', href: 'https://clickhouse.com/docs/materialized-view/incremental-materialized-view' },
+        { label: 'PostgreSQL 18 — Table Partitioning', href: 'https://www.postgresql.org/docs/18/ddl-partitioning.html' },
+        { label: 'PostgreSQL 18 — Using EXPLAIN', href: 'https://www.postgresql.org/docs/18/using-explain.html' },
+        { label: 'PostgreSQL 18 — Materialized Views and Routine Vacuuming', href: 'https://www.postgresql.org/docs/18/rules-materializedviews.html' }
+      ]
     },
 
     10: {
@@ -1638,13 +2207,13 @@
 
   // Critérios de aceite e rubrica: aulas com atividade prática usam os critérios
   // de verificação da própria atividade em vez da rubrica genérica de artefato SDD.
-  const acceptance = (lesson.activity && lesson.activity.acceptance) || [
+  const acceptance = (lesson.activity && lesson.activity.acceptance) || lesson.acceptance || [
     'O artefato declara o requisito funcional e ao menos um requisito não funcional mensurável.',
     'A decisão estrutural está registrada em ADR, com alternativa descartada e consequência.',
     'Existe ao menos um cenário de aceite que falha antes da implementação.',
     'Há dono, forma de operação e caminho de reprocessamento.'
   ];
-  const evaluationList = lesson.activity
+  const evaluationList = (lesson.activity || lesson.acceptance)
     ? acceptance.map((a) => `<li>${esc(a)}</li>`).join('')
     : '<li>Clareza do problema e do contrato: 25%</li><li>Correção técnica e tratamento de exceções: 30%</li><li>Testabilidade, qualidade e operação: 25%</li><li>Comunicação e justificativa das decisões: 20%</li>';
 
@@ -1656,6 +2225,127 @@
   ];
 
   window.module11Lesson = lesson;
+
+  const referenceLabel = (reference) => typeof reference === 'string' ? reference : reference.label;
+  const referenceItem = (reference) => typeof reference === 'string'
+    ? esc(reference)
+    : `<a href="${esc(reference.href)}" target="_blank" rel="noopener noreferrer">${esc(reference.label)}</a>`;
+
+  const codeBlock = (label, sql, id) =>
+    `<div class="code-wrap"><div class="code-label"><span>${esc(label)}</span>` +
+    `<button type="button" class="code-copy" data-copy-code="${esc(id)}">Copiar</button></div>` +
+    `<pre class="code-block" id="${esc(id)}"><code>${esc(sql)}</code></pre></div>`;
+
+  const benchmarkTable = () => lesson.benchmarkGuide
+    ? `<section class="material-box"><h2>Quadro de benchmark</h2><p>${esc(lesson.benchmarkGuide.intro)}</p>` +
+      `<div class="dd-scroll"><table class="dd-table"><thead><tr>${lesson.benchmarkGuide.columns.map((c) => `<th>${esc(c)}</th>`).join('')}</tr></thead>` +
+      `<tbody>${lesson.benchmarkGuide.rows.map((row) => `<tr>${row.map((cell) => `<td>${esc(cell)}</td>`).join('')}</tr>`).join('')}</tbody></table></div></section>`
+    : '';
+
+  const dbeaverHtml = (mode) => {
+    if (!lesson.dbeaver) return '';
+    const connections = lesson.dbeaver.connections
+      .map((c) => `<div><h4>${esc(c.engine)}</h4><p>${esc(c.text)}</p></div>`).join('');
+    if (mode === 'plan') {
+      return `<section><h2>Preparação do DBeaver</h2><p>${esc(lesson.dbeaver.intro)}</p>` +
+        `<ul>${lesson.dbeaver.rules.map((r) => `<li>${esc(r)}</li>`).join('')}</ul></section>`;
+    }
+    return `<section class="material-box"><h2>Preparação do DBeaver</h2><p>${esc(lesson.dbeaver.intro)}</p>` +
+      `<div class="dd-split">${connections}</div><h3>Regras de execução</h3>` +
+      `<ul>${lesson.dbeaver.rules.map((r) => `<li>${esc(r)}</li>`).join('')}</ul></section>`;
+  };
+
+  const sqlLabsMaterial = () => lesson.sqlLabs
+    ? lesson.sqlLabs.map((lab, labIndex) =>
+      `<section class="material-box sql-lab"><div class="sql-lab-head"><div><span class="sql-engine">${esc(lab.engine)}</span>` +
+      `<h2>Roteiro executável — ${esc(lab.engine)}</h2><p>${esc(lab.goal)}</p></div>` +
+      `<div class="sql-actions"><button type="button" data-copy-lab="${labIndex}">Copiar roteiro completo</button>` +
+      `<button type="button" data-download-lab="${labIndex}">Baixar .sql</button></div></div>` +
+      lab.steps.map((step, stepIndex) =>
+        `<article class="sql-step"><h3>${esc(step.title)}</h3><p>${esc(step.purpose)}</p>` +
+        codeBlock(`${lab.engine} · bloco ${stepIndex + 1}`, step.sql, `sql-${lessonId}-${labIndex}-${stepIndex}`) +
+        `<div class="sql-observe"><strong>Evidência esperada:</strong> ${esc(step.observe)}</div></article>`
+      ).join('') + `</section>`
+    ).join('')
+    : '';
+
+  const sqlLabsPlan = () => lesson.sqlLabs
+    ? lesson.sqlLabs.map((lab) =>
+      `<section><h2>Condução do roteiro — ${esc(lab.engine)}</h2><p>${esc(lab.goal)}</p><ol>` +
+      lab.steps.map((step) => `<li><strong>${esc(step.title)}:</strong> ${esc(step.purpose)} <em>Evidência:</em> ${esc(step.observe)}</li>`).join('') +
+      `</ol></section>`
+    ).join('')
+    : '';
+
+  const sqlLabSlides = () => {
+    if (!lesson.sqlLabs) return [];
+    const slides = [];
+    if (lesson.dbeaver) {
+      slides.push(`<article class="lesson-slide"><span class="lesson-kicker">Ambiente do laboratório</span><h2>Duas conexões, dois dialetos</h2>` +
+        `<div class="lesson-callout"><strong>${esc(lesson.dbeaver.intro)}</strong></div><div class="lesson-grid">` +
+        lesson.dbeaver.connections.map((c) => `<div class="lesson-card"><b>${esc(c.engine)}</b><p>${esc(c.text)}</p></div>`).join('') +
+        `</div></article>`);
+    }
+    lesson.sqlLabs.forEach((lab) => {
+      slides.push(`<article class="lesson-slide"><span class="lesson-kicker">Laboratório · ${esc(lab.engine)}</span>` +
+        `<h2>${esc(lab.engine)}</h2><div class="lesson-callout"><strong>${esc(lab.goal)}</strong></div>` +
+        `<div class="lesson-card lesson-wide"><ol>${lab.steps.map((s) => `<li>${esc(s.title)}</li>`).join('')}</ol></div></article>`);
+      lab.steps.forEach((step) => {
+        slides.push(`<article class="lesson-slide"><span class="lesson-kicker">${esc(lab.engine)} · ${esc(step.title)}</span>` +
+          `<h2>${esc(step.purpose)}</h2><pre class="lesson-code"><code>${esc(step.focus)}</code></pre>` +
+          `<div class="lesson-warn"><strong>Evidência esperada:</strong> ${esc(step.observe)}</div></article>`);
+      });
+    });
+    return slides;
+  };
+
+  const mountSqlActions = (root) => {
+    if (!lesson.sqlLabs) return;
+    const copyText = async (value, button) => {
+      try {
+        if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(value);
+        else {
+          const area = document.createElement('textarea');
+          area.value = value;
+          area.style.position = 'fixed';
+          area.style.opacity = '0';
+          document.body.append(area);
+          area.select();
+          document.execCommand('copy');
+          area.remove();
+        }
+        const original = button.textContent;
+        button.textContent = 'Copiado';
+        setTimeout(() => { button.textContent = original; }, 1400);
+      } catch (_) {
+        button.textContent = 'Selecione o código';
+      }
+    };
+    root.querySelectorAll('[data-copy-code]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const code = document.getElementById(button.dataset.copyCode);
+        if (code) copyText(code.textContent, button);
+      });
+    });
+    root.querySelectorAll('[data-copy-lab]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const lab = lesson.sqlLabs[Number(button.dataset.copyLab)];
+        copyText(lab.steps.map((s) => `-- ${s.title}\n${s.sql}`).join('\n\n'), button);
+      });
+    });
+    root.querySelectorAll('[data-download-lab]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const lab = lesson.sqlLabs[Number(button.dataset.downloadLab)];
+        const content = lab.steps.map((s) => `-- ${s.title}\n${s.sql}`).join('\n\n');
+        const url = URL.createObjectURL(new Blob([content], { type: 'text/sql;charset=utf-8' }));
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = lab.file;
+        link.click();
+        URL.revokeObjectURL(url);
+      });
+    });
+  };
 
   // Ficha do encontro — objetivo de aprendizagem, estratégia e estrutura.
   // Exigida em toda página de aula do acervo; ver .claude/skills/padrao-encontro/SKILL.md.
@@ -1701,6 +2391,8 @@
         ...(s.diagram ? [`<article class="lesson-slide"><span class="lesson-kicker">Bloco ${i + 1} · ${esc(s.nav)}</span><h2>Exemplo visual</h2><div class="mermaid-wrap medium"><div class="mermaid">${s.diagram}</div></div></article>`] : [])
       ]),
 
+      ...sqlLabSlides(),
+
       ...(lesson.sdd ? [`<article class="lesson-slide"><span class="lesson-kicker">Ponte com a Aula 1 · Spec-Driven Development</span><h2>Como este tema vira especificação</h2><div class="lesson-grid">${SDD_LABELS.map(([k, label, hint]) => `<div class="lesson-card"><b>${esc(label)}</b><h3 class="lesson-hint">${esc(hint)}</h3><p>${esc(lesson.sdd[k])}</p></div>`).join('')}</div></article>`] : []),
 
       ...(lesson.warmup ? [
@@ -1714,7 +2406,7 @@
 
       `<article class="lesson-slide"><span class="lesson-kicker">${esc(lesson.deliverableKicker || 'Laboratório')}</span><h2>${esc(lesson.deliverableTitle || 'Entregável da aula')}</h2><div class="lesson-callout"><strong>${esc(lesson.deliverable)}</strong></div><div class="lesson-card lesson-wide"><h3>${esc(lesson.evaluationLabel || 'Critérios de aceite')}</h3><ol>${evaluationList}</ol></div>${lesson.submissionNotice ? `<div class="lesson-warn"><strong>Atenção — regras de entrega:</strong><ul style="margin:6px 0 0;padding-left:1.2rem;">${lesson.submissionNotice.map((n) => `<li>${esc(n)}</li>`).join('')}</ul></div>` : ''}</article>`,
 
-      `<article class="lesson-slide"><span class="lesson-kicker">Fechamento</span><h2>Leve para o projeto</h2><div class="lesson-grid">${lesson.references.map((x, i) => `<div class="lesson-card"><b>Ref. ${i + 1}</b><p>${esc(x)}</p></div>`).join('')}</div><div class="lesson-callout">A pergunta final: <strong>qual decisão fica mais segura depois deste artefato?</strong></div></article>`,
+      `<article class="lesson-slide"><span class="lesson-kicker">Fechamento</span><h2>Leve para o projeto</h2><div class="lesson-grid">${lesson.references.map((x, i) => `<div class="lesson-card"><b>Ref. ${i + 1}</b><p>${esc(referenceLabel(x))}</p></div>`).join('')}</div><div class="lesson-callout">Pergunta de encerramento: <strong>${esc(lesson.closingQuestion || 'Qual decisão fica mais segura depois deste artefato?')}</strong></div></article>`,
 
       `<article class="lesson-slide encontro-slide"><span class="lesson-kicker">Ficha do encontro</span>${fichaEncontro()}</article>`
     ];
@@ -1899,11 +2591,14 @@
       + fichaEncontro()
       + timeboxSection
       + preClass
+      + dbeaverHtml('material')
       + `<section class="material-box"><h2>Objetivo da aula</h2><p>${esc(lesson.objective)}</p><h3>Ao final você deve conseguir</h3><ul>${lesson.outcomes.map((o) => `<li>${esc(o)}</li>`).join('')}</ul></section>`
       + `<section class="material-box"><h2>Roteiro</h2><ol>${agenda.map((a) => `<li><strong>${esc(a.nav)}</strong> — ${esc(a.text)}</li>`).join('')}</ol></section>`
       + continuityHtml('material')
       + lesson.sections.map((s, i) => `<section class="material-section"><h2>${i + 1}. ${esc(s.title)}</h2><p>${esc(s.text)}</p>${s.diagram ? `<div class="mermaid-wrap medium"><div class="mermaid">${s.diagram}</div></div>` : ''}<h3>Checklist de aplicação</h3><ul>${checklistOf(s)}</ul><div class="material-note"><strong>Erro comum:</strong> ${esc(s.pitfall)}</div></section>`).join('')
       + deepDive('material')
+      + sqlLabsMaterial()
+      + benchmarkTable()
       + sdd
       + warmupSection
       + activitySection
@@ -1911,9 +2606,10 @@
         ? `<section class="material-box"><h2>Entregável e avaliação</h2><p>${esc(lesson.deliverable)}</p><p class="material-note">Os critérios de avaliação são apresentados em sala, junto do enunciado.</p></section>`
         : `<section class="material-box"><h2>Entregável e avaliação</h2><p>${esc(lesson.deliverable)}</p><ul>${evaluationList}</ul></section>`)
       + closingHtml()
-      + `<section class="material-box"><h2>Referências</h2><ul>${lesson.references.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></section></article></div>`;
+      + `<section class="material-box"><h2>Referências</h2><ul>${lesson.references.map((x) => `<li>${referenceItem(x)}</li>`).join('')}</ul></section></article></div>`;
 
     mountToc(root, 'Nesta aula');
+    mountSqlActions(root);
     mountFloatNav('.material-head', [
       { href: `../slides/slide-lesson-${lessonId}.html`, cls: 'fn-btn-slides', label: '▶ Slides' },
       { href: `../planos/lesson-${lessonId}-plano.html`, cls: 'fn-btn-alt', label: '📋 Plano' },
@@ -1950,9 +2646,12 @@
       + continuityHtml('plan')
       + timeboxPlan
       + preClass
+      + dbeaverHtml('plan')
       + `<section><h2>Objetivos de aprendizagem</h2><ul>${lesson.outcomes.map((o) => `<li>${esc(o)}</li>`).join('')}</ul></section>`
       + `<section><h2>Metodologia e cronograma</h2><ol>${agenda.map((a) => `<li><strong>${esc(a.nav)}:</strong> ${esc(a.text)}</li>`).join('')}</ol></section>`
       + deepDive('plan')
+      + sqlLabsPlan()
+      + benchmarkTable()
       + sdd
       + warmupPlan
       + activityPlan
@@ -1960,7 +2659,7 @@
         ? `<section><h2>Avaliação</h2><p>${esc(lesson.deliverable)}</p><p>Os critérios de avaliação são apresentados em sala, junto do enunciado.</p></section>`
         : `<section><h2>Avaliação</h2><p>Entrega individual ou em grupo do artefato descrito no material, com apresentação curta e revisão por pares. ${esc(lesson.deliverable)}</p><ul>${evaluationList}</ul></section>`)
       + closingHtml()
-      + `<section><h2>Bibliografia</h2><ul>${lesson.references.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></section></main></div>`;
+      + `<section><h2>Bibliografia</h2><ul>${lesson.references.map((x) => `<li>${referenceItem(x)}</li>`).join('')}</ul></section></main></div>`;
 
     mountToc(root, 'Neste plano');
     mountFloatNav('.plan-head', [
