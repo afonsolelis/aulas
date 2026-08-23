@@ -1,96 +1,593 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Aula 3 - Hands on — Gestão de Configuração e Escopo - Inteli</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
   <link href="../../../css/inteli-styles.css" rel="stylesheet">
   <style>
-    :root { --ac:#89cea5; --dk:#2e2640; }
-    body { margin:0; padding:0; overflow:hidden; font-family:'Manrope',sans-serif; background:#f5f7fb; color:var(--dk); }
+    :root {
+      --si: var(--inteli-green);
+      --ink: var(--inteli-dark-purple);
+      --alert: var(--inteli-coral);
+      --paper: var(--inteli-white);
+      --line: var(--inteli-light-gray);
+      --muted: var(--inteli-dark-gray);
+      --soft-si: color-mix(in srgb, var(--si) 18%, var(--paper));
+      --soft-ink: color-mix(in srgb, var(--ink) 8%, var(--paper));
+      --soft-alert: color-mix(in srgb, var(--alert) 12%, var(--paper));
+    }
+    *, *::before, *::after { box-sizing:border-box; }
+    body { margin:0; overflow:hidden; font-family:'Manrope',sans-serif; background:var(--soft-ink); color:var(--ink); }
     .slide-container { width:100vw; height:100vh; position:relative; overflow:hidden; }
-    .slide { position:absolute; inset:0; display:none; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:6vh 8vw; box-sizing:border-box; }
-    .slide.active { display:flex; }
-    .kicker { text-transform:uppercase; letter-spacing:.18em; font-weight:700; font-size:.95rem; color:var(--ac); margin-bottom:18px; }
-    .slide h1 { font-size:clamp(2rem,5vw,3.4rem); font-weight:800; margin:0 0 18px; line-height:1.1; }
-    .slide h2 { font-size:clamp(1.4rem,3vw,2.2rem); font-weight:700; margin:0 0 16px; }
-    .lead { font-size:clamp(1.05rem,2vw,1.35rem); max-width:780px; color:#475569; line-height:1.6; }
-    .badge-wip { display:inline-block; margin-top:26px; padding:8px 18px; border-radius:999px; background:rgba(137,206,165,.18); color:#2f8f78; font-weight:700; font-size:.95rem; border:1px solid rgba(47,143,120,.35); }
-    .prof { margin-top:20px; font-weight:600; color:var(--dk); }
-    .cover-bg { background:linear-gradient(135deg,#1e2a24 0%,#2f8f78 55%,#89cea5 100%); color:#fff; }
-    .cover-bg .lead { color:rgba(255,255,255,.9); }
-    .cover-bg .kicker { color:#eafff4; }
-    .slide-footer { position:fixed; left:0; right:0; bottom:0; height:56px; display:flex; align-items:center; justify-content:space-between; padding:0 22px; background:#fff; border-top:1px solid #e2e8f0; box-sizing:border-box; z-index:20; }
-    .nav-group { display:flex; align-items:center; gap:10px; }
-    .back-home { color:var(--dk); text-decoration:none; font-weight:700; display:inline-flex; align-items:center; gap:5px; padding:8px 14px; border-radius:10px; background:#f1f4f8; font-size:.9rem; }
-    .back-home:hover { background:#e2e8f0; }
-    .back-home.material { background:#2f8f78 !important; color:#fff !important; }
-    .back-home.material:hover { background:#267562 !important; color:#fff !important; }
-    .nav-btn { cursor:pointer; border:none; background:var(--dk); color:#fff; font-weight:700; padding:8px 16px; border-radius:10px; font-size:.9rem; }
-    .nav-btn:disabled { opacity:.4; cursor:default; }
-    .slide-counter { font-weight:700; color:var(--dk); min-width:70px; text-align:center; }
+    .slide { position:absolute; inset:0; display:none; padding:54px 52px 82px; overflow:hidden; }
+    .slide.active { display:flex; align-items:center; justify-content:center; }
+    .sc { width:min(1160px,100%); max-height:calc(100vh - 150px); margin:0 auto; }
+    .slide:not(.cover):not(.daily):not(.encontro-slide) .sc { width:86%; transform:scale(1.14); transform-origin:center; }
+    .cover .sc { width:88%; transform:scale(1.1); transform-origin:center; }
+    .daily .sc { width:88%; transform:scale(1.06); transform-origin:center; }
+    .top-nav { position:fixed; top:14px; left:18px; z-index:90; display:flex; gap:8px; }
+    .top-nav a { padding:7px 12px; border-radius:999px; background:color-mix(in srgb,var(--paper) 94%,transparent); color:var(--ink); border:1px solid var(--line); text-decoration:none; font-size:.75rem; font-weight:800; box-shadow:0 3px 12px color-mix(in srgb,var(--ink) 12%,transparent); }
+    .eyebrow { margin:0 0 7px; color:var(--si); font-size:.72rem; font-weight:800; letter-spacing:.14em; text-transform:uppercase; }
+    .sh { color:var(--paper); padding:15px 20px; border-radius:14px; margin-bottom:13px; }
+    .sh.green { background:linear-gradient(120deg,color-mix(in srgb,var(--si) 70%,var(--ink)),var(--si)); }
+    .sh.dark { background:linear-gradient(120deg,var(--ink),color-mix(in srgb,var(--ink) 72%,var(--si))); }
+    .sh.coral { background:linear-gradient(120deg,color-mix(in srgb,var(--alert) 80%,var(--ink)),var(--alert)); }
+    .st { margin:0 0 3px; font-size:1.75rem; line-height:1.16; font-weight:800; }
+    .ss { margin:0; font-size:.9rem; line-height:1.45; opacity:.92; }
+    .g2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:11px; }
+    .g3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+    .g4 { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:9px; }
+    .card { background:var(--paper); border:1px solid var(--line); border-left:5px solid var(--si); border-radius:12px; padding:13px 15px; box-shadow:0 5px 18px color-mix(in srgb,var(--ink) 8%,transparent); min-width:0; }
+    .card.dark { border-left-color:var(--ink); }
+    .card.coral { border-left-color:var(--alert); }
+    .card h3 { margin:0 0 5px; font-size:.96rem; line-height:1.3; }
+    .card p { margin:0; color:color-mix(in srgb,var(--ink) 78%,var(--paper)); font-size:.79rem; line-height:1.46; }
+    .card ul { margin:6px 0 0; padding-left:1.05rem; }
+    .card li { margin:0 0 3px; font-size:.77rem; line-height:1.38; }
+    .label { display:inline-block; margin-bottom:7px; padding:3px 8px; border-radius:999px; background:var(--soft-si); color:color-mix(in srgb,var(--si) 60%,var(--ink)); font-size:.64rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+    .label.dark { background:var(--soft-ink); color:var(--ink); }
+    .label.coral { background:var(--soft-alert); color:color-mix(in srgb,var(--alert) 72%,var(--ink)); }
+    .callout { margin-top:11px; padding:10px 14px; border-radius:10px; background:var(--soft-si); border:1px solid color-mix(in srgb,var(--si) 45%,var(--paper)); font-size:.8rem; line-height:1.45; }
+    .callout.warn { background:var(--soft-alert); border-color:color-mix(in srgb,var(--alert) 45%,var(--paper)); }
+    .callout.dark { background:var(--soft-ink); border-color:color-mix(in srgb,var(--ink) 22%,var(--paper)); }
+    .tb-wrap { overflow:hidden; border-radius:11px; border:1px solid var(--line); background:var(--paper); }
+    table { width:100%; border-collapse:collapse; font-size:.72rem; }
+    th { padding:8px 9px; background:var(--ink); color:var(--paper); text-align:left; font-weight:800; }
+    td { padding:7px 9px; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.36; }
+    tr:last-child td { border-bottom:0; }
+    tbody tr:nth-child(even) { background:var(--soft-ink); }
+    code { font-family:'JetBrains Mono',monospace; color:var(--ink); background:var(--soft-si); border-radius:4px; padding:1px 5px; font-size:.88em; }
+    .flow { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); align-items:stretch; gap:18px; }
+    .flow .node { position:relative; padding:12px 10px; border-radius:11px; background:var(--paper); border:1px solid var(--line); text-align:center; }
+    .flow .node:not(:last-child)::after { content:'→'; position:absolute; right:-15px; top:50%; transform:translateY(-50%); color:var(--si); font-weight:800; }
+    .flow strong { display:block; font-size:.79rem; }
+    .flow span { display:block; margin-top:4px; font-size:.67rem; line-height:1.35; color:color-mix(in srgb,var(--ink) 68%,var(--paper)); }
+    .agenda { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:7px; }
+    .agenda article { min-height:112px; padding:10px; background:var(--paper); border-radius:10px; border-top:4px solid var(--si); box-shadow:0 4px 12px color-mix(in srgb,var(--ink) 6%,transparent); }
+    .agenda article:nth-child(3n) { border-top-color:var(--ink); }
+    .agenda article:nth-child(4n) { border-top-color:var(--alert); }
+    .agenda b { display:block; font-size:1.15rem; line-height:1; margin-bottom:7px; }
+    .agenda strong { display:block; font-size:.69rem; line-height:1.25; }
+    .agenda span { display:block; margin-top:5px; font-size:.62rem; line-height:1.3; color:color-mix(in srgb,var(--ink) 68%,var(--paper)); }
+    .artifact { position:relative; overflow:hidden; }
+    .artifact::after { content:attr(data-weight); position:absolute; top:9px; right:10px; padding:3px 7px; border-radius:999px; background:var(--soft-ink); font-size:.6rem; font-weight:800; }
+    .number { width:31px; height:31px; display:grid; place-items:center; border-radius:9px; background:var(--si); color:var(--ink); font-weight:800; font-size:.85rem; margin-bottom:8px; }
+    .check { list-style:none; padding:0; margin:0; display:grid; gap:6px; }
+    .check li { position:relative; padding:7px 9px 7px 30px; background:var(--paper); border:1px solid var(--line); border-radius:9px; font-size:.75rem; line-height:1.35; }
+    .check li::before { content:'✓'; position:absolute; left:10px; top:7px; color:color-mix(in srgb,var(--si) 58%,var(--ink)); font-weight:800; }
+    .cycle { display:grid; grid-template-columns:88px 1fr; gap:12px; align-items:stretch; }
+    .cycle + .cycle { margin-top:8px; }
+    .cycle-time { display:grid; place-items:center; padding:10px; border-radius:10px; background:var(--ink); color:var(--paper); font-size:1rem; font-weight:800; }
+    .cycle-body { display:grid; grid-template-columns:1.1fr 1fr 1fr; gap:8px; padding:9px; border:1px solid var(--line); border-radius:10px; background:var(--paper); }
+    .cycle-body div { padding:4px 8px; border-left:3px solid var(--si); }
+    .cycle-body strong { display:block; font-size:.72rem; }
+    .cycle-body span { display:block; margin-top:2px; font-size:.65rem; line-height:1.32; }
+    .cover { background:linear-gradient(132deg,var(--ink) 0%,color-mix(in srgb,var(--ink) 48%,var(--si)) 58%,var(--si) 100%); color:var(--paper); }
+    .cover .sc { position:relative; }
+    .cover-grid { display:grid; grid-template-columns:1.45fr .85fr; gap:48px; align-items:center; }
+    .cover-badge { display:inline-block; margin-bottom:15px; padding:5px 12px; border:1px solid color-mix(in srgb,var(--paper) 40%,transparent); border-radius:999px; background:color-mix(in srgb,var(--paper) 12%,transparent); font-size:.72rem; font-weight:700; }
+    .cover h1 { margin:0; font-size:3.05rem; line-height:1.08; letter-spacing:-.035em; }
+    .cover .lead { margin:15px 0 22px; max-width:720px; font-size:1.08rem; line-height:1.55; color:color-mix(in srgb,var(--paper) 84%,var(--si)); }
+    .cover-tags { display:flex; flex-wrap:wrap; gap:7px; }
+    .cover-tags span { padding:6px 10px; border-radius:8px; background:color-mix(in srgb,var(--paper) 13%,transparent); border:1px solid color-mix(in srgb,var(--paper) 28%,transparent); font-size:.68rem; font-weight:700; }
+    .trace-map { display:grid; gap:9px; }
+    .trace-map div { padding:12px; border-radius:12px; background:color-mix(in srgb,var(--paper) 13%,transparent); border:1px solid color-mix(in srgb,var(--paper) 26%,transparent); }
+    .trace-map strong { display:block; font-size:.78rem; }
+    .trace-map span { display:block; margin-top:3px; font-size:.66rem; opacity:.83; }
+    .daily { background:linear-gradient(132deg,var(--ink),color-mix(in srgb,var(--ink) 42%,var(--si))); color:var(--paper); text-align:center; }
+    .daily-panel { max-width:870px; margin:auto; padding:25px 30px; border:1px solid color-mix(in srgb,var(--paper) 28%,transparent); border-radius:20px; background:color-mix(in srgb,var(--paper) 10%,transparent); }
+    .daily h2 { margin:0 0 5px; font-size:2rem; }
+    .daily p { margin:0 0 15px; font-size:.9rem; opacity:.86; }
+    .daily-timer { display:inline-block; margin:3px 0 14px; padding:8px 24px; border-radius:14px; background:color-mix(in srgb,var(--paper) 13%,transparent); font-family:'JetBrains Mono',monospace; font-size:3.1rem; font-weight:800; letter-spacing:.08em; }
+    .daily button { margin:0 4px; padding:8px 17px; border:1px solid color-mix(in srgb,var(--paper) 36%,transparent); border-radius:9px; background:color-mix(in srgb,var(--paper) 14%,transparent); color:var(--paper); font:700 .8rem 'Manrope',sans-serif; cursor:pointer; }
+    .daily-tags { display:flex; justify-content:center; gap:7px; flex-wrap:wrap; margin-top:14px; }
+    .daily-tags span { padding:5px 9px; border-radius:8px; background:color-mix(in srgb,var(--paper) 12%,transparent); font-size:.67rem; font-weight:700; }
+    .closing { display:grid; grid-template-columns:.8fr 1.2fr; gap:18px; align-items:stretch; }
+    .closing blockquote { margin:0; padding:24px; border-radius:14px; background:var(--ink); color:var(--paper); font-size:1.18rem; line-height:1.45; font-weight:700; }
+    .slide-footer { position:fixed; left:0; right:0; bottom:0; height:60px; z-index:100; display:flex; justify-content:space-between; align-items:center; gap:12px; padding:0 22px; background:color-mix(in srgb,var(--paper) 97%,transparent); border-top:1px solid var(--line); box-shadow:0 -3px 14px color-mix(in srgb,var(--ink) 8%,transparent); }
+    .footer-links, .nav-wrapper { display:flex; align-items:center; gap:9px; }
+    .back-home { padding:8px 13px; border-radius:9px; background:var(--soft-ink); color:var(--ink); text-decoration:none; font-size:.77rem; font-weight:800; }
+    .back-home.material { background:color-mix(in srgb,var(--si) 65%,var(--ink)); color:var(--paper); }
+    .nav-btn, .fullscreen-btn { padding:8px 13px; border:0; border-radius:9px; background:var(--ink); color:var(--paper); font:800 .77rem 'Manrope',sans-serif; cursor:pointer; }
+    .nav-btn:disabled { background:var(--muted); cursor:default; }
+    .fullscreen-btn { background:var(--soft-ink); color:var(--ink); }
+    .slide-counter { min-width:68px; text-align:center; font-size:.78rem; font-weight:800; }
+    @media (min-width:1600px) and (min-height:900px) {
+      .slide { padding:76px 76px 100px; }
+      .sc { width:min(1500px,100%); max-height:calc(100vh - 190px); }
+      .slide:not(.cover):not(.daily):not(.encontro-slide) .sc { width:66%; transform:scale(1.43); }
+      .cover .sc { width:74%; transform:scale(1.22); }
+      .daily .sc { width:68%; transform:scale(1.3); }
+      .st { font-size:2.25rem; }
+      .ss { font-size:1.12rem; }
+      .card { padding:19px 21px; }
+      .card h3 { font-size:1.2rem; }
+      .card p, .card li { font-size:.98rem; }
+      .label { font-size:.78rem; }
+      .callout { font-size:1rem; padding:14px 18px; }
+      table { font-size:.91rem; }
+      th, td { padding:11px 13px; }
+      .agenda article { min-height:148px; padding:15px; }
+      .agenda b { font-size:1.5rem; }
+      .agenda strong { font-size:.9rem; }
+      .agenda span { font-size:.82rem; }
+      .flow strong { font-size:1rem; }
+      .flow span { font-size:.84rem; }
+      .check li { font-size:.96rem; padding:11px 12px 11px 34px; }
+      .cycle { grid-template-columns:112px 1fr; gap:16px; }
+      .cycle-time { font-size:1.3rem; }
+      .cycle-body strong { font-size:.93rem; }
+      .cycle-body span { font-size:.85rem; }
+      .cover h1 { font-size:4rem; }
+      .cover .lead { font-size:1.4rem; }
+      .cover-badge, .cover-tags span { font-size:.9rem; }
+      .trace-map strong { font-size:1rem; }
+      .trace-map span { font-size:.84rem; }
+      .closing blockquote { font-size:1.5rem; }
+    }
+    @media (max-width:900px) {
+      .slide { padding-left:24px; padding-right:24px; }
+      .g4, .agenda { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .g3 { grid-template-columns:1fr; }
+      .cover-grid, .closing { grid-template-columns:1fr; }
+      .flow { grid-template-columns:1fr; }
+      .flow .node::after { display:none; }
+    }
+    @media print { .top-nav { display:none!important; } }
   </style>
+  <script type="module">
+    import { animate, stagger } from 'https://cdn.jsdelivr.net/npm/animejs@4/+esm';
+    window.__anime = { animate, stagger };
+    window.dispatchEvent(new CustomEvent('anime-ready'));
+  </script>
 
 <!-- encontro:css:start -->
 <link rel="stylesheet" href="../../../css/encontro.css">
 <!-- encontro:css:end -->
 </head>
 <body>
+<nav class="top-nav" aria-label="Navegação da aula">
+  <a href="../../home-module-7-sistemas-informacao.html">← Voltar</a>
+  <a href="../materials/lesson-3-material.html">Material da aula</a>
+</nav>
+
 <div class="slide-container">
-  <section class="slide cover-bg active">
-    <div class="kicker">Módulo 7 · Semana 4 · Sistemas de Informação</div>
-    <h1>Aula 3 — Hands on — Gestão de Configuração e Escopo</h1>
-    <p class="lead">Encontro prático com o parceiro para aprimoramento da gestão de configuração e do escopo na plataforma ERP.</p>
-    <div class="prof">🎓 Professor(a): Afonso Brandão</div>
+  <section class="slide cover active">
+    <div class="sc cover-grid">
+      <div>
+        <span class="cover-badge">Módulo 7 · Sistemas de Informação · Semana 4 · Aula 3</span>
+        <p class="eyebrow" style="color:var(--paper)">Hands on · 26/08/2026</p>
+        <h1>Validação dos artefatos com o parceiro</h1>
+        <p class="lead">Oficina de parametrização das regras de negócio, documentação da solução e rastreabilidade entre personas, user stories e comportamento do ERP.</p>
+        <div class="cover-tags">
+          <span>Implantação da solução</span><span>Documentação técnica</span><span>Personas e user stories</span><span>Evidências e decisões</span>
+        </div>
+      </div>
+      <div class="trace-map" aria-label="Fluxo de rastreabilidade da aula">
+        <div><strong>Regra de negócio</strong><span>Critério validado no processo do parceiro</span></div>
+        <div><strong>Parametrização</strong><span>Comportamento verificável no ambiente ERP</span></div>
+        <div><strong>Documentação</strong><span>Procedimento reproduzível e evidência identificada</span></div>
+        <div><strong>Experiência</strong><span>Necessidade da persona expressa em user story</span></div>
+      </div>
+    </div>
   </section>
+
+  <section class="slide daily">
+    <div class="sc">
+      <div class="daily-panel">
+        <p class="eyebrow" style="color:var(--paper)">Ritual do projeto</p>
+        <h2>Daily · 15 minutos</h2>
+        <p>Cada grupo informa o avanço dos artefatos, a atividade prevista para o encontro e os impedimentos que exigem decisão.</p>
+        <div class="daily-timer" id="daily-timer">15:00</div>
+        <div>
+          <button id="daily-start" type="button">Iniciar</button>
+          <button id="daily-reset" type="button">Resetar</button>
+        </div>
+        <div class="daily-tags">
+          <span>O que foi concluído</span><span>O que será produzido</span><span>Impedimentos</span><span>Progresso da entrega</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section class="slide">
-    <div class="kicker">Conteúdo em construção</div>
-    <h2>Slides em preparação</h2>
-    <p class="lead">Este deck é um placeholder. O conteúdo desta aula está sendo preparado pelo(a) Professor(a) Afonso Brandão.</p>
-    <span class="badge-wip">🚧 Em construção</span>
+    <div class="sc">
+      <header class="sh green reveal"><div class="st">Estrutura do encontro</div><p class="ss">Duas horas de produção guiada, com o tempo do parceiro reservado para validações e decisões.</p></header>
+      <div class="agenda reveal">
+        <article><b>15</b><strong>Daily e estado da entrega</strong><span>Avanço, plano e impedimentos.</span></article>
+        <article><b>10</b><strong>Triagem dos insumos</strong><span>Regras, acessos, versões e lacunas.</span></article>
+        <article><b>30</b><strong>Implantação</strong><span>Parametrizar, demonstrar e evidenciar.</span></article>
+        <article><b>25</b><strong>Documentação</strong><span>Registrar percurso, finalidade e uso.</span></article>
+        <article><b>25</b><strong>UX</strong><span>Consolidar personas e user stories.</span></article>
+        <article><b>10</b><strong>Validação cruzada</strong><span>Eliminar contradições entre artefatos.</span></article>
+        <article><b>5</b><strong>Fechamento</strong><span>Decisões, responsáveis e prazos.</span></article>
+      </div>
+      <div class="callout dark reveal"><strong>Objetivo:</strong> apresentar ao parceiro uma trilha verificável que conecte regra de negócio, parametrização no ERP, documentação operacional e necessidade da pessoa usuária.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Três artefatos, uma única solução</div><p class="ss">A coerência entre os documentos constitui o principal critério de qualidade do encontro.</p></header>
+      <div class="g3">
+        <article class="card artifact reveal" data-weight="Peso 3"><div class="number">1</div><span class="label">Implantação</span><h3>Parametrização das regras</h3><p>Configurações, autorizações, validações, cálculos, workflows e alertas que materializam as regras priorizadas.</p></article>
+        <article class="card dark artifact reveal" data-weight="Peso 3"><div class="number">2</div><span class="label dark">Documentação</span><h3>Manual técnico-operacional</h3><p>Registro do que foi configurado, por que a decisão foi adotada, como reproduzir o percurso e como operar a solução.</p></article>
+        <article class="card coral artifact reveal" data-weight="Peso 2"><div class="number">3</div><span class="label coral">Experiência</span><h3>Personas e user stories</h3><p>Perfis fundamentados em evidências e necessidades rastreadas às funcionalidades e regras implementadas.</p></article>
+      </div>
+      <div class="flow reveal" style="margin-top:13px">
+        <div class="node"><strong>Persona</strong><span>Quem executa ou recebe o resultado</span></div>
+        <div class="node"><strong>Necessidade</strong><span>Resultado operacional requerido</span></div>
+        <div class="node"><strong>User story</strong><span>Capacidade esperada da solução</span></div>
+        <div class="node"><strong>Regra e parâmetro</strong><span>Comportamento configurado</span></div>
+        <div class="node"><strong>Evidência</strong><span>Demonstração e aceite</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh coral reveal"><div class="st">Critério de entrada da oficina</div><p class="ss">O tempo do parceiro não deve ser consumido com localização de arquivos ou reconstrução de informações já disponíveis.</p></header>
+      <div class="g2">
+        <ul class="check reveal">
+          <li>Catálogo de regras com identificadores estáveis, origem e prioridade.</li>
+          <li>Processo ou subprocesso em que cada regra é aplicada.</li>
+          <li>Acesso ao ambiente correto e perfis necessários para parametrização.</li>
+          <li>Versão corrente dos três artefatos aberta para edição.</li>
+        </ul>
+        <ul class="check reveal">
+          <li>Dados de demonstração que cubram caso nominal, fronteira e exceção.</li>
+          <li>Lista objetiva de dúvidas que dependem do conhecimento do parceiro.</li>
+          <li>Integrante responsável por operar o ERP e integrante responsável pelo registro.</li>
+          <li>Repositório organizado para armazenar evidências sem dados sensíveis.</li>
+        </ul>
+      </div>
+      <div class="callout warn reveal"><strong>Ausência de insumo:</strong> registrar a lacuna, atribuir responsável e definir prazo. Não se admite inventar regra, aprovação do parceiro ou evidência de execução.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh green reveal"><div class="st">Uso adequado do tempo com o parceiro</div><p class="ss">A equipe apresenta evidências e perguntas delimitadas; o parceiro valida significados, prioridades e exceções do negócio.</p></header>
+      <div class="g4">
+        <article class="card reveal"><span class="label">Preparar</span><h3>Antes da conversa</h3><p>Selecionar as regras prioritárias, organizar a demonstração e formular perguntas que admitam decisão objetiva.</p></article>
+        <article class="card dark reveal"><span class="label dark">Demonstrar</span><h3>Durante a conversa</h3><p>Exibir o comportamento configurado com dados controlados e explicar sua relação com o processo mapeado.</p></article>
+        <article class="card coral reveal"><span class="label coral">Validar</span><h3>Decisão do parceiro</h3><p>Confirmar intenção, condição, exceções, vocabulário, prioridade e impacto sobre as pessoas usuárias.</p></article>
+        <article class="card reveal"><span class="label">Registrar</span><h3>Após a decisão</h3><p>Atualizar os artefatos, identificar a evidência e registrar responsável, prazo e consequência de cada pendência.</p></article>
+      </div>
+      <div class="callout dark reveal"><strong>Limite de responsabilidade:</strong> o parceiro valida a aderência ao negócio. A equipe continua responsável pela correção técnica, pela rastreabilidade e pela qualidade da documentação.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Protocolo de trabalho por regra priorizada</div><p class="ss">Cada rodada deve produzir uma decisão ou uma pendência formalizada.</p></header>
+      <div class="flow reveal">
+        <div class="node"><strong>1. Enunciar</strong><span>Ler a regra e indicar sua origem.</span></div>
+        <div class="node"><strong>2. Localizar</strong><span>Apontar processo, ator e momento de aplicação.</span></div>
+        <div class="node"><strong>3. Demonstrar</strong><span>Executar o comportamento configurado.</span></div>
+        <div class="node"><strong>4. Confrontar</strong><span>Comparar resultado e intenção do parceiro.</span></div>
+        <div class="node"><strong>5. Registrar</strong><span>Atualizar decisão, evidência e responsável.</span></div>
+      </div>
+      <div class="g3" style="margin-top:14px">
+        <article class="card reveal"><span class="label">Aceita</span><h3>Comportamento aderente</h3><p>A evidência recebe identificador e é vinculada à regra e à seção correspondente da documentação.</p></article>
+        <article class="card coral reveal"><span class="label coral">Ajustar</span><h3>Divergência delimitada</h3><p>Registra-se a mudança requerida, seu impacto e o responsável pela nova demonstração.</p></article>
+        <article class="card dark reveal"><span class="label dark">Pendente</span><h3>Decisão indisponível</h3><p>A entrega explicita a dependência, a autoridade decisória e o prazo acordado; não presume aceite.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh green reveal"><div class="st">Artefato 1 · Implantação da solução</div><p class="ss">A parametrização deve representar regras efetivamente mapeadas, priorizadas e demonstráveis.</p></header>
+      <div class="g3">
+        <article class="card reveal"><span class="label">Configuração</span><h3>Funcionalidade e dados</h3><ul><li>Opções e parâmetros do módulo</li><li>Dados mestres e valores de domínio</li><li>Condições e fórmulas automáticas</li></ul></article>
+        <article class="card dark reveal"><span class="label dark">Controle</span><h3>Acesso e fluxo</h3><ul><li>Perfis, autorizações e segregação</li><li>Workflow e níveis de aprovação</li><li>Restrições de campo e validações</li></ul></article>
+        <article class="card coral reveal"><span class="label coral">Exceção</span><h3>Resposta operacional</h3><ul><li>Alertas, mensagens e bloqueios</li><li>Tratamento de situação excepcional</li><li>Responsável e ação corretiva</li></ul></article>
+      </div>
+      <div class="callout reveal"><strong>Unidade de verificação:</strong> uma regra somente entra no percentual de cobertura quando a configuração está identificada, o comportamento foi executado e a evidência permite verificar o resultado.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Registro mínimo da parametrização</div><p class="ss">A tabela relaciona intenção do negócio, implementação e evidência sem depender da memória da equipe.</p></header>
+      <div class="tb-wrap reveal">
+        <table>
+          <thead><tr><th>ID</th><th>Regra e origem</th><th>Ponto do processo</th><th>Configuração</th><th>Cenários</th><th>Evidência</th><th>Decisão</th></tr></thead>
+          <tbody>
+            <tr><td><code>RN-014</code></td><td>Desconto superior a 15% exige aprovação da diretoria.</td><td>Confirmação do pedido</td><td>Workflow por faixa de desconto e perfil aprovador</td><td>15%; 15,01%; sem aprovador</td><td><code>EVD-014-A</code><br><code>EVD-014-B</code></td><td>Aceita em 26/08</td></tr>
+            <tr><td><code>RN-015</code></td><td>Cliente inadimplente não recebe desconto.</td><td>Cálculo comercial</td><td>Validação do status financeiro antes do cálculo</td><td>Adimplente; vencido &gt; 30 dias</td><td><code>EVD-015-A</code></td><td>Ajustar mensagem</td></tr>
+            <tr><td><code>RN-018</code></td><td>Cliente estratégico possui faixa específica.</td><td>Classificação do cliente</td><td>Condição por segmento e faixa autorizada</td><td>Regular; estratégico; limite</td><td><code>EVD-018-A</code></td><td>Pendente: faixa</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout warn reveal"><strong>Regra de integridade:</strong> identificadores de regra, evidência e decisão permanecem iguais nos três artefatos. Renomeações sem atualização integral rompem a rastreabilidade.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh coral reveal"><div class="st">Demonstração verificável da regra</div><p class="ss">Uma captura isolada de tela não demonstra que o comportamento configurado satisfaz a regra.</p></header>
+      <div class="g3">
+        <article class="card reveal"><div class="number">A</div><h3>Caso nominal</h3><p>Executar a situação mais frequente e registrar entradas, usuário, resultado esperado e resultado observado.</p></article>
+        <article class="card dark reveal"><div class="number">B</div><h3>Valor de fronteira</h3><p>Executar o limite declarado na regra e o primeiro valor externo à faixa, evitando interpretações sobre inclusão.</p></article>
+        <article class="card coral reveal"><div class="number">C</div><h3>Exceção ou bloqueio</h3><p>Comprovar mensagem, restrição, rota de aprovação ou ação corretiva prevista para a condição excepcional.</p></article>
+      </div>
+      <div class="g2" style="margin-top:12px">
+        <article class="card reveal"><span class="label">A evidência contém</span><p>Identificador, data, ambiente, perfil utilizado, dados mascarados, ação executada, resultado e vínculo com a regra.</p></article>
+        <article class="card coral reveal"><span class="label coral">A evidência não contém</span><p>Credenciais, dados pessoais desnecessários, recortes sem contexto, tela de outro ambiente ou afirmação de aceite sem registro.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh green reveal"><div class="st">Artefato 2 · Documentação da solução</div><p class="ss">O documento deve permitir compreender, reproduzir e operar a configuração sem acompanhamento oral da equipe.</p></header>
+      <div class="g4">
+        <article class="card reveal"><span class="label">1</span><h3>Contexto</h3><p>Regra atendida, processo, responsável de negócio, versão e ambiente.</p></article>
+        <article class="card dark reveal"><span class="label dark">2</span><h3>Decisão</h3><p>Motivo da configuração, alternativas avaliadas e restrições adotadas.</p></article>
+        <article class="card reveal"><span class="label">3</span><h3>Procedimento</h3><p>Percurso real no sistema, parâmetros informados e dependências necessárias.</p></article>
+        <article class="card coral reveal"><span class="label coral">4</span><h3>Operação</h3><p>Uso esperado, exceções, mensagens, evidências e procedimento de reversão.</p></article>
+      </div>
+      <div class="callout dark reveal"><strong>Configurações gerais e específicas:</strong> o documento separa parâmetros transversais do ambiente das configurações próprias do módulo do grupo e explica a relação de ambas com o processo do parceiro.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Evidência visual com contexto operacional</div><p class="ss">Cada figura deve cumprir função probatória ou instrucional claramente declarada.</p></header>
+      <div class="g2">
+        <article class="card reveal"><span class="label">Legenda obrigatória</span><h3><code>FIG-CFG-014-02</code></h3><p><strong>Onde:</strong> módulo, menu e tela.<br><strong>O que:</strong> parâmetro alterado e valor final.<br><strong>Por quê:</strong> regra atendida.<br><strong>Resultado:</strong> comportamento observado.<br><strong>Versão:</strong> ambiente e data.</p></article>
+        <article class="card coral reveal"><span class="label coral">Revisão da captura</span><ul><li>Recorte preserva o contexto necessário.</li><li>Campo relevante está legível e destacado.</li><li>Informações sensíveis estão mascaradas.</li><li>Sequência das telas coincide com o texto.</li><li>Identificador permite localizar a evidência original.</li></ul></article>
+      </div>
+      <div class="callout warn reveal"><strong>Constitui falha:</strong> inserir capturas em sequência sem explicar a finalidade dos parâmetros, a regra atendida ou o comportamento resultante.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh coral reveal"><div class="st">Artefato 3 · Personas fundamentadas</div><p class="ss">A persona representa um padrão de comportamento relevante para a solução; não corresponde a uma descrição imaginária sem evidência.</p></header>
+      <div class="g3">
+        <article class="card reveal"><span class="label">Identidade operacional</span><ul><li>Nome representativo e função</li><li>Empresa, setor e contexto de uso</li><li>Responsabilidades e nível de acesso</li><li>Frequência e ambiente de trabalho</li></ul></article>
+        <article class="card dark reveal"><span class="label dark">Resultado esperado</span><ul><li>Objetivos e indicadores de desempenho</li><li>Necessidades e decisões recorrentes</li><li>Informações requeridas no processo</li><li>Critérios de sucesso observáveis</li></ul></article>
+        <article class="card coral reveal"><span class="label coral">Evidência de pesquisa</span><ul><li>Dores e restrições relatadas</li><li>Fonte da informação coletada</li><li>Padrão observado entre participantes</li><li>Hipótese ainda não confirmada</li></ul></article>
+      </div>
+      <div class="callout reveal"><strong>Mínimo da entrega:</strong> duas personas que representem perfis distintos e cubram as pessoas afetadas pelas regras e pelos fluxos prioritários do módulo.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh green reveal"><div class="st">User stories e critérios de aceite</div><p class="ss">A história traduz a necessidade da persona e permanece rastreável ao comportamento configurado.</p></header>
+      <div class="g2">
+        <article class="card reveal"><span class="label">História</span><h3><code>US-07</code></h3><p>Como <strong>gerente comercial</strong>, quero receber pedidos com desconto acima da minha alçada em uma fila de aprovação, para decidir sem interromper o processamento dos demais pedidos.</p><div class="callout" style="margin-top:8px"><strong>Vínculos:</strong> persona <code>PER-02</code> · regra <code>RN-014</code> · configuração <code>CFG-014</code>.</div></article>
+        <article class="card dark reveal"><span class="label dark">Aceite verificável</span><p><strong>Dado</strong> um pedido com desconto de 16% e vendedor sem alçada;<br><strong>quando</strong> o vendedor solicitar a confirmação;<br><strong>então</strong> o pedido deve permanecer bloqueado e integrar a fila da diretoria, com mensagem identificável ao vendedor.</p><div class="callout dark" style="margin-top:8px"><strong>Evidência:</strong> <code>EVD-014-B</code> demonstra o bloqueio e o encaminhamento.</div></article>
+      </div>
+      <div class="callout warn reveal"><strong>Teste de consistência:</strong> se a user story exige comportamento não representado por regra ou parametrização, existe uma lacuna que deve ser resolvida ou explicitamente registrada.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Matriz de consistência entre artefatos</div><p class="ss">A validação cruzada identifica componentes fantasmas e requisitos sem implementação.</p></header>
+      <div class="tb-wrap reveal">
+        <table>
+          <thead><tr><th>Persona</th><th>Necessidade</th><th>User story</th><th>Regra</th><th>Configuração</th><th>Evidência</th><th>Estado</th></tr></thead>
+          <tbody>
+            <tr><td><code>PER-02</code></td><td>Decidir exceções comerciais</td><td><code>US-07</code></td><td><code>RN-014</code></td><td><code>CFG-014</code></td><td><code>EVD-014-B</code></td><td>Validado</td></tr>
+            <tr><td><code>PER-01</code></td><td>Conhecer motivo do bloqueio</td><td><code>US-08</code></td><td><code>RN-015</code></td><td><code>CFG-015</code></td><td><code>EVD-015-A</code></td><td>Ajustar mensagem</td></tr>
+            <tr><td><code>PER-03</code></td><td>Auditar decisões</td><td><code>US-11</code></td><td><code>RN-014</code></td><td>Não identificada</td><td>Ausente</td><td>Pendência crítica</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="g3" style="margin-top:12px">
+        <article class="card reveal"><h3>Componente fantasma</h3><p>Configuração ou captura sem regra, processo ou necessidade que justifique sua existência.</p></article>
+        <article class="card coral reveal"><h3>Lacuna funcional</h3><p>Necessidade ou user story sem regra, configuração e evidência correspondentes.</p></article>
+        <article class="card dark reveal"><h3>Contradição</h3><p>Documento, ERP e relato do parceiro expressam limites, papéis ou exceções diferentes.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh green reveal"><div class="st">Execução da oficina em três ciclos</div><p class="ss">Em cada ciclo, a equipe produz, submete uma questão ao parceiro e registra o resultado.</p></header>
+      <div class="cycle reveal"><div class="cycle-time">30 min</div><div class="cycle-body"><div><strong>Produzir</strong><span>Parametrizar uma regra prioritária e preparar os três cenários.</span></div><div><strong>Validar</strong><span>Demonstrar o comportamento e confirmar intenção e exceções.</span></div><div><strong>Registrar</strong><span>Atualizar cobertura, evidência e decisão.</span></div></div></div>
+      <div class="cycle reveal"><div class="cycle-time">25 min</div><div class="cycle-body"><div><strong>Produzir</strong><span>Documentar percurso, parâmetros, finalidade e operação.</span></div><div><strong>Validar</strong><span>Confirmar linguagem, sequência e resultado de negócio.</span></div><div><strong>Registrar</strong><span>Vincular figuras, regra e versão.</span></div></div></div>
+      <div class="cycle reveal"><div class="cycle-time">25 min</div><div class="cycle-body"><div><strong>Produzir</strong><span>Consolidar duas personas e histórias prioritárias.</span></div><div><strong>Validar</strong><span>Confirmar papéis, dores, objetivos e decisões recorrentes.</span></div><div><strong>Registrar</strong><span>Vincular persona, história, regra e evidência.</span></div></div></div>
+      <div class="callout dark reveal"><strong>Distribuição recomendada:</strong> operador do ERP, relator técnico, responsável por UX e interlocutor do parceiro. Os papéis podem alternar entre os ciclos.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh coral reveal"><div class="st">Registro de validação do parceiro</div><p class="ss">O registro diferencia decisão, recomendação e pendência; cada uma exige tratamento específico.</p></header>
+      <div class="tb-wrap reveal">
+        <table>
+          <thead><tr><th>ID</th><th>Objeto apresentado</th><th>Manifestação</th><th>Classificação</th><th>Ação</th><th>Responsável</th><th>Prazo</th></tr></thead>
+          <tbody>
+            <tr><td><code>VAL-01</code></td><td>Faixa de aprovação da <code>RN-014</code></td><td>Limite de 15% confirmado para o cenário vigente.</td><td>Decisão</td><td>Manter configuração e anexar evidência.</td><td>Equipe</td><td>26/08</td></tr>
+            <tr><td><code>VAL-02</code></td><td>Mensagem da <code>RN-015</code></td><td>Indicar também o título vencido que originou o bloqueio.</td><td>Recomendação</td><td>Avaliar viabilidade e atualizar documentação.</td><td>Operador ERP</td><td>28/08</td></tr>
+            <tr><td><code>VAL-03</code></td><td>Perfil auditor</td><td>Autoridade de acesso ainda não definida.</td><td>Pendência</td><td>Consultar responsável do processo.</td><td>Parceiro</td><td>29/08</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout warn reveal"><strong>Proteção da evidência:</strong> registrar nome ou papel do participante somente quando necessário e autorizado. Dados pessoais e comerciais não pertinentes devem ser omitidos ou mascarados.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Definição de pronto da entrega</div><p class="ss">O fechamento considera a qualidade da trilha completa, não apenas o volume de telas ou configurações.</p></header>
+      <div class="g3">
+        <ul class="check reveal">
+          <li>Regras prioritárias possuem configuração identificada.</li>
+          <li>Cobertura do checklist foi calculada com base verificável.</li>
+          <li>Cenários nominal, de fronteira e de exceção foram executados.</li>
+          <li>Evidências estão legíveis, versionadas e sem dados sensíveis.</li>
+        </ul>
+        <ul class="check reveal">
+          <li>Configurações gerais e específicas estão separadas.</li>
+          <li>Cada procedimento explica finalidade, percurso e resultado.</li>
+          <li>Diagramas e fluxos coincidem com a solução implantada.</li>
+          <li>Exceções e operação posterior estão documentadas.</li>
+        </ul>
+        <ul class="check reveal">
+          <li>Existem ao menos duas personas fundamentadas.</li>
+          <li>User stories possuem critérios de aceite verificáveis.</li>
+          <li>A matriz conecta persona, história, regra e evidência.</li>
+          <li>Decisões e pendências do parceiro têm responsável e prazo.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh green reveal"><div class="st">Pacote de saída do encontro</div><p class="ss">Cada grupo encerra a aula com arquivos atualizados e um registro objetivo do trabalho restante.</p></header>
+      <div class="g4">
+        <article class="card reveal"><span class="label">01</span><h3>ERP demonstrável</h3><p>Ao menos uma regra prioritária parametrizada ou ajustada, com cenários reproduzíveis.</p></article>
+        <article class="card dark reveal"><span class="label dark">02</span><h3>Documento atualizado</h3><p>Seção correspondente à configuração, com percurso, decisão, figuras e operação.</p></article>
+        <article class="card coral reveal"><span class="label coral">03</span><h3>UX rastreada</h3><p>Personas e user stories revisadas frente aos papéis e necessidades do parceiro.</p></article>
+        <article class="card reveal"><span class="label">04</span><h3>Registro de validação</h3><p>Decisões, recomendações, pendências, responsáveis, prazos e próxima demonstração.</p></article>
+      </div>
+      <div class="callout dark reveal"><strong>Encerramento:</strong> o grupo informa qual regra foi validada, qual evidência a comprova e qual pendência apresenta maior risco para a entrega da Semana 4.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Fechamento do grupo</div><p class="ss">A apresentação final sintetiza a evidência produzida e torna explícito o trabalho ainda necessário.</p></header>
+      <div class="closing">
+        <blockquote class="reveal">A entrega é verificável quando o parceiro reconhece a regra, a equipe demonstra o comportamento e a documentação permite reproduzir a decisão.</blockquote>
+        <div class="card reveal" style="padding:22px">
+          <span class="label coral">Pergunta de fechamento</span>
+          <h3 style="font-size:1.25rem">Qual elo da trilha ainda depende de hipótese não validada?</h3>
+          <p style="font-size:.9rem">Registre a hipótese, a evidência necessária, a pessoa responsável por validá-la e a data acordada.</p>
+        </div>
+      </div>
+      <div class="g3" style="margin-top:11px">
+        <article class="card reveal"><span class="label">Hipótese</span><p>Afirmação ainda não confirmada e seu impacto sobre a entrega.</p></article>
+        <article class="card dark reveal"><span class="label dark">Evidência</span><p>Registro necessário para aceitar ou rejeitar a hipótese.</p></article>
+        <article class="card coral reveal"><span class="label coral">Próxima validação</span><p>Responsável, interlocutor e data acordada para a decisão.</p></article>
+      </div>
+    </div>
   </section>
 
 <!-- encontro:meta:start -->
-<div class="slide encontro-slide"><div class="sc"><section class="encontro-meta" data-encontro-ficha><h2>Sobre este encontro</h2><p class="encontro-ref">Hands on — Gestão de Configuração e Escopo · 26/08/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>Ao final do encontro, o estudante deve ser capaz de aplicar ao projeto os conceitos de Hands on — Gestão de Configuração e Escopo. Escopo do encontro: Encontro prático com o parceiro para aprimoramento da gestão de configuração e do escopo na plataforma ERP.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>Encontro prático: o trabalho é conduzido pelos grupos sobre o caso do parceiro, com acompanhamento do professor e verificação dos artefatos produzidos ao final.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol><li>Abertura: retomada do encontro anterior e enunciado do objetivo do dia</li><li>Desenvolvimento: exposição dos conceitos centrais do tema</li><li>Aplicação: exercício ou discussão dirigida sobre o projeto do grupo</li><li>Fechamento: síntese, verificação do entendimento e encaminhamentos</li></ol></div></section></div></div>
+<div class="slide encontro-slide"><div class="sc"><section class="encontro-meta" data-encontro-ficha><h2>Sobre este encontro</h2><p class="encontro-ref">Hands on — Gestão de Configuração e Escopo · 26/08/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>Ao final do encontro, o estudante deve ser capaz de demonstrar ao parceiro a parametrização de uma regra de negócio prioritária, documentar sua finalidade e seu procedimento operacional e verificar sua rastreabilidade com personas e user stories, registrando evidências, decisões e pendências.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>Oficina de produção em três ciclos, conduzida sobre os artefatos reais de cada grupo: parametrização e demonstração no ERP, documentação técnico-operacional e revisão de personas e user stories. O parceiro valida a aderência ao negócio; o docente orienta a consistência técnica e a rastreabilidade da entrega.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol><li>Daily e diagnóstico do estado dos três artefatos — 15 min</li><li>Triagem dos insumos, seleção da regra prioritária e distribuição dos papéis — 10 min</li><li>Ciclo 1: parametrização, demonstração e evidências da implantação — 30 min</li><li>Ciclo 2: documentação da configuração, do procedimento e das exceções — 25 min</li><li>Ciclo 3: revisão de personas, user stories e critérios de aceite — 25 min</li><li>Validação cruzada da rastreabilidade e registro das decisões do parceiro — 10 min</li><li>Fechamento: regra validada, evidência principal, pendências e responsáveis — 5 min</li></ol></div></section></div></div>
 <!-- encontro:meta:end -->
 </div>
 
-<div class="slide-footer">
-  <div class="nav-group">
+<footer class="slide-footer">
+  <div class="footer-links">
     <a href="../../home-module-7-sistemas-informacao.html" class="back-home">🏠 Home</a>
     <a href="../materials/lesson-3-material.html" class="back-home material">📖 Material</a>
   </div>
-  <div class="nav-group">
-    <button class="nav-btn" id="prev">← Anterior</button>
-    <div class="slide-counter"><span id="current-slide">1</span> / <span id="total-slides">7</span></div>
-    <button class="nav-btn" id="next">Próximo →</button>
+  <div class="nav-wrapper">
+    <button class="nav-btn" id="prev" type="button">← Anterior</button>
+    <div class="slide-counter"><span id="current-slide">1</span> / <span id="total-slides">2</span></div>
+    <button class="nav-btn" id="next" type="button">Próximo →</button>
+    <button class="fullscreen-btn" id="fullscreen" type="button" aria-label="Alternar tela cheia">⛶</button>
   </div>
-</div>
+</footer>
 
 <script>
   const slides = Array.from(document.querySelectorAll('.slide'));
-  let idx = 0;
-  const cur = document.getElementById('current-slide');
-  const prev = document.getElementById('prev');
+  const current = document.getElementById('current-slide');
+  const total = document.getElementById('total-slides');
+  const previous = document.getElementById('prev');
   const next = document.getElementById('next');
-  function render() {
-    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
-    cur.textContent = idx + 1;
-    prev.disabled = idx === 0;
-    next.disabled = idx === slides.length - 1;
+  let slideIndex = 0;
+
+  function animateActiveSlide() {
+    const active = slides[slideIndex];
+    const items = active ? Array.from(active.querySelectorAll('.reveal')) : [];
+    if (!items.length || !window.__anime) return;
+    window.__anime.animate(items, {
+      opacity: { from: 0, to: 1 },
+      y: { from: 12, to: 0 },
+      delay: window.__anime.stagger(45),
+      duration: 420,
+      ease: 'outQuad'
+    });
   }
-  function go(d) { idx = Math.min(slides.length - 1, Math.max(0, idx + d)); render(); }
-  prev.addEventListener('click', () => go(-1));
-  next.addEventListener('click', () => go(1));
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowRight') go(1);
-    if (e.key === 'ArrowLeft') go(-1);
+
+  function showSlide(index) {
+    slideIndex = Math.max(0, Math.min(index, slides.length - 1));
+    slides.forEach((slide, position) => slide.classList.toggle('active', position === slideIndex));
+    current.textContent = String(slideIndex + 1);
+    total.textContent = String(slides.length);
+    previous.disabled = slideIndex === 0;
+    next.disabled = slideIndex === slides.length - 1;
+    animateActiveSlide();
+  }
+
+  window.showSlide = showSlide;
+  previous.addEventListener('click', () => showSlide(slideIndex - 1));
+  next.addEventListener('click', () => showSlide(slideIndex + 1));
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowRight' || event.key === 'PageDown') showSlide(slideIndex + 1);
+    if (event.key === 'ArrowLeft' || event.key === 'PageUp') showSlide(slideIndex - 1);
   });
-  render();
+  document.getElementById('fullscreen').addEventListener('click', () => {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+    else document.exitFullscreen();
+  });
+  window.addEventListener('anime-ready', animateActiveSlide);
+
+  let dailySeconds = 15 * 60;
+  let dailyInterval = null;
+  const dailyTimer = document.getElementById('daily-timer');
+  const dailyStart = document.getElementById('daily-start');
+  function renderDaily() {
+    const minutes = String(Math.floor(dailySeconds / 60)).padStart(2, '0');
+    const seconds = String(dailySeconds % 60).padStart(2, '0');
+    dailyTimer.textContent = `${minutes}:${seconds}`;
+  }
+  function stopDaily() {
+    if (dailyInterval) clearInterval(dailyInterval);
+    dailyInterval = null;
+    dailyStart.textContent = 'Iniciar';
+  }
+  dailyStart.addEventListener('click', () => {
+    if (dailyInterval) { stopDaily(); return; }
+    dailyStart.textContent = 'Pausar';
+    dailyInterval = setInterval(() => {
+      dailySeconds -= 1;
+      renderDaily();
+      if (dailySeconds <= 0) stopDaily();
+    }, 1000);
+  });
+  document.getElementById('daily-reset').addEventListener('click', () => {
+    stopDaily();
+    dailySeconds = 15 * 60;
+    renderDaily();
+  });
+  showSlide(0);
 </script>
 <!-- encontro:pdf:start -->
 <button type="button" class="pdf-export-btn" data-encontro-data="2026-08-26" data-encontro-docente="Afonso" data-encontro-seq="01" title="Exportar esta página em PDF com o nome padronizado">📄 Exportar PDF</button>
