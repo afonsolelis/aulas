@@ -1124,7 +1124,7 @@
     7: {
       title: 'Otimização de Data Warehouses', date: '24/08/2026',
       subtitle: 'Laboratório comparativo de consultas OLAP com ClickHouse e PostgreSQL no DBeaver.',
-      objective: 'Executar e avaliar técnicas de otimização de consultas OLAP no ClickHouse e no PostgreSQL, registrando evidências obtidas antes e depois de cada alteração.',
+      objective: 'Ao final do encontro, o estudante deve ser capaz de executar e avaliar técnicas de otimização de consultas OLAP no ClickHouse e no PostgreSQL, registrando evidências obtidas antes e depois de cada alteração.',
       estrategia: 'Laboratório guiado no DBeaver, com o mesmo conjunto sintético de vendas nos dois mecanismos. Cada grupo executa os blocos SQL em ordem, interpreta os planos de execução e registra as diferenças de latência, leitura e cardinalidade.',
       estrutura: [
         'Preparação do DBeaver e construção da baseline — 10 min.',
@@ -1140,6 +1140,28 @@
         { minutes: 50, label: 'Executar o roteiro de otimização no PostgreSQL.' },
         { minutes: 10, label: 'Comparar as evidências e registrar a recomendação.' }
       ],
+      preClass: [
+        {
+          title: 'Materialized views in ClickHouse®: The data transformation Swiss Army knife',
+          topics: ['Funcionamento incremental no momento da inserção', 'Tabelas de destino e resultados pré-computados', 'Transformações aplicadas ao fluxo de ingestão', 'Benefícios, custos e limitações operacionais'],
+          url: 'https://www.propeldata.com/blog/materialized-views-in-clickhouse'
+        },
+        {
+          title: 'Refreshable Materialized View',
+          topics: ['Diferença entre materialized views incrementais e atualizáveis', 'Recomputação periódica do conjunto completo', 'Agendamento, atualização manual e uso de APPEND', 'Monitoramento por system.view_refreshes'],
+          url: 'https://clickhouse.com/docs/materialized-view/refreshable-materialized-view'
+        },
+        {
+          title: 'Postgres Tuning & Performance for Analytics Data',
+          topics: ['Separação entre cargas OLTP e OLAP', 'Leitura de planos com EXPLAIN ANALYZE', 'Parâmetros de paralelismo e estratégias de indexação', 'Colunas geradas, materialized views e atualização periódica'],
+          url: 'https://www.crunchydata.com/blog/postgres-tuning-and-performance-for-analytics-data'
+        },
+        {
+          title: 'Optimizing Data Warehousing with PostgreSQL: Star Schema, Materialized Views, and Performance Tuning',
+          topics: ['Organização dimensional em esquema estrela', 'Agregações pré-computadas com materialized views', 'Índices, particionamento e análise de planos', 'Comparação de desempenho antes e depois da otimização'],
+          url: 'https://medium.com/@anjunittur123/optimizing-data-warehousing-with-postgresql-star-schema-materialized-views-and-performance-2efc6b57c54f'
+        }
+      ],
       outcomes: [
         'Interpretar partições, granules, linhas, buffers e cardinalidades em planos de execução.',
         'Aplicar PARTITION BY, PRIMARY KEY, ORDER BY e skip indexes em tabelas MergeTree.',
@@ -1151,7 +1173,7 @@
       sections: [
         {
           nav: 'Método experimental', title: 'Uma alteração por rodada',
-          text: 'O benchmark mantém consulta, dados e conexão constantes. Registra-se a baseline, aplica-se uma alteração e repete-se a medição. Tempo isolado não basta: linhas, bytes, buffers e cardinalidade explicam a causa da variação.',
+          text: 'O benchmark mantém consulta, dados e conexão constantes. Registra-se a baseline, aplica-se uma alteração e repete-se a medição. A interpretação combina tempo, linhas, bytes, buffers e cardinalidade para explicar a variação observada.',
           checklist: [
             'Execute cada consulta ao menos três vezes e registre a mediana.',
             'Compare resultados antes de comparar desempenho.',
@@ -1214,7 +1236,7 @@
         intro: 'Abra um editor SQL separado para cada conexão. Execute um bloco por vez com Ctrl+Enter; use Alt+X apenas quando desejar executar todo o roteiro daquela conexão. O delimitador permanece como ponto e vírgula.',
         rules: [
           'Não misture os dialetos: cada roteiro deve permanecer associado à respectiva conexão.',
-          'Mantenha auto-commit ativado no bloco de VACUUM e no refresh concorrente do PostgreSQL.',
+          'Mantenha auto-commit ativado no bloco de VACUUM do PostgreSQL e não execute o refresh concorrente em uma transação longa.',
           'Não inclua host, usuário ou senha nos scripts compartilhados.'
         ],
         connections: [
@@ -1452,7 +1474,7 @@ SELECT dia, sum(quantidade), sum(receita)
 FROM aula_dw.vendas_dia
 WHERE dia = toDate('2025-07-15') AND regiao_id = 7
 GROUP BY dia;`,
-              observe: 'As duas consultas diárias devem retornar os mesmos totais antes da inserção adicional. A última inserção deve ser incorporada automaticamente pela materialized view.'
+              observe: 'As duas consultas diárias devem retornar os mesmos totais antes da inserção adicional. A última inserção deve ser incorporada automaticamente pela materialized view. Em produção, o backfill exige ingestão pausada ou corte temporal explícito para impedir lacunas e dupla contagem.'
             },
             {
               title: '6. Consultar as métricas executadas',
@@ -1766,9 +1788,11 @@ WHERE regiao_id = 7
         { label: 'ClickHouse Docs — MergeTree table engine', href: 'https://clickhouse.com/docs/engines/table-engines/mergetree-family/mergetree' },
         { label: 'ClickHouse Docs — Data skipping indexes', href: 'https://clickhouse.com/docs/optimize/skipping-indexes' },
         { label: 'ClickHouse Docs — Incremental materialized views', href: 'https://clickhouse.com/docs/materialized-view/incremental-materialized-view' },
+        { label: 'ClickHouse Docs — Refreshable materialized views', href: 'https://clickhouse.com/docs/materialized-view/refreshable-materialized-view' },
         { label: 'PostgreSQL 18 — Table Partitioning', href: 'https://www.postgresql.org/docs/18/ddl-partitioning.html' },
         { label: 'PostgreSQL 18 — Using EXPLAIN', href: 'https://www.postgresql.org/docs/18/using-explain.html' },
-        { label: 'PostgreSQL 18 — Materialized Views and Routine Vacuuming', href: 'https://www.postgresql.org/docs/18/rules-materializedviews.html' }
+        { label: 'PostgreSQL 18 — Materialized Views', href: 'https://www.postgresql.org/docs/18/rules-materializedviews.html' },
+        { label: 'PostgreSQL 18 — Routine Vacuuming', href: 'https://www.postgresql.org/docs/18/routine-vacuuming.html' }
       ]
     },
 
@@ -2570,7 +2594,7 @@ WHERE regiao_id = 7
       : '';
 
     const preClass = lesson.preClass
-      ? `<section class="material-box"><h2>Estudo prévio — antes da aula</h2><p>Estude os materiais abaixo antes do encontro presencial; a aula pressupõe essa leitura e não repete o conteúdo do zero.</p>${lesson.preClass.map((m, i) => `<div class="material-note"><strong>${i + 1}. <a href="${esc(m.url)}" target="_blank" rel="noopener noreferrer">${esc(m.title)}</a></strong><ul>${m.topics.map((t) => `<li>${esc(t)}</li>`).join('')}</ul></div>`).join('')}</section>`
+      ? `<section class="material-box"><h2>Estudo prévio — antes da aula</h2><p>Estude os materiais abaixo antes do encontro presencial; a aula pressupõe essa leitura e não retoma integralmente os conceitos introdutórios.</p>${lesson.preClass.map((m, i) => `<div class="material-note"><strong>${i + 1}. <a href="${esc(m.url)}" target="_blank" rel="noopener noreferrer">${esc(m.title)}</a></strong><ul>${m.topics.map((t) => `<li>${esc(t)}</li>`).join('')}</ul></div>`).join('')}</section>`
       : '';
 
     const timeboxSection = lesson.timebox
