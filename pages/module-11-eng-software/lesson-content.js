@@ -1799,13 +1799,14 @@ WHERE regiao_id = 7
     10: {
       title: 'Armazenamento em Grande Escala', date: '01/09/2026',
       subtitle: 'Guardar petabytes com desempenho, garantias distribuídas e custo previsível — e construir um lakehouse ao vivo em DuckDB.',
-      objective: 'Escolher formatos, organização física, camadas de armazenamento e políticas de ciclo de vida para dados em escala, reconhecendo as propriedades distribuídas que sustentam essas decisões.',
+      objective: 'Escolher formatos, organização física, camadas de armazenamento e políticas de ciclo de vida para dados em escala, reconhecendo as propriedades distribuídas que sustentam essas decisões, e provar a escolha construindo um lakehouse que responda a perguntas de negócio.',
       outcomes: [
         'Dimensionar armazenamento por throughput, concorrência e latência, não apenas por volume.',
         'Escolher o formato físico a partir do padrão de leitura predominante.',
         'Definir layout e compactação que sustentem pruning eficaz.',
         'Explicar particionamento, replicação, quórum e consistência como decisões de projeto, com efeito observável no pipeline.',
-        'Construir um lakehouse local em DuckDB, com camadas bronze, silver e gold sobre dados reais, e medir o resultado de cada decisão.',
+        'Construir um lakehouse local com MinIO e DuckDB, em camadas bronze, silver e gold sobre dados reais, e medir o resultado de cada decisão.',
+        'Modelar dimensionalmente o conjunto da Olist e responder, com SQL executado, a três perguntas de negócio sobre região, produto e sazonalidade.',
         'Aplicar ciclo de vida, tiering e orçamento por domínio.'
       ],
       sections: [
@@ -1890,14 +1891,24 @@ WHERE regiao_id = 7
           pitfall: 'Bronze, silver e gold como três cópias com o mesmo contrato. A camada só existe se o compromisso de qualidade muda.'
         },
         {
-          nav: 'Laboratório DuckDB', title: 'Lakehouse ao vivo com DuckDB e Olist',
-          text: 'O encontro constrói um lakehouse local sobre o conjunto público da Olist — cerca de cem mil pedidos de comércio eletrônico brasileiro em oito tabelas. A bronze grava o CSV bruto em Parquet particionado por ano e mês, com carimbo de ingestão; a silver declara tipos, deduplica por chave natural e registra rejeitos; a gold materializa a métrica de negócio. A IA é usada para reconhecer o schema, gerar o SQL e criticar o próprio resultado; a verificação permanece com o grupo.',
+          nav: 'Card de trabalho', title: 'As três perguntas da atividade em sala',
+          text: 'A segunda hora do encontro é atividade em grupo sobre os dados da Olist: qual região está com o menor volume de vendas; qual é o produto mais vendido nessa região; e qual foi a sazonalidade desse produto ao longo do período em que foi vendido. As três se respondem no mesmo fato, no grão do item de pedido entregue, cortado por geografia, produto e tempo.',
           checklist: [
-            'Conte as linhas do CSV antes de transformar: toda diferença posterior precisa de uma regra que a explique.',
-            'Execute a carga duas vezes e prove, pela contagem, que ela é idempotente.',
-            'Anote tamanho do CSV, tamanho do Parquet, número de arquivos e bytes lidos por consulta.'
+            'Declare o que é volume — receita ou quantidade — e mantenha a definição nas três respostas.',
+            'Declare se produto é o item individual ou a categoria, e justifique pela pergunta de negócio.',
+            'Leia a sazonalidade com cuidado nos meses de borda, que têm poucos dias de venda.'
           ],
-          pitfall: 'Aceitar o SQL gerado por IA sem executar e conferir. Nome de coluna inventado e junção plausível passam despercebidos até o resultado divergir.'
+          pitfall: 'Responder por estimativa ou por consulta sobre o CSV bruto. A resposta vale quando sai da camada gold, com o recorte de status e a definição de volume declarados.'
+        },
+        {
+          nav: 'Lakehouse com MinIO e DuckDB', title: 'Construção do lakehouse em sala',
+          text: 'O laboratório usa MinIO como object storage compatível com S3 e DuckDB como motor analítico. A bronze grava os CSVs em Parquet particionado dentro do bucket; a silver declara tipos e garante uma linha por pedido; a gold monta o fato no grão do item entregue com as dimensões de região, produto e mês. A IA é usada para reconhecer o schema, gerar o SQL e criticar o próprio resultado; a verificação permanece com o grupo.',
+          checklist: [
+            'Configure o acesso ao MinIO com URL_STYLE path e USE_SSL false: sem isso o DuckDB tenta o estilo de domínio da AWS.',
+            'Confirme que a contagem da bronze é idêntica à do CSV de origem antes de modelar.',
+            'Confira a contagem do fato antes e depois de cada junção: junção errada multiplica linhas em silêncio.'
+          ],
+          pitfall: 'Aceitar o SQL gerado por IA sem executar e conferir. Nome de coluna inventado e junção plausível passam despercebidos até o número divergir.'
         },
         {
           nav: 'FinOps do armazenamento', title: 'Custo e segurança',
@@ -1916,7 +1927,7 @@ WHERE regiao_id = 7
         adr: 'ADR-STO-01 — Parquet particionado por ano e mês, publicado por commit no catálogo. Alternativa descartada: JSON particionado por dia, que impede pruning por coluna e multiplica arquivos pequenos. Consequência: exige rotina de compactação e manutenção de snapshots.',
         gherkin: 'Dado um diretório com 10 000 arquivos de 1 MB, Quando executo a compactação, Então restam arquivos de pelo menos 128 MB e a mesma consulta lê menos bytes.'
       },
-      deliverable: 'Proposta de layout de storage do projeto com formato, particionamento, compactação, lifecycle, replicação assumida, segurança e estimativa de custo, acompanhada da evidência medida no laboratório em DuckDB — tamanho por formato, número e tamanho dos arquivos e bytes lidos pela mesma consulta antes e depois.',
+      deliverable: 'O pipeline versionado do card de trabalho — ingestão dos CSVs da Olist em Parquet no bucket MinIO, modelo dimensional no grão do item entregue e as três consultas — com as três respostas em número, a definição de volume e o recorte de status declarados, e ao menos uma evidência medida: tamanho por formato, número e tamanho dos arquivos ou bytes lidos pela mesma consulta antes e depois.',
       references: [
         { label: 'Dados do laboratório — Olist, oito tabelas em CSV (ZIP, 28 MB)', href: '../assets/olist/olist-csv.zip' },
         { label: 'Dados do laboratório — amostra em Excel, 2 000 linhas por tabela (1 MB)', href: '../assets/olist/olist-amostra.xlsx' },
@@ -1924,6 +1935,8 @@ WHERE regiao_id = 7
         { label: 'Apache Iceberg Documentation', href: 'https://iceberg.apache.org/docs/latest/' },
         { label: 'Delta Lake Protocol', href: 'https://github.com/delta-io/delta/blob/master/PROTOCOL.md' },
         { label: 'DuckDB Documentation — Reading and writing Parquet', href: 'https://duckdb.org/docs/stable/data/parquet/overview.html' },
+        { label: 'DuckDB Documentation — S3 API support (httpfs)', href: 'https://duckdb.org/docs/stable/core_extensions/httpfs/s3api.html' },
+        { label: 'MinIO — Container installation', href: 'https://min.io/docs/minio/container/index.html' },
         { label: 'Olist — Brazilian E-Commerce Public Dataset', href: 'https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce' },
         { label: 'Autoestudo — Estudo de caso: os desafios críticos de dados da Coca-Cola Andina', href: 'https://cobalt-blarney-8b3.notion.site/Estudo-de-Caso-Os-Desafios-Cr-ticos-de-Dados-da-Coca-Cola-Andina-250256ceaea78028b1c3cb5d4ed774b0' },
         { label: 'Autoestudo — Databases vs Data Warehouses vs Data Lakes (vídeo)', href: 'https://www.youtube.com/watch?v=FxpRL0m9BcA' },
