@@ -1798,12 +1798,14 @@ WHERE regiao_id = 7
 
     10: {
       title: 'Armazenamento em Grande Escala', date: '01/09/2026',
-      subtitle: 'Como guardar petabytes com desempenho, governança e custo previsível.',
-      objective: 'Escolher formatos, organização física, camadas de armazenamento e políticas de ciclo de vida para dados em escala.',
+      subtitle: 'Guardar petabytes com desempenho, garantias distribuídas e custo previsível — e construir um lakehouse ao vivo em DuckDB.',
+      objective: 'Escolher formatos, organização física, camadas de armazenamento e políticas de ciclo de vida para dados em escala, reconhecendo as propriedades distribuídas que sustentam essas decisões.',
       outcomes: [
         'Dimensionar armazenamento por throughput, concorrência e latência, não apenas por volume.',
         'Escolher o formato físico a partir do padrão de leitura predominante.',
         'Definir layout e compactação que sustentem pruning eficaz.',
+        'Explicar particionamento, replicação, quórum e consistência como decisões de projeto, com efeito observável no pipeline.',
+        'Construir um lakehouse local em DuckDB, com camadas bronze, silver e gold sobre dados reais, e medir o resultado de cada decisão.',
         'Aplicar ciclo de vida, tiering e orçamento por domínio.'
       ],
       sections: [
@@ -1819,7 +1821,7 @@ WHERE regiao_id = 7
         },
         {
           nav: 'Object storage', title: 'Object storage',
-          text: 'Buckets e objetos oferecem durabilidade e escala, mas exigem convenções de nome, controle de acesso, versionamento e catálogo externo.',
+          text: 'Buckets e objetos oferecem durabilidade e escala, mas exigem convenções de nome, controle de acesso, versionamento e catálogo externo. O objeto é gravado inteiro e identificado por uma chave: o que parece pasta é prefixo, e renomear significa reescrever.',
           checklist: [
             'Padronize a convenção de prefixo antes do primeiro arquivo.',
             'Ative versionamento e defina quem pode apagar.',
@@ -1829,7 +1831,7 @@ WHERE regiao_id = 7
         },
         {
           nav: 'Formato físico', title: 'Formato físico',
-          text: 'CSV favorece portabilidade; Parquet favorece leitura colunar, compressão e pruning; Avro favorece serialização orientada a registros e schema evolution.',
+          text: 'CSV favorece portabilidade; Parquet favorece leitura colunar, compressão e pruning por estatística de bloco; Avro favorece serialização orientada a registros e evolução de schema declarada.',
           checklist: [
             'Use colunar quando a leitura seleciona poucas colunas de muitas linhas.',
             'Escolha a compressão pelo par CPU/leitura, não pelo maior fator.',
@@ -1839,7 +1841,7 @@ WHERE regiao_id = 7
         },
         {
           nav: 'Layout e compactação', title: 'Layout',
-          text: 'Particione por colunas de filtro estáveis e de baixa ou moderada cardinalidade. Evite small files; compacte e monitore o tamanho médio.',
+          text: 'Particione por colunas de filtro estáveis e de baixa ou moderada cardinalidade. Evite small files; compacte e monitore o tamanho médio. Cada arquivo custa uma abertura, uma leitura de rodapé e uma entrada de metadado.',
           checklist: [
             'Particione por coluna de filtro estável e cardinalidade moderada.',
             'Monitore o tamanho médio de arquivo e compacte quando cair.',
@@ -1848,18 +1850,58 @@ WHERE regiao_id = 7
           pitfall: 'Ingestão em micro-lotes sem compactação. Milhões de arquivos de 1 MB tornam o metadado o gargalo.'
         },
         {
-          nav: 'Lakehouse e catálogo', title: 'Lakehouse',
-          text: 'Tabelas transacionais adicionam atomicidade, histórico e evolução sobre storage aberto. Diferencie bronze, silver e gold por contrato, não apenas por nome.',
+          nav: 'Partição e réplica', title: 'Propriedades distribuídas',
+          text: 'Em escala, armazenar é particionar e replicar. O particionamento divide o conjunto por uma chave e distribui a carga; a replicação repete cada fatia em nós distintos e converte falha de máquina em evento operacional, não em perda de dado. O quórum — quantas réplicas confirmam a escrita e quantas respondem à leitura — é o botão que troca latência por garantia.',
           checklist: [
-            'Diferencie as camadas por contrato de qualidade, não por rótulo.',
+            'Escolha chave de partição uniforme: chave enviesada concentra carga em um nó.',
+            'Declare o fator de replicação e o comportamento esperado quando um nó cai.',
+            'Distinga durabilidade de disponibilidade, e réplica de backup.'
+          ],
+          pitfall: 'Confundir réplica com backup. A réplica propaga o apagamento; o backup preserva o estado anterior.'
+        },
+        {
+          nav: 'Consistência', title: 'Consistência e efeito no pipeline',
+          text: 'Nem toda leitura devolve a última escrita. Havendo partição de rede, escolhe-se entre consistência e disponibilidade; não havendo, entre consistência e latência. No lakehouse isso aparece como escrita não atômica, listagem eventual, reentrega de mensagens e falha parcial de carga — cada uma com uma regra de engenharia correspondente.',
+          checklist: [
+            'Publique por troca de ponteiro: só o commit no catálogo torna a versão visível.',
+            'Torne a ingestão idempotente por chave natural e janela.',
+            'Separe data do evento de data de ingestão e declare a janela de atraso aceita.'
+          ],
+          pitfall: 'Depender da listagem do bucket para saber quais arquivos compõem a tabela. Sob consistência eventual, a listagem mente por alguns instantes.'
+        },
+        {
+          nav: 'Repositórios analíticos', title: 'Warehouse, lake, mart e lakehouse',
+          text: 'O data warehouse aplica schema na escrita e serve o analista de negócio; o data lake aplica schema na leitura e aceita dado bruto; o data mart é um recorte departamental; o lakehouse declara o schema em catálogo sobre arquivos abertos e serve os três públicos com uma única cópia.',
+          checklist: [
+            'Identifique, no projeto do parceiro, qual dos quatro já existe de fato.',
+            'Justifique cada repositório pelo público e pela decisão que ele sustenta.',
+            'Verifique se o modelo dimensional tem onde viver dentro da arquitetura escolhida.'
+          ],
+          pitfall: 'Chamar de data lake um diretório de arquivos sem catálogo, contrato nem responsável. Sem esses três, é um depósito.'
+        },
+        {
+          nav: 'Lakehouse e camadas', title: 'Lakehouse e camadas por contrato',
+          text: 'Tabelas transacionais adicionam atomicidade, histórico e evolução sobre storage aberto. Bronze, silver e gold se diferenciam por contrato — fidelidade à origem, conformidade e semântica de negócio — e não apenas por rótulo.',
+          checklist: [
+            'Diferencie as camadas por contrato de qualidade, não por nome.',
             'Use tabela transacional quando houver escrita concorrente ou correção retroativa.',
             'Registre o schema e sua evolução no catálogo.'
           ],
           pitfall: 'Bronze, silver e gold como três cópias com o mesmo contrato. A camada só existe se o compromisso de qualidade muda.'
         },
         {
+          nav: 'Laboratório DuckDB', title: 'Lakehouse ao vivo com DuckDB e Olist',
+          text: 'O encontro constrói um lakehouse local sobre o conjunto público da Olist — cerca de cem mil pedidos de comércio eletrônico brasileiro em oito tabelas. A bronze grava o CSV bruto em Parquet particionado por ano e mês, com carimbo de ingestão; a silver declara tipos, deduplica por chave natural e registra rejeitos; a gold materializa a métrica de negócio. A IA é usada para reconhecer o schema, gerar o SQL e criticar o próprio resultado; a verificação permanece com o grupo.',
+          checklist: [
+            'Conte as linhas do CSV antes de transformar: toda diferença posterior precisa de uma regra que a explique.',
+            'Execute a carga duas vezes e prove, pela contagem, que ela é idempotente.',
+            'Anote tamanho do CSV, tamanho do Parquet, número de arquivos e bytes lidos por consulta.'
+          ],
+          pitfall: 'Aceitar o SQL gerado por IA sem executar e conferir. Nome de coluna inventado e junção plausível passam despercebidos até o resultado divergir.'
+        },
+        {
           nav: 'FinOps do armazenamento', title: 'Custo e segurança',
-          text: 'Aplique lifecycle, tiering, retenção, criptografia, políticas por prefixo, acesso mínimo e orçamento por domínio.',
+          text: 'Aplique lifecycle, tiering, retenção, criptografia, políticas por prefixo, acesso mínimo e orçamento por domínio. O custo do armazenamento aparece na varredura, não na guarda.',
           checklist: [
             'Aplique lifecycle automático em vez de limpeza manual.',
             'Atribua orçamento e alerta de custo por domínio.',
@@ -1870,12 +1912,23 @@ WHERE regiao_id = 7
       ],
       sdd: {
         rf: 'RF-004 — Manter cinco anos de eventos brutos consultáveis sob demanda para auditoria.',
-        rnf: 'RNF-004 — Tamanho médio de arquivo entre 128 MB e 1 GB; dados com mais de 12 meses em classe fria; custo mensal dentro do orçamento do domínio.',
-        adr: 'ADR-STO-01 — Parquet sobre tabela Iceberg, particionado por ano e mês. Alternativa descartada: JSON particionado por dia, que impede pruning por coluna e multiplica arquivos pequenos. Consequência: exige rotina de compactação e manutenção de snapshots.',
+        rnf: 'RNF-004 — Tamanho médio de arquivo entre 128 MB e 1 GB; dados com mais de 12 meses em classe fria; carga idempotente sob reentrega; custo mensal dentro do orçamento do domínio.',
+        adr: 'ADR-STO-01 — Parquet particionado por ano e mês, publicado por commit no catálogo. Alternativa descartada: JSON particionado por dia, que impede pruning por coluna e multiplica arquivos pequenos. Consequência: exige rotina de compactação e manutenção de snapshots.',
         gherkin: 'Dado um diretório com 10 000 arquivos de 1 MB, Quando executo a compactação, Então restam arquivos de pelo menos 128 MB e a mesma consulta lê menos bytes.'
       },
-      deliverable: 'Proposta de layout de storage com formato, particionamento, compactação, lifecycle, segurança e estimativa de custo.',
-      references: ['Apache Parquet Documentation', 'Delta Lake Protocol', 'Apache Iceberg Documentation', 'Google Cloud Storage — Storage classes']
+      deliverable: 'Proposta de layout de storage do projeto com formato, particionamento, compactação, lifecycle, replicação assumida, segurança e estimativa de custo, acompanhada da evidência medida no laboratório em DuckDB — tamanho por formato, número e tamanho dos arquivos e bytes lidos pela mesma consulta antes e depois.',
+      references: [
+        { label: 'Dados do laboratório — Olist, oito tabelas em CSV (ZIP, 28 MB)', href: '../assets/olist/olist-csv.zip' },
+        { label: 'Dados do laboratório — amostra em Excel, 2 000 linhas por tabela (1 MB)', href: '../assets/olist/olist-amostra.xlsx' },
+        { label: 'Apache Parquet Documentation', href: 'https://parquet.apache.org/docs/' },
+        { label: 'Apache Iceberg Documentation', href: 'https://iceberg.apache.org/docs/latest/' },
+        { label: 'Delta Lake Protocol', href: 'https://github.com/delta-io/delta/blob/master/PROTOCOL.md' },
+        { label: 'DuckDB Documentation — Reading and writing Parquet', href: 'https://duckdb.org/docs/stable/data/parquet/overview.html' },
+        { label: 'Olist — Brazilian E-Commerce Public Dataset', href: 'https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce' },
+        { label: 'Autoestudo — Estudo de caso: os desafios críticos de dados da Coca-Cola Andina', href: 'https://cobalt-blarney-8b3.notion.site/Estudo-de-Caso-Os-Desafios-Cr-ticos-de-Dados-da-Coca-Cola-Andina-250256ceaea78028b1c3cb5d4ed774b0' },
+        { label: 'Autoestudo — Databases vs Data Warehouses vs Data Lakes (vídeo)', href: 'https://www.youtube.com/watch?v=FxpRL0m9BcA' },
+        { label: 'Autoestudo — AWS: diferença entre data warehouse, data lake e data mart', href: 'https://aws.amazon.com/pt/compare/the-difference-between-a-data-warehouse-data-lake-and-data-mart/' }
+      ]
     },
 
     12: {
