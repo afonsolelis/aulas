@@ -12,9 +12,14 @@ Este repositório é material didático de ensino superior (Inteli). Todo texto 
 
 A força do texto provém do rigor e da clareza, não do tom. Afirma-se com precisão e autoridade, sem apelo emocional, sem frase de efeito e sem informalidade.
 
+> **Revisão de texto já escrito:** o procedimento de auditoria — como localizar e reescrever
+> as construções abaixo — está na skill [`revisar-escrita`](../revisar-escrita/SKILL.md).
+
 ## A evitar (linguagem "TikTok" / marketing)
 
-- **Bordões e frases de efeito**: "começa aqui, não termina aqui"; "baseline é piso, não teto"; "não é X — é Y".
+- **Antítese corretiva**: "não é X, é Y"; "objeto não é arquivo"; "é regra automática, não faxina manual". Afirme o que a coisa é.
+- **Bordões e frases de efeito**: "começa aqui, não termina aqui"; "baseline é piso, não teto".
+- **Tricolon publicitário**: três termos em ritmo de slogan ("um binário, um arquivo, nenhum servidor").
 - **Aforismos publicitários**: "arquitetura não é o diagrama bonito — é..."; "documentação que não envelhece".
 - **Coloquialismos e metáforas de venda**: "scan é dinheiro"; "produção nunca é cobaia"; "ruído mata observabilidade".
 - **Travessão usado para criar *punch line*** ou suspense retórico.

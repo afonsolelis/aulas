@@ -23,7 +23,7 @@
         <div>
           <div class="cover-badge rise">Módulo 11 · Engenharia de Software · Aula 10</div>
           <h1 class="cover-title rise" style="--delay:.07s">Armazenamento em<br><span>Grande Escala</span></h1>
-          <p class="cover-subtitle rise" style="--delay:.14s">Formato físico, organização em disco e propriedades distribuídas — e, ao vivo, a construção de um lakehouse local em DuckDB sobre os dados da Olist.</p>
+          <p class="cover-subtitle rise" style="--delay:.14s">Formato físico, organização em disco e propriedades distribuídas do armazenamento, com a construção de um lakehouse local em MinIO e DuckDB sobre os dados da Olist.</p>
           <p class="cover-meta rise" style="--delay:.2s">Computação 1 · Prof. Afonso Brandão · 01/09/2026</p>
           <div class="cover-tags rise" style="--delay:.26s">
             <span class="cover-tag">Object storage</span>
@@ -85,8 +85,8 @@
       <div class="sc">
         <header class="slide-head dark rise">
           <p class="eyebrow">Bloco 1 · O que escala</p>
-          <h2 class="slide-title">Volume é apenas uma das dimensões</h2>
-          <p class="slide-subtitle">Um projeto dimensionado só por terabytes ignora as variáveis que efetivamente derrubam o sistema.</p>
+          <h2 class="slide-title">As dimensões que determinam a escala</h2>
+          <p class="slide-subtitle">O dimensionamento por volume isolado desconsidera as variáveis que determinam o comportamento do sistema sob carga.</p>
         </header>
         <div class="dimension-grid">
           <article class="dimension rise" style="--delay:.05s"><h3>Throughput de escrita</h3><p>Quanto entra por unidade de tempo e em que tamanho de lote.</p><span class="unit">MB/s · eventos/s</span></article>
@@ -94,9 +94,9 @@
           <article class="dimension green rise" style="--delay:.13s"><h3>Latência exigida</h3><p>O tempo de resposta aceitável para cada classe de consumo.</p><span class="unit">segundos · minutos</span></article>
           <article class="dimension blue rise" style="--delay:.17s"><h3>Tamanho dos arquivos</h3><p>Poucos arquivos grandes ou muitos pequenos mudam o gargalo.</p><span class="unit">MB por arquivo</span></article>
           <article class="dimension violet rise" style="--delay:.21s"><h3>Retenção e recuperação</h3><p>Por quanto tempo se guarda e em quanto tempo se restaura.</p><span class="unit">meses · RTO</span></article>
-          <article class="dimension deep rise" style="--delay:.25s"><h3>Custo por consulta</h3><p>Bytes varridos por pergunta respondida, não apenas por guarda.</p><span class="unit">bytes varridos</span></article>
+          <article class="dimension deep rise" style="--delay:.25s"><h3>Custo por consulta</h3><p>Bytes varridos por pergunta respondida, somados ao custo de guarda.</p><span class="unit">bytes varridos</span></article>
         </div>
-        <div class="pitfall rise" style="--delay:.3s">Dimensionar só por terabytes. Dez mil leitores concorrentes quebram um layout que aguentaria petabytes.</div>
+        <div class="pitfall rise" style="--delay:.3s">Dimensionar exclusivamente pelo volume armazenado. Um layout adequado a petabytes falha sob dez mil leitores concorrentes.</div>
       </div>
     </section>
 
@@ -105,15 +105,15 @@
       <div class="sc">
         <header class="slide-head amber rise">
           <p class="eyebrow">Bloco 1 · Object storage</p>
-          <h2 class="slide-title">O bucket entrega durabilidade, não organização</h2>
+          <h2 class="slide-title">O serviço garante durabilidade; a organização cabe ao projeto</h2>
           <p class="slide-subtitle">Buckets e objetos oferecem escala e durabilidade, mas exigem convenções de nome, controle de acesso, versionamento e catálogo externo.</p>
         </header>
         <div class="hero-split">
           <article class="hero-panel rise" style="--delay:.05s">
-            <small>Objeto não é arquivo</small>
-            <h3>Namespace plano, escrita imutável</h3>
-            <p>O objeto é gravado inteiro e identificado por uma chave. Não há diretório real: o que parece pasta é prefixo da chave, e renomear significa reescrever.</p>
-            <p>Daí a consequência prática: a convenção de prefixo é a única estrutura que existe, e precisa ser decidida antes do primeiro arquivo.</p>
+            <small>Modelo de objetos</small>
+            <h3>Namespace plano e escrita imutável</h3>
+            <p>O objeto é gravado integralmente e identificado por uma chave. A hierarquia de diretórios é aparente: o segmento que se assemelha a pasta constitui prefixo da chave, e renomear equivale a reescrever.</p>
+            <p>A convenção de prefixo constitui, portanto, a única estrutura disponível, e deve ser definida antes da gravação do primeiro arquivo.</p>
           </article>
           <div class="checklist">
             <div class="check-item rise" style="--delay:.09s"><span>✓</span><p>Padronize a convenção de prefixo antes do primeiro arquivo.</p></div>
@@ -133,7 +133,7 @@
         <header class="slide-head green rise">
           <p class="eyebrow">Bloco 1 · Formato físico</p>
           <h2 class="slide-title">O formato se escolhe pelo padrão de leitura predominante</h2>
-          <p class="slide-subtitle">Não existe formato universal: cada um otimiza um acesso diferente e paga o preço no acesso oposto.</p>
+          <p class="slide-subtitle">Cada formato otimiza um padrão de acesso e onera o padrão oposto.</p>
         </header>
         <div class="format-grid">
           <article class="format-card csv rise" style="--delay:.05s">
@@ -161,7 +161,7 @@
             </dl>
           </article>
         </div>
-        <div class="callout dark rise" style="--delay:.25s;margin-top:12px">Escolha a compressão pelo par CPU/leitura, não pelo maior fator de redução. Fixe o formato por camada e documente cada exceção.</div>
+        <div class="callout dark rise" style="--delay:.25s;margin-top:12px">Escolha a compressão pelo par CPU/leitura; o maior fator de redução constitui critério insuficiente. Fixe o formato por camada e documente cada exceção.</div>
       </div>
     </section>
 
@@ -208,7 +208,7 @@
             <article class="card rise" style="--delay:.16s">
               <span class="card-label">Indicador</span>
               <h3>Bytes lidos por consulta</h3>
-              <p>É a métrica que revela a qualidade do layout. Tempo de resposta pode melhorar por cache; bytes lidos, não. Meça antes e depois de cada alteração estrutural.</p>
+              <p>É a métrica que revela a qualidade do layout. O tempo de resposta varia com o cache; os bytes lidos refletem a estrutura física do dado. Meça antes e depois de cada alteração estrutural.</p>
             </article>
           </div>
         </div>
@@ -233,7 +233,7 @@ lake/<span class="code-keyword">gold</span>/fato_pedido/
 <span class="code-comment"># Layout que pulveriza o conjunto</span>
 lake/<span class="code-bad">raw</span>/fato_pedido/
   dia=<span class="code-number">2017</span>-<span class="code-number">10</span>-<span class="code-number">02</span>/hora=<span class="code-number">10</span>/cliente=<span class="code-number">9ef4</span>/... <span class="code-comment">// 1 MB</span></div>
-            <div class="observe-box rise" style="--delay:.11s"><strong>Regra prática:</strong> particione por coluna de filtro estável e de cardinalidade baixa ou moderada. Cliente e identificador de pedido são chave de consulta, não critério de partição.</div>
+            <div class="observe-box rise" style="--delay:.11s"><strong>Regra prática:</strong> particione por coluna de filtro estável e de cardinalidade baixa ou moderada. Cliente e identificador de pedido servem como chave de consulta; a cardinalidade elevada os desqualifica como critério de partição.</div>
           </div>
           <div class="checklist">
             <div class="check-item rise" style="--delay:.09s"><span>✓</span><p>Confirme que a coluna de partição aparece nos filtros mais frequentes.</p></div>
@@ -266,7 +266,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
             <tr><td><strong>Custo de varredura acima do orçado</strong></td><td>Formato sem estatística ou partição ausente.</td><td>Converter para colunar e particionar.</td><td>Custo por consulta cai com o mesmo resultado.</td></tr>
           </tbody>
         </table>
-        <div class="callout rise" style="--delay:.14s;margin-top:12px">Compare sempre o resultado antes de comparar o desempenho: uma alteração de layout que muda a resposta não é otimização, é defeito.</div>
+        <div class="callout rise" style="--delay:.14s;margin-top:12px">Compare o resultado antes de comparar o desempenho: alteração de layout que modifica a resposta constitui defeito.</div>
       </div>
     </section>
 
@@ -276,7 +276,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
         <header class="slide-head dark rise">
           <p class="eyebrow">Bloco 2 · Sistemas distribuídos</p>
           <h2 class="slide-title">Em escala, armazenar é particionar e replicar</h2>
-          <p class="slide-subtitle">Nenhum disco comporta o conjunto e nenhuma máquina é confiável o bastante. As duas respostas fundamentais são dividir o dado e repeti-lo.</p>
+          <p class="slide-subtitle">O conjunto excede a capacidade de um disco e a confiabilidade de uma máquina isolada. As duas respostas estruturais são a divisão e a repetição do dado.</p>
         </header>
         <div class="g2">
           <article class="card rise" style="--delay:.05s">
@@ -298,7 +298,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
             </ul>
           </article>
         </div>
-        <div class="callout dark rise" style="--delay:.19s;margin-top:12px">Todo serviço de object storage já faz isso por você. Saber que faz é o que permite explicar a latência de listagem, a cobrança por requisição e a leitura que devolve a versão anterior.</div>
+        <div class="callout dark rise" style="--delay:.19s;margin-top:12px">Os serviços de object storage implementam ambos os mecanismos. O conhecimento dessa implementação explica a latência de listagem, a cobrança por requisição e a leitura que devolve versão anterior.</div>
       </div>
     </section>
 
@@ -308,7 +308,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
         <header class="slide-head blue rise">
           <p class="eyebrow">Bloco 2 · Réplica e quórum</p>
           <h2 class="slide-title">Quantas cópias precisam confirmar antes de a escrita valer?</h2>
-          <p class="slide-subtitle">O quórum é o botão que troca latência por garantia: quanto mais réplicas precisam confirmar, mais lenta e mais segura fica a operação.</p>
+          <p class="slide-subtitle">O quórum estabelece a relação entre latência e garantia: quanto maior o número de réplicas exigidas na confirmação, maior o tempo de resposta e menor a probabilidade de perda.</p>
         </header>
         <div class="g2">
           <div>
@@ -322,9 +322,9 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
           </div>
           <div class="checklist">
             <div class="check-item rise" style="--delay:.09s"><span>✓</span><p>Declare o fator de replicação e o que ele custa em espaço.</p></div>
-            <div class="check-item rise" style="--delay:.13s"><span>✓</span><p>Distinga durabilidade (não perder) de disponibilidade (poder ler agora).</p></div>
+            <div class="check-item rise" style="--delay:.13s"><span>✓</span><p>Distinga durabilidade, que preserva o dado gravado, de disponibilidade, que garante a leitura no instante solicitado.</p></div>
             <div class="check-item rise" style="--delay:.17s"><span>✓</span><p>Registre o comportamento esperado quando um nó cai durante a escrita.</p></div>
-            <div class="check-item rise" style="--delay:.21s"><span>✓</span><p>Prefira réplicas em domínios de falha distintos, não na mesma máquina.</p></div>
+            <div class="check-item rise" style="--delay:.21s"><span>✓</span><p>Distribua as réplicas em domínios de falha distintos.</p></div>
             <div class="check-item rise" style="--delay:.25s"><span>✓</span><p>Trate reprocessamento como rotina: falha parcial é evento esperado.</p></div>
           </div>
         </div>
@@ -337,8 +337,8 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
       <div class="sc">
         <header class="slide-head violet rise" style="background:linear-gradient(135deg,#4c3a86,#7052b8 60%,#a78bfa)">
           <p class="eyebrow">Bloco 2 · Consistência</p>
-          <h2 class="slide-title">Nem toda leitura devolve a última escrita</h2>
-          <p class="slide-subtitle">Sob partição de rede é preciso escolher entre responder com dado possivelmente velho ou não responder. Fora dela, a escolha continua: consistência ou latência.</p>
+          <h2 class="slide-title">Regimes de consistência entre réplicas</h2>
+          <p class="slide-subtitle">Sob partição de rede, o sistema opta entre responder com estado possivelmente desatualizado e recusar a resposta. Na ausência de partição, a opção se dá entre consistência e latência.</p>
         </header>
         <div class="g3">
           <article class="card violet rise" style="--delay:.05s">
@@ -353,11 +353,11 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
           </article>
           <article class="card blue rise" style="--delay:.17s">
             <span class="card-label">CAP e PACELC</span>
-            <h3>O trade-off não some sem partição</h3>
-            <p>Havendo partição de rede, escolhe-se entre consistência e disponibilidade; <strong>não havendo</strong>, escolhe-se entre consistência e latência. Toda arquitetura de dados já fez essa escolha — explicitá-la é parte do projeto.</p>
+            <h3>A escolha permanece na ausência de partição</h3>
+            <p>Havendo partição de rede, a escolha recai entre consistência e disponibilidade; na <strong>ausência</strong> de partição, entre consistência e latência. Toda arquitetura de dados realiza essa escolha, e explicitá-la integra o trabalho de projeto.</p>
           </article>
         </div>
-        <div class="callout dark rise" style="--delay:.22s;margin-top:12px">Pergunta de projeto: qual leitura do seu parceiro pode devolver dado de cinco minutos atrás sem prejuízo — e qual não pode de forma alguma?</div>
+        <div class="callout dark rise" style="--delay:.22s;margin-top:12px">Pergunta de projeto: quais leituras do parceiro admitem estado defasado em cinco minutos e quais exigem o estado mais recente?</div>
       </div>
     </section>
 
@@ -375,9 +375,9 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
           </thead>
           <tbody>
             <tr><td><strong>Escrita não atômica</strong></td><td>A consulta enxerga arquivos de uma carga ainda incompleta.</td><td>Publicar por troca de ponteiro: só o commit no catálogo torna a versão visível.</td></tr>
-            <tr><td><strong>Listagem eventual</strong></td><td>Arquivo recém-gravado não aparece imediatamente na listagem.</td><td>Registrar arquivos no manifesto da tabela, em vez de depender da listagem do bucket.</td></tr>
+            <tr><td><strong>Listagem eventual</strong></td><td>Arquivo recém-gravado não aparece imediatamente na listagem.</td><td>Registrar os arquivos no manifesto da tabela e consultá-lo no lugar da listagem do bucket.</td></tr>
             <tr><td><strong>Reentrega de mensagens</strong></td><td>O mesmo pedido é ingerido duas vezes após uma falha parcial.</td><td>Ingestão idempotente por chave natural e janela; deduplicação na camada silver.</td></tr>
-            <tr><td><strong>Falha parcial de carga</strong></td><td>Metade das partições atualizada, metade não.</td><td>Reprocessar a partição inteira, jamais corrigir arquivo a arquivo.</td></tr>
+            <tr><td><strong>Falha parcial de carga</strong></td><td>Metade das partições atualizada, metade não.</td><td>Reprocessar a partição integralmente, tratando a carga como unidade atômica.</td></tr>
             <tr><td><strong>Relógios distintos</strong></td><td>Eventos chegam fora de ordem e com atraso.</td><td>Separar data do evento da data de ingestão e declarar a janela de atraso aceita.</td></tr>
           </tbody>
         </table>
@@ -390,7 +390,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
         <header class="slide-head amber rise">
           <p class="eyebrow">Bloco 3 · Vocabulário</p>
           <h2 class="slide-title">Data warehouse, data lake, data mart e lakehouse</h2>
-          <p class="slide-subtitle">Os quatro coexistem no mesmo projeto. O que os separa é quando o schema é aplicado e a quem cada um responde.</p>
+          <p class="slide-subtitle">Os quatro coexistem no mesmo projeto. A distinção decorre do momento de aplicação do schema e do público atendido.</p>
         </header>
         <table class="data-table rise" style="--delay:.05s">
           <thead>
@@ -403,7 +403,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
             <tr><td><strong>Lakehouse</strong></td><td>Declarado no catálogo, sobre arquivo aberto</td><td>Bruto e tratado, na mesma plataforma</td><td>Os três públicos acima</td><td>Uma cópia servindo BI e ciência de dados</td></tr>
           </tbody>
         </table>
-        <div class="callout rise" style="--delay:.14s;margin-top:12px">O lakehouse não substitui o modelo dimensional das Aulas 2-4: ele é o lugar onde esse modelo passa a viver, sobre arquivos abertos e com garantias transacionais.</div>
+        <div class="callout rise" style="--delay:.14s;margin-top:12px">O lakehouse abriga o modelo dimensional das Aulas 2-4 sobre arquivos abertos, com garantias transacionais.</div>
       </div>
     </section>
 
@@ -432,7 +432,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
             <p>Acrescentar coluna, renomear e alterar tipo passam pelo catálogo, com registro de quando a mudança entrou em vigor.</p>
           </article>
         </div>
-        <div class="callout dark rise" style="--delay:.22s;margin-top:12px">Use tabela transacional quando houver escrita concorrente ou correção retroativa. Sem nenhum dos dois, arquivo particionado com catálogo resolve — é exatamente o que construiremos no laboratório.</div>
+        <div class="callout dark rise" style="--delay:.22s;margin-top:12px">Use tabela transacional quando houver escrita concorrente ou correção retroativa. Na ausência de ambas, arquivo particionado com catálogo é suficiente, e corresponde ao que será construído no laboratório.</div>
       </div>
     </section>
 
@@ -442,7 +442,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
         <header class="slide-head dark rise">
           <p class="eyebrow">Bloco 3 · Camadas</p>
           <h2 class="slide-title">Bronze, silver e gold se distinguem por contrato</h2>
-          <p class="slide-subtitle">A camada só existe se o compromisso de qualidade muda. Três cópias com o mesmo contrato são três cópias, não três camadas.</p>
+          <p class="slide-subtitle">A existência de uma camada se justifica pela mudança do compromisso de qualidade que ela assume.</p>
         </header>
         <div class="medallion">
           <article class="medal rise" style="--delay:.05s">
@@ -453,7 +453,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
           <article class="medal silver rise" style="--delay:.12s">
             <h3>Silver</h3>
             <div class="contract"><strong>Contrato:</strong> conformidade. Tipos, chaves e regras de qualidade validados e documentados.</div>
-            <ul><li>Deduplicação e padronização</li><li>Rejeitos registrados, não silenciados</li><li>Base para toda camada de consumo</li></ul>
+            <ul><li>Deduplicação e padronização</li><li>Rejeitos registrados com o motivo</li><li>Base para toda camada de consumo</li></ul>
           </article>
           <article class="medal gold rise" style="--delay:.19s">
             <h3>Gold</h3>
@@ -461,7 +461,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
             <ul><li>Modelo dimensional das Aulas 2-4</li><li>Otimizada para o padrão de consulta</li><li>Exposta ao consumo analítico</li></ul>
           </article>
         </div>
-        <div class="pitfall rise" style="--delay:.24s">Bronze, silver e gold como três cópias com o mesmo contrato. A camada só existe se o compromisso de qualidade muda.</div>
+        <div class="pitfall rise" style="--delay:.24s">Manter bronze, silver e gold sob o mesmo contrato de qualidade. Sem mudança de compromisso, as três constituem cópias do mesmo conjunto.</div>
       </div>
     </section>
 
@@ -471,7 +471,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
         <header class="slide-head blue rise">
           <p class="eyebrow">Bloco 3 · Ciclo de vida</p>
           <h2 class="slide-title">A classe de storage acompanha a idade do dado</h2>
-          <p class="slide-subtitle">Tiering é regra automática, não faxina manual: o dado muda de classe conforme a frequência de acesso cai.</p>
+          <p class="slide-subtitle">A transição entre classes é definida como regra automática, aplicada conforme a frequência de acesso decresce.</p>
         </header>
         <div class="tier-grid">
           <article class="tier rise" style="--delay:.05s">
@@ -491,7 +491,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
           </article>
           <article class="tier archive rise" style="--delay:.23s">
             <div class="tier-name"><span class="tier-dot"></span>Arquivo</div>
-            <p>Retenção legal. Recuperação sob demanda, medida em horas, não em segundos.</p>
+            <p>Retenção legal. Recuperação sob demanda, medida em horas.</p>
             <div class="tier-when">Obrigação regulatória e auditoria.</div>
           </article>
         </div>
@@ -504,12 +504,12 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
       <div class="sc">
         <header class="slide-head amber rise">
           <p class="eyebrow">Bloco 3 · Custo e segurança</p>
-          <h2 class="slide-title">O custo aparece na varredura, não na guarda</h2>
-          <p class="slide-subtitle">Armazenar é barato o suficiente para induzir o acúmulo. O que pesa é ler mal, repetidamente, aquilo que nunca deveria ter sido mantido em linha.</p>
+          <h2 class="slide-title">O custo se concentra na varredura</h2>
+          <p class="slide-subtitle">O baixo custo de guarda favorece o acúmulo. A despesa relevante decorre da leitura repetida de dados que poderiam ter sido movidos para classe mais fria ou expurgados.</p>
         </header>
         <div class="g2">
           <div class="checklist">
-            <div class="check-item rise" style="--delay:.05s"><span>✓</span><p>Aplique lifecycle automático em vez de limpeza manual.</p></div>
+            <div class="check-item rise" style="--delay:.05s"><span>✓</span><p>Aplique regra de lifecycle automática para transição e expurgo.</p></div>
             <div class="check-item rise" style="--delay:.09s"><span>✓</span><p>Atribua orçamento e alerta de custo por domínio.</p></div>
             <div class="check-item rise" style="--delay:.13s"><span>✓</span><p>Conceda acesso mínimo por prefixo e audite o uso.</p></div>
             <div class="check-item rise" style="--delay:.17s"><span>✓</span><p>Cifre em repouso e em trânsito, com chave sob custódia declarada.</p></div>
@@ -528,7 +528,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
             </article>
           </div>
         </div>
-        <div class="pitfall rise" style="--delay:.26s">Reter tudo indefinidamente porque o armazenamento é barato. O custo aparece na varredura, não na guarda.</div>
+        <div class="pitfall rise" style="--delay:.26s">Reter todo o acervo indefinidamente sob o argumento do baixo custo de guarda. A despesa relevante decorre da varredura repetida desse acervo.</div>
       </div>
     </section>
 
@@ -538,7 +538,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
         <header class="slide-head red rise">
           <p class="eyebrow">Segunda hora · Card de trabalho em sala</p>
           <h2 class="slide-title">Três perguntas de negócio, um lakehouse para respondê-las</h2>
-          <p class="slide-subtitle">Em grupo, com os dados da Olist: ingerir, modelar dimensionalmente e responder — com SQL executado, não com estimativa.</p>
+          <p class="slide-subtitle">Em grupo, sobre os dados da Olist: ingerir, modelar dimensionalmente e responder com SQL executado sobre a camada analítica.</p>
         </header>
         <div class="question-grid">
           <article class="qcard rise" style="--delay:.05s">
@@ -580,7 +580,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
         <header class="slide-head green rise">
           <p class="eyebrow">Segunda hora · Arquitetura</p>
           <h2 class="slide-title">MinIO como object storage, DuckDB como motor</h2>
-          <p class="slide-subtitle">O mesmo desenho de um lakehouse em nuvem, reduzido a dois processos na sua máquina: bucket S3 de um lado, motor analítico do outro, Parquet entre os dois.</p>
+          <p class="slide-subtitle">A arquitetura de um lakehouse em nuvem reproduzida em dois processos locais: um serviço compatível com S3, um motor analítico e Parquet como formato de intercâmbio.</p>
         </header>
         <div class="arch-row rise" style="--delay:.05s">
           <div class="arch-box"><span class="badge">origem</span><strong>CSV da Olist</strong><small>Oito tabelas, 65 MB, baixadas abaixo</small></div>
@@ -599,7 +599,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
             <span><strong>Amostra em Excel</strong><small>2 000 linhas por tabela · 1 MB · para inspeção rápida</small></span>
           </a>
         </div>
-        <div class="observe-box rise" style="--delay:.18s"><strong>Por que MinIO e não uma pasta local:</strong> o bucket obriga a lidar com chave, prefixo, credencial e endpoint — exatamente o que muda quando o lakehouse sai do notebook e vai para a nuvem do parceiro.</div>
+        <div class="observe-box rise" style="--delay:.18s"><strong>Justificativa do MinIO:</strong> o bucket impõe o tratamento de chave, prefixo, credencial e endpoint, que são os elementos alterados quando o lakehouse migra da máquina local para a nuvem do parceiro.</div>
       </div>
     </section>
 
@@ -609,7 +609,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
         <header class="slide-head dark rise">
           <p class="eyebrow">Segunda hora · Preparação · 10 minutos</p>
           <h2 class="slide-title">Bucket no ar e motor conectado</h2>
-          <p class="slide-subtitle">Dois comandos no terminal e um bloco de configuração no DuckDB. Depois disso, tudo é SQL.</p>
+          <p class="slide-subtitle">Dois comandos no terminal e um bloco de configuração no DuckDB estabelecem o ambiente do laboratório.</p>
         </header>
         <div class="g2">
           <div class="code-block rise" style="--delay:.05s"><span class="code-comment"># 1. MinIO no ar (console em http://localhost:9001)</span>
@@ -640,7 +640,7 @@ unzip olist-csv.zip -d olist/ &amp;&amp; duckdb lakehouse.duckdb</div>
 <span class="code-keyword">CREATE</span> <span class="code-keyword">SCHEMA</span> <span class="code-keyword">IF</span> <span class="code-keyword">NOT</span> <span class="code-keyword">EXISTS</span> silver;
 <span class="code-keyword">CREATE</span> <span class="code-keyword">SCHEMA</span> <span class="code-keyword">IF</span> <span class="code-keyword">NOT</span> <span class="code-keyword">EXISTS</span> gold;</div>
         </div>
-        <div class="pitfall rise" style="--delay:.17s">Sem <span class="mono">URL_STYLE 'path'</span> e <span class="mono">USE_SSL false</span>, o DuckDB tenta o estilo de domínio da AWS e a conexão falha sem explicar o motivo.</div>
+        <div class="pitfall rise" style="--delay:.17s">Sem <span class="mono">URL_STYLE 'path'</span> e <span class="mono">USE_SSL false</span>, o DuckDB adota o estilo de domínio da AWS e a conexão falha sem mensagem esclarecedora.</div>
       </div>
     </section>
 
@@ -650,7 +650,7 @@ unzip olist-csv.zip -d olist/ &amp;&amp; duckdb lakehouse.duckdb</div>
         <header class="slide-head red rise">
           <p class="eyebrow">Segunda hora · Camada bronze · 15 minutos</p>
           <h2 class="slide-title">CSV bruto vira Parquet dentro do bucket</h2>
-          <p class="slide-subtitle">Nada é corrigido aqui. O ganho é de formato e de layout — e a contagem prova que nenhuma linha se perdeu no caminho.</p>
+          <p class="slide-subtitle">A camada preserva o conteúdo de origem. O ganho é de formato e de layout, e a contagem verifica a integridade da carga.</p>
         </header>
         <div class="code-block rise" style="--delay:.05s"><span class="code-comment">-- pedidos: particionado por ano e mês, com carimbo de ingestão</span>
 <span class="code-keyword">COPY</span> (
@@ -679,19 +679,19 @@ unzip olist-csv.zip -d olist/ &amp;&amp; duckdb lakehouse.duckdb</div>
       <div class="sc">
         <header class="slide-head amber rise">
           <p class="eyebrow">Segunda hora · Modelagem · 20 minutos</p>
-          <h2 class="slide-title">O grão decide tudo: um item de pedido entregue</h2>
-          <p class="slide-subtitle">As três perguntas se respondem no mesmo fato — o que muda é a dimensão pela qual ele é cortado: geografia, produto e tempo.</p>
+          <h2 class="slide-title">O grão do fato: um item de pedido entregue</h2>
+          <p class="slide-subtitle">As três perguntas se respondem sobre o mesmo fato, variando a dimensão de análise: geografia, produto e tempo.</p>
         </header>
         <div class="g4">
           <article class="card rise" style="--delay:.05s">
             <span class="card-label">Fato</span>
             <h3>fato_item_venda</h3>
-            <p>Grão: um item de um pedido entregue. Medidas: preço, frete e valor total. É o grão mais fino disponível — dá para somar para cima, nunca para baixo.</p>
+            <p>Grão: um item de um pedido entregue. Medidas: preço, frete e valor total. É o grão mais fino disponível, e as agregações em níveis superiores derivam dele.</p>
           </article>
           <article class="card blue rise" style="--delay:.11s">
             <span class="card-label">Dimensão · Pergunta 1</span>
             <h3>dim_geografia</h3>
-            <p>Do cliente vem a UF; da UF vem a região, por regra explícita. Sem essa dimensão, "região" não existe no dado bruto.</p>
+            <p>Do cliente deriva a UF e, por regra explícita, a região. O dado bruto não contém o atributo região: ele é produzido nesta dimensão.</p>
           </article>
           <article class="card green rise" style="--delay:.17s">
             <span class="card-label">Dimensão · Pergunta 2</span>
@@ -747,7 +747,7 @@ QUALIFY row_number() <span class="code-keyword">OVER</span> (<span class="code-k
 
 <span class="code-keyword">COPY</span> (<span class="code-keyword">SELECT</span> * <span class="code-keyword">FROM</span> gold.fato_item_venda) <span class="code-keyword">TO</span> <span class="code-string">'s3://lakehouse/gold/fato_item_venda'</span>
   (FORMAT parquet, PARTITION_BY (regiao), OVERWRITE_OR_IGNORE);</div>
-        <div class="observe-box rise" style="--delay:.12s"><strong>Decisão a registrar:</strong> filtrar por <span class="mono">delivered</span> exclui pedidos cancelados e em trânsito. É uma escolha de negócio — e ela muda as três respostas.</div>
+        <div class="observe-box rise" style="--delay:.12s"><strong>Decisão a registrar:</strong> o filtro por <span class="mono">delivered</span> exclui pedidos cancelados e em trânsito. Trata-se de escolha de negócio, com efeito direto sobre as três respostas.</div>
       </div>
     </section>
 
@@ -775,7 +775,7 @@ QUALIFY row_number() <span class="code-keyword">OVER</span> (<span class="code-k
 <span class="code-keyword">FROM</span> gold.fato_item_venda
 <span class="code-keyword">WHERE</span> regiao = <span class="code-string">'Norte'</span> <span class="code-keyword">AND</span> categoria = <span class="code-string">'health_beauty'</span>
 <span class="code-keyword">GROUP</span> <span class="code-keyword">BY</span> <span class="code-number">1</span> <span class="code-keyword">ORDER</span> <span class="code-keyword">BY</span> <span class="code-number">1</span>;</div>
-        <div class="pitfall rise" style="--delay:.12s">Ler sazonalidade nos meses de ponta. O conjunto começa em setembro de 2016 e termina em agosto de 2018: os meses de borda têm poucos dias de venda e não indicam queda de demanda.</div>
+        <div class="pitfall rise" style="--delay:.12s">Interpretar como queda de demanda a redução observada nos meses de borda. O conjunto abrange de setembro de 2016 a agosto de 2018, e os meses extremos contêm poucos dias de venda.</div>
       </div>
     </section>
 
@@ -799,7 +799,7 @@ QUALIFY row_number() <span class="code-keyword">OVER</span> (<span class="code-k
             <tr><td><strong>Pergunta 3</strong></td><td>Série mensal dessa categoria no Norte.</td><td>Vinte e um meses, de out/2016 a ago/2018, com volume crescente e picos em nov/2017 e jun-ago/2018.</td></tr>
           </tbody>
         </table>
-        <div class="callout rise" style="--delay:.14s;margin-top:12px">Número diferente não é necessariamente erro: pode ser outra definição de volume ou outro recorte de status. O que não se aceita é <strong>não saber qual definição foi usada</strong>.</div>
+        <div class="callout rise" style="--delay:.14s;margin-top:12px">Divergência numérica pode decorrer de outra definição de volume ou de outro recorte de status. Exige-se que a definição adotada esteja <strong>declarada por escrito</strong>.</div>
       </div>
     </section>
 
@@ -809,7 +809,7 @@ QUALIFY row_number() <span class="code-keyword">OVER</span> (<span class="code-k
         <header class="slide-head violet rise" style="background:linear-gradient(135deg,#4c3a86,#7052b8 60%,#a78bfa)">
           <p class="eyebrow">Segunda hora · Uso de IA · em paralelo</p>
           <h2 class="slide-title">A IA escreve o SQL; o grupo responde pela evidência</h2>
-          <p class="slide-subtitle">O assistente acelera a escrita e o reconhecimento do schema. A verificação continua sendo trabalho de engenharia — e é ela que separa o pipeline correto do apenas plausível.</p>
+          <p class="slide-subtitle">O assistente acelera a escrita e o reconhecimento do schema. A verificação permanece atribuição do grupo e determina a correção do resultado.</p>
         </header>
         <div class="g2">
           <div class="card-stack">
@@ -830,12 +830,12 @@ QUALIFY row_number() <span class="code-keyword">OVER</span> (<span class="code-k
             </article>
           </div>
           <div class="checklist">
-            <div class="check-item rise" style="--delay:.09s"><span>✓</span><p>Toda saída da IA entra no repositório só depois de rodar e ser conferida.</p></div>
+            <div class="check-item rise" style="--delay:.09s"><span>✓</span><p>Toda saída da IA é executada e conferida antes de entrar no repositório.</p></div>
             <div class="check-item rise" style="--delay:.13s"><span>✓</span><p>Verifique a contagem de linhas em cada camada e explique cada diferença.</p></div>
-            <div class="check-item rise" style="--delay:.17s"><span>✓</span><p>Confirme os tipos com <span class="mono">DESCRIBE</span>: inferência não é declaração.</p></div>
-            <div class="check-item rise" style="--delay:.21s"><span>✓</span><p>Cuidado com junção que multiplica o fato: confira a contagem antes e depois.</p></div>
+            <div class="check-item rise" style="--delay:.17s"><span>✓</span><p>Confirme os tipos com <span class="mono">DESCRIBE</span>: a inferência automática exige verificação.</p></div>
+            <div class="check-item rise" style="--delay:.21s"><span>✓</span><p>Verifique a contagem do fato antes e depois de cada junção.</p></div>
             <div class="check-item rise" style="--delay:.25s"><span>✓</span><p>Registre o prompt junto do SQL: ele é parte da decisão, como um ADR.</p></div>
-            <div class="check-item rise" style="--delay:.29s"><span>✓</span><p>Desconfie de nome de coluna inventado — o assistente completa lacunas.</p></div>
+            <div class="check-item rise" style="--delay:.29s"><span>✓</span><p>Verifique cada nome de coluna contra o schema: o assistente preenche lacunas por inferência.</p></div>
           </div>
         </div>
       </div>
@@ -847,7 +847,7 @@ QUALIFY row_number() <span class="code-keyword">OVER</span> (<span class="code-k
         <header class="slide-head green rise">
           <p class="eyebrow">Segunda hora · Medição</p>
           <h2 class="slide-title">O que cada grupo leva medido</h2>
-          <p class="slide-subtitle">Sem número anotado antes e depois, a decisão de layout vira opinião.</p>
+          <p class="slide-subtitle">O registro das medidas antes e depois da alteração sustenta a decisão de layout.</p>
         </header>
         <table class="data-table rise" style="--delay:.05s">
           <thead>
@@ -915,8 +915,8 @@ QUALIFY row_number() <span class="code-keyword">OVER</span> (<span class="code-k
             <div class="accept rise" style="--delay:.09s"><span>1</span><p>Os dados estão no bucket do MinIO em Parquet, com partição declarada e justificada.</p></div>
             <div class="accept rise" style="--delay:.12s"><span>2</span><p>A contagem da bronze bate com a do CSV de origem.</p></div>
             <div class="accept rise" style="--delay:.15s"><span>3</span><p>O fato tem grão declarado e as dimensões que as três perguntas exigem.</p></div>
-            <div class="accept rise" style="--delay:.18s"><span>4</span><p>A definição de volume e o recorte de status estão escritos, não subentendidos.</p></div>
-            <div class="accept rise" style="--delay:.21s"><span>5</span><p>As três consultas rodam sobre a camada gold e devolvem número, não estimativa.</p></div>
+            <div class="accept rise" style="--delay:.18s"><span>4</span><p>A definição de volume e o recorte de status estão declarados por escrito.</p></div>
+            <div class="accept rise" style="--delay:.21s"><span>5</span><p>As três consultas são executadas sobre a camada gold e devolvem valores medidos.</p></div>
             <div class="accept rise" style="--delay:.24s"><span>6</span><p>Há ao menos uma evidência medida — tamanho, número de arquivos ou bytes lidos.</p></div>
           </div>
         </div>
@@ -959,7 +959,7 @@ QUALIFY row_number() <span class="code-keyword">OVER</span> (<span class="code-k
     <section class="slide slide-closing">
       <div class="sc">
         <p class="eyebrow rise" style="color:var(--muted)">Aula 10 · Síntese</p>
-        <h2 class="final-line rise" style="--delay:.06s">Armazenar bem é decidir <em>quanto</em> a próxima pergunta vai precisar ler — e <em>quantas cópias</em> precisam concordar com a resposta.</h2>
+        <h2 class="final-line rise" style="--delay:.06s">Armazenar consiste em decidir <em>quantos bytes</em> a próxima pergunta precisará ler e <em>quantas cópias</em> precisam concordar com a resposta.</h2>
         <div class="refs rise" style="--delay:.16s">
           <span class="ref">Apache Parquet Documentation</span>
           <span class="ref">Apache Iceberg Documentation</span>

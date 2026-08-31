@@ -1798,10 +1798,10 @@ WHERE regiao_id = 7
 
     10: {
       title: 'Armazenamento em Grande Escala', date: '01/09/2026',
-      subtitle: 'Guardar petabytes com desempenho, garantias distribuídas e custo previsível — e construir um lakehouse ao vivo em DuckDB.',
+      subtitle: 'Guardar petabytes com desempenho, garantias distribuídas e custo previsível, e construir um lakehouse em MinIO e DuckDB durante o encontro.',
       objective: 'Escolher formatos, organização física, camadas de armazenamento e políticas de ciclo de vida para dados em escala, reconhecendo as propriedades distribuídas que sustentam essas decisões, e provar a escolha construindo um lakehouse que responda a perguntas de negócio.',
       outcomes: [
-        'Dimensionar armazenamento por throughput, concorrência e latência, não apenas por volume.',
+        'Dimensionar armazenamento por throughput, concorrência, latência e volume, considerados em conjunto.',
         'Escolher o formato físico a partir do padrão de leitura predominante.',
         'Definir layout e compactação que sustentem pruning eficaz.',
         'Explicar particionamento, replicação, quórum e consistência como decisões de projeto, com efeito observável no pipeline.',
@@ -1812,13 +1812,13 @@ WHERE regiao_id = 7
       sections: [
         {
           nav: 'O que escala', title: 'O que escala',
-          text: 'Volume é apenas uma dimensão. Considere throughput, concorrência, tamanho dos arquivos, latência, retenção, recuperação e custo por consulta.',
+          text: 'O volume constitui uma entre várias dimensões de escala. Considere também throughput, concorrência, tamanho dos arquivos, latência, retenção, recuperação e custo por consulta.',
           checklist: [
             'Liste throughput de escrita, concorrência de leitura e latência exigida.',
-            'Estime o crescimento em 24 meses, não o volume de hoje.',
+            'Estime o crescimento projetado para 24 meses.',
             'Defina a janela de retenção antes de escolher a classe de storage.'
           ],
-          pitfall: 'Dimensionar só por terabytes. Dez mil leitores concorrentes quebram um layout que aguentaria petabytes.'
+          pitfall: 'Dimensionar exclusivamente pelo volume armazenado. Um layout adequado a petabytes falha sob dez mil leitores concorrentes.'
         },
         {
           nav: 'Object storage', title: 'Object storage',
@@ -1835,7 +1835,7 @@ WHERE regiao_id = 7
           text: 'CSV favorece portabilidade; Parquet favorece leitura colunar, compressão e pruning por estatística de bloco; Avro favorece serialização orientada a registros e evolução de schema declarada.',
           checklist: [
             'Use colunar quando a leitura seleciona poucas colunas de muitas linhas.',
-            'Escolha a compressão pelo par CPU/leitura, não pelo maior fator.',
+            'Escolha a compressão pelo par CPU/leitura; o maior fator de redução é critério insuficiente.',
             'Fixe o formato por camada e documente a exceção.'
           ],
           pitfall: 'CSV na camada analítica. Sem tipo nem estatística por bloco, toda consulta lê o arquivo inteiro.'
@@ -1862,9 +1862,9 @@ WHERE regiao_id = 7
         },
         {
           nav: 'Consistência', title: 'Consistência e efeito no pipeline',
-          text: 'Nem toda leitura devolve a última escrita. Havendo partição de rede, escolhe-se entre consistência e disponibilidade; não havendo, entre consistência e latência. No lakehouse isso aparece como escrita não atômica, listagem eventual, reentrega de mensagens e falha parcial de carga — cada uma com uma regra de engenharia correspondente.',
+          text: 'A leitura pode devolver estado anterior à última escrita. Havendo partição de rede, a escolha recai entre consistência e disponibilidade; na ausência de partição, entre consistência e latência. No lakehouse isso aparece como escrita não atômica, listagem eventual, reentrega de mensagens e falha parcial de carga — cada uma com uma regra de engenharia correspondente.',
           checklist: [
-            'Publique por troca de ponteiro: só o commit no catálogo torna a versão visível.',
+            'Publique por troca de ponteiro: a versão se torna visível apenas com o commit no catálogo.',
             'Torne a ingestão idempotente por chave natural e janela.',
             'Separe data do evento de data de ingestão e declare a janela de atraso aceita.'
           ],
@@ -1878,47 +1878,47 @@ WHERE regiao_id = 7
             'Justifique cada repositório pelo público e pela decisão que ele sustenta.',
             'Verifique se o modelo dimensional tem onde viver dentro da arquitetura escolhida.'
           ],
-          pitfall: 'Chamar de data lake um diretório de arquivos sem catálogo, contrato nem responsável. Sem esses três, é um depósito.'
+          pitfall: 'Denominar data lake um diretório de arquivos desprovido de catálogo, contrato e responsável designado. A ausência desses três elementos caracteriza um repositório sem governança.'
         },
         {
           nav: 'Lakehouse e camadas', title: 'Lakehouse e camadas por contrato',
-          text: 'Tabelas transacionais adicionam atomicidade, histórico e evolução sobre storage aberto. Bronze, silver e gold se diferenciam por contrato — fidelidade à origem, conformidade e semântica de negócio — e não apenas por rótulo.',
+          text: 'Tabelas transacionais adicionam atomicidade, histórico e evolução sobre storage aberto. Bronze, silver e gold se diferenciam pelo contrato que assumem: fidelidade à origem, conformidade e semântica de negócio.',
           checklist: [
-            'Diferencie as camadas por contrato de qualidade, não por nome.',
+            'Diferencie as camadas pelo contrato de qualidade que cada uma assume.',
             'Use tabela transacional quando houver escrita concorrente ou correção retroativa.',
             'Registre o schema e sua evolução no catálogo.'
           ],
-          pitfall: 'Bronze, silver e gold como três cópias com o mesmo contrato. A camada só existe se o compromisso de qualidade muda.'
+          pitfall: 'Manter bronze, silver e gold sob o mesmo contrato de qualidade. Sem mudança de compromisso, as três constituem cópias do mesmo conjunto.'
         },
         {
           nav: 'Card de trabalho', title: 'As três perguntas da atividade em sala',
           text: 'A segunda hora do encontro é atividade em grupo sobre os dados da Olist: qual região está com o menor volume de vendas; qual é o produto mais vendido nessa região; e qual foi a sazonalidade desse produto ao longo do período em que foi vendido. As três se respondem no mesmo fato, no grão do item de pedido entregue, cortado por geografia, produto e tempo.',
           checklist: [
-            'Declare o que é volume — receita ou quantidade — e mantenha a definição nas três respostas.',
+            'Declare a definição de volume adotada, receita ou quantidade, e mantenha-a nas três respostas.',
             'Declare se produto é o item individual ou a categoria, e justifique pela pergunta de negócio.',
-            'Leia a sazonalidade com cuidado nos meses de borda, que têm poucos dias de venda.'
+            'Considere que os meses de borda contêm poucos dias de venda ao interpretar a sazonalidade.'
           ],
-          pitfall: 'Responder por estimativa ou por consulta sobre o CSV bruto. A resposta vale quando sai da camada gold, com o recorte de status e a definição de volume declarados.'
+          pitfall: 'Responder por estimativa ou por consulta sobre o CSV bruto. A resposta é válida quando produzida sobre a camada gold, com o recorte de status e a definição de volume declarados.'
         },
         {
           nav: 'Lakehouse com MinIO e DuckDB', title: 'Construção do lakehouse em sala',
           text: 'O laboratório usa MinIO como object storage compatível com S3 e DuckDB como motor analítico. A bronze grava os CSVs em Parquet particionado dentro do bucket; a silver declara tipos e garante uma linha por pedido; a gold monta o fato no grão do item entregue com as dimensões de região, produto e mês. A IA é usada para reconhecer o schema, gerar o SQL e criticar o próprio resultado; a verificação permanece com o grupo.',
           checklist: [
-            'Configure o acesso ao MinIO com URL_STYLE path e USE_SSL false: sem isso o DuckDB tenta o estilo de domínio da AWS.',
+            'Configure o acesso ao MinIO com URL_STYLE path e USE_SSL false; na ausência desses parâmetros, o DuckDB adota o estilo de domínio da AWS.',
             'Confirme que a contagem da bronze é idêntica à do CSV de origem antes de modelar.',
-            'Confira a contagem do fato antes e depois de cada junção: junção errada multiplica linhas em silêncio.'
+            'Confira a contagem do fato antes e depois de cada junção: junção incorreta multiplica linhas sem emitir erro.'
           ],
-          pitfall: 'Aceitar o SQL gerado por IA sem executar e conferir. Nome de coluna inventado e junção plausível passam despercebidos até o número divergir.'
+          pitfall: 'Aceitar o SQL gerado por IA sem execução e conferência. Coluna inexistente e junção plausível permanecem despercebidas até a divergência do resultado.'
         },
         {
           nav: 'FinOps do armazenamento', title: 'Custo e segurança',
-          text: 'Aplique lifecycle, tiering, retenção, criptografia, políticas por prefixo, acesso mínimo e orçamento por domínio. O custo do armazenamento aparece na varredura, não na guarda.',
+          text: 'Aplique lifecycle, tiering, retenção, criptografia, políticas por prefixo, acesso mínimo e orçamento por domínio. O custo do armazenamento se concentra na varredura do acervo.',
           checklist: [
-            'Aplique lifecycle automático em vez de limpeza manual.',
+            'Aplique regra de lifecycle automática para transição e expurgo.',
             'Atribua orçamento e alerta de custo por domínio.',
             'Conceda acesso mínimo por prefixo e audite o uso.'
           ],
-          pitfall: 'Reter tudo indefinidamente porque o armazenamento é barato. O custo aparece na varredura, não na guarda.'
+          pitfall: 'Reter todo o acervo indefinidamente sob o argumento do baixo custo de guarda. A despesa relevante decorre da varredura repetida desse acervo.'
         }
       ],
       sdd: {
@@ -1927,7 +1927,7 @@ WHERE regiao_id = 7
         adr: 'ADR-STO-01 — Parquet particionado por ano e mês, publicado por commit no catálogo. Alternativa descartada: JSON particionado por dia, que impede pruning por coluna e multiplica arquivos pequenos. Consequência: exige rotina de compactação e manutenção de snapshots.',
         gherkin: 'Dado um diretório com 10 000 arquivos de 1 MB, Quando executo a compactação, Então restam arquivos de pelo menos 128 MB e a mesma consulta lê menos bytes.'
       },
-      deliverable: 'O pipeline versionado do card de trabalho — ingestão dos CSVs da Olist em Parquet no bucket MinIO, modelo dimensional no grão do item entregue e as três consultas — com as três respostas em número, a definição de volume e o recorte de status declarados, e ao menos uma evidência medida: tamanho por formato, número e tamanho dos arquivos ou bytes lidos pela mesma consulta antes e depois.',
+      deliverable: 'O pipeline versionado do card de trabalho, composto pela ingestão dos CSVs da Olist em Parquet no bucket MinIO, pelo modelo dimensional no grão do item entregue e pelas três consultas, com as três respostas em número, a definição de volume e o recorte de status declarados, e ao menos uma evidência medida: tamanho por formato, número e tamanho dos arquivos ou bytes lidos pela mesma consulta antes e depois.',
       references: [
         { label: 'Dados do laboratório — Olist, oito tabelas em CSV (ZIP, 28 MB)', href: '../assets/olist/olist-csv.zip' },
         { label: 'Dados do laboratório — amostra em Excel, 2 000 linhas por tabela (1 MB)', href: '../assets/olist/olist-amostra.xlsx' },
