@@ -1,96 +1,715 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Aula 4 - Testes e cutover no contexto de sistemas empresariais - Inteli</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
   <link href="../../../css/inteli-styles.css" rel="stylesheet">
   <style>
-    :root { --ac:#89cea5; --dk:#2e2640; }
-    body { margin:0; padding:0; overflow:hidden; font-family:'Manrope',sans-serif; background:#f5f7fb; color:var(--dk); }
+    :root {
+      --si: var(--inteli-green);
+      --ink: var(--inteli-dark-purple);
+      --alert: var(--inteli-coral);
+      --paper: var(--inteli-white);
+      --line: var(--inteli-light-gray);
+      --muted: var(--inteli-dark-gray);
+      --soft-si: color-mix(in srgb, var(--si) 18%, var(--paper));
+      --soft-ink: color-mix(in srgb, var(--ink) 8%, var(--paper));
+      --soft-alert: color-mix(in srgb, var(--alert) 12%, var(--paper));
+    }
+    *, *::before, *::after { box-sizing:border-box; }
+    body { margin:0; overflow:hidden; font-family:'Manrope',sans-serif; background:var(--soft-ink); color:var(--ink); }
     .slide-container { width:100vw; height:100vh; position:relative; overflow:hidden; }
-    .slide { position:absolute; inset:0; display:none; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:6vh 8vw; box-sizing:border-box; }
-    .slide.active { display:flex; }
-    .kicker { text-transform:uppercase; letter-spacing:.18em; font-weight:700; font-size:.95rem; color:var(--ac); margin-bottom:18px; }
-    .slide h1 { font-size:clamp(2rem,5vw,3.4rem); font-weight:800; margin:0 0 18px; line-height:1.1; }
-    .slide h2 { font-size:clamp(1.4rem,3vw,2.2rem); font-weight:700; margin:0 0 16px; }
-    .lead { font-size:clamp(1.05rem,2vw,1.35rem); max-width:780px; color:#475569; line-height:1.6; }
-    .badge-wip { display:inline-block; margin-top:26px; padding:8px 18px; border-radius:999px; background:rgba(137,206,165,.18); color:#2f8f78; font-weight:700; font-size:.95rem; border:1px solid rgba(47,143,120,.35); }
-    .prof { margin-top:20px; font-weight:600; color:var(--dk); }
-    .cover-bg { background:linear-gradient(135deg,#1e2a24 0%,#2f8f78 55%,#89cea5 100%); color:#fff; }
-    .cover-bg .lead { color:rgba(255,255,255,.9); }
-    .cover-bg .kicker { color:#eafff4; }
-    .slide-footer { position:fixed; left:0; right:0; bottom:0; height:56px; display:flex; align-items:center; justify-content:space-between; padding:0 22px; background:#fff; border-top:1px solid #e2e8f0; box-sizing:border-box; z-index:20; }
-    .nav-group { display:flex; align-items:center; gap:10px; }
-    .back-home { color:var(--dk); text-decoration:none; font-weight:700; display:inline-flex; align-items:center; gap:5px; padding:8px 14px; border-radius:10px; background:#f1f4f8; font-size:.9rem; }
-    .back-home:hover { background:#e2e8f0; }
-    .back-home.material { background:#2f8f78 !important; color:#fff !important; }
-    .back-home.material:hover { background:#267562 !important; color:#fff !important; }
-    .nav-btn { cursor:pointer; border:none; background:var(--dk); color:#fff; font-weight:700; padding:8px 16px; border-radius:10px; font-size:.9rem; }
-    .nav-btn:disabled { opacity:.4; cursor:default; }
-    .slide-counter { font-weight:700; color:var(--dk); min-width:70px; text-align:center; }
+    .slide { position:absolute; inset:0; display:none; padding:54px 52px 82px; overflow:hidden; }
+    .slide.active { display:flex; align-items:center; justify-content:center; }
+    .sc { width:min(1160px,100%); max-height:calc(100vh - 150px); margin:0 auto; }
+    .slide:not(.cover):not(.daily):not(.encontro-slide) .sc { width:86%; transform:scale(1.14); transform-origin:center; }
+    .cover .sc { width:88%; transform:scale(1.1); transform-origin:center; }
+    .daily .sc { width:88%; transform:scale(1.06); transform-origin:center; }
+    .top-nav { position:fixed; top:14px; left:18px; z-index:90; display:flex; gap:8px; }
+    .top-nav a { padding:7px 12px; border-radius:999px; background:color-mix(in srgb,var(--paper) 94%,transparent); color:var(--ink); border:1px solid var(--line); text-decoration:none; font-size:.75rem; font-weight:800; box-shadow:0 3px 12px color-mix(in srgb,var(--ink) 12%,transparent); }
+    .eyebrow { margin:0 0 7px; color:var(--si); font-size:.72rem; font-weight:800; letter-spacing:.14em; text-transform:uppercase; }
+    .sh { color:var(--paper); padding:15px 20px; border-radius:14px; margin-bottom:13px; }
+    .sh.green { background:linear-gradient(120deg,color-mix(in srgb,var(--si) 70%,var(--ink)),var(--si)); }
+    .sh.dark { background:linear-gradient(120deg,var(--ink),color-mix(in srgb,var(--ink) 72%,var(--si))); }
+    .sh.coral { background:linear-gradient(120deg,color-mix(in srgb,var(--alert) 80%,var(--ink)),var(--alert)); }
+    .st { margin:0 0 3px; font-size:1.75rem; line-height:1.16; font-weight:800; }
+    .ss { margin:0; font-size:.9rem; line-height:1.45; opacity:.92; }
+    .g2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:11px; }
+    .g3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+    .g4 { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:9px; }
+    .card { background:var(--paper); border:1px solid var(--line); border-left:5px solid var(--si); border-radius:12px; padding:13px 15px; box-shadow:0 5px 18px color-mix(in srgb,var(--ink) 8%,transparent); min-width:0; }
+    .card.dark { border-left-color:var(--ink); }
+    .card.coral { border-left-color:var(--alert); }
+    .card h3 { margin:0 0 5px; font-size:.96rem; line-height:1.3; }
+    .card p { margin:0; color:color-mix(in srgb,var(--ink) 78%,var(--paper)); font-size:.79rem; line-height:1.46; }
+    .card ul { margin:6px 0 0; padding-left:1.05rem; }
+    .card li { margin:0 0 3px; font-size:.77rem; line-height:1.38; }
+    .label { display:inline-block; margin-bottom:7px; padding:3px 8px; border-radius:999px; background:var(--soft-si); color:color-mix(in srgb,var(--si) 60%,var(--ink)); font-size:.64rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+    .label.dark { background:var(--soft-ink); color:var(--ink); }
+    .label.coral { background:var(--soft-alert); color:color-mix(in srgb,var(--alert) 72%,var(--ink)); }
+    .callout { margin-top:11px; padding:10px 14px; border-radius:10px; background:var(--soft-si); border:1px solid color-mix(in srgb,var(--si) 45%,var(--paper)); font-size:.8rem; line-height:1.45; }
+    .callout.warn { background:var(--soft-alert); border-color:color-mix(in srgb,var(--alert) 45%,var(--paper)); }
+    .callout.dark { background:var(--soft-ink); border-color:color-mix(in srgb,var(--ink) 22%,var(--paper)); }
+    .tb-wrap { overflow:hidden; border-radius:11px; border:1px solid var(--line); background:var(--paper); }
+    table { width:100%; border-collapse:collapse; font-size:.72rem; }
+    th { padding:8px 9px; background:var(--ink); color:var(--paper); text-align:left; font-weight:800; }
+    td { padding:7px 9px; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.36; }
+    tr:last-child td { border-bottom:0; }
+    tbody tr:nth-child(even) { background:var(--soft-ink); }
+    code { font-family:'JetBrains Mono',monospace; color:var(--ink); background:var(--soft-si); border-radius:4px; padding:1px 5px; font-size:.88em; }
+    .flow { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); align-items:stretch; gap:18px; }
+    .flow .node { position:relative; padding:12px 10px; border-radius:11px; background:var(--paper); border:1px solid var(--line); text-align:center; }
+    .flow .node:not(:last-child)::after { content:'→'; position:absolute; right:-15px; top:50%; transform:translateY(-50%); color:var(--si); font-weight:800; }
+    .flow strong { display:block; font-size:.79rem; }
+    .flow span { display:block; margin-top:4px; font-size:.67rem; line-height:1.35; color:color-mix(in srgb,var(--ink) 68%,var(--paper)); }
+    .agenda { display:grid; grid-template-columns:repeat(8,minmax(0,1fr)); gap:6px; }
+    .agenda article { min-height:112px; padding:10px; background:var(--paper); border-radius:10px; border-top:4px solid var(--si); box-shadow:0 4px 12px color-mix(in srgb,var(--ink) 6%,transparent); }
+    .agenda article:nth-child(3n) { border-top-color:var(--ink); }
+    .agenda article:nth-child(4n) { border-top-color:var(--alert); }
+    .agenda b { display:block; font-size:1.15rem; line-height:1; margin-bottom:7px; }
+    .agenda strong { display:block; font-size:.69rem; line-height:1.25; }
+    .agenda span { display:block; margin-top:5px; font-size:.62rem; line-height:1.3; color:color-mix(in srgb,var(--ink) 68%,var(--paper)); }
+    .artifact { position:relative; overflow:hidden; }
+    .artifact::after { content:attr(data-weight); position:absolute; top:9px; right:10px; padding:3px 7px; border-radius:999px; background:var(--soft-ink); font-size:.6rem; font-weight:800; }
+    .number { width:31px; height:31px; display:grid; place-items:center; border-radius:9px; background:var(--si); color:var(--ink); font-weight:800; font-size:.85rem; margin-bottom:8px; }
+    .check { list-style:none; padding:0; margin:0; display:grid; gap:6px; }
+    .check li { position:relative; padding:7px 9px 7px 30px; background:var(--paper); border:1px solid var(--line); border-radius:9px; font-size:.75rem; line-height:1.35; }
+    .check li::before { content:'✓'; position:absolute; left:10px; top:7px; color:color-mix(in srgb,var(--si) 58%,var(--ink)); font-weight:800; }
+    .cycle { display:grid; grid-template-columns:88px 1fr; gap:12px; align-items:stretch; }
+    .cycle + .cycle { margin-top:8px; }
+    .cycle-time { display:grid; place-items:center; padding:10px; border-radius:10px; background:var(--ink); color:var(--paper); font-size:1rem; font-weight:800; }
+    .cycle-body { display:grid; grid-template-columns:1.1fr 1fr 1fr; gap:8px; padding:9px; border:1px solid var(--line); border-radius:10px; background:var(--paper); }
+    .cycle-body div { padding:4px 8px; border-left:3px solid var(--si); }
+    .cycle-body strong { display:block; font-size:.72rem; }
+    .cycle-body span { display:block; margin-top:2px; font-size:.65rem; line-height:1.32; }
+    .cover { background:linear-gradient(132deg,var(--ink) 0%,color-mix(in srgb,var(--ink) 48%,var(--si)) 58%,var(--si) 100%); color:var(--paper); }
+    .cover .sc { position:relative; }
+    .cover-grid { display:grid; grid-template-columns:1.45fr .85fr; gap:48px; align-items:center; }
+    .cover-badge { display:inline-block; margin-bottom:15px; padding:5px 12px; border:1px solid color-mix(in srgb,var(--paper) 40%,transparent); border-radius:999px; background:color-mix(in srgb,var(--paper) 12%,transparent); font-size:.72rem; font-weight:700; }
+    .cover h1 { margin:0; font-size:3.05rem; line-height:1.08; letter-spacing:-.035em; }
+    .cover .lead { margin:15px 0 22px; max-width:720px; font-size:1.08rem; line-height:1.55; color:color-mix(in srgb,var(--paper) 84%,var(--si)); }
+    .cover-tags { display:flex; flex-wrap:wrap; gap:7px; }
+    .cover-tags span { padding:6px 10px; border-radius:8px; background:color-mix(in srgb,var(--paper) 13%,transparent); border:1px solid color-mix(in srgb,var(--paper) 28%,transparent); font-size:.68rem; font-weight:700; }
+    .trace-map { display:grid; gap:9px; }
+    .trace-map div { padding:12px; border-radius:12px; background:color-mix(in srgb,var(--paper) 13%,transparent); border:1px solid color-mix(in srgb,var(--paper) 26%,transparent); }
+    .trace-map strong { display:block; font-size:.78rem; }
+    .trace-map span { display:block; margin-top:3px; font-size:.66rem; opacity:.83; }
+    .daily { background:linear-gradient(132deg,var(--ink),color-mix(in srgb,var(--ink) 42%,var(--si))); color:var(--paper); text-align:center; }
+    .daily-panel { max-width:870px; margin:auto; padding:25px 30px; border:1px solid color-mix(in srgb,var(--paper) 28%,transparent); border-radius:20px; background:color-mix(in srgb,var(--paper) 10%,transparent); }
+    .daily h2 { margin:0 0 5px; font-size:2rem; }
+    .daily p { margin:0 0 15px; font-size:.9rem; opacity:.86; }
+    .daily-timer { display:inline-block; margin:3px 0 14px; padding:8px 24px; border-radius:14px; background:color-mix(in srgb,var(--paper) 13%,transparent); font-family:'JetBrains Mono',monospace; font-size:3.1rem; font-weight:800; letter-spacing:.08em; }
+    .daily button { margin:0 4px; padding:8px 17px; border:1px solid color-mix(in srgb,var(--paper) 36%,transparent); border-radius:9px; background:color-mix(in srgb,var(--paper) 14%,transparent); color:var(--paper); font:700 .8rem 'Manrope',sans-serif; cursor:pointer; }
+    .daily-tags { display:flex; justify-content:center; gap:7px; flex-wrap:wrap; margin-top:14px; }
+    .daily-tags span { padding:5px 9px; border-radius:8px; background:color-mix(in srgb,var(--paper) 12%,transparent); font-size:.67rem; font-weight:700; }
+    .closing { display:grid; grid-template-columns:.8fr 1.2fr; gap:18px; align-items:stretch; }
+    .closing blockquote { margin:0; padding:24px; border-radius:14px; background:var(--ink); color:var(--paper); font-size:1.18rem; line-height:1.45; font-weight:700; }
+    .slide-footer { position:fixed; left:0; right:0; bottom:0; height:60px; z-index:100; display:flex; justify-content:space-between; align-items:center; gap:12px; padding:0 22px; background:color-mix(in srgb,var(--paper) 97%,transparent); border-top:1px solid var(--line); box-shadow:0 -3px 14px color-mix(in srgb,var(--ink) 8%,transparent); }
+    .footer-links, .nav-wrapper { display:flex; align-items:center; gap:9px; }
+    .back-home { padding:8px 13px; border-radius:9px; background:var(--soft-ink); color:var(--ink); text-decoration:none; font-size:.77rem; font-weight:800; }
+    .back-home.material { background:color-mix(in srgb,var(--si) 65%,var(--ink)); color:var(--paper); }
+    .nav-btn, .fullscreen-btn { padding:8px 13px; border:0; border-radius:9px; background:var(--ink); color:var(--paper); font:800 .77rem 'Manrope',sans-serif; cursor:pointer; }
+    .nav-btn:disabled { background:var(--muted); cursor:default; }
+    .fullscreen-btn { background:var(--soft-ink); color:var(--ink); }
+    .slide-counter { min-width:68px; text-align:center; font-size:.78rem; font-weight:800; }
+    .fig { margin:0; background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:9px 11px 8px; box-shadow:0 5px 18px color-mix(in srgb,var(--ink) 8%,transparent); }
+    .fig svg { display:block; width:100%; height:auto; }
+    .fig figcaption { margin-top:6px; font-size:.66rem; line-height:1.34; color:color-mix(in srgb,var(--ink) 68%,var(--paper)); }
+    .fig figcaption strong { color:var(--ink); }
+    .steps { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:9px; }
+    .bpmn-lb { font-size:12px; font-weight:700; fill:var(--ink); }
+    .bpmn-sm { font-size:10.5px; font-weight:600; fill:color-mix(in srgb,var(--ink) 62%,var(--paper)); }
+    .bpmn-xs { font-size:9px; font-weight:700; fill:color-mix(in srgb,var(--ink) 66%,var(--paper)); }
+    .bpmn-cd { font-size:10px; font-weight:700; fill:color-mix(in srgb,var(--si) 52%,var(--ink)); }
+    @media (min-width:1600px) and (min-height:900px) {
+      .slide { padding:76px 76px 100px; }
+      .sc { width:min(1500px,100%); max-height:calc(100vh - 190px); }
+      .slide:not(.cover):not(.daily):not(.encontro-slide) .sc { width:66%; transform:scale(1.43); }
+      .cover .sc { width:74%; transform:scale(1.22); }
+      .daily .sc { width:68%; transform:scale(1.3); }
+      .st { font-size:2.25rem; }
+      .ss { font-size:1.12rem; }
+      .card { padding:19px 21px; }
+      .card h3 { font-size:1.2rem; }
+      .card p, .card li { font-size:.98rem; }
+      .label { font-size:.78rem; }
+      .callout { font-size:1rem; padding:14px 18px; }
+      table { font-size:.91rem; }
+      th, td { padding:11px 13px; }
+      .agenda article { min-height:148px; padding:15px; }
+      .agenda b { font-size:1.5rem; }
+      .agenda strong { font-size:.9rem; }
+      .agenda span { font-size:.82rem; }
+      .flow strong { font-size:1rem; }
+      .flow span { font-size:.84rem; }
+      .check li { font-size:.96rem; padding:11px 12px 11px 34px; }
+      .cycle { grid-template-columns:112px 1fr; gap:16px; }
+      .cycle-time { font-size:1.3rem; }
+      .cycle-body strong { font-size:.93rem; }
+      .cycle-body span { font-size:.85rem; }
+      .cover h1 { font-size:4rem; }
+      .cover .lead { font-size:1.4rem; }
+      .cover-badge, .cover-tags span { font-size:.9rem; }
+      .trace-map strong { font-size:1rem; }
+      .trace-map span { font-size:.84rem; }
+      .closing blockquote { font-size:1.5rem; }
+      .fig figcaption { font-size:.85rem; }
+    }
+    @media (max-width:900px) {
+      .slide { padding-left:24px; padding-right:24px; }
+      .g4, .agenda { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .g3 { grid-template-columns:1fr; }
+      .cover-grid, .closing { grid-template-columns:1fr; }
+      .flow { grid-template-columns:1fr; }
+      .flow .node::after { display:none; }
+      .steps { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    }
+    @media print { .top-nav { display:none!important; } }
   </style>
+  <script type="module">
+    import { animate, stagger } from 'https://cdn.jsdelivr.net/npm/animejs@4/+esm';
+    window.__anime = { animate, stagger };
+    window.dispatchEvent(new CustomEvent('anime-ready'));
+  </script>
 
 <!-- encontro:css:start -->
 <link rel="stylesheet" href="../../../css/encontro.css">
 <!-- encontro:css:end -->
 </head>
 <body>
+<nav class="top-nav" aria-label="Navegação da aula">
+  <a href="../../home-module-7-sistemas-informacao.html">← Voltar</a>
+  <a href="../materials/lesson-4-material.html">Material da aula</a>
+</nav>
+
 <div class="slide-container">
-  <section class="slide cover-bg active">
-    <div class="kicker">Módulo 7 · Semana 5 · Sistemas de Informação</div>
-    <h1>Aula 4 — Testes e cutover no contexto de sistemas empresariais</h1>
-    <p class="lead">Planejamento e execução sistemática de testes e estratégias de cutover (virada) na implantação de sistemas empresariais.</p>
-    <div class="prof">🎓 Professor(a): Afonso Brandão</div>
+
+  <section class="slide cover active">
+    <div class="sc cover-grid">
+      <div>
+        <span class="cover-badge">Módulo 7 · Sistemas de Informação · Semana 5 · Aula 4</span>
+        <p class="eyebrow" style="color:var(--paper)">Encontro expositivo e aplicado · 02/09/2026</p>
+        <h1>Testes e cutover</h1>
+        <p class="lead">Como se demonstra que um sistema empresarial está apto a entrar em operação: técnicas de teste, níveis de maturidade, o que muda em software de prateleira e o plano que conduz a virada.</p>
+        <div class="cover-tags">
+          <span>Caixa-preta, branca e cinza</span><span>Níveis e tipos de teste</span><span>TMMi</span><span>SAP e COTS</span><span>Plano de cutover</span>
+        </div>
+      </div>
+      <div class="trace-map">
+        <div><strong>Aula 3 · o que foi parametrizado</strong><span>Regra de negócio configurada e documentada no ERP.</span></div>
+        <div><strong>Aula 4 · o que se verifica</strong><span>Comportamento esperado, dados migrados e processo fim a fim.</span></div>
+        <div><strong>Aula 4 · como se vira</strong><span>Sequência, janela, critérios de go/no-go e retorno.</span></div>
+      </div>
+    </div>
   </section>
+
+  <section class="slide daily">
+    <div class="sc">
+      <div class="daily-panel">
+        <p class="eyebrow" style="color:var(--paper)">Ritual do projeto</p>
+        <h2>Daily · 15 minutos</h2>
+        <p>Cada grupo informa o avanço dos artefatos, a atividade prevista para o encontro e os impedimentos que exigem decisão.</p>
+        <div class="daily-timer" id="daily-timer">15:00</div>
+        <div>
+          <button id="daily-start" type="button">Iniciar</button>
+          <button id="daily-reset" type="button">Resetar</button>
+        </div>
+        <div class="daily-tags">
+          <span>O que foi concluído</span><span>O que será produzido</span><span>Impedimentos</span><span>Progresso da entrega</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section class="slide">
-    <div class="kicker">Conteúdo em construção</div>
-    <h2>Slides em preparação</h2>
-    <p class="lead">Este deck é um placeholder. O conteúdo desta aula está sendo preparado pelo(a) Professor(a) Afonso Brandão.</p>
-    <span class="badge-wip">🚧 Em construção</span>
+    <div class="sc">
+      <header class="sh green reveal"><div class="st">Estrutura do encontro</div><p class="ss">Quarenta e cinco minutos de exposição, cinquenta e cinco minutos de sala invertida com pitch e cinco minutos de fechamento.</p></header>
+      <div class="agenda reveal">
+        <article><b>15</b><strong>Daily</strong><span>Estado dos artefatos e impedimentos.</span></article>
+        <article><b>5</b><strong>Abertura</strong><span>Da parametrização à verificação.</span></article>
+        <article><b>20</b><strong>Técnicas e níveis</strong><span>Caixa-preta, branca e cinza; tipos de teste.</span></article>
+        <article><b>6</b><strong>Maturidade</strong><span>TMMi e indicadores por nível.</span></article>
+        <article><b>8</b><strong>SAP e COTS</strong><span>O que se testa em software de prateleira.</span></article>
+        <article><b>6</b><strong>Cutover</strong><span>Plano, ensaio, virada e hypercare.</span></article>
+        <article><b>55</b><strong>Sala invertida</strong><span>Estudo, produção e pitch por grupo.</span></article>
+        <article><b>5</b><strong>Fechamento</strong><span>Síntese e encaminhamentos.</span></article>
+      </div>
+      <div class="callout dark reveal">A atividade da segunda metade exige a leitura prévia do material da aula. Cada grupo assume um recorte técnico, ensina-o à turma e o aplica ao sistema do parceiro.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Da parametrização à verificação</div><p class="ss">A Aula 3 encerrou com a regra configurada, documentada e rastreada. Esta aula estabelece como demonstrar que a configuração se comporta conforme o esperado e como conduzi-la até a operação.</p></header>
+      <div class="flow reveal">
+        <div class="node"><strong>Regra</strong><span>Parametrizada no ERP</span></div>
+        <div class="node"><strong>Caso de teste</strong><span>Entrada, ação e resultado esperado</span></div>
+        <div class="node"><strong>Execução</strong><span>Evidência e defeito registrado</span></div>
+        <div class="node"><strong>Aceite</strong><span>Usuário-chave assina o UAT</span></div>
+        <div class="node"><strong>Cutover</strong><span>Virada e operação assistida</span></div>
+      </div>
+      <div class="g3 reveal" style="margin-top:12px">
+        <article class="card"><span class="label">Erro</span><h3>Engano humano</h3><p>Ação da pessoa que produz um artefato incorreto: uma regra mal compreendida, um campo trocado na configuração.</p></article>
+        <article class="card dark"><span class="label dark">Defeito</span><h3>Imperfeição no artefato</h3><p>A consequência do erro registrada no código, na configuração ou no documento. Permanece latente enquanto o caminho não é executado.</p></article>
+        <article class="card coral"><span class="label coral">Falha</span><h3>Comportamento observado</h3><p>A manifestação do defeito durante a execução. É o que o usuário percebe e o que o teste procura antecipar.</p></article>
+      </div>
+      <div class="callout reveal">Verificação responde se o produto foi construído conforme a especificação. Validação responde se o produto atende à necessidade do negócio. Um ERP pode passar na primeira e falhar na segunda.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh green reveal"><div class="st">Caixa-preta: comportamento observável</div><p class="ss">O caso é derivado da especificação, sem conhecimento da estrutura interna. É a abordagem predominante em sistemas de prateleira, nos quais o código pertence ao fornecedor.</p></header>
+      <div class="g2 reveal">
+        <article class="card"><span class="label">Técnicas</span><h3>Como derivar os casos</h3>
+          <ul>
+            <li><strong>Partição de equivalência:</strong> agrupar entradas tratadas do mesmo modo e testar um representante de cada classe.</li>
+            <li><strong>Análise de valor-limite:</strong> exercitar a fronteira de cada classe, onde a maior parte dos defeitos se concentra.</li>
+            <li><strong>Tabela de decisão:</strong> combinar condições de negócio e o resultado esperado de cada combinação.</li>
+            <li><strong>Transição de estados:</strong> percorrer os estados do documento e as transições permitidas.</li>
+          </ul>
+        </article>
+        <article class="card dark"><span class="label dark">Exemplo no ERP</span><h3>Alçada de aprovação de requisição</h3>
+          <p>Regra: requisição até R$ 5.000,00 é aprovada pelo gestor imediato; acima disso, exige o diretor da área.</p>
+          <ul>
+            <li>Classes: valor até 5.000; valor acima de 5.000; valor inválido (negativo ou nulo).</li>
+            <li>Limites: 4.999,99; 5.000,00; 5.000,01.</li>
+            <li>Combinação: valor acima do limite com diretor inativo no cadastro.</li>
+          </ul>
+        </article>
+      </div>
+      <div class="callout warn reveal">O limite declarado na regra pertence a uma das duas classes. A especificação precisa dizer se R$ 5.000,00 exige o diretor, e o caso de teste precisa provar a interpretação adotada.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Caixa-branca: estrutura interna</div><p class="ss">O caso é derivado do código ou do fluxo de execução. Aplica-se ao que a equipe desenvolve: relatórios, extensões, integrações e código customizado sobre o produto de prateleira.</p></header>
+      <div class="tb-wrap reveal">
+        <table>
+          <thead><tr><th style="width:22%">Critério de cobertura</th><th style="width:38%">O que exige</th><th style="width:40%">Uso típico no projeto</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Comando</strong></td><td>Cada linha executável percorrida ao menos uma vez.</td><td>Piso mínimo para rotina customizada; detecta código nunca exercitado.</td></tr>
+            <tr><td><strong>Decisão ou ramo</strong></td><td>Cada desvio condicional avaliado como verdadeiro e como falso.</td><td>Regras de negócio com condição; expõe o caminho alternativo esquecido.</td></tr>
+            <tr><td><strong>Condição</strong></td><td>Cada condição atômica de uma decisão composta avaliada nos dois valores.</td><td>Cálculo fiscal e de desconto com múltiplos critérios combinados.</td></tr>
+            <tr><td><strong>Caminho</strong></td><td>Cada sequência completa de execução percorrida.</td><td>Inviável em rotina extensa; reserva-se a trechos críticos e curtos.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout reveal">Cobertura elevada indica que o código foi executado, e não que o resultado esperado foi verificado. A asserção do caso de teste é o que confere valor à cobertura.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh coral reveal"><div class="st">Caixa-cinza: conhecimento parcial</div><p class="ss">O caso é derivado da especificação com acesso a estruturas internas: modelo de dados, contrato de interface, log de execução e tabela de configuração.</p></header>
+      <div class="g3 reveal">
+        <article class="card"><span class="label">Quando se aplica</span><h3>Integração entre sistemas</h3><p>O testador conhece o contrato da interface e consulta a tabela de destino para confirmar o que foi gravado, sem acesso ao código do produto.</p></article>
+        <article class="card dark"><span class="label dark">O que permite</span><h3>Diagnóstico da causa</h3><p>A falha deixa de ser apenas observada na tela: o log e o registro no banco indicam em qual etapa o processamento divergiu.</p></article>
+        <article class="card coral"><span class="label coral">Limite</span><h3>Viés de projeto do caso</h3><p>O conhecimento da estrutura tende a conduzir o teste pelos caminhos previstos, reduzindo a chance de encontrar o uso inesperado.</p></article>
+      </div>
+      <div class="tb-wrap reveal" style="margin-top:12px">
+        <table>
+          <thead><tr><th style="width:16%">Abordagem</th><th style="width:24%">Conhecimento exigido</th><th style="width:30%">Quem costuma executar</th><th style="width:30%">Defeito que revela</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Caixa-preta</strong></td><td>Especificação e processo de negócio</td><td>Analista funcional e usuário-chave</td><td>Regra ausente, cálculo divergente, fluxo bloqueado</td></tr>
+            <tr><td><strong>Caixa-branca</strong></td><td>Código e estrutura interna</td><td>Pessoa desenvolvedora</td><td>Caminho não tratado, exceção silenciosa, condição invertida</td></tr>
+            <tr><td><strong>Caixa-cinza</strong></td><td>Contrato, dados e configuração</td><td>Pessoa de integração e de qualidade</td><td>Divergência entre sistemas, dado corrompido no percurso</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Níveis e tipos de teste</div><p class="ss">O nível indica o objeto sob teste; o tipo indica a característica de qualidade verificada. Um projeto de implantação combina os dois eixos.</p></header>
+      <div class="g2 reveal">
+        <article class="card"><span class="label">Níveis</span><h3>Do componente ao aceite</h3>
+          <ul>
+            <li><strong>Componente:</strong> unidade isolada de código ou objeto de configuração.</li>
+            <li><strong>Integração:</strong> a comunicação entre módulos e entre sistemas.</li>
+            <li><strong>Sistema:</strong> o processo de negócio completo no ambiente integrado.</li>
+            <li><strong>Aceitação:</strong> a decisão do usuário-chave sobre a aptidão para operar.</li>
+          </ul>
+        </article>
+        <article class="card dark"><span class="label dark">Tipos</span><h3>Por característica verificada</h3>
+          <ul>
+            <li><strong>Funcional:</strong> o resultado corresponde à regra especificada.</li>
+            <li><strong>Regressão:</strong> o que funcionava permanece funcionando após a alteração.</li>
+            <li><strong>Fumaça:</strong> verificação curta que autoriza o início do ciclo.</li>
+            <li><strong>Desempenho:</strong> tempo de resposta e comportamento sob volume.</li>
+            <li><strong>Segurança e autorizações:</strong> perfis, segregação de funções e trilha.</li>
+            <li><strong>Migração de dados:</strong> completude, integridade e reconciliação.</li>
+          </ul>
+        </article>
+      </div>
+      <div class="callout reveal">O teste de regressão é o que sustenta a operação continuada de um sistema de prateleira: cada nota, pacote de suporte e atualização do fornecedor exige a reexecução do conjunto crítico.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh green reveal"><div class="st">Maturidade do processo de teste</div><p class="ss">O modelo TMMi descreve cinco níveis cumulativos. A posição da organização determina quais perguntas ela consegue responder sobre a própria qualidade.</p></header>
+      <div class="tb-wrap reveal">
+        <table>
+          <thead><tr><th style="width:6%">Nível</th><th style="width:18%">Designação</th><th style="width:38%">O que caracteriza</th><th style="width:38%">Pergunta que a organização passa a responder</th></tr></thead>
+          <tbody>
+            <tr><td><strong>1</strong></td><td>Inicial</td><td>Teste executado de forma reativa, ao final do desenvolvimento, sem planejamento próprio.</td><td>Nenhuma de forma sistemática; o resultado depende das pessoas envolvidas.</td></tr>
+            <tr><td><strong>2</strong></td><td>Gerenciado</td><td>Política, estratégia, planejamento, monitoramento, projeto de casos e ambiente definido.</td><td>O que foi testado, por quem, com qual resultado e sob qual critério de saída.</td></tr>
+            <tr><td><strong>3</strong></td><td>Definido</td><td>Processo padronizado na organização, teste integrado ao ciclo de vida, revisões e teste não funcional.</td><td>Como o teste de um projeto se compara ao de outro e onde o processo é ajustado.</td></tr>
+            <tr><td><strong>4</strong></td><td>Medido</td><td>Medição do processo e avaliação quantitativa da qualidade do produto.</td><td>Qual é a qualidade esperada da próxima entrega, com base em dado histórico.</td></tr>
+            <tr><td><strong>5</strong></td><td>Otimização</td><td>Prevenção de defeitos, otimização do processo e controle de qualidade estatístico.</td><td>Qual causa raiz eliminar para reduzir a classe de defeito mais cara.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout dark reveal">A escala descreve o processo, e não a aplicação isoladamente. Um sistema estável em organização de nível 1 depende do cuidado individual, sem garantia de que a próxima entrega repita o resultado.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Como medir a posição do projeto</div><p class="ss">Quatro indicadores tornam a maturidade observável no projeto do parceiro, sem a necessidade de avaliação formal.</p></header>
+      <div class="g4 reveal">
+        <article class="card"><div class="number">1</div><h3>Rastreabilidade</h3><p>Proporção de regras de negócio com ao menos um caso de teste associado e executado.</p></article>
+        <article class="card dark"><div class="number">2</div><h3>Defeito escapado</h3><p>Defeitos encontrados após o aceite, divididos pelo total encontrado. Indica a eficácia do ciclo anterior.</p></article>
+        <article class="card coral"><div class="number">3</div><h3>Reexecução</h3><p>Tempo necessário para repetir o conjunto crítico após uma alteração. Determina a viabilidade da regressão.</p></article>
+        <article class="card"><div class="number">4</div><h3>Critério de saída</h3><p>Existência de regra escrita que autoriza o encerramento do ciclo, com limite por severidade.</p></article>
+      </div>
+      <div class="callout reveal">Registre os quatro valores hoje, ainda que estimados. Eles constituem a linha de base contra a qual a evolução do projeto será comparada nas próximas entregas.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh coral reveal"><div class="st">Software de prateleira: o que muda</div><p class="ss">Em produto adquirido, o código pertence ao fornecedor e é testado por ele. A responsabilidade do cliente se desloca para a aderência ao próprio processo.</p></header>
+      <div class="g2 reveal">
+        <article class="card coral"><span class="label coral">Responsabilidade do fornecedor</span><h3>O produto padrão</h3>
+          <ul>
+            <li>Correção funcional do código entregue.</li>
+            <li>Compatibilidade entre versões e pacotes de suporte.</li>
+            <li>Correção de defeito reportado, por nota ou atualização.</li>
+          </ul>
+        </article>
+        <article class="card"><span class="label">Responsabilidade do cliente</span><h3>A implantação</h3>
+          <ul>
+            <li>Parametrização e regras configuradas.</li>
+            <li>Código customizado, extensões e relatórios próprios.</li>
+            <li>Integrações com os demais sistemas da organização.</li>
+            <li>Dados migrados do sistema anterior.</li>
+            <li>Perfis de acesso e segregação de funções.</li>
+            <li>Processo de ponta a ponta, atravessando módulos.</li>
+          </ul>
+        </article>
+      </div>
+      <div class="callout warn reveal">O defeito mais frequente em implantação de ERP não está no produto: está na combinação entre parametrização, dado migrado e processo real da organização.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh green reveal"><div class="st">Ciclo de testes em implantação SAP</div><p class="ss">A sequência abaixo corresponde à fase de realização da metodologia de implantação e antecede a preparação para a entrada em operação.</p></header>
+      <div class="tb-wrap reveal">
+        <table>
+          <thead><tr><th style="width:20%">Ciclo</th><th style="width:34%">Escopo</th><th style="width:22%">Quem executa</th><th style="width:24%">Critério de saída</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Teste unitário de configuração</strong></td><td>Cada parâmetro e objeto configurado, isoladamente.</td><td>Consultor funcional</td><td>Todo item da lista de configuração executado com evidência.</td></tr>
+            <tr><td><strong>Teste de cadeia</strong></td><td>Sequência de transações de um mesmo processo dentro do módulo.</td><td>Consultor funcional</td><td>Documento gerado e encerrado em cada etapa da cadeia.</td></tr>
+            <tr><td><strong>Teste integrado</strong></td><td>Processo de ponta a ponta entre módulos e sistemas satélites.</td><td>Equipe de projeto com usuário-chave</td><td>Cenários críticos concluídos; defeitos de severidade alta encerrados.</td></tr>
+            <tr><td><strong>Teste de aceitação</strong></td><td>Cenários de negócio conduzidos pelo usuário na linguagem da operação.</td><td>Usuário-chave da área</td><td>Termo de aceite assinado, com pendências classificadas.</td></tr>
+            <tr><td><strong>Teste de regressão</strong></td><td>Conjunto crítico reexecutado após nota, pacote de suporte ou transporte.</td><td>Equipe de qualidade, preferencialmente automatizada</td><td>Ausência de divergência em relação ao resultado anterior.</td></tr>
+            <tr><td><strong>Teste de conversão</strong></td><td>Carga dos dados migrados, com reconciliação de contagem e de saldo.</td><td>Equipe de dados com a área usuária</td><td>Totais conferidos com o sistema de origem, divergência justificada.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Instrumentação e rastreabilidade</div><p class="ss">Em implantação de porte, o caso de teste é vinculado ao processo documentado e ao defeito correspondente, de modo que a cobertura seja demonstrável ao patrocinador.</p></header>
+      <div class="g3 reveal">
+        <article class="card"><span class="label">Documentação da solução</span><h3>Processo como âncora</h3><p>Cada processo documentado recebe os casos que o exercitam. A cobertura passa a ser medida por processo de negócio, e não por transação isolada.</p></article>
+        <article class="card dark"><span class="label dark">Gestão do ciclo</span><h3>Planos e execuções</h3><p>Ferramentas de gestão de teste do próprio ecossistema — Solution Manager e Cloud ALM — organizam plano, sequência, responsáveis e resultado de cada execução.</p></article>
+        <article class="card coral"><span class="label coral">Automação de regressão</span><h3>Reexecução viável</h3><p>Automação por captura de interface ou por ferramenta de mercado torna a regressão executável a cada atualização, com custo compatível com a frequência exigida.</p></article>
+      </div>
+      <div class="tb-wrap reveal" style="margin-top:12px">
+        <table>
+          <thead><tr><th style="width:25%">Severidade</th><th style="width:37%">Definição operacional</th><th style="width:38%">Efeito sobre o cronograma</th></tr></thead>
+          <tbody>
+            <tr><td><strong>1 · Crítica</strong></td><td>Processo de negócio interrompido, sem alternativa manual.</td><td>Bloqueia a entrada em operação.</td></tr>
+            <tr><td><strong>2 · Alta</strong></td><td>Processo executável apenas com contorno manual relevante.</td><td>Exige correção antes do aceite ou plano de contorno aprovado.</td></tr>
+            <tr><td><strong>3 · Média</strong></td><td>Divergência que não impede a operação do processo.</td><td>Programada para a operação assistida.</td></tr>
+            <tr><td><strong>4 · Baixa</strong></td><td>Melhoria de usabilidade, texto ou apresentação.</td><td>Registrada no backlog de evolução.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh green reveal"><div class="st">Cutover: a virada para a operação</div><p class="ss">Entende-se por cutover o conjunto de atividades que transfere a operação do sistema anterior para o novo, dentro de uma janela definida e com critérios explícitos de decisão.</p></header>
+      <div class="g4 reveal">
+        <article class="card"><div class="number">1</div><h3>Sequência</h3><p>Tarefas ordenadas, com responsável, duração estimada, dependência e ponto de verificação.</p></article>
+        <article class="card dark"><div class="number">2</div><h3>Janela</h3><p>Intervalo acordado com o negócio, incluindo o congelamento do sistema anterior e o prazo máximo de indisponibilidade.</p></article>
+        <article class="card coral"><div class="number">3</div><h3>Dados</h3><p>Carga final, reconciliação de contagens e saldos, e validação por amostragem com a área usuária.</p></article>
+        <article class="card"><div class="number">4</div><h3>Decisão</h3><p>Critérios de continuidade avaliados em reunião formal, com autoridade nomeada para autorizar ou suspender.</p></article>
+      </div>
+      <div class="flow reveal" style="margin-top:12px">
+        <div class="node"><strong>Ensaio</strong><span>Cutover simulado, cronometrado</span></div>
+        <div class="node"><strong>Congelamento</strong><span>Suspensão de mudanças no legado</span></div>
+        <div class="node"><strong>Carga final</strong><span>Migração e reconciliação</span></div>
+        <div class="node"><strong>Verificação</strong><span>Testes de fumaça em produção</span></div>
+        <div class="node"><strong>Operação assistida</strong><span>Suporte reforçado e monitoramento</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Estratégias de virada</div><p class="ss">A escolha decorre do apetite a risco do negócio, da janela disponível e da capacidade de operar dois sistemas simultaneamente.</p></header>
+      <div class="tb-wrap reveal">
+        <table>
+          <thead><tr><th style="width:16%">Estratégia</th><th style="width:28%">Como opera</th><th style="width:28%">Quando é adequada</th><th style="width:28%">Risco assumido</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Big bang</strong></td><td>Todo o escopo entra em operação em uma única data.</td><td>Escopo integrado, janela curta disponível, legado com desligamento contratado.</td><td>Concentração de risco em uma data; retorno complexo após o início da operação.</td></tr>
+            <tr><td><strong>Faseada</strong></td><td>Entrada por módulo, unidade ou localidade, em ondas sucessivas.</td><td>Organização distribuída; equipe de suporte limitada.</td><td>Convivência temporária entre sistemas exige interfaces provisórias.</td></tr>
+            <tr><td><strong>Paralela</strong></td><td>Os dois sistemas operam com os mesmos dados e os resultados são comparados.</td><td>Processo de alto risco financeiro ou regulatório.</td><td>Custo elevado e duplicação do trabalho da área usuária.</td></tr>
+            <tr><td><strong>Piloto</strong></td><td>Uma unidade representativa opera primeiro e serve de referência.</td><td>Necessidade de validar premissas antes da adoção ampla.</td><td>Resultado do piloto pode não se reproduzir nas demais unidades.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout warn reveal">O plano de retorno é elaborado antes da virada e contém o prazo limite para acioná-lo. Após a entrada de transações no sistema novo, o retorno deixa de ser uma reversão simples e passa a exigir reconciliação.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh coral reveal"><div class="st">Critérios de decisão e operação assistida</div><p class="ss">A decisão de virar é tomada com base em evidência acordada previamente, e não na percepção de progresso da equipe.</p></header>
+      <div class="g2 reveal">
+        <article class="card"><span class="label">Critérios de continuidade</span><h3>O que se verifica antes</h3>
+          <ul class="check">
+            <li>Defeitos de severidade 1 e 2 encerrados ou com contorno aprovado.</li>
+            <li>Aceite assinado pelos usuários-chave dos processos críticos.</li>
+            <li>Reconciliação de dados concluída, com divergências justificadas.</li>
+            <li>Ensaio de cutover executado dentro da janela prevista.</li>
+            <li>Equipe de suporte escalada e canais de atendimento publicados.</li>
+          </ul>
+        </article>
+        <article class="card dark"><span class="label dark">Operação assistida</span><h3>O período após a virada</h3>
+          <ul class="check">
+            <li>Duração definida, com critérios de encerramento declarados.</li>
+            <li>Monitoramento dos processos críticos e das interfaces.</li>
+            <li>Fila prioritária de atendimento com acordo de tempo de resposta.</li>
+            <li>Reunião diária de situação com o patrocinador.</li>
+            <li>Transferência formal para a operação regular ao final.</li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh green reveal"><div class="st">Atividade · sala invertida com pitch</div><p class="ss">Cinquenta e cinco minutos. Cada grupo assume um recorte técnico, ensina-o à turma e demonstra a aplicação no sistema do parceiro.</p></header>
+      <div class="cycle reveal">
+        <div class="cycle-time">10</div>
+        <div class="cycle-body">
+          <div><strong>Estudo dirigido</strong><span>O grupo recebe o recorte e consulta a seção correspondente do material.</span></div>
+          <div><strong>Produto</strong><span>Definição em uma frase e dois exemplos do próprio projeto.</span></div>
+          <div><strong>Papéis</strong><span>Quem expõe, quem opera o sistema, quem registra a evidência.</span></div>
+        </div>
+      </div>
+      <div class="cycle reveal">
+        <div class="cycle-time">25</div>
+        <div class="cycle-body">
+          <div><strong>Produção</strong><span>Aplicação do recorte ao sistema do parceiro, com evidência capturada.</span></div>
+          <div><strong>Produto</strong><span>Três casos de teste executados ou um trecho do plano de cutover.</span></div>
+          <div><strong>Registro</strong><span>Resultado obtido, defeito encontrado e decisão tomada.</span></div>
+        </div>
+      </div>
+      <div class="cycle reveal">
+        <div class="cycle-time">20</div>
+        <div class="cycle-body">
+          <div><strong>Pitch</strong><span>Cinco minutos por grupo, com a turma no papel de comitê de aprovação.</span></div>
+          <div><strong>Produto</strong><span>Recomendação de entrar ou não em operação, com a evidência que a sustenta.</span></div>
+          <div><strong>Arguição</strong><span>Uma pergunta obrigatória de cada grupo ao grupo anterior.</span></div>
+        </div>
+      </div>
+      <div class="callout dark reveal">A turma decide, ao final de cada pitch, se autorizaria a virada. A decisão é registrada com a justificativa técnica correspondente.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Recortes distribuídos aos grupos</div><p class="ss">Cada grupo recebe um recorte. A exposição de cinco minutos precisa ensinar o conceito e demonstrar sua aplicação no projeto.</p></header>
+      <div class="g3 reveal">
+        <article class="card"><span class="label">Recorte 1</span><h3>Partição de equivalência e valor-limite</h3><p>Derive as classes de uma regra parametrizada pelo grupo e demonstre o comportamento na fronteira.</p></article>
+        <article class="card dark"><span class="label dark">Recorte 2</span><h3>Tabela de decisão</h3><p>Combine as condições de uma regra com mais de um critério e verifique cada combinação prevista.</p></article>
+        <article class="card coral"><span class="label coral">Recorte 3</span><h3>Teste de integração</h3><p>Escolha uma interface do sistema e verifique o que foi gravado no destino, com o contrato em mãos.</p></article>
+        <article class="card"><span class="label">Recorte 4</span><h3>Migração de dados</h3><p>Reconcilie contagem e totais de uma carga e proponha o tratamento das divergências encontradas.</p></article>
+        <article class="card dark"><span class="label dark">Recorte 5</span><h3>Regressão e autorizações</h3><p>Defina o conjunto crítico a reexecutar após uma alteração e teste um perfil de acesso restrito.</p></article>
+        <article class="card coral"><span class="label coral">Recorte 6</span><h3>Plano de cutover</h3><p>Escreva a sequência da virada do projeto, com janela, responsáveis, critérios de decisão e retorno.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh green reveal"><div class="st">Critérios de avaliação do pitch</div><p class="ss">Dez pontos distribuídos em quatro critérios. A avaliação considera a evidência apresentada, e não a extensão da exposição.</p></header>
+      <div class="tb-wrap reveal">
+        <table>
+          <thead><tr><th style="width:26%">Critério</th><th style="width:12%">Pontos</th><th style="width:62%">O que se espera</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Precisão conceitual</strong></td><td>2</td><td>O conceito é enunciado corretamente e distinguido dos conceitos vizinhos.</td></tr>
+            <tr><td><strong>Aplicação ao projeto</strong></td><td>3</td><td>O recorte incide sobre uma regra real do parceiro, e não sobre exemplo genérico.</td></tr>
+            <tr><td><strong>Evidência</strong></td><td>3</td><td>Resultado executado, capturado e comparado ao esperado, com defeito ou conformidade registrados.</td></tr>
+            <tr><td><strong>Recomendação</strong></td><td>2</td><td>A conclusão sobre entrar ou não em operação decorre da evidência apresentada.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout reveal">Cada grupo entrega, ao final do encontro, o registro de execução em formato digital, com o recorte recebido, os casos executados e a recomendação apresentada.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Síntese do encontro</div><p class="ss">Seis proposições para conduzir a verificação e a virada do sistema do parceiro.</p></header>
+      <div class="closing reveal">
+        <blockquote>A decisão de entrar em operação se sustenta em evidência de teste e em plano de virada, com critérios definidos antes da data.</blockquote>
+        <div class="g2">
+          <article class="card"><h3>1 · Técnica conforme o objeto</h3><p>Caixa-preta para o produto configurado, caixa-branca para o código próprio, caixa-cinza para a integração.</p></article>
+          <article class="card dark"><h3>2 · Nível e tipo combinados</h3><p>O nível define o objeto sob teste; o tipo define a característica verificada.</p></article>
+          <article class="card coral"><h3>3 · Maturidade observável</h3><p>Rastreabilidade, defeito escapado, tempo de reexecução e critério de saída medem a posição do projeto.</p></article>
+          <article class="card"><h3>4 · Prateleira desloca o foco</h3><p>Testa-se a parametrização, a integração, o dado migrado, a autorização e o processo fim a fim.</p></article>
+          <article class="card dark"><h3>5 · Regressão sustenta a operação</h3><p>Cada atualização do fornecedor exige a reexecução do conjunto crítico.</p></article>
+          <article class="card coral"><h3>6 · Retorno planejado antes</h3><p>O plano de retorno e seu prazo limite são definidos antes da janela de virada.</p></article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh green reveal"><div class="st">Referências do encontro</div><p class="ss">Fontes normativas e técnicas para aprofundamento e consulta durante a atividade.</p></header>
+      <div class="g2 reveal">
+        <article class="card"><span class="label">Normas e sílabos</span><h3>Fundamentos de teste</h3>
+          <ul>
+            <li>ISO/IEC/IEEE 29119 — Software testing, partes 1 a 4.</li>
+            <li>ISTQB — Certified Tester Foundation Level Syllabus.</li>
+            <li>TMMi Foundation — Test Maturity Model integration.</li>
+            <li>ISO/IEC 25010 — Modelo de qualidade de produto.</li>
+          </ul>
+        </article>
+        <article class="card dark"><span class="label dark">Implantação e operação</span><h3>Prática em sistemas empresariais</h3>
+          <ul>
+            <li>SAP Activate — fase de realização e preparação para a entrada em operação.</li>
+            <li>SAP — gestão de teste no Solution Manager e no Cloud ALM.</li>
+            <li>ITIL 4 — habilitação de mudança e liberação.</li>
+            <li>PMBOK — encerramento de fase e transferência para a operação.</li>
+          </ul>
+        </article>
+      </div>
+      <div class="callout dark reveal">Próximo encontro: gestão de mudanças, requisição formal de mudança e governança da alteração em ambiente produtivo.</div>
+    </div>
   </section>
 
 <!-- encontro:meta:start -->
-<div class="slide encontro-slide"><div class="sc"><section class="encontro-meta" data-encontro-ficha><h2>Sobre este encontro</h2><p class="encontro-ref">Testes e cutover no contexto de sistemas empresariais · 02/09/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>Ao final do encontro, o estudante deve ser capaz de aplicar ao projeto os conceitos de Testes e cutover no contexto de sistemas empresariais. Escopo do encontro: Planejamento e execução sistemática de testes e estratégias de cutover (virada) na implantação de sistemas empresariais.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>Exposição dialogada dos conceitos, alternada com aplicação guiada ao projeto do grupo, e fechamento com verificação do entendimento.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol><li>Abertura: retomada do encontro anterior e enunciado do objetivo do dia</li><li>Desenvolvimento: exposição dos conceitos centrais do tema</li><li>Aplicação: exercício ou discussão dirigida sobre o projeto do grupo</li><li>Fechamento: síntese, verificação do entendimento e encaminhamentos</li></ol></div></section></div></div>
+<div class="slide encontro-slide"><div class="sc"><section class="encontro-meta" data-encontro-ficha><h2>Sobre este encontro</h2><p class="encontro-ref">Testes e cutover no contexto de sistemas empresariais · 02/09/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>Ao final do encontro, o estudante deve ser capaz de selecionar a técnica de teste adequada ao objeto verificado, derivar casos a partir de uma regra parametrizada no ERP, avaliar a maturidade do processo de teste do próprio projeto e elaborar o plano de cutover correspondente, sustentando a recomendação de entrada em operação com evidência de execução.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>Exposição dialogada em quatro blocos — técnicas de caixa-preta, caixa-branca e caixa-cinza; níveis e tipos de teste; maturidade do processo; verificação em software de prateleira e plano de cutover — seguida de atividade em sala invertida: cada grupo recebe um recorte técnico, ensina-o à turma e o aplica ao sistema do parceiro, encerrando com pitch de cinco minutos perante a turma no papel de comitê de aprovação.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol><li>Daily: estado dos artefatos, atividade prevista e impedimentos — 15 min</li><li>Abertura: da parametrização à verificação; erro, defeito e falha; verificação e validação — 5 min</li><li>Técnicas e níveis: caixa-preta, caixa-branca, caixa-cinza; níveis e tipos de teste — 20 min</li><li>Maturidade: os cinco níveis do TMMi e os quatro indicadores observáveis no projeto — 6 min</li><li>Software de prateleira: divisão de responsabilidade e ciclos de teste em implantação SAP — 8 min</li><li>Cutover: plano, ensaio, estratégias de virada, critérios de decisão e operação assistida — 6 min</li><li>Sala invertida: estudo dirigido, produção com evidência e pitch com arguição — 55 min</li><li>Fechamento: síntese das seis proposições e encaminhamento para a Aula 5 — 5 min</li></ol></div></section></div></div>
 <!-- encontro:meta:end -->
 </div>
 
-<div class="slide-footer">
-  <div class="nav-group">
+<footer class="slide-footer">
+  <div class="footer-links">
     <a href="../../home-module-7-sistemas-informacao.html" class="back-home">🏠 Home</a>
     <a href="../materials/lesson-4-material.html" class="back-home material">📖 Material</a>
   </div>
-  <div class="nav-group">
-    <button class="nav-btn" id="prev">← Anterior</button>
-    <div class="slide-counter"><span id="current-slide">1</span> / <span id="total-slides">7</span></div>
-    <button class="nav-btn" id="next">Próximo →</button>
+  <div class="nav-wrapper">
+    <button class="nav-btn" id="prev" type="button">← Anterior</button>
+    <div class="slide-counter"><span id="current-slide">1</span> / <span id="total-slides">5</span></div>
+    <button class="nav-btn" id="next" type="button">Próximo →</button>
+    <button class="fullscreen-btn" id="fullscreen" type="button" aria-label="Alternar tela cheia">⛶</button>
   </div>
-</div>
+</footer>
 
 <script>
   const slides = Array.from(document.querySelectorAll('.slide'));
-  let idx = 0;
-  const cur = document.getElementById('current-slide');
-  const prev = document.getElementById('prev');
+  const current = document.getElementById('current-slide');
+  const total = document.getElementById('total-slides');
+  const previous = document.getElementById('prev');
   const next = document.getElementById('next');
-  function render() {
-    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
-    cur.textContent = idx + 1;
-    prev.disabled = idx === 0;
-    next.disabled = idx === slides.length - 1;
+  let slideIndex = 0;
+
+  function animateActiveSlide() {
+    const active = slides[slideIndex];
+    const items = active ? Array.from(active.querySelectorAll('.reveal')) : [];
+    if (!items.length || !window.__anime) return;
+    window.__anime.animate(items, {
+      opacity: { from: 0, to: 1 },
+      y: { from: 12, to: 0 },
+      delay: window.__anime.stagger(45),
+      duration: 420,
+      ease: 'outQuad'
+    });
   }
-  function go(d) { idx = Math.min(slides.length - 1, Math.max(0, idx + d)); render(); }
-  prev.addEventListener('click', () => go(-1));
-  next.addEventListener('click', () => go(1));
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowRight') go(1);
-    if (e.key === 'ArrowLeft') go(-1);
+
+  function showSlide(index) {
+    slideIndex = Math.max(0, Math.min(index, slides.length - 1));
+    slides.forEach((slide, position) => slide.classList.toggle('active', position === slideIndex));
+    current.textContent = String(slideIndex + 1);
+    total.textContent = String(slides.length);
+    previous.disabled = slideIndex === 0;
+    next.disabled = slideIndex === slides.length - 1;
+    animateActiveSlide();
+  }
+
+  window.showSlide = showSlide;
+  previous.addEventListener('click', () => showSlide(slideIndex - 1));
+  next.addEventListener('click', () => showSlide(slideIndex + 1));
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowRight' || event.key === 'PageDown') showSlide(slideIndex + 1);
+    if (event.key === 'ArrowLeft' || event.key === 'PageUp') showSlide(slideIndex - 1);
   });
-  render();
+  document.getElementById('fullscreen').addEventListener('click', () => {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+    else document.exitFullscreen();
+  });
+  window.addEventListener('anime-ready', animateActiveSlide);
+
+  let dailySeconds = 15 * 60;
+  let dailyInterval = null;
+  const dailyTimer = document.getElementById('daily-timer');
+  const dailyStart = document.getElementById('daily-start');
+  function renderDaily() {
+    const minutes = String(Math.floor(dailySeconds / 60)).padStart(2, '0');
+    const seconds = String(dailySeconds % 60).padStart(2, '0');
+    dailyTimer.textContent = `${minutes}:${seconds}`;
+  }
+  function stopDaily() {
+    if (dailyInterval) clearInterval(dailyInterval);
+    dailyInterval = null;
+    dailyStart.textContent = 'Iniciar';
+  }
+  dailyStart.addEventListener('click', () => {
+    if (dailyInterval) { stopDaily(); return; }
+    dailyStart.textContent = 'Pausar';
+    dailyInterval = setInterval(() => {
+      dailySeconds -= 1;
+      renderDaily();
+      if (dailySeconds <= 0) stopDaily();
+    }, 1000);
+  });
+  document.getElementById('daily-reset').addEventListener('click', () => {
+    stopDaily();
+    dailySeconds = 15 * 60;
+    renderDaily();
+  });
+  showSlide(0);
 </script>
 <!-- encontro:pdf:start -->
 <button type="button" class="pdf-export-btn" data-encontro-data="2026-09-02" data-encontro-docente="Afonso" data-encontro-seq="01" title="Exportar esta página em PDF com o nome padronizado">📄 Exportar PDF</button>
