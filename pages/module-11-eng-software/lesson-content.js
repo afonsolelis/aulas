@@ -1822,27 +1822,27 @@ WHERE regiao_id = 7
         },
         {
           nav: 'Object storage', title: 'Object storage',
-          text: 'Buckets e objetos oferecem durabilidade e escala, mas exigem convenções de nome, controle de acesso, versionamento e catálogo externo. O objeto é gravado inteiro e identificado por uma chave: o que parece pasta é prefixo, e renomear significa reescrever.',
+          text: 'Buckets e objetos oferecem durabilidade e escala, mas exigem convenções de nome, controle de acesso, versionamento e catálogo externo. O objeto é gravado integralmente e identificado por uma chave: o segmento que se assemelha a pasta constitui prefixo, e a renomeação equivale a uma reescrita.',
           checklist: [
             'Padronize a convenção de prefixo antes do primeiro arquivo.',
             'Ative versionamento e defina quem pode apagar.',
-            'Mantenha catálogo externo: o bucket não descreve o dado.'
+            'Mantenha um catálogo externo, uma vez que o bucket não descreve o dado.'
           ],
-          pitfall: 'Tratar o bucket como sistema de arquivos. Sem catálogo, ninguém sabe o que existe nem qual é o schema.'
+          pitfall: 'Tratar o bucket como sistema de arquivos. Sem catálogo, não há registro do que existe nem do schema vigente.'
         },
         {
           nav: 'Formato físico', title: 'Formato físico',
-          text: 'CSV favorece portabilidade; Parquet favorece leitura colunar, compressão e pruning por estatística de bloco; Avro favorece serialização orientada a registros e evolução de schema declarada.',
+          text: 'O CSV favorece a portabilidade, o Parquet favorece a leitura colunar, a compressão e o pruning por estatística de bloco, e o Avro favorece a serialização orientada a registros e a evolução de schema declarada.',
           checklist: [
             'Use colunar quando a leitura seleciona poucas colunas de muitas linhas.',
-            'Escolha a compressão pelo par CPU/leitura; o maior fator de redução é critério insuficiente.',
+            'Escolha a compressão pelo par CPU/leitura, uma vez que o maior fator de redução constitui critério insuficiente.',
             'Fixe o formato por camada e documente a exceção.'
           ],
           pitfall: 'CSV na camada analítica. Sem tipo nem estatística por bloco, toda consulta lê o arquivo inteiro.'
         },
         {
           nav: 'Layout e compactação', title: 'Layout',
-          text: 'Particione por colunas de filtro estáveis e de baixa ou moderada cardinalidade. Evite small files; compacte e monitore o tamanho médio. Cada arquivo custa uma abertura, uma leitura de rodapé e uma entrada de metadado.',
+          text: 'Particione por colunas de filtro estáveis e de baixa ou moderada cardinalidade. Evite arquivos pequenos, compactando e monitorando o tamanho médio. Cada arquivo custa uma abertura, uma leitura de rodapé e uma entrada de metadado.',
           checklist: [
             'Particione por coluna de filtro estável e cardinalidade moderada.',
             'Monitore o tamanho médio de arquivo e compacte quando cair.',
@@ -1852,23 +1852,23 @@ WHERE regiao_id = 7
         },
         {
           nav: 'Partição e réplica', title: 'Propriedades distribuídas',
-          text: 'Em escala, armazenar é particionar e replicar. O particionamento divide o conjunto por uma chave e distribui a carga; a replicação repete cada fatia em nós distintos e converte falha de máquina em evento operacional, não em perda de dado. O quórum — quantas réplicas confirmam a escrita e quantas respondem à leitura — é o botão que troca latência por garantia.',
+          text: 'Em escala, o armazenamento se realiza por particionamento e replicação. O particionamento divide o conjunto por uma chave e distribui a carga, e a replicação repete cada fatia em nós distintos, de modo que a falha de máquina se torna evento operacional e o dado permanece preservado nas demais cópias. O quórum, definido pelo número de réplicas que confirmam a escrita e que respondem à leitura, estabelece a relação entre latência e garantia.',
           checklist: [
-            'Escolha chave de partição uniforme: chave enviesada concentra carga em um nó.',
+            'Escolha uma chave de partição uniforme, uma vez que a chave enviesada concentra a carga em um nó.',
             'Declare o fator de replicação e o comportamento esperado quando um nó cai.',
             'Distinga durabilidade de disponibilidade, e réplica de backup.'
           ],
-          pitfall: 'Confundir réplica com backup. A réplica propaga o apagamento; o backup preserva o estado anterior.'
+          pitfall: 'Confundir réplica com backup. A réplica propaga o apagamento, e o backup preserva o estado anterior.'
         },
         {
           nav: 'Consistência', title: 'Consistência e efeito no pipeline',
-          text: 'A leitura pode devolver estado anterior à última escrita. Havendo partição de rede, a escolha recai entre consistência e disponibilidade; na ausência de partição, entre consistência e latência. No lakehouse isso aparece como escrita não atômica, listagem eventual, reentrega de mensagens e falha parcial de carga — cada uma com uma regra de engenharia correspondente.',
+          text: 'A leitura pode devolver estado anterior à última escrita. Havendo partição de rede, a escolha recai entre consistência e disponibilidade, e na ausência de partição, entre consistência e latência. No lakehouse, essa escolha se manifesta como escrita não atômica, listagem eventual, reentrega de mensagens e falha parcial de carga, e cada uma dessas manifestações impõe uma regra de engenharia correspondente.',
           checklist: [
-            'Publique por troca de ponteiro: a versão se torna visível apenas com o commit no catálogo.',
+            'Publique por troca de ponteiro, de modo que a versão se torne visível apenas com o commit no catálogo.',
             'Torne a ingestão idempotente por chave natural e janela.',
             'Separe data do evento de data de ingestão e declare a janela de atraso aceita.'
           ],
-          pitfall: 'Depender da listagem do bucket para saber quais arquivos compõem a tabela. Sob consistência eventual, a listagem mente por alguns instantes.'
+          pitfall: 'Depender da listagem do bucket para saber quais arquivos compõem a tabela. Sob consistência eventual, a listagem devolve resultado incompleto por alguns instantes.'
         },
         {
           nav: 'Repositórios analíticos', title: 'Warehouse, lake, mart e lakehouse',
@@ -1902,17 +1902,17 @@ WHERE regiao_id = 7
         },
         {
           nav: 'Lakehouse com MinIO e DuckDB', title: 'Construção do lakehouse em sala',
-          text: 'O laboratório usa MinIO como object storage compatível com S3 e DuckDB como motor analítico. A bronze grava os CSVs em Parquet particionado dentro do bucket; a silver declara tipos e garante uma linha por pedido; a gold monta o fato no grão do item entregue com as dimensões de região, produto e mês. A IA é usada para reconhecer o schema, gerar o SQL e criticar o próprio resultado; a verificação permanece com o grupo.',
+          text: 'O laboratório usa MinIO como object storage compatível com S3 e DuckDB como motor analítico. A bronze grava os CSVs em Parquet particionado dentro do bucket, a silver declara os tipos e garante uma linha por pedido, e a gold monta o fato no grão do item entregue com as dimensões de região, produto e mês. A IA é usada para reconhecer o schema, gerar o SQL e criticar o próprio resultado, e a verificação permanece com o grupo.',
           checklist: [
-            'Configure o acesso ao MinIO com URL_STYLE path e USE_SSL false; na ausência desses parâmetros, o DuckDB adota o estilo de domínio da AWS.',
+            'Configure o acesso ao MinIO com URL_STYLE path e USE_SSL false, uma vez que, na ausência desses parâmetros, o DuckDB adota o estilo de domínio da AWS.',
             'Confirme que a contagem da bronze é idêntica à do CSV de origem antes de modelar.',
-            'Confira a contagem do fato antes e depois de cada junção: junção incorreta multiplica linhas sem emitir erro.'
+            'Confira a contagem do fato antes e depois de cada junção, uma vez que a junção incorreta multiplica linhas sem emitir erro.'
           ],
           pitfall: 'Aceitar o SQL gerado por IA sem execução e conferência. Coluna inexistente e junção plausível permanecem despercebidas até a divergência do resultado.'
         },
         {
           nav: 'FinOps do armazenamento', title: 'Custo e segurança',
-          text: 'Aplique lifecycle, tiering, retenção, criptografia, políticas por prefixo, acesso mínimo e orçamento por domínio. O custo do armazenamento se concentra na varredura do acervo.',
+          text: 'Aplique lifecycle, tiering, retenção, criptografia, políticas por prefixo, acesso mínimo e orçamento por domínio. A varredura do acervo responde pela maior parte do custo do armazenamento.',
           checklist: [
             'Aplique regra de lifecycle automática para transição e expurgo.',
             'Atribua orçamento e alerta de custo por domínio.',
