@@ -1836,7 +1836,8 @@ WHERE regiao_id = 7
           checklist: [
             'Use colunar quando a leitura seleciona poucas colunas de muitas linhas.',
             'Escolha a compressão pelo par CPU/leitura, uma vez que o maior fator de redução constitui critério insuficiente.',
-            'Fixe o formato por camada e documente a exceção.'
+            'Fixe o formato por camada e documente a exceção.',
+            'Reserve o Avro para transporte de eventos e aterrissagem, onde o schema acompanha o dado e a evolução é declarada.'
           ],
           pitfall: 'CSV na camada analítica. Sem tipo nem estatística por bloco, toda consulta lê o arquivo inteiro.'
         },
@@ -1846,7 +1847,8 @@ WHERE regiao_id = 7
           checklist: [
             'Particione por coluna de filtro estável e cardinalidade moderada.',
             'Monitore o tamanho médio de arquivo e compacte quando cair.',
-            'Meça bytes lidos por consulta como indicador da qualidade do layout.'
+            'Meça bytes lidos por consulta como indicador da qualidade do layout.',
+            'Avalie a cardinalidade da coluna candidata antes de particionar, uma vez que o valor quase único produz um arquivo por linha.'
           ],
           pitfall: 'Ingestão em micro-lotes sem compactação. Milhões de arquivos de 1 MB tornam o metadado o gargalo.'
         },

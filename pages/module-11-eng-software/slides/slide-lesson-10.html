@@ -71,9 +71,9 @@
           <p class="slide-subtitle">A segunda hora é atividade em grupo: ingerir os dados da Olist em MinIO e DuckDB, modelar dimensionalmente e responder a três perguntas de negócio.</p>
         </header>
         <div class="time-grid">
-          <article class="card time-card rise" style="--delay:.05s"><span class="card-label">1ª hora · Bloco 01</span><div class="minutes">25 <span>min</span></div><div><h3>Fundamentos</h3><p>O que escala, object storage, formato físico e layout.</p></div></article>
-          <article class="card amber time-card rise" style="--delay:.12s"><span class="card-label">1ª hora · Bloco 02</span><div class="minutes">20 <span>min</span></div><div><h3>Sistemas distribuídos</h3><p>Partição, réplica, quórum, consistência e o efeito no pipeline.</p></div></article>
-          <article class="card blue time-card rise" style="--delay:.19s"><span class="card-label">1ª hora · Bloco 03</span><div class="minutes">15 <span>min</span></div><div><h3>Lakehouse</h3><p>Vocabulário, camadas por contrato, ciclo de vida e custo.</p></div></article>
+          <article class="card time-card rise" style="--delay:.05s"><span class="card-label">1ª hora · Bloco 01</span><div class="minutes">30 <span>min</span></div><div><h3>Fundamentos</h3><p>O que escala, object storage, formato físico, cardinalidade e layout.</p></div></article>
+          <article class="card amber time-card rise" style="--delay:.12s"><span class="card-label">1ª hora · Bloco 02</span><div class="minutes">18 <span>min</span></div><div><h3>Sistemas distribuídos</h3><p>Partição, réplica, quórum, consistência e o efeito no pipeline.</p></div></article>
+          <article class="card blue time-card rise" style="--delay:.19s"><span class="card-label">1ª hora · Bloco 03</span><div class="minutes">12 <span>min</span></div><div><h3>Lakehouse</h3><p>Vocabulário, camadas por contrato, ciclo de vida e custo.</p></div></article>
           <article class="card green time-card rise" style="--delay:.26s"><span class="card-label">2ª hora · Atividade</span><div class="minutes">60 <span>min</span></div><div><h3>Card de trabalho</h3><p>MinIO e DuckDB, modelo dimensional e três respostas com SQL executado.</p></div></article>
         </div>
         <div class="callout dark rise" style="--delay:.32s;margin-top:12px"><strong>Objetivo:</strong> escolher o formato, a organização física, as camadas e o ciclo de vida para dados em escala, e provar a escolha construindo o lakehouse que responde às perguntas do negócio.</div>
@@ -215,7 +215,66 @@
       </div>
     </section>
 
-    <!-- Slide 8: Layout e particionamento -->
+    <!-- Slide 8: Anatomia do arquivo orientado a registro -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head green rise">
+          <p class="eyebrow">Bloco 1 · Por dentro do arquivo orientado a registro</p>
+          <h2 class="slide-title">No Avro, o schema acompanha o dado dentro do próprio arquivo</h2>
+          <p class="slide-subtitle">O cabeçalho declara o schema em JSON, e cada bloco seguinte guarda registros inteiros em binário. A leitura devolve o registro completo, sem descarte de coluna.</p>
+        </header>
+        <div class="g2">
+          <div class="pq-file rise" style="--delay:.05s">
+            <div class="pq-rg">
+              <small>Cabeçalho · uma vez por arquivo</small>
+              <div class="pq-footer">
+                <span class="pq-tag">Schema em JSON</span>
+                <span class="pq-tag">Codec de compressão</span>
+                <span class="pq-tag">Marcador de sincronização</span>
+              </div>
+            </div>
+            <div class="pq-rg">
+              <small>Bloco 1 · 2 000 registros</small>
+              <div class="pq-cols">
+                <div class="pq-col hit"><strong>data</strong><span>lido</span></div>
+                <div class="pq-col hit"><strong>valor</strong><span>lido</span></div>
+                <div class="pq-col hit"><strong>cliente</strong><span>lido</span></div>
+                <div class="pq-col hit"><strong>review</strong><span>lido</span></div>
+              </div>
+            </div>
+            <div class="pq-rg">
+              <small>Bloco 2 · 2 000 registros</small>
+              <div class="pq-cols">
+                <div class="pq-col hit"><strong>data</strong><span>lido</span></div>
+                <div class="pq-col hit"><strong>valor</strong><span>lido</span></div>
+                <div class="pq-col hit"><strong>cliente</strong><span>lido</span></div>
+                <div class="pq-col hit"><strong>review</strong><span>lido</span></div>
+              </div>
+            </div>
+            <div class="pq-footer">
+              <span class="pq-tag">Sem estatística por coluna</span>
+              <span class="pq-tag">Compressão por bloco</span>
+              <span class="pq-tag">Divisível pelo marcador</span>
+            </div>
+          </div>
+          <div class="card-stack">
+            <article class="card green rise" style="--delay:.1s">
+              <span class="card-label">Contrato</span>
+              <h3>Evolução de schema declarada</h3>
+              <p>O consumidor resolve o schema de escrita contra o próprio schema de leitura. O campo acrescentado com valor padrão é lido por consumidor antigo, e o alias permite renomear a coluna sem quebrar o contrato. A compatibilidade é verificável antes da publicação.</p>
+            </article>
+            <article class="card rise" style="--delay:.16s">
+              <span class="card-label">Uso</span>
+              <h3>Transporte de eventos e aterrissagem</h3>
+              <p>O marcador de sincronização divide o arquivo, e o consumidor lê a partir de qualquer ponto, o que preserva o paralelismo. O acréscimo de registros é barato, enquanto o Parquet se torna legível apenas quando o rodapé é gravado.</p>
+            </article>
+          </div>
+        </div>
+        <div class="observe-box rise" style="--delay:.22s"><strong>Padrão do pipeline:</strong> Avro no transporte de eventos e na aterrissagem, Parquet na camada analítica, com a conversão na fronteira entre a bronze e a silver.</div>
+      </div>
+    </section>
+
+    <!-- Slide 9: Layout e particionamento -->
     <section class="slide">
       <div class="sc">
         <header class="slide-head blue rise">
@@ -247,7 +306,33 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
       </div>
     </section>
 
-    <!-- Slide 9: Arquivos pequenos -->
+    <!-- Slide 10: Cardinalidade da chave de partição -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head blue rise">
+          <p class="eyebrow">Bloco 1 · Cardinalidade</p>
+          <h2 class="slide-title">A chave de partição se avalia pelo número de valores distintos</h2>
+          <p class="slide-subtitle">Candidatas medidas no conjunto da Olist, sobre os 112 650 itens de pedido. A coluna serve como critério quando produz partições grandes o bastante para justificar um arquivo.</p>
+        </header>
+        <table class="data-table rise" style="--delay:.05s">
+          <thead>
+            <tr><th style="width:24%">Coluna candidata</th><th style="width:16%">Valores distintos</th><th style="width:16%">Itens por partição</th><th style="width:44%">Veredito</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>ano</strong></td><td>3</td><td>37 550</td><td>Grosseira: o filtro por mês varre o ano inteiro.</td></tr>
+            <tr><td><strong>ano e mês</strong></td><td>25</td><td>4 506</td><td>Adequada: filtro frequente e cardinalidade estável ao longo do tempo.</td></tr>
+            <tr><td><strong>customer_state</strong></td><td>27</td><td>42% em SP</td><td>Enviesada: uma partição concentra a carga e anula o paralelismo.</td></tr>
+            <tr><td><strong>product_id</strong></td><td>32 951</td><td>3,4</td><td>Pulverizada: o rodapé de cada arquivo supera o dado que ele descreve.</td></tr>
+            <tr><td><strong>order_id</strong></td><td>98 666</td><td>1,1</td><td>Pulverizada: aproximadamente uma linha por arquivo.</td></tr>
+            <tr><td><strong>timestamp da compra</strong></td><td>98 875</td><td>1,1</td><td>Pulverizada: a precisão de segundo torna a coluna quase única.</td></tr>
+          </tbody>
+        </table>
+        <div class="callout dark rise" style="--delay:.12s;margin-top:12px">Para a coluna de alta cardinalidade que aparece em filtro de igualdade, a ferramenta é a ordenação dentro da partição: o mínimo e o máximo por row group descartam blocos sem criar diretório algum.</div>
+        <div class="pitfall rise" style="--delay:.16s">Particionar por identificador de pedido ou por timestamp com precisão de segundo. A codificação por dicionário depende de repetição dentro do bloco, e com uma linha por arquivo o custo do formato colunar é pago sem contrapartida.</div>
+      </div>
+    </section>
+
+    <!-- Slide 11: Arquivos pequenos -->
     <section class="slide">
       <div class="sc">
         <header class="slide-head red rise">
@@ -270,7 +355,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
       </div>
     </section>
 
-    <!-- Slide 10: Armazenamento em escala é problema distribuído -->
+    <!-- Slide 12: Armazenamento em escala é problema distribuído -->
     <section class="slide">
       <div class="sc">
         <header class="slide-head dark rise">
@@ -302,7 +387,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
       </div>
     </section>
 
-    <!-- Slide 11: Réplica, quórum e durabilidade -->
+    <!-- Slide 13: Réplica, quórum e durabilidade -->
     <section class="slide">
       <div class="sc">
         <header class="slide-head blue rise">
@@ -332,7 +417,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
       </div>
     </section>
 
-    <!-- Slide 12: Consistência -->
+    <!-- Slide 14: Consistência -->
     <section class="slide">
       <div class="sc">
         <header class="slide-head violet rise" style="background:linear-gradient(135deg,#4c3a86,#7052b8 60%,#a78bfa)">
@@ -361,7 +446,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
       </div>
     </section>
 
-    <!-- Slide 13: O que isso muda no pipeline -->
+    <!-- Slide 15: O que isso muda no pipeline -->
     <section class="slide">
       <div class="sc">
         <header class="slide-head dark rise">
@@ -384,7 +469,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
       </div>
     </section>
 
-    <!-- Slide 14: DW, data lake, data mart e lakehouse -->
+    <!-- Slide 16: DW, data lake, data mart e lakehouse -->
     <section class="slide">
       <div class="sc">
         <header class="slide-head amber rise">
@@ -407,7 +492,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
       </div>
     </section>
 
-    <!-- Slide 15: Lakehouse -->
+    <!-- Slide 17: Lakehouse -->
     <section class="slide">
       <div class="sc">
         <header class="slide-head violet rise" style="background:linear-gradient(135deg,#4c3a86,#7052b8 60%,#a78bfa)">
@@ -436,7 +521,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
       </div>
     </section>
 
-    <!-- Slide 16: Camadas por contrato -->
+    <!-- Slide 18: Camadas por contrato -->
     <section class="slide">
       <div class="sc">
         <header class="slide-head dark rise">
@@ -465,7 +550,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
       </div>
     </section>
 
-    <!-- Slide 17: Classes de armazenamento -->
+    <!-- Slide 19: Classes de armazenamento -->
     <section class="slide">
       <div class="sc">
         <header class="slide-head blue rise">
@@ -499,7 +584,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
       </div>
     </section>
 
-    <!-- Slide 18: Custo e segurança -->
+    <!-- Slide 20: Custo e segurança -->
     <section class="slide">
       <div class="sc">
         <header class="slide-head amber rise">
@@ -532,7 +617,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
       </div>
     </section>
 
-    <!-- Slide 19: Card de trabalho -->
+    <!-- Slide 21: Card de trabalho -->
     <section class="slide">
       <div class="sc">
         <header class="slide-head red rise">
@@ -574,7 +659,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
       </div>
     </section>
 
-    <!-- Slide 20: Arquitetura do laboratório -->
+    <!-- Slide 22: Arquitetura do laboratório -->
     <section class="slide">
       <div class="sc">
         <header class="slide-head green rise">
@@ -603,7 +688,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
       </div>
     </section>
 
-    <!-- Slide 21: Setup -->
+    <!-- Slide 23: Setup -->
     <section class="slide">
       <div class="sc">
         <header class="slide-head dark rise">
@@ -644,7 +729,7 @@ unzip olist-csv.zip -d olist/ &amp;&amp; duckdb lakehouse.duckdb</div>
       </div>
     </section>
 
-    <!-- Slide 22: Bronze -->
+    <!-- Slide 24: Bronze -->
     <section class="slide">
       <div class="sc">
         <header class="slide-head red rise">
@@ -674,7 +759,7 @@ unzip olist-csv.zip -d olist/ &amp;&amp; duckdb lakehouse.duckdb</div>
       </div>
     </section>
 
-    <!-- Slide 23: Modelagem dimensional -->
+    <!-- Slide 25: Modelagem dimensional -->
     <section class="slide">
       <div class="sc">
         <header class="slide-head amber rise">
@@ -718,7 +803,7 @@ unzip olist-csv.zip -d olist/ &amp;&amp; duckdb lakehouse.duckdb</div>
       </div>
     </section>
 
-    <!-- Slide 24: Silver e fato -->
+    <!-- Slide 26: Silver e fato -->
     <section class="slide">
       <div class="sc">
         <header class="slide-head dark rise">
@@ -751,7 +836,7 @@ QUALIFY row_number() <span class="code-keyword">OVER</span> (<span class="code-k
       </div>
     </section>
 
-    <!-- Slide 25: As três consultas -->
+    <!-- Slide 27: As três consultas -->
     <section class="slide">
       <div class="sc">
         <header class="slide-head green rise">
@@ -779,7 +864,7 @@ QUALIFY row_number() <span class="code-keyword">OVER</span> (<span class="code-k
       </div>
     </section>
 
-    <!-- Slide 26: Conferência -->
+    <!-- Slide 28: Conferência -->
     <section class="slide">
       <div class="sc">
         <header class="slide-head blue rise">
@@ -803,7 +888,7 @@ QUALIFY row_number() <span class="code-keyword">OVER</span> (<span class="code-k
       </div>
     </section>
 
-    <!-- Slide 27: IA no laboratório -->
+    <!-- Slide 29: IA no laboratório -->
     <section class="slide">
       <div class="sc">
         <header class="slide-head violet rise" style="background:linear-gradient(135deg,#4c3a86,#7052b8 60%,#a78bfa)">
@@ -841,7 +926,7 @@ QUALIFY row_number() <span class="code-keyword">OVER</span> (<span class="code-k
       </div>
     </section>
 
-    <!-- Slide 28: Evidências -->
+    <!-- Slide 30: Evidências -->
     <section class="slide">
       <div class="sc">
         <header class="slide-head green rise">
@@ -864,7 +949,7 @@ QUALIFY row_number() <span class="code-keyword">OVER</span> (<span class="code-k
       </div>
     </section>
 
-    <!-- Slide 29: Ponte com a Aula 1 (SDD) -->
+    <!-- Slide 31: Ponte com a Aula 1 (SDD) -->
     <section class="slide slide-sdd">
       <div class="sc">
         <header class="slide-head dark rise">
@@ -897,7 +982,7 @@ QUALIFY row_number() <span class="code-keyword">OVER</span> (<span class="code-k
       </div>
     </section>
 
-    <!-- Slide 30: Entrega -->
+    <!-- Slide 32: Entrega -->
     <section class="slide slide-deliverable">
       <div class="sc">
         <header class="slide-head red rise">
@@ -923,7 +1008,7 @@ QUALIFY row_number() <span class="code-keyword">OVER</span> (<span class="code-k
       </div>
     </section>
 
-    <!-- Slide 31: Autoestudos -->
+    <!-- Slide 33: Autoestudos -->
     <section class="slide">
       <div class="sc">
         <header class="slide-head dark rise">
@@ -955,7 +1040,7 @@ QUALIFY row_number() <span class="code-keyword">OVER</span> (<span class="code-k
       </div>
     </section>
 
-    <!-- Slide 32: Fechamento -->
+    <!-- Slide 34: Fechamento -->
     <section class="slide slide-closing">
       <div class="sc">
         <p class="eyebrow rise" style="color:var(--muted)">Aula 10 · Síntese</p>
@@ -973,7 +1058,7 @@ QUALIFY row_number() <span class="code-keyword">OVER</span> (<span class="code-k
     </section>
 
 <!-- encontro:meta:start -->
-<div class="slide encontro-slide"><div class="sc"><section class="encontro-meta" data-encontro-ficha><h2>Sobre este encontro</h2><p class="encontro-ref">Armazenamento em Grande Escala · 01/09/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>Ao final do encontro, o estudante deve ser capaz de escolher o formato, a organização física, as camadas e a política de ciclo de vida para os dados do projeto, justificando as decisões pelas propriedades distribuídas do armazenamento, e de construir um lakehouse que responda a perguntas de negócio com SQL executado.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>Primeira hora de exposição dialogada em três blocos, cada um encerrado por checklist de aplicação e erro comum. Segunda hora de atividade em grupo: os estudantes ingerem os dados públicos da Olist em um lakehouse local com MinIO e DuckDB, modelam dimensionalmente no grão do item de pedido entregue e respondem a três perguntas de negócio, usando IA para gerar o SQL e verificando cada etapa por contagem, tipo e medição.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol><li>1ª hora · Bloco 1 (25 min) — O que escala, object storage, formato físico e layout: dimensões de escala, convenções de prefixo, CSV/Parquet/Avro, particionamento e compactação.</li><li>1ª hora · Bloco 2 (20 min) — Propriedades distribuídas: particionamento, replicação, quórum, consistência forte e eventual, e as regras de engenharia que cada garantia ausente impõe ao pipeline.</li><li>1ª hora · Bloco 3 (15 min) — Vocabulário de repositórios analíticos, lakehouse, camadas por contrato, ciclo de vida, custo e segurança.</li><li>2ª hora · Card de trabalho (60 min) — Em grupo: MinIO e DuckDB no ar (10 min), bronze em Parquet no bucket (15 min), modelo dimensional com fato e dimensões (20 min), as três consultas executadas (10 min), evidências e conclusão escrita (5 min).</li></ol></div></section></div></div>
+<div class="slide encontro-slide"><div class="sc"><section class="encontro-meta" data-encontro-ficha><h2>Sobre este encontro</h2><p class="encontro-ref">Armazenamento em Grande Escala · 01/09/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>Ao final do encontro, o estudante deve ser capaz de escolher o formato, a organização física, as camadas e a política de ciclo de vida para os dados do projeto, justificando as decisões pelas propriedades distribuídas do armazenamento, e de construir um lakehouse que responda a perguntas de negócio com SQL executado.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>Primeira hora de exposição dialogada em três blocos, cada um encerrado por checklist de aplicação e erro comum. Segunda hora de atividade em grupo: os estudantes ingerem os dados públicos da Olist em um lakehouse local com MinIO e DuckDB, modelam dimensionalmente no grão do item de pedido entregue e respondem a três perguntas de negócio, usando IA para gerar o SQL e verificando cada etapa por contagem, tipo e medição.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol><li>1ª hora · Bloco 1 (30 min) — O que escala, object storage, formato físico e layout: dimensões de escala, convenções de prefixo, anatomia do arquivo colunar e do arquivo orientado a registro, cardinalidade da chave de partição e compactação.</li><li>1ª hora · Bloco 2 (18 min) — Propriedades distribuídas: particionamento, replicação, quórum, consistência forte e eventual, e as regras de engenharia que cada garantia ausente impõe ao pipeline.</li><li>1ª hora · Bloco 3 (12 min) — Vocabulário de repositórios analíticos, lakehouse, camadas por contrato, ciclo de vida, custo e segurança.</li><li>2ª hora · Card de trabalho (60 min) — Em grupo: MinIO e DuckDB no ar (10 min), bronze em Parquet no bucket (15 min), modelo dimensional com fato e dimensões (20 min), as três consultas executadas (10 min), evidências e conclusão escrita (5 min).</li></ol></div></section></div></div>
 <!-- encontro:meta:end -->
 </div>
 
