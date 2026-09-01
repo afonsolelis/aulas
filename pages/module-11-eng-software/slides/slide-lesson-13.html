@@ -3,47 +3,735 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Módulo 11 — Aula 13 — Inteli</title>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <title>Aula 13 - Transformação e Carga - Inteli</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚙️</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="../../../css/inteli-styles.css" rel="stylesheet">
-  <link href="../lesson-content.css" rel="stylesheet">
+  <link href="deck-base.css" rel="stylesheet">
+  <link href="slide-lesson-13.css" rel="stylesheet">
 
 <!-- encontro:css:start -->
 <link rel="stylesheet" href="../../../css/encontro.css">
 <!-- encontro:css:end -->
 </head>
-<body data-lesson="13" class="lesson-deck">
-  <main id="lesson-slides" class="lesson-slides"></main>
-  <footer class="lesson-footer">
-    <a href="../../home-module-11-eng-software.html">🏠 Módulo 11</a>
-    <button id="prev">← Anterior</button>
-    <span id="counter" class="lesson-counter">1 / 1</span>
-    <button id="next">Próximo →</button>
-    <a href="../materials/lesson-13-material.html">📖 Material</a>
+<body>
+  <div class="slide-container">
+    <!-- Slide 1: Capa -->
+    <section class="slide cover active">
+      <div class="sc cover-layout">
+        <div>
+          <span class="cover-badge rise">Módulo 11 · Engenharia de Software · Aula 13</span>
+          <h1 class="cover-title rise" style="--delay:.07s">Transformação<br><span>e Carga</span></h1>
+          <p class="cover-subtitle rise" style="--delay:.13s">Determinismo, testes que falham antes da transformação existir e estratégias de carga coerentes com a política de histórico, aplicados à silver e à gold do lakehouse construído nas aulas anteriores.</p>
+          <div class="cover-tags">
+            <span class="cover-tag rise" style="--delay:.19s">ETL e ELT</span>
+            <span class="cover-tag rise" style="--delay:.22s">Determinismo</span>
+            <span class="cover-tag rise" style="--delay:.25s">Testes de qualidade</span>
+            <span class="cover-tag rise" style="--delay:.28s">Merge e SCD</span>
+          </div>
+          <p class="cover-meta rise" style="--delay:.32s">Computação 1 · Prof. Afonso Brandão · 10/09/2026</p>
+        </div>
+        <div class="cover-stack">
+          <div class="stack-layer rise" style="--delay:.16s"><div><strong>Bronze</strong><small>Fidelidade à origem, com lote e carimbo</small></div><em>entrada</em></div>
+          <div class="stack-layer rise" style="--delay:.21s"><div><strong>Testes</strong><small>Escritos antes, e falhando primeiro</small></div><em>contrato</em></div>
+          <div class="stack-layer rise" style="--delay:.26s"><div><strong>Silver</strong><small>Tipos, chaves e deduplicação</small></div><em>conformidade</em></div>
+          <div class="stack-layer top rise" style="--delay:.31s"><div><strong>Gold</strong><small>Métrica com definição acordada</small></div><em>semântica</em></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 2: Continuidade -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head dark rise">
+          <p class="eyebrow">Continuidade · da Aula 12 para a Aula 13</p>
+          <h2 class="slide-title">O dado chegou à bronze, e agora precisa virar número confiável</h2>
+          <p class="slide-subtitle">A Aula 12 garantiu que o dado entra com completude e possibilidade de replay. Esta aula trata do que acontece entre a bronze e a métrica que o negócio lê.</p>
+        </header>
+        <div class="continuity">
+          <div class="continuity-step rise" style="--delay:.05s"><small>Aulas 2-4</small><strong>Modelagem dimensional</strong></div>
+          <div class="continuity-step rise" style="--delay:.09s"><small>Aula 10</small><strong>Armazenamento</strong></div>
+          <div class="continuity-step rise" style="--delay:.13s"><small>Aula 12</small><strong>Coleta e extração</strong></div>
+          <div class="continuity-step focus rise" style="--delay:.17s"><small>Aula 13</small><strong>Transformação e carga</strong></div>
+          <div class="continuity-step rise" style="--delay:.21s"><small>Aula 15</small><strong>Métricas e telemetria</strong></div>
+        </div>
+        <div class="callout dark rise" style="--delay:.25s">A transformação é onde a regra de negócio entra no pipeline. Cada decisão tomada aqui — arredondamento, fuso, tratamento de nulo, critério de junção — altera o número apresentado, e por isso precisa ser reproduzível e testada.</div>
+      </div>
+    </section>
+
+    <!-- Slide 3: Roteiro -->
+    <section class="slide slide-agenda">
+      <div class="sc">
+        <header class="slide-head red rise">
+          <p class="eyebrow">Roteiro · 120 minutos · uma hora de exposição, uma hora de prática</p>
+          <h2 class="slide-title">A primeira hora estabelece o critério, e a segunda constrói a transformação testada</h2>
+          <p class="slide-subtitle">A segunda hora é atividade em grupo: escrever os testes antes da transformação, construir a silver e a gold e provar que a carga é repetível.</p>
+        </header>
+        <div class="time-grid">
+          <article class="card time-card rise" style="--delay:.05s"><span class="card-label">1ª hora · Bloco 01</span><div class="minutes">18 <span>min</span></div><div><h3>ETL, ELT e determinismo</h3><p>Onde transformar, e o que torna a transformação reproduzível.</p></div></article>
+          <article class="card amber time-card rise" style="--delay:.12s"><span class="card-label">1ª hora · Bloco 02</span><div class="minutes">24 <span>min</span></div><div><h3>Qualidade</h3><p>Testes que falham antes, deduplicação e reconciliação com a origem.</p></div></article>
+          <article class="card blue time-card rise" style="--delay:.19s"><span class="card-label">1ª hora · Bloco 03</span><div class="minutes">18 <span>min</span></div><div><h3>Carga e orquestração</h3><p>Append, overwrite, merge e snapshot; histórico, atomicidade e dependência.</p></div></article>
+          <article class="card green time-card rise" style="--delay:.26s"><span class="card-label">2ª hora · Atividade</span><div class="minutes">60 <span>min</span></div><div><h3>Card de trabalho</h3><p>Silver e gold com testes escritos antes, e carga repetível.</p></div></article>
+        </div>
+        <div class="callout dark rise" style="--delay:.32s;margin-top:12px"><strong>Objetivo:</strong> escrever uma transformação determinística e uma carga coerente com a política de histórico, e provar as duas por testes que falham antes de a transformação existir.</div>
+      </div>
+    </section>
+
+    <!-- Slide 4: ETL ou ELT -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head dark rise">
+          <p class="eyebrow">Bloco 1 · Onde transformar</p>
+          <h2 class="slide-title">A escolha entre ETL e ELT define o que pode ser recalculado depois</h2>
+          <p class="slide-subtitle">A diferença não está na ordem das letras, e sim em qual versão do dado permanece disponível quando a regra de negócio mudar.</p>
+        </header>
+        <div class="g2">
+          <article class="card amber rise" style="--delay:.05s">
+            <span class="card-label">ETL</span>
+            <h3>Transformar antes de gravar</h3>
+            <p>O dado chega ao destino já conformado. Economiza armazenamento e processamento no destino, e permite mascarar dado sensível antes de ele cruzar a fronteira.</p>
+            <p style="margin-top:8px"><strong>Custo:</strong> o bruto não é preservado. Quando a regra muda, o passado não pode ser recalculado, e a série histórica passa a misturar dois critérios.</p>
+          </article>
+          <article class="card green rise" style="--delay:.12s">
+            <span class="card-label">ELT</span>
+            <h3>Preservar o bruto e transformar no destino</h3>
+            <p>A bronze guarda o dado como veio, e a transformação roda sobre ela. A mudança de regra se aplica retroativamente, porque a entrada continua disponível.</p>
+            <p style="margin-top:8px"><strong>Custo:</strong> armazenamento e processamento no destino, e a necessidade de decidir onde o dado sensível pode legalmente ser processado.</p>
+          </article>
+        </div>
+        <div class="observe-box rise" style="--delay:.18s"><strong>Critério de decisão:</strong> a pergunta é se o pipeline precisará responder, no futuro, qual seria o número sob outra regra. Havendo essa necessidade, o bruto precisa ser preservado, e a escolha recai sobre ELT.</div>
+        <div class="pitfall rise" style="--delay:.23s">Transformar antes de guardar o bruto. Quando a definição de receita líquida mudar, não haverá como recalcular os três anos anteriores, e a comparação histórica deixa de ser possível.</div>
+      </div>
+    </section>
+
+    <!-- Slide 5: Determinismo -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head green rise">
+          <p class="eyebrow">Bloco 1 · Determinismo</p>
+          <h2 class="slide-title">A mesma entrada e os mesmos parâmetros produzem a mesma saída</h2>
+          <p class="slide-subtitle">Quatro construções quebram essa propriedade e transformam o backfill em fonte de divergência entre execuções.</p>
+        </header>
+        <div class="det-grid">
+          <div class="det bad rise" style="--delay:.05s">
+            <h4>Data corrente dentro da transformação</h4>
+            <code>WHERE data &gt;= current_date - 30</code>
+            <p>O mesmo backfill executado em duas semanas distintas devolve conjuntos diferentes. A janela precisa ser parâmetro de entrada.</p>
+          </div>
+          <div class="det rise" style="--delay:.09s">
+            <h4>Janela declarada como parâmetro</h4>
+            <code>WHERE data BETWEEN :inicio AND :fim</code>
+            <p>A execução se torna reproduzível, e o registro do parâmetro permite repetir exatamente o mesmo cálculo.</p>
+          </div>
+          <div class="det bad rise" style="--delay:.13s">
+            <h4>Ordenação ambígua no desempate</h4>
+            <code>row_number() OVER (PARTITION BY id)</code>
+            <p>Sem cláusula de ordenação, o registro vencedor varia entre execuções conforme o plano escolhido pelo motor.</p>
+          </div>
+          <div class="det rise" style="--delay:.17s">
+            <h4>Ordenação total e determinística</h4>
+            <code>ORDER BY atualizado_em DESC, id ASC</code>
+            <p>O segundo critério resolve o empate do primeiro, e o resultado passa a ser idêntico em toda execução.</p>
+          </div>
+        </div>
+        <div class="checklist" style="margin-top:12px">
+          <div class="check-item rise" style="--delay:.21s"><span>✓</span><p>Fixe timezone e arredondamento de forma explícita, e documente o critério adotado.</p></div>
+          <div class="check-item rise" style="--delay:.24s"><span>✓</span><p>Versione o código e registre, em cada carga, a versão que a produziu.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 6: As decisões que mudam o número -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head amber rise">
+          <p class="eyebrow">Bloco 1 · Decisões silenciosas</p>
+          <h2 class="slide-title">Quatro decisões técnicas que alteram o número apresentado ao negócio</h2>
+          <p class="slide-subtitle">Nenhuma delas produz erro. Todas produzem um valor diferente, e o negócio não tem como saber qual critério foi adotado.</p>
+        </header>
+        <table class="data-table rise" style="--delay:.05s">
+          <thead>
+            <tr><th style="width:20%">Decisão</th><th style="width:30%">Alternativas plausíveis</th><th style="width:26%">Efeito no resultado</th><th style="width:24%">Onde registrar</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Fuso horário</strong></td><td>Hora da origem, UTC ou hora local do analista</td><td>Vendas migram entre dias e o fechamento mensal muda</td><td>Contrato da camada gold</td></tr>
+            <tr><td><strong>Nulo em medida</strong></td><td>Tratar como zero, ignorar na média ou rejeitar a linha</td><td>A média muda de valor conforme a escolha</td><td>Teste de qualidade declarado</td></tr>
+            <tr><td><strong>Arredondamento</strong></td><td>Arredondar por linha, ou somar e arredondar no fim</td><td>Divergência de centavos que se acumula no total</td><td>Definição da métrica</td></tr>
+            <tr><td><strong>Junção sem correspondência</strong></td><td>Junção interna, externa, ou externa com membro desconhecido</td><td>Linhas de fato desaparecem sem que ninguém perceba</td><td>Decisão de arquitetura registrada</td></tr>
+          </tbody>
+        </table>
+        <div class="callout rise" style="--delay:.14s;margin-top:12px">A junção interna que descarta o fato sem dimensão correspondente é a mais perigosa das quatro, porque reduz o total sem emitir aviso. A defesa é comparar a contagem antes e depois de cada junção.</div>
+      </div>
+    </section>
+
+    <!-- Slide 7: Teste que falha primeiro -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head red rise">
+          <p class="eyebrow">Bloco 2 · Qualidade</p>
+          <h2 class="slide-title">O teste é escrito antes da transformação e precisa falhar primeiro</h2>
+          <p class="slide-subtitle">O teste que nunca falhou não demonstra nada sobre o pipeline, porque não há prova de que ele seria capaz de detectar o defeito.</p>
+        </header>
+        <div class="test-row">
+          <div class="test-step red rise" data-n="1" style="--delay:.05s"><strong>Escrever e ver falhar</strong><small>O teste roda contra a tabela ainda inexistente ou vazia e acusa a falha. Esse é o momento em que ele prova que funciona.</small></div>
+          <div class="test-step amber rise" data-n="2" style="--delay:.1s"><strong>Implementar até passar</strong><small>A transformação é escrita com o objetivo declarado de satisfazer o teste, e não o contrário.</small></div>
+          <div class="test-step green rise" data-n="3" style="--delay:.15s"><strong>Manter no pipeline</strong><small>O teste passa a rodar a cada carga e bloqueia a publicação quando a origem mudar de comportamento.</small></div>
+        </div>
+        <div class="g2" style="margin-top:14px">
+          <div class="code-block rise" style="--delay:.2s"><span class="code-comment">-- teste de unicidade da chave da silver</span>
+<span class="code-keyword">SELECT</span> order_id, count(*) <span class="code-keyword">AS</span> n
+<span class="code-keyword">FROM</span> silver.pedido
+<span class="code-keyword">GROUP BY</span> <span class="code-number">1</span> <span class="code-keyword">HAVING</span> count(*) &gt; <span class="code-number">1</span>;
+<span class="code-comment">-- aprovado quando devolve zero linhas</span>
+
+<span class="code-comment">-- teste de relacionamento: fato sem dimensão</span>
+<span class="code-keyword">SELECT</span> count(*) <span class="code-keyword">FROM</span> gold.fato f
+<span class="code-keyword">ANTI JOIN</span> gold.dim_produto d <span class="code-keyword">USING</span> (product_id);</div>
+          <div class="checklist">
+            <div class="check-item rise" style="--delay:.24s"><span>✓</span><p><strong>Schema</strong>: colunas, tipos e obrigatoriedade conforme o contrato.</p></div>
+            <div class="check-item rise" style="--delay:.27s"><span>✓</span><p><strong>Unicidade</strong> da chave declarada em cada camada.</p></div>
+            <div class="check-item rise" style="--delay:.3s"><span>✓</span><p><strong>Relacionamento</strong>: todo fato encontra a dimensão correspondente.</p></div>
+            <div class="check-item rise" style="--delay:.33s"><span>✓</span><p><strong>Faixa de valores</strong> e domínio aceito para cada campo categórico.</p></div>
+            <div class="check-item rise" style="--delay:.36s"><span>✓</span><p><strong>Atualidade e volume</strong>: variação em relação à carga anterior.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 8: Deduplicação -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head blue rise">
+          <p class="eyebrow">Bloco 2 · Deduplicação</p>
+          <h2 class="slide-title">A duplicidade se resolve por regra declarada, e não por operador de conjunto</h2>
+          <p class="slide-subtitle">A escolha do registro vencedor é decisão de negócio. Delegá-la ao motor produz resultado que muda entre execuções.</p>
+        </header>
+        <div class="g2">
+          <div class="code-block rise" style="--delay:.05s"><span class="code-comment">-- regra declarada: chave, ordenação e desempate</span>
+<span class="code-keyword">SELECT</span> *
+<span class="code-keyword">FROM</span> bronze.pedido
+<span class="code-keyword">QUALIFY</span> row_number() <span class="code-keyword">OVER</span> (
+  <span class="code-keyword">PARTITION BY</span> order_id            <span class="code-comment">-- a chave do evento</span>
+  <span class="code-keyword">ORDER BY</span> atualizado_em <span class="code-keyword">DESC</span>,     <span class="code-comment">-- o mais recente vence</span>
+           ingerido_em <span class="code-keyword">DESC</span>,       <span class="code-comment">-- empate: o último a chegar</span>
+           batch_id <span class="code-keyword">DESC</span>            <span class="code-comment">-- desempate determinístico</span>
+) = <span class="code-number">1</span>;</div>
+          <div class="card-stack">
+            <article class="card blue rise" style="--delay:.1s">
+              <span class="card-label">Ordenação</span>
+              <h3>Carimbo da origem antes do de chegada</h3>
+              <p>O carimbo de chegada reflete a ordem em que o pipeline processou, e não a ordem em que os fatos ocorreram. Sob reprocessamento, a segunda ordem se inverte e o registro vencedor muda.</p>
+            </article>
+            <article class="card rise" style="--delay:.16s">
+              <span class="card-label">Observabilidade</span>
+              <h3>Quantos registros foram descartados</h3>
+              <p>Registre em cada execução o número de duplicatas removidas. O crescimento súbito desse número sinaliza mudança de comportamento na origem, antes que ela apareça no relatório.</p>
+            </article>
+          </div>
+        </div>
+        <div class="pitfall rise" style="--delay:.24s">Usar DISTINCT para resolver duplicidade. O operador remove linhas idênticas e preserva as que diferem em qualquer coluna, de modo que a duplicata com um campo atualizado permanece nas duas versões.</div>
+      </div>
+    </section>
+
+    <!-- Slide 9: Reconciliação -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head dark rise">
+          <p class="eyebrow">Bloco 2 · Reconciliação</p>
+          <h2 class="slide-title">A conferência com a origem é o único teste que o negócio reconhece</h2>
+          <p class="slide-subtitle">Os testes técnicos garantem consistência interna. A reconciliação garante que o número do painel corresponde ao número do sistema de origem.</p>
+        </header>
+        <div class="g3">
+          <article class="card rise" style="--delay:.05s">
+            <span class="card-label">Contagem</span>
+            <h3>Linhas por período</h3>
+            <p>Compare, por mês, a contagem na origem com a da camada de consumo. A diferença precisa ser explicada por regra declarada, como o filtro de status.</p>
+          </article>
+          <article class="card amber rise" style="--delay:.11s">
+            <span class="card-label">Soma</span>
+            <h3>Medida financeira por período</h3>
+            <p>A contagem pode coincidir e o valor divergir, por arredondamento ou por linhas com medida nula. A soma é o segundo eixo obrigatório da conferência.</p>
+          </article>
+          <article class="card blue rise" style="--delay:.17s">
+            <span class="card-label">Tolerância</span>
+            <h3>O limite aceito, declarado</h3>
+            <p>Alguma divergência é esperada por diferença de fuso e de janela. O que a torna aceitável é estar declarada como número, e não descoberta durante a apresentação.</p>
+          </article>
+        </div>
+        <div class="observe-box rise" style="--delay:.23s"><strong>Prática recomendada:</strong> a reconciliação roda como parte da carga e registra o desvio a cada execução. A série do desvio ao longo do tempo revela a degradação antes que ela atinja magnitude perceptível no relatório.</div>
+        <div class="pitfall rise" style="--delay:.27s">Testar apenas o que já passa. O conjunto de testes que nunca reprovou não oferece evidência sobre a capacidade de detectar defeito.</div>
+      </div>
+    </section>
+
+    <!-- Slide 10: Estratégias de carga -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head green rise">
+          <p class="eyebrow">Bloco 3 · Carga</p>
+          <h2 class="slide-title">A estratégia de carga se alinha à política de histórico da tabela</h2>
+          <p class="slide-subtitle">Quatro estratégias, com garantias e custos distintos. A escolha decorre de quanto do passado precisa permanecer consultável.</p>
+        </header>
+        <div class="load-grid">
+          <article class="load append rise" style="--delay:.05s">
+            <h3>Append</h3>
+            <p>Acrescenta linhas sem tocar no que existe. Simples e barato.</p>
+            <div class="when"><strong>Use quando</strong> o fato é imutável e a origem só insere, como um log de eventos.</div>
+          </article>
+          <article class="load overwrite rise" style="--delay:.1s">
+            <h3>Overwrite</h3>
+            <p>Substitui a partição inteira pelo resultado recalculado.</p>
+            <div class="when"><strong>Use quando</strong> a janela de correção é conhecida e a partição pode ser recomposta por completo.</div>
+          </article>
+          <article class="load merge rise" style="--delay:.15s">
+            <h3>Merge</h3>
+            <p>Atualiza o que existe e insere o que é novo, por chave.</p>
+            <div class="when"><strong>Use quando</strong> a origem corrige registros e a chave é estável ao longo do tempo.</div>
+          </article>
+          <article class="load snapshot rise" style="--delay:.2s">
+            <h3>Snapshot</h3>
+            <p>Grava o estado completo por data e preserva cada versão.</p>
+            <div class="when"><strong>Use quando</strong> a pergunta analítica é como o cadastro estava em determinada data.</div>
+          </article>
+        </div>
+        <div class="observe-box rise" style="--delay:.25s"><strong>Condição comum às quatro:</strong> atomicidade. O consumidor jamais deve enxergar carga pela metade, e a publicação se faz por troca de ponteiro, conforme discutido na Aula 10.</div>
+        <div class="pitfall rise" style="--delay:.29s">Merge sem chave estável. Cada execução insere linha nova em vez de atualizar a existente, e a dimensão duplica em silêncio ao longo das cargas.</div>
+      </div>
+    </section>
+
+    <!-- Slide 11: Histórico da dimensão -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head amber rise">
+          <p class="eyebrow">Bloco 3 · Histórico</p>
+          <h2 class="slide-title">A política de histórico da dimensão define a carga que ela admite</h2>
+          <p class="slide-subtitle">Retomada da modelagem das Aulas 2 a 4, agora do ponto de vista de quem escreve a carga.</p>
+        </header>
+        <table class="data-table rise" style="--delay:.05s">
+          <thead>
+            <tr><th style="width:16%">Política</th><th style="width:28%">O que acontece na mudança</th><th style="width:28%">Pergunta que passa a ser respondível</th><th style="width:28%">Carga correspondente</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Sobrescrita</strong></td><td>O atributo é substituído e o valor anterior se perde</td><td>Qual é o estado atual do cadastro</td><td>Merge por chave natural</td></tr>
+            <tr><td><strong>Nova versão</strong></td><td>A linha anterior é encerrada e uma nova é aberta com vigência</td><td>Qual era o estado na data do fato</td><td>Merge com encerramento da versão vigente</td></tr>
+            <tr><td><strong>Atributo anterior</strong></td><td>O valor anterior é preservado em coluna própria</td><td>Qual era o valor imediatamente anterior</td><td>Merge com cópia do valor antes da atualização</td></tr>
+            <tr><td><strong>Instantâneo diário</strong></td><td>O cadastro inteiro é gravado a cada dia</td><td>Como o cadastro estava em qualquer data</td><td>Append particionado por data do instantâneo</td></tr>
+          </tbody>
+        </table>
+        <div class="callout rise" style="--delay:.14s;margin-top:12px">A escolha da política precede a escrita da carga. Implementar sobrescrita e depois descobrir que o negócio precisa da série histórica exige recompor o passado a partir da bronze, quando ela existe.</div>
+      </div>
+    </section>
+
+    <!-- Slide 12: Orquestração -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head blue rise">
+          <p class="eyebrow">Bloco 3 · Orquestração</p>
+          <h2 class="slide-title">A dependência entre tarefas se declara, e não se aproxima por horário</h2>
+          <p class="slide-subtitle">O agendamento fixo pressupõe que a tarefa anterior sempre termina no tempo previsto, e essa premissa falha exatamente nos dias de maior volume.</p>
+        </header>
+        <div class="g2">
+          <article class="card rise" style="--delay:.05s">
+            <span class="card-label">Dependência declarada</span>
+            <h3>A tarefa parte da conclusão da anterior</h3>
+            <p>O grafo de dependências torna explícito o que precisa existir antes de cada etapa. Quando a extração atrasa, a transformação aguarda em vez de processar dado incompleto.</p>
+            <p style="margin-top:8px"><strong>Consequência:</strong> o atraso se propaga de forma visível, e o alerta indica a etapa que o originou.</p>
+          </article>
+          <article class="card blue rise" style="--delay:.11s">
+            <span class="card-label">Retry e backfill</span>
+            <h3>A repetição precisa ser segura antes de ser automática</h3>
+            <p>Habilitar retry sobre carga não idempotente multiplica o defeito. O backfill de um período longo precisa ser parametrizado por janela e executado em lotes verificáveis.</p>
+            <p style="margin-top:8px"><strong>Consequência:</strong> o procedimento de recuperação é testado fora de incidente.</p>
+          </article>
+        </div>
+        <div class="checklist" style="margin-top:12px">
+          <div class="check-item rise" style="--delay:.17s"><span>✓</span><p>Promova entre ambientes com o mesmo código e parâmetros distintos.</p></div>
+          <div class="check-item rise" style="--delay:.2s"><span>✓</span><p>Registre a linhagem: de quais tabelas cada saída deriva, e por qual versão do código.</p></div>
+          <div class="check-item rise" style="--delay:.23s"><span>✓</span><p>Defina o acordo de nível de serviço da carga e alerte pelo descumprimento, não pela falha isolada.</p></div>
+        </div>
+        <div class="pitfall rise" style="--delay:.27s">Encadear tarefas por agendamento fixo. Quando a anterior atrasa, a seguinte processa dado incompleto e publica um número menor sem emitir erro.</div>
+      </div>
+    </section>
+
+    <!-- Slide 13: Card de trabalho -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head green rise">
+          <p class="eyebrow">Segunda hora · Card de trabalho em sala</p>
+          <h2 class="slide-title">Três perguntas sobre a transformação que o grupo escreve</h2>
+          <p class="slide-subtitle">Em grupo, sobre a bronze da Aula 12: escrever os testes primeiro, construir silver e gold e provar que a carga é repetível.</p>
+        </header>
+        <div class="question-grid">
+          <article class="qcard rise" style="--delay:.05s">
+            <span class="qnum">1</span>
+            <h3>O teste falhou antes de a transformação existir?</h3>
+            <p>Registre a saída do teste antes e depois da implementação. Sem a primeira falha, não há prova de que ele detecta o defeito.</p>
+          </article>
+          <article class="qcard q2 rise" style="--delay:.12s">
+            <span class="qnum">2</span>
+            <h3>Quantas linhas cada junção descartou?</h3>
+            <p>Compare a contagem do fato antes e depois de cada junção, e explique a diferença por regra declarada.</p>
+          </article>
+          <article class="qcard q3 rise" style="--delay:.19s">
+            <span class="qnum">3</span>
+            <h3>Duas execuções produzem o mesmo número?</h3>
+            <p>Execute a carga duas vezes com os mesmos parâmetros e compare a soma da receita, e não apenas a contagem.</p>
+          </article>
+        </div>
+        <div class="clock-row rise" style="--delay:.25s">
+          <div class="clock"><strong>10<span>min</span></strong><small>Testes escritos e falhando</small></div>
+          <div class="clock"><strong>15<span>min</span></strong><small>Silver conformada</small></div>
+          <div class="clock"><strong>15<span>min</span></strong><small>Gold e junções</small></div>
+          <div class="clock"><strong>10<span>min</span></strong><small>Carga incremental</small></div>
+          <div class="clock"><strong>10<span>min</span></strong><small>Reconciliação</small></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 14: Testes primeiro -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head red rise">
+          <p class="eyebrow">Segunda hora · Testes · 10 minutos</p>
+          <h2 class="slide-title">Os cinco testes são escritos antes da primeira linha de transformação</h2>
+          <p class="slide-subtitle">Todos rodam contra tabelas ainda inexistentes e devem falhar. Essa falha é o primeiro registro de evidência do encontro.</p>
+        </header>
+        <div class="code-block rise" style="--delay:.05s"><span class="code-comment">-- 1. unicidade: uma linha por pedido na silver</span>
+<span class="code-keyword">SELECT</span> count(*) <span class="code-keyword">AS</span> falhas <span class="code-keyword">FROM</span> (
+  <span class="code-keyword">SELECT</span> order_id <span class="code-keyword">FROM</span> silver.pedido <span class="code-keyword">GROUP BY</span> <span class="code-number">1</span> <span class="code-keyword">HAVING</span> count(*) &gt; <span class="code-number">1</span>);
+
+<span class="code-comment">-- 2. obrigatoriedade: chave e data nunca nulas</span>
+<span class="code-keyword">SELECT</span> count(*) <span class="code-keyword">FROM</span> silver.pedido <span class="code-keyword">WHERE</span> order_id <span class="code-keyword">IS NULL OR</span> comprado_em <span class="code-keyword">IS NULL</span>;
+
+<span class="code-comment">-- 3. domínio: status dentro do conjunto aceito</span>
+<span class="code-keyword">SELECT</span> <span class="code-keyword">DISTINCT</span> order_status <span class="code-keyword">FROM</span> silver.pedido
+<span class="code-keyword">WHERE</span> order_status <span class="code-keyword">NOT IN</span> (<span class="code-string">'delivered'</span>,<span class="code-string">'shipped'</span>,<span class="code-string">'canceled'</span>,<span class="code-string">'unavailable'</span>,
+                            <span class="code-string">'invoiced'</span>,<span class="code-string">'processing'</span>,<span class="code-string">'approved'</span>,<span class="code-string">'created'</span>);
+
+<span class="code-comment">-- 4. relacionamento: todo item do fato encontra seu produto</span>
+<span class="code-keyword">SELECT</span> count(*) <span class="code-keyword">FROM</span> gold.fato_item_venda f
+<span class="code-keyword">ANTI JOIN</span> gold.dim_produto d <span class="code-keyword">USING</span> (product_id);
+
+<span class="code-comment">-- 5. faixa: nenhuma medida negativa</span>
+<span class="code-keyword">SELECT</span> count(*) <span class="code-keyword">FROM</span> gold.fato_item_venda <span class="code-keyword">WHERE</span> price &lt; <span class="code-number">0</span> <span class="code-keyword">OR</span> freight_value &lt; <span class="code-number">0</span>;</div>
+        <div class="observe-box rise" style="--delay:.14s"><strong>Critério:</strong> os cinco devem devolver zero ao final do encontro, e todos devem ter falhado no início. Anote as duas saídas.</div>
+      </div>
+    </section>
+
+    <!-- Slide 15: Silver -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head blue rise">
+          <p class="eyebrow">Segunda hora · Silver · 15 minutos</p>
+          <h2 class="slide-title">A silver declara tipos, aplica a chave e registra o que rejeitou</h2>
+          <p class="slide-subtitle">O contrato da camada é a conformidade. O que não o satisfaz é separado com o motivo, e não descartado.</p>
+        </header>
+        <div class="code-block rise" style="--delay:.05s"><span class="code-comment">-- conformidade com deduplicação determinística</span>
+<span class="code-keyword">CREATE OR REPLACE TABLE</span> silver.pedido <span class="code-keyword">AS</span>
+<span class="code-keyword">SELECT</span> order_id, customer_id, order_status,
+       <span class="code-keyword">CAST</span>(comprado_em <span class="code-keyword">AS</span> <span class="code-keyword">TIMESTAMP</span>) <span class="code-keyword">AS</span> comprado_em,
+       batch_id, ingerido_em
+<span class="code-keyword">FROM</span> read_parquet(<span class="code-string">'s3://lakehouse/bronze/pedido/**/*.parquet'</span>)
+<span class="code-keyword">WHERE</span> order_id <span class="code-keyword">IS NOT NULL</span> <span class="code-keyword">AND</span> comprado_em <span class="code-keyword">IS NOT NULL</span>
+<span class="code-keyword">QUALIFY</span> row_number() <span class="code-keyword">OVER</span> (<span class="code-keyword">PARTITION BY</span> order_id
+                            <span class="code-keyword">ORDER BY</span> ingerido_em <span class="code-keyword">DESC</span>, batch_id <span class="code-keyword">DESC</span>) = <span class="code-number">1</span>;
+
+<span class="code-comment">-- os rejeitados permanecem acessíveis, com o motivo</span>
+<span class="code-keyword">CREATE OR REPLACE TABLE</span> silver.pedido_rejeitado <span class="code-keyword">AS</span>
+<span class="code-keyword">SELECT</span> *, <span class="code-keyword">CASE WHEN</span> order_id <span class="code-keyword">IS NULL THEN</span> <span class="code-string">'chave nula'</span>
+              <span class="code-keyword">ELSE</span> <span class="code-string">'data de compra nula'</span> <span class="code-keyword">END</span> <span class="code-keyword">AS</span> motivo, now() <span class="code-keyword">AS</span> rejeitado_em
+<span class="code-keyword">FROM</span> read_parquet(<span class="code-string">'s3://lakehouse/bronze/pedido/**/*.parquet'</span>)
+<span class="code-keyword">WHERE</span> order_id <span class="code-keyword">IS NULL</span> <span class="code-keyword">OR</span> comprado_em <span class="code-keyword">IS NULL</span>;</div>
+        <div class="observe-box rise" style="--delay:.12s"><strong>Conferência obrigatória:</strong> a soma de <span class="mono">silver.pedido</span> com <span class="mono">silver.pedido_rejeitado</span> mais as duplicatas removidas precisa igualar a contagem da bronze. Toda linha da entrada tem um destino conhecido.</div>
+      </div>
+    </section>
+
+    <!-- Slide 16: Gold e junções -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head green rise">
+          <p class="eyebrow">Segunda hora · Gold · 15 minutos</p>
+          <h2 class="slide-title">Cada junção é medida antes e depois, porque cada uma pode perder linhas</h2>
+          <p class="slide-subtitle">A junção interna descarta o fato sem dimensão correspondente sem emitir aviso, e o total apurado cai sem explicação visível.</p>
+        </header>
+        <div class="code-block rise" style="--delay:.05s"><span class="code-comment">-- medir antes: quantos itens existem</span>
+<span class="code-keyword">SELECT</span> count(*) <span class="code-keyword">AS</span> itens_origem <span class="code-keyword">FROM</span> silver.item;
+
+<span class="code-comment">-- membro desconhecido em vez de descarte silencioso</span>
+<span class="code-keyword">CREATE OR REPLACE TABLE</span> gold.fato_item_venda <span class="code-keyword">AS</span>
+<span class="code-keyword">SELECT</span> i.order_id, i.order_item_id,
+       coalesce(d.product_id, <span class="code-string">'DESCONHECIDO'</span>) <span class="code-keyword">AS</span> product_id,
+       coalesce(d.categoria, <span class="code-string">'nao_informada'</span>) <span class="code-keyword">AS</span> categoria,
+       p.comprado_em, i.price, i.freight_value, i.price + i.freight_value <span class="code-keyword">AS</span> valor_total
+<span class="code-keyword">FROM</span> silver.item i
+<span class="code-keyword">JOIN</span> silver.pedido p <span class="code-keyword">USING</span> (order_id)
+<span class="code-keyword">LEFT JOIN</span> gold.dim_produto d <span class="code-keyword">USING</span> (product_id)
+<span class="code-keyword">WHERE</span> p.order_status = <span class="code-string">'delivered'</span>;
+
+<span class="code-comment">-- medir depois: a diferença precisa ser explicada</span>
+<span class="code-keyword">SELECT</span> count(*) <span class="code-keyword">AS</span> itens_fato <span class="code-keyword">FROM</span> gold.fato_item_venda;</div>
+        <div class="g2" style="margin-top:12px">
+          <div class="callout rise" style="--delay:.12s">A diferença entre as duas contagens corresponde ao filtro de status, e a nenhuma outra causa. Qualquer resíduo indica junção perdendo linha.</div>
+          <div class="callout dark rise" style="--delay:.16s">O membro desconhecido preserva o fato e torna o problema visível como categoria, em vez de escondê-lo como ausência.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 17: Carga incremental -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head amber rise">
+          <p class="eyebrow">Segunda hora · Carga · 10 minutos</p>
+          <h2 class="slide-title">A carga da gold recompõe a partição inteira do período corrigido</h2>
+          <p class="slide-subtitle">O overwrite por partição alia atomicidade e simplicidade, desde que a partição possa ser recomposta por completo a partir da silver.</p>
+        </header>
+        <div class="g2">
+          <div class="code-block rise" style="--delay:.05s"><span class="code-comment">-- recompõe apenas os meses afetados pela janela</span>
+<span class="code-keyword">COPY</span> (
+  <span class="code-keyword">SELECT</span> *, date_trunc(<span class="code-string">'month'</span>, comprado_em) <span class="code-keyword">AS</span> mes
+  <span class="code-keyword">FROM</span> gold.fato_item_venda
+  <span class="code-keyword">WHERE</span> comprado_em &gt;= :inicio <span class="code-keyword">AND</span> comprado_em &lt; :fim
+) <span class="code-keyword">TO</span> <span class="code-string">'s3://lakehouse/gold/fato_item_venda'</span>
+  (<span class="code-keyword">FORMAT</span> parquet, <span class="code-keyword">PARTITION_BY</span> (mes),
+   OVERWRITE_OR_IGNORE, COMPRESSION zstd);</div>
+          <div class="card-stack">
+            <article class="card amber rise" style="--delay:.1s">
+              <span class="card-label">Parâmetro</span>
+              <h3>A janela vem de fora da consulta</h3>
+              <p>O início e o fim são parâmetros da execução, e não expressões calculadas sobre a data corrente. É o que torna o backfill reproduzível meses depois.</p>
+            </article>
+            <article class="card rise" style="--delay:.16s">
+              <span class="card-label">Verificação</span>
+              <h3>A soma da receita permanece igual</h3>
+              <p>Após recompor a partição, a soma do período precisa coincidir com a anterior, exceto pelas correções que a janela deveria capturar. Divergência inesperada indica perda na recomposição.</p>
+            </article>
+          </div>
+        </div>
+        <div class="pitfall rise" style="--delay:.24s">Recompor a partição a partir da própria gold. A recomposição precisa partir da silver, porque reprocessar a saída propaga qualquer defeito já presente nela.</div>
+      </div>
+    </section>
+
+    <!-- Slide 18: Conferência -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head dark rise">
+          <p class="eyebrow">Segunda hora · Conferência</p>
+          <h2 class="slide-title">Os valores de referência para conferir a transformação</h2>
+          <p class="slide-subtitle">Números esperados em cada etapa, sobre a bronze de pedidos e itens construída nas aulas anteriores.</p>
+        </header>
+        <table class="data-table rise" style="--delay:.05s">
+          <thead>
+            <tr><th style="width:24%">Etapa</th><th style="width:36%">O que verificar</th><th style="width:40%">Referência</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Testes iniciais</strong></td><td>Saída dos cinco testes antes da implementação</td><td>Todos falham, por tabela inexistente</td></tr>
+            <tr><td><strong>Silver</strong></td><td>Conformada mais rejeitados mais duplicatas</td><td>Soma igual à contagem da bronze, sem resíduo</td></tr>
+            <tr><td><strong>Junção com pedido</strong></td><td>Itens antes e depois da junção</td><td>112 650 itens, e a queda decorre apenas do status</td></tr>
+            <tr><td><strong>Fato entregue</strong></td><td>Linhas após o filtro de entregues</td><td>Ordem de 110 mil itens</td></tr>
+            <tr><td><strong>Testes finais</strong></td><td>Saída dos cinco testes após a implementação</td><td>Todos devolvem zero</td></tr>
+            <tr><td><strong>Repetição</strong></td><td>Soma da receita em duas execuções seguidas</td><td>Idêntica até o centavo</td></tr>
+          </tbody>
+        </table>
+        <div class="callout rise" style="--delay:.14s;margin-top:12px">A comparação por soma de receita é mais sensível que a contagem: junção que duplica linhas mantém a ordem de grandeza da contagem e altera o total de forma imediata.</div>
+      </div>
+    </section>
+
+    <!-- Slide 19: Uso de IA -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head blue rise">
+          <p class="eyebrow">Segunda hora · Uso de IA · em paralelo</p>
+          <h2 class="slide-title">A IA escreve a transformação, e o grupo responde pelo teste</h2>
+          <p class="slide-subtitle">O assistente é mais útil na crítica do próprio resultado do que na geração, porque o defeito de transformação é plausível e silencioso.</p>
+        </header>
+        <div class="g3">
+          <article class="card blue rise" style="--delay:.05s">
+            <span class="card-label">Prompt 1 · Testes</span>
+            <h3>Escrever a verificação primeiro</h3>
+            <p>"A partir deste contrato de camada, escreva os testes de schema, unicidade, relacionamento e faixa que devem falhar enquanto a tabela não existir."</p>
+          </article>
+          <article class="card rise" style="--delay:.12s">
+            <span class="card-label">Prompt 2 · Geração</span>
+            <h3>Transformar com parâmetro declarado</h3>
+            <p>"Escreva a silver com tipos declarados, deduplicação por chave natural com ordenação total, e a separação dos rejeitados com o motivo registrado."</p>
+          </article>
+          <article class="card green rise" style="--delay:.19s">
+            <span class="card-label">Prompt 3 · Crítica</span>
+            <h3>Procurar o não determinismo</h3>
+            <p>"Aponte, neste SQL, o que muda de resultado entre duas execuções, qual junção pode perder ou duplicar linhas e onde a data corrente torna o backfill irreproduzível."</p>
+          </article>
+        </div>
+        <div class="checklist" style="margin-top:12px">
+          <div class="check-item rise" style="--delay:.24s"><span>✓</span><p>Verifique se a função de janela tem ordenação total, e não apenas partição.</p></div>
+          <div class="check-item rise" style="--delay:.27s"><span>✓</span><p>Procure por data corrente e por funções aleatórias dentro da transformação.</p></div>
+          <div class="check-item rise" style="--delay:.3s"><span>✓</span><p>Confirme a contagem antes e depois de cada junção que o assistente propôs.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 20: Ponte com a Aula 1 -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head dark rise">
+          <p class="eyebrow">Ponte com a Aula 1 · Spec-Driven Development</p>
+          <h2 class="slide-title">Do tema à especificação executável</h2>
+          <p class="slide-subtitle">A decisão de transformação entra no projeto como requisito, decisão registrada e critério verificável.</p>
+        </header>
+        <div class="g4">
+          <article class="card rise" style="--delay:.05s">
+            <span class="card-label">RF-006</span>
+            <h3>Requisito funcional</h3>
+            <p>Publicar a receita entregue por mês e por categoria, com definição única aplicada a toda a série histórica.</p>
+          </article>
+          <article class="card amber rise" style="--delay:.1s">
+            <span class="card-label">RNF-006</span>
+            <h3>Requisito não funcional</h3>
+            <p>Divergência de reconciliação com a origem até 0,1% por mês; carga determinística sob mesmos parâmetros; backfill de 24 meses executável em lotes verificáveis.</p>
+          </article>
+          <article class="card blue rise" style="--delay:.15s">
+            <span class="card-label">ADR-TRF-01</span>
+            <h3>Decisão de arquitetura</h3>
+            <p>ELT com bronze preservada, em vez de transformação anterior à gravação. Contexto: a definição de receita líquida ainda está em discussão com o parceiro. Consequência: custo de armazenamento e de processamento no destino.</p>
+          </article>
+          <article class="card green rise" style="--delay:.2s">
+            <span class="card-label">Cenário de aceite</span>
+            <h3>Critério verificável</h3>
+            <p>Dado o mês de agosto de 2018 já publicado, quando executo a carga novamente com os mesmos parâmetros, então a soma da receita permanece idêntica e os cinco testes devolvem zero.</p>
+          </article>
+        </div>
+        <div class="callout dark rise" style="--delay:.26s;margin-top:12px">A definição da métrica é artefato de projeto, e não conhecimento contido apenas no SQL. Sem ela declarada, duas equipes produzem dois números e ambos parecem corretos.</div>
+      </div>
+    </section>
+
+    <!-- Slide 21: Entrega -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head green rise">
+          <p class="eyebrow">Entrega do card de trabalho</p>
+          <h2 class="slide-title">A transformação testada, as contagens de junção e a carga repetível</h2>
+          <p class="slide-subtitle">O que o grupo entrega ao final da segunda hora, e o que será conferido.</p>
+        </header>
+        <div class="deliverable">
+          <article class="artifact rise" style="--delay:.05s">
+            <small>Artefato</small>
+            <h3>Silver, gold e a suíte de testes versionadas</h3>
+            <p>O SQL das duas camadas e dos cinco testes; a saída dos testes antes e depois da implementação; as contagens medidas em cada junção; e a definição da métrica de receita declarada por escrito.</p>
+          </article>
+          <div class="acceptance">
+            <div class="accept rise" style="--delay:.09s"><span>1</span><p>Os cinco testes falharam antes da implementação, com a saída registrada.</p></div>
+            <div class="accept rise" style="--delay:.12s"><span>2</span><p>A silver tem tipos declarados, chave única e rejeitados separados com motivo.</p></div>
+            <div class="accept rise" style="--delay:.15s"><span>3</span><p>Toda linha da bronze tem destino conhecido: conformada, rejeitada ou deduplicada.</p></div>
+            <div class="accept rise" style="--delay:.18s"><span>4</span><p>A contagem antes e depois de cada junção está medida e a diferença explicada.</p></div>
+            <div class="accept rise" style="--delay:.21s"><span>5</span><p>A janela da carga é parâmetro externo, sem data corrente dentro da transformação.</p></div>
+            <div class="accept rise" style="--delay:.24s"><span>6</span><p>Duas execuções seguidas produzem a mesma soma de receita, até o centavo.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 22: Autoestudos -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head dark rise">
+          <p class="eyebrow">Autoestudos · antes do próximo encontro</p>
+          <h2 class="slide-title">Os três materiais convergem para uma mesma pergunta</h2>
+          <p class="slide-subtitle">O que garante que o número publicado hoje seja o mesmo número quando recalculado daqui a um ano?</p>
+        </header>
+        <div class="study-grid">
+          <a class="study rise" style="--delay:.05s" href="https://docs.getdbt.com/docs/build/data-tests" target="_blank" rel="noopener">
+            <span class="kind">Documentação</span>
+            <h3>dbt — Data tests</h3>
+            <p>Compare a tipologia de testes da ferramenta com os cinco escritos em aula, e identifique qual deles o seu pipeline hoje não teria como executar.</p>
+            <span class="go">getdbt.com · documentação</span>
+          </a>
+          <a class="study rise" style="--delay:.12s" href="https://greatexpectations.io/expectations/" target="_blank" rel="noopener">
+            <span class="kind">Referência técnica</span>
+            <h3>Great Expectations — catálogo de expectativas</h3>
+            <p>Percorra o catálogo observando quantas verificações são sobre distribuição, e não sobre schema. Anote duas aplicáveis ao projeto do parceiro.</p>
+            <span class="go">greatexpectations.io · catálogo</span>
+          </a>
+          <a class="study rise" style="--delay:.19s" href="https://duckdb.org/docs/stable/sql/query_syntax/qualify.html" target="_blank" rel="noopener">
+            <span class="kind">Documentação</span>
+            <h3>DuckDB — cláusula QUALIFY</h3>
+            <p>Estude a cláusula usada na deduplicação do laboratório e escreva a mesma consulta sem ela, comparando legibilidade e desempenho.</p>
+            <span class="go">duckdb.org · documentação</span>
+          </a>
+        </div>
+        <div class="callout dark rise" style="--delay:.25s;margin-top:12px">Traga para o próximo encontro uma frase: <strong>no projeto do meu parceiro, a métrica cuja definição não está escrita é ___, e duas equipes hoje a calculariam como ___ e ___.</strong></div>
+      </div>
+    </section>
+
+    <!-- Slide 23: Fechamento -->
+    <section class="slide slide-closing">
+      <div class="sc">
+        <p class="eyebrow rise" style="color:var(--muted)">Aula 13 · Síntese</p>
+        <h2 class="final-line rise" style="--delay:.06s">A transformação determina <em>qual número</em> o negócio lê, e o teste escrito antes dela determina <em>quando</em> o erro nesse número é descoberto.</h2>
+        <div class="refs rise" style="--delay:.16s">
+          <span class="ref">dbt — Data tests</span>
+          <span class="ref">Great Expectations — Expectations</span>
+          <span class="ref">Kimball — Slowly Changing Dimensions</span>
+          <span class="ref">DuckDB — QUALIFY</span>
+        </div>
+        <div class="callout dark rise" style="--delay:.24s;margin-top:22px">Pergunta final: <strong>quantos dos testes que o grupo escreveu hoje já falharam alguma vez fora do início do encontro?</strong></div>
+      </div>
+    </section>
+
+<!-- encontro:meta:start -->
+<div class="slide encontro-slide"><div class="sc"><section class="encontro-meta" data-encontro-ficha><h2>Sobre este encontro</h2><p class="encontro-ref">Transformação e Carga · 10/09/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>Ao final do encontro, o estudante deve ser capaz de escrever uma transformação determinística, especificar testes de qualidade que falham antes de a transformação existir e escolher a estratégia de carga coerente com a política de histórico da tabela, provando a repetibilidade por soma de receita idêntica entre execuções.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>Primeira hora de exposição dialogada em três blocos, cada um encerrado por checklist de aplicação e erro comum. Segunda hora de atividade em grupo: sobre a bronze construída na Aula 12, os estudantes escrevem cinco testes de qualidade e os veem falhar, constroem a silver conformada com rejeitados separados por motivo, montam a gold medindo a contagem antes e depois de cada junção e provam que duas execuções da carga produzem a mesma soma de receita.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol><li>1ª hora · Bloco 1 (18 min) — ETL e ELT pela possibilidade de recálculo, determinismo e as quatro decisões técnicas que alteram o número apresentado ao negócio.</li><li>1ª hora · Bloco 2 (24 min) — Qualidade: o teste que falha antes de existir, deduplicação por regra declarada e reconciliação com a origem por contagem e por soma.</li><li>1ª hora · Bloco 3 (18 min) — Carga e orquestração: append, overwrite, merge e snapshot, política de histórico da dimensão, atomicidade e dependência declarada.</li><li>2ª hora · Card de trabalho (60 min) — Em grupo: testes escritos e falhando (10 min), silver conformada (15 min), gold com junções medidas (15 min), carga incremental parametrizada (10 min), reconciliação e conclusão escrita (10 min).</li></ol></div></section></div></div>
+<!-- encontro:meta:end -->
+</div>
+
+  <footer class="slide-footer">
+    <div class="footer-links">
+      <a href="../../home-module-11-eng-software.html" class="back-home">🏠 Módulo 11</a>
+      <a href="../materials/lesson-13-material.html" class="back-home material">📖 Material</a>
+    </div>
+    <div class="nav-wrapper">
+      <button type="button" class="nav-btn" id="prev-btn" onclick="previousSlide()">← Anterior</button>
+      <span class="slide-counter"><span id="current-slide">1</span> / <span id="total-slides">24</span></span>
+      <button type="button" class="nav-btn" id="next-btn" onclick="nextSlide()">Próximo →</button>
+    </div>
+    <button type="button" class="fullscreen-btn" onclick="toggleFullScreen()" title="Tela cheia">⛶</button>
   </footer>
-  <script src="../lesson-content.js"></script>
+
   <script>
-    const root = document.getElementById('lesson-slides');
-    const total = window.renderLessonSlides(root);
-    let current = 0;
-    const items = [...root.children];
-    const counter = document.getElementById('counter');
-    const prev = document.getElementById('prev');
-    const next = document.getElementById('next');
-    function show(index) {
-      current = Math.max(0, Math.min(index, total - 1));
-      items.forEach((item, i) => item.classList.toggle('active', i === current));
-      counter.textContent = (current + 1) + ' / ' + total;
-      prev.disabled = current === 0;
-      next.disabled = current === total - 1;
+    var currentSlide = 0;
+    var slides = Array.from(document.querySelectorAll('.slide'));
+    var totalSlides = slides.length;
+
+    document.getElementById('total-slides').textContent = totalSlides;
+
+    function showSlide(index) {
+      currentSlide = Math.max(0, Math.min(index, totalSlides - 1));
+      slides.forEach(function (slide, i) {
+        slide.classList.toggle('active', i === currentSlide);
+        if (i === currentSlide) slide.scrollTop = 0;
+      });
+      document.getElementById('current-slide').textContent = currentSlide + 1;
+      document.getElementById('prev-btn').disabled = currentSlide === 0;
+      document.getElementById('next-btn').disabled = currentSlide === totalSlides - 1;
     }
-    prev.addEventListener('click', () => show(current - 1));
-    next.addEventListener('click', () => show(current + 1));
-    document.addEventListener('keydown', (event) => {
-      if (event.key === 'ArrowLeft') show(current - 1);
-      if (event.key === 'ArrowRight' || event.key === ' ') { event.preventDefault(); show(current + 1); }
+
+    function nextSlide() { showSlide(currentSlide + 1); }
+    function previousSlide() { showSlide(currentSlide - 1); }
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'ArrowRight' || event.key === ' ') {
+        event.preventDefault();
+        nextSlide();
+      } else if (event.key === 'ArrowLeft') {
+        previousSlide();
+      } else if (event.key.toLowerCase() === 'f') {
+        toggleFullScreen();
+      }
     });
-    show(0);
+
+    showSlide(0);
   </script>
 <!-- encontro:pdf:start -->
 <button type="button" class="pdf-export-btn" data-encontro-data="2026-09-10" data-encontro-docente="Afonso" data-encontro-seq="01" title="Exportar esta página em PDF com o nome padronizado">📄 Exportar PDF</button>

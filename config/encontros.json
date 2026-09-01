@@ -146,9 +146,9 @@
       "objetivo": "Ao final do encontro, o estudante deve ser capaz de escolher formato, organização física, camadas e política de ciclo de vida para os dados do projeto, justificando as decisões pelas propriedades distribuídas do armazenamento, e de construir um lakehouse que responda a perguntas de negócio com SQL executado.",
       "estrategia": "Primeira hora de exposição dialogada em três blocos, cada um encerrado por checklist de aplicação e erro comum. Segunda hora de atividade em grupo: os estudantes ingerem os dados públicos da Olist em um lakehouse local com MinIO e DuckDB, modelam dimensionalmente no grão do item de pedido entregue e respondem a três perguntas de negócio, usando IA para gerar o SQL e verificando cada etapa por contagem, tipo e medição.",
       "agenda": [
-        "1ª hora · Bloco 1 (25 min) — O que escala, object storage, formato físico e layout: dimensões de escala, convenções de prefixo, CSV/Parquet/Avro, particionamento e compactação.",
-        "1ª hora · Bloco 2 (20 min) — Propriedades distribuídas: particionamento, replicação, quórum, consistência forte e eventual, e as regras de engenharia que cada garantia ausente impõe ao pipeline.",
-        "1ª hora · Bloco 3 (15 min) — Vocabulário de repositórios analíticos, lakehouse, camadas por contrato, ciclo de vida, custo e segurança.",
+        "1ª hora · Bloco 1 (30 min) — O que escala, object storage, formato físico e layout: dimensões de escala, convenções de prefixo, anatomia do arquivo colunar e do arquivo orientado a registro, cardinalidade da chave de partição e compactação.",
+        "1ª hora · Bloco 2 (18 min) — Propriedades distribuídas: particionamento, replicação, quórum, consistência forte e eventual, e as regras de engenharia que cada garantia ausente impõe ao pipeline.",
+        "1ª hora · Bloco 3 (12 min) — Vocabulário de repositórios analíticos, lakehouse, camadas por contrato, ciclo de vida, custo e segurança.",
         "2ª hora · Card de trabalho (60 min) — Em grupo: MinIO e DuckDB no ar (10 min), bronze em Parquet no bucket (15 min), modelo dimensional com fato e dimensões (20 min), as três consultas executadas (10 min), evidências e conclusão escrita (5 min)."
       ],
       "resultados": [
@@ -164,84 +164,83 @@
       "titulo": "Coleta e Extração",
       "data": "2026-09-09",
       "docente": "Afonso",
-      "objetivo": "Projetar uma extração resiliente para banco, API, arquivo e evento, preservando watermark, schema, auditoria e idempotência.",
-      "estrategia": "Exposição por blocos, cada um encerrado por checklist de aplicação, seguida de laboratório com entrega: Pipeline de extração com contrato da fonte, estratégia incremental justificada, tabela de controle, política de retry e evidência de replay.",
+      "objetivo": "Levantar o contrato de uma fonte, escolher entre full load, incremental por carimbo de tempo e captura pelo log a partir da semântica de atualização da origem, e construir uma extração idempotente cuja divergência seja medida e explicada.",
+      "estrategia": "Primeira hora de exposição dialogada em três blocos, cada um encerrado por checklist de aplicação e erro comum. Segunda hora de atividade em grupo: os estudantes montam uma origem transacional em Postgres com os pedidos da Olist, extraem por full load e por janela incremental para o lakehouse da Aula 10, aplicam mutações deliberadas de atualização e exclusão na origem e medem exatamente o que cada estratégia deixou de capturar.",
       "agenda": [
-        "Perfil das fontes — Mapeie owner, frequência, chave, timezone, semântica de atualização, limites, dados sensíveis e janela de disponibilidade.",
-        "Estratégias de extração — Full load é simples e caro; incremental por timestamp pode perder atualizações; CDC captura mudanças, mas exige retenção e ordenação.",
-        "APIs e paginação — Implemente paginação, rate limit, retry com backoff, autenticação, checkpoint e registro da resposta original. Nunca trate HTTP 200 como garantia de completude.",
-        "Arquivos e schema drift — Valide nome, encoding, schema, delimitador, duplicidade, checksum e atomicidade da chegada. Separe landing de processamento.",
-        "Idempotência — A mesma janela reprocessada deve produzir o mesmo resultado. Use chave natural, batch_id, watermark e deduplicação determinística.",
-        "Operação e replay — Registre início, fim, volume, bytes, status, origem, watermark, erro e localização dos rejeitados para permitir replay."
+        "1ª hora · Bloco 1 (20 min) — Contrato da fonte: a fronteira da extração, o perfil da origem, a semântica de atualização e os quatro tipos de origem com seus modos de falha.",
+        "1ª hora · Bloco 2 (25 min) — Estratégias: full load, incremental por marca d'água e captura pelo log, as três formas de divergência do incremental e a idempotência como condição do replay.",
+        "1ª hora · Bloco 3 (15 min) — APIs, arquivos e operação: paginação, recuo exponencial, chegada atômica, schema drift, tabela de controle e procedimento de replay.",
+        "2ª hora · Card de trabalho (60 min) — Em grupo: origem no ar e carregada (10 min), full load de referência (10 min), incremental por marca d'água (15 min), mutações e medição da divergência (15 min), reconciliação, replay e conclusão escrita (10 min)."
       ],
       "resultados": [
         "Levantar o contrato de uma fonte antes de escrever qualquer extração.",
-        "Escolher entre full load, incremental por timestamp e CDC pela semântica de atualização.",
+        "Escolher entre full load, incremental por carimbo e captura pelo log pela semântica de atualização da origem.",
+        "Explicar as três formas de divergência do incremental e a defesa correspondente a cada uma.",
+        "Implementar marca d'água com janela, sobreposição e avanço condicionado à conclusão do lote.",
         "Garantir idempotência e replay de qualquer janela dentro do período de retenção.",
-        "Registrar operação suficiente para auditar e reprocessar sem intervenção manual."
+        "Medir, em número, o que uma estratégia deixa de capturar e o efeito disso sobre a receita apurada."
       ]
     },
     "module-11-eng-software#13": {
       "titulo": "Transformação e Carga",
       "data": "2026-09-10",
       "docente": "Afonso",
-      "objetivo": "Construir uma transformação determinística e uma carga confiável para camadas analíticas, com qualidade e rastreabilidade.",
-      "estrategia": "Exposição por blocos, cada um encerrado por checklist de aplicação, seguida de laboratório com entrega: Pipeline ETL/ELT documentado com modelo de entrada e saída, testes de qualidade que falham antes da implementação, estratégia de carga e runbook de reprocessamento.",
+      "objetivo": "Escrever uma transformação determinística, especificar testes de qualidade que falham antes de a transformação existir e escolher a estratégia de carga coerente com a política de histórico da tabela, provando a repetibilidade por soma de receita idêntica entre execuções.",
+      "estrategia": "Primeira hora de exposição dialogada em três blocos, cada um encerrado por checklist de aplicação e erro comum. Segunda hora de atividade em grupo: sobre a bronze construída na Aula 12, os estudantes escrevem cinco testes de qualidade e os veem falhar, constroem a silver conformada com rejeitados separados por motivo, montam a gold medindo a contagem antes e depois de cada junção e provam que duas execuções da carga produzem a mesma soma de receita.",
       "agenda": [
-        "ETL ou ELT — ETL transforma antes do destino; ELT preserva o bruto e usa o warehouse para transformar. Escolha por custo, segurança, governança e capacidade computacional.",
-        "Determinismo — A mesma entrada e os mesmos parâmetros devem gerar a mesma saída. Fixe timezone, arredondamento, regras de nulos, joins e versão do código.",
-        "Qualidade — Teste schema, not null, unicidade, relacionamento, accepted values, freshness, volume e reconciliação com a origem.",
-        "Deduplicação — Defina a chave do evento, a ordenação de chegada e a regra para escolher o registro vencedor. Não use DISTINCT como estratégia de negócio.",
-        "Carga incremental — Compare append, overwrite, merge/upsert e snapshot. Escolha conforme histórico, janela de correção e necessidade de atomicidade.",
-        "Orquestração — Modele dependências, retries, backfill, parâmetros, alertas, SLA, lineage e promoção entre ambientes."
+        "1ª hora · Bloco 1 (18 min) — ETL e ELT pela possibilidade de recálculo, determinismo e as quatro decisões técnicas que alteram o número apresentado ao negócio.",
+        "1ª hora · Bloco 2 (24 min) — Qualidade: o teste que falha antes de existir, deduplicação por regra declarada e reconciliação com a origem por contagem e por soma.",
+        "1ª hora · Bloco 3 (18 min) — Carga e orquestração: append, overwrite, merge e snapshot, política de histórico da dimensão, atomicidade e dependência declarada.",
+        "2ª hora · Card de trabalho (60 min) — Em grupo: testes escritos e falhando (10 min), silver conformada (15 min), gold com junções medidas (15 min), carga incremental parametrizada (10 min), reconciliação e conclusão escrita (10 min)."
       ],
       "resultados": [
-        "Decidir entre ETL e ELT a partir de custo, governança e capacidade computacional.",
-        "Escrever transformação determinística e explicar o que a torna reproduzível.",
+        "Decidir entre ETL e ELT pela necessidade futura de recalcular o passado sob outra regra.",
+        "Escrever transformação determinística e identificar as construções que quebram essa propriedade.",
+        "Reconhecer as quatro decisões técnicas que alteram o número apresentado ao negócio.",
         "Especificar testes de qualidade que falham antes de a transformação existir.",
-        "Escolher a estratégia de carga coerente com a política de histórico da dimensão."
+        "Escolher entre append, overwrite, merge e snapshot pela política de histórico da dimensão.",
+        "Provar a repetibilidade da carga por soma de receita idêntica entre duas execuções."
       ]
     },
     "module-11-eng-software#15": {
       "titulo": "Métricas e Telemetria em ETLs",
       "data": "2026-09-21",
       "docente": "Afonso",
-      "objetivo": "Definir observabilidade para ETL com métricas de serviço, qualidade de dados, logs estruturados, lineage e alertas acionáveis.",
-      "estrategia": "Exposição por blocos, cada um encerrado por checklist de aplicação, seguida de laboratório com entrega: Painel e runbook de observabilidade com indicadores, SLOs, alertas, severidades, donos e procedimento de recuperação.",
+      "objetivo": "Definir indicadores de atualidade, completude, qualidade e custo para um pipeline, declarar objetivos de nível de serviço justificados pelo efeito no consumidor e construir uma verificação de anomalia capaz de detectar carga incompleta que conclui sem erro.",
+      "estrategia": "Primeira hora de exposição dialogada em três blocos, cada um encerrado por checklist de aplicação e erro comum. Segunda hora de atividade em grupo: os estudantes convertem a tabela de controle das Aulas 12 e 13 em série de execuções, calculam os quatro indicadores, declaram um objetivo por indicador com justificativa e detectam uma anomalia injetada pelo professor, medindo também quantos alertas falsos o limite escolhido produziria.",
       "agenda": [
-        "O que observar — Pergunte o que aconteceu, por que aconteceu e qual impacto gerou. Métricas mostram estado; logs explicam eventos; traces mostram caminho.",
-        "SLI e SLO — Defina freshness, disponibilidade, latência, completude e sucesso de execução. Um SLO precisa de janela, alvo e consequência operacional.",
-        "Qualidade do dado — Volume esperado, distribuição, nulos, duplicidade, valores inválidos, reconciliação e drift devem ser medidos por dataset e domínio.",
-        "Telemetria e lineage — Inclua run_id, batch_id, source, model, partition, rows_in, rows_out, rejected, duration, watermark e código de erro.",
-        "Alertas acionáveis — Um alerta deve apontar condição, impacto, owner, dashboard e primeira ação. Evite alertar toda anomalia sem severidade ou runbook.",
-        "Incidentes — Faça triagem, contenção, comunicação, replay seguro, validação do dado corrigido e postmortem com ação preventiva."
+        "1ª hora · Bloco 1 (20 min) — O que medir: atualidade, completude, qualidade e custo, e a distinção entre métrica técnica e métrica de negócio.",
+        "1ª hora · Bloco 2 (22 min) — Instrumentação: métrica, registro de execução e linhagem; indicador, objetivo e orçamento de erro; cardinalidade e retenção da própria telemetria.",
+        "1ª hora · Bloco 3 (18 min) — Alerta e diagnóstico: detecção de anomalia por referência móvel, alerta por sintoma em vez de causa e procedimento associado a cada alerta.",
+        "2ª hora · Card de trabalho (60 min) — Em grupo: série de execuções (10 min), quatro indicadores (15 min), objetivos declarados e justificados (10 min), anomalia injetada e detecção (15 min), alerta e conclusão escrita (10 min)."
       ],
       "resultados": [
-        "Distinguir métrica, log e trace pelo tipo de pergunta que cada um responde.",
-        "Definir SLI e SLO com janela, alvo e consequência operacional.",
-        "Medir qualidade do dado por dataset, e não apenas o sucesso da execução.",
-        "Conduzir um incidente da triagem ao postmortem com ação preventiva e dono."
+        "Medir o pipeline pelas quatro dimensões, e não apenas pela conclusão da tarefa.",
+        "Distinguir métrica técnica, que indica a causa, de métrica de negócio, que indica a gravidade.",
+        "Declarar indicador, objetivo e orçamento de erro com justificativa negociada com quem consome.",
+        "Detectar anomalia por referência móvel que absorve a sazonalidade semanal.",
+        "Formular alerta por sintoma observável, com procedimento e destinatário declarados."
       ]
     },
     "module-11-eng-software#16": {
       "titulo": "Integração do Datawarehouse com a Interface Analítica",
       "data": "2026-09-23",
       "docente": "Afonso",
-      "objetivo": "Projetar a camada de consumo analítico com modelo semântico, métricas governadas, APIs/BI, segurança e desempenho.",
-      "estrategia": "Exposição por blocos, cada um encerrado por checklist de aplicação, seguida de laboratório com entrega: Pacote final de integração: modelo semântico, contrato de consumo, painel ou API, controles de acesso, SLO e evidências de teste.",
+      "objetivo": "Projetar a camada de consumo analítico a partir da decisão que ela sustenta, definir a métrica uma única vez em camada semântica versionada, publicar contrato de consumo com política de compatibilidade, aplicar controle de acesso por linha verificável por asserção e medir a latência percebida nas formas de servir disponíveis.",
+      "estrategia": "Primeira hora de exposição dialogada em três blocos, cada um encerrado por checklist de aplicação e erro comum. Segunda hora de atividade em grupo: sobre a gold construída nas aulas anteriores, os estudantes reproduzem três definições divergentes da mesma receita, unificam-nas em camada semântica com responsável e vigência declarados, publicam o contrato de consumo, implementam acesso por linha com nove asserções — cinco delas de negação — e medem a latência p95 da mesma pergunta servida por consulta direta e por tabela pré-agregada.",
       "agenda": [
-        "Quem consome e decide — Mapeie pergunta, usuário, frequência, ação e tolerância de atraso. Um dashboard sem decisão associada vira estoque de gráficos.",
-        "Camada semântica — Centralize definição de métricas, dimensões, filtros, timezone, granularidade e owner. Evite que cada relatório calcule receita de um jeito.",
-        "APIs e dashboards — Escolha consulta direta, tabela agregada, API, exportação ou cache conforme latência, volume, segurança e autonomia do consumidor.",
-        "Contrato de consumo — Defina schema, versionamento, paginação, erros, freshness, limites e compatibilidade para APIs e datasets publicados.",
-        "Segurança testável — Aplique identidade, RBAC/ABAC, row-level security, mascaramento, auditoria e segregação de ambientes. Segurança precisa ser testável.",
-        "Desempenho do consumo — Use pré-agregação, cache, pruning, limites de consulta e observabilidade de consumo. Meça p95, custo e taxa de erro."
+        "1ª hora · Bloco 1 (20 min) — Quem consome e decide, o teste da decisão associada a cada indicador, a divergência de definição entre equipes e a camada semântica como definição única.",
+        "1ª hora · Bloco 2 (22 min) — Serviço e contrato: consulta direta, tabela agregada, API e exportação; cláusulas do contrato de consumo e o que exige nova versão.",
+        "1ª hora · Bloco 3 (18 min) — Segurança e desempenho: acesso por linha testável por asserção, mascaramento e auditoria; pré-agregação, poda e latência medida em percentil.",
+        "2ª hora · Card de trabalho (60 min) — Em grupo: divergência reproduzida (10 min), camada semântica publicada (15 min), contrato declarado (10 min), segurança por linha com nove asserções (15 min), latência medida nas duas formas e conclusão escrita (10 min)."
       ],
       "resultados": [
-        "Partir da decisão do usuário para desenhar a camada de consumo.",
-        "Centralizar a definição de métrica e evitar divergência entre relatórios.",
-        "Especificar contrato de consumo com versionamento e política de compatibilidade.",
-        "Tornar segurança e desempenho verificáveis por cenário de teste."
+        "Projetar a interface a partir da decisão que ela sustenta, e não do dado disponível.",
+        "Diagnosticar a divergência de definição entre equipes e resolvê-la por definição única.",
+        "Publicar a métrica em camada semântica com fórmula, granularidade, fuso, responsável e versão.",
+        "Declarar contrato de consumo com política de compatibilidade entre versões.",
+        "Implementar acesso por linha e verificá-lo por asserção, inclusive as de negação.",
+        "Medir a latência percebida em percentil e comparar as formas de servir."
       ]
     },
     "module-11-eng-software#5": {

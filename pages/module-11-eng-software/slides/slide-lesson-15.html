@@ -3,47 +3,668 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Módulo 11 — Aula 15 — Inteli</title>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <title>Aula 15 - Métricas e Telemetria em ETLs - Inteli</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📈</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="../../../css/inteli-styles.css" rel="stylesheet">
-  <link href="../lesson-content.css" rel="stylesheet">
+  <link href="deck-base.css" rel="stylesheet">
+  <link href="slide-lesson-15.css" rel="stylesheet">
 
 <!-- encontro:css:start -->
 <link rel="stylesheet" href="../../../css/encontro.css">
 <!-- encontro:css:end -->
 </head>
-<body data-lesson="15" class="lesson-deck">
-  <main id="lesson-slides" class="lesson-slides"></main>
-  <footer class="lesson-footer">
-    <a href="../../home-module-11-eng-software.html">🏠 Módulo 11</a>
-    <button id="prev">← Anterior</button>
-    <span id="counter" class="lesson-counter">1 / 1</span>
-    <button id="next">Próximo →</button>
-    <a href="../materials/lesson-15-material.html">📖 Material</a>
+<body>
+  <div class="slide-container">
+    <!-- Slide 1: Capa -->
+    <section class="slide cover active">
+      <div class="sc cover-layout">
+        <div>
+          <span class="cover-badge rise">Módulo 11 · Engenharia de Software · Aula 15</span>
+          <h1 class="cover-title rise" style="--delay:.07s">Métricas e Telemetria<br><span>em ETLs</span></h1>
+          <p class="cover-subtitle rise" style="--delay:.13s">Instrumentar o pipeline para que o defeito seja descoberto pela equipe de dados antes de ser descoberto pelo negócio, com indicadores, objetivos declarados e detecção de anomalia sobre a própria série de execuções.</p>
+          <div class="cover-tags">
+            <span class="cover-tag rise" style="--delay:.19s">Atualidade</span>
+            <span class="cover-tag rise" style="--delay:.22s">Volume</span>
+            <span class="cover-tag rise" style="--delay:.25s">SLI e SLO</span>
+            <span class="cover-tag rise" style="--delay:.28s">Anomalia</span>
+          </div>
+          <p class="cover-meta rise" style="--delay:.32s">Computação 1 · Prof. Afonso Brandão · 21/09/2026</p>
+        </div>
+        <div class="cover-stack">
+          <div class="stack-layer rise" style="--delay:.16s"><div><strong>Execução</strong><small>Duração, volume, status, erro</small></div><em>evento</em></div>
+          <div class="stack-layer rise" style="--delay:.21s"><div><strong>Indicador</strong><small>Atualidade, completude, qualidade, custo</small></div><em>medida</em></div>
+          <div class="stack-layer rise" style="--delay:.26s"><div><strong>Objetivo</strong><small>Limite declarado e orçamento de erro</small></div><em>contrato</em></div>
+          <div class="stack-layer top rise" style="--delay:.31s"><div><strong>Alerta</strong><small>Sintoma percebido pelo consumidor</small></div><em>ação</em></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 2: Continuidade -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head dark rise">
+          <p class="eyebrow">Continuidade · das Aulas 12 e 13 para a Aula 15</p>
+          <h2 class="slide-title">O pipeline funciona, e agora precisa dizer quando parou de funcionar</h2>
+          <p class="slide-subtitle">A extração e a transformação foram construídas com testes e replay. Esta aula trata de como a equipe descobre o defeito antes que o número errado chegue à reunião de fechamento.</p>
+        </header>
+        <div class="continuity">
+          <div class="continuity-step rise" style="--delay:.05s"><small>Aula 10</small><strong>Armazenamento</strong></div>
+          <div class="continuity-step rise" style="--delay:.09s"><small>Aula 12</small><strong>Coleta e extração</strong></div>
+          <div class="continuity-step rise" style="--delay:.13s"><small>Aula 13</small><strong>Transformação e carga</strong></div>
+          <div class="continuity-step focus rise" style="--delay:.17s"><small>Aula 15</small><strong>Métricas e telemetria</strong></div>
+          <div class="continuity-step rise" style="--delay:.21s"><small>Aula 16</small><strong>Interface analítica</strong></div>
+        </div>
+        <div class="callout dark rise" style="--delay:.25s">O pipeline que falha de forma visível é operacionalmente melhor que o pipeline que entrega número incorreto em silêncio. A falha ruidosa interrompe a carga; a incorreta silenciosa alimenta a decisão.</div>
+      </div>
+    </section>
+
+    <!-- Slide 3: Roteiro -->
+    <section class="slide slide-agenda">
+      <div class="sc">
+        <header class="slide-head red rise">
+          <p class="eyebrow">Roteiro · 120 minutos · uma hora de exposição, uma hora de prática</p>
+          <h2 class="slide-title">A primeira hora estabelece o critério, e a segunda instrumenta o pipeline em sala</h2>
+          <p class="slide-subtitle">A segunda hora é atividade em grupo: transformar a tabela de controle em painel de telemetria, declarar objetivos e detectar uma anomalia injetada.</p>
+        </header>
+        <div class="time-grid">
+          <article class="card time-card rise" style="--delay:.05s"><span class="card-label">1ª hora · Bloco 01</span><div class="minutes">20 <span>min</span></div><div><h3>O que medir</h3><p>As quatro dimensões do pipeline e a diferença entre métrica técnica e de negócio.</p></div></article>
+          <article class="card amber time-card rise" style="--delay:.12s"><span class="card-label">1ª hora · Bloco 02</span><div class="minutes">22 <span>min</span></div><div><h3>Instrumentação</h3><p>Métrica, log e linhagem; indicador, objetivo e orçamento de erro.</p></div></article>
+          <article class="card blue time-card rise" style="--delay:.19s"><span class="card-label">1ª hora · Bloco 03</span><div class="minutes">18 <span>min</span></div><div><h3>Alerta e diagnóstico</h3><p>Alertar por sintoma, detectar anomalia e conduzir o diagnóstico pelo grafo.</p></div></article>
+          <article class="card green time-card rise" style="--delay:.26s"><span class="card-label">2ª hora · Atividade</span><div class="minutes">60 <span>min</span></div><div><h3>Card de trabalho</h3><p>Painel de telemetria e detecção de uma anomalia injetada pelo professor.</p></div></article>
+        </div>
+        <div class="callout dark rise" style="--delay:.32s;margin-top:12px"><strong>Objetivo:</strong> definir indicadores e objetivos de nível de serviço para um pipeline, e provar a escolha detectando uma falha silenciosa antes que ela altere o relatório.</div>
+      </div>
+    </section>
+
+    <!-- Slide 4: O que medir -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head dark rise">
+          <p class="eyebrow">Bloco 1 · O que medir</p>
+          <h2 class="slide-title">Quatro dimensões respondem se o dado publicado merece confiança</h2>
+          <p class="slide-subtitle">A execução bem-sucedida informa apenas que o processo terminou. As quatro dimensões informam se o resultado é utilizável.</p>
+        </header>
+        <div class="kpi-grid">
+          <article class="kpi rise" style="--delay:.05s">
+            <span class="kpi-name">Atualidade</span>
+            <span class="kpi-value">2,4 <small>h</small></span>
+            <p>Distância entre o instante do fato na origem e o instante em que ele fica consultável no destino.</p>
+          </article>
+          <article class="kpi green rise" style="--delay:.1s">
+            <span class="kpi-name">Completude</span>
+            <span class="kpi-value">99,7 <small>%</small></span>
+            <p>Proporção do que a origem tem e o destino recebeu, medida por reconciliação de contagem e de soma.</p>
+          </article>
+          <article class="kpi blue rise" style="--delay:.15s">
+            <span class="kpi-name">Qualidade</span>
+            <span class="kpi-value">0,08 <small>%</small></span>
+            <p>Taxa de registros rejeitados pelos testes, com o motivo classificado e a série acompanhada ao longo do tempo.</p>
+          </article>
+          <article class="kpi violet rise" style="--delay:.2s">
+            <span class="kpi-name">Custo</span>
+            <span class="kpi-value">R$ 41 <small>/carga</small></span>
+            <p>Bytes varridos e tempo de processamento por execução, atribuídos ao domínio responsável.</p>
+          </article>
+        </div>
+        <div class="observe-box rise" style="--delay:.26s;margin-top:14px"><strong>A dimensão que costuma faltar:</strong> a atualidade. O painel que mostra o número correto de ontem, sem indicar que ele é de ontem, produz decisão errada com dado tecnicamente íntegro.</div>
+        <div class="pitfall rise" style="--delay:.3s">Monitorar apenas a conclusão da tarefa. A execução termina com status de sucesso quando processa um arquivo vazio, e o painel passa a exibir zero como se fosse o resultado do dia.</div>
+      </div>
+    </section>
+
+    <!-- Slide 5: Métrica técnica e de negócio -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head amber rise">
+          <p class="eyebrow">Bloco 1 · Dois públicos</p>
+          <h2 class="slide-title">A métrica técnica indica a causa, e a métrica de negócio indica a gravidade</h2>
+          <p class="slide-subtitle">As duas são necessárias, e servem a decisões distintas. Confundi-las produz alerta que ninguém sabe priorizar.</p>
+        </header>
+        <table class="data-table rise" style="--delay:.05s">
+          <thead>
+            <tr><th style="width:22%">Pergunta</th><th style="width:26%">Métrica técnica</th><th style="width:26%">Métrica de negócio</th><th style="width:26%">Quem age</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>O dado está atual?</strong></td><td>Atraso da marca d'água em horas</td><td>Data do último pedido visível no painel</td><td>Engenharia decide reprocessar</td></tr>
+            <tr><td><strong>Está completo?</strong></td><td>Linhas carregadas por execução</td><td>Receita do dia contra a média das quatro semanas</td><td>Negócio decide se apresenta</td></tr>
+            <tr><td><strong>Está correto?</strong></td><td>Registros rejeitados por motivo</td><td>Pedidos sem categoria atribuída</td><td>Governança decide a regra</td></tr>
+            <tr><td><strong>Está caro?</strong></td><td>Bytes varridos por execução</td><td>Custo por relatório publicado</td><td>Produto decide a frequência</td></tr>
+          </tbody>
+        </table>
+        <div class="callout rise" style="--delay:.14s;margin-top:12px">O alerta que chega ao negócio precisa ser formulado na coluna do negócio. A queda de 30% na receita do dia mobiliza; a variação do volume de linhas em uma tarefa, isoladamente, não é acionável por quem decide.</div>
+      </div>
+    </section>
+
+    <!-- Slide 6: Três sinais -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head blue rise">
+          <p class="eyebrow">Bloco 2 · Instrumentação</p>
+          <h2 class="slide-title">Três sinais respondem a perguntas diferentes sobre a mesma execução</h2>
+          <p class="slide-subtitle">Coletar os três custa espaço e disciplina. Coletar apenas um deles reduz o diagnóstico a suposição.</p>
+        </header>
+        <div class="signal-grid">
+          <article class="signal metrica rise" style="--delay:.05s">
+            <h3>Métrica</h3>
+            <p class="answers">quanto, e como variou</p>
+            <p>Valor numérico agregado por janela: duração, linhas, bytes, rejeitados. Barata de guardar e adequada para série histórica, alerta e comparação com o comportamento habitual.</p>
+            <p class="cost">Limite: não explica por que o valor mudou.</p>
+          </article>
+          <article class="signal log rise" style="--delay:.12s">
+            <h3>Registro de execução</h3>
+            <p class="answers">o que aconteceu, em que ordem</p>
+            <p>Evento datado com contexto: lote, parâmetros, erro, quantidade rejeitada e onde os rejeitados foram gravados. É a tabela de controle da Aula 12, agora consultada como série.</p>
+            <p class="cost">Limite: cresce rápido e exige política de retenção.</p>
+          </article>
+          <article class="signal linhagem rise" style="--delay:.19s">
+            <h3>Linhagem</h3>
+            <p class="answers">o que mais foi afetado</p>
+            <p>Grafo de dependência entre tabelas e cargas. Responde quais painéis consomem a tabela defeituosa e quais precisam ser reprocessados depois da correção.</p>
+            <p class="cost">Limite: só é confiável quando gerada, e não mantida à mão.</p>
+          </article>
+        </div>
+        <div class="observe-box rise" style="--delay:.25s">A métrica dispara o alerta, o registro de execução localiza a causa e a linhagem determina o alcance. O incidente sem linhagem termina com a pergunta que ninguém sabe responder: quais relatórios usaram esse dado?</div>
+      </div>
+    </section>
+
+    <!-- Slide 7: SLI, SLO e orçamento de erro -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head green rise">
+          <p class="eyebrow">Bloco 2 · Objetivo declarado</p>
+          <h2 class="slide-title">O indicador vira compromisso quando ganha um limite e uma consequência</h2>
+          <p class="slide-subtitle">Sem limite declarado, toda variação é discutível e nenhuma é acionável.</p>
+        </header>
+        <div class="g3">
+          <article class="card blue rise" style="--delay:.05s">
+            <span class="card-label">Indicador · SLI</span>
+            <h3>O que se mede</h3>
+            <p>Proporção de cargas diárias concluídas com atraso da marca d'água inferior a três horas, medida sobre a tabela de execuções.</p>
+          </article>
+          <article class="card amber rise" style="--delay:.11s">
+            <span class="card-label">Objetivo · SLO</span>
+            <h3>O limite aceito</h3>
+            <p>Ao menos 98% das cargas do mês dentro do limite. O número é acordado com quem consome, e não definido apenas pela engenharia.</p>
+          </article>
+          <article class="card rise" style="--delay:.17s">
+            <span class="card-label">Orçamento de erro</span>
+            <h3>A consequência</h3>
+            <p>Os 2% restantes são a margem disponível. Consumida a margem, a prioridade passa da entrega de novas fontes para a estabilização do que existe.</p>
+          </article>
+        </div>
+        <div class="g2" style="margin-top:12px">
+          <div class="callout green rise" style="--delay:.23s">O objetivo bem escolhido tem um número que alguém sente falta quando não é cumprido. Se ninguém reclama ao ser descumprido, o indicador não mede o que importa.</div>
+          <div class="callout dark rise" style="--delay:.27s">Objetivo de 100% é declaração de que nenhuma falha é aceitável, e o custo de sustentá-lo cresce sem limite. O orçamento de erro existe para tornar essa escolha explícita.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 8: Cardinalidade e custo da telemetria -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head dark rise">
+          <p class="eyebrow">Bloco 2 · Custo da própria telemetria</p>
+          <h2 class="slide-title">A telemetria é um pipeline, e está sujeita às mesmas restrições</h2>
+          <p class="slide-subtitle">Retomada da cardinalidade discutida na Aula 10, agora aplicada aos rótulos das métricas.</p>
+        </header>
+        <div class="g2">
+          <div class="code-block rise" style="--delay:.05s"><span class="code-comment">-- rótulo de cardinalidade controlada: agregável</span>
+metrica: linhas_carregadas
+rotulos: {tabela, camada, status}
+<span class="code-comment">-- dezenas de séries distintas</span>
+
+<span class="code-comment">-- rótulo de alta cardinalidade: uma série por execução</span>
+metrica: linhas_carregadas
+rotulos: {tabela, camada, status, batch_id, order_id}
+<span class="code-comment">-- milhões de séries, e nenhuma delas comparável</span></div>
+          <div class="card-stack">
+            <article class="card rise" style="--delay:.1s">
+              <span class="card-label">Regra</span>
+              <h3>O rótulo serve para agrupar, e o registro para identificar</h3>
+              <p>Identificador único pertence ao registro de execução, e não ao rótulo da métrica. A métrica existe para comparar séries ao longo do tempo, o que exige que o mesmo rótulo se repita entre execuções.</p>
+            </article>
+            <article class="card violet rise" style="--delay:.16s">
+              <span class="card-label">Retenção</span>
+              <h3>Granularidade decrescente com a idade</h3>
+              <p>Detalhe por execução nos últimos dias, agregação horária nas semanas seguintes e diária no histórico longo. É a política de ciclo de vida da Aula 10 aplicada à própria observabilidade.</p>
+            </article>
+          </div>
+        </div>
+        <div class="pitfall rise" style="--delay:.24s">Instrumentar sem política de retenção. O acervo de telemetria supera o do dado analisado, e o custo de observar passa a competir com o custo de produzir.</div>
+      </div>
+    </section>
+
+    <!-- Slide 9: Detecção de anomalia -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head amber rise">
+          <p class="eyebrow">Bloco 3 · Anomalia</p>
+          <h2 class="slide-title">A comparação com o comportamento habitual detecta o que o limite fixo não alcança</h2>
+          <p class="slide-subtitle">O volume diário varia por sazonalidade. O limite fixo produz alerta falso na segunda-feira e silêncio no dia em que metade dos registros não chega.</p>
+        </header>
+        <div class="spark rise" style="--delay:.05s">
+          <i class="ok" style="height:52%"></i><i class="ok" style="height:58%"></i><i class="ok" style="height:61%"></i>
+          <i class="ok" style="height:55%"></i><i class="ok" style="height:48%"></i><i class="base" style="height:24%"></i>
+          <i class="base" style="height:21%"></i><i class="ok" style="height:57%"></i><i class="ok" style="height:63%"></i>
+          <i class="ok" style="height:60%"></i><i class="ok" style="height:56%"></i><i class="ok" style="height:51%"></i>
+          <i class="base" style="height:23%"></i><i class="alerta" style="height:28%"></i>
+        </div>
+        <div class="spark-caption rise" style="--delay:.08s"><span>duas semanas de cargas diárias · linhas carregadas</span><span>cinza: fim de semana · vermelho: anomalia detectada</span></div>
+        <div class="g2" style="margin-top:12px">
+          <article class="card amber rise" style="--delay:.13s">
+            <span class="card-label">Referência móvel</span>
+            <h3>Compare com o mesmo dia da semana</h3>
+            <p>A média das últimas quatro ocorrências do mesmo dia da semana absorve a sazonalidade semanal. O desvio relevante é o que ultrapassa a variação habitual dessa série, e não um percentual fixo.</p>
+          </article>
+          <article class="card rise" style="--delay:.19s">
+            <span class="card-label">Assimetria</span>
+            <h3>Queda e alta têm gravidades distintas</h3>
+            <p>A queda de volume costuma indicar carga incompleta, e a alta costuma indicar duplicação. As duas merecem alerta, com limites e destinatários próprios.</p>
+          </article>
+        </div>
+        <div class="pitfall rise" style="--delay:.25s">Alertar por variação percentual fixa sobre o dia anterior. A segunda-feira dispara alerta toda semana, o time aprende a ignorá-lo e o alerta real chega junto com os falsos.</div>
+      </div>
+    </section>
+
+    <!-- Slide 10: Alerta acionável -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head red rise">
+          <p class="eyebrow">Bloco 3 · Alerta</p>
+          <h2 class="slide-title">O alerta se justifica pelo sintoma que alguém percebe, e não pela causa técnica</h2>
+          <p class="slide-subtitle">Alertar por causa produz um alerta por modo de falha conhecido, e nenhum para o modo ainda desconhecido.</p>
+        </header>
+        <table class="data-table rise" style="--delay:.05s">
+          <thead>
+            <tr><th style="width:26%">Alerta por causa</th><th style="width:30%">Alerta por sintoma</th><th style="width:44%">Por que o segundo é preferível</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>A tarefa de extração falhou</td><td>Os pedidos estão desatualizados há mais de três horas</td><td>Cobre também a tarefa que concluiu com sucesso sem trazer dado</td></tr>
+            <tr><td>A conexão com a origem expirou</td><td>A completude do dia está abaixo de 99%</td><td>Cobre perda parcial, que a falha de conexão não produz</td></tr>
+            <tr><td>O teste de unicidade reprovou</td><td>A receita do dia diverge da origem acima da tolerância</td><td>Traduz o defeito técnico no efeito que o negócio observa</td></tr>
+          </tbody>
+        </table>
+        <div class="g2" style="margin-top:12px">
+          <div class="callout rise" style="--delay:.12s">Todo alerta precisa de um procedimento correspondente: o que verificar, como corrigir e quem decide comunicar ao consumidor. Alerta sem procedimento vira ruído em duas semanas.</div>
+          <div class="callout dark rise" style="--delay:.16s">Alerta que não exige ação humana deve ser removido ou automatizado. O volume de alertas ignorados é, ele próprio, um indicador da saúde da operação.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 11: Card de trabalho -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head green rise">
+          <p class="eyebrow">Segunda hora · Card de trabalho em sala</p>
+          <h2 class="slide-title">Três perguntas sobre um pipeline que falha em sala</h2>
+          <p class="slide-subtitle">Em grupo, sobre a tabela de execuções das Aulas 12 e 13: instrumentar, declarar objetivos e detectar a anomalia.</p>
+        </header>
+        <div class="question-grid">
+          <article class="qcard rise" style="--delay:.05s">
+            <span class="qnum">1</span>
+            <h3>Quais são os quatro indicadores do pipeline?</h3>
+            <p>Calcule atualidade, completude, qualidade e custo sobre a série, com uma consulta por indicador.</p>
+          </article>
+          <article class="qcard q2 rise" style="--delay:.12s">
+            <span class="qnum">2</span>
+            <h3>Qual limite o grupo declara, e por quê?</h3>
+            <p>Defina um objetivo por indicador e justifique o número pelo efeito no consumidor.</p>
+          </article>
+          <article class="qcard q3 rise" style="--delay:.19s">
+            <span class="qnum">3</span>
+            <h3>Em quantas execuções a anomalia foi detectada?</h3>
+            <p>O professor injeta uma falha silenciosa. Meça quantas cargas passaram até o alerta disparar.</p>
+          </article>
+        </div>
+        <div class="clock-row rise" style="--delay:.25s">
+          <div class="clock"><strong>10<span>min</span></strong><small>Série de execuções</small></div>
+          <div class="clock"><strong>15<span>min</span></strong><small>Quatro indicadores</small></div>
+          <div class="clock"><strong>10<span>min</span></strong><small>Objetivos</small></div>
+          <div class="clock"><strong>15<span>min</span></strong><small>Anomalia injetada</small></div>
+          <div class="clock"><strong>10<span>min</span></strong><small>Alerta e conclusão</small></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 12: Série de execuções -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head blue rise">
+          <p class="eyebrow">Segunda hora · Preparação · 10 minutos</p>
+          <h2 class="slide-title">A tabela de controle vira série histórica de execuções</h2>
+          <p class="slide-subtitle">O laboratório reaproveita a tabela criada na Aula 12, agora com trinta dias de execuções simuladas para haver série sobre a qual medir.</p>
+        </header>
+        <div class="code-block rise" style="--delay:.05s"><span class="code-comment">-- gera 30 dias de execuções com variação semanal realista</span>
+<span class="code-keyword">CREATE OR REPLACE TABLE</span> ctl.execucao <span class="code-keyword">AS</span>
+<span class="code-keyword">SELECT</span>
+  uuid() <span class="code-keyword">AS</span> batch_id,
+  <span class="code-string">'pedido'</span> <span class="code-keyword">AS</span> tabela,
+  d <span class="code-keyword">AS</span> dia,
+  d + <span class="code-keyword">INTERVAL</span> <span class="code-number">2</span> <span class="code-keyword">HOUR</span> <span class="code-keyword">AS</span> concluido_em,
+  <span class="code-comment">-- fim de semana carrega menos, e o resto varia em torno da base</span>
+  <span class="code-keyword">CASE WHEN</span> dayofweek(d) <span class="code-keyword">IN</span> (<span class="code-number">0</span>,<span class="code-number">6</span>) <span class="code-keyword">THEN</span> <span class="code-number">1200</span> <span class="code-keyword">ELSE</span> <span class="code-number">3000</span> <span class="code-keyword">END</span>
+    + <span class="code-keyword">CAST</span>(random() * <span class="code-number">300</span> <span class="code-keyword">AS</span> <span class="code-keyword">INT</span>) <span class="code-keyword">AS</span> linhas_carregadas,
+  <span class="code-keyword">CAST</span>(random() * <span class="code-number">4</span> <span class="code-keyword">AS</span> <span class="code-keyword">INT</span>) <span class="code-keyword">AS</span> rejeitadas,
+  <span class="code-string">'concluido'</span> <span class="code-keyword">AS</span> status
+<span class="code-keyword">FROM</span> generate_series(<span class="code-keyword">DATE</span> <span class="code-string">'2026-08-22'</span>, <span class="code-keyword">DATE</span> <span class="code-string">'2026-09-20'</span>,
+                     <span class="code-keyword">INTERVAL</span> <span class="code-number">1</span> <span class="code-keyword">DAY</span>) t(d);</div>
+        <div class="observe-box rise" style="--delay:.12s"><strong>Verificação de partida:</strong> trinta linhas, com o volume dos sábados e domingos visivelmente abaixo dos dias úteis. A sazonalidade semanal precisa estar presente, porque é ela que torna o limite fixo inadequado.</div>
+      </div>
+    </section>
+
+    <!-- Slide 13: Os quatro indicadores -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head amber rise">
+          <p class="eyebrow">Segunda hora · Indicadores · 15 minutos</p>
+          <h2 class="slide-title">Uma consulta por indicador, sobre a mesma série</h2>
+          <p class="slide-subtitle">Cada grupo escreve as quatro e registra o valor obtido, que servirá de base para os objetivos do passo seguinte.</p>
+        </header>
+        <div class="code-block rise" style="--delay:.05s"><span class="code-comment">-- 1. atualidade: atraso entre o fim da janela e a conclusão da carga</span>
+<span class="code-keyword">SELECT</span> dia, date_diff(<span class="code-string">'minute'</span>, dia, concluido_em) / <span class="code-number">60.0</span> <span class="code-keyword">AS</span> atraso_h
+<span class="code-keyword">FROM</span> ctl.execucao <span class="code-keyword">ORDER BY</span> dia <span class="code-keyword">DESC</span>;
+
+<span class="code-comment">-- 2. completude: carregado contra a referência do mesmo dia da semana</span>
+<span class="code-keyword">SELECT</span> dia, linhas_carregadas,
+  avg(linhas_carregadas) <span class="code-keyword">OVER</span> (<span class="code-keyword">PARTITION BY</span> dayofweek(dia)
+    <span class="code-keyword">ORDER BY</span> dia <span class="code-keyword">ROWS BETWEEN</span> <span class="code-number">4</span> <span class="code-keyword">PRECEDING AND</span> <span class="code-number">1</span> <span class="code-keyword">PRECEDING</span>) <span class="code-keyword">AS</span> referencia
+<span class="code-keyword">FROM</span> ctl.execucao;
+
+<span class="code-comment">-- 3. qualidade: taxa de rejeição por execução</span>
+<span class="code-keyword">SELECT</span> dia, <span class="code-number">100.0</span> * rejeitadas / nullif(linhas_carregadas, <span class="code-number">0</span>) <span class="code-keyword">AS</span> pct_rejeicao
+<span class="code-keyword">FROM</span> ctl.execucao;
+
+<span class="code-comment">-- 4. custo: bytes varridos por carga, do metadado do Parquet</span>
+<span class="code-keyword">SELECT</span> sum(total_compressed_size) <span class="code-keyword">AS</span> bytes
+<span class="code-keyword">FROM</span> parquet_metadata(<span class="code-string">'s3://lakehouse/gold/fato_item_venda/**/*.parquet'</span>);</div>
+        <div class="observe-box rise" style="--delay:.13s"><strong>Atenção ao segundo:</strong> a referência exclui o dia corrente e usa apenas ocorrências anteriores do mesmo dia da semana. Incluir o próprio dia na média o torna incapaz de detectar a anomalia daquele dia.</div>
+      </div>
+    </section>
+
+    <!-- Slide 14: Objetivos declarados -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head green rise">
+          <p class="eyebrow">Segunda hora · Objetivos · 10 minutos</p>
+          <h2 class="slide-title">Cada grupo declara quatro limites e justifica cada número</h2>
+          <p class="slide-subtitle">A justificativa é a parte avaliada. O número sem justificativa não é objetivo de serviço, e sim palpite registrado.</p>
+        </header>
+        <table class="data-table rise" style="--delay:.05s">
+          <thead>
+            <tr><th style="width:20%">Indicador</th><th style="width:20%">Objetivo proposto</th><th style="width:34%">Justificativa exigida</th><th style="width:26%">Consequência do descumprimento</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Atualidade</strong></td><td>98% abaixo de 3 h</td><td>A que horas o consumidor abre o painel, e o que ele decide com ele</td><td>Aviso de defasagem exibido no painel</td></tr>
+            <tr><td><strong>Completude</strong></td><td>Desvio até 5% da referência</td><td>Qual variação já ocorreu por causa legítima nos últimos 30 dias</td><td>Publicação suspensa até a conferência</td></tr>
+            <tr><td><strong>Qualidade</strong></td><td>Rejeição até 0,1%</td><td>Quantos registros o negócio aceita perder sem alterar a decisão</td><td>Revisão da regra com a governança</td></tr>
+            <tr><td><strong>Custo</strong></td><td>Dentro do orçamento do domínio</td><td>Qual é o orçamento mensal e quantas cargas cabem nele</td><td>Redução da frequência de carga</td></tr>
+          </tbody>
+        </table>
+        <div class="callout rise" style="--delay:.14s;margin-top:12px">O teste da justificativa: se ninguém reclamaria ao ver o objetivo descumprido, o indicador não mede o que importa e precisa ser substituído.</div>
+      </div>
+    </section>
+
+    <!-- Slide 15: Anomalia injetada -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head red rise">
+          <p class="eyebrow">Segunda hora · Anomalia · 15 minutos</p>
+          <h2 class="slide-title">A falha injetada não produz erro, e a carga conclui com sucesso</h2>
+          <p class="slide-subtitle">Execute o bloco abaixo e observe quantas execuções passam até o alerta do grupo disparar.</p>
+        </header>
+        <div class="g2">
+          <div class="code-block rise" style="--delay:.05s"><span class="code-comment">-- a origem passa a entregar 40% a menos, sem erro algum</span>
+<span class="code-keyword">INSERT INTO</span> ctl.execucao <span class="code-keyword">VALUES</span>
+  (uuid(), <span class="code-string">'pedido'</span>, <span class="code-keyword">DATE</span> <span class="code-string">'2026-09-21'</span>,
+   <span class="code-keyword">TIMESTAMP</span> <span class="code-string">'2026-09-21 02:00'</span>, <span class="code-number">1780</span>, <span class="code-number">2</span>, <span class="code-string">'concluido'</span>);
+
+<span class="code-comment">-- a consulta de alerta do grupo precisa marcar esta linha</span>
+<span class="code-keyword">WITH</span> base <span class="code-keyword">AS</span> (
+  <span class="code-keyword">SELECT</span> dia, linhas_carregadas,
+    avg(linhas_carregadas) <span class="code-keyword">OVER</span> (<span class="code-keyword">PARTITION BY</span> dayofweek(dia)
+      <span class="code-keyword">ORDER BY</span> dia <span class="code-keyword">ROWS BETWEEN</span> <span class="code-number">4</span> <span class="code-keyword">PRECEDING AND</span> <span class="code-number">1</span> <span class="code-keyword">PRECEDING</span>) <span class="code-keyword">AS</span> ref
+  <span class="code-keyword">FROM</span> ctl.execucao)
+<span class="code-keyword">SELECT</span> dia, linhas_carregadas, <span class="code-keyword">CAST</span>(ref <span class="code-keyword">AS</span> <span class="code-keyword">INT</span>) <span class="code-keyword">AS</span> esperado,
+       round(<span class="code-number">100.0</span> * (linhas_carregadas - ref) / ref, <span class="code-number">1</span>) <span class="code-keyword">AS</span> desvio_pct
+<span class="code-keyword">FROM</span> base <span class="code-keyword">WHERE</span> abs(linhas_carregadas - ref) &gt; <span class="code-number">0.15</span> * ref;</div>
+          <div class="card-stack">
+            <article class="card rise" style="--delay:.1s">
+              <span class="card-label">O que observar</span>
+              <h3>O status permanece concluído</h3>
+              <p>Nenhum teste técnico reprova: a chave é única, os tipos estão corretos e não há nulo indevido. O único sinal disponível é a comparação com o comportamento habitual daquele dia da semana.</p>
+            </article>
+            <article class="card amber rise" style="--delay:.16s">
+              <span class="card-label">A medida do encontro</span>
+              <h3>Desvio próximo de 40% abaixo da referência</h3>
+              <p>Um limite de 15% detecta na primeira execução. Um limite de 50% deixa passar, e a divergência entra no relatório do dia sem nenhum registro de que algo ocorreu.</p>
+            </article>
+          </div>
+        </div>
+        <div class="observe-box rise" style="--delay:.24s">Registre também o caso oposto: com limite de 5%, quantos alertas falsos as trinta execuções anteriores teriam gerado? A resposta é o custo de sensibilidade excessiva.</div>
+      </div>
+    </section>
+
+    <!-- Slide 16: Conferência -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head dark rise">
+          <p class="eyebrow">Segunda hora · Conferência</p>
+          <h2 class="slide-title">Os valores de referência para conferir a telemetria</h2>
+          <p class="slide-subtitle">Números esperados em cada etapa, sobre a série de trinta execuções gerada no início do laboratório.</p>
+        </header>
+        <table class="data-table rise" style="--delay:.05s">
+          <thead>
+            <tr><th style="width:26%">Etapa</th><th style="width:34%">O que verificar</th><th style="width:40%">Referência</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Série gerada</strong></td><td>Contagem e variação semanal</td><td>30 execuções, com fins de semana perto de 1 200 linhas</td></tr>
+            <tr><td><strong>Atualidade</strong></td><td>Atraso mediano da carga</td><td>Aproximadamente 2 horas em toda a série</td></tr>
+            <tr><td><strong>Referência móvel</strong></td><td>Média das quatro ocorrências anteriores</td><td>Próxima de 3 150 em dia útil e de 1 350 no fim de semana</td></tr>
+            <tr><td><strong>Anomalia</strong></td><td>Desvio da execução injetada</td><td>Cerca de 40% abaixo da referência do mesmo dia da semana</td></tr>
+            <tr><td><strong>Limite de 15%</strong></td><td>Execuções marcadas na série inteira</td><td>Somente a injetada, sem alertas falsos</td></tr>
+            <tr><td><strong>Limite de 5%</strong></td><td>Execuções marcadas na série inteira</td><td>Várias, o que demonstra o custo da sensibilidade excessiva</td></tr>
+          </tbody>
+        </table>
+        <div class="callout rise" style="--delay:.14s;margin-top:12px">Os valores variam entre grupos porque a série é gerada com componente aleatório. O que se confere é a ordem de grandeza e a relação entre os limites, e não a igualdade dos números.</div>
+      </div>
+    </section>
+
+    <!-- Slide 17: Uso de IA -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head blue rise">
+          <p class="eyebrow">Segunda hora · Uso de IA · em paralelo</p>
+          <h2 class="slide-title">A IA escreve a consulta de alerta, e o grupo responde pelo limite</h2>
+          <p class="slide-subtitle">A escolha do limite é decisão de produto, e o assistente não dispõe do contexto de consumo necessário para tomá-la.</p>
+        </header>
+        <div class="g3">
+          <article class="card blue rise" style="--delay:.05s">
+            <span class="card-label">Prompt 1 · Indicadores</span>
+            <h3>Traduzir dimensão em consulta</h3>
+            <p>"A partir deste schema da tabela de execuções, escreva uma consulta por dimensão: atualidade, completude, qualidade e custo, cada uma devolvendo série diária."</p>
+          </article>
+          <article class="card rise" style="--delay:.12s">
+            <span class="card-label">Prompt 2 · Referência</span>
+            <h3>Absorver a sazonalidade</h3>
+            <p>"Escreva a referência móvel por dia da semana, excluindo o dia corrente da média, e explique por que a inclusão do próprio dia impediria a detecção."</p>
+          </article>
+          <article class="card green rise" style="--delay:.19s">
+            <span class="card-label">Prompt 3 · Crítica</span>
+            <h3>Procurar o alerta que não dispara</h3>
+            <p>"Aponte quais modos de falha desta carga não seriam detectados por nenhum destes alertas, e o que precisaria ser medido para cobri-los."</p>
+          </article>
+        </div>
+        <div class="checklist" style="margin-top:12px">
+          <div class="check-item rise" style="--delay:.24s"><span>✓</span><p>Confirme que a janela da média exclui a execução em avaliação.</p></div>
+          <div class="check-item rise" style="--delay:.27s"><span>✓</span><p>Execute o alerta contra a série inteira e conte os falsos positivos antes de adotá-lo.</p></div>
+          <div class="check-item rise" style="--delay:.3s"><span>✓</span><p>Registre o prompt junto da consulta, uma vez que ele integra o registro da decisão.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 18: Ponte com a Aula 1 -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head dark rise">
+          <p class="eyebrow">Ponte com a Aula 1 · Spec-Driven Development</p>
+          <h2 class="slide-title">Do tema à especificação executável</h2>
+          <p class="slide-subtitle">A decisão de observabilidade entra no projeto como requisito, decisão registrada e critério verificável.</p>
+        </header>
+        <div class="g4">
+          <article class="card rise" style="--delay:.05s">
+            <span class="card-label">RF-008</span>
+            <h3>Requisito funcional</h3>
+            <p>Registrar, para cada carga, atualidade, volume, taxa de rejeição e custo, com série consultável de noventa dias.</p>
+          </article>
+          <article class="card amber rise" style="--delay:.1s">
+            <span class="card-label">RNF-008</span>
+            <h3>Requisito não funcional</h3>
+            <p>98% das cargas diárias com atraso inferior a 3 h; desvio de volume acima de 15% da referência detectado na primeira execução; telemetria com retenção decrescente por idade.</p>
+          </article>
+          <article class="card blue rise" style="--delay:.15s">
+            <span class="card-label">ADR-OBS-01</span>
+            <h3>Decisão de arquitetura</h3>
+            <p>Alerta por sintoma observável pelo consumidor, em vez de alerta por falha de tarefa. Contexto: a carga que conclui sem trazer dado não gera falha. Consequência: exige referência histórica por dia da semana.</p>
+          </article>
+          <article class="card green rise" style="--delay:.2s">
+            <span class="card-label">Cenário de aceite</span>
+            <h3>Critério verificável</h3>
+            <p>Dada uma carga que conclui com 40% menos linhas que a referência do mesmo dia da semana, quando a verificação de anomalia executa, então o alerta dispara e a publicação fica suspensa.</p>
+          </article>
+        </div>
+        <div class="callout dark rise" style="--delay:.26s;margin-top:12px">O objetivo de nível de serviço é acordo com quem consome, e não meta interna da engenharia. Sem essa negociação, o limite é escolhido pela facilidade de cumpri-lo.</div>
+      </div>
+    </section>
+
+    <!-- Slide 19: Entrega -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head green rise">
+          <p class="eyebrow">Entrega do card de trabalho</p>
+          <h2 class="slide-title">Os quatro indicadores, os limites justificados e a anomalia detectada</h2>
+          <p class="slide-subtitle">O que o grupo entrega ao final da segunda hora, e o que será conferido.</p>
+        </header>
+        <div class="deliverable">
+          <article class="artifact rise" style="--delay:.05s">
+            <small>Artefato</small>
+            <h3>Painel de telemetria e o registro da detecção</h3>
+            <p>As quatro consultas de indicador, a consulta de anomalia com o limite adotado, a justificativa de cada limite pelo efeito no consumidor e o número de alertas falsos que o limite produziria na série de trinta dias.</p>
+          </article>
+          <div class="acceptance">
+            <div class="accept rise" style="--delay:.09s"><span>1</span><p>Os quatro indicadores estão calculados sobre a série, com valor medido.</p></div>
+            <div class="accept rise" style="--delay:.12s"><span>2</span><p>A referência móvel exclui o dia em avaliação e respeita o dia da semana.</p></div>
+            <div class="accept rise" style="--delay:.15s"><span>3</span><p>Cada limite é justificado pelo efeito no consumidor, e não pela facilidade.</p></div>
+            <div class="accept rise" style="--delay:.18s"><span>4</span><p>A anomalia injetada foi detectada, com o desvio medido em percentual.</p></div>
+            <div class="accept rise" style="--delay:.21s"><span>5</span><p>O número de alertas falsos do limite adotado está contado na série inteira.</p></div>
+            <div class="accept rise" style="--delay:.24s"><span>6</span><p>Cada alerta tem procedimento correspondente e destinatário declarado.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 20: Autoestudos -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head dark rise">
+          <p class="eyebrow">Autoestudos · antes do próximo encontro</p>
+          <h2 class="slide-title">Os três materiais convergem para uma mesma pergunta</h2>
+          <p class="slide-subtitle">Quanto tempo o dado incorreto permanece publicado antes de alguém perceber, e o que reduziria esse tempo?</p>
+        </header>
+        <div class="study-grid">
+          <a class="study rise" style="--delay:.05s" href="https://sre.google/sre-book/service-level-objectives/" target="_blank" rel="noopener">
+            <span class="kind">Leitura</span>
+            <h3>Google SRE Book — Service Level Objectives</h3>
+            <p>Leia observando como o capítulo distingue indicador, objetivo e acordo, e traduza os três para o pipeline do seu parceiro.</p>
+            <span class="go">sre.google · capítulo</span>
+          </a>
+          <a class="study rise" style="--delay:.12s" href="https://opentelemetry.io/docs/concepts/signals/" target="_blank" rel="noopener">
+            <span class="kind">Documentação</span>
+            <h3>OpenTelemetry — Signals</h3>
+            <p>Compare a tipologia de sinais do padrão com os três discutidos em aula, e identifique qual deles o seu pipeline hoje não produz.</p>
+            <span class="go">opentelemetry.io · documentação</span>
+          </a>
+          <a class="study rise" style="--delay:.19s" href="https://duckdb.org/docs/stable/sql/functions/window_functions.html" target="_blank" rel="noopener">
+            <span class="kind">Documentação</span>
+            <h3>DuckDB — funções de janela</h3>
+            <p>Estude a cláusula de moldura usada na referência móvel do laboratório e teste como o resultado muda ao incluir a linha corrente.</p>
+            <span class="go">duckdb.org · documentação</span>
+          </a>
+        </div>
+        <div class="callout dark rise" style="--delay:.25s;margin-top:12px">Traga para o próximo encontro uma frase: <strong>no pipeline do meu parceiro, a falha que hoje passaria despercebida é ___, e o indicador que a revelaria é ___.</strong></div>
+      </div>
+    </section>
+
+    <!-- Slide 21: Fechamento -->
+    <section class="slide slide-closing">
+      <div class="sc">
+        <p class="eyebrow rise" style="color:var(--muted)">Aula 15 · Síntese</p>
+        <h2 class="final-line rise" style="--delay:.06s">A telemetria determina <em>quanto tempo</em> o número incorreto permanece publicado, e o limite declarado determina <em>quem</em> é avisado quando isso ocorre.</h2>
+        <div class="refs rise" style="--delay:.16s">
+          <span class="ref">Google SRE — Service Level Objectives</span>
+          <span class="ref">OpenTelemetry — Signals</span>
+          <span class="ref">DuckDB — Window functions</span>
+        </div>
+        <div class="callout dark rise" style="--delay:.24s;margin-top:22px">Pergunta final: <strong>no pipeline do parceiro, quem seria avisado hoje se a carga de amanhã trouxesse metade dos registros?</strong></div>
+      </div>
+    </section>
+
+<!-- encontro:meta:start -->
+<div class="slide encontro-slide"><div class="sc"><section class="encontro-meta" data-encontro-ficha><h2>Sobre este encontro</h2><p class="encontro-ref">Métricas e Telemetria em ETLs · 21/09/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>Ao final do encontro, o estudante deve ser capaz de definir indicadores de atualidade, completude, qualidade e custo para um pipeline, declarar objetivos de nível de serviço justificados pelo efeito no consumidor e construir uma verificação de anomalia capaz de detectar carga incompleta que conclui sem erro.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>Primeira hora de exposição dialogada em três blocos, cada um encerrado por checklist de aplicação e erro comum. Segunda hora de atividade em grupo: os estudantes convertem a tabela de controle das Aulas 12 e 13 em série de execuções, calculam os quatro indicadores, declaram um objetivo por indicador com justificativa e detectam uma anomalia injetada pelo professor, medindo também quantos alertas falsos o limite escolhido produziria.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol><li>1ª hora · Bloco 1 (20 min) — O que medir: atualidade, completude, qualidade e custo, e a distinção entre métrica técnica e métrica de negócio.</li><li>1ª hora · Bloco 2 (22 min) — Instrumentação: métrica, registro de execução e linhagem; indicador, objetivo e orçamento de erro; cardinalidade e retenção da própria telemetria.</li><li>1ª hora · Bloco 3 (18 min) — Alerta e diagnóstico: detecção de anomalia por referência móvel, alerta por sintoma em vez de causa e procedimento associado a cada alerta.</li><li>2ª hora · Card de trabalho (60 min) — Em grupo: série de execuções (10 min), quatro indicadores (15 min), objetivos declarados e justificados (10 min), anomalia injetada e detecção (15 min), alerta e conclusão escrita (10 min).</li></ol></div></section></div></div>
+<!-- encontro:meta:end -->
+</div>
+
+  <footer class="slide-footer">
+    <div class="footer-links">
+      <a href="../../home-module-11-eng-software.html" class="back-home">🏠 Módulo 11</a>
+      <a href="../materials/lesson-15-material.html" class="back-home material">📖 Material</a>
+    </div>
+    <div class="nav-wrapper">
+      <button type="button" class="nav-btn" id="prev-btn" onclick="previousSlide()">← Anterior</button>
+      <span class="slide-counter"><span id="current-slide">1</span> / <span id="total-slides">22</span></span>
+      <button type="button" class="nav-btn" id="next-btn" onclick="nextSlide()">Próximo →</button>
+    </div>
+    <button type="button" class="fullscreen-btn" onclick="toggleFullScreen()" title="Tela cheia">⛶</button>
   </footer>
-  <script src="../lesson-content.js"></script>
+
   <script>
-    const root = document.getElementById('lesson-slides');
-    const total = window.renderLessonSlides(root);
-    let current = 0;
-    const items = [...root.children];
-    const counter = document.getElementById('counter');
-    const prev = document.getElementById('prev');
-    const next = document.getElementById('next');
-    function show(index) {
-      current = Math.max(0, Math.min(index, total - 1));
-      items.forEach((item, i) => item.classList.toggle('active', i === current));
-      counter.textContent = (current + 1) + ' / ' + total;
-      prev.disabled = current === 0;
-      next.disabled = current === total - 1;
+    var currentSlide = 0;
+    var slides = Array.from(document.querySelectorAll('.slide'));
+    var totalSlides = slides.length;
+
+    document.getElementById('total-slides').textContent = totalSlides;
+
+    function showSlide(index) {
+      currentSlide = Math.max(0, Math.min(index, totalSlides - 1));
+      slides.forEach(function (slide, i) {
+        slide.classList.toggle('active', i === currentSlide);
+        if (i === currentSlide) slide.scrollTop = 0;
+      });
+      document.getElementById('current-slide').textContent = currentSlide + 1;
+      document.getElementById('prev-btn').disabled = currentSlide === 0;
+      document.getElementById('next-btn').disabled = currentSlide === totalSlides - 1;
     }
-    prev.addEventListener('click', () => show(current - 1));
-    next.addEventListener('click', () => show(current + 1));
-    document.addEventListener('keydown', (event) => {
-      if (event.key === 'ArrowLeft') show(current - 1);
-      if (event.key === 'ArrowRight' || event.key === ' ') { event.preventDefault(); show(current + 1); }
+
+    function nextSlide() { showSlide(currentSlide + 1); }
+    function previousSlide() { showSlide(currentSlide - 1); }
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'ArrowRight' || event.key === ' ') {
+        event.preventDefault();
+        nextSlide();
+      } else if (event.key === 'ArrowLeft') {
+        previousSlide();
+      } else if (event.key.toLowerCase() === 'f') {
+        toggleFullScreen();
+      }
     });
-    show(0);
+
+    showSlide(0);
   </script>
 <!-- encontro:pdf:start -->
 <button type="button" class="pdf-export-btn" data-encontro-data="2026-09-21" data-encontro-docente="Afonso" data-encontro-seq="01" title="Exportar esta página em PDF com o nome padronizado">📄 Exportar PDF</button>

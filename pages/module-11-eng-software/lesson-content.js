@@ -1948,330 +1948,514 @@ WHERE regiao_id = 7
 
     12: {
       title: 'Coleta e Extração', date: '09/09/2026',
-      subtitle: 'Da origem ao dado bruto com completude, rastreabilidade e reprocessamento seguro.',
-      objective: 'Projetar uma extração resiliente para banco, API, arquivo e evento, preservando watermark, schema, auditoria e idempotência.',
+      subtitle: 'Da origem ao dado bruto com completude, rastreabilidade e reprocessamento seguro, e a construção de uma extração incremental sobre uma origem que muda durante o encontro.',
+      objective: 'Levantar o contrato de uma fonte, escolher entre full load, incremental por carimbo de tempo e captura pelo log a partir da semântica de atualização da origem, e construir uma extração idempotente cuja divergência seja medida e explicada.',
       outcomes: [
         'Levantar o contrato de uma fonte antes de escrever qualquer extração.',
-        'Escolher entre full load, incremental por timestamp e CDC pela semântica de atualização.',
+        'Escolher entre full load, incremental por carimbo e captura pelo log pela semântica de atualização da origem.',
+        'Explicar as três formas de divergência do incremental e a defesa correspondente a cada uma.',
+        'Implementar marca d\'água com janela, sobreposição e avanço condicionado à conclusão do lote.',
         'Garantir idempotência e replay de qualquer janela dentro do período de retenção.',
+        'Medir, em número, o que uma estratégia de extração deixa de capturar e o efeito disso sobre a receita apurada.',
         'Registrar operação suficiente para auditar e reprocessar sem intervenção manual.'
       ],
       sections: [
         {
+          nav: 'A fronteira', title: 'A fronteira da extração',
+          text: 'A extração é a única etapa do pipeline que depende de um sistema sobre o qual a equipe de dados não tem autoridade. O sistema transacional otimiza a escrita e o atendimento ao usuário, e a leitura analítica compete por recurso. A completude precisa ser verificada por contagem reconciliada com a origem.',
+          checklist: [
+            'Registre a janela de disponibilidade em que a origem aceita carga de leitura.',
+            'Verifique a completude por contagem reconciliada, e não pelo encerramento do processo.',
+            'Trate a origem como contrato negociado, e não como conhecimento tácito da equipe.'
+          ],
+          pitfall: 'Tratar o encerramento sem exceção como prova de completude. O processo termina normalmente quando a origem devolve página vazia por limite de requisições.'
+        },
+        {
           nav: 'Perfil das fontes', title: 'Conheça a origem',
-          text: 'Mapeie owner, frequência, chave, timezone, semântica de atualização, limites, dados sensíveis e janela de disponibilidade.',
+          text: 'Mapeie responsável, frequência, chave natural, timezone, semântica de atualização, limites, dados sensíveis, janela de disponibilidade e crescimento projetado. Os nove atributos determinam a estratégia, e levantá-los depois da implementação custa a reescrita do pipeline.',
           checklist: [
             'Registre dono, frequência, chave natural, timezone e janela de disponibilidade.',
-            'Pergunte se a origem faz exclusão física ou lógica.',
+            'Pergunte se a origem faz exclusão física ou lógica, e como ela é observável de fora.',
             'Classifique os campos sensíveis antes da primeira extração.'
           ],
-          pitfall: 'Assumir que existe um campo de atualização confiável. Muita origem altera a linha sem tocar nesse campo.'
+          pitfall: 'Assumir que existe um campo de atualização confiável. Muitas origens alteram a linha por rotina administrativa sem tocar nesse campo.'
         },
         {
-          nav: 'Estratégias de extração', title: 'Estratégias',
-          text: 'Full load é simples e caro; incremental por timestamp pode perder atualizações; CDC captura mudanças, mas exige retenção e ordenação.',
+          nav: 'Semântica de atualização', title: 'O que a origem faz com a correção',
+          text: 'Três comportamentos distintos, com consequências opostas. A origem que somente insere admite incremental por carimbo de criação; a que atualiza no lugar exige carimbo de atualização mantido com disciplina; a que exclui fisicamente exige captura pelo log ou reconciliação periódica de chaves.',
           checklist: [
-            'Use full load enquanto o volume permitir; é o mais simples de auditar.',
-            'Em incremental por timestamp, aceite sobreposição de janela e deduplique.',
-            'Adote CDC quando exclusões e correções retroativas importarem.'
+            'Determine se o cancelamento produz linha nova, altera a linha ou a remove.',
+            'Verifique se o campo de atualização se move em toda escrita, inclusive nas administrativas.',
+            'Declare qual das três estratégias a semântica observada torna admissível.'
           ],
-          pitfall: 'Incremental por timestamp em origem que apaga registros. As exclusões nunca chegam e o destino diverge para sempre.'
+          pitfall: 'Escolher a estratégia pelo volume da origem. O volume determina o custo, e a semântica de atualização determina a corretude.'
         },
         {
-          nav: 'APIs e paginação', title: 'APIs',
-          text: 'Implemente paginação, rate limit, retry com backoff, autenticação, checkpoint e registro da resposta original. Nunca trate HTTP 200 como garantia de completude.',
+          nav: 'Estratégias de extração', title: 'Full load, incremental e captura pelo log',
+          text: 'Full load é simples e caro, e captura inserção, atualização e exclusão sem exigir campo de controle. O incremental por carimbo é barato e condicional, uma vez que a exclusão física nunca chega. A captura pelo log recebe cada operação como evento, e exige retenção, acesso privilegiado e garantia de ordenação.',
           checklist: [
-            'Implemente retry com backoff exponencial e teto de tentativas.',
-            'Persista a resposta original antes de qualquer parsing.',
-            'Valide a completude pela contagem declarada, não pelo código de status.'
+            'Use full load enquanto o volume permitir, ou como reconciliação periódica.',
+            'Em incremental por carimbo, aceite sobreposição de janela e deduplique por chave natural.',
+            'Adote captura pelo log quando exclusões e correções retroativas alterarem a resposta analítica.'
           ],
-          pitfall: 'Parar a paginação no primeiro retorno vazio. Rate limit devolve página vazia e a extração encerra incompleta em silêncio.'
+          pitfall: 'Incremental por carimbo em origem que apaga registros. As exclusões nunca chegam e o destino diverge de forma permanente e cumulativa.'
         },
         {
-          nav: 'Arquivos e schema drift', title: 'Arquivos',
-          text: 'Valide nome, encoding, schema, delimitador, duplicidade, checksum e atomicidade da chegada. Separe landing de processamento.',
+          nav: 'Marca d\'água', title: 'Janela, sobreposição e avanço condicionado',
+          text: 'A marca d\'água é um valor persistido, avançado apenas quando o lote inteiro conclui. A janela seguinte parte dele com sobreposição deliberada, porque o registro gravado no instante da virada pode não estar visível quando a extração lê.',
           checklist: [
-            'Separe landing de processamento e mova só após verificar o checksum.',
-            'Valide schema, encoding e delimitador antes de processar.',
-            'Trate coluna nova como evento de governança, não como falha silenciosa.'
+            'Aplique sobreposição de alguns minutos e deduplique o resultado por chave natural.',
+            'Avance a marca somente após a gravação do lote concluir.',
+            'Separe a data do evento da data de ingestão e filtre a janela pela segunda.'
           ],
-          pitfall: 'Ler o arquivo enquanto ele ainda está sendo escrito. A carga sai parcial e parece bem-sucedida.'
+          pitfall: 'Avançar a marca no início do lote. Uma falha no meio da gravação produz lacuna permanente, porque a janela seguinte já parte do ponto posterior.'
         },
         {
-          nav: 'Idempotência', title: 'Idempotência',
-          text: 'A mesma janela reprocessada deve produzir o mesmo resultado. Use chave natural, batch_id, watermark e deduplicação determinística.',
+          nav: 'Idempotência', title: 'Idempotência e replay',
+          text: 'A mesma janela reprocessada deve produzir o mesmo destino. A propriedade depende de três elementos declarados: chave natural, ordenação de chegada e regra determinística de desempate. Sem eles, duas execuções da mesma janela produzem resultados distintos.',
           checklist: [
-            'Identifique cada execução com batch_id e watermark persistidos.',
+            'Identifique cada execução com batch_id e marca d\'água persistidos.',
             'Garanta que reprocessar a mesma janela não altera o volume final.',
             'Deduplique por chave natural com regra determinística de desempate.'
           ],
-          pitfall: 'Confiar em DELETE seguido de INSERT fora de transação. A falha no meio deixa o destino vazio.'
+          pitfall: 'Confiar em exclusão seguida de inserção fora de transação. A falha entre as duas operações deixa o destino vazio, e a consulta executada nesse intervalo devolve resultado incorreto sem erro.'
+        },
+        {
+          nav: 'APIs e paginação', title: 'APIs',
+          text: 'Implemente paginação, limite de requisições, retry com recuo exponencial, autenticação, checkpoint e registro da resposta original. O código de status informa que a requisição foi atendida, e nada declara sobre quantos registros deveriam ter vindo.',
+          checklist: [
+            'Implemente retry com recuo exponencial, variação aleatória e teto de tentativas.',
+            'Persista a resposta original antes de qualquer conversão.',
+            'Valide a completude pela contagem declarada ou pelo cursor, e não pelo código de status.'
+          ],
+          pitfall: 'Encerrar a paginação no primeiro retorno vazio. O limite de requisições produz exatamente esse retorno, e a extração termina incompleta relatando sucesso.'
+        },
+        {
+          nav: 'Arquivos e schema drift', title: 'Arquivos',
+          text: 'Valide nome, encoding, schema, delimitador, duplicidade, checksum e atomicidade da chegada. Separe landing de processamento. A extração posicional quebra em silêncio quando a origem acrescenta, renomeia ou reordena uma coluna.',
+          checklist: [
+            'Separe landing de processamento e mova o arquivo apenas após verificar o checksum.',
+            'Leia por nome de coluna e valide o schema contra o contrato registrado.',
+            'Trate coluna nova como evento de governança, com decisão registrada.'
+          ],
+          pitfall: 'Ler o arquivo enquanto ele ainda está sendo gravado. A carga sai parcial e o processo relata sucesso.'
         },
         {
           nav: 'Operação e replay', title: 'Operação',
-          text: 'Registre início, fim, volume, bytes, status, origem, watermark, erro e localização dos rejeitados para permitir replay.',
+          text: 'A tabela de controle registra lote, origem, janela, marca d\'água, volume, bytes, status, erro e localização dos rejeitados. É o que transforma a extração em operação auditável, com estado consultável e replay previsível.',
           checklist: [
             'Registre início, fim, volume, bytes, status e onde estão os rejeitados.',
-            'Mantenha os rejeitados acessíveis para análise, não descartados.',
-            'Documente o procedimento de replay e execute-o ao menos uma vez.'
+            'Mantenha o registro rejeitado acessível com o dado original e o motivo.',
+            'Documente o procedimento de replay e execute-o ao menos uma vez fora de incidente.'
           ],
-          pitfall: 'Descartar o registro rejeitado deixando apenas um log de erro. Sem o dado original não há como reprocessar nem explicar.'
+          pitfall: 'Descartar o registro rejeitado deixando apenas um log de erro. Sem o dado original não há como reprocessar nem explicar a diferença ao time de negócio.'
+        },
+        {
+          nav: 'Card de trabalho', title: 'As três perguntas da atividade em sala',
+          text: 'A segunda hora do encontro é atividade em grupo sobre uma origem transacional em Postgres carregada com os pedidos da Olist: quantas linhas o incremental deixou de capturar; quantos pedidos excluídos permaneceram no destino; e se reprocessar a mesma janela altera o resultado. As três se respondem por contagem executada, e não por descrição do comportamento esperado.',
+          checklist: [
+            'Anote a contagem inicial de 99 441 pedidos antes de qualquer extração.',
+            'Aplique as três mutações deliberadas e registre a sequência em que foram executadas.',
+            'Converta a divergência em receita, porque é nessa forma que ela chega ao negócio.'
+          ],
+          pitfall: 'Responder por estimativa do que a estratégia deveria capturar. A resposta é válida quando produzida por anti-junção e comparação de estado entre origem e destino.'
+        },
+        {
+          nav: 'Extração com Postgres e DuckDB', title: 'Construção da extração em sala',
+          text: 'O laboratório acrescenta ao lakehouse da Aula 10 uma origem viva: um Postgres em container com a tabela de pedidos, anexado ao DuckDB pela extensão postgres. Sobre ela se executa um full load de referência, uma janela incremental com marca d\'água, três mutações deliberadas e a reconciliação por chave. A IA gera o SQL e critica o próprio resultado, e a conferência dos números permanece com o grupo.',
+          checklist: [
+            'Confirme que a contagem na origem coincide com a do CSV antes de extrair.',
+            'Verifique se o SQL gerado avança a marca d\'água antes ou depois da gravação.',
+            'Compare a contagem antes e depois do replay: o crescimento é a assinatura da carga não idempotente.'
+          ],
+          pitfall: 'Aceitar o SQL gerado por IA sem execução e conferência. A ordem invertida entre gravação e avanço da marca permanece despercebida até a primeira falha parcial.'
         }
       ],
       sdd: {
         rf: 'RF-005 — Ingerir todas as alterações de pedidos da origem, inclusive exclusões e correções retroativas.',
-        rnf: 'RNF-005 — Watermark lag ≤ 1 h; taxa de rejeição ≤ 0,1%; qualquer janela dos últimos 30 dias reprocessável sem intervenção manual.',
-        adr: 'ADR-ING-01 — CDC sobre o log de transações em vez de incremental por campo de atualização. Contexto: a origem apaga registros e corrige lançamentos com data retroativa. Consequência: exige retenção do log na origem e garantia de ordenação na entrega.',
-        gherkin: 'Dado que o batch 2026-09-01 já foi carregado, Quando reprocesso o mesmo batch_id, Então o volume no destino permanece igual e a auditoria registra duas execuções.'
+        rnf: 'RNF-005 — Atraso da marca d\'água menor ou igual a 1 h; taxa de rejeição até 0,1%; qualquer janela dos últimos 30 dias reprocessável sem intervenção manual.',
+        adr: 'ADR-ING-01 — Captura pelo log de transações em vez de incremental por campo de atualização. Contexto: a origem apaga registros e corrige lançamentos com data retroativa. Consequência: exige retenção do log na origem e garantia de ordenação na entrega.',
+        gherkin: 'Dado que o lote de 09/09/2026 já foi carregado, Quando reprocesso o mesmo batch_id, Então o volume no destino permanece igual e a auditoria registra duas execuções.'
       },
-      deliverable: 'Pipeline de extração com contrato da fonte, estratégia incremental justificada, tabela de controle, política de retry e evidência de replay.',
-      references: ['Airbyte — Incremental sync concepts', 'Debezium — Change Data Capture', 'RFC 9110 — HTTP Semantics', 'Google SRE — Handling overload']
+      deliverable: 'O pipeline de extração versionado do card de trabalho, composto pelo SQL da carga inicial, da janela incremental e da reconciliação, com os três números medidos — linhas não capturadas, chaves excluídas remanescentes e contagem antes e depois do replay —, a sequência de mutações registrada, a decisão sobre exclusão marcada ou removida declarada por escrito, e a tabela de controle com uma linha por execução.',
+      references: [
+        { label: 'Debezium — Change Data Capture', href: 'https://debezium.io/documentation/reference/stable/index.html' },
+        { label: 'Google SRE Book — Handling overload', href: 'https://sre.google/sre-book/handling-overload/' },
+        { label: 'RFC 9110 — HTTP Semantics', href: 'https://www.rfc-editor.org/rfc/rfc9110.html' },
+        { label: 'DuckDB Documentation — PostgreSQL extension', href: 'https://duckdb.org/docs/stable/core_extensions/postgres.html' },
+        { label: 'Airbyte Documentation — Sync modes', href: 'https://docs.airbyte.com/' },
+        { label: 'Olist — Brazilian E-Commerce Public Dataset', href: 'https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce' }
+      ]
     },
-
     13: {
       title: 'Transformação e Carga', date: '10/09/2026',
-      subtitle: 'Transformar e publicar dados com contratos, testes e cargas repetíveis.',
-      objective: 'Construir uma transformação determinística e uma carga confiável para camadas analíticas, com qualidade e rastreabilidade.',
+      subtitle: 'Transformar e publicar dados com determinismo, testes escritos antes da transformação e cargas coerentes com a política de histórico.',
+      objective: 'Escrever uma transformação determinística, especificar testes de qualidade que falham antes de a transformação existir e escolher a estratégia de carga coerente com a política de histórico da tabela.',
       outcomes: [
-        'Decidir entre ETL e ELT a partir de custo, governança e capacidade computacional.',
-        'Escrever transformação determinística e explicar o que a torna reproduzível.',
+        'Decidir entre ETL e ELT pela necessidade futura de recalcular o passado sob outra regra.',
+        'Escrever transformação determinística e identificar as construções que quebram essa propriedade.',
+        'Reconhecer as quatro decisões técnicas que alteram o número apresentado ao negócio.',
         'Especificar testes de qualidade que falham antes de a transformação existir.',
-        'Escolher a estratégia de carga coerente com a política de histórico da dimensão.'
+        'Deduplicar por chave, ordenação e desempate declarados, em vez de operador de conjunto.',
+        'Escolher entre append, overwrite, merge e snapshot pela política de histórico da dimensão.',
+        'Provar a repetibilidade da carga por soma de receita idêntica entre duas execuções.'
       ],
       sections: [
         {
-          nav: 'ETL ou ELT', title: 'ETL ou ELT',
-          text: 'ETL transforma antes do destino; ELT preserva o bruto e usa o warehouse para transformar. Escolha por custo, segurança, governança e capacidade computacional.',
+          nav: 'ETL ou ELT', title: 'Onde transformar',
+          text: 'ETL transforma antes de gravar e economiza armazenamento, ao custo de não preservar o bruto. ELT preserva a entrada e transforma no destino, o que permite recalcular o passado quando a regra muda. O critério é a necessidade futura de responder qual seria o número sob outra definição.',
           checklist: [
-            'Verifique se o dado bruto precisa ser preservado para auditoria.',
-            'Compare o custo de compute no warehouse com o da ferramenta externa.',
+            'Verifique se o dado bruto precisa ser preservado para auditoria ou recálculo.',
+            'Compare o custo de processamento no destino com o da ferramenta externa.',
             'Considere onde o dado sensível pode legalmente ser processado.'
           ],
-          pitfall: 'Transformar antes de guardar o bruto. Quando a regra muda, não há como recalcular o passado.'
+          pitfall: 'Transformar antes de guardar o bruto. Quando a definição de receita mudar, o passado não poderá ser recalculado e a série passará a misturar dois critérios.'
         },
         {
           nav: 'Determinismo', title: 'Determinismo',
-          text: 'A mesma entrada e os mesmos parâmetros devem gerar a mesma saída. Fixe timezone, arredondamento, regras de nulos, joins e versão do código.',
+          text: 'A mesma entrada e os mesmos parâmetros devem gerar a mesma saída. Quatro construções quebram essa propriedade: data corrente dentro da transformação, ordenação parcial em função de janela, aleatoriedade e dependência da ordem física do arquivo.',
           checklist: [
-            'Fixe timezone, arredondamento e ordenação de forma explícita.',
-            'Versione o código e registre a versão que gerou cada carga.',
-            'Evite função de data corrente ou aleatoriedade dentro da transformação.'
+            'Declare a janela como parâmetro de entrada, e não como expressão sobre a data corrente.',
+            'Use ordenação total na função de janela, com critério de desempate explícito.',
+            'Fixe timezone e arredondamento, e versione o código registrando a versão de cada carga.'
           ],
-          pitfall: 'Usar a data corrente dentro da transformação. O mesmo backfill produz resultado diferente a cada execução.'
+          pitfall: 'Usar a data corrente dentro da transformação. O mesmo backfill produz resultado diferente a cada execução, e a série histórica deixa de ser reproduzível.'
         },
         {
-          nav: 'Qualidade', title: 'Qualidade',
-          text: 'Teste schema, not null, unicidade, relacionamento, accepted values, freshness, volume e reconciliação com a origem.',
+          nav: 'Decisões silenciosas', title: 'O que altera o número sem produzir erro',
+          text: 'Fuso horário, tratamento de nulo em medida, momento do arredondamento e tipo de junção alteram o valor apresentado sem gerar exceção. A junção interna que descarta o fato sem dimensão correspondente é a mais perigosa, porque reduz o total sem emitir aviso.',
           checklist: [
-            'Escreva o teste antes da transformação e confirme que ele falha.',
+            'Registre o fuso adotado no contrato da camada de consumo.',
+            'Declare se o nulo em medida é zero, ignorado ou motivo de rejeição.',
+            'Compare a contagem antes e depois de cada junção, e explique toda diferença.'
+          ],
+          pitfall: 'Adotar junção interna por padrão. O fato sem dimensão correspondente desaparece do total, e nenhuma mensagem indica que isso ocorreu.'
+        },
+        {
+          nav: 'Qualidade', title: 'O teste que falha primeiro',
+          text: 'Teste schema, obrigatoriedade, unicidade, relacionamento, domínio de valores, atualidade, volume e reconciliação com a origem. O teste é escrito antes da transformação e precisa falhar, porque a falha inicial é a única prova de que ele detecta o defeito.',
+          checklist: [
+            'Escreva o teste antes da transformação e registre a saída em que ele falha.',
             'Cubra schema, nulos, unicidade, relacionamento e faixa de valores.',
-            'Reconcilie totais com a origem e declare a tolerância aceita.'
+            'Reconcilie contagem e soma com a origem, e declare a tolerância aceita.'
           ],
-          pitfall: 'Testar apenas o que já passa. Teste que nunca falhou não prova nada sobre o pipeline.'
+          pitfall: 'Testar apenas o que já passa. O conjunto de testes que nunca reprovou não oferece evidência sobre a capacidade de detectar defeito.'
         },
         {
-          nav: 'Deduplicação', title: 'Deduplicação',
-          text: 'Defina a chave do evento, a ordenação de chegada e a regra para escolher o registro vencedor. Não use DISTINCT como estratégia de negócio.',
+          nav: 'Deduplicação', title: 'Deduplicação por regra declarada',
+          text: 'Defina a chave do evento, a ordenação que elege o vencedor e a regra de desempate. O carimbo da origem precede o de chegada, porque o segundo reflete a ordem de processamento e se inverte sob reprocessamento.',
           checklist: [
-            'Defina a chave do evento e a regra de desempate por escrito.',
-            'Prefira o timestamp de origem ao de chegada para ordenar.',
+            'Defina chave, ordenação e desempate por escrito antes de implementar.',
+            'Prefira o carimbo de origem ao de chegada para eleger o registro vencedor.',
             'Registre quantos registros foram descartados em cada execução.'
           ],
-          pitfall: 'Usar DISTINCT para resolver duplicidade. Esconde o problema e apaga diferenças legítimas entre linhas.'
+          pitfall: 'Usar DISTINCT para resolver duplicidade. O operador remove apenas linhas idênticas, e a duplicata com um campo atualizado permanece nas duas versões.'
         },
         {
-          nav: 'Carga incremental', title: 'Carga',
-          text: 'Compare append, overwrite, merge/upsert e snapshot. Escolha conforme histórico, janela de correção e necessidade de atomicidade.',
+          nav: 'Carga incremental', title: 'Append, overwrite, merge e snapshot',
+          text: 'Append acrescenta sem tocar no existente; overwrite recompõe a partição inteira; merge atualiza por chave; snapshot preserva o estado completo por data. As quatro exigem atomicidade, de modo que o consumidor nunca enxergue carga pela metade.',
           checklist: [
             'Alinhe a estratégia de carga à política de histórico da dimensão.',
-            'Garanta atomicidade: o consumidor nunca vê carga pela metade.',
-            'Defina a janela de correção retroativa suportada.'
+            'Garanta atomicidade por troca de ponteiro na publicação.',
+            'Defina e declare a janela de correção retroativa suportada.'
           ],
-          pitfall: 'Merge sem chave estável. Cada execução cria linha nova e a dimensão duplica em silêncio.'
+          pitfall: 'Merge sem chave estável. Cada execução insere linha nova em vez de atualizar a existente, e a dimensão duplica em silêncio ao longo das cargas.'
         },
         {
-          nav: 'Orquestração', title: 'Orquestração',
-          text: 'Modele dependências, retries, backfill, parâmetros, alertas, SLA, lineage e promoção entre ambientes.',
+          nav: 'Histórico da dimensão', title: 'A política de histórico define a carga',
+          text: 'Sobrescrita responde qual é o estado atual; nova versão com vigência responde qual era o estado na data do fato; atributo anterior responde qual era o valor imediatamente anterior; instantâneo diário responde como o cadastro estava em qualquer data. A escolha precede a escrita da carga.',
+          checklist: [
+            'Determine, com o parceiro, qual pergunta histórica a dimensão precisa responder.',
+            'Implemente a carga correspondente à política escolhida, e não o contrário.',
+            'Verifique se o passado pode ser recomposto a partir da bronze caso a política mude.'
+          ],
+          pitfall: 'Implementar sobrescrita e descobrir depois que o negócio precisa da série histórica. A recomposição depende de a bronze ter sido preservada.'
+        },
+        {
+          nav: 'Orquestração', title: 'Dependência declarada',
+          text: 'Modele dependências explícitas, retries seguros, backfill parametrizado, alertas por descumprimento de acordo de nível de serviço, linhagem e promoção entre ambientes. O agendamento fixo pressupõe que a etapa anterior sempre termina no tempo previsto.',
           checklist: [
             'Modele dependências explícitas em vez de sincronizar por horário.',
-            'Torne o retry seguro antes de habilitá-lo.',
+            'Torne o retry seguro antes de habilitá-lo, uma vez que ele multiplica carga não idempotente.',
             'Promova entre ambientes com o mesmo código e parâmetros distintos.'
           ],
-          pitfall: 'Encadear tarefas por agendamento fixo. Quando a anterior atrasa, a seguinte processa dado incompleto.'
+          pitfall: 'Encadear tarefas por agendamento fixo. Quando a anterior atrasa, a seguinte processa dado incompleto e publica um número menor sem emitir erro.'
+        },
+        {
+          nav: 'Card de trabalho', title: 'As três perguntas da atividade em sala',
+          text: 'A segunda hora do encontro é atividade em grupo sobre a bronze construída na Aula 12: se o teste falhou antes de a transformação existir; quantas linhas cada junção descartou; e se duas execuções produzem o mesmo número. A terceira se verifica por soma de receita, e não por contagem.',
+          checklist: [
+            'Registre a saída dos cinco testes antes e depois da implementação.',
+            'Meça a contagem antes e depois de cada junção, e explique cada diferença.',
+            'Compare a soma da receita entre duas execuções seguidas, até o centavo.'
+          ],
+          pitfall: 'Comparar apenas a contagem entre execuções. A junção que duplica linhas mantém a ordem de grandeza da contagem e altera o total de forma imediata.'
+        },
+        {
+          nav: 'Silver e gold em sala', title: 'Construção das camadas em sala',
+          text: 'O laboratório constrói a silver com tipos declarados, chave única e rejeitados separados com o motivo, e a gold com membro desconhecido em vez de descarte silencioso. A carga recompõe a partição do período a partir da silver, com a janela como parâmetro externo. A IA gera o SQL e critica o próprio determinismo, e a conferência permanece com o grupo.',
+          checklist: [
+            'Verifique que a soma de conformadas, rejeitadas e duplicatas iguala a contagem da bronze.',
+            'Use membro desconhecido para preservar o fato cuja dimensão não corresponde.',
+            'Recomponha a partição a partir da silver, e nunca a partir da própria gold.'
+          ],
+          pitfall: 'Aceitar o SQL gerado por IA sem execução e conferência. A função de janela sem ordenação total e a data corrente dentro da transformação permanecem despercebidas até a primeira divergência entre execuções.'
         }
       ],
       sdd: {
-        rf: 'RF-006 — Calcular receita líquida aplicando desconto progressivo por volume, conforme a regra vigente na data do pedido.',
-        rnf: 'RNF-006 — A mesma entrada e os mesmos parâmetros produzem saída idêntica; reconciliação com a origem dentro de ±0,1%; carga visível ao consumidor apenas quando completa.',
-        adr: 'ADR-ETL-01 — ELT com transformação no warehouse. Alternativa descartada: transformar na ingestão, o que impediria recalcular o histórico quando a regra de desconto mudar. Consequência: custo de compute no warehouse e necessidade de controlar concorrência entre modelos.',
-        gherkin: 'Dado dois eventos com a mesma chave e horários de chegada distintos, Quando executo a deduplicação, Então prevalece o de maior timestamp de origem e o total não é duplicado.'
+        rf: 'RF-006 — Publicar a receita entregue por mês e por categoria, com definição única aplicada a toda a série histórica.',
+        rnf: 'RNF-006 — Divergência de reconciliação com a origem até 0,1% por mês; carga determinística sob os mesmos parâmetros; backfill de 24 meses executável em lotes verificáveis.',
+        adr: 'ADR-TRF-01 — ELT com bronze preservada, em vez de transformação anterior à gravação. Contexto: a definição de receita líquida ainda está em discussão com o parceiro. Consequência: custo de armazenamento e de processamento no destino.',
+        gherkin: 'Dado o mês de agosto de 2018 já publicado, Quando executo a carga novamente com os mesmos parâmetros, Então a soma da receita permanece idêntica e os cinco testes devolvem zero.'
       },
-      deliverable: 'Pipeline ETL/ELT documentado com modelo de entrada e saída, testes de qualidade que falham antes da implementação, estratégia de carga e runbook de reprocessamento.',
-      references: ['dbt — Best practices', 'Apache Airflow — Core concepts', 'Kimball — Incremental ETL', 'Great Expectations — Expectations']
+      deliverable: 'A silver, a gold e a suíte de cinco testes versionadas, com a saída dos testes antes e depois da implementação, as contagens medidas em cada junção com a diferença explicada, a janela da carga como parâmetro externo e a definição da métrica de receita declarada por escrito.',
+      references: [
+        { label: 'dbt Documentation — Data tests', href: 'https://docs.getdbt.com/docs/build/data-tests' },
+        { label: 'Great Expectations — Catálogo de expectativas', href: 'https://greatexpectations.io/expectations/' },
+        { label: 'DuckDB Documentation — Cláusula QUALIFY', href: 'https://duckdb.org/docs/stable/sql/query_syntax/qualify.html' },
+        { label: 'Kimball Group — Slowly Changing Dimensions', href: 'https://www.kimballgroup.com/2013/02/design-tip-152-slowly-changing-dimension-types-0-4-5-6-7/' },
+        { label: 'Olist — Brazilian E-Commerce Public Dataset', href: 'https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce' }
+      ]
     },
-
     15: {
       title: 'Métricas e Telemetria em ETLs', date: '21/09/2026',
-      subtitle: 'Operar pipelines como produto: medir, explicar e recuperar.',
-      objective: 'Definir observabilidade para ETL com métricas de serviço, qualidade de dados, logs estruturados, lineage e alertas acionáveis.',
+      subtitle: 'Instrumentar o pipeline para que o defeito seja descoberto pela equipe de dados antes de ser descoberto pelo negócio.',
+      objective: 'Definir indicadores de atualidade, completude, qualidade e custo para um pipeline, declarar objetivos de nível de serviço justificados pelo efeito no consumidor e construir uma verificação de anomalia capaz de detectar carga incompleta que conclui sem erro.',
       outcomes: [
-        'Distinguir métrica, log e trace pelo tipo de pergunta que cada um responde.',
-        'Definir SLI e SLO com janela, alvo e consequência operacional.',
-        'Medir qualidade do dado por dataset, e não apenas o sucesso da execução.',
-        'Conduzir um incidente da triagem ao postmortem com ação preventiva e dono.'
+        'Medir o pipeline pelas quatro dimensões, e não apenas pela conclusão da tarefa.',
+        'Distinguir métrica técnica, que indica a causa, de métrica de negócio, que indica a gravidade.',
+        'Coletar métrica, registro de execução e linhagem, reconhecendo a pergunta que cada sinal responde.',
+        'Declarar indicador, objetivo e orçamento de erro com justificativa negociada com quem consome.',
+        'Controlar a cardinalidade dos rótulos e a retenção da própria telemetria.',
+        'Detectar anomalia por referência móvel que absorve a sazonalidade semanal.',
+        'Formular alerta por sintoma observável, com procedimento e destinatário declarados.'
       ],
       sections: [
         {
-          nav: 'O que observar', title: 'Observabilidade',
-          text: 'Pergunte o que aconteceu, por que aconteceu e qual impacto gerou. Métricas mostram estado; logs explicam eventos; traces mostram caminho.',
+          nav: 'O que medir', title: 'As quatro dimensões',
+          text: 'Atualidade mede a distância entre o fato na origem e sua disponibilidade no destino; completude compara o que a origem tem com o que o destino recebeu; qualidade acompanha a taxa de rejeição por motivo; custo atribui bytes varridos e tempo de processamento ao domínio responsável. A execução bem-sucedida informa apenas que o processo terminou.',
           checklist: [
-            'Separe a pergunta "o que aconteceu" de "por que aconteceu".',
-            'Instrumente a execução e o dado, não apenas a infraestrutura.',
-            'Garanta que cada sinal tem dono capaz de agir.'
+            'Meça a atualidade e exiba-a junto do número no painel de consumo.',
+            'Reconcilie contagem e soma com a origem a cada carga.',
+            'Classifique os registros rejeitados por motivo e acompanhe a série ao longo do tempo.'
           ],
-          pitfall: 'Monitorar apenas se a tarefa terminou. Pipeline verde entregando dado errado é o pior cenário.'
+          pitfall: 'Monitorar apenas a conclusão da tarefa. A execução termina com status de sucesso ao processar um arquivo vazio, e o painel passa a exibir zero como resultado do dia.'
         },
         {
-          nav: 'SLI e SLO', title: 'SLI e SLO',
-          text: 'Defina freshness, disponibilidade, latência, completude e sucesso de execução. Um SLO precisa de janela, alvo e consequência operacional.',
+          nav: 'Dois públicos', title: 'Métrica técnica e métrica de negócio',
+          text: 'A métrica técnica indica a causa e orienta a engenharia; a métrica de negócio indica a gravidade e orienta a decisão de apresentar ou suspender. O alerta que chega ao negócio precisa ser formulado na linguagem do negócio, porque a variação do volume de uma tarefa não é acionável por quem decide.',
           checklist: [
-            'Escolha o indicador que o consumidor percebe, não o mais fácil de coletar.',
-            'Dê ao SLO janela, alvo e consequência quando violado.',
-            'Defina o orçamento de erro e o que ele autoriza.'
+            'Escreva cada alerta na forma do sintoma que o consumidor percebe.',
+            'Associe a cada métrica técnica a métrica de negócio correspondente.',
+            'Declare quem age diante de cada indicador ultrapassado.'
           ],
-          pitfall: 'Estabelecer SLO de 100%. Sem orçamento de erro, toda oscilação vira incidente e o time deixa de responder.'
+          pitfall: 'Enviar ao negócio o alerta formulado em termos de tarefa e de conexão. O destinatário não dispõe de contexto para priorizar, e o alerta é ignorado.'
         },
         {
-          nav: 'Qualidade do dado', title: 'Qualidade',
-          text: 'Volume esperado, distribuição, nulos, duplicidade, valores inválidos, reconciliação e drift devem ser medidos por dataset e domínio.',
+          nav: 'Três sinais', title: 'Métrica, registro de execução e linhagem',
+          text: 'A métrica responde quanto e como variou, e é barata para série histórica. O registro de execução responde o que aconteceu e em que ordem, com lote, parâmetros e erro. A linhagem responde o que mais foi afetado, e determina quais painéis precisam ser reprocessados após a correção.',
           checklist: [
-            'Defina a faixa esperada de volume por dataset e por dia da semana.',
-            'Monitore distribuição e drift, não apenas nulos e duplicidade.',
-            'Reconcilie com a origem em cadência fixa.'
+            'Colete os três sinais, uma vez que o diagnóstico exige a combinação deles.',
+            'Gere a linhagem a partir do código, e não a mantenha à mão.',
+            'Defina retenção para o registro de execução antes que ele domine o acervo.'
           ],
-          pitfall: 'Alertar por variação percentual sem considerar sazonalidade. Segunda-feira sempre parecerá anomalia.'
+          pitfall: 'Conduzir o incidente sem linhagem. A correção é aplicada e ninguém consegue responder quais relatórios consumiram o dado defeituoso.'
         },
         {
-          nav: 'Telemetria e lineage', title: 'Telemetria',
-          text: 'Inclua run_id, batch_id, source, model, partition, rows_in, rows_out, rejected, duration, watermark e código de erro.',
+          nav: 'Indicador e objetivo', title: 'SLI, SLO e orçamento de erro',
+          text: 'O indicador é o que se mede; o objetivo é o limite acordado com quem consome; o orçamento de erro é a margem restante, cuja exaustão desloca a prioridade da entrega de novas fontes para a estabilização do que existe. O objetivo de 100% declara que nenhuma falha é aceitável, e o custo de sustentá-lo cresce sem limite.',
           checklist: [
-            'Propague run_id e batch_id por todas as etapas.',
-            'Registre rows_in, rows_out, rejeitados e duração por modelo.',
-            'Mantenha lineage consultável no momento do incidente.'
+            'Negocie o limite com quem consome, e não apenas dentro da engenharia.',
+            'Verifique se alguém sentiria falta do indicador ao vê-lo descumprido.',
+            'Declare a consequência do descumprimento antes que ele ocorra.'
           ],
-          pitfall: 'Log em texto livre sem identificador de execução. Fica impossível correlacionar etapas durante o incidente.'
+          pitfall: 'Escolher o limite pela facilidade de cumpri-lo. O objetivo passa a ser sempre atendido e deixa de informar qualquer coisa sobre a operação.'
         },
         {
-          nav: 'Alertas acionáveis', title: 'Alertas',
-          text: 'Um alerta deve apontar condição, impacto, owner, dashboard e primeira ação. Evite alertar toda anomalia sem severidade ou runbook.',
+          nav: 'Custo da telemetria', title: 'A telemetria também é um pipeline',
+          text: 'O rótulo da métrica serve para agrupar, e o identificador único pertence ao registro de execução. Rótulo de alta cardinalidade produz uma série por execução, e nenhuma delas comparável. A retenção decrescente por idade aplica à observabilidade a política de ciclo de vida discutida na Aula 10.',
           checklist: [
-            'Todo alerta aponta condição, impacto, dono, painel e primeira ação.',
-            'Atribua severidade e defina o que aciona plantão fora do horário.',
-            'Revise periodicamente e remova o alerta que ninguém trata.'
+            'Mantenha nos rótulos apenas dimensões que se repetem entre execuções.',
+            'Guarde o identificador de lote no registro de execução, e não na métrica.',
+            'Defina granularidade decrescente: detalhe recente, agregação no histórico longo.'
           ],
-          pitfall: 'Alertar toda anomalia. A fadiga faz o time ignorar justamente o alerta que importa.'
+          pitfall: 'Instrumentar sem política de retenção. O acervo de telemetria supera o do dado analisado, e o custo de observar compete com o de produzir.'
         },
         {
-          nav: 'Incidentes', title: 'Incidentes',
-          text: 'Faça triagem, contenção, comunicação, replay seguro, validação do dado corrigido e postmortem com ação preventiva.',
+          nav: 'Detecção de anomalia', title: 'Referência móvel em vez de limite fixo',
+          text: 'O volume varia por sazonalidade semanal, e o limite percentual fixo sobre o dia anterior dispara alerta falso toda segunda-feira. A média das últimas ocorrências do mesmo dia da semana, excluído o dia em avaliação, absorve essa variação. Queda e alta têm gravidades distintas: a primeira sugere carga incompleta, e a segunda, duplicação.',
           checklist: [
-            'Contenha antes de investigar: interrompa a propagação do dado errado.',
-            'Comunique o consumidor afetado com impacto e prazo estimado.',
-            'Feche com postmortem sem culpado e uma ação preventiva com dono.'
+            'Exclua o dia em avaliação da média que serve de referência.',
+            'Separe os limites de queda e de alta, com destinatários próprios.',
+            'Conte os alertas falsos que o limite produziria na série histórica antes de adotá-lo.'
           ],
-          pitfall: 'Reprocessar antes de entender a causa. O erro retorna na próxima execução, agora com histórico corrompido.'
+          pitfall: 'Alertar por variação percentual fixa sobre o dia anterior. A segunda-feira dispara alerta toda semana, a equipe aprende a ignorá-lo e o alerta real chega junto com os falsos.'
+        },
+        {
+          nav: 'Alerta acionável', title: 'Alertar por sintoma',
+          text: 'O alerta por causa cobre um modo de falha conhecido por vez, e nenhum modo ainda desconhecido. O alerta por sintoma observável pelo consumidor cobre também a carga que conclui com sucesso sem trazer dado. Todo alerta precisa de procedimento correspondente e destinatário declarado.',
+          checklist: [
+            'Formule o alerta pelo sintoma, e não pela falha técnica que o produziu.',
+            'Associe a cada alerta o que verificar, como corrigir e quem comunica ao consumidor.',
+            'Remova ou automatize o alerta que não exige ação humana.'
+          ],
+          pitfall: 'Manter alerta sem procedimento associado. Em poucas semanas ele se torna ruído, e o volume de alertas ignorados passa a ocultar os relevantes.'
+        },
+        {
+          nav: 'Card de trabalho', title: 'As três perguntas da atividade em sala',
+          text: 'A segunda hora do encontro é atividade em grupo sobre a tabela de execuções das Aulas 12 e 13: quais são os quatro indicadores do pipeline; qual limite o grupo declara para cada um e com que justificativa; e em quantas execuções a anomalia injetada pelo professor é detectada. A terceira exige medir também os alertas falsos do limite escolhido.',
+          checklist: [
+            'Calcule os quatro indicadores sobre a série, com uma consulta por dimensão.',
+            'Justifique cada limite pelo efeito no consumidor, e não pela facilidade de cumpri-lo.',
+            'Meça o desvio da execução anômala e conte os falsos positivos na série de trinta dias.'
+          ],
+          pitfall: 'Adotar o limite sem testá-lo contra a série histórica. O limite de 5% marca várias execuções legítimas, e o de 50% deixa passar a carga com 40% menos registros.'
+        },
+        {
+          nav: 'Telemetria em DuckDB', title: 'Construção do painel em sala',
+          text: 'O laboratório converte a tabela de controle em série de trinta execuções com sazonalidade semanal, calcula atualidade, completude, qualidade e custo, declara um objetivo por indicador e detecta uma anomalia injetada que conclui com status de sucesso. A IA gera as consultas e critica a própria cobertura, e a escolha do limite permanece com o grupo.',
+          checklist: [
+            'Confirme que a sazonalidade semanal está presente na série antes de medir.',
+            'Verifique que a janela da referência exclui a execução em avaliação.',
+            'Execute o alerta contra a série inteira e conte os falsos positivos antes de adotá-lo.'
+          ],
+          pitfall: 'Aceitar a consulta gerada por IA sem verificar a moldura da janela. A inclusão da linha corrente na média impede a detecção da anomalia daquele mesmo dia.'
         }
       ],
       sdd: {
-        rf: 'RF-007 — Detectar e comunicar atraso ou degradação de qualidade antes que o consumidor perceba.',
-        rnf: 'RNF-007 — Freshness p95 ≤ 5 min; disponibilidade do serving ≥ 99,9% em janela de 30 dias; alerta entregue ao dono em até 2 min da violação.',
-        adr: 'ADR-OBS-01 — Alertar por violação de SLO, não por anomalia isolada. Contexto: o alerta por variação gerava dezenas de notificações diárias e fadiga de plantão. Consequência: oscilações curtas dentro do orçamento de erro não acionam plantão e ficam visíveis apenas no painel.',
-        gherkin: 'Dado freshness de 12 min com SLO de 5 min, Quando a violação persiste por 10 min, Então dispara alerta contendo dono, painel e primeira ação.'
+        rf: 'RF-008 — Registrar, para cada carga, atualidade, volume, taxa de rejeição e custo, com série consultável de noventa dias.',
+        rnf: 'RNF-008 — 98% das cargas diárias com atraso inferior a 3 h; desvio de volume acima de 15% da referência detectado na primeira execução; telemetria com retenção decrescente por idade.',
+        adr: 'ADR-OBS-01 — Alerta por sintoma observável pelo consumidor, em vez de alerta por falha de tarefa. Contexto: a carga que conclui sem trazer dado não gera falha. Consequência: exige referência histórica por dia da semana.',
+        gherkin: 'Dada uma carga que conclui com 40% menos linhas que a referência do mesmo dia da semana, Quando a verificação de anomalia executa, Então o alerta dispara e a publicação fica suspensa.'
       },
-      deliverable: 'Painel e runbook de observabilidade com indicadores, SLOs, alertas, severidades, donos e procedimento de recuperação.',
-      references: ['Google SRE Workbook — Monitoring', 'OpenTelemetry Documentation', 'Monte Carlo — Data observability concepts', 'Prometheus Documentation']
+      deliverable: 'O painel de telemetria do card de trabalho, com as quatro consultas de indicador, a consulta de anomalia e o limite adotado, a justificativa de cada limite pelo efeito no consumidor, o desvio medido da execução anômala, a contagem de alertas falsos que o limite produziria na série de trinta dias, e o procedimento e o destinatário declarados para cada alerta.',
+      references: [
+        { label: 'Google SRE Book — Service Level Objectives', href: 'https://sre.google/sre-book/service-level-objectives/' },
+        { label: 'Google SRE Book — Monitoring Distributed Systems', href: 'https://sre.google/sre-book/monitoring-distributed-systems/' },
+        { label: 'OpenTelemetry — Signals', href: 'https://opentelemetry.io/docs/concepts/signals/' },
+        { label: 'DuckDB Documentation — Window functions', href: 'https://duckdb.org/docs/stable/sql/functions/window_functions.html' },
+        { label: 'OpenLineage — Especificação de linhagem', href: 'https://openlineage.io/docs/' }
+      ]
     },
-
     16: {
       title: 'Integração do Datawarehouse com a Interface Analítica', date: '23/09/2026',
-      subtitle: 'Do dado confiável à experiência analítica que sustenta decisões.',
-      objective: 'Projetar a camada de consumo analítico com modelo semântico, métricas governadas, APIs/BI, segurança e desempenho.',
+      subtitle: 'Do dado confiável à experiência analítica que sustenta decisões, com métrica de definição única, contrato versionado e segurança verificável.',
+      objective: 'Projetar a camada de consumo analítico a partir da decisão que ela sustenta, definir a métrica uma única vez em camada semântica versionada, publicar contrato de consumo, aplicar controle de acesso por linha verificável por asserção e medir a latência percebida.',
       outcomes: [
-        'Partir da decisão do usuário para desenhar a camada de consumo.',
-        'Centralizar a definição de métrica e evitar divergência entre relatórios.',
-        'Especificar contrato de consumo com versionamento e política de compatibilidade.',
-        'Tornar segurança e desempenho verificáveis por cenário de teste.'
+        'Projetar a interface a partir da decisão que ela sustenta, e não do dado disponível.',
+        'Diagnosticar a divergência de definição entre equipes e resolvê-la por definição única.',
+        'Publicar a métrica em camada semântica com fórmula, granularidade, fuso, responsável e versão.',
+        'Escolher entre consulta direta, tabela agregada, API e exportação por latência, volume e autonomia.',
+        'Declarar contrato de consumo com política de compatibilidade entre versões.',
+        'Implementar acesso por linha e verificá-lo por asserção, inclusive as de negação.',
+        'Medir a latência percebida em percentil e comparar as formas de servir.'
       ],
       sections: [
         {
           nav: 'Quem consome e decide', title: 'Comece pela decisão',
-          text: 'Mapeie pergunta, usuário, frequência, ação e tolerância de atraso. Um dashboard sem decisão associada vira estoque de gráficos.',
+          text: 'Mapeie pergunta, usuário, frequência, ação e tolerância de atraso antes de escolher a ferramenta. O indicador cujo valor não altera nenhuma ação é informação sem consequência: ocupa espaço, consome carga para ser mantido e concorre pela atenção com o que importa.',
           checklist: [
-            'Escreva a pergunta, o usuário, a frequência e a ação decorrente.',
-            'Estabeleça a tolerância de atraso aceita para essa decisão.',
-            'Descarte o painel que não altera nenhuma ação.'
+            'Escreva, para cada gráfico proposto, a ação que muda conforme o valor.',
+            'Registre a tolerância de atraso aceita, porque ela determina a frequência da carga.',
+            'Considere o nível de autonomia técnica de quem consome ao escolher a forma de servir.'
           ],
-          pitfall: 'Construir o painel a partir do dado disponível. Nasce um catálogo de gráficos que ninguém consulta.'
+          pitfall: 'Projetar o painel a partir do dado disponível, e não da decisão a ser tomada. O resultado é um acervo de gráficos que ninguém consulta e que precisa ser mantido indefinidamente.'
+        },
+        {
+          nav: 'Divergência de definição', title: 'Três equipes, três números',
+          text: 'A mesma receita calculada por três equipes produz três valores, sem que nenhuma tenha cometido erro técnico. Cada uma adotou uma decisão razoável e não declarada sobre frete, recorte de status e correção retroativa. Enquanto cada relatório calcula a métrica no próprio SQL, a reunião discute qual número está certo em vez de discutir a decisão.',
+          checklist: [
+            'Levante, no projeto do parceiro, quantas definições da mesma métrica coexistem.',
+            'Declare qual pergunta de negócio cada definição responde.',
+            'Escolha a definição oficial e nomeie quem responde por ela.'
+          ],
+          pitfall: 'Resolver a divergência escolhendo um dos números na reunião. Sem a definição registrada em um único lugar, os três voltam a aparecer no mês seguinte.'
         },
         {
           nav: 'Camada semântica', title: 'Semântica',
-          text: 'Centralize definição de métricas, dimensões, filtros, timezone, granularidade e owner. Evite que cada relatório calcule receita de um jeito.',
+          text: 'Centralize a definição de métricas, dimensões, filtros, fuso, granularidade e responsável em um único artefato versionado. A mudança de definição passa a ser alteração revisável, com data de vigência registrada, e a série histórica indica quando o critério mudou em vez de apresentar um degrau inexplicado.',
           checklist: [
-            'Defina cada métrica uma única vez, com dono e granularidade.',
-            'Fixe timezone e calendário na definição, não no relatório.',
-            'Versione a definição e comunique a mudança aos consumidores.'
+            'Declare nome único, fórmula, granularidade mínima, fuso, responsável e versão.',
+            'Versione o metadado da métrica junto do SQL que a implementa.',
+            'Registre a data de vigência de cada mudança de definição.'
           ],
-          pitfall: 'Cada relatório calcular receita do seu jeito. Duas telas corretas mostram números diferentes na mesma reunião.'
+          pitfall: 'Permitir que cada relatório calcule a métrica no próprio SQL. As definições divergem em silêncio e a organização perde a referência de qual número é oficial.'
         },
         {
           nav: 'APIs e dashboards', title: 'Serviços',
-          text: 'Escolha consulta direta, tabela agregada, API, exportação ou cache conforme latência, volume, segurança e autonomia do consumidor.',
+          text: 'Escolha entre consulta direta, tabela agregada, API e exportação conforme latência, volume, segurança e autonomia do consumidor. A consulta direta é sempre atual e paga o custo de varredura a cada acesso; a tabela agregada transfere o custo para a carga; a API serve outro sistema por contrato; a exportação cria cópia fora do controle de acesso do warehouse.',
           checklist: [
-            'Escolha o modo de entrega pela latência exigida pela decisão.',
-            'Limite o custo por consulta e imponha teto de resultado.',
-            'Declare o freshness na própria resposta.'
+            'Prefira tabela agregada quando muitos usuários fazem as mesmas perguntas conhecidas.',
+            'Reserve a consulta direta a poucos usuários com perguntas exploratórias.',
+            'Registre a cópia gerada por exportação como dado sob controle de acesso próprio.'
           ],
-          pitfall: 'Expor a tabela bruta ao BI. O consumidor recria a regra de negócio e a governança se perde.'
+          pitfall: 'Servir tudo por consulta direta sobre o fato no grão mais fino. O painel de trinta usuários varre o acervo inteiro a cada abertura, e o custo cresce com a adoção do próprio painel.'
         },
         {
           nav: 'Contrato de consumo', title: 'Contrato',
-          text: 'Defina schema, versionamento, paginação, erros, freshness, limites e compatibilidade para APIs e datasets publicados.',
+          text: 'Defina schema, semântica, atualidade, disponibilidade e compatibilidade para toda interface publicada. Acrescentar coluna é compatível; remover ou renomear exige nova versão, pela mesma regra de evolução de schema discutida na Aula 10. O prazo de convivência entre versões permite ao consumidor planejar a migração.',
           checklist: [
-            'Especifique schema, paginação, erros e limites em OpenAPI.',
-            'Versione a interface e defina o que caracteriza mudança incompatível.',
-            'Publique a política de depreciação com prazo.'
+            'Declare o que pode mudar sem nova versão, e não apenas o que exige uma.',
+            'Alinhe a atualidade declarada ao indicador medido na Aula 15.',
+            'Versione o contrato no mesmo repositório do código que o implementa.'
           ],
-          pitfall: 'Renomear um campo sem versionar a interface. Todo consumidor quebra sem aviso prévio.'
+          pitfall: 'Publicar o contrato em documento separado do código. As duas versões divergem na primeira alteração, e o consumidor passa a confiar no documento desatualizado.'
         },
         {
           nav: 'Segurança testável', title: 'Segurança',
-          text: 'Aplique identidade, RBAC/ABAC, row-level security, mascaramento, auditoria e segregação de ambientes. Segurança precisa ser testável.',
+          text: 'Aplique identidade propagada, controle por papel e por atributo, filtro por linha, mascaramento de coluna sensível, auditoria e segregação de ambientes. A política escrita e nunca executada contra um usuário real é uma intenção, e não um controle. A matriz de perfis converte a política em asserções executáveis.',
           checklist: [
-            'Aplique row-level security na camada semântica, não em cada relatório.',
-            'Teste o acesso negado como cenário, igual ao acesso permitido.',
-            'Audite consulta a dado sensível com a identidade do solicitante.'
+            'Aplique o filtro por linha na camada semântica, e não em cada painel.',
+            'Escreva também as asserções de negação, que verificam a ausência de acesso.',
+            'Execute a suíte de acesso a cada publicação, como os testes da Aula 13.'
           ],
-          pitfall: 'Responder 403 quando o registro existe e vazio quando não existe. A diferença revela a existência do dado.'
+          pitfall: 'Aplicar o filtro de acesso dentro de cada painel. O painel seguinte é criado sem o filtro, e o dado restrito passa a ser servido sem que nenhuma política tenha sido alterada.'
         },
         {
           nav: 'Desempenho do consumo', title: 'Desempenho',
-          text: 'Use pré-agregação, cache, pruning, limites de consulta e observabilidade de consumo. Meça p95, custo e taxa de erro.',
+          text: 'Use pré-agregação, cache, poda por partição e limites de consulta, e observe o consumo com latência p95, bytes varridos, taxa de erro e consultas por usuário. A média esconde o consumidor que espera, e o consumidor abandona a ferramenta pela experiência das piores consultas.',
           checklist: [
-            'Pré-agregue no grão que o painel realmente usa.',
-            'Meça p95, custo e taxa de erro por consumidor.',
-            'Defina o comportamento sob carga: degradar, enfileirar ou recusar.'
+            'Meça a latência em percentil, e não em média.',
+            'Confirme que o filtro do painel corresponde à coluna de partição da gold.',
+            'Verifique que a pré-agregação devolve o mesmo valor da consulta direta.'
           ],
-          pitfall: 'Cache sem invalidação declarada. O painel mostra número velho e ninguém sabe quão velho.'
+          pitfall: 'Tratar como otimização a pré-agregação que altera o resultado. A alteração do valor caracteriza defeito, pela mesma regra aplicada ao layout na Aula 10.'
+        },
+        {
+          nav: 'Card de trabalho', title: 'As três perguntas da atividade em sala',
+          text: 'A segunda hora do encontro é atividade em grupo sobre a gold construída nas aulas anteriores: se as três equipes chegam ao mesmo número após a unificação; se o perfil restrito ao Norte consegue observar o Sudeste; e quanto a pré-agregação reduz a latência percebida. As três se respondem por execução medida.',
+          checklist: [
+            'Registre os três valores divergentes antes de unificar a definição.',
+            'Execute as nove asserções de acesso, das quais cinco verificam negação.',
+            'Meça o p95 nas duas formas de servir e confirme que devolvem o mesmo valor.'
+          ],
+          pitfall: 'Verificar apenas as asserções de permissão. O vazamento se manifesta como acesso indevido concedido, e somente a asserção de negação o revela.'
+        },
+        {
+          nav: 'Publicação em sala', title: 'Construção da camada de consumo em sala',
+          text: 'O laboratório reproduz as três definições divergentes sobre o mesmo fato, unifica-as em vista com dicionário versionado, publica o contrato em arquivo, implementa acesso por linha por perfil e mede a latência da mesma pergunta servida por consulta direta e por tabela pré-agregada. A IA gera o SQL e critica o próprio controle de acesso, e a escolha da definição permanece com o grupo.',
+          checklist: [
+            'Confirme que as três consultas reescritas sobre a vista devolvem um único valor.',
+            'Peça à IA que aponte por qual caminho um perfil restrito ainda observaria outra região.',
+            'Registre quantas vezes por dia a pergunta é feita, para converter a economia em argumento.'
+          ],
+          pitfall: 'Aceitar o SQL gerado por IA sem executar as asserções de negação. A vista que parece restringir pode permitir a leitura por agregação, e o defeito só aparece em auditoria.'
         }
       ],
       sdd: {
-        rf: 'RF-008 — Expor receita mensal por região ao painel executivo e à API de parceiros, com uma única definição.',
-        rnf: 'RNF-008 — p95 ≤ 800 ms; row-level security por região aplicada e auditada; freshness declarada em cada resposta.',
-        adr: 'ADR-BI-01 — Métrica definida uma única vez na camada semântica e consumida por painel e API. Alternativa descartada: cada consumidor calcular a sua, o que já produziu divergência entre relatórios. Consequência: alterar a definição exige versionamento e comunicação formal aos consumidores.',
-        gherkin: 'Dado um usuário com acesso apenas à região Norte, Quando consulta a receita da região Sul, Então o resultado vem vazio e a tentativa é registrada na auditoria.'
+        rf: 'RF-009 — Publicar a receita entregue por mês, região e categoria, com definição única e acesso restrito à região do usuário.',
+        rnf: 'RNF-009 — Latência p95 de consulta inferior a 2 s; atualidade declarada de até 3 h; versão anterior servida por 90 dias após a publicação da seguinte.',
+        adr: 'ADR-CON-01 — Tabela pré-agregada servindo o painel, em vez de consulta direta ao fato. Contexto: trinta usuários abrindo o mesmo painel diariamente. Consequência: atualidade limitada à frequência da carga.',
+        gherkin: 'Dado um usuário com perfil restrito ao Norte, Quando ele consulta a receita por região, Então nenhuma linha de outra região é devolvida e o total corresponde apenas ao Norte.'
       },
-      deliverable: 'Pacote final de integração: modelo semântico, contrato de consumo, painel ou API, controles de acesso, SLO e evidências de teste.',
-      references: ['dbt Semantic Layer — Concepts', 'OpenAPI Specification 3.1', 'OWASP API Security Top 10', 'ISO/IEC 25010:2023']
+      deliverable: 'O pacote de integração publicado no card de trabalho, composto pela vista da métrica com dicionário versionado, o arquivo de contrato com as cinco cláusulas, a suíte de nove asserções de acesso com as cinco de negação devolvendo zero, a medição de latência p95 nas duas formas de servir com os bytes varridos registrados, e a justificativa escrita da definição de receita adotada com o responsável designado.',
+      references: [
+        { label: 'dbt Documentation — Semantic models', href: 'https://docs.getdbt.com/docs/build/semantic-models' },
+        { label: 'Data Mesh Architecture — Produto de dados', href: 'https://www.datamesh-architecture.com/' },
+        { label: 'DuckDB Documentation — CREATE VIEW', href: 'https://duckdb.org/docs/stable/sql/statements/create_view.html' },
+        { label: 'Google SRE Book — Service Level Objectives', href: 'https://sre.google/sre-book/service-level-objectives/' },
+        { label: 'Olist — Brazilian E-Commerce Public Dataset', href: 'https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce' }
+      ]
     }
   };
 

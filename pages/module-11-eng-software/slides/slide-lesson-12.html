@@ -3,47 +3,954 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Módulo 11 — Aula 12 — Inteli</title>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <title>Aula 12 - Coleta e Extração - Inteli</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📥</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="../../../css/inteli-styles.css" rel="stylesheet">
-  <link href="../lesson-content.css" rel="stylesheet">
+  <link href="deck-base.css" rel="stylesheet">
+  <link href="slide-lesson-12.css" rel="stylesheet">
 
 <!-- encontro:css:start -->
 <link rel="stylesheet" href="../../../css/encontro.css">
 <!-- encontro:css:end -->
 </head>
-<body data-lesson="12" class="lesson-deck">
-  <main id="lesson-slides" class="lesson-slides"></main>
-  <footer class="lesson-footer">
-    <a href="../../home-module-11-eng-software.html">🏠 Módulo 11</a>
-    <button id="prev">← Anterior</button>
-    <span id="counter" class="lesson-counter">1 / 1</span>
-    <button id="next">Próximo →</button>
-    <a href="../materials/lesson-12-material.html">📖 Material</a>
+<body>
+  <div class="slide-container">
+    <!-- Slide 1: Capa -->
+    <section class="slide cover active">
+      <div class="sc cover-layout">
+        <div>
+          <span class="cover-badge rise">Módulo 11 · Engenharia de Software · Aula 12</span>
+          <h1 class="cover-title rise" style="--delay:.07s">Coleta e<br><span>Extração</span></h1>
+          <p class="cover-subtitle rise" style="--delay:.13s">Contrato da fonte, estratégias de captura e idempotência, com a construção de uma extração incremental sobre uma origem transacional que sofre atualização e exclusão.</p>
+          <div class="cover-tags">
+            <span class="cover-tag rise" style="--delay:.19s">Watermark</span>
+            <span class="cover-tag rise" style="--delay:.22s">CDC</span>
+            <span class="cover-tag rise" style="--delay:.25s">Idempotência</span>
+            <span class="cover-tag rise" style="--delay:.28s">Postgres · DuckDB</span>
+          </div>
+          <p class="cover-meta rise" style="--delay:.32s">Computação 1 · Prof. Afonso Brandão · 09/09/2026</p>
+        </div>
+        <div class="cover-stack">
+          <div class="stack-layer rise" style="--delay:.16s"><div><strong>Origem</strong><small>Banco, API, arquivo, evento</small></div><em>contrato</em></div>
+          <div class="stack-layer rise" style="--delay:.21s"><div><strong>Extração</strong><small>Janela, watermark, retry</small></div><em>estratégia</em></div>
+          <div class="stack-layer rise" style="--delay:.26s"><div><strong>Controle</strong><small>batch_id, rejeitados, replay</small></div><em>auditoria</em></div>
+          <div class="stack-layer top rise" style="--delay:.31s"><div><strong>Bronze</strong><small>Fidelidade à origem</small></div><em>destino</em></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 2: Continuidade -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head dark rise">
+          <p class="eyebrow">Continuidade · da Aula 10 para a Aula 12</p>
+          <h2 class="slide-title">O lakehouse está de pé, e agora o dado precisa chegar até ele</h2>
+          <p class="slide-subtitle">A Aula 10 decidiu onde e como o dado fica guardado. Esta aula trata de como ele entra, com que garantias e sob qual possibilidade de reprocessamento.</p>
+        </header>
+        <div class="continuity">
+          <div class="continuity-step rise" style="--delay:.05s"><small>Aulas 2-4</small><strong>Modelagem dimensional</strong></div>
+          <div class="continuity-step rise" style="--delay:.09s"><small>Aulas 8-9</small><strong>Governança de dados</strong></div>
+          <div class="continuity-step rise" style="--delay:.13s"><small>Aula 10</small><strong>Armazenamento</strong></div>
+          <div class="continuity-step focus rise" style="--delay:.17s"><small>Aula 12</small><strong>Coleta e extração</strong></div>
+          <div class="continuity-step rise" style="--delay:.21s"><small>Aula 13</small><strong>Transformação e carga</strong></div>
+        </div>
+        <div class="callout dark rise" style="--delay:.25s">A extração é a única etapa do pipeline que depende de um sistema sobre o qual a equipe de dados não tem autoridade. Toda garantia ausente na origem se converte em regra de engenharia no destino.</div>
+      </div>
+    </section>
+
+    <!-- Slide 3: Roteiro -->
+    <section class="slide slide-agenda">
+      <div class="sc">
+        <header class="slide-head red rise">
+          <p class="eyebrow">Roteiro · 120 minutos · uma hora de exposição, uma hora de prática</p>
+          <h2 class="slide-title">A primeira hora estabelece o critério, e a segunda constrói a extração em sala</h2>
+          <p class="slide-subtitle">A segunda hora é atividade em grupo: extrair de uma origem transacional que sofre atualização e exclusão, e medir o que cada estratégia perde.</p>
+        </header>
+        <div class="time-grid">
+          <article class="card time-card rise" style="--delay:.05s"><span class="card-label">1ª hora · Bloco 01</span><div class="minutes">20 <span>min</span></div><div><h3>Contrato da fonte</h3><p>A fronteira da extração, o perfil da origem e a semântica de atualização.</p></div></article>
+          <article class="card amber time-card rise" style="--delay:.12s"><span class="card-label">1ª hora · Bloco 02</span><div class="minutes">25 <span>min</span></div><div><h3>Estratégias</h3><p>Full load, incremental por watermark, CDC e idempotência.</p></div></article>
+          <article class="card blue time-card rise" style="--delay:.19s"><span class="card-label">1ª hora · Bloco 03</span><div class="minutes">15 <span>min</span></div><div><h3>APIs, arquivos e operação</h3><p>Paginação, retry, chegada atômica, controle e replay.</p></div></article>
+          <article class="card green time-card rise" style="--delay:.26s"><span class="card-label">2ª hora · Atividade</span><div class="minutes">60 <span>min</span></div><div><h3>Card de trabalho</h3><p>Extração incremental sobre Postgres, com mutações que a quebram.</p></div></article>
+        </div>
+        <div class="callout dark rise" style="--delay:.32s;margin-top:12px"><strong>Objetivo:</strong> escolher a estratégia de extração pela semântica de atualização da origem, e provar a escolha medindo o que cada uma captura e o que deixa passar.</div>
+      </div>
+    </section>
+
+    <!-- Slide 4: A fronteira da extração -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head dark rise">
+          <p class="eyebrow">Bloco 1 · A fronteira</p>
+          <h2 class="slide-title">A extração é o ponto em que o dado deixa de ser de outro time</h2>
+          <p class="slide-subtitle">Antes dessa fronteira, o dado obedece às regras de quem o produz. Depois dela, a responsabilidade pela completude e pela rastreabilidade é do pipeline.</p>
+        </header>
+        <div class="flow-row rise" style="--delay:.05s">
+          <div class="flow-box origin"><span class="badge">origem</span><strong>Sistema transacional</strong><small>Otimizado para escrita e para o negócio, sem compromisso com a análise</small></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-box extract"><span class="badge">extração</span><strong>Janela e watermark</strong><small>Decide o que ler, quando ler e o que fazer quando a leitura falha</small></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-box landing"><span class="badge">destino</span><strong>Bronze</strong><small>Fidelidade à origem, com carimbo de ingestão e identificador de lote</small></div>
+        </div>
+        <div class="g2" style="margin-top:14px">
+          <article class="card rise" style="--delay:.12s">
+            <span class="card-label">Assimetria</span>
+            <h3>A origem não foi projetada para ser lida</h3>
+            <p>O sistema transacional otimiza a escrita e o atendimento ao usuário. A leitura analítica compete por recurso, e a origem pode limitar, atrasar ou recusar a extração sem aviso. A janela de disponibilidade integra o contrato.</p>
+          </article>
+          <article class="card blue rise" style="--delay:.18s">
+            <span class="card-label">Consequência</span>
+            <h3>A completude precisa ser verificada, não presumida</h3>
+            <p>A extração que termina sem erro pode ter trazido metade dos registros. A verificação se faz por contagem reconciliada com a origem, e não pelo encerramento do processo.</p>
+          </article>
+        </div>
+        <div class="pitfall rise" style="--delay:.24s">Tratar o encerramento sem exceção como prova de completude. O processo termina normalmente quando a origem devolve página vazia por limite de requisições.</div>
+      </div>
+    </section>
+
+    <!-- Slide 5: Perfil da fonte -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head blue rise">
+          <p class="eyebrow">Bloco 1 · Perfil da fonte</p>
+          <h2 class="slide-title">O levantamento da origem antecede a primeira linha de código</h2>
+          <p class="slide-subtitle">Nove atributos determinam a estratégia de extração. Levantá-los depois da implementação custa a reescrita do pipeline.</p>
+        </header>
+        <div class="g2">
+          <div class="checklist">
+            <div class="check-item rise" style="--delay:.05s"><span>1</span><p><strong>Responsável</strong> pela origem e canal de comunicação em caso de mudança.</p></div>
+            <div class="check-item rise" style="--delay:.08s"><span>2</span><p><strong>Chave natural</strong> que identifica o registro de forma estável ao longo do tempo.</p></div>
+            <div class="check-item rise" style="--delay:.11s"><span>3</span><p><strong>Semântica de atualização</strong>: a origem corrige a linha, ou insere uma nova?</p></div>
+            <div class="check-item rise" style="--delay:.14s"><span>4</span><p><strong>Exclusão</strong> física ou lógica, e como ela é observável de fora.</p></div>
+            <div class="check-item rise" style="--delay:.17s"><span>5</span><p><strong>Timezone</strong> dos carimbos de tempo e se há horário de verão na série.</p></div>
+          </div>
+          <div class="checklist">
+            <div class="check-item rise" style="--delay:.2s"><span>6</span><p><strong>Janela de disponibilidade</strong>: quando a origem aceita carga de leitura.</p></div>
+            <div class="check-item rise" style="--delay:.23s"><span>7</span><p><strong>Limites</strong> de requisição, de volume por página e de tempo de conexão.</p></div>
+            <div class="check-item rise" style="--delay:.26s"><span>8</span><p><strong>Campos sensíveis</strong>, classificados antes da primeira extração.</p></div>
+            <div class="check-item rise" style="--delay:.29s"><span>9</span><p><strong>Volume e crescimento</strong>, que determinam se o full load continua viável.</p></div>
+          </div>
+        </div>
+        <div class="pitfall rise" style="--delay:.33s">Assumir a existência de um campo de atualização confiável. Muitas origens alteram a linha por rotina administrativa sem tocar nesse campo, e a alteração nunca chega ao destino.</div>
+      </div>
+    </section>
+
+    <!-- Slide 6: Semântica de atualização -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head amber rise">
+          <p class="eyebrow">Bloco 1 · Semântica de atualização</p>
+          <h2 class="slide-title">O comportamento da origem diante da correção define o que é possível capturar</h2>
+          <p class="slide-subtitle">Três comportamentos distintos, com consequências opostas para a estratégia de extração.</p>
+        </header>
+        <div class="g3">
+          <article class="card green rise" style="--delay:.05s">
+            <span class="card-label">Somente inserção</span>
+            <h3>A origem nunca altera o passado</h3>
+            <p>Cada fato gera uma linha nova, e a correção entra como novo registro. É o caso mais simples: o incremental por carimbo de tempo captura tudo.</p>
+            <p style="margin-top:7px"><strong>Estratégia:</strong> incremental por timestamp de criação.</p>
+          </article>
+          <article class="card amber rise" style="--delay:.12s">
+            <span class="card-label">Atualização no lugar</span>
+            <h3>A origem corrige a própria linha</h3>
+            <p>O registro muda de estado sem mudar de identidade. A captura depende de um campo de atualização que a origem mantenha de forma disciplinada em toda escrita.</p>
+            <p style="margin-top:7px"><strong>Estratégia:</strong> incremental por timestamp de atualização, com verificação periódica.</p>
+          </article>
+          <article class="card rise" style="--delay:.19s">
+            <span class="card-label">Exclusão física</span>
+            <h3>A origem remove a linha</h3>
+            <p>O registro desaparece sem deixar rastro consultável. Nenhuma consulta ao estado atual revela o que existia antes, porque não há o que ler.</p>
+            <p style="margin-top:7px"><strong>Estratégia:</strong> captura pelo log de transações, ou reconciliação periódica de chaves.</p>
+          </article>
+        </div>
+        <div class="observe-box rise" style="--delay:.25s"><strong>Pergunta de projeto:</strong> na origem do parceiro de vocês, o cancelamento de um pedido produz uma linha nova, altera a linha existente ou a remove? A resposta determina qual das três estratégias é admissível, e as três não são intercambiáveis.</div>
+      </div>
+    </section>
+
+    <!-- Slide 7: As quatro origens -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head dark rise">
+          <p class="eyebrow">Bloco 1 · Tipos de origem</p>
+          <h2 class="slide-title">Cada tipo de origem impõe um contrato e um modo de falha</h2>
+          <p class="slide-subtitle">O que se negocia com quem mantém a origem, e como a extração degrada quando o contrato não é cumprido.</p>
+        </header>
+        <table class="data-table rise" style="--delay:.05s">
+          <thead>
+            <tr><th style="width:14%">Origem</th><th style="width:26%">O que precisa ser negociado</th><th style="width:30%">Modo de falha característico</th><th style="width:30%">Defesa correspondente</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Banco relacional</strong></td><td>Réplica de leitura, janela e acesso ao log</td><td>A consulta analítica concorre com a transação e é interrompida</td><td>Extrair da réplica, em janela acordada e com lote limitado</td></tr>
+            <tr><td><strong>API</strong></td><td>Limite de requisições, paginação e contagem declarada</td><td>Página vazia devolvida por limite, interpretada como fim</td><td>Validar pela contagem declarada e aplicar retry com backoff</td></tr>
+            <tr><td><strong>Arquivo</strong></td><td>Convenção de nome, checksum e sinal de conclusão</td><td>Leitura do arquivo enquanto ele ainda está sendo gravado</td><td>Separar landing de processamento e mover após o checksum</td></tr>
+            <tr><td><strong>Evento</strong></td><td>Schema registrado, retenção e garantia de entrega</td><td>Reentrega do mesmo evento após falha parcial</td><td>Ingestão idempotente por chave natural e janela</td></tr>
+          </tbody>
+        </table>
+        <div class="callout rise" style="--delay:.14s;margin-top:12px">O contrato da fonte é documento de projeto, e não conhecimento tácito de quem escreveu a primeira versão da extração.</div>
+      </div>
+    </section>
+
+    <!-- Slide 8: Três estratégias -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head green rise">
+          <p class="eyebrow">Bloco 2 · Estratégias de extração</p>
+          <h2 class="slide-title">A estratégia se escolhe pela semântica da origem, e não pelo volume</h2>
+          <p class="slide-subtitle">O volume determina o custo, e a semântica de atualização determina a corretude. A segunda restringe a primeira.</p>
+        </header>
+        <div class="strategy-grid">
+          <article class="strategy full rise" style="--delay:.05s">
+            <h3>Full load</h3>
+            <p class="cost">custo alto · corretude alta</p>
+            <dl>
+              <dt>Como funciona</dt><dd>Lê a origem inteira a cada execução e substitui o destino por completo.</dd>
+              <dt>Captura</dt><dd>Inserção, atualização e exclusão, sem exigir campo de controle.</dd>
+              <dt>Limite</dt><dd>O custo cresce com o acervo, e a janela de origem pode não comportá-lo.</dd>
+              <dt>Use quando</dt><dd>O volume permite, ou como reconciliação periódica de outra estratégia.</dd>
+            </dl>
+          </article>
+          <article class="strategy incremental rise" style="--delay:.12s">
+            <h3>Incremental por carimbo</h3>
+            <p class="cost">custo baixo · corretude condicional</p>
+            <dl>
+              <dt>Como funciona</dt><dd>Lê o que mudou desde a última marca de tempo processada com sucesso.</dd>
+              <dt>Captura</dt><dd>Inserção e atualização, desde que a origem mantenha o campo com disciplina.</dd>
+              <dt>Limite</dt><dd>A exclusão física nunca chega, e o destino diverge de forma permanente.</dd>
+              <dt>Use quando</dt><dd>A origem só insere, ou mantém o campo de atualização de forma verificada.</dd>
+            </dl>
+          </article>
+          <article class="strategy cdc rise" style="--delay:.19s">
+            <h3>Captura pelo log</h3>
+            <p class="cost">custo médio · corretude alta</p>
+            <dl>
+              <dt>Como funciona</dt><dd>Lê o log de transações da origem e recebe cada operação como evento.</dd>
+              <dt>Captura</dt><dd>Inserção, atualização e exclusão, com a ordem em que ocorreram.</dd>
+              <dt>Limite</dt><dd>Exige retenção do log na origem, acesso privilegiado e garantia de ordenação.</dd>
+              <dt>Use quando</dt><dd>Exclusões e correções retroativas alteram a resposta analítica.</dd>
+            </dl>
+          </article>
+        </div>
+        <div class="observe-box rise" style="--delay:.25s"><strong>Regra de decisão:</strong> a origem que apaga registros exclui o incremental por carimbo de tempo como estratégia única. A alternativa admissível é a captura pelo log, ou a reconciliação periódica por full load.</div>
+      </div>
+    </section>
+
+    <!-- Slide 9: Anatomia do watermark -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head blue rise">
+          <p class="eyebrow">Bloco 2 · Watermark</p>
+          <h2 class="slide-title">A marca d'água registra até onde a extração chegou com sucesso</h2>
+          <p class="slide-subtitle">É um valor persistido, avançado apenas quando o lote inteiro conclui. A janela seguinte parte dele, com sobreposição deliberada.</p>
+        </header>
+        <div class="wm-track rise" style="--delay:.05s">
+          <div class="wm-cell captured"><small>09:00</small><strong>lote anterior</strong></div>
+          <div class="wm-cell captured"><small>10:00</small><strong>lote anterior</strong></div>
+          <div class="wm-cell captured"><small>11:00</small><strong>sobreposição</strong></div>
+          <div class="wm-cell captured"><small>12:00</small><strong>lote atual</strong></div>
+          <div class="wm-cell missed"><small>13:00</small><strong>evento atrasado</strong></div>
+          <div class="wm-cell lost"><small>—</small><strong>excluído na origem</strong></div>
+        </div>
+        <div class="wm-legend rise" style="--delay:.09s;margin-bottom:12px">
+          <span><i class="c"></i> capturado pela janela</span>
+          <span><i class="m"></i> chega depois da marca e exige sobreposição</span>
+          <span><i class="l"></i> jamais capturado por esta estratégia</span>
+        </div>
+        <div class="g2">
+          <article class="card blue rise" style="--delay:.13s">
+            <span class="card-label">Sobreposição</span>
+            <h3>A janela seguinte recobre o fim da anterior</h3>
+            <p>O evento gravado na origem no instante da virada da janela pode não estar visível quando a extração lê. A sobreposição de alguns minutos recupera esse registro, e a deduplicação por chave natural remove a repetição resultante.</p>
+          </article>
+          <article class="card rise" style="--delay:.19s">
+            <span class="card-label">Avanço condicionado</span>
+            <h3>A marca avança apenas com o lote concluído</h3>
+            <p>Avançar a marca antes de a gravação concluir cria uma lacuna permanente: a janela seguinte parte de um ponto cujo conteúdo nunca foi persistido, e nenhuma execução posterior o alcança.</p>
+          </article>
+        </div>
+        <div class="pitfall rise" style="--delay:.25s">Avançar a marca d'água no início do lote. Uma falha no meio da gravação produz perda silenciosa, porque a janela seguinte já parte do ponto seguinte.</div>
+      </div>
+    </section>
+
+    <!-- Slide 10: O que o incremental perde -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head red rise">
+          <p class="eyebrow">Bloco 2 · Divergência</p>
+          <h2 class="slide-title">O incremental por carimbo diverge de três formas distintas</h2>
+          <p class="slide-subtitle">As três produzem destino incorreto sem emitir erro, e é isso que as torna difíceis de detectar em produção.</p>
+        </header>
+        <table class="data-table rise" style="--delay:.05s">
+          <thead>
+            <tr><th style="width:22%">Evento na origem</th><th style="width:28%">O que a extração observa</th><th style="width:24%">Efeito no destino</th><th style="width:26%">Correção</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Exclusão física</strong></td><td>A linha desaparece, sem alteração de carimbo</td><td>O registro permanece no destino indefinidamente</td><td>Captura pelo log, ou reconciliação de chaves por anti-junção</td></tr>
+            <tr><td><strong>Atualização sem carimbo</strong></td><td>Nada, porque o campo de controle não se moveu</td><td>O destino guarda o valor anterior como se fosse o vigente</td><td>Gatilho na origem, ou reconciliação periódica por full load</td></tr>
+            <tr><td><strong>Escrita retroativa</strong></td><td>Um registro com carimbo anterior à marca d'água</td><td>O registro nunca entra, porque a janela já passou daquele ponto</td><td>Separar data do evento da data de ingestão e filtrar pela segunda</td></tr>
+          </tbody>
+        </table>
+        <div class="g2" style="margin-top:12px">
+          <div class="callout rise" style="--delay:.12s">A divergência é cumulativa. Cada execução acrescenta registros ao desvio, e nenhuma execução posterior o corrige por conta própria.</div>
+          <div class="callout dark rise" style="--delay:.16s">A defesa mínima é a reconciliação: comparar periodicamente a contagem e a soma de uma medida entre origem e destino, e declarar a tolerância aceita.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 11: CDC pelo log -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head dark rise">
+          <p class="eyebrow">Bloco 2 · Captura pelo log</p>
+          <h2 class="slide-title">O log de transações registra a operação, e não apenas o estado final</h2>
+          <p class="slide-subtitle">O banco já grava cada escrita em um log para garantir durabilidade e recuperação. A captura de mudanças lê esse mesmo log.</p>
+        </header>
+        <div class="g2">
+          <div>
+            <div class="code-block rise" style="--delay:.05s"><span class="code-comment">-- o que a consulta ao estado atual devolve</span>
+<span class="code-keyword">SELECT</span> * <span class="code-keyword">FROM</span> pedido <span class="code-keyword">WHERE</span> id = <span class="code-number">4711</span>;
+<span class="code-comment">-- (nenhuma linha: foi excluído)</span>
+
+<span class="code-comment">-- o que o log de transações preservou</span>
+{op: <span class="code-string">"c"</span>, id: <span class="code-number">4711</span>, status: <span class="code-string">"criado"</span>,   lsn: <span class="code-number">88123</span>}
+{op: <span class="code-string">"u"</span>, id: <span class="code-number">4711</span>, status: <span class="code-string">"pago"</span>,     lsn: <span class="code-number">88470</span>}
+{op: <span class="code-string">"d"</span>, id: <span class="code-number">4711</span>, anterior: {...},      lsn: <span class="code-number">88902</span>}</div>
+            <div class="observe-box rise" style="--delay:.11s"><strong>Consequência analítica:</strong> a exclusão passa a ser um fato datado e auditável. O destino registra que o pedido existiu, quanto tempo permaneceu e quando deixou de existir.</div>
+          </div>
+          <div class="checklist">
+            <div class="check-item rise" style="--delay:.09s"><span>✓</span><p>Confirme a <strong>retenção do log</strong> na origem: ela define a janela máxima de replay.</p></div>
+            <div class="check-item rise" style="--delay:.12s"><span>✓</span><p>Garanta <strong>ordenação por chave</strong>: as operações do mesmo registro precisam chegar em ordem.</p></div>
+            <div class="check-item rise" style="--delay:.15s"><span>✓</span><p>Trate o consumo como <strong>ao menos uma vez</strong> e torne a aplicação idempotente.</p></div>
+            <div class="check-item rise" style="--delay:.18s"><span>✓</span><p>Planeje a <strong>carga inicial</strong>: o log cobre o presente, e o passado exige um instantâneo.</p></div>
+            <div class="check-item rise" style="--delay:.21s"><span>✓</span><p>Negocie o <strong>acesso privilegiado</strong>: a leitura do log exige permissão que o DBA controla.</p></div>
+            <div class="check-item rise" style="--delay:.24s"><span>✓</span><p>Monitore o <strong>atraso de consumo</strong>: log não consumido é log que expira e vira lacuna.</p></div>
+          </div>
+        </div>
+        <div class="pitfall rise" style="--delay:.28s">Iniciar a captura pelo log sem a carga inicial correspondente. O destino passa a conter apenas os registros alterados a partir daquele instante, e o acervo anterior permanece ausente.</div>
+      </div>
+    </section>
+
+    <!-- Slide 12: Idempotência -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head green rise">
+          <p class="eyebrow">Bloco 2 · Idempotência</p>
+          <h2 class="slide-title">A mesma janela reprocessada produz o mesmo destino</h2>
+          <p class="slide-subtitle">É a propriedade que torna o replay seguro, e sem ela nenhuma falha parcial pode ser corrigida por repetição.</p>
+        </header>
+        <div class="g2">
+          <div class="code-block rise" style="--delay:.05s"><span class="code-comment">-- carga idempotente por chave natural</span>
+<span class="code-keyword">MERGE INTO</span> bronze.pedido d
+<span class="code-keyword">USING</span> (
+  <span class="code-keyword">SELECT</span> * <span class="code-keyword">FROM</span> extraido
+  <span class="code-keyword">QUALIFY</span> row_number() <span class="code-keyword">OVER</span> (
+    <span class="code-keyword">PARTITION BY</span> order_id
+    <span class="code-keyword">ORDER BY</span> atualizado_em <span class="code-keyword">DESC</span>) = <span class="code-number">1</span>
+) o <span class="code-keyword">ON</span> d.order_id = o.order_id
+<span class="code-keyword">WHEN MATCHED THEN UPDATE SET</span> ...
+<span class="code-keyword">WHEN NOT MATCHED THEN INSERT</span> ...;</div>
+          <div class="card-stack">
+            <article class="card green rise" style="--delay:.1s">
+              <span class="card-label">Três elementos</span>
+              <h3>Chave natural, ordenação e desempate</h3>
+              <p>A chave identifica o registro, a ordenação decide qual versão prevalece e a regra de desempate resolve o empate de forma determinística. Sem os três declarados, duas execuções da mesma janela produzem resultados distintos.</p>
+            </article>
+            <article class="card rise" style="--delay:.16s">
+              <span class="card-label">Auditoria</span>
+              <h3>batch_id e marca d'água persistidos</h3>
+              <p>Cada execução recebe um identificador, e o registro guarda de qual lote veio. O reprocessamento se torna uma operação declarada, com efeito conhecido antes de ser executada.</p>
+            </article>
+          </div>
+        </div>
+        <div class="pitfall rise" style="--delay:.24s">Confiar em exclusão seguida de inserção fora de transação. A falha entre as duas operações deixa o destino vazio, e a consulta executada nesse intervalo devolve resultado incorreto sem erro.</div>
+      </div>
+    </section>
+
+    <!-- Slide 13: APIs -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head amber rise">
+          <p class="eyebrow">Bloco 3 · APIs</p>
+          <h2 class="slide-title">A resposta bem-sucedida não constitui prova de completude</h2>
+          <p class="slide-subtitle">O código de status informa que a requisição foi atendida, e nada declara sobre quantos registros deveriam ter vindo.</p>
+        </header>
+        <div class="g3">
+          <article class="card amber rise" style="--delay:.05s">
+            <span class="card-label">Paginação</span>
+            <h3>O fim se declara, não se deduz</h3>
+            <p>Encerre a paginação pela contagem total declarada ou pelo cursor de continuação, e não pela primeira página vazia. O limite de requisições devolve página vazia com status de sucesso.</p>
+          </article>
+          <article class="card rise" style="--delay:.12s">
+            <span class="card-label">Limite e retry</span>
+            <h3>Recuo exponencial com teto</h3>
+            <p>A repetição imediata agrava a sobrecarga que causou a recusa. O intervalo entre tentativas cresce a cada falha, com variação aleatória para evitar que todos os consumidores repitam no mesmo instante.</p>
+          </article>
+          <article class="card blue rise" style="--delay:.19s">
+            <span class="card-label">Resposta original</span>
+            <h3>Persistir antes de interpretar</h3>
+            <p>Grave a resposta como veio, antes de qualquer conversão. Quando o formato mudar ou a interpretação se revelar errada, o reprocessamento parte do original em vez de exigir nova extração.</p>
+          </article>
+        </div>
+        <div class="observe-box rise" style="--delay:.25s"><strong>Checkpoint:</strong> persista o cursor a cada página concluída. A extração interrompida na página 400 de 900 retoma do ponto de parada, e não do início.</div>
+        <div class="pitfall rise" style="--delay:.29s">Encerrar a paginação no primeiro retorno vazio. O limite de requisições produz exatamente esse retorno, e a extração termina incompleta relatando sucesso.</div>
+      </div>
+    </section>
+
+    <!-- Slide 14: Arquivos -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head blue rise">
+          <p class="eyebrow">Bloco 3 · Arquivos</p>
+          <h2 class="slide-title">O arquivo precisa estar completo antes de ser considerado disponível</h2>
+          <p class="slide-subtitle">A chegada de um arquivo é um processo com duração, e a leitura durante esse intervalo produz carga parcial que se apresenta como bem-sucedida.</p>
+        </header>
+        <div class="g2">
+          <div class="checklist">
+            <div class="check-item rise" style="--delay:.05s"><span>✓</span><p>Separe <strong>landing</strong> de <strong>processamento</strong>, e mova o arquivo apenas após verificar o checksum.</p></div>
+            <div class="check-item rise" style="--delay:.08s"><span>✓</span><p>Exija <strong>sinal de conclusão</strong>: arquivo auxiliar ou renomeação atômica ao terminar a gravação.</p></div>
+            <div class="check-item rise" style="--delay:.11s"><span>✓</span><p>Valide <strong>encoding, delimitador e schema</strong> antes de processar, e rejeite com motivo registrado.</p></div>
+            <div class="check-item rise" style="--delay:.14s"><span>✓</span><p>Detecte <strong>reenvio</strong> pelo checksum: o mesmo arquivo entregue duas vezes não deve duplicar o destino.</p></div>
+            <div class="check-item rise" style="--delay:.17s"><span>✓</span><p>Trate <strong>coluna nova</strong> como evento de governança, com decisão registrada e não como falha.</p></div>
+          </div>
+          <article class="card rise" style="--delay:.2s">
+            <span class="card-label">Schema drift</span>
+            <h3>A origem muda o arquivo sem avisar</h3>
+            <p>Uma coluna acrescentada, renomeada ou reordenada altera a interpretação de todo o arquivo. A extração posicional quebra em silêncio: o valor de uma coluna passa a ser lido como se fosse de outra, e a carga conclui sem erro.</p>
+            <p style="margin-top:8px"><strong>Defesa:</strong> leitura por nome de coluna, validação do schema contra o contrato registrado e alerta quando a diferença aparece.</p>
+          </article>
+        </div>
+        <div class="pitfall rise" style="--delay:.26s">Ler o arquivo enquanto ele ainda está sendo gravado. A carga sai parcial, o processo relata sucesso e a diferença só aparece na conferência de fechamento.</div>
+      </div>
+    </section>
+
+    <!-- Slide 15: Operação e replay -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head dark rise">
+          <p class="eyebrow">Bloco 3 · Operação</p>
+          <h2 class="slide-title">O registro de execução é o que torna o reprocessamento possível</h2>
+          <p class="slide-subtitle">A tabela de controle transforma a extração em operação auditável, com estado consultável e replay previsível.</p>
+        </header>
+        <div class="code-block rise" style="--delay:.05s"><span class="code-comment">-- tabela de controle da extração</span>
+<span class="code-keyword">CREATE TABLE</span> ctl.extracao (
+  batch_id      <span class="code-keyword">UUID</span>,      <span class="code-comment">-- identifica a execução</span>
+  origem        <span class="code-keyword">VARCHAR</span>,   <span class="code-comment">-- qual fonte</span>
+  janela_inicio <span class="code-keyword">TIMESTAMP</span>, <span class="code-comment">-- de onde leu</span>
+  janela_fim    <span class="code-keyword">TIMESTAMP</span>, <span class="code-comment">-- até onde leu</span>
+  watermark     <span class="code-keyword">TIMESTAMP</span>, <span class="code-comment">-- marca avançada ao concluir</span>
+  linhas_lidas  <span class="code-keyword">BIGINT</span>, bytes <span class="code-keyword">BIGINT</span>,
+  rejeitadas    <span class="code-keyword">BIGINT</span>, destino_rejeitos <span class="code-keyword">VARCHAR</span>,
+  status        <span class="code-keyword">VARCHAR</span>,   <span class="code-comment">-- concluido | falha | parcial</span>
+  iniciado_em   <span class="code-keyword">TIMESTAMP</span>, concluido_em <span class="code-keyword">TIMESTAMP</span>, erro <span class="code-keyword">VARCHAR</span>
+);</div>
+        <div class="g2" style="margin-top:12px">
+          <div class="callout dark rise" style="--delay:.12s">O registro rejeitado permanece acessível com o dado original e o motivo. Sem ele não há como reprocessar nem como explicar a diferença ao time de negócio.</div>
+          <div class="callout green rise" style="--delay:.16s">O procedimento de replay precisa ser documentado e executado ao menos uma vez fora de incidente. Procedimento nunca testado não é procedimento.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 16: Card de trabalho -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head green rise">
+          <p class="eyebrow">Segunda hora · Card de trabalho em sala</p>
+          <h2 class="slide-title">Três perguntas medidas sobre uma origem que muda em sala</h2>
+          <p class="slide-subtitle">Em grupo, sobre a origem montada em sala: extrair, sofrer mutações e medir o que cada estratégia deixou passar.</p>
+        </header>
+        <div class="question-grid">
+          <article class="qcard rise" style="--delay:.05s">
+            <span class="qnum">1</span>
+            <h3>Quantas linhas o incremental deixou de capturar?</h3>
+            <p>Compare o destino do incremental com o de um full load posterior às mutações. A diferença é um número a explicar.</p>
+          </article>
+          <article class="qcard q2 rise" style="--delay:.12s">
+            <span class="qnum">2</span>
+            <h3>Quantos excluídos permaneceram no destino?</h3>
+            <p>Identifique por anti-junção as chaves do destino ausentes na origem, e declare o efeito sobre a receita.</p>
+          </article>
+          <article class="qcard q3 rise" style="--delay:.19s">
+            <span class="qnum">3</span>
+            <h3>Reprocessar a janela altera o destino?</h3>
+            <p>Execute a mesma janela duas vezes e compare a contagem. A carga é idempotente quando os dois números coincidem.</p>
+          </article>
+        </div>
+        <div class="clock-row rise" style="--delay:.25s">
+          <div class="clock"><strong>10<span>min</span></strong><small>Origem no ar e carregada</small></div>
+          <div class="clock"><strong>10<span>min</span></strong><small>Full load de referência</small></div>
+          <div class="clock"><strong>15<span>min</span></strong><small>Incremental por marca</small></div>
+          <div class="clock"><strong>15<span>min</span></strong><small>Mutações e divergência</small></div>
+          <div class="clock"><strong>10<span>min</span></strong><small>Replay e conclusão</small></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 17: Arquitetura do laboratório -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head blue rise">
+          <p class="eyebrow">Segunda hora · Arquitetura</p>
+          <h2 class="slide-title">O Postgres como origem transacional e o DuckDB como extrator</h2>
+          <p class="slide-subtitle">O lakehouse da Aula 10 permanece como destino. O que se acrescenta é uma origem viva, que sofre inserção, atualização e exclusão durante o encontro.</p>
+        </header>
+        <div class="arch-row rise" style="--delay:.05s">
+          <div class="arch-box"><span class="badge">origem</span><strong>Postgres · loja</strong><small>Tabela de pedidos com carimbo de atualização, sujeita a mutação em sala</small></div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-box"><span class="badge">extração</span><strong>DuckDB · postgres</strong><small>Anexa a origem, aplica a janela e grava o lote com batch_id</small></div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-box"><span class="badge">destino</span><strong>MinIO · bronze</strong><small>Parquet no bucket lakehouse, com carimbo de ingestão</small></div>
+        </div>
+        <div class="g2" style="margin-top:14px">
+          <article class="card blue rise" style="--delay:.12s">
+            <span class="card-label">Justificativa do Postgres</span>
+            <h3>A origem precisa poder mudar durante a aula</h3>
+            <p>O arquivo CSV é imutável e não permite observar o que acontece quando a origem corrige e apaga registros. O banco transacional torna a divergência reproduzível em sala, com número medido em vez de descrição.</p>
+          </article>
+          <article class="card rise" style="--delay:.18s">
+            <span class="card-label">Continuidade</span>
+            <h3>O destino é o mesmo da Aula 10</h3>
+            <p>O bucket, a convenção de prefixo e o formato Parquet permanecem. A aula acrescenta ao lakehouse a camada de controle e o carimbo de lote, sem refazer o ambiente.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 18: Preparação -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head dark rise">
+          <p class="eyebrow">Segunda hora · Preparação · 10 minutos</p>
+          <h2 class="slide-title">A origem transacional no ar e carregada com os pedidos</h2>
+          <p class="slide-subtitle">Um container e um bloco de configuração. O MinIO da Aula 10 permanece como está.</p>
+        </header>
+        <div class="g2">
+          <div class="code-block rise" style="--delay:.05s"><span class="code-comment"># 1. origem transacional</span>
+docker run -d --name origem -p 5432:5432 \
+  -e POSTGRES_PASSWORD=olist \
+  -e POSTGRES_DB=loja postgres:16
+
+<span class="code-comment"># 2. MinIO da Aula 10 continua no ar</span>
+docker start minio
+
+<span class="code-comment"># 3. motor</span>
+duckdb lakehouse.duckdb</div>
+          <div class="code-block rise" style="--delay:.09s"><span class="code-comment">-- 4. anexar a origem e criar a tabela</span>
+<span class="code-keyword">INSTALL</span> postgres; <span class="code-keyword">LOAD</span> postgres;
+<span class="code-keyword">ATTACH</span> <span class="code-string">'host=localhost port=5432 dbname=loja
+        user=postgres password=olist'</span>
+  <span class="code-keyword">AS</span> origem (<span class="code-keyword">TYPE</span> postgres);
+
+<span class="code-keyword">CREATE TABLE</span> origem.pedido <span class="code-keyword">AS</span>
+<span class="code-keyword">SELECT</span> order_id, customer_id, order_status,
+       <span class="code-keyword">CAST</span>(order_purchase_timestamp <span class="code-keyword">AS</span> <span class="code-keyword">TIMESTAMP</span>) <span class="code-keyword">AS</span> comprado_em,
+       <span class="code-keyword">CAST</span>(order_purchase_timestamp <span class="code-keyword">AS</span> <span class="code-keyword">TIMESTAMP</span>) <span class="code-keyword">AS</span> atualizado_em
+<span class="code-keyword">FROM</span> read_csv_auto(<span class="code-string">'olist/olist_orders_dataset.csv'</span>);
+
+<span class="code-keyword">CREATE SCHEMA IF NOT EXISTS</span> ctl;</div>
+        </div>
+        <div class="observe-box rise" style="--delay:.14s"><strong>Verificação de partida:</strong> <span class="mono">SELECT count(*) FROM origem.pedido</span> deve devolver <strong>99 441</strong>. Este número é a referência de todas as comparações do encontro, e precisa ser anotado antes de qualquer extração.</div>
+      </div>
+    </section>
+
+    <!-- Slide 19: Full load de referência -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head green rise">
+          <p class="eyebrow">Segunda hora · Full load · 10 minutos</p>
+          <h2 class="slide-title">A extração completa estabelece a referência de comparação</h2>
+          <p class="slide-subtitle">Executada uma vez, antes de qualquer mutação, ela define o estado correto contra o qual as estratégias seguintes serão medidas.</p>
+        </header>
+        <div class="code-block rise" style="--delay:.05s"><span class="code-comment">-- full load: lê a origem inteira e grava a bronze com carimbo de lote</span>
+<span class="code-keyword">SET</span> VARIABLE lote = uuid();
+
+<span class="code-keyword">COPY</span> (
+  <span class="code-keyword">SELECT</span> *, getvariable(<span class="code-string">'lote'</span>) <span class="code-keyword">AS</span> batch_id, now() <span class="code-keyword">AS</span> ingerido_em
+  <span class="code-keyword">FROM</span> origem.pedido
+) <span class="code-keyword">TO</span> <span class="code-string">'s3://lakehouse/bronze/pedido_full'</span>
+  (<span class="code-keyword">FORMAT</span> parquet, OVERWRITE_OR_IGNORE, COMPRESSION zstd);
+
+<span class="code-comment">-- registra a execução na tabela de controle</span>
+<span class="code-keyword">INSERT INTO</span> ctl.extracao <span class="code-keyword">SELECT</span> getvariable(<span class="code-string">'lote'</span>), <span class="code-string">'postgres.pedido'</span>,
+  <span class="code-keyword">NULL</span>, now(), max(atualizado_em), count(*), <span class="code-number">0</span>, <span class="code-number">0</span>, <span class="code-keyword">NULL</span>,
+  <span class="code-string">'concluido'</span>, now(), now(), <span class="code-keyword">NULL</span> <span class="code-keyword">FROM</span> origem.pedido;</div>
+        <div class="g2" style="margin-top:12px">
+          <div class="observe-box rise" style="--delay:.12s"><strong>Anote:</strong> a contagem gravada, o tempo de execução e o tamanho do prefixo no bucket. Os três reaparecem na comparação final.</div>
+          <div class="callout rise" style="--delay:.16s">A marca d'água nasce aqui, como o maior valor de <span class="mono">atualizado_em</span> observado. Toda janela incremental parte deste ponto.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 20: Incremental por marca d'água -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head amber rise">
+          <p class="eyebrow">Segunda hora · Incremental · 15 minutos</p>
+          <h2 class="slide-title">A extração incremental lê apenas o que mudou desde a última marca</h2>
+          <p class="slide-subtitle">Cada grupo implementa a janela, a sobreposição e o avanço condicionado da marca d'água.</p>
+        </header>
+        <div class="code-block rise" style="--delay:.05s"><span class="code-comment">-- 1. lê a marca d'água da última execução concluída</span>
+<span class="code-keyword">SET</span> VARIABLE marca = (<span class="code-keyword">SELECT</span> max(watermark) <span class="code-keyword">FROM</span> ctl.extracao
+                    <span class="code-keyword">WHERE</span> status = <span class="code-string">'concluido'</span>);
+
+<span class="code-comment">-- 2. janela com sobreposição deliberada de 5 minutos</span>
+<span class="code-keyword">CREATE OR REPLACE TABLE</span> stg.lote <span class="code-keyword">AS</span>
+<span class="code-keyword">SELECT</span> * <span class="code-keyword">FROM</span> origem.pedido
+<span class="code-keyword">WHERE</span> atualizado_em &gt; getvariable(<span class="code-string">'marca'</span>) - <span class="code-keyword">INTERVAL</span> <span class="code-number">5</span> <span class="code-keyword">MINUTE</span>;
+
+<span class="code-comment">-- 3. aplica de forma idempotente, deduplicando pela chave natural</span>
+<span class="code-keyword">INSERT OR REPLACE INTO</span> bronze.pedido
+<span class="code-keyword">SELECT</span> * <span class="code-keyword">FROM</span> stg.lote
+<span class="code-keyword">QUALIFY</span> row_number() <span class="code-keyword">OVER</span> (<span class="code-keyword">PARTITION BY</span> order_id
+                            <span class="code-keyword">ORDER BY</span> atualizado_em <span class="code-keyword">DESC</span>) = <span class="code-number">1</span>;
+
+<span class="code-comment">-- 4. só agora a marca avança, com o lote já persistido</span>
+<span class="code-keyword">INSERT INTO</span> ctl.extracao <span class="code-keyword">SELECT</span> uuid(), <span class="code-string">'postgres.pedido'</span>, getvariable(<span class="code-string">'marca'</span>),
+  now(), max(atualizado_em), count(*), <span class="code-number">0</span>, <span class="code-number">0</span>, <span class="code-keyword">NULL</span>, <span class="code-string">'concluido'</span>, now(), now(), <span class="code-keyword">NULL</span>
+<span class="code-keyword">FROM</span> stg.lote;</div>
+        <div class="pitfall rise" style="--delay:.14s">Inverter a ordem dos passos 3 e 4. A marca avançada antes da gravação transforma qualquer falha em lacuna permanente, porque a janela seguinte já parte do ponto posterior.</div>
+      </div>
+    </section>
+
+    <!-- Slide 21: As mutações -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head red rise">
+          <p class="eyebrow">Segunda hora · Mutações · 15 minutos</p>
+          <h2 class="slide-title">A origem muda de três maneiras, e o incremental observa apenas uma</h2>
+          <p class="slide-subtitle">Execute o bloco abaixo na origem, rode o incremental de novo e meça. Os três casos são deliberados e os números são conferíveis.</p>
+        </header>
+        <div class="code-block rise" style="--delay:.05s"><span class="code-comment">-- A. atualização disciplinada: move o carimbo (500 pedidos)</span>
+<span class="code-keyword">UPDATE</span> origem.pedido <span class="code-keyword">SET</span> order_status = <span class="code-string">'canceled'</span>, atualizado_em = now()
+<span class="code-keyword">WHERE</span> order_id <span class="code-keyword">IN</span> (<span class="code-keyword">SELECT</span> order_id <span class="code-keyword">FROM</span> origem.pedido <span class="code-keyword">LIMIT</span> <span class="code-number">500</span>);
+
+<span class="code-comment">-- B. atualização sem disciplina: NÃO move o carimbo (300 pedidos)</span>
+<span class="code-keyword">UPDATE</span> origem.pedido <span class="code-keyword">SET</span> order_status = <span class="code-string">'unavailable'</span>
+<span class="code-keyword">WHERE</span> order_id <span class="code-keyword">IN</span> (<span class="code-keyword">SELECT</span> order_id <span class="code-keyword">FROM</span> origem.pedido <span class="code-keyword">LIMIT</span> <span class="code-number">300</span> <span class="code-keyword">OFFSET</span> <span class="code-number">1000</span>);
+
+<span class="code-comment">-- C. exclusão física: a linha deixa de existir (200 pedidos)</span>
+<span class="code-keyword">DELETE FROM</span> origem.pedido
+<span class="code-keyword">WHERE</span> order_id <span class="code-keyword">IN</span> (<span class="code-keyword">SELECT</span> order_id <span class="code-keyword">FROM</span> origem.pedido <span class="code-keyword">LIMIT</span> <span class="code-number">200</span> <span class="code-keyword">OFFSET</span> <span class="code-number">5000</span>);</div>
+        <div class="g3" style="margin-top:12px">
+          <article class="card green rise" style="--delay:.12s"><span class="card-label">Caso A · 500</span><h3>Capturado</h3><p>O carimbo se moveu, a janela alcança as linhas e o destino recebe o novo estado.</p></article>
+          <article class="card amber rise" style="--delay:.16s"><span class="card-label">Caso B · 300</span><h3>Não observado</h3><p>O carimbo permaneceu no valor anterior, e nada indica à extração que a linha mudou.</p></article>
+          <article class="card rise" style="--delay:.2s"><span class="card-label">Caso C · 200</span><h3>Jamais capturado</h3><p>A linha não existe mais na origem, e nenhuma consulta ao estado atual pode revelá-la.</p></article>
+        </div>
+        <div class="observe-box rise" style="--delay:.24s"><strong>A medida do encontro:</strong> após o incremental, a origem tem 99 241 pedidos e o destino tem 99 441. A divergência de 500 registros — 300 com estado incorreto e 200 que deixaram de existir — é o resultado a explicar por escrito.</div>
+      </div>
+    </section>
+
+    <!-- Slide 22: Reconciliação -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head blue rise">
+          <p class="eyebrow">Segunda hora · Correção · 10 minutos</p>
+          <h2 class="slide-title">A reconciliação por chave revela o que a janela não alcança</h2>
+          <p class="slide-subtitle">Sem acesso ao log de transações, a defesa disponível é comparar periodicamente o conjunto de chaves da origem com o do destino.</p>
+        </header>
+        <div class="g2">
+          <div class="code-block rise" style="--delay:.05s"><span class="code-comment">-- 1. chaves que sumiram da origem: exclusões nunca capturadas</span>
+<span class="code-keyword">SELECT</span> count(*) <span class="code-keyword">AS</span> excluidos_nao_propagados
+<span class="code-keyword">FROM</span> bronze.pedido d
+<span class="code-keyword">ANTI JOIN</span> origem.pedido o <span class="code-keyword">USING</span> (order_id);
+
+<span class="code-comment">-- 2. linhas cujo estado diverge: atualização sem carimbo</span>
+<span class="code-keyword">SELECT</span> count(*) <span class="code-keyword">AS</span> estado_divergente
+<span class="code-keyword">FROM</span> bronze.pedido d
+<span class="code-keyword">JOIN</span> origem.pedido o <span class="code-keyword">USING</span> (order_id)
+<span class="code-keyword">WHERE</span> d.order_status &lt;&gt; o.order_status;
+
+<span class="code-comment">-- 3. marcação lógica da exclusão no destino</span>
+<span class="code-keyword">UPDATE</span> bronze.pedido <span class="code-keyword">SET</span> excluido_em = now()
+<span class="code-keyword">WHERE</span> order_id <span class="code-keyword">NOT IN</span> (<span class="code-keyword">SELECT</span> order_id <span class="code-keyword">FROM</span> origem.pedido);</div>
+          <div class="card-stack">
+            <article class="card blue rise" style="--delay:.1s">
+              <span class="card-label">Decisão a registrar</span>
+              <h3>Exclusão marcada ou removida</h3>
+              <p>Marcar a exclusão preserva o histórico e permite responder desde quando o pedido deixou de existir. Remover a linha alinha o destino ao estado atual e apaga a informação. A escolha é de negócio, e precisa estar declarada.</p>
+            </article>
+            <article class="card rise" style="--delay:.16s">
+              <span class="card-label">Custo</span>
+              <h3>A reconciliação lê a origem inteira</h3>
+              <p>A comparação de chaves tem custo próximo ao do full load. Por isso ela é periódica, e não a cada execução. A frequência se define pela tolerância a divergência declarada no requisito não funcional.</p>
+            </article>
+          </div>
+        </div>
+        <div class="observe-box rise" style="--delay:.24s">Espera-se <strong>200</strong> chaves ausentes na origem e <strong>300</strong> linhas com estado divergente. Os dois números precisam corresponder exatamente às mutações aplicadas.</div>
+      </div>
+    </section>
+
+    <!-- Slide 23: Idempotência e replay -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head green rise">
+          <p class="eyebrow">Segunda hora · Replay</p>
+          <h2 class="slide-title">A mesma janela executada duas vezes produz a mesma contagem</h2>
+          <p class="slide-subtitle">A verificação encerra o laboratório e é a prova de que a extração pode ser reprocessada sem intervenção manual.</p>
+        </header>
+        <div class="code-block rise" style="--delay:.05s"><span class="code-comment">-- contagem antes do replay</span>
+<span class="code-keyword">SELECT</span> count(*) <span class="code-keyword">AS</span> antes <span class="code-keyword">FROM</span> bronze.pedido;
+
+<span class="code-comment">-- reexecuta a MESMA janela, com o mesmo ponto de partida</span>
+<span class="code-comment">-- (repetir os passos 2 e 3 do slide do incremental)</span>
+
+<span class="code-comment">-- contagem depois: o número precisa ser idêntico</span>
+<span class="code-keyword">SELECT</span> count(*) <span class="code-keyword">AS</span> depois <span class="code-keyword">FROM</span> bronze.pedido;
+
+<span class="code-comment">-- e a auditoria registra duas execuções distintas</span>
+<span class="code-keyword">SELECT</span> batch_id, janela_inicio, linhas_lidas, concluido_em
+<span class="code-keyword">FROM</span> ctl.extracao <span class="code-keyword">ORDER BY</span> concluido_em <span class="code-keyword">DESC</span> <span class="code-keyword">LIMIT</span> <span class="code-number">2</span>;</div>
+        <div class="g2" style="margin-top:12px">
+          <div class="callout green rise" style="--delay:.12s">O critério de aceite: a contagem permanece igual e a tabela de controle registra dois lotes com identificadores distintos.</div>
+          <div class="callout rise" style="--delay:.16s">Se a contagem crescer, a chave de deduplicação está incorreta ou ausente. O crescimento é a assinatura da carga não idempotente.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 24: Conferência -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head dark rise">
+          <p class="eyebrow">Segunda hora · Conferência</p>
+          <h2 class="slide-title">Os valores de referência para conferir a extração</h2>
+          <p class="slide-subtitle">Números esperados em cada etapa, sobre a tabela de pedidos da Olist com as mutações do slide anterior aplicadas.</p>
+        </header>
+        <table class="data-table rise" style="--delay:.05s">
+          <thead>
+            <tr><th style="width:24%">Etapa</th><th style="width:36%">O que verificar</th><th style="width:40%">Referência</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Origem carregada</strong></td><td>Contagem na tabela do Postgres</td><td>99 441 pedidos, idênticos ao CSV</td></tr>
+            <tr><td><strong>Full load</strong></td><td>Contagem gravada na bronze</td><td>99 441, com um único batch_id</td></tr>
+            <tr><td><strong>Após as mutações</strong></td><td>Contagem na origem</td><td>99 241, com 200 excluídos fisicamente</td></tr>
+            <tr><td><strong>Incremental</strong></td><td>Linhas trazidas pela janela</td><td>Ordem de 500, correspondentes ao caso A</td></tr>
+            <tr><td><strong>Reconciliação</strong></td><td>Anti-junção e comparação de estado</td><td>200 chaves ausentes e 300 estados divergentes</td></tr>
+            <tr><td><strong>Replay</strong></td><td>Contagem antes e depois da reexecução</td><td>Idêntica, com dois lotes na tabela de controle</td></tr>
+          </tbody>
+        </table>
+        <div class="callout rise" style="--delay:.14s;margin-top:12px">Divergência nos números pode decorrer de outra ordem de aplicação das mutações. Exige-se que a sequência executada esteja registrada junto do resultado.</div>
+      </div>
+    </section>
+
+    <!-- Slide 25: Uso de IA -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head amber rise">
+          <p class="eyebrow">Segunda hora · Uso de IA · em paralelo</p>
+          <h2 class="slide-title">A IA escreve a extração, e o grupo responde pela reconciliação</h2>
+          <p class="slide-subtitle">O assistente acelera a escrita do SQL e do controle. A conferência dos números permanece atribuição do grupo e determina a correção do resultado.</p>
+        </header>
+        <div class="g3">
+          <article class="card amber rise" style="--delay:.05s">
+            <span class="card-label">Prompt 1 · Contrato</span>
+            <h3>Levantar antes de extrair</h3>
+            <p>"Este é o schema da tabela de pedidos. Liste as perguntas que preciso responder sobre a origem antes de escolher entre full load, incremental por carimbo e captura pelo log."</p>
+          </article>
+          <article class="card rise" style="--delay:.12s">
+            <span class="card-label">Prompt 2 · Geração</span>
+            <h3>Escrever a janela e o controle</h3>
+            <p>"Escreva SQL DuckDB que extraia do Postgres anexado apenas o que mudou desde a última marca d'água, com sobreposição de cinco minutos, aplicação idempotente e registro em tabela de controle."</p>
+          </article>
+          <article class="card blue rise" style="--delay:.19s">
+            <span class="card-label">Prompt 3 · Crítica</span>
+            <h3>Procurar a perda silenciosa</h3>
+            <p>"Aponte, neste pipeline, o que se perde quando a origem apaga uma linha, o que acontece se a execução falhar depois de gravar metade e o que quebra se a mesma janela rodar duas vezes."</p>
+          </article>
+        </div>
+        <div class="checklist" style="margin-top:12px">
+          <div class="check-item rise" style="--delay:.24s"><span>✓</span><p>Confira a contagem em cada etapa e explique cada diferença antes de seguir.</p></div>
+          <div class="check-item rise" style="--delay:.27s"><span>✓</span><p>Verifique se o SQL gerado avança a marca d'água antes ou depois da gravação.</p></div>
+          <div class="check-item rise" style="--delay:.3s"><span>✓</span><p>Registre o prompt junto do SQL, uma vez que ele integra o registro da decisão.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 26: Medição -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head blue rise">
+          <p class="eyebrow">Segunda hora · Medição</p>
+          <h2 class="slide-title">As evidências que cada grupo mede e registra</h2>
+          <p class="slide-subtitle">Cada linha é um número obtido por execução, e não uma afirmação sobre o comportamento esperado do pipeline.</p>
+        </header>
+        <table class="data-table rise" style="--delay:.05s">
+          <thead>
+            <tr><th style="width:26%">Evidência</th><th style="width:38%">Como obter</th><th style="width:36%">O que ela demonstra</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Custo de cada estratégia</strong></td><td>Tempo e linhas lidas do full load contra o incremental</td><td>Quanto a janela economiza em leitura da origem</td></tr>
+            <tr><td><strong>Divergência acumulada</strong></td><td>Anti-junção entre destino e origem após as mutações</td><td>Que a perda é silenciosa e cumulativa</td></tr>
+            <tr><td><strong>Efeito no negócio</strong></td><td>Soma de receita no destino contra a soma na origem</td><td>Que a divergência técnica altera o número apresentado</td></tr>
+            <tr><td><strong>Idempotência</strong></td><td>Contagem antes e depois do replay da mesma janela</td><td>Que a reentrega não duplica o dado</td></tr>
+            <tr><td><strong>Auditoria</strong></td><td>Linhas em <span class="mono">ctl.extracao</span> ao final do encontro</td><td>Que cada execução é rastreável e reproduzível</td></tr>
+          </tbody>
+        </table>
+        <div class="observe-box rise" style="--delay:.14s;margin-top:12px">A terceira linha é a que conecta o laboratório ao parceiro: uma diferença de 500 pedidos em 99 441 parece pequena até ser convertida em receita e apresentada como número de fechamento.</div>
+      </div>
+    </section>
+
+    <!-- Slide 27: Ponte com a Aula 1 -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head dark rise">
+          <p class="eyebrow">Ponte com a Aula 1 · Spec-Driven Development</p>
+          <h2 class="slide-title">Do tema à especificação executável</h2>
+          <p class="slide-subtitle">A decisão de extração entra no projeto como requisito, decisão registrada e critério verificável.</p>
+        </header>
+        <div class="g4">
+          <article class="card rise" style="--delay:.05s">
+            <span class="card-label">RF-005</span>
+            <h3>Requisito funcional</h3>
+            <p>Ingerir todas as alterações de pedidos da origem, inclusive exclusões e correções retroativas.</p>
+          </article>
+          <article class="card amber rise" style="--delay:.1s">
+            <span class="card-label">RNF-005</span>
+            <h3>Requisito não funcional</h3>
+            <p>Atraso da marca d'água menor ou igual a uma hora; taxa de rejeição até 0,1%; qualquer janela dos últimos 30 dias reprocessável sem intervenção manual.</p>
+          </article>
+          <article class="card blue rise" style="--delay:.15s">
+            <span class="card-label">ADR-ING-01</span>
+            <h3>Decisão de arquitetura</h3>
+            <p>Captura pelo log de transações em vez de incremental por campo de atualização. Contexto: a origem apaga registros e corrige lançamentos com data retroativa. Consequência: exige retenção do log e garantia de ordenação.</p>
+          </article>
+          <article class="card green rise" style="--delay:.2s">
+            <span class="card-label">Cenário de aceite</span>
+            <h3>Critério verificável</h3>
+            <p>Dado que o lote de 09/09/2026 já foi carregado, quando reprocesso o mesmo identificador de lote, então o volume no destino permanece igual e a auditoria registra duas execuções.</p>
+          </article>
+        </div>
+        <div class="callout dark rise" style="--delay:.26s;margin-top:12px">A escolha entre incremental e captura pelo log é decisão de arquitetura com consequência de custo e de acesso. Registrá-la evita que a próxima equipe a refaça sem conhecer o motivo.</div>
+      </div>
+    </section>
+
+    <!-- Slide 28: Entrega -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head green rise">
+          <p class="eyebrow">Entrega do card de trabalho</p>
+          <h2 class="slide-title">A extração versionada, os três números e a decisão registrada</h2>
+          <p class="slide-subtitle">O que o grupo entrega ao final da segunda hora, e o que será conferido.</p>
+        </header>
+        <div class="deliverable">
+          <article class="artifact rise" style="--delay:.05s">
+            <small>Artefato</small>
+            <h3>Pipeline de extração e o relato da divergência</h3>
+            <p>O SQL da carga inicial, da janela incremental e da reconciliação; os três números medidos; e uma frase por número que declare o efeito sobre a decisão de negócio do parceiro.</p>
+          </article>
+          <div class="acceptance">
+            <div class="accept rise" style="--delay:.09s"><span>1</span><p>A origem transacional está no ar e a contagem inicial coincide com a do CSV.</p></div>
+            <div class="accept rise" style="--delay:.12s"><span>2</span><p>A tabela de controle registra cada execução com lote, janela, marca d'água e status.</p></div>
+            <div class="accept rise" style="--delay:.15s"><span>3</span><p>A marca d'água avança somente após a gravação do lote concluir.</p></div>
+            <div class="accept rise" style="--delay:.18s"><span>4</span><p>Os três casos de mutação foram aplicados e a divergência resultante está medida.</p></div>
+            <div class="accept rise" style="--delay:.21s"><span>5</span><p>O replay da mesma janela mantém a contagem e registra duas execuções distintas.</p></div>
+            <div class="accept rise" style="--delay:.24s"><span>6</span><p>A decisão sobre exclusão marcada ou removida está declarada por escrito.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 29: Autoestudos -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head dark rise">
+          <p class="eyebrow">Autoestudos · antes do próximo encontro</p>
+          <h2 class="slide-title">Os três materiais convergem para uma mesma pergunta</h2>
+          <p class="slide-subtitle">O que a origem precisa garantir para que a extração seja correta, e o que fazer quando ela não garante?</p>
+        </header>
+        <div class="study-grid">
+          <a class="study rise" style="--delay:.05s" href="https://debezium.io/documentation/reference/stable/index.html" target="_blank" rel="noopener">
+            <span class="kind">Referência técnica</span>
+            <h3>Debezium — Change Data Capture</h3>
+            <p>Leia a visão geral identificando o que a captura pelo log exige da origem, e compare com o que a origem do seu parceiro oferece hoje.</p>
+            <span class="go">debezium.io · documentação</span>
+          </a>
+          <a class="study rise" style="--delay:.12s" href="https://sre.google/sre-book/handling-overload/" target="_blank" rel="noopener">
+            <span class="kind">Leitura</span>
+            <h3>Google SRE Book — Handling overload</h3>
+            <p>Observe como o capítulo trata recusa de carga e recuo exponencial, e traduza as recomendações para a extração de uma API com limite de requisições.</p>
+            <span class="go">sre.google · capítulo</span>
+          </a>
+          <a class="study rise" style="--delay:.19s" href="https://duckdb.org/docs/stable/core_extensions/postgres.html" target="_blank" rel="noopener">
+            <span class="kind">Documentação</span>
+            <h3>DuckDB — extensão Postgres</h3>
+            <p>Percorra a documentação da extensão usada no laboratório, com atenção ao que é lido sob demanda e ao que é materializado no motor.</p>
+            <span class="go">duckdb.org · documentação</span>
+          </a>
+        </div>
+        <div class="callout dark rise" style="--delay:.25s;margin-top:12px">Traga para o próximo encontro uma frase: <strong>na origem do meu parceiro, a alteração que não conseguimos capturar hoje é ___, e o efeito dela sobre o número apresentado é ___.</strong></div>
+      </div>
+    </section>
+
+    <!-- Slide 30: Fechamento -->
+    <section class="slide slide-closing">
+      <div class="sc">
+        <p class="eyebrow rise" style="color:var(--muted)">Aula 12 · Síntese</p>
+        <h2 class="final-line rise" style="--delay:.06s">A estratégia de extração determina <em>quais mudanças</em> o destino é capaz de observar, e a reconciliação determina <em>em quanto tempo</em> a divergência é descoberta.</h2>
+        <div class="refs rise" style="--delay:.16s">
+          <span class="ref">Debezium — Change Data Capture</span>
+          <span class="ref">Google SRE — Handling overload</span>
+          <span class="ref">RFC 9110 — HTTP Semantics</span>
+          <span class="ref">DuckDB — Postgres extension</span>
+        </div>
+        <div class="callout dark rise" style="--delay:.24s;margin-top:22px">Pergunta final: <strong>na origem do parceiro, quantos dias a divergência levaria para ser percebida sem reconciliação?</strong></div>
+      </div>
+    </section>
+
+<!-- encontro:meta:start -->
+<div class="slide encontro-slide"><div class="sc"><section class="encontro-meta" data-encontro-ficha><h2>Sobre este encontro</h2><p class="encontro-ref">Coleta e Extração · 09/09/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>Ao final do encontro, o estudante deve ser capaz de levantar o contrato de uma fonte, escolher entre full load, incremental por carimbo de tempo e captura pelo log a partir da semântica de atualização da origem, e construir uma extração idempotente cuja divergência seja medida e explicada.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>Primeira hora de exposição dialogada em três blocos, cada um encerrado por checklist de aplicação e erro comum. Segunda hora de atividade em grupo: os estudantes montam uma origem transacional em Postgres com os pedidos da Olist, extraem por full load e por janela incremental para o lakehouse da Aula 10, aplicam mutações deliberadas de atualização e exclusão na origem e medem exatamente o que cada estratégia deixou de capturar.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol><li>1ª hora · Bloco 1 (20 min) — Contrato da fonte: a fronteira da extração, o perfil da origem, a semântica de atualização e os quatro tipos de origem com seus modos de falha.</li><li>1ª hora · Bloco 2 (25 min) — Estratégias: full load, incremental por marca d'água e captura pelo log, as três formas de divergência do incremental e a idempotência como condição do replay.</li><li>1ª hora · Bloco 3 (15 min) — APIs, arquivos e operação: paginação, recuo exponencial, chegada atômica, schema drift, tabela de controle e procedimento de replay.</li><li>2ª hora · Card de trabalho (60 min) — Em grupo: origem no ar e carregada (10 min), full load de referência (10 min), incremental por marca d'água (15 min), mutações e medição da divergência (15 min), reconciliação, replay e conclusão escrita (10 min).</li></ol></div></section></div></div>
+<!-- encontro:meta:end -->
+</div>
+
+  <footer class="slide-footer">
+    <div class="footer-links">
+      <a href="../../home-module-11-eng-software.html" class="back-home">🏠 Módulo 11</a>
+      <a href="../materials/lesson-12-material.html" class="back-home material">📖 Material</a>
+    </div>
+    <div class="nav-wrapper">
+      <button type="button" class="nav-btn" id="prev-btn" onclick="previousSlide()">← Anterior</button>
+      <span class="slide-counter"><span id="current-slide">1</span> / <span id="total-slides">31</span></span>
+      <button type="button" class="nav-btn" id="next-btn" onclick="nextSlide()">Próximo →</button>
+    </div>
+    <button type="button" class="fullscreen-btn" onclick="toggleFullScreen()" title="Tela cheia">⛶</button>
   </footer>
-  <script src="../lesson-content.js"></script>
+
   <script>
-    const root = document.getElementById('lesson-slides');
-    const total = window.renderLessonSlides(root);
-    let current = 0;
-    const items = [...root.children];
-    const counter = document.getElementById('counter');
-    const prev = document.getElementById('prev');
-    const next = document.getElementById('next');
-    function show(index) {
-      current = Math.max(0, Math.min(index, total - 1));
-      items.forEach((item, i) => item.classList.toggle('active', i === current));
-      counter.textContent = (current + 1) + ' / ' + total;
-      prev.disabled = current === 0;
-      next.disabled = current === total - 1;
+    var currentSlide = 0;
+    var slides = Array.from(document.querySelectorAll('.slide'));
+    var totalSlides = slides.length;
+
+    document.getElementById('total-slides').textContent = totalSlides;
+
+    function showSlide(index) {
+      currentSlide = Math.max(0, Math.min(index, totalSlides - 1));
+      slides.forEach(function (slide, i) {
+        slide.classList.toggle('active', i === currentSlide);
+        if (i === currentSlide) slide.scrollTop = 0;
+      });
+      document.getElementById('current-slide').textContent = currentSlide + 1;
+      document.getElementById('prev-btn').disabled = currentSlide === 0;
+      document.getElementById('next-btn').disabled = currentSlide === totalSlides - 1;
     }
-    prev.addEventListener('click', () => show(current - 1));
-    next.addEventListener('click', () => show(current + 1));
-    document.addEventListener('keydown', (event) => {
-      if (event.key === 'ArrowLeft') show(current - 1);
-      if (event.key === 'ArrowRight' || event.key === ' ') { event.preventDefault(); show(current + 1); }
+
+    function nextSlide() { showSlide(currentSlide + 1); }
+    function previousSlide() { showSlide(currentSlide - 1); }
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'ArrowRight' || event.key === ' ') {
+        event.preventDefault();
+        nextSlide();
+      } else if (event.key === 'ArrowLeft') {
+        previousSlide();
+      } else if (event.key.toLowerCase() === 'f') {
+        toggleFullScreen();
+      }
     });
-    show(0);
+
+    showSlide(0);
   </script>
 <!-- encontro:pdf:start -->
 <button type="button" class="pdf-export-btn" data-encontro-data="2026-09-09" data-encontro-docente="Afonso" data-encontro-seq="01" title="Exportar esta página em PDF com o nome padronizado">📄 Exportar PDF</button>
