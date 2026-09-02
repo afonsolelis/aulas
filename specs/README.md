@@ -15,3 +15,4 @@ Arquivos:
 - `module2-slide-structure.md`: estrutura obrigatória dos 3 slides iniciais — Capa, Daily (cronômetro 15min) e Agenda.
 - `lesson-materials.md`: padrão livro-didático para materiais de leitura (progress bar, floating nav, sidebar TOC, scroll animations).
 - `palestras-cards.md`: regras dos cards de palestras na `home-palestras.html`, incluindo tag obrigatória da empresa.
+- `favicon.md`: formato obrigatório do favicon e critério de escolha do emoji por tipo de página.

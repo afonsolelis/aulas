@@ -87,6 +87,7 @@ test.describe('README.md - Índice das Specs', () => {
       'module-2-common.md',
       'module2-slides.md',
       'lesson-materials.md',
+      'favicon.md',
     ].forEach((file) => {
       expect(readme).toContain(file);
       expect(fs.existsSync(resolveRepoPath(`specs/${file}`))).toBe(true);
@@ -401,6 +402,7 @@ test.describe('testing-standards.md - Testes Automatizados com Playwright', () =
       'testing-standards.md',
       'module2-slides.md',
       'lesson-materials.md',
+      'favicon.md',
     ].forEach((label) => {
       expect(suite).toContain(label);
     });
@@ -623,5 +625,51 @@ test.describe('config-json.md - Arquivos de Configuração JSON', () => {
       expect(fs.existsSync(resolveRepoPath(configPath)), `${homeFile}: ${configPath} deve existir`).toBe(true);
       expect(fs.existsSync(resolveRepoPath(moduleDir)), `${homeFile}: ${moduleDir} deve existir`).toBe(true);
     });
+  });
+});
+
+test.describe('favicon.md - Favicon das Páginas', () => {
+  const faviconScope = ['index.html', ...getHtmlFilesCached('pages')];
+
+  /* O href traz '>' dentro do data URI e a declaração pode ocupar duas linhas;
+     por isso o espaçamento é normalizado antes de casar o padrão. */
+  const FAVICON_TAG = /<link\b[^>]*?rel="(?:shortcut )?icon"/i;
+  const FAVICON_INLINE_SVG =
+    /<link\b[^>]*?rel="(?:shortcut )?icon"[^>]*?href="data:image\/svg\+xml,[^"]*<text[^>]*>[^<]+<\/text>/i;
+
+  function normalize(html: string): string {
+    return html.replace(/\s+/g, ' ');
+  }
+
+  function head(html: string): string {
+    return normalize(html.split(/<\/head>/i)[0]);
+  }
+
+  test('toda página do acervo deve declarar favicon dentro do <head>', () => {
+    const missing = faviconScope.filter((file) => !FAVICON_TAG.test(head(readRepoFile(file))));
+
+    expect(
+      missing,
+      `Páginas sem <link rel="icon"> no <head> — ver specs/favicon.md:\n${missing.join('\n')}`
+    ).toEqual([]);
+  });
+
+  test('o favicon deve ser SVG inline com emoji, sem requisição de rede', () => {
+    const invalid = faviconScope.filter((file) => {
+      const html = normalize(readRepoFile(file));
+      if (!FAVICON_TAG.test(html)) return false; // coberto pelo teste anterior
+      return !FAVICON_INLINE_SVG.test(html);
+    });
+
+    expect(
+      invalid,
+      `Favicons fora do padrão SVG inline com emoji, ou apontando para arquivo/host externo — ver specs/favicon.md:\n${invalid.join('\n')}`
+    ).toEqual([]);
+  });
+
+  test('a spec deve documentar o padrão aplicado nas páginas', () => {
+    const spec = readRepoFile('specs/favicon.md');
+    expect(spec).toContain('rel="icon"');
+    expect(spec).toContain('data:image/svg+xml');
   });
 });
