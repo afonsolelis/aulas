@@ -44,9 +44,8 @@ Para cada aula `N` da tabela acima:
 - **Mesclar (merge) o próprio pull request** das aulas 2, 3 e 4 no GitHub, desde que o PR
   contenha apenas alterações dentro deste escopo permitido e os testes automatizados
   (`npm test`, via CI ou hook de pre-commit) tenham passado. Autorização declarada por
-  Hermano em sessão com o agente em 10/08/2026, ainda **não ratificada por escrito pelo
-  professor titular** — sinalizar isso ao Prof. Afonso na primeira oportunidade e atualizar
-  esta linha quando ele confirmar.
+  Hermano em sessão com o agente em 10/08/2026 e **ratificada pelo professor titular
+  Afonso Brandão em 02/09/2026**.
 
 #### Alterações não permitidas
 
