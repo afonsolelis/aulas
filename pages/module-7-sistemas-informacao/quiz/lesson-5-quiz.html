@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Aula 5 - Gestão de mudanças - Quiz - Inteli</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎯</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+  <link href="../../../css/inteli-styles.css" rel="stylesheet">
+  <style>
+    :root {
+      --si: var(--inteli-green);
+      --ink: var(--inteli-dark-purple);
+      --paper: var(--inteli-white);
+      --line: var(--inteli-light-gray);
+      --muted: var(--inteli-dark-gray);
+      --alert: var(--inteli-coral);
+      --deep: color-mix(in srgb, var(--si) 62%, var(--ink));
+      --soft-si: color-mix(in srgb, var(--si) 16%, var(--paper));
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: 'Manrope', system-ui, sans-serif;
+      background: var(--ink); color: var(--ink);
+      min-height: 100vh; min-height: 100dvh;
+      display: flex; flex-direction: column;
+      -webkit-text-size-adjust: 100%;
+    }
+    header.barra {
+      background: var(--ink); color: var(--paper);
+      padding: 14px 18px calc(14px + env(safe-area-inset-top)); flex: 0 0 auto;
+      display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+    }
+    .barra .curso { font-size: .68rem; font-weight: 700; letter-spacing: .1em;
+                    text-transform: uppercase; color: color-mix(in srgb, var(--si) 80%, white); }
+    .barra .quem { font-size: .78rem; font-weight: 800; }
+    main {
+      flex: 1 1 auto; background: var(--paper);
+      border-radius: 22px 22px 0 0; padding: 22px 18px calc(28px + env(safe-area-inset-bottom));
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    [data-tela] { display: none; flex-direction: column; gap: 16px; flex: 1 1 auto; }
+    [data-tela].ativa { display: flex; }
+
+    h1 { font-size: 1.32rem; line-height: 1.25; margin: 0; font-weight: 800; }
+    h2 { font-size: 1.02rem; margin: 0; font-weight: 800; }
+    p  { margin: 0; line-height: 1.55; font-size: .93rem; color: var(--muted); }
+    .selo {
+      display: inline-block; background: var(--soft-si); color: var(--deep);
+      border-radius: 999px; padding: 5px 13px; font-size: .72rem; font-weight: 800;
+      letter-spacing: .04em; text-transform: uppercase; align-self: flex-start;
+    }
+    label { font-size: .82rem; font-weight: 800; }
+    input {
+      width: 100%; padding: 15px 16px; font: inherit; font-size: 1.05rem; font-weight: 700;
+      border: 2px solid var(--line); border-radius: 13px; background: var(--paper); color: var(--ink);
+    }
+    input:focus { outline: none; border-color: var(--deep); }
+    button {
+      font: inherit; font-weight: 800; cursor: pointer; border: none; border-radius: 13px;
+      padding: 16px 18px; font-size: 1rem; background: var(--deep); color: var(--paper);
+    }
+    button:disabled { opacity: .5; cursor: default; }
+    .aviso { font-size: .85rem; font-weight: 700; color: var(--alert); min-height: 1.1em; }
+
+    /* Alternativas */
+    .alternativas { display: flex; flex-direction: column; gap: 10px; }
+    .alt {
+      display: flex; align-items: flex-start; gap: 12px; text-align: left;
+      background: var(--paper); color: var(--ink);
+      border: 2px solid var(--line); border-radius: 14px; padding: 14px 15px;
+      font-size: .95rem; font-weight: 600; line-height: 1.4; width: 100%;
+    }
+    .alt .letra {
+      flex: 0 0 28px; height: 28px; border-radius: 8px; background: var(--soft-si);
+      color: var(--deep); font-weight: 800; font-size: .85rem;
+      display: grid; place-items: center;
+    }
+    .alt[aria-pressed="true"] { border-color: var(--deep); background: var(--soft-si); }
+    .alt.certa   { border-color: #2f8f78; background: color-mix(in srgb, #2f8f78 14%, white); }
+    .alt.errada  { border-color: var(--alert); background: color-mix(in srgb, var(--alert) 12%, white); }
+    .alt.certa .letra  { background: #2f8f78; color: white; }
+    .alt.errada .letra { background: var(--alert); color: white; }
+
+    /* Cronômetro */
+    .cronometro { display: flex; align-items: center; gap: 12px; }
+    .trilha { flex: 1 1 auto; height: 9px; border-radius: 999px; background: var(--line); overflow: hidden; }
+    .barra-tempo { height: 100%; width: 100%; background: var(--deep); transition: width .25s linear; }
+    .segundos { font-variant-numeric: tabular-nums; font-weight: 800; font-size: 1rem; min-width: 2.4ch; text-align: right; }
+
+    /* Resultado */
+    .veredito { border-radius: 16px; padding: 18px; text-align: center; }
+    .veredito.acerto { background: color-mix(in srgb, #2f8f78 14%, white); color: #1f6b58; }
+    .veredito.erro   { background: color-mix(in srgb, var(--alert) 12%, white); color: #a03a2f; }
+    .veredito .titulo { font-size: 1.18rem; font-weight: 800; }
+    .veredito .pontos { font-size: 2.1rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+    .explicacao { background: var(--soft-si); border-radius: 13px; padding: 14px; font-size: .88rem;
+                  line-height: 1.55; color: var(--deep); font-weight: 600; }
+
+    /* Ranking */
+    .ranking { display: flex; flex-direction: column; gap: 6px; }
+    .linha {
+      display: grid; grid-template-columns: 30px 1fr auto; gap: 10px; align-items: center;
+      padding: 11px 13px; border-radius: 11px; background: color-mix(in srgb, var(--line) 40%, white);
+      font-size: .92rem; font-weight: 700;
+    }
+    .linha.eu { background: var(--soft-si); border: 2px solid var(--deep); }
+    .linha .pos { font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .linha .pts { font-variant-numeric: tabular-nums; font-weight: 800; color: var(--deep); }
+    .linha.podio-1 .pos, .linha.podio-2 .pos, .linha.podio-3 .pos { color: var(--deep); }
+
+    .rodape { margin-top: auto; padding-top: 14px; border-top: 1px solid var(--line);
+              display: flex; gap: 9px; flex-wrap: wrap; }
+    .rodape a {
+      text-decoration: none; font-size: .76rem; font-weight: 800; padding: 9px 12px;
+      border-radius: 9px; background: color-mix(in srgb, var(--line) 45%, white); color: var(--ink);
+    }
+    .estado-conexao { font-size: .7rem; font-weight: 700; color: var(--muted); }
+    .pulsa { animation: pulsa 1.6s ease-in-out infinite; }
+    @keyframes pulsa { 0%,100% { opacity: 1 } 50% { opacity: .45 } }
+    @media (min-width: 620px) {
+      body { align-items: center; }
+      main { max-width: 620px; width: 100%; margin: 0 auto; border-radius: 22px; }
+      header.barra { max-width: 620px; width: 100%; margin: 0 auto; }
+      h1 { font-size: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <header class="barra">
+    <span class="curso">Módulo 7 · Aula 5 · GMUD</span>
+    <span class="quem" id="quem"></span>
+  </header>
+
+  <main>
+    <section data-tela="carregando" class="ativa">
+      <p class="pulsa">Carregando a sala…</p>
+    </section>
+
+    <section data-tela="entrada">
+      <span class="selo">Gestão de mudanças</span>
+      <h1>Escolha o nome que aparecerá no placar</h1>
+      <p>O nome é público para a turma durante a sessão. Use algo que você reconheça no ranking projetado.</p>
+      <label for="nome">Seu nome na sala</label>
+      <input id="nome" type="text" maxlength="24" autocomplete="off" autocapitalize="words"
+             spellcheck="false" placeholder="entre 2 e 24 caracteres">
+      <p class="aviso" id="aviso-entrada" role="alert"></p>
+      <button id="btn-entrar" type="button">Entrar na sala</button>
+    </section>
+
+    <section data-tela="espera">
+      <span class="selo">Inscrição confirmada</span>
+      <h1 id="espera-titulo">Aguarde a abertura da primeira pergunta</h1>
+      <p>Mantenha esta página aberta. A pergunta aparece aqui automaticamente quando o professor abrir.</p>
+      <p><strong id="contagem-jogadores">—</strong></p>
+    </section>
+
+    <section data-tela="pergunta">
+      <div class="cronometro">
+        <span class="selo" id="pergunta-selo">Pergunta</span>
+        <div class="trilha"><div class="barra-tempo" id="barra-tempo"></div></div>
+        <span class="segundos" id="segundos">—</span>
+      </div>
+      <h2 id="enunciado"></h2>
+      <div class="alternativas" id="alternativas"></div>
+      <p class="aviso" id="aviso-pergunta" role="alert"></p>
+    </section>
+
+    <section data-tela="respondido">
+      <span class="selo">Resposta registrada</span>
+      <h1>Resposta registrada</h1>
+      <p>O resultado aparece quando o professor encerrar a pergunta. Não é possível alterar a escolha.</p>
+      <p><strong id="respondido-contagem">—</strong></p>
+    </section>
+
+    <section data-tela="revelacao">
+      <div class="veredito" id="veredito">
+        <div class="titulo" id="veredito-titulo"></div>
+        <div class="pontos" id="veredito-pontos"></div>
+      </div>
+      <div class="explicacao" id="explicacao"></div>
+      <h2>Placar acumulado</h2>
+      <div class="ranking" id="ranking-parcial"></div>
+    </section>
+
+    <section data-tela="final">
+      <span class="selo">Sessão encerrada</span>
+      <h1>Placar geral</h1>
+      <p id="final-resumo"></p>
+      <div class="ranking" id="ranking-final"></div>
+      <div class="rodape">
+        <a href="../materials/lesson-5-material.html">📖 Material da aula</a>
+        <a href="../../home-module-7-sistemas-informacao.html">🏠 Módulo 7</a>
+      </div>
+    </section>
+
+    <section data-tela="erro">
+      <span class="selo">Falha de conexão</span>
+      <h1 id="erro-titulo">Não foi possível falar com o servidor</h1>
+      <p id="erro-detalhe"></p>
+      <button id="btn-retentar" type="button">Tentar novamente</button>
+    </section>
+
+    <p class="estado-conexao" id="conexao"></p>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.114.0/dist/umd/supabase.js"></script>
+  <script>
+  /* ------------------------------------------------------------------
+     Configuração. A chave publicável é pública por desenho: o que ela
+     alcança é definido pelas policies de RLS, não pelo sigilo dela.
+     Ver supabase/quiz-schema.sql.
+  ------------------------------------------------------------------ */
+  const SUPABASE_URL = 'https://lcyxqwdgsrbcpecqyqje.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_x68LvlGFJns-zsrYTERvqw_-x5GWA8p';
+  const SLUG = new URLSearchParams(location.search).get('sala') || 'gmud-m7-a5';
+  const CHAVE_LOCAL = 'quiz:' + SLUG;
+
+  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: { persistSession: false },
+  });
+
+  const el = (id) => document.getElementById(id);
+  const LETRAS = ['A', 'B', 'C', 'D', 'E'];
+
+  let jogador = null;      // { id, nome }
+  let estadoAtual = null;  // último payload de quiz_estado
+  let offsetRelogio = 0;   // relógio do servidor menos o do aparelho
+  let escolhaPendente = null;
+  let cronometro = null;
+  let perguntaDesenhada = null;  // evita recriar os botões a cada sincronização
+  let assinaturaOk = false;
+
+  try { jogador = JSON.parse(localStorage.getItem(CHAVE_LOCAL) || 'null'); } catch { jogador = null; }
+
+  function mostrar(tela) {
+    document.querySelectorAll('[data-tela]').forEach((s) => {
+      s.classList.toggle('ativa', s.dataset.tela === tela);
+    });
+  }
+
+  function marcarConexao(texto) { el('conexao').textContent = texto; }
+
+  /* ---------- Cadastro ---------- */
+
+  async function entrar() {
+    const nome = el('nome').value.trim();
+    el('aviso-entrada').textContent = '';
+    el('btn-entrar').disabled = true;
+    try {
+      const { data, error } = await db.rpc('quiz_entrar', { p_slug: SLUG, p_nome: nome });
+      if (error) throw error;
+      if (!data.ok) { el('aviso-entrada').textContent = data.erro; return; }
+      jogador = { id: data.player_id, nome: data.nome };
+      localStorage.setItem(CHAVE_LOCAL, JSON.stringify(jogador));
+      el('quem').textContent = jogador.nome;
+      await sincronizar();
+    } catch (e) {
+      el('aviso-entrada').textContent = 'Falha de rede. Verifique a conexão e tente de novo.';
+      console.error(e);
+    } finally {
+      el('btn-entrar').disabled = false;
+    }
+  }
+
+  /* ---------- Resposta ---------- */
+
+  async function responder(indice) {
+    if (escolhaPendente !== null) return;
+    escolhaPendente = indice;
+    document.querySelectorAll('.alt').forEach((b, i) => {
+      b.setAttribute('aria-pressed', String(i === indice));
+      b.disabled = true;
+    });
+    try {
+      const { data, error } = await db.rpc('quiz_responder',
+        { p_player: jogador.id, p_escolha: indice });
+      if (error) throw error;
+      if (!data.ok) {
+        el('aviso-pergunta').textContent = data.erro;
+        escolhaPendente = null;
+        document.querySelectorAll('.alt').forEach((b) => { b.disabled = false; });
+        return;
+      }
+      pararCronometro();
+      mostrar('respondido');
+    } catch (e) {
+      el('aviso-pergunta').textContent = 'Não foi possível registrar. Toque novamente.';
+      escolhaPendente = null;
+      document.querySelectorAll('.alt').forEach((b) => { b.disabled = false; });
+      console.error(e);
+    }
+  }
+
+  /* ---------- Cronômetro, corrigido pelo relógio do servidor ---------- */
+
+  function pararCronometro() {
+    if (cronometro) { clearInterval(cronometro); cronometro = null; }
+  }
+
+  function iniciarCronometro(abertaEm, segundos) {
+    pararCronometro();
+    const inicio = new Date(abertaEm).getTime();
+    const tick = () => {
+      const agora = Date.now() + offsetRelogio;
+      const restante = Math.max(0, segundos - (agora - inicio) / 1000);
+      el('segundos').textContent = Math.ceil(restante);
+      el('barra-tempo').style.width = (restante / segundos * 100) + '%';
+      if (restante <= 0) {
+        pararCronometro();
+        el('segundos').textContent = '0';
+        // O tempo esgotado não bloqueia o envio: quem decide é o professor,
+        // ao encerrar a pergunta. A pontuação por rapidez já zerou.
+      }
+    };
+    tick();
+    cronometro = setInterval(tick, 200);
+  }
+
+  /* ---------- Desenho das telas ---------- */
+
+  function desenharPergunta(s) {
+    const p = s.pergunta;
+
+    // A sincronização periódica não pode recriar os botões nem reiniciar o
+    // cronômetro: isso apagaria a escolha em curso no meio de um toque.
+    if (perguntaDesenhada === p.id) { mostrar('pergunta'); return; }
+    perguntaDesenhada = p.id;
+
+    el('pergunta-selo').textContent = `Pergunta ${s.ordem} de ${s.total}`;
+    el('enunciado').textContent = p.enunciado;
+    el('aviso-pergunta').textContent = '';
+
+    const alvo = el('alternativas');
+    alvo.innerHTML = '';
+    p.alternativas.forEach((texto, i) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'alt';
+      b.setAttribute('aria-pressed', 'false');
+      b.innerHTML = `<span class="letra">${LETRAS[i]}</span><span></span>`;
+      b.lastElementChild.textContent = texto;
+      b.addEventListener('click', () => responder(i));
+      alvo.appendChild(b);
+    });
+
+    escolhaPendente = null;
+    iniciarCronometro(s.aberta_em, p.segundos);
+    mostrar('pergunta');
+  }
+
+  function desenharRevelacao(s) {
+    pararCronometro();
+    const respondeu = s.respondi;
+    const acertou = s.acertei;
+    const v = el('veredito');
+    v.className = 'veredito ' + (acertou ? 'acerto' : 'erro');
+    el('veredito-titulo').textContent = !respondeu
+      ? 'Você não respondeu esta pergunta'
+      : acertou ? 'Resposta correta' : 'Resposta incorreta';
+    el('veredito-pontos').textContent = respondeu ? `+${s.pontos_rodada}` : '0';
+
+    const correta = s.gabarito ? s.gabarito.correta : null;
+    el('explicacao').textContent = [
+      correta !== null ? `Alternativa correta: ${LETRAS[correta]}.` : '',
+      s.gabarito ? s.gabarito.explicacao : '',
+    ].filter(Boolean).join(' ');
+
+    desenharRanking(el('ranking-parcial'), s.ranking || []);
+    mostrar('revelacao');
+  }
+
+  function desenharRanking(alvo, linhas) {
+    alvo.innerHTML = '';
+    if (!linhas.length) {
+      const p = document.createElement('p');
+      p.textContent = 'Nenhuma resposta registrada.';
+      alvo.appendChild(p);
+      return;
+    }
+    linhas.forEach((r, i) => {
+      const d = document.createElement('div');
+      d.className = 'linha' + (r.eu ? ' eu' : '') + (i < 3 ? ` podio-${i + 1}` : '');
+      const medalha = ['🥇', '🥈', '🥉'][i] || (i + 1);
+      d.innerHTML = '<span class="pos"></span><span class="nome"></span><span class="pts"></span>';
+      d.children[0].textContent = medalha;
+      d.children[1].textContent = r.nome;
+      d.children[2].textContent = `${r.pontos} pt`;
+      alvo.appendChild(d);
+    });
+  }
+
+  /* ---------- Sincronização ---------- */
+
+  async function sincronizar() {
+    try {
+      const { data, error } = await db.rpc('quiz_estado',
+        { p_slug: SLUG, p_player: jogador ? jogador.id : null });
+      if (error) throw error;
+      if (!data.ok) { falhar(data.erro); return; }
+
+      offsetRelogio = new Date(data.servidor_agora).getTime() - Date.now();
+      estadoAtual = data;
+      marcarConexao(assinaturaOk ? 'Conectado em tempo real.' : 'Conectado por consulta periódica.');
+
+      // Um jogador salvo localmente cujo nome o servidor não reconhece
+      // significa sessão reiniciada: o cadastro é refeito.
+      if (jogador && !data.nome) {
+        localStorage.removeItem(CHAVE_LOCAL);
+        jogador = null;
+        el('quem').textContent = '';
+      }
+      if (jogador) el('quem').textContent = jogador.nome;
+
+      if (!jogador) {
+        if (data.estado === 'encerrado') {
+          el('final-resumo').textContent = 'A sessão foi encerrada.';
+          desenharRanking(el('ranking-final'), data.ranking || []);
+          mostrar('final');
+        } else {
+          mostrar('entrada');
+        }
+        return;
+      }
+
+      if (data.estado === 'lobby') {
+        el('espera-titulo').textContent = 'Aguarde a abertura da primeira pergunta';
+        el('contagem-jogadores').textContent = `${data.jogadores} na sala`;
+        mostrar('espera');
+        return;
+      }
+
+      if (data.estado === 'pergunta') {
+        if (data.respondi) {
+          el('respondido-contagem').textContent = `Pergunta ${data.ordem} de ${data.total}`;
+          mostrar('respondido');
+        } else {
+          desenharPergunta(data);
+        }
+        return;
+      }
+
+      if (data.estado === 'revelacao') { desenharRevelacao(data); return; }
+
+      if (data.estado === 'encerrado') {
+        const meu = (data.ranking || []).find((r) => r.eu);
+        const pos = (data.ranking || []).findIndex((r) => r.eu) + 1;
+        el('final-resumo').textContent = meu
+          ? `${meu.pontos} pontos, ${meu.acertos} de ${data.total} corretas, ${pos}º lugar.`
+          : 'Sessão encerrada.';
+        desenharRanking(el('ranking-final'), data.ranking || []);
+        mostrar('final');
+      }
+    } catch (e) {
+      console.error(e);
+      falhar('Verifique a conexão. A página tenta reconectar sozinha.');
+    }
+  }
+
+  function falhar(detalhe) {
+    el('erro-detalhe').textContent = detalhe;
+    mostrar('erro');
+  }
+
+  /* ---------- Realtime, com consulta periódica de reserva ---------- */
+
+  db.channel('sala-' + SLUG)
+    .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'quiz_sessions', filter: 'slug=eq.' + SLUG },
+        () => sincronizar())
+    .subscribe((status) => {
+      assinaturaOk = status === 'SUBSCRIBED';
+      if (estadoAtual) marcarConexao(assinaturaOk ? 'Conectado em tempo real.' : 'Conectado por consulta periódica.');
+    });
+
+  // Rede de sala de aula oscila; a consulta periódica garante que ninguém
+  // fique preso numa tela antiga caso o websocket caia.
+  setInterval(sincronizar, 3000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) sincronizar(); });
+
+  el('btn-entrar').addEventListener('click', entrar);
+  el('nome').addEventListener('keydown', (e) => { if (e.key === 'Enter') entrar(); });
+  el('btn-retentar').addEventListener('click', sincronizar);
+
+  sincronizar();
+  </script>
+</body>
+</html>
