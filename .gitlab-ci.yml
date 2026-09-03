@@ -1,0 +1,47 @@
+stages:
+  - test
+  - deploy
+
+variables:
+  npm_config_cache: "$CI_PROJECT_DIR/.npm"
+
+.node_cache: &node_cache
+  key:
+    files:
+      - package-lock.json
+  paths:
+    - .npm/
+    - node_modules/
+
+test:
+  stage: test
+  image: node:20
+  cache:
+    <<: *node_cache
+  script:
+    - npm ci
+    - npm test
+  artifacts:
+    when: always
+    paths:
+      - playwright-report/
+    expire_in: 30 days
+
+# Publica só o que o site efetivamente serve. Deixa de fora node_modules,
+# .git, .aiox-core, tests/ e docs internas (materiais/, module_guidelines/)
+# que não são linkadas por nenhuma página. Espelha o job equivalente do
+# GitHub Actions (.github/workflows/ci-cd.yml).
+pages:
+  stage: deploy
+  image: node:20
+  needs:
+    - test
+  script:
+    - mkdir -p public
+    - cp index.html index.json public/
+    - cp -r pages css js config public/
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
