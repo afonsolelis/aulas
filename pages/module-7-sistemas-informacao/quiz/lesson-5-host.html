@@ -39,6 +39,16 @@
     .medidor .r { font-size: .64rem; font-weight: 700; letter-spacing: .09em;
                   text-transform: uppercase; color: var(--muted); }
 
+    /* Tempo restante: o professor conduz sem precisar contar de cabeça, e a
+       turma enxerga a mesma contagem projetada. */
+    .trilha-tempo { flex: 0 0 auto; height: 7px; background: color-mix(in srgb, var(--paper) 10%, transparent); }
+    .trilha-tempo > i { display: block; height: 100%; width: 100%; background: var(--si);
+                        transition: width .25s linear, background-color .3s; }
+    .trilha-tempo.acabando > i { background: var(--alert); }
+    .medidor.cronometro .n { font-variant-numeric: tabular-nums; }
+    .medidor.cronometro.acabando .n { color: var(--alert); }
+    .medidor.cronometro.esgotado .n { color: var(--alert); }
+    .medidor.completo .n { color: var(--si); }
     main { flex: 1 1 auto; min-height: 0; padding: 26px; display: flex;
            flex-direction: column; gap: 20px; overflow: auto; }
     [data-tela] { display: none; flex: 1 1 auto; gap: 26px; }
@@ -140,8 +150,11 @@
       <div class="medidor"><div class="n" id="m-jogadores">0</div><div class="r">na sala</div></div>
       <div class="medidor"><div class="n" id="m-respostas">0</div><div class="r">responderam</div></div>
       <div class="medidor"><div class="n" id="m-pergunta">—</div><div class="r">pergunta</div></div>
+      <div class="medidor cronometro" id="med-tempo"><div class="n" id="m-tempo">—</div><div class="r">segundos</div></div>
     </div>
   </header>
+
+  <div class="trilha-tempo" id="trilha-tempo" hidden><i id="barra-tempo"></i></div>
 
   <main>
     <section data-tela="auth" class="auth ativa">
@@ -315,11 +328,65 @@
     });
   }
 
+  let relogio = null;         // intervalo do cronômetro
+  let offsetRelogio = 0;      // relógio do servidor menos o desta máquina
+  let perguntaCronometrada = null;
+
+  function pararCronometro() {
+    if (relogio) { clearInterval(relogio); relogio = null; }
+  }
+
+  function iniciarCronometro(abertaEm, segundos) {
+    pararCronometro();
+    const inicio = new Date(abertaEm).getTime();
+    const trilha = el('trilha-tempo'), med = el('med-tempo');
+    trilha.hidden = false;
+    const tick = () => {
+      const agora = Date.now() + offsetRelogio;
+      const restante = Math.max(0, segundos - (agora - inicio) / 1000);
+      const fracao = Math.max(0, Math.min(1, restante / segundos));
+      el('m-tempo').textContent = restante > 0 ? Math.ceil(restante) : '0';
+      el('barra-tempo').style.width = (fracao * 100) + '%';
+      const acabando = restante > 0 && fracao <= 0.25;
+      trilha.classList.toggle('acabando', acabando || restante === 0);
+      med.classList.toggle('acabando', acabando);
+      med.classList.toggle('esgotado', restante === 0);
+      if (restante === 0) pararCronometro();
+    };
+    tick();
+    relogio = setInterval(tick, 200);
+  }
+
+  function encerrarCronometro() {
+    pararCronometro();
+    perguntaCronometrada = null;
+    el('trilha-tempo').hidden = true;
+    el('m-tempo').textContent = '—';
+    el('med-tempo').className = 'medidor cronometro';
+  }
+
   function aplicar(d) {
     ultimo = d;
     el('cab-titulo').textContent = d.titulo;
     el('m-jogadores').textContent = d.jogadores;
-    el('m-respostas').textContent = d.respostas || 0;
+    // Fração, não contagem solta: "18/20" responde de imediato se ainda falta alguém.
+    const respostas = d.respostas || 0;
+    el('m-respostas').textContent = d.estado === 'lobby' ? respostas : `${respostas}/${d.jogadores}`;
+    el('m-respostas').parentElement.classList.toggle('completo',
+      d.jogadores > 0 && respostas >= d.jogadores && d.estado !== 'lobby');
+
+    offsetRelogio = new Date(d.servidor_agora).getTime() - Date.now();
+    if (d.estado === 'pergunta' && d.aberta_em && d.pergunta) {
+      // Rearma apenas quando muda a pergunta ou o instante de abertura,
+      // para a leitura periódica não reiniciar a contagem a cada 2 s.
+      const chave = `${d.ordem}|${d.aberta_em}`;
+      if (perguntaCronometrada !== chave) {
+        perguntaCronometrada = chave;
+        iniciarCronometro(d.aberta_em, d.pergunta.segundos);
+      }
+    } else {
+      encerrarCronometro();
+    }
     el('m-pergunta').textContent = d.ordem ? `${d.ordem}/${d.total}` : '—';
     el('estado-txt').textContent = {
       lobby: 'Sala aberta para inscrição.', pergunta: 'Pergunta em curso.',
