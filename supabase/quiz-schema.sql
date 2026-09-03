@@ -296,6 +296,7 @@ create or replace function quiz_host(p_slug text, p_token text, p_acao text defa
 returns jsonb
 language plpgsql security definer set search_path = public, pg_temp as $$
 declare v_ok bool; v_s record; v_total int; v_out jsonb; v_qid bigint;
+        v_arquivadas int := 0;
 begin
   select exists (select 1 from quiz_host_tokens
                   where session_slug = p_slug and token = p_token) into v_ok;
@@ -329,6 +330,11 @@ begin
       update quiz_sessions set estado = 'encerrado' where slug = p_slug;
 
     when 'reiniciar' then
+      -- Arquiva antes de apagar: o reinício deixa de destruir o resultado da
+      -- turma e passa a acumulá-lo em quiz_relatorios. Nada é gravado quando
+      -- não há resposta, para não poluir a série com reinícios de teste.
+      v_arquivadas := quiz_arquivar(p_slug);
+
       delete from quiz_answers
        where player_id in (select id from quiz_players where session_slug = p_slug);
       delete from quiz_players where session_slug = p_slug;
@@ -348,6 +354,7 @@ begin
     'ok', true,
     'estado', v_s.estado,
     'titulo', v_s.titulo,
+    'arquivadas', v_arquivadas,
     'ordem', v_s.pergunta_atual,
     'total', v_total,
     'aberta_em', v_s.aberta_em,

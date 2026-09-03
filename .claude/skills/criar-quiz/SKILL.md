@@ -154,14 +154,37 @@ sim: publique pela skill `devops-push` e confirme o deploy antes do encontro.
 
 ## 9. Depois da aula
 
-Abra o relatório **antes de reiniciar** e baixe o CSV: reiniciar apaga
-jogadores e respostas. O relatório traz os temas por dificuldade, a
-distribuição por alternativa e o desempenho individual.
+O relatório traz os temas por dificuldade, a distribuição por alternativa e o
+desempenho individual, e exporta em CSV.
+
+**Reiniciar arquiva antes de apagar.** As respostas vão para
+`quiz_relatorios`, no grão de uma linha por estudante e questão, sob a
+`data_tag` no padrão `ANO-TRIMESTRE-conteudo` — de onde qualquer agregação
+pode ser refeita depois:
+
+```sql
+select l->>'tema' as tema, count(*) as respostas,
+       round(100.0*count(*) filter (where (l->>'acertou')::bool)/count(*),1) as taxa
+  from quiz_relatorios r, jsonb_array_elements(r.data) l
+ where r.data_tag like '2026-2A-%'
+ group by 1 order by 3;
+```
+
+A `data_tag` compõe-se do campo `turma` da sessão, que deve receber o código do
+trimestre corrente de `config/calendar.json`, mais o slug da sala:
+
+```sql
+update quiz_sessions set turma = '2026-2A' where slug = '<slug>';
+```
+
+Sessão sem resposta não gera registro, para reinícios de teste não poluírem a
+série histórica.
 
 ## Armadilhas conhecidas
 
 - **Sessão encerrada não limpa nada.** Encerrar apenas muda o estado; só
-  `reiniciar` apaga. Reusar uma sala sem reiniciar mistura turmas.
+  `reiniciar` apaga — arquivando antes em `quiz_relatorios`. Reusar uma sala
+  sem reiniciar mistura turmas.
 - **Reaplicar `quiz-schema.sql` derruba tudo** — começa com `drop table
   cascade`, o que leva junto sessão, token e questões.
 - **Corrida em teste automatizado:** aguarde a confirmação da resposta do
@@ -176,5 +199,6 @@ distribuição por alternativa e o desempenho individual.
   ao cliente: as tabelas sensíveis têm RLS sem policy, e só `quiz_sessions` é
   legível, por não guardar segredo.
 - `supabase/quiz-relatorio.sql` — colunas `tema`/`secao` e a função de relatório.
+- `supabase/quiz-ingestao.sql` — tabela de recepção e arquivamento no reinício.
 - `scripts/auditar-quiz.mjs` — auditoria das questões.
 - Skills `escrita-academica` e `revisar-escrita` — registro da redação.
