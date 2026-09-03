@@ -10,6 +10,7 @@
 -- veredito e placar, nunca gabarito nem credencial de outro jogador.
 --
 -- Rodar inteiro no SQL Editor do painel. É idempotente.
+-- Em seguida, quiz-relatorio.sql (função de relatório) e o seed da aula.
 -- =====================================================================
 
 drop table if exists quiz_answers      cascade;
@@ -49,6 +50,8 @@ create table quiz_questions (
   enunciado    text   not null,
   alternativas jsonb  not null,
   segundos     int    not null default 40,
+  tema         text,          -- assunto avaliado, usado no relatório
+  secao        text,          -- seção do material de leitura correspondente
   unique (session_slug, ordem)
 );
 
@@ -255,6 +258,17 @@ begin
         'pontos_rodada', coalesce(v_minha.pontos, 0),
         'total_respostas', (select count(*) from quiz_answers where question_id = v_q.id));
     end if;
+  end if;
+
+  -- Encerrada a sessão, cada um recebe os temas em que errou, para orientar
+  -- a retomada do estudo. É o recorte individual do relatório do professor.
+  if v_s.estado = 'encerrado' and p_player is not null then
+    v_out := v_out || jsonb_build_object('meus_temas', coalesce((
+      select jsonb_agg(distinct jsonb_build_object('tema', q.tema, 'secao', q.secao))
+        from quiz_answers a
+        join quiz_questions q on q.id = a.question_id
+       where a.player_id = p_player and not a.correta and q.tema is not null),
+      '[]'::jsonb));
   end if;
 
   -- Placar acumulado: público por natureza, e é o que se projeta na sala.

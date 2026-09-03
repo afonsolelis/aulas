@@ -29,63 +29,63 @@ on conflict (slug) do update set titulo = excluded.titulo;
 delete from quiz_questions where session_slug = 'gmud-m7-a5';
 
 with novas as (
-  insert into quiz_questions (session_slug, ordem, enunciado, alternativas, segundos)
+  insert into quiz_questions (session_slug, ordem, enunciado, alternativas, segundos, tema, secao)
   values
   ('gmud-m7-a5', 1,
    'Um defeito impede a emissão de notas fiscais e precisa ser corrigido ainda hoje. A correção altera código e não existe procedimento documentado para ela. Como a requisição deve ser classificada e autorizada?',
    '["Padrão, porque o resultado é conhecido e a urgência operacional dispensa avaliação individual",
      "Normal, submetida ao comitê de mudanças na próxima janela regular publicada no calendário",
      "Emergencial, decidida por comitê de quórum reduzido, com registro completo lavrado depois",
-     "Padrão, desde que o gestor da área afetada registre a aprovação por mensagem antes da execução"]'::jsonb, 40),
+     "Padrão, desde que o gestor da área afetada registre a aprovação por mensagem antes da execução"]'::jsonb, 40, 'Tipos de mudança e alçadas', 'seção 4'),
 
   ('gmud-m7-a5', 2,
    'Uma alteração atinge um componente usado por uma única área, tem retorno testado e executável em dez minutos, e está agendada para a semana do fechamento contábil. Qual dimensão eleva a avaliação de risco?',
    '["Momento, pela proximidade do fechamento contábil em curso",
      "Abrangência, por atingir uma área inteira da organização",
      "Reversibilidade, porque o retorno depende de execução manual",
-     "Complexidade, por envolver um componente compartilhado entre sistemas"]'::jsonb, 40),
+     "Complexidade, por envolver um componente compartilhado entre sistemas"]'::jsonb, 40, 'Avaliação de risco e impacto', 'seção 5'),
 
   ('gmud-m7-a5', 3,
    'Duas requisições foram avaliadas em separado, aprovadas, testadas com sucesso isoladamente e agendadas para a mesma janela, sobre o mesmo componente. A execução conjunta derruba o serviço. Que falha do roteiro de avaliação isso caracteriza?',
    '["Ausência do plano de verificação posterior à execução da mudança",
      "Falta de declaração da janela pretendida e do tempo de indisponibilidade",
      "Indefinição de quem responde pela construção, pelo teste e pela implantação",
-     "Omissão da relação de cada mudança com as demais em curso no período"]'::jsonb, 40),
+     "Omissão da relação de cada mudança com as demais em curso no período"]'::jsonb, 40, 'A requisição de mudança', 'seção 3'),
 
   ('gmud-m7-a5', 4,
    'A emissão de boletos para. A equipe aplica um contorno manual e o serviço volta em vinte minutos. Registra-se que houve três paradas de mesma origem no trimestre, e decide-se corrigir a causa em definitivo. Como se nomeiam, na ordem, a parada, o registro que agrupa as três e a correção definitiva?',
    '["Problema, incidente e mudança",
      "Incidente, problema e mudança",
      "Incidente, mudança e problema",
-     "Mudança, problema e incidente"]'::jsonb, 40),
+     "Mudança, problema e incidente"]'::jsonb, 40, 'Mudança, incidente e problema', 'seção 11'),
 
   ('gmud-m7-a5', 5,
    'Em uma implantação de ERP, uma unidade de transporte é importada em produção fora da sequência em que foi criada. Qual é a consequência apontada no material?',
    '["O ambiente de qualidade precisa ser reconstruído a partir do zero antes de nova tentativa",
      "A importação é rejeitada automaticamente, e a inconsistência não chega a se estabelecer",
      "A inconsistência é de diagnóstico difícil, porque o sintoma aparece em objeto distinto do alterado",
-     "Somente objetos de configuração são afetados, já que o código percorre outro caminho de autorização"]'::jsonb, 40),
+     "Somente objetos de configuração são afetados, já que o código percorre outro caminho de autorização"]'::jsonb, 40, 'Mudança em ambiente de ERP', 'seção 10'),
 
   ('gmud-m7-a5', 6,
    'Uma mudança altera a regra de alçada na aprovação de requisições de compra. Segundo a tabela de business drivers, qual é o indicador em risco e o efeito de uma falha?',
    '["Tempo de ciclo da requisição; fila de aprovação parada e compra emergencial mais cara",
      "Valor faturado no dia; interrupção da emissão e receita reconhecida com atraso",
      "Pedidos entregues no prazo; atraso de entrega e penalidade prevista em contrato",
-     "Conflitos de acesso apurados; ressalva em auditoria e exposição regulatória"]'::jsonb, 40),
+     "Conflitos de acesso apurados; ressalva em auditoria e exposição regulatória"]'::jsonb, 40, 'Business drivers', 'seção 7'),
 
   ('gmud-m7-a5', 7,
    'Duas semanas após a virada, os usuários reconhecem a razão da mudança e sabem explicar o procedimento novo, mas erram ao executá-lo na operação real. Em que etapa a transição se interrompeu e qual é a intervenção indicada?',
    '["Consciência da necessidade; comunicação que apresente a razão da mudança",
      "Conhecimento sobre como operar; treinamento conduzido sobre o processo",
      "Reforço da prática; celebração dos resultados já alcançados pela equipe",
-     "Capacidade demonstrada na execução; acompanhamento durante a operação real"]'::jsonb, 40),
+     "Capacidade demonstrada na execução; acompanhamento durante a operação real"]'::jsonb, 40, 'A mudança nas pessoas', 'seção 12'),
 
   ('gmud-m7-a5', 8,
    'Um relatório do período mostra tempo de ciclo em queda, taxa de sucesso também em queda e aumento dos retornos acionados. O que a combinação indica?',
    '["O rito ganhou eficiência sem qualquer perda de proteção sobre a operação",
      "A avaliação de risco e o teste em qualidade não acompanham o ritmo de autorização",
      "A proporção de mudanças emergenciais caiu, e com ela o risco assumido no período",
-     "O tempo de restabelecimento melhorou, pela maturidade adquirida no plano de retorno"]'::jsonb, 40)
+     "O tempo de restabelecimento melhorou, pela maturidade adquirida no plano de retorno"]'::jsonb, 40, 'Indicadores', 'seção 9')
   returning id, ordem
 )
 insert into quiz_answer_key (question_id, correta, explicacao)
