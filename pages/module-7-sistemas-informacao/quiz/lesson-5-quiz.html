@@ -82,6 +82,10 @@
     .alt.certa   { border-color: #2f8f78; background: color-mix(in srgb, #2f8f78 14%, white); }
     .alt.errada  { border-color: var(--alert); background: color-mix(in srgb, var(--alert) 12%, white); }
     .alt.certa .letra  { background: #2f8f78; color: white; }
+    .alt .marca { display: block; font-size: .68rem; font-weight: 800; letter-spacing: .05em;
+                  text-transform: uppercase; margin-top: 5px; }
+    .alt.certa .marca  { color: #1f6b58; }
+    .alt.errada .marca { color: #a03a2f; }
     .alt.errada .letra { background: var(--alert); color: white; }
 
     /* Cronômetro */
@@ -187,6 +191,9 @@
         <div class="titulo" id="veredito-titulo"></div>
         <div class="pontos" id="veredito-pontos"></div>
       </div>
+      <span class="selo" id="rev-selo">Pergunta</span>
+      <h2 id="rev-enunciado"></h2>
+      <div class="alternativas" id="rev-alternativas"></div>
       <div class="explicacao" id="explicacao"></div>
       <h2>Placar acumulado</h2>
       <div class="ranking" id="ranking-parcial"></div>
@@ -373,10 +380,34 @@
     el('veredito-pontos').textContent = respondeu ? `+${s.pontos_rodada}` : '0';
 
     const correta = s.gabarito ? s.gabarito.correta : null;
-    el('explicacao').textContent = [
-      correta !== null ? `Alternativa correta: ${LETRAS[correta]}.` : '',
-      s.gabarito ? s.gabarito.explicacao : '',
-    ].filter(Boolean).join(' ');
+
+    // A pergunta permanece na tela: sem o enunciado à vista, "alternativa
+    // correta: D" não ensina nada a quem já não lembra o que era D.
+    if (s.pergunta) {
+      el('rev-selo').textContent = `Pergunta ${s.ordem} de ${s.total}`;
+      el('rev-enunciado').textContent = s.pergunta.enunciado;
+      const alvo = el('rev-alternativas');
+      alvo.innerHTML = '';
+      s.pergunta.alternativas.forEach((texto, i) => {
+        const ehCorreta = i === correta;
+        const ehMinha = respondeu && i === s.minha_escolha;
+        const d = document.createElement('div');
+        d.className = 'alt' + (ehCorreta ? ' certa' : (ehMinha ? ' errada' : ''));
+        d.innerHTML = '<span class="letra"></span><span class="corpo"></span>';
+        d.children[0].textContent = LETRAS[i];
+        d.children[1].textContent = texto;
+        if (ehCorreta || ehMinha) {
+          const m = document.createElement('span');
+          m.className = 'marca';
+          m.textContent = ehCorreta && ehMinha ? 'Alternativa correta — sua resposta'
+                        : ehCorreta ? 'Alternativa correta' : 'Sua resposta';
+          d.children[1].appendChild(m);
+        }
+        alvo.appendChild(d);
+      });
+    }
+
+    el('explicacao').textContent = s.gabarito ? s.gabarito.explicacao : '';
 
     desenharRanking(el('ranking-parcial'), s.ranking || []);
     mostrar('revelacao');
