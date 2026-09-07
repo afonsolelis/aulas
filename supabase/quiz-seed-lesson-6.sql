@@ -1,15 +1,21 @@
 -- =====================================================================
 -- Aula 6 do Módulo 7 — Gestão de Stakeholders
--- Oito perguntas extraídas do material lesson-6-material.html.
+-- Dez perguntas extraídas do material lesson-6-material.html.
+--
+-- O quiz abre o encontro, imediatamente após a daily, em bloco de trinta
+-- minutos: quarenta segundos de resposta por questão e o tempo restante
+-- destinado à revelação do gabarito e ao comentário da distribuição das
+-- escolhas, que antecede e dirige a exposição dos blocos conceituais.
 --
 -- As questões são de aplicação: cada uma apresenta uma situação e pede a
 -- classificação, o diagnóstico ou a intervenção correspondente. Os
 -- distratores reproduzem erros correntes na prática, não alternativas
 -- implausíveis. A posição da resposta correta é distribuída entre as
--- quatro letras — duas em cada — e o comprimento das alternativas é
--- equilibrado, para que nem a posição nem a extensão sirvam de atalho.
+-- quatro letras e o comprimento das alternativas é equilibrado, para que
+-- nem a posição nem a extensão sirvam de atalho.
 --
--- Cobertura: seções 2, 5, 6, 7, 8, 10, 11 e 12 do material.
+-- Cobertura: uma questão por seção, nas seções 2, 4, 5, 6, 7, 8, 9, 10,
+-- 11 e 12 do material, na ordem em que a exposição as percorre.
 --
 -- O token do professor NÃO é versionado: este repositório é público, e quem
 -- tem o token abre, revela e reinicia a sessão. Defina-o à mão no SQL Editor,
@@ -45,11 +51,11 @@ with novas as (
      "Fora do registro de partes e dentro do registro de riscos, por se tratar de suposição infundada"]'::jsonb, 40, 'Definição de parte interessada', 'seção 2'),
 
   ('stakeholders-m7-a6', 2,
-   'O usuário-chave designado pela área participa da reunião inicial e delega o acompanhamento a um analista, que responde às validações e assina as atas de homologação. Na sessão de aceite, a área recusa o processo parametrizado. Que condição, observada na delegação, teria evitado a recusa?',
-   '["Registro do escopo da delegação, com a validação final reservada ao titular do papel",
-     "Ciência formal do gestor da área lavrada em cada uma das atas assinadas pelo analista",
-     "Ampliação do número de sessões de homologação conduzidas em conjunto com a área",
-     "Substituição das atas de homologação por relatório técnico emitido pela equipe de projeto"]'::jsonb, 40, 'Delegação e legitimidade', 'seção 10'),
+   'A equipe manteve engajados o patrocinador, o comitê diretivo, os donos de processo e os usuários-chave, e tratou a área de tecnologia e sustentação apenas como destinatária de comunicado. O sistema entra em operação com aceite de todas as áreas de negócio. Qual consequência a omissão torna provável?',
+   '["Solução em operação sem quem detenha condição técnica de mantê-la e de operar o que foi entregue",
+     "Impedimento identificado tardiamente, quando a correção da parametrização custa mais e atrasa a virada",
+     "Construção de rotinas paralelas ao sistema pelas áreas, por divergência com a prática efetiva de trabalho",
+     "Perda de prioridade do projeto na disputa da organização por recursos e por decisão de investimento"]'::jsonb, 40, 'Categorias na implantação', 'seção 4'),
 
   ('stakeholders-m7-a6', 3,
    'A diretoria financeira pode interromper o projeto e não acompanha as reuniões semanais de validação. Para engajá-la, a equipe passa a incluí-la na distribuição de todas as atas e dos relatórios detalhados de teste. Qual é o quadrante da diretoria e o tratamento correspondente?',
@@ -80,13 +86,27 @@ with novas as (
      "Antecipação de controle, com a área fiscal participando da definição do requisito"]'::jsonb, 40, 'Estratégias de engajamento', 'seção 8'),
 
   ('stakeholders-m7-a6', 7,
-   'Na matriz de responsabilidades do projeto, a atividade de teste de aceite de um processo aparece com dois aprovadores: o dono do processo e o comitê diretivo. Que problema a atribuição caracteriza?',
-   '["Violação da regra de aprovador único, que deixa a decisão final sem responsável definido",
-     "Ausência de consultado na atividade, que priva a decisão do parecer da área de controle",
-     "Acúmulo indevido da execução e da aprovação pela mesma parte interessada do projeto",
-     "Confusão entre o papel de informado e o de consultado na comunicação do resultado da atividade"]'::jsonb, 40, 'Matriz de responsabilidades', 'seção 11'),
+   'A via de comunicação sobre mudança de rotina e data da virada declara o conteúdo, o destinatário, o canal, a periodicidade e quem produz. Depois da virada, usuários alegam desconhecer o procedimento novo, e a equipe apresenta o comunicado enviado como resposta. O que faltava à via?',
+   '["A periodicidade adequada: o comunicado por marco deveria ter sido convertido em envio semanal",
+     "A evidência de recebimento — registro de participação e exercício concluído por quem recebeu",
+     "O canal apropriado: o comunicado escrito deveria ter sido substituído por treinamento presencial",
+     "O destinatário correto: o comunicado deveria ter sido dirigido ao dono do processo da área"]'::jsonb, 40, 'Plano de comunicação', 'seção 9'),
 
   ('stakeholders-m7-a6', 8,
+   'O usuário-chave designado pela área participa da reunião inicial e delega o acompanhamento a um analista, que responde às validações e assina as atas de homologação. Na sessão de aceite, a área recusa o processo parametrizado. Que condição, observada na delegação, teria evitado a recusa?',
+   '["Registro do escopo da delegação, com a validação final reservada ao titular do papel",
+     "Ciência formal do gestor da área lavrada em cada uma das atas assinadas pelo analista",
+     "Ampliação do número de sessões de homologação conduzidas em conjunto com a área",
+     "Substituição das atas de homologação por relatório técnico emitido pela equipe de projeto"]'::jsonb, 40, 'Delegação e legitimidade', 'seção 10'),
+
+  ('stakeholders-m7-a6', 9,
+   'Na matriz de responsabilidades do projeto, a atividade de teste de aceite de um processo aparece com dois aprovadores: o dono do processo e o comitê diretivo. Que problema a atribuição caracteriza?',
+   '["Ausência de consultado na atividade, que priva a decisão do parecer da área de controle",
+     "Acúmulo indevido da execução e da aprovação pela mesma parte interessada do projeto",
+     "Confusão entre o papel de informado e o de consultado na comunicação do resultado",
+     "Violação da regra de aprovador único, que deixa a decisão final sem responsável definido"]'::jsonb, 40, 'Matriz de responsabilidades', 'seção 11'),
+
+  ('stakeholders-m7-a6', 10,
    'A área de compras exige aprovação de requisições em etapa única, para atender pedidos urgentes; a área de controle exige segregação de funções por faixa de valor, requisito de norma externa à organização. O grupo apresenta registro de acordo que atende integralmente as duas exigências. Como avaliar o registro?',
    '["Aceito, porque o atendimento simultâneo das duas exigências demonstra que a negociação foi bem conduzida",
      "Aceito com ressalva, desde que a compensação acordada e o responsável estejam declarados",
@@ -99,13 +119,15 @@ select n.id, g.correta, g.explicacao
   from novas n
   join (values
     (1, 1, 'A definição do PMBOK contempla quem se percebe afetado, e não apenas quem o é objetivamente. A percepção produz comportamento efetivo — o adiamento das validações — e esse comportamento é risco real do projeto, ainda que a suposição que o origina seja infundada (seção 2).'),
-    (2, 0, 'A delegação é admissível quando registrada, com o escopo declarado e a validação final reservada ao titular. Sem esse registro, a delegação transfere a execução e não transfere a responsabilidade: quem assinou não respondia pelo processo nem pelo aceite (seção 10).'),
+    (2, 0, 'A tabela de categorias associa a cada parte o interesse predominante e a consequência de não a engajar. Tecnologia e sustentação responde pela sustentabilidade técnica: sem seu engajamento, a solução é entregue sem condições de manutenção após o encerramento do projeto. As demais alternativas são as consequências próprias da área de controle, do usuário-chave e do patrocinador (seção 4).'),
     (3, 2, 'Poder elevado com interesse baixo situa a diretoria em manter satisfeito, cujo tratamento é a consulta nos pontos de decisão. O volume de detalhe operacional não sustenta o interesse de quem tem poder: converte-o em desinteresse ativo (seções 5 e 8).'),
     (4, 3, 'A área já detinha poder e legitimidade, o que a caracterizava como dominante. A proximidade da virada acrescenta a urgência, e a presença dos três atributos define a parte definitiva. A urgência é o atributo que se altera com maior rapidez, e é por isso que o registro é revisado por fase (seção 6).'),
     (5, 1, 'Responder no prazo e disponibilizar a equipe caracteriza o nível apoiador. Antecipar impedimento e mobilizar pares caracteriza o condutor. A lacuna é de uma posição, e a ação correspondente ao quadrante de gerir de perto é atribuir decisão efetiva, não apenas consulta (seções 7 e 8).'),
     (6, 3, 'A antecipação de controle convoca a área de controle na definição do requisito, e não na verificação final. Converte parte potencialmente definitiva em dominante e evita o impedimento na véspera da virada, quando a correção é mais onerosa (seção 8).'),
-    (7, 0, 'A convenção admite um único aprovador por atividade, porque é ele quem responde pelo resultado e detém a decisão final. Dois aprovadores não somam autoridade: dividem a responsabilidade e deixam a decisão sem quem responda por ela (seção 11).'),
-    (8, 2, 'Exigências pertinentes e mutuamente restritivas produzem preterição de interesse. O registro que declara atendimento integral das duas indica que o conflito não foi explicitado na negociação. O critério de exigência legal, no caso, tem prevalência absoluta sobre a etapa única (seção 12).')
+    (7, 1, 'Cinco elementos estavam declarados; o que faltava é o sexto, a evidência de recebimento, que responde pela verificação de que a comunicação ocorreu. Para o usuário final, a evidência prevista é o registro de participação e o exercício concluído. Ajustar canal, periodicidade ou destinatário mantém a comunicação sem verificação (seção 9).'),
+    (8, 0, 'A delegação é admissível quando registrada, com o escopo declarado e a validação final reservada ao titular. Sem esse registro, a delegação transfere a execução e não transfere a responsabilidade: quem assinou não respondia pelo processo nem pelo aceite (seção 10).'),
+    (9, 3, 'A convenção admite um único aprovador por atividade, porque é ele quem responde pelo resultado e detém a decisão final. Dois aprovadores não somam autoridade: dividem a responsabilidade e deixam a decisão sem quem responda por ela (seção 11).'),
+    (10, 2, 'Exigências pertinentes e mutuamente restritivas produzem preterição de interesse. O registro que declara atendimento integral das duas indica que o conflito não foi explicitado na negociação. O critério de exigência legal, no caso, tem prevalência absoluta sobre a etapa única (seção 12).')
   ) as g(ordem, correta, explicacao) on g.ordem = n.ordem;
 
 select count(*) || ' perguntas carregadas' as resultado
