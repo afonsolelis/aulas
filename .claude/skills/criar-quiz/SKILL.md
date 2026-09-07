@@ -86,23 +86,51 @@ Tome `supabase/quiz-seed-lesson-5.sql` como modelo. O arquivo é idempotente:
 cria a sessão, apaga as questões anteriores daquele slug e insere as novas com
 `tema` e `secao`.
 
-**O token do professor não vai para o arquivo** — o repositório é público, e
-quem tem o token abre, revela e reinicia a sessão. Defina-o à parte:
+### O token do professor
 
-```sql
-insert into quiz_host_tokens (session_slug, token) values ('<slug>', '<token>')
-on conflict (session_slug) do update set token = excluded.token;
-```
+**O token é o mesmo em todas as salas.** O professor usa uma única passphrase
+para entrar em qualquer painel do acervo; não se gera token novo por encontro.
+O valor fica em `QUIZ_HOST_TOKEN` no `.env` da raiz — que o `.gitignore` já
+ignora — e nunca em arquivo versionado: o repositório é público, e quem tem o
+token abre, revela e reinicia a sessão.
 
-Aplicação pelo pooler (a conexão direta é IPv6 e não funciona nesta máquina):
+**`quiz_host()` valida o par `(session_slug, token)`.** Um token cadastrado
+numa sala não vale em outra. Toda sala nova precisa da sua linha em
+`quiz_host_tokens`, ainda que o valor seja o mesmo — sem ela o painel recusa a
+entrada com "Token do professor inválido.", que é o sintoma de sala sem token,
+não de token errado. **Cadastrar o token é passo obrigatório da criação da
+sala, logo após aplicar o seed:**
 
 ```bash
-PGPASSWORD='<senha>' psql \
-  "postgresql://postgres.<ref>@aws-0-us-east-1.pooler.supabase.com:5432/postgres?sslmode=require" \
-  -v ON_ERROR_STOP=1 -f supabase/quiz-seed-lesson-N.sql
+set -a; . ./.env; set +a
+psql "$DATABASE_URL?sslmode=require" -v ON_ERROR_STOP=1 -c \
+  "insert into quiz_host_tokens (session_slug, token)
+   values ('<slug>', '$QUIZ_HOST_TOKEN')
+   on conflict (session_slug) do update set token = excluded.token;"
 ```
 
-Alternativa sem senha: colar o conteúdo no SQL Editor do painel.
+Aplicação do seed pelo pooler (a conexão direta é IPv6 e não funciona nesta
+máquina). `DATABASE_URL` já aponta para o pooler, na porta 6543 — trocar para
+5432 quando o script tiver DDL, porque o transaction mode não serve para
+migração:
+
+```bash
+set -a; . ./.env; set +a
+psql "$DATABASE_URL?sslmode=require" -v ON_ERROR_STOP=1 \
+  -f supabase/quiz-seed-lesson-N.sql
+```
+
+Alternativa sem o `.env`: colar o conteúdo no SQL Editor do painel.
+
+Conferir ao final, com a mesma chamada que a página do professor faz:
+
+```bash
+curl -s -X POST "$SUPABASE_URL/rest/v1/rpc/quiz_host" \
+  -H "apikey: <chave publicável>" -H "Content-Type: application/json" \
+  -d '{"p_slug":"<slug>","p_token":"'"$QUIZ_HOST_TOKEN"'","p_acao":"ver"}'
+```
+
+A ação `ver` é somente leitura: serve de teste sem mexer no estado da sala.
 
 ## 5. Auditar — obrigatório
 

@@ -18,14 +18,17 @@
 -- 11 e 12 do material, na ordem em que a exposição as percorre.
 --
 -- O token do professor NÃO é versionado: este repositório é público, e quem
--- tem o token abre, revela e reinicia a sessão. Defina-o à mão no SQL Editor,
--- uma vez por sessão:
+-- tem o token abre, revela e reinicia a sessão. É o MESMO em todas as salas
+-- (QUIZ_HOST_TOKEN no .env da raiz), mas quiz_host() valida o par
+-- (session_slug, token) — logo, toda sala nova precisa da sua linha:
 --
---   insert into quiz_host_tokens (session_slug, token)
---   values ('stakeholders-m7-a6', 'COLE-O-TOKEN-AQUI')
---   on conflict (session_slug) do update set token = excluded.token;
+--   set -a; . ./.env; set +a
+--   psql "$DATABASE_URL?sslmode=require" -c \
+--     "insert into quiz_host_tokens (session_slug, token)
+--      values ('stakeholders-m7-a6', '$QUIZ_HOST_TOKEN')
+--      on conflict (session_slug) do update set token = excluded.token;"
 --
--- Para gerar um token novo:  python3 -c "import secrets;print(secrets.token_urlsafe(9))"
+-- Sem essa linha o painel recusa a entrada com "Token do professor inválido."
 --
 -- Rodar depois de quiz-schema.sql, quiz-relatorio.sql e quiz-ingestao.sql.
 -- É idempotente.
