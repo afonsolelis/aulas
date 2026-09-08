@@ -10,11 +10,25 @@ Cria o quiz ao vivo de um encontro. A sessão é conduzida pelo professor, os
 estudantes respondem no próprio aparelho após entrar por código QR, e o
 resultado alimenta um relatório que aponta o que a turma precisa retomar.
 
-A infraestrutura já existe e **não se recria por aula**: esquema, funções e
-páginas estão em `supabase/quiz-schema.sql`, `supabase/quiz-relatorio.sql` e
-`pages/module-7-sistemas-informacao/quiz/`. O que cada aula exige é um seed
-próprio e, quando a navegação precisar apontar para outra aula, uma cópia das
-páginas com os caminhos ajustados.
+A infraestrutura já existe e **não se recria por aula**: tabelas, funções e
+páginas estão em `supabase/quiz-schema.sql`, `supabase/quiz-funcoes.sql`,
+`supabase/quiz-relatorio.sql` e `pages/module-7-sistemas-informacao/quiz/`. O
+que cada aula exige é um seed próprio e, quando a navegação precisar apontar
+para outra aula, uma cópia das páginas com os caminhos ajustados.
+
+## 0. Como a sessão se comporta
+
+| Comportamento | Onde está | Observação |
+|---|---|---|
+| Noventa segundos por questão | `segundos` em `quiz_questions` | Padrão da coluna; o seed declara o valor |
+| A pergunta fecha sozinha ao fim do tempo | `quiz_fechar_expirada()` | Chamada no início de `quiz_estado` e `quiz_host`; a virada de `quiz_sessions` chega à turma pelo Realtime, e o resultado aparece sem comando do professor |
+| Resposta após o prazo é recusada | `quiz_responder()` | Tolerância de um segundo, para a latência do aparelho |
+| A última questão vale o dobro | `peso` em `quiz_questions` | O seed grava 2 na última; as páginas anunciam antes de a turma responder |
+| Pódio no encerramento | páginas do painel e do estudante | Três degraus, o primeiro ao centro; do quarto em diante segue a lista |
+| Perguntas publicadas para estudo | `publicado` em `quiz_sessions` | Alternado pelo painel; enquanto falso, `quiz_perguntas()` não devolve gabarito algum |
+
+O gabarito comentado fica em `lesson-N-perguntas.html`, que só mostra conteúdo
+depois de o professor publicar.
 
 ## 1. Identificar a aula
 
@@ -112,7 +126,7 @@ psql "$DATABASE_URL?sslmode=require" -v ON_ERROR_STOP=1 -c \
 Aplicação do seed pelo pooler (a conexão direta é IPv6 e não funciona nesta
 máquina). `DATABASE_URL` já aponta para o pooler, na porta 6543 — trocar para
 5432 quando o script tiver DDL, porque o transaction mode não serve para
-migração:
+migração. É o caso de `quiz-funcoes.sql`, que acrescenta colunas:
 
 ```bash
 set -a; . ./.env; set +a
@@ -160,20 +174,32 @@ com `type: ferramenta` — que a mantém fora da exigência de ficha de encontro
 
 ## 7. Verificar antes da aula
 
+Três ensaios, nesta ordem. Os dois primeiros reiniciam a sala ao terminar, de
+modo que a turma não encontre jogadores de teste no placar.
+
 ```bash
-npm test                          # specs de filesystem, roda no pre-commit
+npm test                                    # specs de filesystem, roda no pre-commit
+
+set -a; . ./.env; set +a
+node scripts/testar-quiz.mjs <slug>         # ciclo completo pelas RPCs
+
+python3 -m http.server 8123 &               # o cliente do Supabase não roda em file://
+node scripts/ensaio-quiz-navegador.mjs      # as páginas num navegador real
 ```
 
-E um ensaio ponta a ponta com dois navegadores — professor e estudante —
-percorrendo todas as questões, conferindo o gabarito exibido, o placar e o
-encerramento. Verifique especificamente:
+`testar-quiz.mjs` percorre entrada, resposta, expiração do tempo, pontuação da
+questão de peso 2, encerramento e publicação, e confere que o gabarito não sai
+do banco antes da hora. `ensaio-quiz-navegador.mjs` percorre as telas e
+verifica o que só aparece no navegador: a virada automática para o resultado, o
+selo da questão que vale o dobro, o enunciado presente na revelação, o pódio e
+o transbordo do painel em 1024x768 — resolução do projetor da sala, em que
+cada pergunta e cada revelação precisam caber sem rolagem.
 
-- o QR aponta para a URL pública, não para `127.0.0.1`;
-- os controles do painel ficam visíveis em 1024x768, resolução comum de projetor;
-- a revelação mostra enunciado, escolha do estudante e alternativa correta.
+A expiração é forçada recuando `aberta_em` por `psql`, para o ensaio não exigir
+noventa segundos reais por questão.
 
-**Limpe a sala ao terminar os testes** (`reiniciar` pelo painel ou pela RPC),
-para a turma não encontrar jogadores de teste no placar.
+Verifique ainda, à mão, que o QR aponta para a URL pública e não para
+`127.0.0.1`.
 
 ## 8. Publicar
 
@@ -214,7 +240,12 @@ série histórica.
   `reiniciar` apaga — arquivando antes em `quiz_relatorios`. Reusar uma sala
   sem reiniciar mistura turmas.
 - **Reaplicar `quiz-schema.sql` derruba tudo** — começa com `drop table
-  cascade`, o que leva junto sessão, token e questões.
+  cascade`, o que leva junto sessão, token e questões. Para alterar a lógica de
+  um banco em uso, aplique `quiz-funcoes.sql`.
+- **Regra de componente vence o atributo `hidden`.** `display` declarado numa
+  classe tem precedência sobre a folha do navegador, e um selo marcado como
+  oculto continua na tela. As páginas do quiz trazem
+  `[hidden] { display: none !important; }` por isso.
 - **Corrida em teste automatizado:** aguarde a confirmação da resposta do
   estudante antes de revelar, ou o servidor recusa corretamente e o teste
   acusa falha inexistente.
@@ -223,9 +254,13 @@ série histórica.
 
 ## Referências
 
-- `supabase/quiz-schema.sql` — tabelas, RLS e funções. O gabarito nunca chega
+- `supabase/quiz-schema.sql` — tabelas, RLS e Realtime. O gabarito nunca chega
   ao cliente: as tabelas sensíveis têm RLS sem policy, e só `quiz_sessions` é
-  legível, por não guardar segredo.
+  legível, por não guardar segredo. **Começa por `drop table cascade`**: só se
+  aplica a banco novo.
+- `supabase/quiz-funcoes.sql` — as RPCs e as colunas de comportamento (`peso`,
+  `publicado`). Idempotente e não destrutivo: é o arquivo a aplicar quando a
+  lógica muda com a sala já criada.
 - `supabase/quiz-relatorio.sql` — colunas `tema`/`secao` e a função de relatório.
 - `supabase/quiz-ingestao.sql` — tabela de recepção e arquivamento no reinício.
 - `scripts/auditar-quiz.mjs` — auditoria das questões.
