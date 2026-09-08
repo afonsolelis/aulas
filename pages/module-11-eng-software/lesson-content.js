@@ -1948,6 +1948,7 @@ WHERE regiao_id = 7
 
     12: {
       title: 'Coleta e Extração', date: '09/09/2026',
+      professor: 'Hermano Peixoto',
       subtitle: 'Da origem ao dado bruto com completude, rastreabilidade e reprocessamento seguro, e a construção de uma extração incremental sobre uma origem que muda durante o encontro.',
       objective: 'Levantar o contrato de uma fonte, escolher entre full load, incremental por carimbo de tempo e captura pelo log a partir da semântica de atualização da origem, e construir uma extração idempotente cuja divergência seja medida e explicada.',
       outcomes: [

@@ -15,13 +15,18 @@ o escopo de cada autorização.
 ### Prof. Hermano — Módulo 11 (Engenharia de Software)
 
 O Prof. Hermano possui acesso ao repositório e **está autorizado a atualizar as aulas que
-ministra** no Módulo 11 — Arquitetura e Governança de Dados, disciplina Computação 1.
+ministra** no Módulo 11 — Arquitetura e Governança de Dados.
 
-| Aula | Data | Título |
-|------|------|--------|
-| 2 | 10/08/2026 | Modelagem de Data Warehouse I |
-| 3 | 12/08/2026 | Modelagem de Data Warehouse II |
-| 4 | 18/08/2026 | Modelagem de Data Warehouse III |
+| Aula | Data | Título | Disciplina |
+|------|------|--------|------------|
+| 2 | 10/08/2026 | Modelagem de Data Warehouse I | Computação 1 |
+| 3 | 12/08/2026 | Modelagem de Data Warehouse II | Computação 1 |
+| 4 | 18/08/2026 | Modelagem de Data Warehouse III | Computação 1 |
+| 12 | 09/09/2026 | Coleta e Extração | Computação 2 |
+
+A Aula 12 era ministrada por Afonso Brandão e foi transferida ao Prof. Hermano pelo
+professor titular em 08/09/2026. A aula permanece alocada na Computação 2 — a transferência
+mudou o docente, não a disciplina.
 
 A relação autoritativa é `config/module-11-eng-software.json`: são as aulas cujo campo
 `professor` é `"Hermano"`. Se o config mudar, esta tabela deve ser atualizada.
@@ -36,7 +41,7 @@ Para cada aula `N` da tabela acima:
 
 #### Alterações permitidas
 
-- Conteúdo integral de slides, material de leitura e plano de ensino das aulas 2, 3 e 4.
+- Conteúdo integral de slides, material de leitura e plano de ensino das aulas 2, 3, 4 e 12.
 - Campos `title` e `description` dessas aulas em `config/module-11-eng-software.json`.
 - Entradas correspondentes em `/index.json` (`title` e `summary`), obrigatórias sempre que
   o conteúdo ou o título mudar — ver Key Rule 7 do `CLAUDE.md`.
@@ -45,7 +50,9 @@ Para cada aula `N` da tabela acima:
   contenha apenas alterações dentro deste escopo permitido e os testes automatizados
   (`npm test`, via CI ou hook de pre-commit) tenham passado. Autorização declarada por
   Hermano em sessão com o agente em 10/08/2026 e **ratificada pelo professor titular
-  Afonso Brandão em 02/09/2026**.
+  Afonso Brandão em 02/09/2026**. A autorização de merge nomeia as aulas 2, 3 e 4 e
+  **não** se estende à Aula 12: PR sobre ela entra por revisão do professor titular até
+  que a extensão seja ratificada aqui.
 
 #### Alterações não permitidas
 
