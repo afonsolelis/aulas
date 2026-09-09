@@ -95,12 +95,29 @@ O componente visual vive em dois arquivos compartilhados, não em cada página:
 
 ## Folha de impressão
 
-O PDF sai em **A4 retrato**, margens 16/14/18 mm. As páginas do acervo são feitas para tela
-— deck em 16:9, altura presa ao viewport —, e a folha de impressão as remonta como
-documento:
+A orientação depende da família da página. **Material, plano e demais páginas de texto** saem
+em A4 retrato, margens 16/14/18 mm. **Decks de slides** saem em A4 paisagem, margens 9/10 mm,
+com um slide por folha.
 
-- os slides passam a fluir em sequência, separados por filete, de modo que mais de um bloco
-  ocupa a mesma folha e o papel não fica com metade em branco;
+A distinção existe porque o deck é desenhado em 16:9. Exportado em retrato e com o conteúdo
+fluindo livremente, um slide se parte entre duas folhas e o cabeçalho de bloco fica órfão no
+pé da página. Em paisagem a folha tem a proporção do slide, e a correspondência entre tela e
+papel é de um para um.
+
+A orientação do deck é declarada em `css/encontro.css` pela página nomeada `deck`
+(`@page deck { size: A4 landscape }`) e reforçada por uma folha que `js/encontro-pdf.js`
+injeta ao acionar a exportação, uma vez que `@page` não aceita seletor e a regra nomeada não
+é aplicada por todos os navegadores. A mesma injeção acrescenta a classe `print-deck` ao
+elemento raiz, que ativa as regras de um slide por página.
+
+**Verificado no acervo:** 49 dos 60 decks exportam em correspondência exata de um slide por
+folha. Nos 11 restantes, o slide excede a altura útil da folha e ocupa duas — em oito deles
+isso ocorre em um único slide do deck. Não há folha em branco em nenhum caso.
+
+Nas páginas de texto:
+
+- os blocos fluem em sequência, de modo que mais de um ocupa a mesma folha e o papel não
+  fica com metade em branco;
 - caixas, tabelas, grades e diagramas nunca são partidos entre páginas, e cabeçalho de bloco
   não fica órfão no pé da folha;
 - controles de navegação, sumário lateral, botões do cabeçalho e o próprio botão de
@@ -116,6 +133,10 @@ documento:
 | Deck estático | `.slide-container` no HTML | Novo slide ao final do deck |
 | Deck gerado em JS | `renderLessonSlides` / `class="lesson-deck"` | No próprio gerador (`pages/module-11-eng-software/lesson-content.js`) |
 | Página de texto | demais casos | Bloco logo após o cabeçalho |
+
+Deck estático e deck gerado exportam em paisagem; página de texto, em retrato. A detecção da
+orientação usa os mesmos seletores da tabela (`.slide-container`, `.lesson-deck`,
+`.lesson-slides`).
 
 A ficha entra ao **final** dos decks, e não após a capa, porque a maioria deles indexa
 animações por posição de slide (`animMap`): inserir no meio desalinharia todas as animações

@@ -19,14 +19,23 @@
  *
  * Variáveis: PW_BASE_URL (padrão http://127.0.0.1:8123) e SAIDA, o
  * diretório das capturas de tela. Ao terminar reinicia a sala.
+ *
+ * A sala ensaiada é a da Aula 6 do Módulo 7. Para ensaiar outra, declare
+ * QUIZ_DIR, QUIZ_AULA e QUIZ_SLUG — os três juntos, porque o
+ * diretório, o prefixo dos arquivos e o slug precisam ser da mesma aula:
+ *
+ *   QUIZ_DIR=pages/module-11-eng-software/quiz QUIZ_AULA=lesson-13 \
+ *   QUIZ_SLUG=transformacao-m11-a13 node scripts/ensaio-quiz-navegador.mjs
  */
 
 import { chromium } from 'playwright';
 import { execFileSync } from 'node:child_process';
 
 const BASE = process.env.PW_BASE_URL || 'http://127.0.0.1:8123';
-const DIR = `${BASE}/pages/module-7-sistemas-informacao/quiz`;
-const SLUG = 'stakeholders-m7-a6';
+const PASTA = process.env.QUIZ_DIR || 'pages/module-7-sistemas-informacao/quiz';
+const AULA = process.env.QUIZ_AULA || 'lesson-6';
+const DIR = `${BASE}/${PASTA}`;
+const SLUG = process.env.QUIZ_SLUG || 'stakeholders-m7-a6';
 const TOKEN = process.env.QUIZ_HOST_TOKEN;
 const BANCO = process.env.DATABASE_URL;
 const SAIDA = process.env.SAIDA || '/tmp';
@@ -55,7 +64,7 @@ async function abrir(url, largura, altura) {
 console.log('\nEnsaio das páginas no navegador\n');
 
 // ---- painel do professor, na resolução de projetor ----
-const painel = await abrir(`${DIR}/lesson-6-host.html?token=${encodeURIComponent(TOKEN)}`, 1024, 768);
+const painel = await abrir(`${DIR}/${AULA}-host.html?token=${encodeURIComponent(TOKEN)}`, 1024, 768);
 await painel.waitForSelector('[data-tela="lobby"].ativa', { timeout: 20000 });
 ok(true, 'o painel autentica e mostra o lobby');
 ok(await painel.locator('#qr canvas, #qr img').count() > 0, 'o código QR é gerado');
@@ -68,7 +77,7 @@ await painel.waitForFunction(() => document.querySelector('#m-jogadores').textCo
 // ---- dois aparelhos de estudante ----
 const alunos = [];
 for (const nome of ['Ensaio Ana', 'Ensaio Bia']) {
-  const pg = await abrir(`${DIR}/lesson-6-quiz.html`, 390, 844);
+  const pg = await abrir(`${DIR}/${AULA}-quiz.html`, 390, 844);
   await pg.waitForSelector('[data-tela="entrada"].ativa', { timeout: 20000 });
   await pg.fill('#nome', nome);
   await pg.click('#btn-entrar');
@@ -159,7 +168,7 @@ ok(await alunos[0].locator('#link-perguntas').isHidden(), 'sem publicação, o a
 await alunos[0].screenshot({ path: `${SAIDA}/quiz-podio-aluno.png` });
 
 // ---- publicação ----
-const perguntas = await abrir(`${DIR}/lesson-6-perguntas.html`, 900, 900);
+const perguntas = await abrir(`${DIR}/${AULA}-perguntas.html`, 900, 900);
 await perguntas.waitForSelector('[data-tela="fechado"].ativa', { timeout: 20000 });
 ok(true, 'a página das perguntas avisa que ainda não foram publicadas');
 

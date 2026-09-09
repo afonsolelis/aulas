@@ -2101,6 +2101,21 @@ WHERE regiao_id = 7
         'Escolher entre append, overwrite, merge e snapshot pela política de histórico da dimensão.',
         'Provar a repetibilidade da carga por soma de receita idêntica entre duas execuções.'
       ],
+      timebox: [
+        { label: 'Quiz de abertura — dez questões sobre o material, com a distribuição das respostas comentada por tema', minutes: 30 },
+        { label: 'Exposição — ETL e ELT e determinismo, qualidade e deduplicação, carga e orquestração', minutes: 40 },
+        { label: 'Card de trabalho — silver e gold com os testes escritos antes, e carga repetível', minutes: 50 }
+      ],
+      // Ficha do encontro: mesma redação de config/encontros.json, para que
+      // material e plano declarem a estrutura idêntica à do deck.
+      estrategia: 'Quiz de abertura com dez questões sobre o material de leitura, cujo resultado por tema dirige a ênfase da exposição. Exposição dialogada em três blocos, cada um encerrado por checklist de aplicação e erro comum. Card de trabalho em grupo nos cinquenta minutos finais: sobre a bronze construída na Aula 12, os estudantes escrevem cinco testes de qualidade e os veem falhar, constroem a silver conformada com rejeitados separados por motivo, montam a gold medindo a contagem antes e depois de cada junção e provam que duas execuções da carga produzem a mesma soma de receita.',
+      estrutura: [
+        'Quiz de abertura (30 min) — Dez questões sobre o material, com noventa segundos cada e a última valendo o dobro, seguidas do comentário da distribuição das respostas por tema.',
+        'Bloco 1 (12 min) — ETL e ELT pela possibilidade de recálculo, determinismo e as quatro decisões técnicas que alteram o número apresentado ao negócio.',
+        'Bloco 2 (16 min) — Qualidade: o teste que falha antes de existir, deduplicação por regra declarada e reconciliação com a origem por contagem e por soma.',
+        'Bloco 3 (12 min) — Carga e orquestração: append, overwrite, merge e snapshot, política de histórico da dimensão, atomicidade e dependência declarada.',
+        'Card de trabalho (50 min) — Em grupo: testes escritos e falhando (8 min), silver conformada (12 min), gold com junções medidas (12 min), carga incremental parametrizada (9 min), reconciliação e conclusão escrita (9 min).'
+      ],
       sections: [
         {
           nav: 'ETL ou ELT', title: 'Onde transformar',
@@ -2184,7 +2199,7 @@ WHERE regiao_id = 7
         },
         {
           nav: 'Card de trabalho', title: 'As três perguntas da atividade em sala',
-          text: 'A segunda hora do encontro é atividade em grupo sobre a bronze construída na Aula 12: se o teste falhou antes de a transformação existir; quantas linhas cada junção descartou; e se duas execuções produzem o mesmo número. A terceira se verifica por soma de receita, e não por contagem.',
+          text: 'Os cinquenta minutos finais do encontro são atividade em grupo sobre a bronze construída na Aula 12: se o teste falhou antes de a transformação existir; quantas linhas cada junção descartou; e se duas execuções produzem o mesmo número. A terceira se verifica por soma de receita, e não por contagem.',
           checklist: [
             'Registre a saída dos cinco testes antes e depois da implementação.',
             'Meça a contagem antes e depois de cada junção, e explique cada diferença.',

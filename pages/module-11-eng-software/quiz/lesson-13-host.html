@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aula 13 - Transformação e Carga - Painel do professor - Inteli</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎛️</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+  <link href="../../../css/inteli-styles.css" rel="stylesheet">
+  <style>
+    :root {
+      /* O acento não usa o vermelho do curso: --alert (coral) já marca a
+         resposta incorreta, e as duas cores se confundiriam na revelação. */
+      --acento: var(--inteli-green);
+      --ink: var(--inteli-dark-purple);
+      --paper: var(--inteli-white);
+      --line: color-mix(in srgb, var(--inteli-white) 22%, transparent);
+      --muted: color-mix(in srgb, var(--inteli-white) 62%, transparent);
+      --alert: var(--inteli-coral);
+      --dobro: #e8a33d;
+    }
+    * { box-sizing: border-box; }
+    /* Regras de componente com display próprio venceriam o atributo
+       hidden, que vem da folha do navegador. Sem isto, um selo
+       marcado como oculto continua na tela. */
+    [hidden] { display: none !important; }
+    body {
+      margin: 0; font-family: 'Manrope', system-ui, sans-serif;
+      background: var(--ink); color: var(--paper);
+      /* Altura fixa: o painel é projetado, e os controles não podem sair da
+         tela em projetor de 768p. O conteúdo rola por dentro do <main>. */
+      height: 100vh; overflow: hidden; display: flex; flex-direction: column;
+    }
+    header {
+      display: flex; justify-content: space-between; align-items: center; gap: 18px;
+      padding: 14px 26px; border-bottom: 1px solid var(--line); flex: 0 0 auto;
+    }
+    .titulo { font-size: .95rem; font-weight: 800; }
+    .titulo small { display: block; font-size: .68rem; font-weight: 700; letter-spacing: .1em;
+                    text-transform: uppercase; color: var(--acento); }
+    .medidores { display: flex; gap: 26px; align-items: center; }
+    .medidor { text-align: right; }
+    .medidor .n { font-size: 1.5rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
+    .medidor .r { font-size: .64rem; font-weight: 700; letter-spacing: .09em;
+                  text-transform: uppercase; color: var(--muted); }
+
+    /* Tempo restante: o professor conduz sem precisar contar de cabeça, e a
+       turma enxerga a mesma contagem projetada. */
+    .trilha-tempo { flex: 0 0 auto; height: 7px; background: color-mix(in srgb, var(--paper) 10%, transparent); }
+    .trilha-tempo > i { display: block; height: 100%; width: 100%; background: var(--acento);
+                        transition: width .25s linear, background-color .3s; }
+    .trilha-tempo.acabando > i { background: var(--alert); }
+    .medidor.cronometro .n { font-variant-numeric: tabular-nums; }
+    .medidor.cronometro.acabando .n { color: var(--alert); }
+    .medidor.cronometro.esgotado .n { color: var(--alert); }
+    .medidor.completo .n { color: var(--acento); }
+    main { flex: 1 1 auto; min-height: 0; padding: 26px; display: flex;
+           flex-direction: column; gap: 20px; overflow: auto; }
+    [data-tela] { display: none; flex: 1 1 auto; gap: 26px; }
+    [data-tela].ativa { display: flex; }
+
+    /* Lobby projetado */
+    .lobby { align-items: center; }
+    .qr-bloco { background: var(--paper); padding: 22px; border-radius: 20px; flex: 0 0 auto; }
+    .qr-bloco canvas, .qr-bloco img, .qr-bloco table { display: block; }
+    .lobby-texto { flex: 1 1 auto; display: flex; flex-direction: column; gap: 14px; }
+    .lobby-texto h1 { font-size: 2rem; margin: 0; font-weight: 800; line-height: 1.15; }
+    .url-caixa {
+      background: color-mix(in srgb, var(--paper) 12%, transparent); border: 1px solid var(--line);
+      border-radius: 13px; padding: 15px 18px; font-size: 1.15rem; font-weight: 800;
+      word-break: break-all; color: var(--acento);
+    }
+    .nomes { display: flex; flex-wrap: wrap; gap: 8px; max-height: 34vh; overflow: auto; }
+    .chip { background: color-mix(in srgb, var(--acento) 22%, transparent); border-radius: 999px;
+            padding: 7px 14px; font-size: .85rem; font-weight: 700; }
+
+    /* Pergunta projetada */
+    .pergunta { flex-direction: column; }
+    .pergunta h1 { font-size: 2.1rem; line-height: 1.25; margin: 0 0 6px; font-weight: 800; }
+    .grade-alt { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .op {
+      display: flex; align-items: center; gap: 14px; padding: 18px 20px; border-radius: 15px;
+      background: color-mix(in srgb, var(--paper) 10%, transparent); border: 2px solid var(--line);
+      font-size: 1.1rem; font-weight: 600; line-height: 1.35;
+    }
+    .op .letra { flex: 0 0 40px; height: 40px; border-radius: 10px; display: grid; place-items: center;
+                 background: color-mix(in srgb, var(--acento) 30%, transparent); font-weight: 800; }
+    .op .n { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 800;
+             font-size: 1.3rem; color: var(--acento); }
+    .op.certa { border-color: var(--acento); background: color-mix(in srgb, var(--acento) 24%, transparent); }
+    .op.certa .letra { background: var(--acento); color: var(--ink); }
+    .revelado .op:not(.certa) { opacity: .45; }
+
+    .explicacao {
+      background: color-mix(in srgb, var(--acento) 15%, transparent); border-left: 4px solid var(--acento);
+      border-radius: 0 12px 12px 0; padding: 15px 18px; font-size: 1rem; line-height: 1.5; font-weight: 600;
+    }
+
+    /* Peso da questão. A última vale o dobro, e isso é declarado antes de
+       a turma responder — não depois, quando já não altera a decisão. */
+    .selo-dobro {
+      display: inline-block; background: var(--dobro); color: var(--ink);
+      border-radius: 999px; padding: 5px 14px; font-size: .74rem; font-weight: 800;
+      letter-spacing: .05em; text-transform: uppercase; vertical-align: middle;
+    }
+    .cab-pergunta { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+    .cab-pergunta h1 { margin: 0; }
+
+    /* A pergunta aberta é a tela mais longa do painel: enunciado de até
+       cinco linhas mais quatro alternativas. A tipografia abaixo é a que
+       mantém a questão mais extensa dentro dos 768 px do projetor, com o
+       selo de peso ocupando uma linha própria. */
+    [data-tela="pergunta"] h1 { font-size: 1.85rem; line-height: 1.22; }
+    [data-tela="pergunta"] .grade-alt { gap: 12px; }
+    [data-tela="pergunta"] .op { padding: 14px 18px; font-size: 1.04rem; line-height: 1.3; }
+    [data-tela="pergunta"] .op .letra { flex: 0 0 36px; height: 36px; }
+
+    /* O enunciado permanece à vista na revelação: sem ele, comentar a
+       distribuição das escolhas exige que a turma o tenha memorizado.
+       Ele disputa a altura com as alternativas e com a explicação, e a
+       tela de projeção tem 768 px — daí a tipografia reduzida deste bloco,
+       calibrada para o enunciado mais longo do quiz. */
+    .enunciado-rev { font-size: .98rem; line-height: 1.32; font-weight: 700; margin: 0 0 9px; }
+    main:has([data-tela="revelacao"].ativa) { padding: 16px 26px; gap: 12px; }
+    [data-tela="revelacao"] h2 { margin-bottom: 7px; }
+    [data-tela="revelacao"] .duas-colunas { gap: 22px; }
+    [data-tela="revelacao"] .grade-alt { gap: 7px; }
+    [data-tela="revelacao"] .op { padding: 8px 13px; font-size: .88rem; line-height: 1.28; }
+    [data-tela="revelacao"] .op .letra { flex: 0 0 28px; height: 28px; border-radius: 8px; font-size: .84rem; }
+    [data-tela="revelacao"] .op .n { font-size: 1rem; }
+    [data-tela="revelacao"] .explicacao { padding: 10px 13px; font-size: .85rem; line-height: 1.38; }
+    [data-tela="revelacao"] .linha { padding: 9px 14px; font-size: .95rem; }
+    .duas-colunas { display: grid; grid-template-columns: 1.35fr 1fr; gap: 26px; align-items: start; }
+
+    /* Ranking projetado */
+    .ranking { display: flex; flex-direction: column; gap: 7px; }
+    .linha { display: grid; grid-template-columns: 46px 1fr auto; gap: 14px; align-items: center;
+             padding: 12px 16px; border-radius: 11px;
+             background: color-mix(in srgb, var(--paper) 9%, transparent);
+             font-size: 1.05rem; font-weight: 700; }
+    .linha .pos { font-size: 1.15rem; font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .linha .pts { font-variant-numeric: tabular-nums; font-weight: 800; color: var(--acento); }
+    .linha.p1 { background: color-mix(in srgb, var(--acento) 26%, transparent); font-size: 1.25rem; }
+    .linha.p2 { background: color-mix(in srgb, var(--acento) 18%, transparent); }
+    .linha.p3 { background: color-mix(in srgb, var(--acento) 12%, transparent); }
+    h2 { font-size: 1.05rem; margin: 0 0 12px; font-weight: 800; letter-spacing: .04em;
+         text-transform: uppercase; color: var(--acento); }
+
+    /* Pódio do encerramento. Três degraus, o primeiro ao centro. */
+    .podio { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;
+             align-items: end; margin-bottom: 26px; }
+    .degrau { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+    .degrau .medalha { font-size: 2.6rem; line-height: 1; }
+    .degrau .nome { font-size: 1.15rem; font-weight: 800; line-height: 1.2; }
+    .degrau .pts  { font-size: .85rem; font-weight: 700; color: var(--muted);
+                    font-variant-numeric: tabular-nums; }
+    .degrau .bloco {
+      width: 100%; border-radius: 14px 14px 0 0; display: grid; place-items: center;
+      font-size: 1.6rem; font-weight: 800; color: var(--ink); margin-top: 6px;
+    }
+    .degrau.lugar-1 { order: 2; }
+    .degrau.lugar-2 { order: 1; }
+    .degrau.lugar-3 { order: 3; }
+    .degrau.lugar-1 .bloco { height: 21vh; background: var(--acento); }
+    .degrau.lugar-2 .bloco { height: 15vh; background: color-mix(in srgb, var(--acento) 62%, var(--ink)); }
+    .degrau.lugar-3 .bloco { height: 11vh; background: color-mix(in srgb, var(--acento) 40%, var(--ink)); }
+    .degrau.lugar-1 .nome { font-size: 1.45rem; }
+
+    /* Controles */
+    footer {
+      flex: 0 0 auto; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+      padding: 14px 26px; border-top: 1px solid var(--line);
+      background: color-mix(in srgb, var(--inteli-black) 25%, var(--ink));
+    }
+    button {
+      font: inherit; font-weight: 800; cursor: pointer; border: none; border-radius: 11px;
+      padding: 13px 20px; font-size: .92rem; background: var(--acento); color: var(--ink);
+    }
+    button.secundario { background: color-mix(in srgb, var(--paper) 14%, transparent); color: var(--paper); }
+    button.perigo { background: transparent; color: var(--alert); border: 1px solid var(--alert); }
+    button.publicado { background: var(--dobro); color: var(--ink); }
+    button:disabled { opacity: .35; cursor: default; }
+    footer .direita { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+    .estado-txt { font-size: .78rem; font-weight: 700; color: var(--muted); }
+    a.link { color: var(--acento); font-size: .78rem; font-weight: 800; text-decoration: none;
+             padding: 8px 10px; border-radius: 8px;
+             background: color-mix(in srgb, var(--paper) 8%, transparent); }
+    a.link:hover { background: color-mix(in srgb, var(--acento) 20%, transparent); }
+
+    /* Autenticação */
+    .auth { max-width: 460px; margin: 8vh auto; flex-direction: column; gap: 14px; }
+    .auth h1 { font-size: 1.4rem; margin: 0; }
+    .auth p { color: var(--muted); line-height: 1.55; margin: 0; font-size: .9rem; }
+    input {
+      width: 100%; padding: 14px 16px; font: inherit; font-size: 1rem; font-weight: 700;
+      border: 2px solid var(--line); border-radius: 12px;
+      background: color-mix(in srgb, var(--paper) 8%, transparent); color: var(--paper);
+    }
+    input:focus { outline: none; border-color: var(--acento); }
+    .aviso { color: var(--alert); font-size: .85rem; font-weight: 700; min-height: 1.1em; }
+    @media (max-width: 900px) {
+      .duas-colunas, .grade-alt { grid-template-columns: 1fr; }
+      [data-tela].lobby { flex-direction: column; }
+    }
+  </style>
+
+<!-- semana:css:start -->
+<link rel="stylesheet" href="../../../css/semana-ano.css">
+<!-- semana:css:end -->
+</head>
+<body>
+  <header>
+    <div class="titulo"><small>Módulo 11 · Aula 13 · Painel do professor</small><span id="cab-titulo">Transformação e Carga</span></div>
+    <div class="medidores">
+      <div class="medidor"><div class="n" id="m-jogadores">0</div><div class="r">na sala</div></div>
+      <div class="medidor"><div class="n" id="m-respostas">0</div><div class="r">responderam</div></div>
+      <div class="medidor"><div class="n" id="m-pergunta">—</div><div class="r">pergunta</div></div>
+      <div class="medidor cronometro" id="med-tempo"><div class="n" id="m-tempo">—</div><div class="r">segundos</div></div>
+    </div>
+  </header>
+
+  <div class="trilha-tempo" id="trilha-tempo" hidden><i id="barra-tempo"></i></div>
+
+  <main>
+    <section data-tela="auth" class="auth ativa">
+      <h1>Painel do professor</h1>
+      <p>Informe o token da sessão. Ele fica guardado neste navegador; não é preciso digitar de novo.</p>
+      <input id="token" type="password" placeholder="token da sessão" autocomplete="off">
+      <p class="aviso" id="aviso-auth" role="alert"></p>
+      <button id="btn-auth" type="button">Abrir painel</button>
+    </section>
+
+    <section data-tela="lobby" class="lobby">
+      <div class="qr-bloco"><div id="qr"></div></div>
+      <div class="lobby-texto">
+        <h1>Aponte a câmera para entrar</h1>
+        <div class="url-caixa" id="url-quiz"></div>
+        <p class="estado-txt">Cada aluno escolhe o próprio nome. A pergunta abre para todos ao mesmo tempo.</p>
+        <div class="nomes" id="nomes"></div>
+      </div>
+    </section>
+
+    <section data-tela="pergunta" class="pergunta">
+      <div class="cab-pergunta">
+        <h1 id="enunciado"></h1>
+        <span class="selo-dobro" id="selo-dobro" hidden>Vale o dobro</span>
+      </div>
+      <div class="grade-alt" id="alternativas"></div>
+    </section>
+
+    <section data-tela="revelacao" class="pergunta">
+      <div class="duas-colunas">
+        <div>
+          <h2>Pergunta <span id="rev-ordem"></span> <span class="selo-dobro" id="rev-dobro" hidden>Vale o dobro</span></h2>
+          <p class="enunciado-rev" id="rev-enunciado"></p>
+          <div class="grade-alt revelado" id="rev-alternativas" style="grid-template-columns:1fr"></div>
+          <div class="explicacao" id="rev-explicacao" style="margin-top:10px"></div>
+        </div>
+        <div>
+          <h2>Placar acumulado</h2>
+          <div class="ranking" id="rev-ranking"></div>
+        </div>
+      </div>
+    </section>
+
+    <section data-tela="final" class="pergunta">
+      <h1 style="margin-bottom:18px">Pódio — <span id="fim-titulo"></span></h1>
+      <div class="podio" id="podio"></div>
+      <h2 id="fim-demais" hidden>Demais colocações</h2>
+      <div class="ranking" id="fim-ranking"></div>
+    </section>
+  </main>
+
+  <footer>
+    <button id="btn-abrir"    type="button">Abrir pergunta</button>
+    <button id="btn-revelar"  type="button" class="secundario">Revelar resposta</button>
+    <button id="btn-reabrir"  type="button" class="secundario">Reabrir</button>
+    <button id="btn-encerrar" type="button" class="secundario">Encerrar sessão</button>
+    <button id="btn-publicar" type="button" class="secundario">Publicar perguntas</button>
+    <div class="direita">
+      <span class="estado-txt" id="estado-txt"></span>
+      <a class="link" href="lesson-13-perguntas.html">📝 Perguntas</a>
+      <a class="link" href="lesson-13-relatorio.html">📊 Relatório</a>
+      <a class="link" href="../materials/lesson-13-material.html">📖 Material</a>
+      <a class="link" href="../slides/slide-lesson-13.html">🖥️ Slides</a>
+      <a class="link" href="../planos/lesson-13-plano.html">📋 Plano</a>
+      <a class="link" href="../../home-module-11-eng-software.html">🏠 Módulo</a>
+      <button id="btn-reiniciar" type="button" class="perigo">Reiniciar</button>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.114.0/dist/umd/supabase.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+  const SUPABASE_URL = 'https://lcyxqwdgsrbcpecqyqje.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_x68LvlGFJns-zsrYTERvqw_-x5GWA8p';
+  const SLUG = new URLSearchParams(location.search).get('sala') || 'transformacao-m11-a13';
+  const CHAVE_TOKEN = 'quiz-host:' + SLUG;
+
+  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } });
+  const el = (id) => document.getElementById(id);
+  const LETRAS = ['A', 'B', 'C', 'D', 'E'];
+
+  let token = localStorage.getItem(CHAVE_TOKEN) || new URLSearchParams(location.search).get('token') || '';
+  let ultimo = null;
+  let laco = null;
+
+  function mostrar(tela) {
+    document.querySelectorAll('[data-tela]').forEach((s) => s.classList.toggle('ativa', s.dataset.tela === tela));
+  }
+
+  /* A URL do aluno é derivada da URL deste painel, e pode ser sobrescrita
+     por ?base= quando o professor projeta a partir de um endereço local. */
+  function urlDoQuiz() {
+    const base = new URLSearchParams(location.search).get('base');
+    if (base) return base;
+    const u = new URL('lesson-13-quiz.html', location.href);
+    if (SLUG !== 'transformacao-m11-a13') u.searchParams.set('sala', SLUG);
+    return u.href;
+  }
+
+  function desenharQR() {
+    const url = urlDoQuiz();
+    el('url-quiz').textContent = url.replace(/^https?:\/\//, '');
+    const alvo = el('qr');
+    if (alvo.dataset.pronto === url) return;
+    alvo.innerHTML = '';
+    if (typeof QRCode === 'undefined') {
+      alvo.innerHTML = '<p style="color:#2E2640;font-weight:700;max-width:260px">'
+        + 'Não foi possível gerar o código. Projete o endereço ao lado.</p>';
+      return;
+    }
+    new QRCode(alvo, { text: url, width: 300, height: 300, correctLevel: QRCode.CorrectLevel.M });
+    alvo.dataset.pronto = url;
+  }
+
+  async function chamar(acao) {
+    const { data, error } = await db.rpc('quiz_host', { p_slug: SLUG, p_token: token, p_acao: acao });
+    if (error) throw error;
+    return data;
+  }
+
+  async function autenticar() {
+    token = el('token').value.trim();
+    el('aviso-auth').textContent = '';
+    try {
+      const d = await chamar('ver');
+      if (!d.ok) { el('aviso-auth').textContent = d.erro; return; }
+      localStorage.setItem(CHAVE_TOKEN, token);
+      aplicar(d);
+      if (!laco) laco = setInterval(atualizar, 2000);
+    } catch (e) {
+      el('aviso-auth').textContent = 'Falha de rede ao verificar o token.';
+      console.error(e);
+    }
+  }
+
+  async function agir(acao) {
+    document.querySelectorAll('footer button').forEach((b) => { b.disabled = true; });
+    try { aplicar(await chamar(acao)); }
+    catch (e) { console.error(e); }
+    finally { atualizarBotoes(ultimo); }
+  }
+
+  async function atualizar() {
+    try { const d = await chamar('ver'); if (d.ok) aplicar(d); }
+    catch (e) { el('estado-txt').textContent = 'Sem conexão — tentando de novo.'; }
+  }
+
+  function linhaRanking(alvo, linhas) {
+    alvo.innerHTML = '';
+    if (!linhas.length) { alvo.innerHTML = '<p class="estado-txt">Nenhuma resposta ainda.</p>'; return; }
+    linhas.forEach((r, i) => {
+      const d = document.createElement('div');
+      d.className = 'linha' + (i < 3 ? ` p${i + 1}` : '');
+      d.innerHTML = '<span class="pos"></span><span class="nome"></span><span class="pts"></span>';
+      d.children[0].textContent = ['🥇', '🥈', '🥉'][i] || (i + 1);
+      d.children[1].textContent = r.nome;
+      d.children[2].textContent = `${r.pontos} pt · ${r.acertos} ✓`;
+      alvo.appendChild(d);
+    });
+  }
+
+  /* Pódio do encerramento. Os três primeiros aparecem em degraus, com o
+     primeiro colocado ao centro; do quarto em diante segue a lista. */
+  function desenharPodio(linhas) {
+    const alvo = el('podio');
+    alvo.innerHTML = '';
+    const tres = linhas.slice(0, 3);
+    if (!tres.length) {
+      alvo.innerHTML = '<p class="estado-txt">Nenhuma resposta registrada.</p>';
+      return;
+    }
+    tres.forEach((r, i) => {
+      const d = document.createElement('div');
+      d.className = `degrau lugar-${i + 1}`;
+      d.innerHTML = '<div class="medalha"></div><div class="nome"></div>'
+                  + '<div class="pts"></div><div class="bloco"><span></span></div>';
+      d.querySelector('.medalha').textContent = ['🥇', '🥈', '🥉'][i];
+      d.querySelector('.nome').textContent = r.nome;
+      d.querySelector('.pts').textContent = `${r.pontos} pt · ${r.acertos} ✓`;
+      d.querySelector('.bloco span').textContent = `${i + 1}º`;
+      alvo.appendChild(d);
+    });
+  }
+
+  /* A leitura periódica não pode recriar a grade projetada — isso pisca na
+     tela da sala. Só a contagem por alternativa é atualizada no lugar. */
+  function opcoes(alvo, p, distribuicao, revelar, chave) {
+    if (alvo.dataset.chave !== chave) {
+      alvo.dataset.chave = chave;
+      alvo.innerHTML = '';
+      p.alternativas.forEach((texto, i) => {
+        const d = document.createElement('div');
+        d.className = 'op' + (revelar && i === p.correta ? ' certa' : '');
+        d.innerHTML = '<span class="letra"></span><span class="txt"></span><span class="n"></span>';
+        d.children[0].textContent = LETRAS[i];
+        d.children[1].textContent = texto;
+        alvo.appendChild(d);
+      });
+    }
+    [...alvo.children].forEach((d, i) => {
+      d.lastElementChild.textContent = revelar ? (distribuicao[String(i)] || 0) : '';
+    });
+  }
+
+  let relogio = null;         // intervalo do cronômetro
+  let offsetRelogio = 0;      // relógio do servidor menos o desta máquina
+  let perguntaCronometrada = null;
+
+  function pararCronometro() {
+    if (relogio) { clearInterval(relogio); relogio = null; }
+  }
+
+  function iniciarCronometro(abertaEm, segundos) {
+    pararCronometro();
+    const inicio = new Date(abertaEm).getTime();
+    const trilha = el('trilha-tempo'), med = el('med-tempo');
+    trilha.hidden = false;
+    const tick = () => {
+      const agora = Date.now() + offsetRelogio;
+      const restante = Math.max(0, segundos - (agora - inicio) / 1000);
+      const fracao = Math.max(0, Math.min(1, restante / segundos));
+      el('m-tempo').textContent = restante > 0 ? Math.ceil(restante) : '0';
+      el('barra-tempo').style.width = (fracao * 100) + '%';
+      const acabando = restante > 0 && fracao <= 0.25;
+      trilha.classList.toggle('acabando', acabando || restante === 0);
+      med.classList.toggle('acabando', acabando);
+      med.classList.toggle('esgotado', restante === 0);
+      // Esgotado o tempo, o servidor fecha a pergunta na primeira consulta.
+      // Pedir a leitura aqui antecipa a revelação em até dois segundos.
+      if (restante === 0) { pararCronometro(); atualizar(); }
+    };
+    tick();
+    relogio = setInterval(tick, 200);
+  }
+
+  function encerrarCronometro() {
+    pararCronometro();
+    perguntaCronometrada = null;
+    el('trilha-tempo').hidden = true;
+    el('m-tempo').textContent = '—';
+    el('med-tempo').className = 'medidor cronometro';
+  }
+
+  function aplicar(d) {
+    ultimo = d;
+    el('cab-titulo').textContent = d.titulo;
+    el('m-jogadores').textContent = d.jogadores;
+    // Fração, não contagem solta: "18/20" responde de imediato se ainda falta alguém.
+    const respostas = d.respostas || 0;
+    el('m-respostas').textContent = d.estado === 'lobby' ? respostas : `${respostas}/${d.jogadores}`;
+    el('m-respostas').parentElement.classList.toggle('completo',
+      d.jogadores > 0 && respostas >= d.jogadores && d.estado !== 'lobby');
+
+    offsetRelogio = new Date(d.servidor_agora).getTime() - Date.now();
+    if (d.estado === 'pergunta' && d.aberta_em && d.pergunta) {
+      // Rearma apenas quando muda a pergunta ou o instante de abertura,
+      // para a leitura periódica não reiniciar a contagem a cada 2 s.
+      const chave = `${d.ordem}|${d.aberta_em}`;
+      if (perguntaCronometrada !== chave) {
+        perguntaCronometrada = chave;
+        iniciarCronometro(d.aberta_em, d.pergunta.segundos);
+      }
+    } else {
+      encerrarCronometro();
+    }
+    el('m-pergunta').textContent = d.ordem ? `${d.ordem}/${d.total}` : '—';
+    el('estado-txt').textContent = {
+      lobby: 'Sala aberta para inscrição.', pergunta: 'Pergunta em curso.',
+      revelacao: 'Resposta revelada.', encerrado: 'Sessão encerrada.',
+    }[d.estado] || '';
+
+    if (d.estado === 'lobby') {
+      desenharQR();
+      const alvo = el('nomes');
+      alvo.innerHTML = '';
+      (d.nomes || []).forEach((n) => {
+        const c = document.createElement('span');
+        c.className = 'chip'; c.textContent = n; alvo.appendChild(c);
+      });
+      mostrar('lobby');
+    } else if (d.estado === 'pergunta') {
+      el('enunciado').textContent = d.pergunta.enunciado;
+      el('selo-dobro').hidden = (d.pergunta.peso || 1) < 2;
+      opcoes(el('alternativas'), d.pergunta, d.distribuicao || {}, false, 'p' + d.ordem);
+      mostrar('pergunta');
+    } else if (d.estado === 'revelacao') {
+      el('rev-ordem').textContent = `${d.ordem} de ${d.total}`;
+      el('rev-dobro').hidden = (d.pergunta.peso || 1) < 2;
+      el('rev-enunciado').textContent = d.pergunta.enunciado;
+      opcoes(el('rev-alternativas'), d.pergunta, d.distribuicao || {}, true, 'r' + d.ordem);
+      el('rev-explicacao').textContent = d.pergunta.explicacao || '';
+      linhaRanking(el('rev-ranking'), d.ranking || []);
+      mostrar('revelacao');
+    } else if (d.estado === 'encerrado') {
+      el('fim-titulo').textContent = d.titulo;
+      const r = d.ranking || [];
+      desenharPodio(r);
+      const demais = r.slice(3);
+      el('fim-demais').hidden = demais.length === 0;
+      if (demais.length) linhaRanking(el('fim-ranking'), demais);
+      else el('fim-ranking').innerHTML = '';
+      mostrar('final');
+    }
+    atualizarBotoes(d);
+  }
+
+  function atualizarBotoes(d) {
+    if (!d) return;
+    const ultima = d.ordem >= d.total;
+    el('btn-abrir').disabled    = !(d.estado === 'lobby' || (d.estado === 'revelacao' && !ultima));
+    // Na última questão não há seguinte a anunciar: o rótulo diria um
+    // número que não existe no quiz.
+    el('btn-abrir').textContent =
+      d.estado === 'lobby'     ? 'Abrir pergunta 1' :
+      d.estado === 'encerrado' ? 'Sessão encerrada' :
+      ultima                   ? `Última pergunta (${d.total} de ${d.total})` :
+      `Abrir pergunta ${d.ordem + 1}`;
+    el('btn-revelar').disabled  = d.estado !== 'pergunta';
+    el('btn-reabrir').disabled  = !(d.estado === 'revelacao' || d.estado === 'pergunta');
+    el('btn-encerrar').disabled = d.estado === 'encerrado' || d.estado === 'lobby';
+    // Revelada a última pergunta, encerrar é o que abre o pódio: o rótulo
+    // diz o que o comando faz naquele momento, e não o que ele faz sempre.
+    el('btn-encerrar').textContent =
+      (ultima && d.estado === 'revelacao') ? 'Ver pódio' : 'Encerrar sessão';
+    el('btn-publicar').textContent =
+      d.publicado ? 'Despublicar perguntas' : 'Publicar perguntas';
+    el('btn-publicar').classList.toggle('publicado', !!d.publicado);
+    el('btn-publicar').disabled = false;
+    el('btn-reiniciar').disabled = false;
+  }
+
+  el('btn-auth').addEventListener('click', autenticar);
+  el('token').addEventListener('keydown', (e) => { if (e.key === 'Enter') autenticar(); });
+  el('btn-abrir').addEventListener('click', () => agir('abrir'));
+  el('btn-revelar').addEventListener('click', () => agir('revelar'));
+  el('btn-reabrir').addEventListener('click', () => agir('reabrir'));
+  el('btn-encerrar').addEventListener('click', () => agir('encerrar'));
+  el('btn-publicar').addEventListener('click', () => {
+    agir(ultimo && ultimo.publicado ? 'despublicar' : 'publicar');
+  });
+  el('btn-reiniciar').addEventListener('click', () => {
+    if (confirm('Isso apaga todos os jogadores e respostas desta sala. Confirmar?')) agir('reiniciar');
+  });
+
+  if (token) { el('token').value = token; autenticar(); }
+  </script>
+<!-- semana:js:start -->
+<script src="../../../js/semana-ano.js" defer></script>
+<!-- semana:js:end -->
+</body>
+</html>
