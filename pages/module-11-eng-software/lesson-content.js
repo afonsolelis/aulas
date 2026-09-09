@@ -2091,23 +2091,17 @@ WHERE regiao_id = 7
     13: {
       title: 'Transformação e Carga', date: '10/09/2026',
       subtitle: 'Transformar e publicar dados com determinismo, testes escritos antes da transformação e cargas coerentes com a política de histórico.',
-      objective: 'Escrever uma transformação determinística, especificar testes de qualidade que falham antes de a transformação existir e escolher a estratégia de carga coerente com a política de histórico da tabela.',
+      objective: 'Escrever uma transformação determinística, especificar testes de qualidade que falham antes de a transformação existir e escolher a estratégia de carga coerente com a política de histórico da tabela, provando a repetibilidade por soma de receita idêntica entre execuções.',
       outcomes: [
         'Decidir entre ETL e ELT pela necessidade futura de recalcular o passado sob outra regra.',
-        'Escrever transformação determinística e identificar as construções que quebram essa propriedade.',
-        'Reconhecer as quatro decisões técnicas que alteram o número apresentado ao negócio.',
-        'Especificar testes de qualidade que falham antes de a transformação existir.',
+        'Escrever transformação determinística e identificar as quatro construções que quebram essa propriedade.',
+        'Reconhecer as quatro decisões técnicas que alteram o número apresentado ao negócio sem produzir erro.',
+        'Especificar testes de qualidade que falham antes de a transformação existir e mantê-los no pipeline.',
         'Deduplicar por chave, ordenação e desempate declarados, em vez de operador de conjunto.',
         'Escolher entre append, overwrite, merge e snapshot pela política de histórico da dimensão.',
+        'Conferir que toda linha da bronze tem destino conhecido, sem resíduo entre as parcelas.',
         'Provar a repetibilidade da carga por soma de receita idêntica entre duas execuções.'
       ],
-      timebox: [
-        { label: 'Quiz de abertura — dez questões sobre o material, com a distribuição das respostas comentada por tema', minutes: 30 },
-        { label: 'Exposição — ETL e ELT e determinismo, qualidade e deduplicação, carga e orquestração', minutes: 40 },
-        { label: 'Card de trabalho — silver e gold com os testes escritos antes, e carga repetível', minutes: 50 }
-      ],
-      // Ficha do encontro: mesma redação de config/encontros.json, para que
-      // material e plano declarem a estrutura idêntica à do deck.
       estrategia: 'Quiz de abertura com dez questões sobre o material de leitura, cujo resultado por tema dirige a ênfase da exposição. Exposição dialogada em três blocos, cada um encerrado por checklist de aplicação e erro comum. Card de trabalho em grupo nos cinquenta minutos finais: sobre a bronze construída na Aula 12, os estudantes escrevem cinco testes de qualidade e os veem falhar, constroem a silver conformada com rejeitados separados por motivo, montam a gold medindo a contagem antes e depois de cada junção e provam que duas execuções da carga produzem a mesma soma de receita.',
       estrutura: [
         'Quiz de abertura (30 min) — Dez questões sobre o material, com noventa segundos cada e a última valendo o dobro, seguidas do comentário da distribuição das respostas por tema.',
@@ -2116,10 +2110,47 @@ WHERE regiao_id = 7
         'Bloco 3 (12 min) — Carga e orquestração: append, overwrite, merge e snapshot, política de histórico da dimensão, atomicidade e dependência declarada.',
         'Card de trabalho (50 min) — Em grupo: testes escritos e falhando (8 min), silver conformada (12 min), gold com junções medidas (12 min), carga incremental parametrizada (9 min), reconciliação e conclusão escrita (9 min).'
       ],
+      timebox: [
+        { label: 'Quiz de abertura — dez questões sobre o material, com a distribuição das respostas comentada por tema', minutes: 30 },
+        { label: 'Exposição — ETL e ELT e determinismo, qualidade e deduplicação, carga e orquestração', minutes: 40 },
+        { label: 'Card de trabalho — silver e gold com os testes escritos antes, e carga repetível', minutes: 50 }
+      ],
+      preClass: [
+        {
+          title: 'Aula 12 — Coleta e Extração (material da aula anterior)',
+          url: '../../module-11-eng-software/materials/lesson-12-material.html',
+          topics: [
+            'A bronze de pedidos e de itens sobre a qual esta aula transforma, com 99 441 pedidos e 112 650 itens de referência.',
+            'Marca d\'água, janela com sobreposição e a razão pela qual a bronze contém chave repetida.',
+            'Idempotência e replay: a mesma janela reprocessada precisa produzir o mesmo destino.',
+            'A tabela de controle com uma linha por execução, reaproveitada aqui para registrar duplicatas e rejeições.'
+          ]
+        }
+      ],
+      continuity: {
+        title: 'Onde esta aula entra na sequência do módulo',
+        text: 'A Aula 12 respondeu como o dado chega com completude e possibilidade de replay. Esta aula responde o que acontece entre a bronze e a métrica que o negócio lê, e é onde o número publicado passa a existir. As aulas seguintes instrumentam e servem esse número, sem alterar a transformação que o produz.',
+        steps: [
+          { when: 'Aulas 2 a 4', what: 'Modelagem dimensional: grão do fato, dimensões e política de histórico de cada atributo. Esta aula escreve a carga que a política escolhida admite.' },
+          { when: 'Aula 10', what: 'Armazenamento em grande escala: particionamento, formato colunar e publicação atômica por troca de ponteiro, condição das quatro estratégias de carga discutidas aqui.' },
+          { when: 'Aula 12', what: 'Coleta e extração: a bronze de pedidos e itens, com marca d\'água, chave repetida e tabela de controle. É a entrada do laboratório deste encontro.' },
+          { when: 'Aula 13 (esta)', what: 'Transformação e carga: silver conformada, gold com junções medidas, carga parametrizada e prova de repetibilidade por soma de receita.' },
+          { when: 'Aula 15', what: 'Métricas e telemetria: os indicadores de atualidade, completude, qualidade e custo medidos sobre as execuções desta transformação.' }
+        ],
+        note: 'A bronze da Aula 12 é pré-requisito do card de trabalho. Sem ela disponível, o grupo executa o roteiro sobre o conjunto original da Olist, e a conferência de duplicidade perde a referência.'
+      },
       sections: [
         {
           nav: 'ETL ou ELT', title: 'Onde transformar',
-          text: 'ETL transforma antes de gravar e economiza armazenamento, ao custo de não preservar o bruto. ELT preserva a entrada e transforma no destino, o que permite recalcular o passado quando a regra muda. O critério é a necessidade futura de responder qual seria o número sob outra definição.',
+          text: 'ETL aplica as regras antes da gravação e entrega ao destino apenas o dado já conformado, o que reduz o volume armazenado e permite mascarar campo sensível antes da travessia da fronteira. ELT grava a entrada como veio e transforma no destino, de modo que a mudança de regra se aplique retroativamente a toda a série. O critério de escolha é a necessidade futura de responder qual seria o número sob outra definição: havendo essa necessidade, o bruto precisa ser preservado. A definição de receita líquida ainda em discussão com o parceiro é o caso típico, porque a regra será fechada depois de a série já estar publicada. Aplicar a definição nova apenas às cargas futuras produz série com dois critérios, e a comparação histórica deixa de ser válida.',
+          diagram: `flowchart LR
+    O["Origem transacional"] --> T1["Transformação na ferramenta externa"]
+    T1 --> D1["Destino: apenas o dado conformado"]
+    O --> B["Bronze: a entrada como veio"]
+    B --> T2["Transformação no destino"]
+    T2 --> D2["Silver e gold"]
+    D1 -.->|"a regra de receita muda"| X["Passado não recalculável"]
+    D2 -.->|"a regra de receita muda"| Y["Série inteira recalculada"]`,
           checklist: [
             'Verifique se o dado bruto precisa ser preservado para auditoria ou recálculo.',
             'Compare o custo de processamento no destino com o da ferramenta externa.',
@@ -2129,7 +2160,7 @@ WHERE regiao_id = 7
         },
         {
           nav: 'Determinismo', title: 'Determinismo',
-          text: 'A mesma entrada e os mesmos parâmetros devem gerar a mesma saída. Quatro construções quebram essa propriedade: data corrente dentro da transformação, ordenação parcial em função de janela, aleatoriedade e dependência da ordem física do arquivo.',
+          text: 'A transformação é determinística quando a mesma entrada e os mesmos parâmetros produzem a mesma saída, em qualquer momento e em qualquer ambiente. Quatro construções quebram essa propriedade: a data corrente dentro da transformação, que desloca a janela a cada execução; a função de janela com ordenação parcial, cujo registro vencedor varia conforme o plano escolhido pelo motor; a aleatoriedade, inclusive na amostragem; e a dependência da ordem física dos arquivos lidos. A janela é recebida como parâmetro de execução, e a ordenação da função de janela é total, com critério de desempate explícito. Fuso horário, momento do arredondamento e versão do código são fixados e registrados a cada carga, de modo que uma divergência futura possa ser atribuída à alteração que a produziu. Um backfill que devolve conjuntos distintos em duas execuções com os mesmos parâmetros contém ao menos uma dessas quatro construções.',
           checklist: [
             'Declare a janela como parâmetro de entrada, e não como expressão sobre a data corrente.',
             'Use ordenação total na função de janela, com critério de desempate explícito.',
@@ -2139,17 +2170,17 @@ WHERE regiao_id = 7
         },
         {
           nav: 'Decisões silenciosas', title: 'O que altera o número sem produzir erro',
-          text: 'Fuso horário, tratamento de nulo em medida, momento do arredondamento e tipo de junção alteram o valor apresentado sem gerar exceção. A junção interna que descarta o fato sem dimensão correspondente é a mais perigosa, porque reduz o total sem emitir aviso.',
+          text: 'Quatro decisões técnicas alteram o valor apresentado ao negócio sem gerar exceção nem registro de erro. O fuso horário adotado na conversão desloca vendas entre dias e muda o fechamento mensal. O tratamento do nulo em medida, que pode ser zero, ignorado na média ou motivo de rejeição, altera o resultado da agregação. O momento do arredondamento, por linha ou sobre a soma, produz divergência de centavos que se acumula no total. O tipo de junção decide o destino do fato sem dimensão correspondente: a junção interna o descarta, e o total apurado cai sem que nenhuma mensagem indique a perda. Essa última é a mais perigosa das quatro, e aparece justamente quando a origem cadastra produtos novos que ainda não chegaram à dimensão. A defesa é comparar a contagem antes e depois de cada junção e preservar o fato sem correspondência por meio de membro desconhecido. O quadro adiante registra as quatro decisões e o artefato em que cada uma é declarada.',
           checklist: [
             'Registre o fuso adotado no contrato da camada de consumo.',
             'Declare se o nulo em medida é zero, ignorado ou motivo de rejeição.',
-            'Compare a contagem antes e depois de cada junção, e explique toda diferença.'
+            'Compare a contagem antes e depois de cada junção e preserve o fato sem correspondência com membro desconhecido.'
           ],
           pitfall: 'Adotar junção interna por padrão. O fato sem dimensão correspondente desaparece do total, e nenhuma mensagem indica que isso ocorreu.'
         },
         {
           nav: 'Qualidade', title: 'O teste que falha primeiro',
-          text: 'Teste schema, obrigatoriedade, unicidade, relacionamento, domínio de valores, atualidade, volume e reconciliação com a origem. O teste é escrito antes da transformação e precisa falhar, porque a falha inicial é a única prova de que ele detecta o defeito.',
+          text: 'O conjunto de verificações cobre schema, obrigatoriedade, unicidade, relacionamento, domínio de valores, atualidade, volume e reconciliação com a origem. O teste é escrito antes da transformação e executado contra a tabela ainda inexistente, porque a falha inicial é a única evidência de que ele detecta o defeito que declara detectar. Um conjunto aprovado desde a primeira execução não sustenta afirmação alguma sobre capacidade de detecção, qualquer que seja a cobertura declarada: a cobertura informa o que foi verificado, e a falha inicial informa que a verificação funciona. Depois de aprovado, o teste permanece no pipeline, roda a cada carga e bloqueia a publicação quando a origem muda de comportamento. A reconciliação com a origem é a verificação que o negócio reconhece, e exige contagem, soma de medida financeira e tolerância declarada previamente como número.',
           checklist: [
             'Escreva o teste antes da transformação e registre a saída em que ele falha.',
             'Cubra schema, nulos, unicidade, relacionamento e faixa de valores.',
@@ -2159,7 +2190,7 @@ WHERE regiao_id = 7
         },
         {
           nav: 'Deduplicação', title: 'Deduplicação por regra declarada',
-          text: 'Defina a chave do evento, a ordenação que elege o vencedor e a regra de desempate. O carimbo da origem precede o de chegada, porque o segundo reflete a ordem de processamento e se inverte sob reprocessamento.',
+          text: 'A duplicidade se resolve por três elementos declarados por escrito antes da implementação: a chave do evento, a ordenação que elege o registro vencedor e a regra de desempate. O carimbo da origem precede o de chegada na ordenação, porque o segundo reflete a ordem em que o pipeline processou, distinta da ordem em que os fatos ocorreram; sob reprocessamento essa ordem se inverte e a regra elege registro diferente do eleito na carga original, alterando o valor publicado sem que a origem tenha mudado. Quando a origem não mantém carimbo de atualização, a limitação é declarada junto da regra, e o desempate recorre a identificadores estáveis do lote. A seleção distinta de linhas remove apenas duplicatas idênticas e preserva as duas versões da linha que difere em qualquer coluna, de modo que a correção vinda da origem permanece contada duas vezes. O número de registros descartados é registrado a cada execução, e seu crescimento súbito sinaliza mudança de comportamento na origem antes de o efeito aparecer no relatório.',
           checklist: [
             'Defina chave, ordenação e desempate por escrito antes de implementar.',
             'Prefira o carimbo de origem ao de chegada para eleger o registro vencedor.',
@@ -2169,17 +2200,25 @@ WHERE regiao_id = 7
         },
         {
           nav: 'Carga incremental', title: 'Append, overwrite, merge e snapshot',
-          text: 'Append acrescenta sem tocar no existente; overwrite recompõe a partição inteira; merge atualiza por chave; snapshot preserva o estado completo por data. As quatro exigem atomicidade, de modo que o consumidor nunca enxergue carga pela metade.',
+          text: 'Append acrescenta linhas sem tocar no que existe, e serve ao fato imutável cuja origem apenas insere. Overwrite recompõe a partição inteira a partir da camada anterior, e serve à janela de correção conhecida. Merge atualiza por chave o que existe e insere o que é novo, e depende de a chave ser estável ao longo do tempo. Snapshot grava o estado completo por data e preserva cada versão. A chave do merge não admite atributo que a origem reescreve: quando o valor muda, a linha existente deixa de ser encontrada, a operação se converte em inserção e a dimensão acumula versões do mesmo item sem que nenhuma execução registre erro. O teste de unicidade da chave detecta essa duplicação depois de ocorrida, e a correção é remover do critério de correspondência o atributo instável. As quatro estratégias exigem atomicidade na publicação, obtida por troca de ponteiro, para que o consumidor nunca leia carga pela metade.',
           checklist: [
             'Alinhe a estratégia de carga à política de histórico da dimensão.',
-            'Garanta atomicidade por troca de ponteiro na publicação.',
-            'Defina e declare a janela de correção retroativa suportada.'
+            'Componha a chave do merge apenas com atributos que a origem não reescreve.',
+            'Garanta atomicidade por troca de ponteiro e declare a janela de correção retroativa suportada.'
           ],
           pitfall: 'Merge sem chave estável. Cada execução insere linha nova em vez de atualizar a existente, e a dimensão duplica em silêncio ao longo das cargas.'
         },
         {
           nav: 'Histórico da dimensão', title: 'A política de histórico define a carga',
-          text: 'Sobrescrita responde qual é o estado atual; nova versão com vigência responde qual era o estado na data do fato; atributo anterior responde qual era o valor imediatamente anterior; instantâneo diário responde como o cadastro estava em qualquer data. A escolha precede a escrita da carga.',
+          text: 'A política de histórico responde a uma pergunta determinada, e a carga decorre dela. Sobrescrita responde qual é o estado atual e perde o valor anterior, e é a política adotada por omissão quando ninguém decide. Nova versão com vigência responde qual era o estado na data do fato, e é carregada por merge que encerra a versão vigente e abre a seguinte na data da mudança. Atributo anterior em coluna própria responde apenas qual era o valor imediatamente precedente, e não sustenta a série completa. Instantâneo diário responde como o cadastro estava em qualquer data, ao custo de gravar o cadastro inteiro a cada dia: uma dimensão de 32 mil linhas com algumas dezenas de mudanças por mês produz cerca de um milhão de linhas por mês para registrar dezenas de alterações. A escolha precede a escrita da carga, e a apuração pela categoria vigente na data da venda exige a política de nova versão com vigência.',
+          diagram: `flowchart TB
+    Q1{"A análise precisa do valor vigente na data do fato?"}
+    Q1 -->|não| S["Sobrescrita · merge pela chave natural"]
+    Q1 -->|sim| Q2{"Basta o valor imediatamente anterior?"}
+    Q2 -->|sim| A["Atributo anterior em coluna própria"]
+    Q2 -->|não| Q3{"A frequência de mudança justifica gravar o cadastro inteiro por dia?"}
+    Q3 -->|não| V["Nova versão com vigência · merge que encerra e abre"]
+    Q3 -->|sim| I["Instantâneo diário · append particionado pela data"]`,
           checklist: [
             'Determine, com o parceiro, qual pergunta histórica a dimensão precisa responder.',
             'Implemente a carga correspondente à política escolhida, e não o contrário.',
@@ -2189,7 +2228,7 @@ WHERE regiao_id = 7
         },
         {
           nav: 'Orquestração', title: 'Dependência declarada',
-          text: 'Modele dependências explícitas, retries seguros, backfill parametrizado, alertas por descumprimento de acordo de nível de serviço, linhagem e promoção entre ambientes. O agendamento fixo pressupõe que a etapa anterior sempre termina no tempo previsto.',
+          text: 'Dependência explícita, retry seguro, backfill parametrizado, alerta por descumprimento de acordo de nível de serviço, linhagem e promoção entre ambientes compõem a operação da transformação. O encadeamento por horário pressupõe que a etapa anterior sempre termina no tempo previsto, e a premissa falha exatamente nos dias de maior volume: a transformação agendada para as 3h processa a extração que ainda não concluiu às 2h30 e publica um número menor, sem que nenhuma das duas tarefas falhe. Com a dependência declarada, a transformação parte da conclusão da extração e o atraso se propaga de forma visível, com o alerta apontando a etapa que o originou. Ampliar a folga entre os horários adia o incidente para o próximo pico, o alerta apenas o comunica depois de a publicação ter ocorrido, e o retry habilitado sobre carga não idempotente multiplica o defeito em vez de corrigi-lo.',
           checklist: [
             'Modele dependências explícitas em vez de sincronizar por horário.',
             'Torne o retry seguro antes de habilitá-lo, uma vez que ele multiplica carga não idempotente.',
@@ -2199,7 +2238,7 @@ WHERE regiao_id = 7
         },
         {
           nav: 'Card de trabalho', title: 'As três perguntas da atividade em sala',
-          text: 'Os cinquenta minutos finais do encontro são atividade em grupo sobre a bronze construída na Aula 12: se o teste falhou antes de a transformação existir; quantas linhas cada junção descartou; e se duas execuções produzem o mesmo número. A terceira se verifica por soma de receita, e não por contagem.',
+          text: 'Os cinquenta minutos finais do encontro são atividade em grupo sobre a bronze construída na Aula 12, organizada em torno de três perguntas: se cada teste falhou antes de a transformação existir; quantas linhas cada junção descartou; e se duas execuções com os mesmos parâmetros produzem o mesmo número. A primeira exige a saída registrada do teste nos dois momentos. A segunda exige contagem medida antes e depois de cada junção, com a diferença explicada por regra declarada, como o filtro de status. A terceira se verifica pela soma da receita, e não pela contagem: a junção que duplica linhas mantém a contagem na mesma ordem de grandeza e altera o total de imediato. A prova de repetibilidade é a soma idêntica até o centavo entre as duas execuções, acompanhada da saída dos cinco testes em ambas.',
           checklist: [
             'Registre a saída dos cinco testes antes e depois da implementação.',
             'Meça a contagem antes e depois de cada junção, e explique cada diferença.',
@@ -2209,13 +2248,377 @@ WHERE regiao_id = 7
         },
         {
           nav: 'Silver e gold em sala', title: 'Construção das camadas em sala',
-          text: 'O laboratório constrói a silver com tipos declarados, chave única e rejeitados separados com o motivo, e a gold com membro desconhecido em vez de descarte silencioso. A carga recompõe a partição do período a partir da silver, com a janela como parâmetro externo. A IA gera o SQL e critica o próprio determinismo, e a conferência permanece com o grupo.',
+          text: 'A silver declara tipos, aplica a chave única e separa os rejeitados com o motivo registrado, em lugar de descartá-los. A conferência da camada exige que a soma de conformadas, rejeitadas e duplicatas removidas iguale a contagem da bronze, sem resíduo: das 99 441 linhas de pedido, cada uma precisa ter destino conhecido. Parcelas que somam menos que a entrada indicam descarte silencioso, e o resíduo é exatamente o número de linhas que saíram da camada sem rejeição registrada e sem constar como duplicidade. A gold preserva o fato cuja dimensão não corresponde por meio de membro desconhecido, o que converte o problema em categoria visível em vez de ausência. A carga recompõe a partição do período a partir da silver, e nunca a partir da própria gold, porque reprocessar a saída propaga o defeito já presente nela. A IA gera o SQL e critica o próprio determinismo; a execução e a conferência dos números permanecem com o grupo.',
+          diagram: `flowchart LR
+    B["Bronze · 99 441 pedidos"] --> R{"Satisfaz o contrato da silver?"}
+    R -->|não| RJ["Rejeitados com motivo"]
+    R -->|sim| DD{"Duplicata da mesma chave?"}
+    DD -->|sim| DP["Duplicatas removidas · contadas"]
+    DD -->|não| SV["Silver conformada"]
+    SV --> G["Gold · fato com membro desconhecido"]
+    RJ --> CF["Conferência: conformadas + rejeitadas + duplicatas = 99 441"]
+    DP --> CF
+    SV --> CF`,
           checklist: [
-            'Verifique que a soma de conformadas, rejeitadas e duplicatas iguala a contagem da bronze.',
+            'Verifique que a soma de conformadas, rejeitadas e duplicatas iguala a contagem da bronze, sem resíduo.',
             'Use membro desconhecido para preservar o fato cuja dimensão não corresponde.',
             'Recomponha a partição a partir da silver, e nunca a partir da própria gold.'
           ],
           pitfall: 'Aceitar o SQL gerado por IA sem execução e conferência. A função de janela sem ordenação total e a data corrente dentro da transformação permanecem despercebidas até a primeira divergência entre execuções.'
+        }
+      ],
+      semantics: {
+        intro: 'A métrica publicada é definida uma única vez, por escrito, antes de a transformação ser escrita. A definição abaixo acompanha o SQL da gold no repositório e é o que permite verificar se dois cálculos independentes deveriam produzir o mesmo número. Cada item corresponde a uma decisão que, deixada implícita, altera o valor sem produzir erro.',
+        items: [
+          { title: 'Nome e pergunta que responde', text: 'Receita entregue. Informa quanto foi faturado nos pedidos efetivamente entregues, por mês de compra e por categoria de produto.' },
+          { title: 'Fórmula', text: 'Soma do preço do item com o valor do frete, restrita aos itens de pedidos com status entregue. A inclusão do frete é decisão de negócio, altera o total e permanece declarada.' },
+          { title: 'Granularidade mínima', text: 'Item de pedido. A apuração por mês e por categoria é agregação sobre esse grão, e nenhuma consulta parte de tabela já agregada por outro critério.' },
+          { title: 'Fuso e recorte temporal', text: 'A data de compra é convertida uma única vez, no fuso declarado no contrato da camada de consumo, e o mês é obtido dessa data convertida.' },
+          { title: 'Arredondamento e nulo em medida', text: 'A soma é calculada sobre os valores originais e arredondada apenas na apresentação. Item com medida nula é rejeitado com motivo registrado, e não convertido em zero.' },
+          { title: 'Responsável, versão e vigência', text: 'A definição tem responsável nomeado e número de versão. Toda alteração registra data de vigência, e a série indica quando o critério mudou.' }
+        ],
+        note: 'Enquanto a definição existir apenas no SQL de cada relatório, duas equipes produzem dois números e a reunião discute qual está certo em lugar de discutir a decisão.'
+      },
+      dbeaver: {
+        intro: 'O roteiro executa em DuckDB sobre a bronze construída na Aula 12. Abra um editor SQL por conexão e execute um bloco por vez, conferindo a evidência esperada antes de seguir ao próximo.',
+        rules: [
+          'Execute um bloco por vez e registre a evidência antes de avançar; a saída de cada etapa é parte da entrega.',
+          'Não substitua o parâmetro da janela por expressão sobre a data corrente, nem em teste.',
+          'Não recomponha a partição a partir da gold: a recomposição parte sempre da silver.',
+          'Não inclua host, usuário ou senha nos scripts entregues.'
+        ],
+        connections: [
+          { engine: 'DuckDB — lakehouse do encontro', text: 'Conecte ao arquivo criado no primeiro bloco, no mesmo diretório em que a Aula 12 gravou a bronze. Os schemas silver, gold e controle são criados pelo roteiro.' },
+          { engine: 'PostgreSQL — origem da Aula 12', text: 'A conexão de origem serve exclusivamente à reconciliação de contagem e de soma. Quando a origem não estiver disponível, use o conjunto original da Olist como referência e declare a substituição.' }
+        ]
+      },
+      sqlLabs: [
+        {
+          engine: 'DuckDB', file: 'aula-13-transformacao-carga.sql',
+          goal: 'Construir a silver conformada e a gold sobre a bronze da Aula 12, com os cinco testes escritos antes da transformação, cada junção medida, a janela da carga como parâmetro externo e a repetibilidade provada por soma de receita.',
+          steps: [
+            {
+              title: '1. Declarar a entrada e os números de referência',
+              purpose: 'Cria os schemas do encontro, aponta as views da bronze e registra as contagens de entrada, que servem de referência a todas as conferências seguintes.',
+              focus: `CREATE OR REPLACE TABLE controle.referencia AS
+SELECT 'bronze_pedido' AS entrada, count(*) AS linhas FROM bronze_pedido
+UNION ALL SELECT 'bronze_item', count(*) FROM bronze_item;`,
+              sql: `CREATE SCHEMA IF NOT EXISTS silver;
+CREATE SCHEMA IF NOT EXISTS gold;
+CREATE SCHEMA IF NOT EXISTS controle;
+
+-- Ajuste apenas as duas linhas abaixo ao destino em que a Aula 12 gravou a
+-- bronze. Os nomes de coluna seguem os daquela aula: comprado_em, ingerido_em,
+-- batch_id e, quando a origem o mantém, atualizado_em.
+CREATE OR REPLACE VIEW bronze_pedido AS
+  SELECT * FROM read_parquet('bronze/pedido/**/*.parquet', union_by_name = true);
+CREATE OR REPLACE VIEW bronze_item AS
+  SELECT * FROM read_parquet('bronze/item/**/*.parquet', union_by_name = true);
+
+-- Contagens de entrada, registradas antes de qualquer transformação.
+CREATE OR REPLACE TABLE controle.referencia AS
+SELECT 'bronze_pedido' AS entrada, count(*) AS linhas FROM bronze_pedido
+UNION ALL
+SELECT 'bronze_item' AS entrada, count(*) AS linhas FROM bronze_item;
+
+SELECT * FROM controle.referencia ORDER BY entrada;`,
+              observe: 'A bronze de pedidos apresenta 99 441 linhas e a de itens, 112 650. Divergência nesta etapa invalida todas as conferências seguintes e precisa ser resolvida antes de prosseguir.'
+            },
+            {
+              title: '2. Escrever os cinco testes antes da transformação',
+              purpose: 'Executa as cinco verificações contra tabelas que ainda não existem. A falha inicial é a evidência de que cada teste detecta o defeito que declara detectar.',
+              focus: `SELECT count(*) AS falhas FROM (
+  SELECT order_id FROM silver.pedido GROUP BY 1 HAVING count(*) > 1);`,
+              sql: `-- 1. unicidade: uma linha por pedido na silver
+SELECT count(*) AS falhas FROM (
+  SELECT order_id FROM silver.pedido GROUP BY 1 HAVING count(*) > 1);
+
+-- 2. obrigatoriedade: chave e data de compra nunca nulas
+SELECT count(*) AS falhas FROM silver.pedido
+ WHERE order_id IS NULL OR comprado_em IS NULL;
+
+-- 3. domínio: status dentro do conjunto aceito
+SELECT count(*) AS falhas FROM silver.pedido
+ WHERE order_status NOT IN ('delivered','shipped','canceled','unavailable',
+                            'invoiced','processing','approved','created');
+
+-- 4. relacionamento: todo item do fato encontra o seu produto
+SELECT count(*) AS falhas FROM gold.fato_item_venda f
+ ANTI JOIN gold.dim_produto d USING (product_id);
+
+-- 5. faixa: nenhuma medida negativa
+SELECT count(*) AS falhas FROM gold.fato_item_venda
+ WHERE price < 0 OR freight_value < 0;`,
+              observe: 'Os cinco comandos falham por tabela inexistente. Registre a mensagem de erro de cada um: essa é a primeira evidência do encontro, e sem ela não há prova de que os testes detectam defeito.'
+            },
+            {
+              title: '3. Conformar a silver com deduplicação determinística',
+              purpose: 'Declara tipos, aplica a chave do evento e elege o registro vencedor por ordenação total com desempate explícito, registrando quantas duplicatas foram removidas.',
+              focus: `QUALIFY row_number() OVER (
+  PARTITION BY order_id
+  ORDER BY atualizado_em DESC NULLS LAST, ingerido_em DESC, batch_id DESC) = 1`,
+              sql: `-- A ordenação parte do carimbo da origem. A Olist não mantém carimbo de
+-- atualização em todas as linhas: quando ele é nulo, o desempate recorre ao
+-- carimbo de chegada e ao lote, e essa limitação fica declarada na regra.
+CREATE OR REPLACE TABLE silver.pedido AS
+SELECT order_id,
+       customer_id,
+       order_status,
+       CAST(comprado_em AS TIMESTAMP) AS comprado_em,
+       batch_id,
+       ingerido_em
+  FROM bronze_pedido
+ WHERE order_id IS NOT NULL
+   AND comprado_em IS NOT NULL
+QUALIFY row_number() OVER (PARTITION BY order_id
+                           ORDER BY atualizado_em DESC NULLS LAST,
+                                    ingerido_em DESC,
+                                    batch_id DESC) = 1;
+
+CREATE OR REPLACE TABLE silver.item AS
+SELECT order_id, order_item_id, product_id,
+       CAST(price AS DECIMAL(12,2)) AS price,
+       CAST(freight_value AS DECIMAL(12,2)) AS freight_value
+  FROM bronze_item
+ WHERE order_id IS NOT NULL AND order_item_id IS NOT NULL
+QUALIFY row_number() OVER (PARTITION BY order_id, order_item_id
+                           ORDER BY ingerido_em DESC, batch_id DESC) = 1;
+
+-- Quantas duplicatas a regra descartou, por camada.
+CREATE OR REPLACE TABLE controle.duplicata AS
+SELECT 'pedido' AS camada,
+       (SELECT count(*) FROM bronze_pedido
+         WHERE order_id IS NOT NULL AND comprado_em IS NOT NULL)
+       - (SELECT count(*) FROM silver.pedido) AS removidas;
+
+SELECT * FROM controle.duplicata;`,
+              observe: 'A troca da ordenação por outra qualquer altera o registro eleito e, com ele, o valor publicado. Repita o bloco sem a cláusula de ordenação e compare o resultado: a diferença é a medida do não determinismo.'
+            },
+            {
+              title: '4. Separar os rejeitados e conferir a silver sem resíduo',
+              purpose: 'Preserva o que não satisfaz o contrato da camada, com o motivo registrado, e verifica que conformadas, rejeitadas e duplicatas somam a contagem da bronze.',
+              focus: `SELECT b.linhas - (c.conformadas + c.rejeitadas + c.duplicatas) AS residuo
+  FROM parcelas c, entrada b;`,
+              sql: `CREATE OR REPLACE TABLE silver.pedido_rejeitado AS
+SELECT *,
+       CASE WHEN order_id IS NULL THEN 'chave nula'
+            ELSE 'data de compra nula' END AS motivo,
+       -- o carimbo de rejeição é metadado de auditoria e não participa
+       -- de nenhuma agregação da camada de consumo
+       now() AS rejeitado_em
+  FROM bronze_pedido
+ WHERE order_id IS NULL OR comprado_em IS NULL;
+
+-- Conferência da camada: toda linha da entrada tem destino conhecido.
+WITH parcelas AS (
+  SELECT (SELECT count(*) FROM silver.pedido)            AS conformadas,
+         (SELECT count(*) FROM silver.pedido_rejeitado)  AS rejeitadas,
+         (SELECT removidas FROM controle.duplicata
+           WHERE camada = 'pedido')                      AS duplicatas
+), entrada AS (
+  SELECT linhas FROM controle.referencia WHERE entrada = 'bronze_pedido'
+)
+SELECT p.conformadas, p.rejeitadas, p.duplicatas, e.linhas AS bronze,
+       e.linhas - (p.conformadas + p.rejeitadas + p.duplicatas) AS residuo
+  FROM parcelas p, entrada e;`,
+              observe: 'A coluna de resíduo precisa ser zero. Valor positivo indica linha que saiu da camada sem rejeição registrada e sem constar como duplicidade, e esse descarte permanece invisível até que alguém compare os totais.'
+            },
+            {
+              title: '5. Montar a gold medindo cada junção',
+              purpose: 'Declara a transformação como view versionada, materializa o fato a partir dela, mede a contagem antes e depois de cada junção e preserva o fato cuja dimensão não corresponde, por meio de membro desconhecido.',
+              focus: `CREATE OR REPLACE VIEW gold.v_fato_item_venda AS ...
+LEFT JOIN gold.dim_produto d USING (product_id)
+-- coalesce(d.product_id, 'DESCONHECIDO')`,
+              sql: `-- Medir antes: quantos itens existem na silver.
+SELECT count(*) AS itens_origem FROM silver.item;
+
+CREATE OR REPLACE TABLE gold.dim_produto AS
+SELECT DISTINCT product_id,
+       coalesce(product_category_name, 'nao_informada') AS categoria
+  FROM read_csv('olist_products_dataset.csv', header = true);
+
+-- A definição da transformação vive na view, que é o artefato versionado.
+-- A tabela é apenas a materialização dela, e pode ser recomposta a qualquer momento.
+CREATE OR REPLACE VIEW gold.v_fato_item_venda AS
+SELECT i.order_id,
+       i.order_item_id,
+       coalesce(d.product_id, 'DESCONHECIDO') AS product_id,
+       coalesce(d.categoria, 'nao_informada')  AS categoria,
+       p.comprado_em,
+       i.price,
+       i.freight_value,
+       i.price + i.freight_value AS valor_total
+  FROM silver.item i
+  JOIN silver.pedido p USING (order_id)
+  LEFT JOIN gold.dim_produto d USING (product_id)
+ WHERE p.order_status = 'delivered';
+
+CREATE OR REPLACE TABLE gold.fato_item_venda AS
+SELECT * FROM gold.v_fato_item_venda;
+
+-- Medir depois: a diferença precisa decorrer apenas do filtro de status.
+SELECT (SELECT count(*) FROM silver.item)          AS itens_origem,
+       (SELECT count(*) FROM gold.fato_item_venda)  AS itens_fato,
+       (SELECT count(*) FROM silver.item i
+          JOIN silver.pedido p USING (order_id)
+         WHERE p.order_status <> 'delivered')       AS itens_nao_entregues,
+       (SELECT count(*) FROM gold.fato_item_venda
+         WHERE product_id = 'DESCONHECIDO')         AS itens_sem_dimensao;`,
+              observe: 'A soma de itens_fato com itens_nao_entregues iguala itens_origem. Qualquer resíduo indica junção perdendo ou duplicando linha. Os itens sem dimensão permanecem no fato, visíveis como membro desconhecido, em vez de desaparecerem do total.'
+            },
+            {
+              title: '6. Carregar a gold com a janela como parâmetro externo',
+              purpose: 'Recompõe a partição do período a partir da silver, com início e fim recebidos de fora da consulta, e publica por escrita de partição inteira.',
+              focus: `SET VARIABLE inicio = DATE '2018-01-01';
+SET VARIABLE fim    = DATE '2018-09-01';`,
+              sql: `-- A janela é parâmetro da execução. No CLI, injete de fora com
+--   duckdb aula13.duckdb -c "SET VARIABLE inicio = DATE '2018-01-01'; ..."
+-- e nunca com expressão sobre a data corrente.
+SET VARIABLE inicio = DATE '2018-01-01';
+SET VARIABLE fim    = DATE '2018-09-01';
+
+COPY (
+  SELECT *, date_trunc('month', comprado_em) AS mes
+    FROM gold.fato_item_venda
+   WHERE comprado_em >= getvariable('inicio')
+     AND comprado_em <  getvariable('fim')
+) TO 'gold_fato_item_venda'
+  (FORMAT parquet, PARTITION_BY (mes), OVERWRITE_OR_IGNORE, COMPRESSION zstd);
+-- O destino tem um único nível porque o COPY não cria hierarquia de diretórios.
+-- Em um lakehouse, o mesmo comando escreve em s3://.../gold/fato_item_venda.
+
+-- Registro da execução: uma linha por carga, com a janela que a produziu.
+CREATE TABLE IF NOT EXISTS controle.carga (
+  janela_inicio DATE, janela_fim DATE, linhas BIGINT, executado_em TIMESTAMP);
+
+INSERT INTO controle.carga
+SELECT getvariable('inicio'), getvariable('fim'), count(*), now()
+  FROM gold.fato_item_venda
+ WHERE comprado_em >= getvariable('inicio')
+   AND comprado_em <  getvariable('fim');
+
+SELECT * FROM controle.carga ORDER BY executado_em;`,
+              observe: 'A partição do período é recomposta por inteiro, e o consumidor lê a versão anterior até a escrita concluir. Substituir o parâmetro por expressão sobre a data corrente torna o backfill irreproduzível, e a divergência só aparece meses depois.'
+            },
+            {
+              title: '7. Provar a repetibilidade e reconciliar com a origem',
+              purpose: 'Recompõe o fato a partir da silver e compara as duas execuções pela soma da receita, confrontando em seguida contagem e soma com a origem, contra a tolerância declarada.',
+              focus: `SELECT sum(valor_total) FROM gold.fato_item_venda;
+-- idêntica até o centavo entre as duas execuções`,
+              sql: `-- Primeira execução: guardar contagem e soma do fato já materializado.
+CREATE OR REPLACE TABLE controle.execucao_1 AS
+SELECT count(*) AS linhas, sum(valor_total) AS receita
+  FROM gold.fato_item_venda;
+
+-- Segunda execução: recompor o fato a partir da silver, com os mesmos
+-- parâmetros. A recomposição parte da view, e nunca da tabela já materializada.
+CREATE OR REPLACE TABLE gold.fato_item_venda AS
+SELECT * FROM gold.v_fato_item_venda;
+
+WITH execucao_2 AS (
+  SELECT count(*) AS linhas, sum(valor_total) AS receita
+    FROM gold.fato_item_venda
+)
+SELECT e1.linhas AS linhas_1, e2.linhas AS linhas_2,
+       e1.receita AS receita_1, e2.receita AS receita_2,
+       e2.receita - e1.receita AS diferenca
+  FROM controle.execucao_1 e1, execucao_2 e2;
+
+-- Reconciliação com a origem, por mês, contra a tolerância de 0,1%.
+WITH destino AS (
+  SELECT date_trunc('month', comprado_em) AS mes,
+         count(*) AS linhas, sum(valor_total) AS receita
+    FROM gold.fato_item_venda
+   GROUP BY 1
+), origem AS (
+  SELECT date_trunc('month', CAST(o.order_purchase_timestamp AS TIMESTAMP)) AS mes,
+         count(*) AS linhas,
+         sum(i.price + i.freight_value) AS receita
+    FROM read_csv('olist_orders_dataset.csv', header = true) o
+    JOIN read_csv('olist_order_items_dataset.csv', header = true) i
+      USING (order_id)
+   WHERE o.order_status = 'delivered'
+   GROUP BY 1
+)
+SELECT d.mes, d.linhas, o.linhas AS linhas_origem,
+       d.receita, o.receita AS receita_origem,
+       abs(d.receita - o.receita) / o.receita AS desvio
+  FROM destino d JOIN origem o USING (mes)
+ WHERE abs(d.receita - o.receita) / o.receita > 0.001
+ ORDER BY d.mes;`,
+              observe: 'A diferença entre as duas execuções precisa ser exatamente zero. A soma é o critério decisivo: a junção que duplica linhas mantém a contagem na mesma ordem de grandeza e altera o total de imediato. A reconciliação com o conjunto original devolve as linhas cuja divergência excede a tolerância; quando a bronze contém as mutações deliberadas da Aula 12, cada divergência precisa ser atribuída a uma dessas mutações, e estar dentro do limite não substitui a explicação.'
+            },
+            {
+              title: '8. Manter o histórico da dimensão com vigência',
+              purpose: 'Implementa a política de nova versão com vigência sem comando de merge, para expor as duas operações que ele executa, e verifica que a apuração do passado não muda.',
+              focus: `UPDATE gold.dim_produto_hist SET valido_ate = ..., vigente = false
+INSERT INTO gold.dim_produto_hist SELECT ... true`,
+              sql: `CREATE OR REPLACE TABLE gold.dim_produto_hist AS
+SELECT product_id, categoria,
+       DATE '2016-01-01' AS valido_de,
+       CAST(NULL AS DATE) AS valido_ate,
+       true AS vigente
+  FROM gold.dim_produto;
+
+-- A origem reescreve a categoria de alguns produtos.
+-- A seleção é determinística de propósito: amostragem aleatória tornaria o
+-- próprio laboratório irreproduzível.
+CREATE OR REPLACE TABLE staging_produto AS
+SELECT product_id, 'categoria_revisada' AS categoria
+  FROM (SELECT product_id FROM gold.dim_produto ORDER BY product_id LIMIT 40);
+
+-- Encerra a versão vigente cujo atributo mudou.
+UPDATE gold.dim_produto_hist AS h
+   SET valido_ate = DATE '2018-06-01', vigente = false
+  FROM staging_produto AS s
+ WHERE h.product_id = s.product_id
+   AND h.vigente
+   AND h.categoria <> s.categoria;
+
+-- Abre a versão seguinte, com vigência a partir da data da mudança.
+INSERT INTO gold.dim_produto_hist
+SELECT s.product_id, s.categoria, DATE '2018-06-01', CAST(NULL AS DATE), true
+  FROM staging_produto s
+ WHERE NOT EXISTS (SELECT 1 FROM gold.dim_produto_hist h
+                    WHERE h.product_id = s.product_id AND h.vigente);
+
+-- Uma única versão vigente por produto, e o passado inalterado.
+SELECT (SELECT count(*) FROM (SELECT product_id FROM gold.dim_produto_hist
+          WHERE vigente GROUP BY 1 HAVING count(*) > 1)) AS produtos_com_duas_versoes,
+       (SELECT sum(f.valor_total)
+          FROM gold.fato_item_venda f
+          JOIN gold.dim_produto_hist h
+            ON h.product_id = f.product_id
+           AND CAST(f.comprado_em AS DATE) >= h.valido_de
+           AND CAST(f.comprado_em AS DATE) <  coalesce(h.valido_ate, DATE '9999-12-31')
+         WHERE h.categoria = 'categoria_revisada') AS receita_categoria_revisada;`,
+              observe: 'A contagem de produtos com duas versões vigentes precisa ser zero. A apuração pela categoria vigente na data da venda atribui ao novo nome apenas as vendas posteriores à data de vigência: a série anterior permanece com a categoria antiga, resposta que a sobrescrita não produz.'
+            }
+          ]
+        }
+      ],
+      benchmarkGuide: [
+        {
+          title: 'Quadro das decisões que alteram o número sem produzir erro',
+          intro: 'Nenhuma das quatro decisões gera exceção ou registro de erro, e todas produzem valor diferente. A última coluna indica o artefato em que cada decisão é declarada, de modo que a divergência futura possa ser atribuída a uma escolha registrada.',
+          columns: ['Decisão', 'Alternativas plausíveis', 'Efeito no resultado', 'Onde é declarada'],
+          rows: [
+            ['Fuso horário', 'Hora da origem, UTC ou hora local do analista', 'Vendas migram entre dias e o fechamento mensal muda', 'Contrato da camada de consumo'],
+            ['Nulo em medida', 'Tratar como zero, ignorar na agregação ou rejeitar a linha', 'A média e a soma mudam de valor conforme a escolha', 'Teste de qualidade da camada'],
+            ['Arredondamento', 'Arredondar por linha, ou somar e arredondar no fim', 'Divergência de centavos que se acumula no total', 'Definição da métrica'],
+            ['Junção sem correspondência', 'Interna, externa, ou externa com membro desconhecido', 'Linhas de fato desaparecem do total sem aviso', 'Decisão de arquitetura registrada em ADR']
+          ]
+        },
+        {
+          title: 'Quadro de decisão — política de histórico, carga e custo',
+          intro: 'A política é escolhida a partir da pergunta que a dimensão precisa responder, e a carga decorre dela. A última coluna registra o custo que cada opção impõe, e é o que descarta o instantâneo diário em dimensão grande com poucas mudanças.',
+          columns: ['Política de histórico', 'Pergunta que passa a ser respondível', 'Carga correspondente', 'Custo e condição'],
+          rows: [
+            ['Sobrescrita', 'Qual é o estado atual do cadastro', 'Merge pela chave natural', 'O valor anterior se perde; recompor exige a bronze preservada'],
+            ['Nova versão com vigência', 'Qual era o estado na data do fato', 'Merge que encerra a versão vigente e abre a seguinte', 'A dimensão cresce por mudança; a consulta filtra por vigência'],
+            ['Atributo anterior em coluna', 'Qual era o valor imediatamente precedente', 'Merge que copia o valor antigo antes de gravar o novo', 'Responde a uma mudança apenas; não sustenta a série'],
+            ['Instantâneo diário', 'Como o cadastro estava em qualquer data', 'Append particionado pela data do instantâneo', 'Grava o cadastro inteiro por dia: 32 mil linhas por dia para dezenas de mudanças por mês']
+          ]
         }
       ],
       sdd: {
@@ -2224,11 +2627,23 @@ WHERE regiao_id = 7
         adr: 'ADR-TRF-01 — ELT com bronze preservada, em vez de transformação anterior à gravação. Contexto: a definição de receita líquida ainda está em discussão com o parceiro. Consequência: custo de armazenamento e de processamento no destino.',
         gherkin: 'Dado o mês de agosto de 2018 já publicado, Quando executo a carga novamente com os mesmos parâmetros, Então a soma da receita permanece idêntica e os cinco testes devolvem zero.'
       },
-      deliverable: 'A silver, a gold e a suíte de cinco testes versionadas, com a saída dos testes antes e depois da implementação, as contagens medidas em cada junção com a diferença explicada, a janela da carga como parâmetro externo e a definição da métrica de receita declarada por escrito.',
+      acceptance: [
+        'Os cinco testes falharam antes da implementação, com a saída de cada um registrada.',
+        'A silver declara tipos, aplica chave única e separa os rejeitados com o motivo.',
+        'Toda linha da bronze tem destino conhecido: conformada, rejeitada ou contada como duplicata, sem resíduo.',
+        'A contagem antes e depois de cada junção está medida, e a diferença explicada por regra declarada.',
+        'A janela da carga é parâmetro externo, sem data corrente dentro da transformação.',
+        'Duas execuções seguidas produzem a mesma soma de receita, até o centavo.',
+        'A definição da métrica de receita está declarada por escrito, com fuso, arredondamento e tratamento de nulo.'
+      ],
+      deliverable: 'A silver, a gold e a suíte de cinco testes versionadas, com a saída dos testes antes e depois da implementação, a conferência da silver sem resíduo entre conformadas, rejeitadas e duplicatas, as contagens medidas em cada junção com a diferença explicada, a janela da carga como parâmetro externo, a comparação de soma de receita entre duas execuções e a definição da métrica de receita declarada por escrito.',
+      closing: 'A transformação determina o número que o negócio lê. O teste escrito antes dela determina o momento em que um erro nesse número é descoberto. Duas propriedades sustentam a confiança nesse número: o determinismo, que permite recalculá-lo sob os mesmos parâmetros, e a conferência sem resíduo, que impede que uma linha da entrada desapareça sem registro.',
       references: [
         { label: 'dbt Documentation — Data tests', href: 'https://docs.getdbt.com/docs/build/data-tests' },
+        { label: 'dbt Documentation — Incremental models', href: 'https://docs.getdbt.com/docs/build/incremental-models' },
         { label: 'Great Expectations — Catálogo de expectativas', href: 'https://greatexpectations.io/expectations/' },
         { label: 'DuckDB Documentation — Cláusula QUALIFY', href: 'https://duckdb.org/docs/stable/sql/query_syntax/qualify.html' },
+        { label: 'DuckDB Documentation — Escrita particionada com COPY', href: 'https://duckdb.org/docs/stable/sql/statements/copy.html' },
         { label: 'Kimball Group — Slowly Changing Dimensions', href: 'https://www.kimballgroup.com/2013/02/design-tip-152-slowly-changing-dimension-types-0-4-5-6-7/' },
         { label: 'Olist — Brazilian E-Commerce Public Dataset', href: 'https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce' }
       ]
@@ -2528,11 +2943,18 @@ WHERE regiao_id = 7
     `<button type="button" class="code-copy" data-copy-code="${esc(id)}">Copiar</button></div>` +
     `<pre class="code-block" id="${esc(id)}"><code>${esc(sql)}</code></pre></div>`;
 
-  const benchmarkTable = () => lesson.benchmarkGuide
-    ? `<section class="material-box"><h2>Quadro de benchmark</h2><p>${esc(lesson.benchmarkGuide.intro)}</p>` +
-      `<div class="dd-scroll"><table class="dd-table"><thead><tr>${lesson.benchmarkGuide.columns.map((c) => `<th>${esc(c)}</th>`).join('')}</tr></thead>` +
-      `<tbody>${lesson.benchmarkGuide.rows.map((row) => `<tr>${row.map((cell) => `<td>${esc(cell)}</td>`).join('')}</tr>`).join('')}</tbody></table></div></section>`
-    : '';
+  // `benchmarkGuide` aceita um quadro ou uma lista de quadros, cada um com título
+  // próprio. O rótulo padrão permanece 'Quadro de benchmark' para as aulas que já
+  // o declaravam sem título.
+  const benchmarkTable = () => {
+    if (!lesson.benchmarkGuide) return '';
+    const guides = Array.isArray(lesson.benchmarkGuide) ? lesson.benchmarkGuide : [lesson.benchmarkGuide];
+    return guides.map((guide) =>
+      `<section class="material-box"><h2>${esc(guide.title || 'Quadro de benchmark')}</h2><p>${esc(guide.intro)}</p>` +
+      `<div class="dd-scroll"><table class="dd-table"><thead><tr>${guide.columns.map((c) => `<th>${esc(c)}</th>`).join('')}</tr></thead>` +
+      `<tbody>${guide.rows.map((row) => `<tr>${row.map((cell) => `<td>${esc(cell)}</td>`).join('')}</tr>`).join('')}</tbody></table></div></section>`
+    ).join('');
+  };
 
   const dbeaverHtml = (mode) => {
     if (!lesson.dbeaver) return '';
