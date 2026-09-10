@@ -587,12 +587,10 @@ test.describe('config-json.md - Arquivos de Configuração JSON', () => {
   });
 
   test('módulos em construção (placeholder simples) não devem ter diretório de módulo criado', () => {
-    // Módulos 11 e 7 saíram da lista: já têm a estrutura das aulas publicada com
-    // slides e material (placeholders) em pages/module-*/, embora o conteúdo siga
-    // em preparação pelos professores responsáveis (home ainda "Em construção").
-    const placeholderHomes = [
-      'pages/home-module-8-sistemas-informacao.html',
-    ];
+    // Módulos 11, 7 e 8 saíram da lista: já têm conteúdo publicado em
+    // pages/module-*/ (estrutura de aulas nos dois primeiros, o Data Model Canvas
+    // no módulo 8), embora as homes sigam marcadas como "Em construção".
+    const placeholderHomes: string[] = [];
 
     placeholderHomes.forEach((homeFile) => {
       const match = homeFile.match(/home-module-(\d+)-([a-z-]+)\.html/);
