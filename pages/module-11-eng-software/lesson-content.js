@@ -12,25 +12,32 @@
   const lessons = {
     1: {
       title: 'Spec-Driven Development', date: '04/08/2026',
-      subtitle: 'Especificar antes de implementar: contratos, testes e IA sob controle.',
+      estrategia: 'Exposição em quatro blocos com construção incremental de uma especificação de referência; o encerramento é uma demonstração conduzida pelo professor sobre um sistema de biblioteca, e a aplicação ao projeto do grupo ocorre após a aula, conforme roteiro do material.',
+      estrutura: [
+        'Bloco 1 (30 min) — Por que SDD: problema, motivação, SSoT, requisito funcional e não funcional, qualidade ISO/IEC 25010',
+        'Bloco 2 (35 min) — Anatomia da especificação: seis seções, ADR e rastreabilidade, pipeline de elicitação',
+        'Bloco 3 (30 min) — Modelagem como código: OpenAPI e Gherkin; entidade-relacionamento, classes e sequência em Mermaid',
+        'Bloco 4 (25 min) — Especificação e IA: verificação iterativa e demonstração ao vivo'
+      ],
+      subtitle: 'Especificar antes de implementar: contratos, testes e geração de código assistida por IA.',
       objective: 'Escrever uma especificação executável que conecte problema, arquitetura, contrato de API, dados, testes e metas de qualidade.',
       outcomes: [
         'Distinguir requisito funcional, requisito não funcional e decisão arquitetural, indicando onde cada um é registrado.',
         'Escrever uma especificação com visão, requisitos, contrato de API, modelo de dados e cenários de aceite.',
         'Registrar uma decisão arquitetural em ADR, com contexto, alternativa descartada e consequências.',
-        'Descrever os modelos de dados, estático e dinâmico em notação textual versionada, derivando os diagramas do próprio texto.',
+        'Descrever os três modelos do sistema (dados, estrutura estática e comportamento dinâmico) em notação textual versionada, derivando os diagramas do próprio texto.',
         'Verificar código gerado por IA contra metas mensuráveis, sem alterar a especificação original.'
       ],
       sections: [
         {
           nav: 'Contexto e motivação', title: 'O problema',
-          text: 'Começar pelo código transforma ambiguidade em retrabalho. A spec torna explícitos comportamento, limites, decisões e critérios de aceite antes da implementação.',
+          text: 'A implementação iniciada sem especificação converte ambiguidades de requisito em retrabalho. A spec torna explícitos comportamento, limites, decisões e critérios de aceite antes da implementação.',
           checklist: [
             'Identifique uma decisão que hoje só existe na cabeça de alguém.',
             'Aponte onde o retrabalho veio de ambiguidade, não de erro técnico.',
             'Nomeie o artefato que deveria ser a fonte única de verdade.'
           ],
-          pitfall: 'Tratar a spec como documentação escrita depois da entrega. Se ela não precede o código, ela não governa nada.'
+          pitfall: 'Tratar a spec como documentação escrita depois da entrega. A spec redigida após o código apenas descreve a implementação e deixa de orientá-la.'
         },
         {
           nav: 'Qualidade não funcional', title: 'ISO 25010',
@@ -40,7 +47,7 @@
             'Dê a cada uma métrica, limite e instrumento de medida.',
             'Defina o que acontece quando o limite é violado.'
           ],
-          pitfall: 'Escrever "o sistema deve ser rápido e seguro". Sem número, janela e instrumento, não é requisito — é desejo.'
+          pitfall: 'Escrever "o sistema deve ser rápido e seguro". Um requisito não funcional exige número, janela de medição e instrumento.'
         },
         {
           nav: 'Anatomia de uma spec', title: 'Anatomia',
@@ -57,14 +64,14 @@
           text: 'Registre o contexto, as alternativas, a decisão e as consequências. A spec descreve o comportamento; o ADR explica por que a arquitetura foi escolhida.',
           checklist: [
             'Registre o contexto e ao menos uma alternativa descartada, com o motivo.',
-            'Declare as consequências negativas — um ADR sem custo é propaganda.',
+            'Declare as consequências negativas, além dos benefícios.',
             'Dê status ao registro e supersede o antigo em vez de editá-lo.'
           ],
-          pitfall: 'ADR escrito depois da decisão para justificá-la. Vira ata, não raciocínio.'
+          pitfall: 'ADR escrito depois da decisão apenas para justificá-la: registra o resultado sem documentar o raciocínio.'
         },
         {
           nav: 'Sequência documental', title: 'Pipeline',
-          text: 'Problema → processos → arquitetura → esqueleto → spec → TDD → implementação. A escolha de tecnologia entra depois da spec, em ADR próprio. A IA entra depois que a intenção humana está verificável.',
+          text: 'Problema → processos → arquitetura → esqueleto → spec → TDD → implementação. O esqueleto contém apenas diretórios e limites de módulo, sem produto; a escolha de tecnologia, inclusive a composição do ambiente, entra depois da spec, em ADR próprio. A IA entra depois que a intenção humana está verificável.',
           checklist: [
             'Confirme que a spec não menciona linguagem, framework ou banco.',
             'Garanta que cada decisão estrutural tem ADR antes da spec correspondente.',
@@ -80,7 +87,7 @@
             'Escreva um cenário por regra de negócio, não por função de código.',
             'Verifique que todo cenário falha antes de a implementação existir.'
           ],
-          pitfall: 'Cenários que descrevem cliques de interface. Gherkin fixa regra de negócio, não roteiro de navegação.'
+          pitfall: 'Cenários que descrevem cliques de interface. Gherkin fixa regra de negócio; a navegação de interface fica fora do cenário.'
         },
         {
           nav: 'Modelagem como código', title: 'Modeling as code',
@@ -100,7 +107,7 @@
             'Peça correção contra o desvio medido, sem reabrir a spec.',
             'Limite o número de iterações e escale quando o limite for atingido.'
           ],
-          pitfall: 'Aceitar código que passa nos testes sem verificar as metas não funcionais. Compilar não é atender ao requisito.'
+          pitfall: 'Aceitar código que passa nos testes sem verificar as metas não funcionais. Código que compila e passa nos testes funcionais pode violar o requisito não funcional.'
         },
         {
           nav: 'Verificação', title: 'Verificação e refinamento',
@@ -153,23 +160,23 @@
         },
         {
           title: 'Modelagem do Data Warehouse — Introdução',
-          topics: ['Importância do DW na Ciência de Dados', 'Esquemas estrela e floco-de-neve', 'Tabelas de fatos e dimensões', 'Granularidade dos dados', 'Processo de ETL', 'Benefícios da modelagem dimensional'],
+          topics: ['Importância do DW na Ciência de Dados', 'Esquemas estrela e floco de neve', 'Tabelas de fatos e dimensões', 'Granularidade dos dados', 'Processo de ETL', 'Benefícios da modelagem dimensional'],
           url: 'https://www.youtube.com/watch?v=8I2nYKb73Yo&t=1s'
         }
       ],
       sections: [
         {
           nav: 'Por que um Data Warehouse', title: 'DW e a tomada de decisão',
-          text: 'Um Data Warehouse existe para sustentar decisão, não para operar transações. Ele consolida dados de múltiplas fontes operacionais em uma estrutura otimizada para consulta analítica, histórico e comparação — o oposto do desenho de um banco transacional.',
+          text: 'O Data Warehouse sustenta a tomada de decisão. Consolida dados de múltiplas fontes operacionais em estrutura otimizada para consulta analítica, preservação de histórico e comparação entre períodos, requisitos distintos dos que orientam o desenho de um banco transacional.',
           checklist: [
             'Identifique, no seu projeto, uma decisão que hoje depende de cruzamento manual entre planilhas ou ferramentas.',
             'Separe o dado que serve para operar do dado que serve para decidir.',
             'Aponte quais fontes operacionais do seu projeto alimentariam o Data Warehouse.'
           ],
-          pitfall: 'Tratar o DW como "mais um banco de dados". Sem propósito analítico declarado, ele só reproduz os mesmos problemas do banco operacional em outra tecnologia.'
+          pitfall: 'Tratar o DW como "mais um banco de dados". A ausência de propósito analítico declarado reproduz, em outra tecnologia, as limitações do banco operacional.'
         },
         {
-          nav: 'OLTP vs OLAP', title: 'Dois bancos, dois propósitos',
+          nav: 'OLTP vs OLAP', title: 'OLTP e OLAP: objetivos e estruturas',
           text: 'Sistemas OLTP priorizam transações curtas, normalização e concorrência de escrita. Sistemas OLAP priorizam leitura analítica, desnormalização controlada e consultas que agregam grandes volumes históricos.',
           checklist: [
             'Classifique cada fonte de dado do seu projeto como predominantemente OLTP ou OLAP.',
@@ -180,13 +187,13 @@
         },
         {
           nav: 'Modelagem dimensional', title: 'A abordagem central do DW',
-          text: 'A modelagem dimensional organiza o Data Warehouse em torno de processos de negócio, medidos por fatos e descritos por dimensões. Star schema e snowflake schema são as duas formas físicas mais comuns de implementar essa estrutura.',
+          text: 'A modelagem dimensional organiza o Data Warehouse em torno de processos de negócio, medidos por fatos e descritos por dimensões. Star schema e snowflake schema são os dois esquemas relacionais mais comuns para implementar essa estrutura.',
           checklist: [
-            'Escolha um processo de negócio do seu projeto — não uma tabela já existente — como ponto de partida.',
+            'Tome como ponto de partida um processo de negócio do projeto, identificado independentemente das tabelas existentes.',
             'Diferencie star schema e snowflake schema pelo grau de normalização das dimensões.',
             'Explique por que a modelagem dimensional favorece a consulta em vez da economia de espaço.'
           ],
-          pitfall: 'Copiar o modelo entidade-relacionamento operacional direto para o DW. O modelo operacional otimiza escrita; o modelo dimensional otimiza leitura analítica — são estruturas diferentes por design, não por acidente.'
+          pitfall: 'Copiar o modelo entidade-relacionamento operacional direto para o DW. O modelo operacional é otimizado para escrita e o modelo dimensional, para leitura analítica; a diferença estrutural decorre desses objetivos.'
         },
         {
           nav: 'Tabelas fato e dimensão', title: 'Fatos e dimensões',
@@ -206,17 +213,17 @@
             'Confirme que toda métrica do fato existe de fato nesse grão.',
             'Verifique que nenhuma chave estrangeira da fato pode apontar para um valor ausente na dimensão.'
           ],
-          pitfall: 'Definir o grão depois de escolher as colunas disponíveis. O grão nasce do processo de negócio, não da tabela de origem que já existe.'
+          pitfall: 'Definir o grão depois de escolher as colunas disponíveis. O grão deriva do processo de negócio medido, independentemente das colunas disponíveis na origem.'
         },
         {
           nav: 'Das perguntas aos cubos', title: 'Do negócio ao cubo analítico',
           text: 'Cada cubo analítico nasce de um grupo de perguntas de negócio que compartilham o mesmo processo e o mesmo grão candidato. Antes de desenhar qualquer tabela, agrupar essas perguntas por processo já indica quantos cubos o projeto provavelmente precisa.',
           checklist: [
-            'Agrupe as perguntas de negócio do seu projeto por processo, não pela área que perguntou.',
+            'Agrupe as perguntas de negócio do projeto pelo processo que as origina.',
             'Para cada grupo, identifique se as perguntas pedem contagem, duração, taxa ou soma.',
-            'Nomeie o cubo candidato pelo processo que ele mede, não pela tabela de origem disponível.'
+            'Nomeie o cubo candidato pelo processo de negócio que ele mede.'
           ],
-          pitfall: 'Criar um cubo por pergunta isolada. Perguntas diferentes que compartilham o mesmo grão devem virar um único cubo, não vários fatos redundantes.'
+          pitfall: 'Criar um cubo por pergunta isolada. Perguntas que compartilham processo e grão devem ser atendidas por um único cubo; fatos paralelos para cada pergunta geram redundância.'
         }
       ],
       sdd: {
@@ -228,8 +235,8 @@
       warmup: {
         title: 'Atividade guiada — nota fiscal do supermercado',
         duration: '35 min · antes da atividade do projeto',
-        goal: 'Aplicar o método a um caso conhecido e totalmente resolvido, para chegar na atividade do projeto já com o modelo dimensional na mão.',
-        intro: 'Esta parte usa uma nota fiscal de supermercado sintetizada — fictícia, mas com valores e itens realistas — como exemplo de trabalho. Diferente da atividade do projeto, aqui o professor resolve o modelo junto com a turma: o objetivo é praticar o método antes de aplicá-lo a um problema aberto.',
+        goal: 'Aplicar o método a um caso conhecido e integralmente resolvido, como preparação para a atividade do projeto.',
+        intro: 'Esta parte usa uma nota fiscal de supermercado sintetizada — fictícia, mas com valores e itens realistas — como exemplo de trabalho. Diferentemente da atividade do projeto, o professor resolve o modelo com a turma, para que o método seja praticado antes da aplicação a um problema aberto.',
         receipt: {
           store: { name: 'Mercado Vale Verde Ltda', cnpj: '12.345.678/0001-90', address: 'Rua das Palmeiras, 450 — Centro — Vale Verde/SP', doc: 'Documento Auxiliar da Nota Fiscal de Consumidor Eletrônica (NFC-e)' },
           meta: '05/08/2026 18:42:10 · Loja 02 · PDV 05 · Doc 004821 · Operador: Silva',
@@ -255,7 +262,7 @@
           payment: 'Cartão de débito · Valor pago R$ 190,93',
           footer: ['Consumidor — CPF 123.456.789-00 (exemplo fictício)', 'NFC-e nº 000456 · Série 001 · 05/08/2026 18:42:10', 'Protocolo de autorização: 135260000012345 (fictício)']
         },
-        note: 'Loja, endereço, CNPJ, CPF e chave de nota são fictícios — sintetizados para este exercício, e não a transcrição de um documento real.',
+        note: 'Loja, endereço, CNPJ, CPF, número da NFC-e e protocolo de autorização são fictícios, sintetizados para este exercício.',
         questions: [
           'Qual o produto (ou categoria) mais vendido, por loja e por período?',
           'Qual o ticket médio por cliente e como ele varia por forma de pagamento?',
@@ -264,61 +271,63 @@
           'Como o mix de compra varia por dia da semana e por horário?'
         ],
         model: {
-          grao: 'Uma linha representa um item vendido dentro de um cupom fiscal — um produto, em uma data e hora, em uma loja, por um operador de caixa, dentro de uma venda.',
+          grao: 'Uma linha representa um item vendido em um cupom fiscal: um produto, em uma data e hora, em uma loja, registrado por um operador de caixa, no cupom identificado pelo número da NFC-e.',
           fato: 'Fato_Venda_Item',
-          metricas: ['Quantidade vendida (aditiva)', 'Valor de desconto (aditiva)', 'Valor total do item (aditiva)', 'Valor unitário (não aditiva — nunca some valores unitários entre linhas)'],
+          metricas: ['Quantidade vendida (aditiva apenas entre linhas de mesma unidade de medida, UN ou kg, registrada na dimensão Produto)', 'Valor de desconto (aditiva)', 'Valor total do item (aditiva)', 'Valor unitário (não aditiva; o valor médio por unidade obtém-se pela razão entre valor total e quantidade, na mesma unidade de medida)'],
           dimensoes: [
-            { nome: 'Produto', hierarquia: 'Produto → Subcategoria → Categoria → Departamento' },
-            { nome: 'Tempo', hierarquia: 'Data → Mês → Trimestre → Ano (mais o atributo Hora do dia)' },
+            { nome: 'Produto', hierarquia: 'Produto → Subcategoria → Categoria → Departamento, com a unidade de medida (UN ou kg) como atributo' },
+            { nome: 'Data', hierarquia: 'Data → Mês → Trimestre → Ano, com dia da semana como atributo' },
+            { nome: 'Hora do dia', hierarquia: 'dimensão própria, separada da Data: hora e faixa horária' },
             { nome: 'Loja', hierarquia: 'Loja → Cidade → Região' },
             { nome: 'Cliente', hierarquia: 'CPF quando informado; "não identificado" quando ausente na nota' },
             { nome: 'Operador de caixa', hierarquia: 'sem hierarquia adicional' },
             { nome: 'Forma de pagamento', hierarquia: 'sem hierarquia adicional' },
-            { nome: 'Campanha promocional', hierarquia: 'dimensão degenerada — indicador de desconto aplicado ao item' }
+            { nome: 'Promoção', hierarquia: 'Campanha → Tipo de desconto; membro "sem promoção" para itens sem desconto' },
+            { nome: 'Número do cupom (NFC-e)', hierarquia: 'dimensão degenerada: chave armazenada na fato, sem tabela própria, que permite contar cupons distintos e calcular o ticket médio' }
           ],
           esquema: 'Estrela (star schema): nenhuma dimensão acima exige normalização adicional para esta primeira modelagem.'
         },
-        transition: 'Guarde este modelo como referência — grão, fato, métricas e dimensões seguem o mesmo raciocínio que vocês vão aplicar agora ao projeto, mas o cubo do projeto ninguém resolve por vocês.'
+        transition: 'Este modelo serve de referência: grão, fato, métricas e dimensões seguem o raciocínio a ser aplicado ao projeto. A modelagem do cubo do projeto cabe ao grupo.'
       },
       activity: {
         title: 'Atividade em sala — Iniciando a modelagem do DW do projeto',
         duration: '45 min · última parte da aula',
         goal: 'Rascunhar, no Data Model Canvas do projeto, ao menos um cubo analítico candidato: grão, fatos/métricas candidatos e dimensões candidatas.',
-        intro: 'Com o método praticado na nota fiscal, o trabalho agora é sobre o projeto do seu squad. Tenha em mãos a TAPI do projeto e, se possível, o dmc.json já iniciado. O professor circula para orientar — peça direcionamento sempre que travar, mas a modelagem é do grupo.',
+        intro: 'Praticado o método na nota fiscal, a atividade passa ao projeto do squad. É necessário ter em mãos a TAPI do projeto e, se houver, o dmc.json já iniciado. O professor acompanha os grupos e orienta mediante solicitação; a modelagem é responsabilidade do grupo.',
         steps: [
-          { title: 'Reúna as perguntas', text: 'Levante as perguntas de negócio da TAPI do seu projeto (seção de perguntas de negócio ou equivalente). Não invente perguntas novas agora — parta do que a área parceira já perguntou.' },
-          { title: 'Agrupe por processo', text: 'Agrupe as perguntas por processo de negócio, não por quem perguntou. Perguntas que dependem do mesmo evento de origem tendem a virar o mesmo cubo.' },
+          { title: 'Reúna as perguntas', text: 'Levante as perguntas de negócio da TAPI do seu projeto (seção de perguntas de negócio ou equivalente). Parta das perguntas já formuladas pela área parceira, sem acrescentar perguntas nesta etapa.' },
+          { title: 'Agrupe por processo', text: 'Agrupe as perguntas pelo processo de negócio a que se referem. Perguntas que dependem do mesmo evento de origem tendem a virar o mesmo cubo.' },
           { title: 'Declare o grão candidato', text: 'Para cada grupo, escreva o grão candidato em uma frase no singular. Teste o grão perguntando se toda pergunta do grupo pode ser respondida agregando linhas nesse nível.' },
-          { title: 'Nomeie o cubo', text: 'Nomeie o cubo pelo processo de negócio que ele mede — não pela tabela ou planilha de origem disponível hoje.' },
+          { title: 'Nomeie o cubo', text: 'Nomeie o cubo pelo processo de negócio que ele mede, independentemente da tabela ou planilha de origem disponível.' },
           { title: 'Liste fatos e métricas candidatos', text: 'No grão declarado, liste o que se conta, soma, mede ou calcula: contagens, durações, taxas e valores.' },
           { title: 'Liste dimensões candidatas', text: 'Liste os eixos pelos quais alguém vai querer filtrar ou agrupar essa métrica: quem, o quê, quando, onde, como.' },
           { title: 'Registre no canvas', text: 'Abra o Data Model Canvas do módulo e registre o cubo — repita o processo para quantos cubos candidatos surgirem.' }
         ],
         checks: [
           'Essa métrica existe de fato nesse grão, ou pertence a um grão mais fino ou mais grosso?',
-          'Duas perguntas do grupo pedem métricas em unidades diferentes (contagem vs. duração)? Isso é normal dentro do mesmo cubo, desde que compartilhem o grão.',
+          'Duas perguntas do grupo pedem métricas em unidades diferentes (contagem vs. duração)? Métricas de unidades distintas coexistem no mesmo cubo desde que compartilhem o grão.',
           'Essa dimensão poderia ser reaproveitada por outro cubo do mesmo projeto — ela é candidata a dimensão conformada?'
         ],
         avoid: [
-          'Não comece pela planilha ou tabela disponível; comece pela pergunta de negócio.',
-          'Não crie um cubo por pergunta isolada — agrupe antes de nomear.',
-          'Não tente resolver granularidade fina, SCD ou performance nesta aula: o foco de hoje é grão, fatos e dimensões candidatos. Isso continua nas próximas aulas de modelagem de DW.'
+          'Não inicie a modelagem pela planilha ou pela tabela disponível; o ponto de partida é a pergunta de negócio.',
+          'Não crie um cubo por pergunta isolada; o agrupamento das perguntas precede a nomeação do cubo.',
+          'Não tente resolver SCD, desempenho ou detalhamento abaixo do grão candidato nesta aula: o foco é grão, fatos e dimensões candidatos. Esses temas são tratados nas próximas aulas de modelagem de DW.'
         ],
         worked: {
-          text: 'Este raciocínio usa perguntas reais de um projeto do módulo — a Central de Pesquisas de um sindicato setorial — só para ilustrar o método. Ele não resolve o cubo do seu projeto.',
+          text: 'O raciocínio a seguir usa perguntas reais de um projeto do módulo, a Central de Pesquisas de um sindicato setorial, com finalidade exclusivamente ilustrativa; o resultado não se transfere aos demais projetos.',
           questions: [
             '"Quantas pesquisas foram realizadas por período?"',
             '"Qual a taxa de adesão por pesquisa e por empresa?"',
             '"Qual o tempo médio de tabulação das respostas?"'
           ],
-          note: 'As duas primeiras perguntas compartilham o mesmo processo — a participação de uma empresa em uma pesquisa — o que sugere que pertencem ao mesmo cubo. A terceira mede outro evento, a etapa de tabulação, o que sugere um grão e possivelmente um cubo diferentes. Confirmar isso — e ir além dele — é o trabalho do seu grupo com o próprio projeto.'
+          note: 'As duas primeiras perguntas compartilham o mesmo processo — a participação de uma empresa em uma pesquisa — o que sugere que pertencem ao mesmo cubo. A terceira mede outro evento, a etapa de tabulação, o que sugere um grão e possivelmente um cubo diferentes. A confirmação dessa hipótese e seu aprofundamento cabem a cada grupo, no próprio projeto.'
         },
         tool: { label: 'Abrir o Data Model Canvas', href: '../data-model-canvas.html' },
         acceptance: [
           'O canvas tem ao menos um cubo com nome e grão declarados em uma frase no singular.',
           'O cubo lista ao menos um fato/métrica candidato coerente com o grão.',
           'O cubo lista ao menos uma dimensão candidata coerente com o grão.',
-          'O grupo consegue justificar, em voz alta, por que aquelas perguntas de negócio pertencem ao mesmo cubo.'
+          'O grupo justifica oralmente por que aquelas perguntas de negócio pertencem ao mesmo cubo.'
         ]
       },
       deliverable: 'Um rascunho do Data Model Canvas do projeto com ao menos um cubo analítico candidato: grão declarado, fatos/métricas candidatos e dimensões candidatas. Não é necessário completar SCD, otimização ou governança do cubo nesta aula.',
@@ -357,7 +366,7 @@
         },
         {
           title: 'Data Warehouse: requisitos e metodologias de modelagem',
-          topics: ['Dados, informação e conhecimento; gestão da informação versus gestão do conhecimento', 'Definição e características de um Data Warehouse: orientado a assunto, integrado, temporal, não volátil', 'Modelagem entidade-relacionamento e modelagem multidimensional (star e snowflake)', 'Metadados, data mart e granularidade de dados', 'Arquiteturas top-down e bottom-up e o processo de data warehousing (ETL)', 'Abordagens de levantamento de requisitos: orientada a dados, a requisitos e a metas', 'Metodologias de desenvolvimento focadas em requisitos: Hadden-Kelly, Business Development Lifecycle, Golfarelli & Rizzi, Conceptual Data Warehouse Design, Iterations'],
+          topics: ['Dados, informação e conhecimento; gestão da informação versus gestão do conhecimento', 'Definição e características de um Data Warehouse: orientado a assunto, integrado, temporal, não volátil', 'Modelagem entidade-relacionamento e modelagem multidimensional (star e snowflake)', 'Metadados, data mart e granularidade de dados', 'Arquiteturas top-down e bottom-up e o processo de data warehousing (ETL)', 'Abordagens de levantamento de requisitos: orientada a dados, a requisitos e a metas', 'Metodologias de desenvolvimento focadas em requisitos: Hadden-Kelly, Business Dimensional Lifecycle, Golfarelli & Rizzi, Conceptual Data Warehouse Design, Iterations'],
           url: 'https://www.maxwell.vrac.puc-rio.br/15136/15136_4.PDF'
         },
         {
@@ -375,7 +384,7 @@
             'Confirme que a tabela fato referencia as dimensões por chave substituta, não pela chave natural da origem.',
             'Liste os atributos hierárquicos que hoje estão todos dentro da mesma tabela dimensão, como categoria e departamento dentro de produto.'
           ],
-          pitfall: 'Tratar star schema como "o esquema simples" sem avaliar o custo da redundância. Redundância controlada é uma troca deliberada por desempenho de leitura, não uma ausência de modelagem.'
+          pitfall: 'Tratar star schema como "o esquema simples" sem avaliar o custo da redundância. A redundância controlada constitui troca deliberada: aceita-se a repetição de atributos em favor do desempenho de leitura.'
         },
         {
           nav: 'Snowflake Schema', title: 'Snowflake Schema e normalização das dimensões',
@@ -385,15 +394,15 @@
             'Estime quantos joins adicionais a normalização de uma dimensão específica introduziria em uma consulta típica.',
             'Verifique se a redundância eliminada corresponde a um volume de dados que justifica a normalização.'
           ],
-          pitfall: 'Normalizar uma dimensão pequena e estável só porque normalização é apresentada como boa prática geral. O ganho de espaço é irrelevante quando a tabela tem poucas linhas e muda raramente.'
+          pitfall: 'Normalizar uma dimensão pequena e estável apenas por ser a normalização apresentada como boa prática geral. O ganho de espaço é irrelevante quando a tabela tem poucas linhas e muda raramente.'
         },
         {
           nav: 'Star × Snowflake', title: 'Comparando as duas abordagens',
-          text: 'Star schema favorece consultas mais simples e rápidas ao custo de redundância; snowflake schema favorece integridade e economia de espaço ao custo de mais joins. A escolha é por dimensão, não uma decisão única para todo o Data Warehouse.',
+          text: 'Star schema favorece consultas mais simples e rápidas ao custo de redundância; snowflake schema favorece integridade e economia de espaço ao custo de mais joins. A escolha é feita dimensão a dimensão.',
           checklist: [
             'Para cada dimensão do seu cubo, registre se a prioridade é velocidade de consulta ou economia de espaço e integridade.',
             'Verifique se a ferramenta de consulta ou BI do seu projeto penaliza consultas com muitos joins.',
-            'Documente a decisão por dimensão, não como uma regra geral aplicada a todo o modelo.'
+            'Documente a decisão individualmente para cada dimensão.'
           ],
           pitfall: 'Escolher um esquema único para todo o Data Warehouse por convenção da equipe. Dimensões diferentes, dentro do mesmo cubo, podem justificar escolhas diferentes.'
         },
@@ -401,48 +410,48 @@
           nav: 'Boas práticas de modelagem', title: 'Boas práticas de modelagem e documentação',
           text: 'Nomenclatura consistente, chave substituta, granularidade documentada, versionamento do modelo e testes de qualidade sustentam um esquema dimensional, independentemente de star ou snowflake ser a escolha.',
           checklist: [
-            'Padronize prefixos e nomes de tabela (fato_, dimensao_) e aplique-os a todos os cubos do projeto, não só ao mais recente.',
-            'Documente a granularidade e a estrutura escolhida junto da definição de cada cubo, não em um documento separado.',
+            'Padronize prefixos e nomes de tabela (fato_, dimensao_) e aplique-os a todos os cubos do projeto.',
+            'Documente a granularidade e a estrutura escolhida no mesmo artefato que define cada cubo.',
             'Associe cada dimensão a um teste mínimo de qualidade, como unicidade de chave e ausência de referência quebrada.'
           ],
-          pitfall: 'Tratar documentação como etapa posterior à modelagem. Sem registro no momento da decisão, a justificativa se perde e a próxima pessoa repete a discussão.'
+          pitfall: 'Tratar documentação como etapa posterior à modelagem. A justificativa não registrada no momento da decisão se perde, e a discussão tende a ser repetida por quem assume o modelo.'
         },
         {
           nav: 'Ciclo de vida do DW', title: 'O ciclo de vida da modelagem de um Data Warehouse',
-          text: 'A modelagem de um Data Warehouse não termina na primeira versão do esquema: passa por levantamento de requisitos, modelagem conceitual, lógica e física, e manutenção contínua conforme novas perguntas de negócio surgem. Metodologias como Hadden-Kelly, o Business Development Lifecycle e o Conceptual Data Warehouse Design formalizam essas etapas.',
+          text: 'A modelagem de um Data Warehouse é contínua e compreende levantamento de requisitos, modelagem conceitual, lógica e física, e manutenção conforme surgem novas perguntas de negócio. Metodologias como Hadden-Kelly, o Business Dimensional Lifecycle de Kimball e o Conceptual Data Warehouse Design formalizam essas etapas.',
           checklist: [
             'Identifique em qual etapa do ciclo de vida de modelagem o cubo do seu projeto está hoje.',
             'Distinga levantamento de requisitos orientado a dados, orientado a requisitos e orientado a metas, e identifique qual predominou no seu caso.',
             'Aponte o que falta para o cubo avançar da etapa atual para a próxima.'
           ],
-          pitfall: 'Tratar a primeira versão do esquema como definitiva. Um Data Warehouse maduro é revisado a cada novo requisito de negócio, não construído uma única vez.'
+          pitfall: 'Tratar a primeira versão do esquema como definitiva. O esquema de um Data Warehouse maduro é revisado a cada novo requisito de negócio.'
         },
         {
           nav: 'Escalabilidade e desempenho', title: 'Avaliando escalabilidade, flexibilidade e desempenho',
-          text: 'A escolha entre star e snowflake também depende da plataforma de execução: engines colunares modernos, como o BigQuery, toleram desnormalização com pruning eficiente, o que costuma favorecer star mesmo quando a normalização pareceria mais adequada apenas no papel.',
+          text: 'A escolha entre star e snowflake também depende da plataforma de execução: motores colunares modernos, como o BigQuery, toleram desnormalização por leitura colunar e pruning de colunas e partições, o que costuma favorecer star mesmo quando a normalização seria preferível sob critério exclusivamente teórico.',
           checklist: [
             'Verifique qual engine ou banco o projeto usará para consultar o Data Warehouse.',
             'Avalie se a plataforma penaliza joins entre múltiplas tabelas de dimensão normalizadas.',
             'Estime se o volume de dados do seu projeto realmente justifica a economia de espaço da normalização.'
           ],
-          pitfall: 'Escolher snowflake por presumir que "escala melhor" sem testar. Em plataformas colunares, mais joins costuma custar mais do que a redundância evitada.'
+          pitfall: 'Escolher snowflake por presumir que "escala melhor" sem testar. Em plataformas colunares, o custo dos joins adicionais tende a superar o da redundância evitada.'
         }
       ],
       sdd: {
-        rf: 'RF-102 — Permitir consultar métricas por qualquer nível hierárquico de uma dimensão, como produto, subcategoria e categoria, sem exigir remodelagem da tabela fato a cada novo nível de análise.',
+        rf: 'RF-102 — Permitir consultar métricas de participação por qualquer nível hierárquico de uma dimensão, como empresa, segmento e setor, sem exigir remodelagem da tabela fato a cada novo nível de análise.',
         rnf: 'RNF-102 — A estrutura escolhida, star ou snowflake, está documentada por dimensão, com a justificativa da normalização registrada no Data Model Canvas do projeto.',
         adr: 'ADR-DW-03 — Star schema como padrão para as dimensões do cubo de participação, com normalização (snowflake) restrita a dimensões de hierarquia extensa e alta repetição de atributos. Alternativa descartada: normalizar todas as dimensões por padrão, o que multiplicaria joins sem ganho de espaço relevante no volume atual do projeto. Consequência: a decisão precisa ser revisitada caso o volume de dados cresça significativamente.',
-        gherkin: 'Dado um cubo com a dimensão Produto modelada em snowflake, Quando um analista consulta o total vendido agrupado por categoria, Então o resultado é obtido por join entre fato, produto e categoria, sem alterar a tabela fato.'
+        gherkin: 'Dado o cubo de participação com a dimensão Empresa em star schema, contendo segmento e setor como colunas, Quando um analista consulta a taxa de adesão agrupada por setor, Então o resultado é obtido por um único join entre fato e empresa, sem alterar a tabela fato.'
       },
       activity: {
         title: 'Atividade em sala — Formalizando o esquema dimensional do projeto',
         duration: '60 min · segunda metade da aula',
         goal: 'Para os cubos já esboçados no Data Model Canvas, decidir e justificar o esquema — star ou snowflake — de cada dimensão, aplicando os critérios de normalização e as boas práticas apresentadas.',
-        intro: 'Retome o Data Model Canvas iniciado na Aula 2. O trabalho agora não é criar cubos novos, mas aprofundar cada cubo já esboçado — Grão, Estrutura, Fatos/Eventos, Métricas, Dimensões e Dimensões especiais — decidindo star ou snowflake para cada dimensão e registrando a justificativa. O professor circula para orientar: peça direcionamento sempre que travar, mas a decisão e a justificativa são do grupo.',
+        intro: 'Retome o Data Model Canvas iniciado na Aula 2. A atividade aprofunda os cubos já esboçados, sem criar novos: para cada um, revisam-se Grão, Estrutura, Fatos/Eventos, Métricas, Dimensões e Dimensões especiais, com a decisão entre star e snowflake por dimensão e o registro da justificativa. O professor acompanha os grupos e orienta mediante solicitação; a decisão e a justificativa cabem ao grupo.',
         steps: [
           { title: 'Reabra o canvas', text: 'Abra o dmc.json exportado na Aula 2, ou o canvas salvo no navegador, e revise os cubos, grãos e dimensões candidatas já registrados.' },
           { title: 'Avalie cada dimensão', text: 'Para cada dimensão candidata, verifique se ela contém atributos hierárquicos ou repetitivos que poderiam ser normalizados em tabelas separadas, como produto → subcategoria → categoria.' },
-          { title: 'Aplique o critério de normalização', text: 'Decida star ou snowflake por dimensão a partir do critério de normalização, não por preferência estética: redundância aceitável favorece star; hierarquia extensa e repetição custosa favorecem snowflake.' },
+          { title: 'Aplique o critério de normalização', text: 'Decida star ou snowflake por dimensão com base no critério de normalização: redundância aceitável favorece star; hierarquia extensa e repetição custosa em dimensão volumosa favorecem snowflake.' },
           { title: 'Marque a estrutura no canvas', text: 'Marque a caixa correspondente (Star Schema ou Snowflake Schema) na seção Estrutura de cada cubo e registre, ao lado, a justificativa da escolha.' },
           { title: 'Revise dimensões especiais', text: 'Verifique se alguma dimensão exige bridge table para relação muitos-para-muitos, junk dimension para atributos de baixa cardinalidade, ou é candidata a dimensão conformada entre cubos.' },
           { title: 'Confira boas práticas', text: 'Revise o cubo contra os critérios de boas práticas apresentados: nomenclatura consistente, chave substituta, granularidade documentada e ausência de mistura entre grãos.' },
@@ -454,17 +463,17 @@
           'Alguma dimensão pode ser conformada e reaproveitada por mais de um cubo do projeto?'
         ],
         avoid: [
-          'Não decida o esquema por padrão, como "todo mundo usa star"; decida por dimensão, a partir da hierarquia real dos dados.',
-          'Não misture star e snowflake dentro da mesma dimensão sem justificar — a mistura parcial deve ser deliberada, não acidental.',
+          'Não adote o esquema por convenção da equipe; a decisão é tomada por dimensão, com base na hierarquia observada nos dados.',
+          'Não misture star e snowflake na mesma dimensão sem justificativa registrada; a normalização parcial exige decisão explícita.',
           'Não tente resolver performance ou SCD nesta aula: o foco de hoje é estrutura, normalização e ciclo de vida.'
         ],
         worked: {
-          text: 'Este exemplo ilustra o raciocínio com uma dimensão de produto genérica — não é a resposta para a dimensão do seu projeto.',
+          text: 'O exemplo ilustra o raciocínio com uma dimensão de produto genérica, sem correspondência com as dimensões dos projetos.',
           questions: [
             'Star: dimensao_produto traz categoria e departamento como colunas repetidas na própria linha do produto.',
             'Snowflake: dimensao_produto referencia dimensao_categoria, que referencia dimensao_departamento, cada nível em sua própria tabela.'
           ],
-          note: 'A escolha depende de quanto a hierarquia se repete e de quantos produtos compartilham a mesma categoria: hierarquia estável e repetição alta favorecem normalizar; hierarquia rasa ou que muda pouco favorece manter desnormalizado. Decidir isso para a dimensão real do seu projeto é o trabalho do grupo.'
+          note: 'A escolha depende da extensão da hierarquia e do volume da dimensão: hierarquia extensa, com muitos níveis e atributos por nível, repetida em dimensão volumosa, favorece normalizar; hierarquia rasa ou dimensão pequena favorece manter desnormalizado, como indica o erro comum do bloco sobre snowflake. A decisão para a dimensão real do projeto cabe ao grupo.'
         },
         tool: { label: 'Abrir o Data Model Canvas', href: '../data-model-canvas.html' },
         acceptance: [
@@ -481,10 +490,10 @@
     4: {
       title: 'Modelagem de Data Warehouse III', date: '18/08/2026',
       professor: 'Hermano Peixoto', discipline: 'Computação 1',
-      subtitle: 'Bridge tables, junk dimensions e Slowly Changing Dimensions: modelagem dimensional avançada para casos que o star/snowflake básico não resolve sozinho.',
+      subtitle: 'Bridge tables, junk dimensions e Slowly Changing Dimensions: técnicas de modelagem dimensional para relacionamentos muitos-para-muitos, atributos de baixa cardinalidade e histórico de atributos.',
       objective: 'Aplicar bridge tables, junk dimensions e a estratégia de Slowly Changing Dimensions (tipos 1, 2 ou 3) mais adequada a cada dimensão do Data Warehouse.',
       outcomes: [
-        'Explicar quando um relacionamento muitos-para-muitos entre fato e dimensão exige uma bridge table, e não uma chave estrangeira direta.',
+        'Explicar em que condições um relacionamento muitos-para-muitos entre fato e dimensão exige bridge table em lugar de chave estrangeira direta.',
         'Modelar uma bridge table com peso de alocação quando uma métrica aditiva precisa ser distribuída sem dupla contagem.',
         'Identificar atributos de baixa cardinalidade dispersos na fato ou em dimensões e agrupá-los em uma junk dimension coerente.',
         'Diferenciar SCD tipo 1, tipo 2 e tipo 3 pelo tratamento dado ao histórico e escolher entre eles a partir da pergunta analítica.',
@@ -520,40 +529,44 @@
       sections: [
         {
           nav: 'Bridge Tables', title: 'Bridge Tables: resolvendo relações muitos-para-muitos',
-          text: 'Uma bridge table resolve um relacionamento muitos-para-muitos entre a fato e uma dimensão, quando o grão da fato é mais grosso do que essa relação. Uma pesquisa da Central de Pesquisas reúne até 60 empresas participantes: a bridge_pesquisa_empresa liga as duas com uma linha por combinação e, quando uma contagem de participação precisa ser distribuída entre as empresas sem inflar o total, um peso de alocação (por exemplo, 1 dividido pelo número de empresas daquela pesquisa).',
+          text: 'Uma bridge table resolve um relacionamento muitos-para-muitos entre a fato e uma dimensão quando o grão da fato é mais grosso do que essa relação. Na Central de Pesquisas, o cubo de tabulação tem grão de uma linha por pesquisa, e cada pesquisa reúne até 60 empresas participantes: a bridge_pesquisa_empresa liga pesquisa e empresa com uma linha por combinação e, quando uma métrica da pesquisa precisa ser rateada entre as empresas sem inflar o total, recebe um peso de alocação (por exemplo, 1 dividido pelo número de empresas daquela pesquisa). A contagem de respondentes por empresa pertence ao cubo de participação da Aula 2, cujo grão já inclui a empresa e dispensa a bridge.',
           checklist: [
-            'No cubo do seu projeto, identifique uma dimensão que se relaciona com a fato em cardinalidade muitos-para-muitos, não um-para-muitos.',
+            'No cubo do projeto, identifique uma dimensão cuja cardinalidade com a fato, no grão declarado, seja muitos-para-muitos.',
             'Decida se a bridge table precisa de peso de alocação, avaliando se a métrica que passaria por ela é genuinamente fracionável entre os membros da dimensão.',
             'Nomeie as colunas da bridge: as duas chaves estrangeiras e, se aplicável, o peso de alocação.'
           ],
-          pitfall: 'Somar, através da bridge table, uma métrica que pertence à pesquisa inteira e não é fracionável por empresa — como o tempo de tabulação. Peso de alocação só resolve métricas genuinamente atribuíveis por empresa, como uma contagem de participação; as demais simplesmente não devem ser somadas através da bridge.',
+          pitfall: 'Somar, através da bridge table, uma métrica da pesquisa que não admite rateio entre empresas, como as horas de tabulação. O peso de alocação aplica-se apenas a métricas aditivas cujo rateio seja convenção de negócio declarada, como o custo de tabulação; as demais não devem ser somadas através da bridge.',
           diagram: `erDiagram
     FATO_PESQUISA ||--o{ BRIDGE_PESQUISA_EMPRESA : possui
     DIMENSAO_EMPRESA ||--o{ BRIDGE_PESQUISA_EMPRESA : participa
     FATO_PESQUISA {
         int pesquisa_id PK
-        int total_respondentes
+        float custo_tabulacao
+        float horas_tabulacao
     }
     BRIDGE_PESQUISA_EMPRESA {
         int pesquisa_id FK
-        int empresa_id FK
+        int empresa_sk FK
         float peso_alocacao
     }
     DIMENSAO_EMPRESA {
-        int empresa_id PK
+        int empresa_sk PK
+        int empresa_id
         string porte
         string segmento
+        date inicio_vigencia
+        date fim_vigencia
     }`
         },
         {
           nav: 'Junk Dimensions', title: 'Junk Dimensions: agrupando atributos de baixa cardinalidade',
-          text: 'Uma junk dimension agrupa, em uma única tabela, atributos independentes e de baixa cardinalidade que variam linha a linha na fato — não um atributo fixo do cubo inteiro. Se cada pesquisa da Central de Pesquisas carregasse sua própria combinação de classificação e sensibilidade de dado (público, interno, confidencial, restrito, pessoal, sensível, crítico), essas sete flags seriam candidatas a uma única dimensao_classificacao_dado.',
+          text: 'Uma junk dimension agrupa, em uma única tabela, atributos de baixa cardinalidade cujo valor varia entre as linhas da fato e que não pertencem a nenhuma dimensão existente. Se cada pesquisa da Central de Pesquisas carregasse sua própria combinação de nível de classificação (público, interno, confidencial ou restrito) e dos indicadores de dado pessoal, dado sensível e dado crítico, esses quatro atributos seriam candidatos a uma única dimensao_classificacao_dado, que contém apenas as combinações válidas: dado sensível implica dado pessoal (LGPD, art. 5º, II).',
           checklist: [
-            'Confirme que o atributo varia linha a linha na fato — se for constante para o cubo inteiro, é metadado de catálogo/governança, não dimensão joinável.',
-            'Verifique se esses atributos aparecem juntos com frequência e não têm hierarquia entre si — sinal de que pertencem à mesma junk dimension.',
-            'Estime quantas combinações realmente ocorrem nos dados: carregue só as observadas, não o produto cartesiano completo.'
+            'Confirme que o atributo varia entre as linhas da fato; atributo constante para todo o cubo é registrado como metadado de catálogo ou de governança.',
+            'Verifique se esses atributos aparecem juntos com frequência e não têm hierarquia entre si; essa coocorrência indica que pertencem à mesma junk dimension.',
+            'Estime quantas combinações válidas existem: carregue o produto cartesiano quando for pequeno e, caso contrário, insira as combinações à medida que surgirem nos dados.'
           ],
-          pitfall: 'Criar uma dimensão separada para cada flag booleana. Cada uma vira uma dimensão de duas linhas e mais um join trivial — o join sobra, mas o discernimento analítico não aumenta.',
+          pitfall: 'Criar uma dimensão separada para cada flag booleana. Cada flag passa a constituir uma dimensão de duas linhas, que acrescenta um join à consulta sem ampliar a capacidade analítica do modelo.',
           diagram: `erDiagram
     FATO_PESQUISA }o--|| DIMENSAO_CLASSIFICACAO_DADO : classificada_por
     FATO_PESQUISA {
@@ -562,7 +575,7 @@
     }
     DIMENSAO_CLASSIFICACAO_DADO {
         int classificacao_sk PK
-        string classificacao
+        string nivel_classificacao
         boolean dado_pessoal
         boolean dado_sensivel
         boolean dado_critico
@@ -570,13 +583,13 @@
         },
         {
           nav: 'SCD — Tipos 1, 2 e 3', title: 'Slowly Changing Dimensions: tipos 1, 2 e 3',
-          text: 'Uma Slowly Changing Dimension trata a mudança de um atributo ao longo do tempo. O tipo 1 sobrescreve o valor e apaga o histórico; o tipo 2 cria uma nova linha versionada, com data de início, data de fim e indicador de vigência; o tipo 3 guarda só o valor anterior em uma coluna extra. Na dimensao_empresa, porte e segmento pedem SCD 2 quando a análise exige o valor vigente na data da pesquisa; os demais atributos cadastrais bastam com SCD 1.',
+          text: 'Uma Slowly Changing Dimension trata a mudança de um atributo ao longo do tempo. O tipo 1 sobrescreve o valor e apaga o histórico; o tipo 2 cria uma nova linha versionada, com data de início, data de fim e indicador de vigência; o tipo 3 guarda só o valor anterior em uma coluna extra. Na dimensao_empresa, porte e segmento pedem SCD 2 quando a análise exige o valor vigente na data da pesquisa; os demais atributos cadastrais são tratados com SCD 1.',
           checklist: [
-            'Para cada atributo que muda, pergunte se alguma métrica histórica precisa refletir o valor vigente na data do evento — se sim, é candidato a SCD 2.',
-            'Verifique se o atributo muda com frequência incompatível com SCD 2 (mudanças diárias explodiriam o volume da dimensão).',
-            'Confirme, para SCD 3, que uma única coluna de "valor anterior" basta — nenhuma pergunta de negócio pede a segunda ou terceira mudança anterior.'
+            'Para cada atributo que muda, pergunte se alguma métrica histórica precisa refletir o valor vigente na data do evento; em caso afirmativo, o atributo é candidato a SCD 2.',
+            'Verifique se o atributo muda com frequência incompatível com SCD 2: mudanças diárias multiplicariam o volume da dimensão e indicam mini-dimensão (SCD tipo 4).',
+            'Confirme, para SCD 3, que uma única coluna de valor anterior atende às perguntas de negócio, isto é, que nenhuma delas requer mudanças anteriores à última.'
           ],
-          pitfall: 'Escolher SCD 2 para toda a dimensão por precaução, sem verificar se cada atributo tem uma pergunta analítica que depende do histórico. Isso multiplica linhas e exige filtro de vigência em joins que nunca precisariam dele.',
+          pitfall: 'Escolher SCD 2 para toda a dimensão por precaução, sem verificar se cada atributo tem uma pergunta analítica que depende do histórico. Isso multiplica as linhas da dimensão e amplia o custo de carga sem pergunta analítica que o justifique.',
           diagram: `flowchart LR
     subgraph COL1[" "]
         direction TB
@@ -596,17 +609,17 @@
         },
         {
           nav: 'Impacto do SCD na análise', title: 'O impacto de cada estratégia na análise e nos relatórios',
-          text: 'A escolha do SCD muda o que um relatório histórico mostra. Em SCD 1, um relatório de adesão por porte de empresa em 2025 mostraria hoje o porte atual, distorcendo a série histórica; em SCD 2, a fato referencia a chave substituta da versão vigente na data da pesquisa, e o join de consulta é direto. O cuidado é garantir que a fato aponte pela chave substituta, não pela chave natural — caso contrário, ou em consultas retroativas pontuais, é preciso filtrar por vigência para não duplicar linhas.',
+          text: 'A escolha do SCD muda o que um relatório histórico mostra. Em SCD 1, um relatório de adesão por porte de empresa em 2025 mostraria hoje o porte atual, distorcendo a série histórica; em SCD 2, a fato, ou a bridge que a liga à dimensão, referencia a chave substituta da versão vigente na data da pesquisa, e o join de consulta é direto. Quando a junção se faz pela chave natural, inclusive em consultas retroativas pontuais, o filtro de vigência é obrigatório para evitar duplicação de linhas.',
           checklist: [
             'Para um atributo já classificado como SCD 1, aponte um relatório histórico que ele silenciosamente distorceria se a análise precisasse do valor passado.',
-            'Confirme que a fato referencia a chave substituta da versão vigente da dimensão SCD 2 — não apenas a chave natural.',
+            'Confirme que a fato, ou a bridge, armazena a chave substituta da versão vigente da dimensão SCD 2.',
             'Verifique se algum relatório do projeto une uma dimensão SCD 2 pela chave natural sem filtrar vigência.'
           ],
           pitfall: 'Resolver a versão da dimensão só na hora da consulta, unindo pela chave natural em vez de referenciar a chave substituta correta da dimensão. Sem essa referência, esquecer o filtro de vigência multiplica cada linha da fato pelo número de versões da dimensão, inflando contagens e somas sem erro visível.'
         },
         {
           nav: 'Versionamento e rastreabilidade', title: 'Versionamento de dados dimensionais e rastreabilidade',
-          text: 'Versionar dado dimensional (SCD 2) e versionar código de transformação (git) são práticas complementares: uma preserva o histórico do dado, a outra o histórico da lógica que o produziu. A rastreabilidade ponta a ponta que o projeto exige — da solicitação de uma pesquisa à publicação — depende das duas; backup recupera um estado, mas não explica a trajetória de mudanças entre eles.',
+          text: 'Versionar dado dimensional (SCD 2) e versionar código de transformação (git) são práticas complementares: uma preserva o histórico do dado, a outra o histórico da lógica que o produziu. A rastreabilidade ponta a ponta que o projeto exige — da solicitação de uma pesquisa à publicação — depende das duas. O backup recupera um estado pontual e não registra a sequência de mudanças entre estados.',
           checklist: [
             'Verifique se o pipeline do seu projeto versiona o código de transformação separadamente do dado.',
             'Para uma dimensão SCD 2, confirme que é possível responder "qual era o valor vigente nesta data" sem depender de backup.',
@@ -618,24 +631,24 @@
       sdd: {
         rf: 'RF-104 — Permitir consultar qualquer pesquisa passada por atributos de empresas participantes (porte, segmento) sem inflar métricas aditivas e sem depender do cadastro atual da empresa.',
         rnf: 'RNF-104 — A bridge_pesquisa_empresa nunca introduz dupla contagem em métrica aditiva da fato; nenhuma vigência de dimensao_empresa (SCD 2) fica sobreposta.',
-        adr: 'ADR-DW-04 — Bridge table para a relação muitos-para-muitos entre pesquisa e empresa, com peso de alocação; junk dimension única para as sete flags de classificação e sensibilidade do dado que variam por pesquisa; SCD 2 restrito a porte e segmento em dimensao_empresa, e SCD 1 nos demais atributos cadastrais. Alternativa descartada: chave estrangeira direta de empresa na fato de pesquisa — inviável pela cardinalidade muitos-para-muitos — e SCD 2 em toda a dimensão empresa, o que multiplicaria linhas sem pergunta analítica associada às demais colunas. Consequência: todo join entre a fato e a dimensao_empresa passa a exigir filtro de vigência.',
+        adr: 'ADR-DW-04 — No cubo de tabulação, de grão uma linha por pesquisa, bridge table para a relação muitos-para-muitos entre pesquisa e empresa, com peso de alocação para o rateio do custo de tabulação; junk dimension única para o nível de classificação do dado e os indicadores de dado pessoal, sensível e crítico, que variam por pesquisa; SCD 2 restrito a porte e segmento em dimensao_empresa, e SCD 1 nos demais atributos cadastrais. Alternativas descartadas: chave estrangeira direta de empresa na fato de tabulação, inviável no grão da pesquisa, pois a análise por empresa no grão da participação já é atendida pelo cubo da Aula 2; e SCD 2 em toda a dimensão empresa, que multiplicaria linhas sem pergunta analítica associada às demais colunas. Consequência: a carga da bridge resolve a chave substituta vigente de cada empresa na data da pesquisa, e a dimensão cresce a cada mudança de porte ou segmento.',
         gherkin: 'Dado que a empresa X mudou de porte em março, Quando consulto a representatividade de mercado de uma pesquisa realizada em janeiro, Então o resultado usa o porte vigente em janeiro e nenhuma métrica aparece duplicada pela bridge table.'
       },
       activity: {
         title: 'Ponderada em Sala — Bridge Tables, Junk Dimensions e SCD aplicados ao projeto',
         duration: '60 min · segunda metade da aula · atividade avaliativa individual',
         goal: 'Aplicar bridge table, junk dimension e a estratégia de SCD mais adequada a pelo menos um cubo já modelado no Data Model Canvas do projeto, documentando a solução — com diagrama visual (Mermaid) e justificativa técnica — em um Google Docs individual.',
-        intro: 'Esta atividade é avaliativa — vale nota — e será corrigida pelos critérios de avaliação ao final desta aula. Retome o Data Model Canvas das Aulas 2 e 3 apenas como referência: ele é um documento do grupo, e a resposta desta Ponderada não deve ser escrita nele. Documente sua resposta em um Google Docs próprio e entregue o link no card desta Ponderada no Adalove. Diferente das atividades anteriores, aqui o resultado entregue é o que conta para a nota; ainda assim, peça orientação ao professor sempre que travar.',
+        intro: 'Esta atividade é avaliativa e será corrigida segundo os critérios de avaliação apresentados ao final do enunciado. O Data Model Canvas das Aulas 2 e 3 serve apenas como referência: trata-se de documento do grupo, no qual a resposta desta Ponderada não deve ser registrada. A resposta é documentada em Google Docs individual, cujo link é entregue no card da Ponderada no Adalove e registrado em arquivo commitado no repositório das ponderadas. Diferentemente das atividades anteriores, a nota incide sobre o resultado entregue; o professor permanece disponível para orientação durante a atividade.',
         steps: [
-          { title: 'Releia o canvas', text: 'Retome, apenas como referência, os cubos, o grão, as dimensões e a estrutura (star ou snowflake) já registrados nas Aulas 2 e 3 — não escreva sua resposta no canvas.' },
+          { title: 'Releia o canvas', text: 'Retome, apenas como referência, os cubos, o grão, as dimensões e a estrutura (star ou snowflake) já registrados nas Aulas 2 e 3; a resposta não é registrada no canvas.' },
           { title: 'Encontre a relação N:N', text: 'Identifique um relacionamento muitos-para-muitos candidato a bridge table entre a fato e alguma dimensão do seu cubo — ou justifique por escrito por que nenhum existe.' },
           { title: 'Modele a bridge table', text: 'Nomeie a tabela e defina as colunas: as chaves estrangeiras envolvidas e, se alguma métrica aditiva for somada através dela, o peso de alocação.' },
           { title: 'Encontre atributos de baixa cardinalidade', text: 'Identifique atributos de baixa cardinalidade dispersos na fato ou nas dimensões do seu cubo, candidatos a junk dimension.' },
           { title: 'Modele a junk dimension', text: 'Liste as combinações relevantes desses atributos e defina a chave substituta da junk dimension.' },
-          { title: 'Escolha o SCD por dimensão', text: 'Para ao menos duas dimensões do cubo escolhido — incluindo qualquer uma que exigir histórico — classifique a necessidade e escolha SCD 1, 2 ou 3, justificando pela pergunta de negócio, nunca por padrão.' },
+          { title: 'Escolha o SCD por dimensão', text: 'Para ao menos duas dimensões do cubo escolhido — incluindo qualquer uma que exigir histórico — classifique a necessidade e escolha SCD 1, 2 ou 3, com justificativa fundamentada na pergunta de negócio.' },
           { title: 'Documente no Google Docs', text: 'Escreva a solução completa — bridge table, junk dimension, estratégia de SCD e as justificativas — em um Google Docs individual, criado só para esta Ponderada.' },
           { title: 'Desenhe um diagrama Mermaid', text: 'Inclua no documento um diagrama visual (Mermaid) da sua solução — por exemplo, o esquema da bridge table com a fato e a dimensão, ou a comparação entre as estratégias de SCD escolhidas.' },
-          { title: 'Entregue no Adalove', text: 'Compartilhe o Google Docs com permissão de visualização e cole o link no card desta Ponderada no Adalove.' }
+          { title: 'Entregue no Adalove', text: 'Compartilhe o Google Docs com permissão de visualização, cole o link no card desta Ponderada no Adalove e registre o mesmo link em arquivo commitado no repositório das ponderadas.' }
         ],
         checks: [
           'A bridge table resolve de fato uma cardinalidade muitos-para-muitos, ou o relacionamento já era um-para-muitos e não precisa dela?',
@@ -644,31 +657,31 @@
           'O diagrama Mermaid representa a solução do seu cubo, não um exemplo genérico copiado da aula?'
         ],
         avoid: [
-          'Não aplique bridge table a um relacionamento um-para-muitos — isso é modelagem direta com chave estrangeira simples.',
+          'Não aplique bridge table a relacionamento um-para-muitos, que se resolve por chave estrangeira simples.',
           'Não escolha SCD 2 para toda dimensão por precaução; declare o custo (volume, complexidade de join) de cada escolha.',
-          'Não registre a resposta desta Ponderada no Data Model Canvas do projeto — ele é um documento do grupo; a entrega é o Google Docs individual, com o link no Adalove.'
+          'Não registre a resposta desta Ponderada no Data Model Canvas, que é documento do grupo; a entrega ocorre em Google Docs individual, com o link no Adalove e no repositório das ponderadas.'
         ],
         worked: {
-          text: 'Este raciocínio usa o projeto Central de Pesquisas (Sindusfarma) apenas para ilustrar o método — não resolve o cubo do seu projeto.',
+          text: 'O raciocínio a seguir usa o projeto Central de Pesquisas de um sindicato setorial com finalidade exclusivamente ilustrativa.',
           questions: [
-            'Uma pesquisa é respondida por até 60 empresas, e cada empresa responde a várias pesquisas ao longo do tempo → candidato a bridge table entre fato_pesquisa e dimensao_empresa.',
-            'Se a classificação de dado (público, interno, confidencial, restrito, pessoal, sensível, crítico) variar de pesquisa para pesquisa, essas sete flags booleanas → candidatas a uma única junk dimension de governança.',
+            'No cubo de tabulação, com uma linha por pesquisa, cada pesquisa reúne até 60 empresas e cada empresa participa de várias pesquisas ao longo do tempo → candidato a bridge table entre fato_pesquisa e dimensao_empresa.',
+            'Se o nível de classificação (público, interno, confidencial ou restrito) e os indicadores de dado pessoal, sensível e crítico variarem de pesquisa para pesquisa → candidatos a uma única junk dimension de governança.',
             'O porte e o segmento de uma empresa mudam raramente, mas afetam a leitura de representatividade de mercado por período → candidato a SCD 2; o nome do contato, se mudar, provavelmente não precisa de histórico → SCD 1 basta.'
           ],
-          note: 'Confirmar essas hipóteses com os dados reais do próprio projeto é o seu trabalho nesta Ponderada.'
+          note: 'A confirmação dessas hipóteses com os dados reais do próprio projeto constitui o objeto desta Ponderada.'
         },
         tool: { label: 'Abrir o Data Model Canvas do projeto (consulta — a resposta vai no Google Docs)', href: '../data-model-canvas.html' },
         acceptance: [
           'Relacionamento muitos-para-muitos identificado e resolvido com bridge table modelada (colunas e peso de alocação, quando aplicável).',
           'Atributos de baixa cardinalidade agrupados em ao menos uma junk dimension coerente, com chave substituta.',
-          'Estratégia de SCD (1, 2 ou 3) escolhida e justificada para ao menos duas dimensões do cubo, a partir da pergunta analítica, não por padrão.',
+          'Estratégia de SCD (1, 2 ou 3) escolhida e justificada para ao menos duas dimensões do cubo, com fundamento na pergunta analítica.',
           'Diagrama visual (Mermaid) da solução incluído no documento, representando a bridge table, a junk dimension ou a estratégia de SCD escolhida.'
         ]
       },
       evaluationLabel: 'Critérios de avaliação',
-      deliverable: 'Um Google Docs individual com bridge table, junk dimension e estratégia de SCD para pelo menos um cubo do projeto, incluindo um diagrama visual (Mermaid) da solução, com o link entregue no card desta Ponderada em Sala no Adalove — atividade avaliativa individual, corrigida pelos critérios de avaliação desta aula.',
+      deliverable: 'Um Google Docs individual com bridge table, junk dimension e estratégia de SCD para pelo menos um cubo do projeto, incluindo um diagrama visual (Mermaid) da solução, com o link entregue no card desta Ponderada em Sala no Adalove e registrado no repositório das ponderadas; atividade avaliativa individual, corrigida pelos critérios de avaliação desta aula.',
       submissionNotice: [
-        'O link do Google Docs desta resposta deve estar registrado no repositório das ponderadas, em um arquivo commitado — não basta colar o link solto no card do Adalove.',
+        'O link do Google Docs desta resposta deve constar também de arquivo commitado no repositório das ponderadas; o registro exclusivo no card do Adalove não atende à regra de entrega.',
         'Todo uso de IA generativa na solução desta Ponderada exige o chat salvo e commitado no repositório das ponderadas, com o link apresentado no topo do Google Docs da resposta, identificado como "Interação com IA Generativa".'
       ],
       references: ['Kimball & Ross — The Data Warehouse Toolkit (bridge tables e junk dimensions)', 'Kimball Group — Design Tip #113: Creating, Using, and Maintaining Junk Dimensions', 'ThoughtSpot — Slowly Changing Dimensions: What They Are and Why They Matter', 'Cabeça Tech — Como Implementar Versionamento de Dados em Projetos de Engenharia de Dados']
@@ -684,7 +697,7 @@
       subtitle: 'Decisões estruturais para uma plataforma de dados confiável, evolutiva e governável.',
       objective: 'Desenhar uma arquitetura de dados conectando fontes, ingestão, armazenamento, processamento, consumo, segurança e operação.',
       outcomes: [
-        'Derivar decisões arquiteturais de restrições declaradas, não de tendência de mercado.',
+        'Derivar decisões arquiteturais de restrições declaradas e verificáveis.',
         'Atribuir contrato, dono e política de qualidade a cada camada da plataforma.',
         'Comparar batch e streaming pela latência que a decisão de negócio realmente exige.',
         'Registrar riscos, RPO, RTO e plano de evolução de schema em ADR.'
@@ -703,7 +716,7 @@
             'Identifique a decisão de negócio que a plataforma precisa sustentar.',
             'Descarte explicitamente ao menos uma alternativa, com o motivo.'
           ],
-          pitfall: 'Escolher o padrão antes de conhecer a restrição. Arquitetura por tendência vira custo sem uso.'
+          pitfall: 'Escolher o padrão antes de conhecer a restrição. A adoção motivada por tendência de mercado produz custo sem ganho de decisão.'
         },
         {
           nav: 'Camadas e responsabilidades', title: 'Camadas',
@@ -713,7 +726,7 @@
             'Nomeie o dono responsável por qualidade e por incidente.',
             'Proíba salto de camada: consumo não lê o dado bruto.'
           ],
-          pitfall: 'Camadas que só diferem no nome do schema. Sem contrato distinto, é uma camada só com três cópias.'
+          pitfall: 'Camadas que só diferem no nome do schema. Sem contrato distinto, trata-se de uma camada única com três cópias.'
         },
         {
           nav: 'Padrões de plataforma', title: 'Padrões',
@@ -723,7 +736,7 @@
             'Estime o custo de governança, não apenas o de infraestrutura.',
             'Prefira o padrão mais simples que atenda às restrições.'
           ],
-          pitfall: 'Adotar data mesh sem times de domínio com autonomia real. O padrão pressupõe organização, não apenas tecnologia.'
+          pitfall: 'Adotar data mesh sem times de domínio com autonomia real. O padrão pressupõe estrutura organizacional compatível, além da tecnologia.'
         },
         {
           nav: 'Batch e streaming', title: 'Batch e streaming',
@@ -753,7 +766,7 @@
             'Garanta idempotência antes de habilitar replay.',
             'Estabeleça a política de evolução de schema e o que quebra compatibilidade.'
           ],
-          pitfall: 'Backup que nunca foi restaurado. Sem teste de recuperação, o RTO declarado é ficção.'
+          pitfall: 'Backup que nunca foi restaurado. Sem teste de recuperação, o RTO declarado permanece estimativa não verificada.'
         }
       ],
       sdd: {
@@ -767,7 +780,7 @@
         slideOnly: true,
         duration: '120 min · atividade avaliativa individual · manuscrita e sem consulta',
         goal: 'Reconstruir à mão, sem consulta, um cubo analítico do próprio grupo e o caminho que leva das bases de origem do parceiro até ele, justificando por escrito cada decisão de modelagem e de arquitetura.',
-        intro: 'Esta atividade é avaliativa, individual e vale 3,0 pontos. As folhas são distribuídas pelo professor e toda a resposta é manuscrita nelas. Não é permitido consultar material da disciplina, repositório do grupo, dmc.json, anotações, dispositivos eletrônicos ou assistente de IA. O Data Model Canvas do seu grupo foi construído em conjunto: aqui verifica-se o que cada um sabe reconstruir e justificar sozinho. Todos os grupos trabalham sobre o mesmo parceiro e as mesmas bases de origem — o que distingue as respostas é a modelagem do seu grupo e a qualidade da justificativa.',
+        intro: 'Esta atividade é avaliativa, individual e vale 3,0 pontos. As folhas são distribuídas pelo professor e toda a resposta é manuscrita nelas. Não é permitido consultar material da disciplina, repositório do grupo, dmc.json, anotações, dispositivos eletrônicos ou assistente de IA. O Data Model Canvas do seu grupo foi construído em conjunto: aqui verifica-se o que cada um sabe reconstruir e justificar sozinho. Todos os grupos trabalham sobre o mesmo parceiro e as mesmas bases de origem; as respostas diferem pela modelagem de cada grupo e pela qualidade da justificativa.',
         stepsTitle: 'As oito questões da atividade',
         steps: [
           { title: 'Questão 1 — Cubo e grão', text: 'Nomeie um cubo analítico do Data Model Canvas do seu grupo e declare o grão em uma frase no singular: "uma linha representa…". Justifique por que esse grão responde às perguntas de negócio associadas ao cubo.' },
@@ -777,25 +790,25 @@
           { title: 'Questão 5 — Contrato e transformações', text: 'Escreva o contrato de dados da entrada da camada tratada — formato, semântica e garantia de qualidade — e três regras de transformação que o dado bruto precisa sofrer até chegar ao seu cubo.' },
           { title: 'Questão 6 — Qualidade', text: 'Escreva três validações obrigatórias que impedem esse cubo de publicar número errado. Para cada uma, declare o erro específico que ela detecta e o que deve acontecer quando ela falha.' },
           { title: 'Questão 7 — Mudança de requisito', text: 'As empresas participantes mudam de porte e de segmento ao longo do tempo, e a diretoria passa a exigir a comparação da representatividade de mercado entre dois períodos distintos. Indique o que muda no seu modelo, em quais campos do canvas, e qual decisão anterior permanece válida.' },
-          { title: 'Questão 8 — Decisão registrada', text: 'Registre a decisão mais cara do seu modelo em uma ADR manuscrita, com os quatro campos: contexto, decisão, alternativa descartada e consequência aceita.' }
+          { title: 'Questão 8 — Decisão registrada', text: 'Registre a decisão mais cara do seu modelo em um ADR manuscrito, com os quatro campos: contexto, decisão, alternativa descartada e consequência aceita.' }
         ],
         checks: [
           'Toda métrica declarada existe de fato no grão que você escreveu, ou alguma pertence a um grão mais fino?',
           'Cada escolha entre star e snowflake tem o critério escrito ao lado, e não apenas a caixa marcada?',
           'Cada validação da Questão 6 nomeia o erro que detecta, e não apenas o campo que verifica?',
-          'A ADR da Questão 8 tem os quatro campos preenchidos, incluindo a alternativa descartada?'
+          'O ADR da Questão 8 tem os quatro campos preenchidos, incluindo a alternativa descartada?'
         ],
         avoid: [
           'Não descreva a arquitetura genérica de um data warehouse: responda sobre o cubo e as bases do seu projeto.',
           'Não marque star ou snowflake sem justificar pelo critério — a caixa marcada, sozinha, não pontua.',
           'Não confunda a base de origem com a camada bruta: a origem é do parceiro, a camada bruta já é da sua plataforma.',
-          'Não entregue desenho sem justificativa escrita: o que se avalia é a decisão, não o traço.'
+          'Não entregue desenho sem justificativa escrita: a avaliação recai sobre a justificativa de cada decisão.'
         ],
         acceptance: [
           'Parte I — Cubo do projeto (1,0 ponto): grão em frase singular e coerente com as métricas (0,4); esquema com cardinalidades e chaves substitutas (0,3); estrutura e dimensões especiais justificadas por critério (0,3).',
           'Parte II — Da origem ao cubo (1,0 ponto): bases de origem mapeadas por destino e por camada (0,4); contrato de dados nos três elementos e três regras de transformação (0,3); três validações, cada uma com o erro que detecta (0,3).',
-          'Parte III — Decisão sob mudança (1,0 ponto): campos corretamente impactados e decisão que permanece válida identificada (0,6); ADR manuscrita com os quatro campos (0,4).',
-          'Faixas de referência: até 1,2 não deu a largada; de 1,2 a 2,1 faltas graves; de 2,1 a 2,7 chegou lá; acima de 2,7 foi além.'
+          'Parte III — Decisão sob mudança (1,0 ponto): campos corretamente impactados e decisão que permanece válida identificada (0,6); ADR manuscrito com os quatro campos (0,4).',
+          'Faixas de referência: até 1,2, não deu a largada; acima de 1,2 até 2,1, faltas graves; acima de 2,1 até 2,7, chegou lá; acima de 2,7, foi além.'
         ]
       },
       evaluationLabel: 'Critérios de avaliação — 3,0 pontos',
@@ -857,7 +870,7 @@
       sections: [
         {
           nav: 'Da estrela ao barramento', title: 'Arquitetura dimensional corporativa',
-          text: 'Um modelo estrela resolve um processo de negócio. Um Data Warehouse corporativo precisa integrar vários processos sem misturar fatos de grãos incompatíveis. Na arquitetura bus de Kimball, cada processo evolui como uma entrega incremental, enquanto dimensões conformadas funcionam como interfaces estáveis entre as estrelas. A integração ocorre pela reutilização de contexto e semântica, não pela criação de uma tabela fato universal.',
+          text: 'Um modelo estrela resolve um processo de negócio. Um Data Warehouse corporativo precisa integrar vários processos sem misturar fatos de grãos incompatíveis. Na arquitetura bus de Kimball, cada processo evolui como uma entrega incremental, enquanto dimensões conformadas funcionam como interfaces estáveis entre as estrelas. A integração ocorre pela reutilização de contexto e semântica entre as estrelas, e cada fato permanece no próprio grão.',
           checklist: [
             'Liste os processos de negócio, não os sistemas de origem nem os departamentos da organização.',
             'Declare a pergunta e o grão próprios de cada processo antes de procurar dimensões compartilhadas.',
@@ -866,7 +879,7 @@
           pitfall: 'Criar uma fato corporativa única para todos os processos. Fatos com grãos diferentes não devem ser unidos linha a linha; eles são analisados em conjunto por dimensões conformadas.',
           diagram: `flowchart LR
     P1["Processo: participação"] --> F1["Fato de respostas"]
-    P2["Processo: publicação"] --> F2["Fato de ciclo da pesquisa"]
+    P2["Processo: publicação"] --> F2["Fato de ciclo de publicação"]
     P3["Processo: mercado"] --> F3["Snapshot de representatividade"]
     D1["Dimensão Empresa conformada"] --- F1
     D1 --- F2
@@ -887,7 +900,7 @@
           diagram: `flowchart LR
     F1["Fato Resposta"] --- E["Dimensão Empresa<br/>chave, porte, segmento, vigência"]
     F2["Fato Participação Mensal"] --- E
-    F3["Fato Ciclo da Pesquisa"] --- E
+    F3["Fato Ciclo de Publicação"] --- E
     F1 --- D["Dimensão Data<br/>civil e fiscal"]
     F2 --- D
     F3 --- D`
@@ -908,14 +921,16 @@
     P2["Acompanhar participação"] --> D1
     P2 --> D2
     P2 --> D3
-    P2 --> D4["Segmento"]
     P3["Publicar indicador"] --> D1
+    P3 --> D2
     P3 --> D3
-    P3 --> D5["Canal"]`
+    P3 --> D5["Canal"]
+    P4["Analisar mercado"] --> D1
+    P4 --> D2`
         },
         {
           nav: 'Tipos de tabela fato', title: 'Transacional, snapshot periódico e snapshot acumulativo',
-          text: 'Cada linha da Bus Matrix conduz a uma ou mais tabelas fato. O fato transacional registra um evento atômico e normalmente só recebe inserções. O snapshot periódico fotografa o estado em intervalos regulares, inclusive quando o valor é zero. O snapshot acumulativo mantém uma linha por processo e atualiza as datas dos marcos até sua conclusão. O tipo decorre da frase do grão, não da tecnologia de origem.',
+          text: 'Cada linha da Bus Matrix conduz a uma ou mais tabelas fato. O fato transacional registra um evento atômico e normalmente só recebe inserções. O snapshot periódico fotografa o estado em intervalos regulares, inclusive quando o valor é zero. O snapshot acumulativo mantém uma linha por processo e atualiza as datas dos marcos até sua conclusão. O tipo decorre da frase do grão.',
           checklist: [
             'Escreva “uma linha representa...” para cada processo antes de escolher o tipo da fato.',
             'Confirme que o snapshot periódico produz linha em período sem movimento, para preservar zeros.',
@@ -925,7 +940,7 @@
           diagram: `flowchart LR
     T["Transacional<br/>uma linha por resposta enviada"]
     P["Snapshot periódico<br/>uma linha por empresa e mês"]
-    A["Snapshot acumulativo<br/>uma linha por ciclo de pesquisa"]
+    A["Snapshot acumulativo<br/>uma linha por ciclo de publicação<br/>de empresa e pesquisa"]
     T ~~~ P
     P ~~~ A`
         },
@@ -941,11 +956,14 @@
           diagram: `erDiagram
     DIM_EMPRESA ||--o{ FATO_RESPOSTA : contextualiza
     DIM_EMPRESA ||--o{ FATO_PARTICIPACAO_MENSAL : contextualiza
+    DIM_EMPRESA ||--o{ FATO_CICLO_PUBLICACAO : contextualiza
     DIM_PESQUISA ||--o{ FATO_RESPOSTA : contextualiza
-    DIM_PESQUISA ||--o{ FATO_CICLO_PESQUISA : contextualiza
+    DIM_PESQUISA ||--o{ FATO_PARTICIPACAO_MENSAL : contextualiza
+    DIM_PESQUISA ||--o{ FATO_CICLO_PUBLICACAO : contextualiza
+    DIM_CANAL ||--o{ FATO_CICLO_PUBLICACAO : contextualiza
     DIM_DATA ||--o{ FATO_RESPOSTA : data_resposta
     DIM_DATA ||--o{ FATO_PARTICIPACAO_MENSAL : mes_referencia
-    DIM_DATA ||--o{ FATO_CICLO_PESQUISA : marcos`
+    DIM_DATA ||--o{ FATO_CICLO_PUBLICACAO : marcos`
         },
         {
           nav: 'Governança e evolução', title: 'Consistência semântica com entrega incremental',
@@ -957,11 +975,12 @@
           ],
           pitfall: 'Permitir que cada Data Mart copie e adapte a dimensão corporativa. A entrega local fica rápida, mas porte, segmento e calendário passam a divergir e impedem análise integrada.',
           diagram: `flowchart LR
-    R1["Release 1<br/>Participação"] --> C1["Empresa + Data<br/>contratos v1"]
-    C1 --> R2["Release 2<br/>Publicação"]
-    R2 --> C2["Pesquisa + Canal<br/>contratos v1"]
-    C2 --> R3["Release 3<br/>Mercado"]
-    R3 --> V["Análise cross-functional<br/>semântica governada"]`
+    R1["Release 1<br/>Responder pesquisa"] --> C1["Data + Empresa + Pesquisa<br/>contratos v1"]
+    C1 --> R2["Release 2<br/>Acompanhar participação"]
+    R2 --> R3["Release 3<br/>Publicar indicador"]
+    R3 --> C2["Canal<br/>extensão aditiva"]
+    C2 --> R4["Release 4<br/>Analisar mercado"]
+    R4 --> V["Análise cross-functional<br/>semântica governada"]`
         }
       ],
       continuity: {
@@ -973,11 +992,11 @@
           { when: 'Aula 6', what: 'Barramento corporativo' },
           { when: 'Resultado', what: 'Análise cross-functional' }
         ],
-        note: 'Uma coleção de Data Marts não forma um Data Warehouse corporativo. A integração começa quando processos diferentes reutilizam dimensões com contratos realmente compatíveis.'
+        note: 'O Data Warehouse corporativo integra processos diferentes pela reutilização de dimensões com contratos compatíveis; a mera coleção de Data Marts não produz essa integração.'
       },
       conformity: {
         entity: 'DIM_EMPRESA',
-        intro: 'Conformidade é um contrato, não um nome de tabela. A dimensão abaixo é reutilizada pelos fatos de participação, publicação e mercado: uma mudança local altera todos os relatórios cross-functional. Os seis campos a seguir são o que precisa estar decidido e publicado antes de declarar a dimensão conformada.',
+        intro: 'A conformidade de uma dimensão é estabelecida por contrato publicado. A dimensão abaixo é reutilizada pelos fatos de participação, publicação e mercado: uma mudança local altera todos os relatórios cross-functional. Os seis campos a seguir são o que precisa estar decidido e publicado antes de declarar a dimensão conformada.',
         fields: [
           { label: 'Chave corporativa', text: 'Como CNPJ e os identificadores de cada fonte convergem para uma única entidade.' },
           { label: 'Domínio dos atributos', text: 'Valores válidos para porte, segmento, região e situação cadastral.' },
@@ -1000,16 +1019,16 @@
       },
       busMatrix: {
         intro: 'A matriz cruza processos de negócio nas linhas com dimensões nas colunas, e o número na linha indica a prioridade de implementação. A célula marcada mostra onde o contexto é necessário; a coluna com várias marcas mostra onde a conformidade produz integração.',
-        columns: ['Data', 'Empresa', 'Pesquisa', 'Segmento', 'Canal'],
+        columns: ['Data', 'Empresa', 'Pesquisa', 'Canal'],
         rows: [
-          { priority: 1, process: 'Responder pesquisa', marks: [true, true, true, true, false] },
-          { priority: 2, process: 'Acompanhar participação', marks: [true, true, true, true, false] },
-          { priority: 3, process: 'Publicar indicador', marks: [true, false, true, true, true] },
-          { priority: 4, process: 'Analisar mercado', marks: [true, true, false, true, false] }
+          { priority: 1, process: 'Responder pesquisa', marks: [true, true, true, false] },
+          { priority: 2, process: 'Acompanhar participação', marks: [true, true, true, false] },
+          { priority: 3, process: 'Publicar indicador', marks: [true, true, true, true] },
+          { priority: 4, process: 'Analisar mercado', marks: [true, true, false, false] }
         ],
         axes: [
-          { label: 'Linhas', text: 'verbos do negócio, não sistemas, arquivos ou departamentos.' },
-          { label: 'Colunas', text: 'contexto reutilizável, não toda dimensão disponível.' }
+          { label: 'Linhas', text: 'processos de negócio nomeados por verbo e objeto.' },
+          { label: 'Colunas', text: 'dimensões reutilizáveis, marcadas apenas onde se aplicam ao grão.' }
         ],
         reading: {
           intro: 'A leitura horizontal valida o processo; a leitura vertical revela a integração. A mesma matriz orienta modelagem, governança e roadmap.',
@@ -1033,8 +1052,8 @@
           'Alinhe os dois resultados pelos atributos conformados.'
         ],
         incorrect: [
-          'Unir cada resposta diretamente a cada linha do ciclo de publicação.',
-          'Gerar relação muitos-para-muitos entre fatos com grãos diferentes.',
+          'Unir cada linha mensal de participação diretamente à linha do ciclo de publicação da mesma empresa e pesquisa.',
+          'Relacionar fatos com grãos diferentes e repetir a medida do ciclo em cada linha mensal.',
           'Multiplicar linhas e distorcer as medidas antes da agregação.'
         ],
         note: 'Fatos se encontram depois de agregados, no nível comum das dimensões conformadas.'
@@ -1048,22 +1067,22 @@
           { title: 'Ownership', text: 'Quem aprova uma mudança usada por mais de um processo?' },
           { title: 'Compatibilidade', text: 'A alteração é aditiva ou exige nova versão e plano de migração?' }
         ],
-        note: 'Copiar uma dimensão para acelerar uma entrega local reduz o tempo hoje e cria dívida semântica corporativa amanhã.'
+        note: 'A cópia local de uma dimensão acelera a entrega imediata e gera dívida semântica corporativa.'
       },
       roadmap: {
         intro: 'A entrega é bottom-up, uma linha da matriz por vez, orientada por um blueprint top-down. Cada release reutiliza ou evolui formalmente os contratos já publicados.',
         releases: [
           { id: 'Release 1', title: 'Responder pesquisa', text: 'Entrega o primeiro valor analítico e estabelece Data, Empresa e Pesquisa.', chip: 'contratos v1' },
           { id: 'Release 2', title: 'Acompanhar participação', text: 'Reutiliza as três dimensões e adiciona o snapshot mensal.', chip: 'reuso, sem cópia' },
-          { id: 'Release 3', title: 'Publicar indicador', text: 'Reutiliza Data e Pesquisa; adiciona Canal e os marcos do ciclo.', chip: 'extensão aditiva' },
-          { id: 'Release 4', title: 'Análise integrada', text: 'Drill-across compara participação, publicação e mercado.', chip: 'cross-functional' }
+          { id: 'Release 3', title: 'Publicar indicador', text: 'Reutiliza Data, Empresa e Pesquisa; adiciona Canal e os marcos do ciclo.', chip: 'extensão aditiva' },
+          { id: 'Release 4', title: 'Analisar mercado', text: 'Reutiliza Data e Empresa, adiciona o snapshot de mercado e habilita o drill-across entre participação, publicação e mercado.', chip: 'cross-functional' }
         ],
         note: 'O roadmap prioriza valor e viabilidade, mas toda nova linha deve reutilizar ou evoluir formalmente os contratos existentes.'
       },
       closing: 'O Data Warehouse torna-se corporativo quando cada processo preserva seu grão, as dimensões preservam o significado e cada nova entrega amplia o barramento sem criar uma nova verdade local.',
       sdd: {
         rf: 'RF-106 — Permitir comparar participação, publicação e representatividade de mercado por empresa, segmento e período usando dimensões corporativas comuns.',
-        rnf: 'RNF-106 — Empresa, Data, Pesquisa e Segmento devem manter chave, domínio, granularidade e política histórica compatíveis em todos os fatos; qualquer mudança quebradora exige nova versão do contrato.',
+        rnf: 'RNF-106 — Empresa (com os atributos porte, segmento e região), Data e Pesquisa devem manter chave, domínio, granularidade e política histórica compatíveis em todos os fatos; qualquer mudança quebradora exige nova versão do contrato.',
         adr: 'ADR-DW-06 — Adotar a arquitetura bus de Kimball, implementando um processo por vez e integrando-os por dimensões conformadas. Alternativa descartada: Data Marts autônomos com cópias locais das dimensões. Consequência: as dimensões compartilhadas exigem ownership e governança antes da primeira publicação.',
         gherkin: 'Dadas as fatos de resposta e participação mensal vinculadas às mesmas dimensões Empresa, Pesquisa e Data, Quando o analista compara os processos por segmento e trimestre, Então os resultados são alinhados por atributos conformados sem join direto entre as fatos.'
       },
@@ -1071,7 +1090,7 @@
         title: 'Laboratório — Blueprint dimensional corporativo',
         duration: '50 min · construção em grupo',
         goal: 'Integrar ao menos três processos do projeto em uma Bus Matrix e uma Fact Constellation, definindo dimensões conformadas, tipo e grão de cada fato, governança semântica e ordem incremental de implementação.',
-        intro: 'O grupo parte dos cubos já registrados no Data Model Canvas e deixa de tratá-los como ilhas. A Bus Matrix explicita os processos e o contexto compartilhado; a constelação mostra como os fatos reutilizam as dimensões corporativas; o contrato de conformidade registra as decisões que nenhuma área pode redefinir localmente.',
+        intro: 'O grupo parte dos cubos já registrados no Data Model Canvas e passa a integrá-los. A Bus Matrix explicita os processos e o contexto compartilhado; a constelação mostra como os fatos reutilizam as dimensões corporativas; o contrato de conformidade registra as decisões que nenhuma área pode redefinir localmente.',
         stepsTitle: 'Do portfólio de processos ao blueprint corporativo',
         steps: [
           { title: 'Nomeie os processos', text: 'Liste ao menos três processos mensuráveis usando verbo e objeto. Não use nomes de sistema, arquivo, área ou relatório.' },
@@ -1308,7 +1327,7 @@ SELECT
     toUInt8(number % 20 + 1) AS regiao_id,
     toUInt32(intDiv(number, 20) % 100000 + 1) AS cliente_id,
     toUInt16(number % 1000 + 1) AS produto_id,
-    toDecimal64(10 + (number % 50000) / 100.0, 2) AS valor
+    toDecimal64(1000 + number % 50000, 2) / 100 AS valor
 FROM numbers(2000000);
 
 INSERT INTO aula_dw.fato_vendas_otimizada
@@ -1571,10 +1590,10 @@ SELECT
     g AS venda_id,
     timestamp '2025-01-01 00:00:00'
         + (((CAST(g AS bigint) - 1) * 31536000 / 2000000) * interval '1 second') AS data_venda,
-    CAST((g % 20) + 1 AS smallint) AS regiao_id,
-    CAST((g % 100000) + 1 AS integer) AS cliente_id,
-    CAST((g % 1000) + 1 AS integer) AS produto_id,
-    CAST(10 + (g % 50000) / 100.0 AS numeric(12, 2)) AS valor
+    CAST(((g - 1) % 20) + 1 AS smallint) AS regiao_id,
+    CAST((((g - 1) / 20) % 100000) + 1 AS integer) AS cliente_id,
+    CAST(((g - 1) % 1000) + 1 AS integer) AS produto_id,
+    CAST(10 + ((g - 1) % 50000) / 100.0 AS numeric(12, 2)) AS valor
 FROM generate_series(1, 2000000) AS g;
 
 INSERT INTO aula_dw.fato_vendas_part
@@ -1809,6 +1828,13 @@ WHERE regiao_id = 7
         'Modelar dimensionalmente o conjunto da Olist e responder, com SQL executado, a três perguntas de negócio sobre região, produto e sazonalidade.',
         'Aplicar ciclo de vida, tiering e orçamento por domínio.'
       ],
+      estrategia: 'Primeira hora de exposição dialogada em três blocos, cada um encerrado por checklist de aplicação e erro comum. Segunda hora de atividade em grupo: os estudantes ingerem os dados públicos da Olist em um lakehouse local com MinIO e DuckDB, modelam dimensionalmente no grão do item de pedido entregue e respondem a três perguntas de negócio, usando IA para gerar o SQL e verificando cada etapa por contagem, tipo e medição.',
+      estrutura: [
+        '1ª hora · Bloco 1 (30 min) — O que escala, object storage, formato físico e layout: dimensões de escala, convenções de prefixo, anatomia do arquivo colunar e do arquivo orientado a registro, cardinalidade da chave de partição e compactação.',
+        '1ª hora · Bloco 2 (18 min) — Propriedades distribuídas: particionamento, replicação, quórum, consistência forte e eventual, e as regras de engenharia que cada garantia ausente impõe ao pipeline.',
+        '1ª hora · Bloco 3 (12 min) — Vocabulário de repositórios analíticos, lakehouse, camadas por contrato, ciclo de vida, custo e segurança.',
+        '2ª hora · Card de trabalho (60 min) — Em grupo: MinIO e DuckDB no ar (10 min), bronze em Parquet no bucket (15 min), modelo dimensional com fato e dimensões (20 min), as três consultas executadas (10 min), evidências e conclusão escrita (5 min).'
+      ],
       sections: [
         {
           nav: 'O que escala', title: 'O que escala',
@@ -1864,13 +1890,13 @@ WHERE regiao_id = 7
         },
         {
           nav: 'Consistência', title: 'Consistência e efeito no pipeline',
-          text: 'A leitura pode devolver estado anterior à última escrita. Havendo partição de rede, a escolha recai entre consistência e disponibilidade, e na ausência de partição, entre consistência e latência. No lakehouse, essa escolha se manifesta como escrita não atômica, listagem eventual, reentrega de mensagens e falha parcial de carga, e cada uma dessas manifestações impõe uma regra de engenharia correspondente.',
+          text: 'A leitura pode devolver estado anterior à última escrita. Havendo partição de rede, a escolha recai entre consistência e disponibilidade, e na ausência de partição, entre consistência e latência. No lakehouse, essa escolha se manifesta como escrita não atômica, listagem eventual nos serviços que não oferecem listagem consistente, reentrega de mensagens e falha parcial de carga, e cada uma dessas manifestações impõe uma regra de engenharia correspondente.',
           checklist: [
             'Publique por troca de ponteiro, de modo que a versão se torne visível apenas com o commit no catálogo.',
             'Torne a ingestão idempotente por chave natural e janela.',
             'Separe data do evento de data de ingestão e declare a janela de atraso aceita.'
           ],
-          pitfall: 'Depender da listagem do bucket para saber quais arquivos compõem a tabela. Sob consistência eventual, a listagem devolve resultado incompleto por alguns instantes.'
+          pitfall: 'Depender da listagem do bucket para saber quais arquivos compõem a tabela. A consistência da listagem depende do serviço: o Amazon S3 oferece consistência forte de leitura após escrita e de listagem desde dezembro de 2020, e o MinIO também é consistente; em serviços com listagem eventual, o resultado fica incompleto por alguns instantes, e mesmo a listagem consistente inclui arquivos de uma carga ainda em andamento.'
         },
         {
           nav: 'Repositórios analíticos', title: 'Warehouse, lake, mart e lakehouse',
@@ -1878,7 +1904,7 @@ WHERE regiao_id = 7
           checklist: [
             'Identifique, no projeto do parceiro, qual dos quatro já existe de fato.',
             'Justifique cada repositório pelo público e pela decisão que ele sustenta.',
-            'Verifique se o modelo dimensional tem onde viver dentro da arquitetura escolhida.'
+            'Verifique em qual camada da arquitetura escolhida o modelo dimensional será mantido.'
           ],
           pitfall: 'Denominar data lake um diretório de arquivos desprovido de catálogo, contrato e responsável designado. A ausência desses três elementos caracteriza um repositório sem governança.'
         },
@@ -1963,17 +1989,17 @@ WHERE regiao_id = 7
       sections: [
         {
           nav: 'A fronteira', title: 'A fronteira da extração',
-          text: 'A extração é a única etapa do pipeline que depende de um sistema sobre o qual a equipe de dados não tem autoridade. O sistema transacional otimiza a escrita e o atendimento ao usuário, e a leitura analítica compete por recurso. A completude precisa ser verificada por contagem reconciliada com a origem.',
+          text: 'A extração é a etapa do pipeline que depende diretamente de um sistema sobre o qual a equipe de dados não tem autoridade. O sistema transacional otimiza a escrita e o atendimento ao usuário, e a leitura analítica compete por recurso. A completude precisa ser verificada por contagem reconciliada com a origem.',
           checklist: [
             'Registre a janela de disponibilidade em que a origem aceita carga de leitura.',
-            'Verifique a completude por contagem reconciliada, e não pelo encerramento do processo.',
-            'Trate a origem como contrato negociado, e não como conhecimento tácito da equipe.'
+            'Verifique a completude por contagem reconciliada com a origem.',
+            'Registre as condições de acesso à origem como contrato negociado e documentado.'
           ],
-          pitfall: 'Tratar o encerramento sem exceção como prova de completude. O processo termina normalmente quando a origem devolve página vazia por limite de requisições.'
+          pitfall: 'Tratar o encerramento sem exceção como prova de completude. Algumas APIs sinalizam o limite de requisições com página vazia e status 200, e o processo que não detecta esse caso termina normalmente com carga incompleta.'
         },
         {
           nav: 'Perfil das fontes', title: 'Conheça a origem',
-          text: 'Mapeie responsável, frequência, chave natural, timezone, semântica de atualização, limites, dados sensíveis, janela de disponibilidade e crescimento projetado. Os nove atributos determinam a estratégia, e levantá-los depois da implementação custa a reescrita do pipeline.',
+          text: 'Mapeie responsável, frequência, chave natural, timezone, semântica de atualização, limites, dados sensíveis, janela de disponibilidade e crescimento projetado. Os nove atributos determinam a estratégia; o levantamento posterior à implementação tende a exigir a reescrita do pipeline.',
           checklist: [
             'Registre dono, frequência, chave natural, timezone e janela de disponibilidade.',
             'Pergunte se a origem faz exclusão física ou lógica, e como ela é observável de fora.',
@@ -1983,7 +2009,7 @@ WHERE regiao_id = 7
         },
         {
           nav: 'Semântica de atualização', title: 'O que a origem faz com a correção',
-          text: 'Três comportamentos distintos, com consequências opostas. A origem que somente insere admite incremental por carimbo de criação; a que atualiza no lugar exige carimbo de atualização mantido com disciplina; a que exclui fisicamente exige captura pelo log ou reconciliação periódica de chaves.',
+          text: 'Há três comportamentos possíveis, cada um com consequência distinta para a estratégia. A origem que somente insere admite incremental por carimbo de criação; a que atualiza no lugar exige carimbo de atualização mantido com disciplina; a que exclui fisicamente exige captura pelo log ou reconciliação periódica de chaves.',
           checklist: [
             'Determine se o cancelamento produz linha nova, altera a linha ou a remove.',
             'Verifique se o campo de atualização se move em toda escrita, inclusive nas administrativas.',
@@ -1993,7 +2019,7 @@ WHERE regiao_id = 7
         },
         {
           nav: 'Estratégias de extração', title: 'Full load, incremental e captura pelo log',
-          text: 'Full load é simples e caro, e captura inserção, atualização e exclusão sem exigir campo de controle. O incremental por carimbo é barato e condicional, uma vez que a exclusão física nunca chega. A captura pelo log recebe cada operação como evento, e exige retenção, acesso privilegiado e garantia de ordenação.',
+          text: 'O full load é simples e caro e captura inserção, atualização e exclusão sem exigir campo de controle. O incremental por carimbo tem custo baixo, e sua corretude depende da origem, pois exclusões físicas não são capturadas. A captura pelo log recebe cada operação como evento e exige retenção, acesso privilegiado e garantia de ordenação.',
           checklist: [
             'Use full load enquanto o volume permitir, ou como reconciliação periódica.',
             'Em incremental por carimbo, aceite sobreposição de janela e deduplique por chave natural.',
@@ -2007,7 +2033,7 @@ WHERE regiao_id = 7
           checklist: [
             'Aplique sobreposição de alguns minutos e deduplique o resultado por chave natural.',
             'Avance a marca somente após a gravação do lote concluir.',
-            'Separe a data do evento da data de ingestão e filtre a janela pela segunda.'
+            'Filtre a janela pelo campo de atualização mantido pela origem, distinto da data do evento de negócio.'
           ],
           pitfall: 'Avançar a marca no início do lote. Uma falha no meio da gravação produz lacuna permanente, porque a janela seguinte já parte do ponto posterior.'
         },
@@ -2019,21 +2045,21 @@ WHERE regiao_id = 7
             'Garanta que reprocessar a mesma janela não altera o volume final.',
             'Deduplique por chave natural com regra determinística de desempate.'
           ],
-          pitfall: 'Confiar em exclusão seguida de inserção fora de transação. A falha entre as duas operações deixa o destino vazio, e a consulta executada nesse intervalo devolve resultado incorreto sem erro.'
+          pitfall: 'Confiar em exclusão seguida de inserção fora de transação. A falha entre as duas operações deixa a janela ausente do destino, e a consulta executada nesse intervalo devolve resultado incorreto sem erro.'
         },
         {
           nav: 'APIs e paginação', title: 'APIs',
-          text: 'Implemente paginação, limite de requisições, retry com recuo exponencial, autenticação, checkpoint e registro da resposta original. O código de status informa que a requisição foi atendida, e nada declara sobre quantos registros deveriam ter vindo.',
+          text: 'Implemente paginação, respeito ao limite de requisições, retry com recuo exponencial, autenticação, checkpoint e registro da resposta original. O limite é sinalizado por HTTP 429 (Too Many Requests), em geral com o cabeçalho Retry-After; o status 200 indica que a requisição foi atendida e não informa quantos registros eram esperados.',
           checklist: [
-            'Implemente retry com recuo exponencial, variação aleatória e teto de tentativas.',
+            'Aplique retry apenas a erros transitórios (429 e 5xx), com recuo exponencial, variação aleatória, teto de tentativas e respeito ao Retry-After.',
             'Persista a resposta original antes de qualquer conversão.',
-            'Valide a completude pela contagem declarada ou pelo cursor, e não pelo código de status.'
+            'Valide a completude pela contagem declarada ou pelo cursor de continuação.'
           ],
-          pitfall: 'Encerrar a paginação no primeiro retorno vazio. O limite de requisições produz exatamente esse retorno, e a extração termina incompleta relatando sucesso.'
+          pitfall: 'Encerrar a paginação no primeiro retorno vazio. Quando a API sinaliza o limite com página vazia e status 200, em vez de 429, a extração termina incompleta relatando sucesso.'
         },
         {
           nav: 'Arquivos e schema drift', title: 'Arquivos',
-          text: 'Valide nome, encoding, schema, delimitador, duplicidade, checksum e atomicidade da chegada. Separe landing de processamento. A extração posicional quebra em silêncio quando a origem acrescenta, renomeia ou reordena uma coluna.',
+          text: 'Valide nome, encoding, schema, delimitador, duplicidade, checksum e atomicidade da chegada. Separe landing de processamento. Quando a origem acrescenta, renomeia ou reordena uma coluna, a leitura posicional atribui valores à coluna errada sem emitir erro.',
           checklist: [
             'Separe landing de processamento e mova o arquivo apenas após verificar o checksum.',
             'Leia por nome de coluna e valide o schema contra o contrato registrado.',
@@ -2053,11 +2079,11 @@ WHERE regiao_id = 7
         },
         {
           nav: 'Card de trabalho', title: 'As três perguntas da atividade em sala',
-          text: 'A segunda hora do encontro é atividade em grupo sobre uma origem transacional em Postgres carregada com os pedidos da Olist: quantas linhas o incremental deixou de capturar; quantos pedidos excluídos permaneceram no destino; e se reprocessar a mesma janela altera o resultado. As três se respondem por contagem executada, e não por descrição do comportamento esperado.',
+          text: 'A segunda hora do encontro é atividade em grupo sobre uma origem transacional em Postgres carregada com os pedidos da Olist: quantas linhas o incremental deixou de capturar; quantos pedidos excluídos permaneceram no destino; e se reprocessar a mesma janela altera o resultado. As três respostas são obtidas por contagem executada sobre origem e destino.',
           checklist: [
             'Anote a contagem inicial de 99 441 pedidos antes de qualquer extração.',
             'Aplique as três mutações deliberadas e registre a sequência em que foram executadas.',
-            'Converta a divergência em receita, porque é nessa forma que ela chega ao negócio.'
+            'Expresse a divergência em receita, somando payment_value de olist_order_payments para os pedidos excluídos ou divergentes.'
           ],
           pitfall: 'Responder por estimativa do que a estratégia deveria capturar. A resposta é válida quando produzida por anti-junção e comparação de estado entre origem e destino.'
         },
@@ -2067,7 +2093,7 @@ WHERE regiao_id = 7
           checklist: [
             'Confirme que a contagem na origem coincide com a do CSV antes de extrair.',
             'Verifique se o SQL gerado avança a marca d\'água antes ou depois da gravação.',
-            'Compare a contagem antes e depois do replay: o crescimento é a assinatura da carga não idempotente.'
+            'Compare contagem e soma de verificação antes e depois do replay: o aumento da contagem evidencia carga não idempotente.'
           ],
           pitfall: 'Aceitar o SQL gerado por IA sem execução e conferência. A ordem invertida entre gravação e avanço da marca permanece despercebida até a primeira falha parcial.'
         }
@@ -2078,13 +2104,22 @@ WHERE regiao_id = 7
         adr: 'ADR-ING-01 — Captura pelo log de transações em vez de incremental por campo de atualização. Contexto: a origem apaga registros e corrige lançamentos com data retroativa. Consequência: exige retenção do log na origem e garantia de ordenação na entrega.',
         gherkin: 'Dado que o lote de 09/09/2026 já foi carregado, Quando reprocesso o mesmo batch_id, Então o volume no destino permanece igual e a auditoria registra duas execuções.'
       },
-      deliverable: 'O pipeline de extração versionado do card de trabalho, composto pelo SQL da carga inicial, da janela incremental e da reconciliação, com os três números medidos — linhas não capturadas, chaves excluídas remanescentes e contagem antes e depois do replay —, a sequência de mutações registrada, a decisão sobre exclusão marcada ou removida declarada por escrito, e a tabela de controle com uma linha por execução.',
+      deliverable: 'O pipeline de extração versionado do card de trabalho, composto pelo SQL da carga inicial, da janela incremental e da reconciliação, com os três números medidos (linhas não capturadas, chaves excluídas remanescentes e contagem antes e depois do replay) e a receita afetada, a sequência de mutações registrada, a decisão sobre exclusão marcada ou removida declarada por escrito, e a tabela de controle com uma linha por execução.',
+      acceptance: [
+        'A origem transacional está no ar, e a contagem inicial coincide com a do CSV (99 441 pedidos).',
+        'A tabela de controle registra cada execução com lote, janela, marca d\'água e status.',
+        'A marca d\'água avança somente após a gravação do lote concluir.',
+        'Os três casos de mutação foram aplicados, e a divergência está medida em contagem e em receita.',
+        'O replay da mesma janela mantém contagem e soma de verificação e registra duas execuções distintas.',
+        'A decisão sobre exclusão marcada ou removida está declarada por escrito.'
+      ],
       references: [
         { label: 'Debezium — Change Data Capture', href: 'https://debezium.io/documentation/reference/stable/index.html' },
         { label: 'Google SRE Book — Handling overload', href: 'https://sre.google/sre-book/handling-overload/' },
         { label: 'RFC 9110 — HTTP Semantics', href: 'https://www.rfc-editor.org/rfc/rfc9110.html' },
         { label: 'DuckDB Documentation — PostgreSQL extension', href: 'https://duckdb.org/docs/stable/core_extensions/postgres.html' },
-        { label: 'Airbyte Documentation — Sync modes', href: 'https://docs.airbyte.com/' },
+        { label: 'Airbyte Documentation — Sync modes', href: 'https://docs.airbyte.com/using-airbyte/core-concepts/sync-modes' },
+        { label: 'RFC 6585 — Additional HTTP Status Codes (429 Too Many Requests)', href: 'https://www.rfc-editor.org/rfc/rfc6585.html' },
         { label: 'Olist — Brazilian E-Commerce Public Dataset', href: 'https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce' }
       ]
     },
@@ -2106,7 +2141,7 @@ WHERE regiao_id = 7
       estrutura: [
         'Quiz de abertura (30 min) — Dez questões sobre o material, com noventa segundos cada e a última valendo o dobro, seguidas do comentário da distribuição das respostas por tema.',
         'Bloco 1 (12 min) — ETL e ELT pela possibilidade de recálculo, determinismo e as quatro decisões técnicas que alteram o número apresentado ao negócio.',
-        'Bloco 2 (16 min) — Qualidade: o teste que falha antes de existir, deduplicação por regra declarada e reconciliação com a origem por contagem e por soma.',
+        'Bloco 2 (16 min) — Qualidade: o teste que falha antes de a transformação existir, deduplicação por regra declarada e reconciliação com a origem por contagem e por soma.',
         'Bloco 3 (12 min) — Carga e orquestração: append, overwrite, merge e snapshot, política de histórico da dimensão, atomicidade e dependência declarada.',
         'Card de trabalho (50 min) — Em grupo: testes escritos e falhando (8 min), silver conformada (12 min), gold com junções medidas (12 min), carga incremental parametrizada (9 min), reconciliação e conclusão escrita (9 min).'
       ],
@@ -2210,18 +2245,18 @@ WHERE regiao_id = 7
         },
         {
           nav: 'Histórico da dimensão', title: 'A política de histórico define a carga',
-          text: 'A política de histórico responde a uma pergunta determinada, e a carga decorre dela. Sobrescrita responde qual é o estado atual e perde o valor anterior, e é a política adotada por omissão quando ninguém decide. Nova versão com vigência responde qual era o estado na data do fato, e é carregada por merge que encerra a versão vigente e abre a seguinte na data da mudança. Atributo anterior em coluna própria responde apenas qual era o valor imediatamente precedente, e não sustenta a série completa. Instantâneo diário responde como o cadastro estava em qualquer data, ao custo de gravar o cadastro inteiro a cada dia: uma dimensão de 32 mil linhas com algumas dezenas de mudanças por mês produz cerca de um milhão de linhas por mês para registrar dezenas de alterações. A escolha precede a escrita da carga, e a apuração pela categoria vigente na data da venda exige a política de nova versão com vigência.',
+          text: 'A política de histórico responde a uma pergunta determinada, e a carga decorre dela. Sobrescrita responde qual é o estado atual e perde o valor anterior, e corresponde à política adotada por omissão, na ausência de decisão explícita. Nova versão com vigência responde qual era o estado na data do fato, e é carregada por merge que encerra a versão vigente e abre a seguinte na data da mudança. Atributo anterior em coluna própria responde apenas qual era o valor imediatamente precedente, e não sustenta a série completa. Instantâneo diário responde como o cadastro estava em qualquer data, ao custo de gravar o cadastro inteiro a cada dia: uma dimensão de 32 mil linhas com algumas dezenas de mudanças por mês produz cerca de um milhão de linhas por mês para registrar dezenas de alterações. A escolha precede a escrita da carga, e a apuração pela categoria vigente na data da venda exige a política de nova versão com vigência.',
           diagram: `flowchart TB
     Q1{"A análise precisa do valor vigente na data do fato?"}
-    Q1 -->|não| S["Sobrescrita · merge pela chave natural"]
-    Q1 -->|sim| Q2{"Basta o valor imediatamente anterior?"}
-    Q2 -->|sim| A["Atributo anterior em coluna própria"]
-    Q2 -->|não| Q3{"A frequência de mudança justifica gravar o cadastro inteiro por dia?"}
+    Q1 -->|sim| Q3{"A frequência de mudança justifica gravar o cadastro inteiro por dia?"}
     Q3 -->|não| V["Nova versão com vigência · merge que encerra e abre"]
-    Q3 -->|sim| I["Instantâneo diário · append particionado pela data"]`,
+    Q3 -->|sim| I["Instantâneo diário · append particionado pela data"]
+    Q1 -->|não| Q2{"A análise precisa do valor imediatamente anterior ao lado do atual?"}
+    Q2 -->|sim| A["Atributo anterior em coluna própria"]
+    Q2 -->|não| S["Sobrescrita · merge pela chave natural"]`,
           checklist: [
             'Determine, com o parceiro, qual pergunta histórica a dimensão precisa responder.',
-            'Implemente a carga correspondente à política escolhida, e não o contrário.',
+            'Escolha a política de histórico antes de implementar a carga correspondente.',
             'Verifique se o passado pode ser recomposto a partir da bronze caso a política mude.'
           ],
           pitfall: 'Implementar sobrescrita e descobrir depois que o negócio precisa da série histórica. A recomposição depende de a bronze ter sido preservada.'
@@ -2238,7 +2273,7 @@ WHERE regiao_id = 7
         },
         {
           nav: 'Card de trabalho', title: 'As três perguntas da atividade em sala',
-          text: 'Os cinquenta minutos finais do encontro são atividade em grupo sobre a bronze construída na Aula 12, organizada em torno de três perguntas: se cada teste falhou antes de a transformação existir; quantas linhas cada junção descartou; e se duas execuções com os mesmos parâmetros produzem o mesmo número. A primeira exige a saída registrada do teste nos dois momentos. A segunda exige contagem medida antes e depois de cada junção, com a diferença explicada por regra declarada, como o filtro de status. A terceira se verifica pela soma da receita, e não pela contagem: a junção que duplica linhas mantém a contagem na mesma ordem de grandeza e altera o total de imediato. A prova de repetibilidade é a soma idêntica até o centavo entre as duas execuções, acompanhada da saída dos cinco testes em ambas.',
+          text: 'Os cinquenta minutos finais do encontro são atividade em grupo sobre a bronze construída na Aula 12, organizada em torno de três perguntas: se cada teste falhou antes de a transformação existir; quantas linhas cada junção descartou; e se duas execuções com os mesmos parâmetros produzem o mesmo número. A primeira exige a saída registrada do teste nos dois momentos. A segunda exige contagem medida antes e depois de cada junção, com a diferença explicada por regra declarada, como o filtro de status. A terceira se verifica pela soma da receita, mais sensível que a contagem: a junção que duplica linhas mantém a contagem na mesma ordem de grandeza e altera o total de imediato. A prova de repetibilidade é a soma idêntica até o centavo entre as duas execuções, acompanhada da saída dos cinco testes em ambas.',
           checklist: [
             'Registre a saída dos cinco testes antes e depois da implementação.',
             'Meça a contagem antes e depois de cada junção, e explique cada diferença.',
@@ -2248,7 +2283,7 @@ WHERE regiao_id = 7
         },
         {
           nav: 'Silver e gold em sala', title: 'Construção das camadas em sala',
-          text: 'A silver declara tipos, aplica a chave única e separa os rejeitados com o motivo registrado, em lugar de descartá-los. A conferência da camada exige que a soma de conformadas, rejeitadas e duplicatas removidas iguale a contagem da bronze, sem resíduo: das 99 441 linhas de pedido, cada uma precisa ter destino conhecido. Parcelas que somam menos que a entrada indicam descarte silencioso, e o resíduo é exatamente o número de linhas que saíram da camada sem rejeição registrada e sem constar como duplicidade. A gold preserva o fato cuja dimensão não corresponde por meio de membro desconhecido, o que converte o problema em categoria visível em vez de ausência. A carga recompõe a partição do período a partir da silver, e nunca a partir da própria gold, porque reprocessar a saída propaga o defeito já presente nela. A IA gera o SQL e critica o próprio determinismo; a execução e a conferência dos números permanecem com o grupo.',
+          text: 'A silver declara tipos, aplica a chave única e separa os rejeitados com o motivo registrado, em lugar de descartá-los. A conferência da camada exige que a soma de conformadas, rejeitadas e duplicatas removidas iguale a contagem da bronze, sem resíduo: das 99 441 linhas de pedido, cada uma precisa ter destino conhecido. Parcelas que somam menos que a entrada indicam descarte silencioso, e o resíduo é exatamente o número de linhas que saíram da camada sem rejeição registrada e sem constar como duplicidade. A gold preserva o fato cuja dimensão não corresponde por meio de membro desconhecido, o que expõe a falta de correspondência como categoria própria. A carga recompõe a partição do período a partir da silver, e nunca a partir da própria gold, porque reprocessar a saída propaga o defeito já presente nela. A IA gera o SQL e critica o próprio determinismo; a execução e a conferência dos números permanecem com o grupo.',
           diagram: `flowchart LR
     B["Bronze · 99 441 pedidos"] --> R{"Satisfaz o contrato da silver?"}
     R -->|não| RJ["Rejeitados com motivo"]
@@ -2277,7 +2312,7 @@ WHERE regiao_id = 7
           { title: 'Arredondamento e nulo em medida', text: 'A soma é calculada sobre os valores originais e arredondada apenas na apresentação. Item com medida nula é rejeitado com motivo registrado, e não convertido em zero.' },
           { title: 'Responsável, versão e vigência', text: 'A definição tem responsável nomeado e número de versão. Toda alteração registra data de vigência, e a série indica quando o critério mudou.' }
         ],
-        note: 'Enquanto a definição existir apenas no SQL de cada relatório, duas equipes produzem dois números e a reunião discute qual está certo em lugar de discutir a decisão.'
+        note: 'A definição mantida apenas no SQL de cada relatório permite que duas equipes produzam números distintos para a mesma métrica, sem critério registrado para arbitrar entre eles.'
       },
       dbeaver: {
         intro: 'O roteiro executa em DuckDB sobre a bronze construída na Aula 12. Abra um editor SQL por conexão e execute um bloco por vez, conferindo a evidência esperada antes de seguir ao próximo.',
@@ -2468,7 +2503,7 @@ SELECT (SELECT count(*) FROM silver.item)          AS itens_origem,
             },
             {
               title: '6. Carregar a gold com a janela como parâmetro externo',
-              purpose: 'Recompõe a partição do período a partir da silver, com início e fim recebidos de fora da consulta, e publica por escrita de partição inteira.',
+              purpose: 'Remove as partições do período e as recompõe a partir da silver, com início e fim recebidos de fora da consulta, publicando por escrita de partição inteira.',
               focus: `SET VARIABLE inicio = DATE '2018-01-01';
 SET VARIABLE fim    = DATE '2018-09-01';`,
               sql: `-- A janela é parâmetro da execução. No CLI, injete de fora com
@@ -2477,9 +2512,17 @@ SET VARIABLE fim    = DATE '2018-09-01';`,
 SET VARIABLE inicio = DATE '2018-01-01';
 SET VARIABLE fim    = DATE '2018-09-01';
 
+-- Antes de regravar, remova no terminal as partições da janela. O
+-- OVERWRITE_OR_IGNORE substitui apenas arquivos de mesmo nome, e arquivos
+-- excedentes de uma carga anterior permaneceriam na partição:
+--   rm -rf gold_fato_item_venda/mes=2018-0[1-8]
+-- A opção OVERWRITE (DuckDB 1.1 ou superior) esvazia o diretório de destino
+-- inteiro, inclusive os meses fora da janela, e serve apenas à recomposição
+-- completa. Em destino remoto, como o S3, ela não é suportada: remova os
+-- prefixos da janela com o cliente do storage (mc rm -r --force ...).
 COPY (
-  SELECT *, date_trunc('month', comprado_em) AS mes
-    FROM gold.fato_item_venda
+  SELECT *, strftime(comprado_em, '%Y-%m') AS mes
+    FROM gold.v_fato_item_venda
    WHERE comprado_em >= getvariable('inicio')
      AND comprado_em <  getvariable('fim')
 ) TO 'gold_fato_item_venda'
@@ -2498,7 +2541,7 @@ SELECT getvariable('inicio'), getvariable('fim'), count(*), now()
    AND comprado_em <  getvariable('fim');
 
 SELECT * FROM controle.carga ORDER BY executado_em;`,
-              observe: 'A partição do período é recomposta por inteiro, e o consumidor lê a versão anterior até a escrita concluir. Substituir o parâmetro por expressão sobre a data corrente torna o backfill irreproduzível, e a divergência só aparece meses depois.'
+              observe: 'A partição do período é removida e recomposta por inteiro a partir da view sobre a silver, sem arquivo remanescente da carga anterior. O COPY sobre Parquet não é atômico: o consumidor que lê durante a escrita pode encontrar a partição incompleta, e a publicação atômica exige formato de tabela com troca de ponteiro, como discutido na Aula 10. Substituir o parâmetro por expressão sobre a data corrente torna o backfill irreproduzível, e a divergência só aparece meses depois.'
             },
             {
               title: '7. Provar a repetibilidade e reconciliar com a origem',
@@ -2546,7 +2589,7 @@ SELECT d.mes, d.linhas, o.linhas AS linhas_origem,
   FROM destino d JOIN origem o USING (mes)
  WHERE abs(d.receita - o.receita) / o.receita > 0.001
  ORDER BY d.mes;`,
-              observe: 'A diferença entre as duas execuções precisa ser exatamente zero. A soma é o critério decisivo: a junção que duplica linhas mantém a contagem na mesma ordem de grandeza e altera o total de imediato. A reconciliação com o conjunto original devolve as linhas cuja divergência excede a tolerância; quando a bronze contém as mutações deliberadas da Aula 12, cada divergência precisa ser atribuída a uma dessas mutações, e estar dentro do limite não substitui a explicação.'
+              observe: 'A diferença entre as duas execuções precisa ser exatamente zero. A soma é o critério decisivo: a junção que duplica linhas mantém a contagem na mesma ordem de grandeza e altera o total de imediato. A reconciliação com o conjunto original devolve as linhas cuja divergência excede a tolerância; quando a bronze contém as mutações deliberadas da Aula 12, cada divergência precisa ser atribuída a uma dessas mutações, inclusive a que se encontra dentro da tolerância.'
             },
             {
               title: '8. Manter o histórico da dimensão com vigência',
@@ -2653,7 +2696,7 @@ SELECT (SELECT count(*) FROM (SELECT product_id FROM gold.dim_produto_hist
       subtitle: 'Instrumentar o pipeline para que o defeito seja descoberto pela equipe de dados antes de ser descoberto pelo negócio.',
       objective: 'Definir indicadores de atualidade, completude, qualidade e custo para um pipeline, declarar objetivos de nível de serviço justificados pelo efeito no consumidor e construir uma verificação de anomalia capaz de detectar carga incompleta que conclui sem erro.',
       outcomes: [
-        'Medir o pipeline pelas quatro dimensões, e não apenas pela conclusão da tarefa.',
+        'Medir o pipeline pelas quatro dimensões de atualidade, completude, qualidade e custo, além da conclusão da tarefa.',
         'Distinguir métrica técnica, que indica a causa, de métrica de negócio, que indica a gravidade.',
         'Coletar métrica, registro de execução e linhagem, reconhecendo a pergunta que cada sinal responde.',
         'Declarar indicador, objetivo e orçamento de erro com justificativa negociada com quem consome.',
@@ -2684,30 +2727,30 @@ SELECT (SELECT count(*) FROM (SELECT product_id FROM gold.dim_produto_hist
         },
         {
           nav: 'Três sinais', title: 'Métrica, registro de execução e linhagem',
-          text: 'A métrica responde quanto e como variou, e é barata para série histórica. O registro de execução responde o que aconteceu e em que ordem, com lote, parâmetros e erro. A linhagem responde o que mais foi afetado, e determina quais painéis precisam ser reprocessados após a correção.',
+          text: 'A métrica responde quanto e como variou, e é barata para série histórica. O registro de execução responde o que aconteceu e em que ordem, com lote, parâmetros e erro. A linhagem responde o que mais foi afetado, e determina quais painéis precisam ser reprocessados após a correção. Traces distribuídos, sinal central do OpenTelemetry, ficam fora do recorte: correlacionam uma requisição que atravessa vários serviços, e na carga batch, executada como sequência de tarefas de um único orquestrador, essa correlação é feita pelo batch_id do registro de execução.',
           checklist: [
             'Colete os três sinais, uma vez que o diagnóstico exige a combinação deles.',
-            'Gere a linhagem a partir do código, e não a mantenha à mão.',
+            'Gere a linhagem automaticamente a partir do código.',
             'Defina retenção para o registro de execução antes que ele domine o acervo.'
           ],
           pitfall: 'Conduzir o incidente sem linhagem. A correção é aplicada e ninguém consegue responder quais relatórios consumiram o dado defeituoso.'
         },
         {
           nav: 'Indicador e objetivo', title: 'SLI, SLO e orçamento de erro',
-          text: 'O indicador é o que se mede; o objetivo é o limite acordado com quem consome; o orçamento de erro é a margem restante, cuja exaustão desloca a prioridade da entrega de novas fontes para a estabilização do que existe. O objetivo de 100% declara que nenhuma falha é aceitável, e o custo de sustentá-lo cresce sem limite.',
+          text: 'O indicador é o que se mede; o objetivo é o limite acordado com quem consome; o orçamento de erro é a margem restante, cuja exaustão desloca a prioridade da entrega de novas fontes para a estabilização do que existe. O objetivo de 100% declara que nenhuma falha é aceitável, e o custo de sustentá-lo cresce sem limite. Com cerca de 90 cargas diárias por trimestre, o objetivo de 95% corresponde a orçamento de 4 cargas atrasadas (5% de 90 = 4,5); em janela mensal de 30 cargas, 98% admitiria 0,6 carga, e um único atraso esgotaria a margem.',
           checklist: [
-            'Negocie o limite com quem consome, e não apenas dentro da engenharia.',
-            'Verifique se alguém sentiria falta do indicador ao vê-lo descumprido.',
+            'Negocie o limite entre a engenharia e quem consome o dado.',
+            'Verifique se o descumprimento do objetivo seria percebido por algum consumidor.',
             'Declare a consequência do descumprimento antes que ele ocorra.'
           ],
           pitfall: 'Escolher o limite pela facilidade de cumpri-lo. O objetivo passa a ser sempre atendido e deixa de informar qualquer coisa sobre a operação.'
         },
         {
           nav: 'Custo da telemetria', title: 'A telemetria também é um pipeline',
-          text: 'O rótulo da métrica serve para agrupar, e o identificador único pertence ao registro de execução. Rótulo de alta cardinalidade produz uma série por execução, e nenhuma delas comparável. A retenção decrescente por idade aplica à observabilidade a política de ciclo de vida discutida na Aula 10.',
+          text: 'O rótulo da métrica serve para agrupar, e o identificador único pertence ao registro de execução. O rótulo de alta cardinalidade produz uma série por execução, o que impede a comparação entre execuções. A retenção decrescente por idade aplica à observabilidade a política de ciclo de vida discutida na Aula 10.',
           checklist: [
             'Mantenha nos rótulos apenas dimensões que se repetem entre execuções.',
-            'Guarde o identificador de lote no registro de execução, e não na métrica.',
+            'Guarde o identificador de lote no registro de execução, fora dos rótulos da métrica.',
             'Defina granularidade decrescente: detalhe recente, agregação no histórico longo.'
           ],
           pitfall: 'Instrumentar sem política de retenção. O acervo de telemetria supera o do dado analisado, e o custo de observar compete com o de produzir.'
@@ -2726,7 +2769,7 @@ SELECT (SELECT count(*) FROM (SELECT product_id FROM gold.dim_produto_hist
           nav: 'Alerta acionável', title: 'Alertar por sintoma',
           text: 'O alerta por causa cobre um modo de falha conhecido por vez, e nenhum modo ainda desconhecido. O alerta por sintoma observável pelo consumidor cobre também a carga que conclui com sucesso sem trazer dado. Todo alerta precisa de procedimento correspondente e destinatário declarado.',
           checklist: [
-            'Formule o alerta pelo sintoma, e não pela falha técnica que o produziu.',
+            'Formule o alerta pelo sintoma observável, independentemente da falha técnica que o produziu.',
             'Associe a cada alerta o que verificar, como corrigir e quem comunica ao consumidor.',
             'Remova ou automatize o alerta que não exige ação humana.'
           ],
@@ -2737,7 +2780,7 @@ SELECT (SELECT count(*) FROM (SELECT product_id FROM gold.dim_produto_hist
           text: 'A segunda hora do encontro é atividade em grupo sobre a tabela de execuções das Aulas 12 e 13: quais são os quatro indicadores do pipeline; qual limite o grupo declara para cada um e com que justificativa; e em quantas execuções a anomalia injetada pelo professor é detectada. A terceira exige medir também os alertas falsos do limite escolhido.',
           checklist: [
             'Calcule os quatro indicadores sobre a série, com uma consulta por dimensão.',
-            'Justifique cada limite pelo efeito no consumidor, e não pela facilidade de cumpri-lo.',
+            'Justifique cada limite pelo efeito sobre o consumidor.',
             'Meça o desvio da execução anômala e conte os falsos positivos na série de trinta dias.'
           ],
           pitfall: 'Adotar o limite sem testá-lo contra a série histórica. O limite de 5% marca várias execuções legítimas, e o de 50% deixa passar a carga com 40% menos registros.'
@@ -2750,15 +2793,24 @@ SELECT (SELECT count(*) FROM (SELECT product_id FROM gold.dim_produto_hist
             'Verifique que a janela da referência exclui a execução em avaliação.',
             'Execute o alerta contra a série inteira e conte os falsos positivos antes de adotá-lo.'
           ],
-          pitfall: 'Aceitar a consulta gerada por IA sem verificar a moldura da janela. A inclusão da linha corrente na média impede a detecção da anomalia daquele mesmo dia.'
+          pitfall: 'Aceitar a consulta gerada por IA sem verificar a moldura da janela. A inclusão da linha corrente na média desloca a referência na direção da anomalia e reduz o desvio medido, o que pode impedir a detecção de falhas menores.'
         }
       ],
       sdd: {
         rf: 'RF-008 — Registrar, para cada carga, atualidade, volume, taxa de rejeição e custo, com série consultável de noventa dias.',
-        rnf: 'RNF-008 — 98% das cargas diárias com atraso inferior a 3 h; desvio de volume acima de 15% da referência detectado na primeira execução; telemetria com retenção decrescente por idade.',
+        rnf: 'RNF-008 — 95% das cargas diárias do trimestre com atraso inferior a 3 h, com orçamento de 4 cargas; desvio de volume acima de 15% da referência detectado na primeira execução; telemetria com retenção decrescente por idade.',
         adr: 'ADR-OBS-01 — Alerta por sintoma observável pelo consumidor, em vez de alerta por falha de tarefa. Contexto: a carga que conclui sem trazer dado não gera falha. Consequência: exige referência histórica por dia da semana.',
         gherkin: 'Dada uma carga que conclui com 40% menos linhas que a referência do mesmo dia da semana, Quando a verificação de anomalia executa, Então o alerta dispara e a publicação fica suspensa.'
       },
+      estrategia: 'Primeira hora de exposição dialogada em três blocos, cada um encerrado por checklist de aplicação e erro comum. Segunda hora de atividade em grupo: os estudantes convertem a tabela de controle das Aulas 12 e 13 em série de execuções, calculam os quatro indicadores, declaram um objetivo por indicador com justificativa e detectam uma anomalia injetada pelo professor, medindo também quantos alertas falsos o limite escolhido produziria.',
+      acceptance: [
+        'Os quatro indicadores estão calculados sobre a série, com valor medido.',
+        'A referência móvel exclui o dia em avaliação e respeita o dia da semana.',
+        'Cada limite é justificado pelo efeito sobre o consumidor.',
+        'A anomalia injetada foi detectada, com o desvio medido em percentual.',
+        'O número de alertas falsos do limite adotado está contado na série inteira.',
+        'Cada alerta tem procedimento correspondente e destinatário declarado.'
+      ],
       deliverable: 'O painel de telemetria do card de trabalho, com as quatro consultas de indicador, a consulta de anomalia e o limite adotado, a justificativa de cada limite pelo efeito no consumidor, o desvio medido da execução anômala, a contagem de alertas falsos que o limite produziria na série de trinta dias, e o procedimento e o destinatário declarados para cada alerta.',
       references: [
         { label: 'Google SRE Book — Service Level Objectives', href: 'https://sre.google/sre-book/service-level-objectives/' },
@@ -2773,7 +2825,7 @@ SELECT (SELECT count(*) FROM (SELECT product_id FROM gold.dim_produto_hist
       subtitle: 'Do dado confiável à experiência analítica que sustenta decisões, com métrica de definição única, contrato versionado e segurança verificável.',
       objective: 'Projetar a camada de consumo analítico a partir da decisão que ela sustenta, definir a métrica uma única vez em camada semântica versionada, publicar contrato de consumo, aplicar controle de acesso por linha verificável por asserção e medir a latência percebida.',
       outcomes: [
-        'Projetar a interface a partir da decisão que ela sustenta, e não do dado disponível.',
+        'Projetar a interface analítica a partir da decisão que ela sustenta.',
         'Diagnosticar a divergência de definição entre equipes e resolvê-la por definição única.',
         'Publicar a métrica em camada semântica com fórmula, granularidade, fuso, responsável e versão.',
         'Escolher entre consulta direta, tabela agregada, API e exportação por latência, volume e autonomia.',
@@ -2794,7 +2846,7 @@ SELECT (SELECT count(*) FROM (SELECT product_id FROM gold.dim_produto_hist
         },
         {
           nav: 'Divergência de definição', title: 'Três equipes, três números',
-          text: 'A mesma receita calculada por três equipes produz três valores, sem que nenhuma tenha cometido erro técnico. Cada uma adotou uma decisão razoável e não declarada sobre frete, recorte de status e correção retroativa. Enquanto cada relatório calcula a métrica no próprio SQL, a reunião discute qual número está certo em vez de discutir a decisão.',
+          text: 'A mesma receita calculada por três equipes produz três valores, sem que nenhuma tenha cometido erro técnico. Cada uma adotou uma decisão razoável e não declarada sobre frete e recorte de status. Enquanto cada relatório calcula a métrica no próprio SQL, a reunião discute qual número está certo em vez de discutir a decisão.',
           checklist: [
             'Levante, no projeto do parceiro, quantas definições da mesma métrica coexistem.',
             'Declare qual pergunta de negócio cada definição responde.',
@@ -2826,7 +2878,7 @@ SELECT (SELECT count(*) FROM (SELECT product_id FROM gold.dim_produto_hist
           nav: 'Contrato de consumo', title: 'Contrato',
           text: 'Defina schema, semântica, atualidade, disponibilidade e compatibilidade para toda interface publicada. Acrescentar coluna é compatível; remover ou renomear exige nova versão, pela mesma regra de evolução de schema discutida na Aula 10. O prazo de convivência entre versões permite ao consumidor planejar a migração.',
           checklist: [
-            'Declare o que pode mudar sem nova versão, e não apenas o que exige uma.',
+            'Declare também o que pode mudar sem nova versão.',
             'Alinhe a atualidade declarada ao indicador medido na Aula 15.',
             'Versione o contrato no mesmo repositório do código que o implementa.'
           ],
@@ -2834,9 +2886,9 @@ SELECT (SELECT count(*) FROM (SELECT product_id FROM gold.dim_produto_hist
         },
         {
           nav: 'Segurança testável', title: 'Segurança',
-          text: 'Aplique identidade propagada, controle por papel e por atributo, filtro por linha, mascaramento de coluna sensível, auditoria e segregação de ambientes. A política escrita e nunca executada contra um usuário real é uma intenção, e não um controle. A matriz de perfis converte a política em asserções executáveis.',
+          text: 'Aplique identidade propagada, controle por papel e por atributo, filtro por linha, mascaramento de coluna sensível, auditoria e segregação de ambientes. A política de acesso constitui controle somente depois de executada contra perfis reais e verificada por teste. A matriz de perfis converte a política em asserções executáveis.',
           checklist: [
-            'Aplique o filtro por linha na camada semântica, e não em cada painel.',
+            'Aplique o filtro por linha uma única vez, na camada semântica.',
             'Escreva também as asserções de negação, que verificam a ausência de acesso.',
             'Execute a suíte de acesso a cada publicação, como os testes da Aula 13.'
           ],
@@ -2844,9 +2896,9 @@ SELECT (SELECT count(*) FROM (SELECT product_id FROM gold.dim_produto_hist
         },
         {
           nav: 'Desempenho do consumo', title: 'Desempenho',
-          text: 'Use pré-agregação, cache, poda por partição e limites de consulta, e observe o consumo com latência p95, bytes varridos, taxa de erro e consultas por usuário. A média esconde o consumidor que espera, e o consumidor abandona a ferramenta pela experiência das piores consultas.',
+          text: 'Use pré-agregação, cache, poda por partição e limites de consulta, e observe o consumo com latência p95, bytes varridos, taxa de erro e consultas por usuário. A média dilui as consultas lentas, e o abandono da ferramenta decorre da experiência com as consultas mais lentas.',
           checklist: [
-            'Meça a latência em percentil, e não em média.',
+            'Meça a latência em percentil, com o p95 como referência.',
             'Confirme que o filtro do painel corresponde à coluna de partição da gold.',
             'Verifique que a pré-agregação devolve o mesmo valor da consulta direta.'
           ],
@@ -2854,17 +2906,17 @@ SELECT (SELECT count(*) FROM (SELECT product_id FROM gold.dim_produto_hist
         },
         {
           nav: 'Card de trabalho', title: 'As três perguntas da atividade em sala',
-          text: 'A segunda hora do encontro é atividade em grupo sobre a gold construída nas aulas anteriores: se as três equipes chegam ao mesmo número após a unificação; se o perfil restrito ao Norte consegue observar o Sudeste; e quanto a pré-agregação reduz a latência percebida. As três se respondem por execução medida.',
+          text: 'A segunda hora do encontro é atividade em grupo sobre a silver e a gold das aulas anteriores: se as três equipes chegam ao mesmo número após a unificação; se o perfil restrito ao Norte consegue observar o Sudeste; e quanto a pré-agregação reduz a latência percebida. As três se respondem por execução medida.',
           checklist: [
             'Registre os três valores divergentes antes de unificar a definição.',
-            'Execute as nove asserções de acesso, das quais cinco verificam negação.',
+            'Execute as nove asserções de acesso, das quais quatro verificam negação.',
             'Meça o p95 nas duas formas de servir e confirme que devolvem o mesmo valor.'
           ],
           pitfall: 'Verificar apenas as asserções de permissão. O vazamento se manifesta como acesso indevido concedido, e somente a asserção de negação o revela.'
         },
         {
           nav: 'Publicação em sala', title: 'Construção da camada de consumo em sala',
-          text: 'O laboratório reproduz as três definições divergentes sobre o mesmo fato, unifica-as em vista com dicionário versionado, publica o contrato em arquivo, implementa acesso por linha por perfil e mede a latência da mesma pergunta servida por consulta direta e por tabela pré-agregada. A IA gera o SQL e critica o próprio controle de acesso, e a escolha da definição permanece com o grupo.',
+          text: 'O laboratório regenera a gold com região e data de compra, reproduz sobre a silver as três definições divergentes da mesma receita, unifica-as em vista com dicionário versionado, publica o contrato em arquivo, implementa acesso por linha por perfil e mede a latência da mesma pergunta servida por consulta direta e por tabela pré-agregada. A IA gera o SQL e critica o próprio controle de acesso, e a escolha da definição permanece com o grupo.',
           checklist: [
             'Confirme que as três consultas reescritas sobre a vista devolvem um único valor.',
             'Peça à IA que aponte por qual caminho um perfil restrito ainda observaria outra região.',
@@ -2879,7 +2931,16 @@ SELECT (SELECT count(*) FROM (SELECT product_id FROM gold.dim_produto_hist
         adr: 'ADR-CON-01 — Tabela pré-agregada servindo o painel, em vez de consulta direta ao fato. Contexto: trinta usuários abrindo o mesmo painel diariamente. Consequência: atualidade limitada à frequência da carga.',
         gherkin: 'Dado um usuário com perfil restrito ao Norte, Quando ele consulta a receita por região, Então nenhuma linha de outra região é devolvida e o total corresponde apenas ao Norte.'
       },
-      deliverable: 'O pacote de integração publicado no card de trabalho, composto pela vista da métrica com dicionário versionado, o arquivo de contrato com as cinco cláusulas, a suíte de nove asserções de acesso com as cinco de negação devolvendo zero, a medição de latência p95 nas duas formas de servir com os bytes varridos registrados, e a justificativa escrita da definição de receita adotada com o responsável designado.',
+      estrategia: 'Primeira hora de exposição dialogada em três blocos, cada um encerrado por checklist de aplicação e erro comum. Segunda hora de atividade em grupo: os estudantes regeneram a gold das aulas anteriores com região e data de compra, reproduzem sobre a silver três definições divergentes da mesma receita, unificam-nas em camada semântica com responsável e vigência declarados, publicam o contrato de consumo, implementam acesso por linha com nove asserções, quatro delas de negação, e medem a latência p95 da mesma pergunta servida por consulta direta e por tabela pré-agregada.',
+      acceptance: [
+        'As três definições divergentes foram reproduzidas, com os valores registrados.',
+        'A métrica adotada existe em um único lugar, com responsável e vigência declarados.',
+        'O contrato declara schema, semântica, atualidade, disponibilidade e compatibilidade.',
+        'As quatro asserções de negação devolvem zero e as cinco de permissão devolvem linhas.',
+        'A latência p95 está medida nas duas formas, com os bytes varridos registrados.',
+        'Os dois caminhos devolvem o mesmo valor, e a equivalência está verificada.'
+      ],
+      deliverable: 'O pacote de integração publicado no card de trabalho, composto pela vista da métrica com dicionário versionado, o arquivo de contrato com as cinco cláusulas, a suíte de nove asserções de acesso com as quatro de negação devolvendo zero, a medição de latência p95 nas duas formas de servir com os bytes varridos registrados, e a justificativa escrita da definição de receita adotada com o responsável designado.',
       references: [
         { label: 'dbt Documentation — Semantic models', href: 'https://docs.getdbt.com/docs/build/semantic-models' },
         { label: 'Data Mesh Architecture — Produto de dados', href: 'https://www.datamesh-architecture.com/' },
@@ -2923,6 +2984,15 @@ SELECT (SELECT count(*) FROM (SELECT product_id FROM gold.dim_produto_hist
   const evaluationList = (lesson.activity || lesson.acceptance)
     ? acceptance.map((a) => `<li>${esc(a)}</li>`).join('')
     : '<li>Clareza do problema e do contrato: 25%</li><li>Correção técnica e tratamento de exceções: 30%</li><li>Testabilidade, qualidade e operação: 25%</li><li>Comunicação e justificativa das decisões: 20%</li>';
+
+  // Regras de entrega declaradas pela aula: exibidas em slides, material e plano.
+  const submissionNote = (mode) => {
+    if (!lesson.submissionNotice) return '';
+    const items = lesson.submissionNotice.map((n) => `<li>${esc(n)}</li>`).join('');
+    return mode === 'plan'
+      ? `<p><strong>Regras de entrega:</strong></p><ul>${items}</ul>`
+      : `<div class="material-note"><strong>Regras de entrega:</strong><ul>${items}</ul></div>`;
+  };
 
   const SDD_LABELS = [
     ['rf', 'Requisito funcional', 'o que o sistema deve fazer'],
@@ -2995,7 +3065,7 @@ SELECT (SELECT count(*) FROM (SELECT product_id FROM gold.dim_produto_hist
     if (!lesson.sqlLabs) return [];
     const slides = [];
     if (lesson.dbeaver) {
-      slides.push(`<article class="lesson-slide"><span class="lesson-kicker">Ambiente do laboratório</span><h2>Duas conexões, dois dialetos</h2>` +
+      slides.push(`<article class="lesson-slide"><span class="lesson-kicker">Ambiente do laboratório</span><h2>Conexões e dialetos do laboratório</h2>` +
         `<div class="lesson-callout"><strong>${esc(lesson.dbeaver.intro)}</strong></div><div class="lesson-grid">` +
         lesson.dbeaver.connections.map((c) => `<div class="lesson-card"><b>${esc(c.engine)}</b><p>${esc(c.text)}</p></div>`).join('') +
         `</div></article>`);
@@ -3086,8 +3156,8 @@ SELECT (SELECT count(*) FROM (SELECT product_id FROM gold.dim_produto_hist
         `<article class="lesson-slide"><span class="lesson-kicker">${esc(lesson.activity.duration)}</span><h2>${esc(lesson.activity.title)}</h2><div class="lesson-callout"><strong>${esc(lesson.activity.goal)}</strong></div><div class="lesson-card lesson-wide"><p>${esc(lesson.activity.intro)}</p></div></article>`,
         `<article class="lesson-slide"><span class="lesson-kicker">Método</span><h2>${esc(lesson.activity.stepsTitle || 'Do negócio ao cubo, passo a passo')}</h2><div class="lesson-grid">${lesson.activity.steps.map((s, i) => `<div class="lesson-card"><b>Passo ${i + 1}</b><h3>${esc(s.title)}</h3><p>${esc(s.text)}</p></div>`).join('')}</div></article>`,
         (lesson.activity.worked
-          ? `<article class="lesson-slide"><span class="lesson-kicker">Exemplo ilustrativo</span><h2>O raciocínio, não a resposta</h2><div class="lesson-split"><div class="lesson-card"><p>${esc(lesson.activity.worked.text)}</p><ul>${lesson.activity.worked.questions.map((q) => `<li>${esc(q)}</li>`).join('')}</ul><p>${esc(lesson.activity.worked.note)}</p></div><div class="lesson-card"><h3>Não faça isso</h3><ul>${lesson.activity.avoid.map((a) => `<li>${esc(a)}</li>`).join('')}</ul></div></div><div class="lesson-warn"><strong>Verifique antes de seguir:</strong> ${lesson.activity.checks.map((c) => esc(c)).join(' · ')}</div></article>`
-          : `<article class="lesson-slide"><span class="lesson-kicker">Antes de entregar</span><h2>Regras e verificação</h2><div class="lesson-split"><div class="lesson-card"><h3>Não faça isso</h3><ul>${lesson.activity.avoid.map((a) => `<li>${esc(a)}</li>`).join('')}</ul></div><div class="lesson-card"><h3>Verifique antes de entregar</h3><ul>${lesson.activity.checks.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></div></div></article>`)
+          ? `<article class="lesson-slide"><span class="lesson-kicker">Exemplo ilustrativo</span><h2>Raciocínio aplicado a um caso de referência</h2><div class="lesson-split"><div class="lesson-card"><p>${esc(lesson.activity.worked.text)}</p><ul>${lesson.activity.worked.questions.map((q) => `<li>${esc(q)}</li>`).join('')}</ul><p>${esc(lesson.activity.worked.note)}</p></div><div class="lesson-card"><h3>Práticas a evitar</h3><ul>${lesson.activity.avoid.map((a) => `<li>${esc(a)}</li>`).join('')}</ul></div></div><div class="lesson-warn"><strong>Verifique antes de seguir:</strong> ${lesson.activity.checks.map((c) => esc(c)).join(' · ')}</div></article>`
+          : `<article class="lesson-slide"><span class="lesson-kicker">Antes de entregar</span><h2>Regras e verificação</h2><div class="lesson-split"><div class="lesson-card"><h3>Práticas a evitar</h3><ul>${lesson.activity.avoid.map((a) => `<li>${esc(a)}</li>`).join('')}</ul></div><div class="lesson-card"><h3>Verifique antes de entregar</h3><ul>${lesson.activity.checks.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></div></div></article>`)
   ] : []);
 
   window.renderLessonSlides = function (root) {
@@ -3096,9 +3166,9 @@ SELECT (SELECT count(*) FROM (SELECT product_id FROM gold.dim_produto_hist
 
       ...(lesson.timebox ? [`<article class="lesson-slide"><span class="lesson-kicker">Cronograma</span><h2>Como o tempo será dividido</h2><div class="lesson-grid">${lesson.timebox.map((t) => `<div class="lesson-card"><b>${t.minutes} min</b><p>${esc(t.label)}</p></div>`).join('')}</div></article>`] : []),
 
-      `<article class="lesson-slide"><span class="lesson-kicker">Agenda</span><h2>Como vamos trabalhar</h2><div class="lesson-grid">${agenda.map((a, i) => `<div class="lesson-card"><b>${String(i + 1).padStart(2, '0')}</b><h3>${esc(a.nav)}</h3><p>${esc(a.text)}</p></div>`).join('')}</div></article>`,
+      `<article class="lesson-slide"><span class="lesson-kicker">Agenda</span><h2>Estrutura da aula</h2><div class="lesson-grid">${agenda.map((a, i) => `<div class="lesson-card"><b>${String(i + 1).padStart(2, '0')}</b><h3>${esc(a.nav)}</h3><p>${esc(a.text)}</p></div>`).join('')}</div></article>`,
 
-      `<article class="lesson-slide"><span class="lesson-kicker">Objetivo</span><h2>O que você precisa conseguir fazer</h2><div class="lesson-callout"><strong>${esc(lesson.objective)}</strong></div><div class="lesson-grid">${lesson.outcomes.map((o, i) => `<div class="lesson-card"><b>Resultado ${i + 1}</b><p>${esc(o)}</p></div>`).join('')}</div></article>`,
+      `<article class="lesson-slide"><span class="lesson-kicker">Objetivo</span><h2>Resultados de aprendizagem esperados</h2><div class="lesson-callout"><strong>${esc(lesson.objective)}</strong></div><div class="lesson-grid">${lesson.outcomes.map((o, i) => `<div class="lesson-card"><b>Resultado ${i + 1}</b><p>${esc(o)}</p></div>`).join('')}</div></article>`,
 
       ...lesson.sections.flatMap((s, i) => [
         `<article class="lesson-slide"><span class="lesson-kicker">Bloco ${i + 1} · ${esc(s.nav)}</span><h2>${esc(s.title)}</h2><div class="lesson-split"><div class="lesson-card"><p>${esc(s.text)}</p></div><div class="lesson-card"><h3>Checklist de aplicação</h3><ul>${checklistOf(s)}</ul></div></div><div class="lesson-warn"><strong>Erro comum:</strong> ${esc(s.pitfall)}</div></article>`,
@@ -3120,7 +3190,7 @@ SELECT (SELECT count(*) FROM (SELECT product_id FROM gold.dim_produto_hist
 
       `<article class="lesson-slide"><span class="lesson-kicker">${esc(lesson.deliverableKicker || 'Laboratório')}</span><h2>${esc(lesson.deliverableTitle || 'Entregável da aula')}</h2><div class="lesson-callout"><strong>${esc(lesson.deliverable)}</strong></div><div class="lesson-card lesson-wide"><h3>${esc(lesson.evaluationLabel || 'Critérios de aceite')}</h3><ol>${evaluationList}</ol></div>${lesson.submissionNotice ? `<div class="lesson-warn"><strong>Atenção — regras de entrega:</strong><ul style="margin:6px 0 0;padding-left:1.2rem;">${lesson.submissionNotice.map((n) => `<li>${esc(n)}</li>`).join('')}</ul></div>` : ''}</article>`,
 
-      `<article class="lesson-slide"><span class="lesson-kicker">Fechamento</span><h2>Leve para o projeto</h2><div class="lesson-grid">${lesson.references.map((x, i) => `<div class="lesson-card"><b>Ref. ${i + 1}</b><p>${esc(referenceLabel(x))}</p></div>`).join('')}</div><div class="lesson-callout">Pergunta de encerramento: <strong>${esc(lesson.closingQuestion || 'Qual decisão fica mais segura depois deste artefato?')}</strong></div></article>`,
+      `<article class="lesson-slide"><span class="lesson-kicker">Fechamento</span><h2>Referências e aplicação ao projeto</h2><div class="lesson-grid">${lesson.references.map((x, i) => `<div class="lesson-card"><b>Ref. ${i + 1}</b><p>${esc(referenceLabel(x))}</p></div>`).join('')}</div><div class="lesson-callout">Pergunta de encerramento: <strong>${esc(lesson.closingQuestion || 'Que decisão do projeto este artefato permite fundamentar?')}</strong></div></article>`,
 
       `<article class="lesson-slide encontro-slide"><span class="lesson-kicker">Ficha do encontro</span>${fichaEncontro()}</article>`
     ];
@@ -3280,7 +3350,7 @@ SELECT (SELECT count(*) FROM (SELECT product_id FROM gold.dim_produto_hist
 
   window.renderLessonMaterial = function (root) {
     const sdd = lesson.sdd
-      ? `<section class="material-box"><h2>Ponte com a Aula 1 — como este tema vira especificação</h2><p>Os conceitos abaixo não são acessórios da aula: são a forma pela qual o tema entra na especificação do projeto, no vocabulário estabelecido na Aula 1.</p><div class="material-sdd">${SDD_LABELS.map(([k, label, hint]) => `<div><b>${esc(label)} — ${esc(hint)}</b>${esc(lesson.sdd[k])}</div>`).join('')}</div></section>`
+      ? `<section class="material-box"><h2>Ponte com a Aula 1 — como este tema vira especificação</h2><p>Os conceitos abaixo indicam como o tema entra na especificação do projeto, no vocabulário estabelecido na Aula 1.</p><div class="material-sdd">${SDD_LABELS.map(([k, label, hint]) => `<div><b>${esc(label)} — ${esc(hint)}</b>${esc(lesson.sdd[k])}</div>`).join('')}</div></section>`
       : '';
 
     const preClass = lesson.preClass
@@ -3298,7 +3368,7 @@ SELECT (SELECT count(*) FROM (SELECT product_id FROM gold.dim_produto_hist
     const activitySection = (lesson.activity && lesson.activity.slideOnly)
       ? `<section class="material-box"><h2>${esc(lesson.activity.title)}</h2><p><strong>${esc(lesson.activity.duration)}.</strong> ${esc(lesson.activity.goal)}</p><p class="material-note">O enunciado completo desta atividade avaliativa é apresentado em sala, no slide da aula, e não é publicado antecipadamente.</p></section>`
       : lesson.activity
-      ? `<section class="material-box"><h2>${esc(lesson.activity.title)}</h2><p><strong>${esc(lesson.activity.duration)}.</strong> ${esc(lesson.activity.goal)}</p><p>${esc(lesson.activity.intro)}</p><h3>Método, passo a passo</h3><ol>${lesson.activity.steps.map((s) => `<li><strong>${esc(s.title)}:</strong> ${esc(s.text)}</li>`).join('')}</ol><h3>Perguntas de verificação</h3><ul>${lesson.activity.checks.map((c) => `<li>${esc(c)}</li>`).join('')}</ul><h3>O que não fazer</h3><ul>${lesson.activity.avoid.map((a) => `<li>${esc(a)}</li>`).join('')}</ul><div class="material-note"><strong>Exemplo ilustrativo — o raciocínio, não a resposta.</strong> ${esc(lesson.activity.worked.text)}<ul>${lesson.activity.worked.questions.map((q) => `<li>${esc(q)}</li>`).join('')}</ul>${esc(lesson.activity.worked.note)}</div><p><a href="${esc(lesson.activity.tool.href)}">${esc(lesson.activity.tool.label)}</a></p></section>`
+      ? `<section class="material-box"><h2>${esc(lesson.activity.title)}</h2><p><strong>${esc(lesson.activity.duration)}.</strong> ${esc(lesson.activity.goal)}</p><p>${esc(lesson.activity.intro)}</p><h3>Método, passo a passo</h3><ol>${lesson.activity.steps.map((s) => `<li><strong>${esc(s.title)}:</strong> ${esc(s.text)}</li>`).join('')}</ol><h3>Perguntas de verificação</h3><ul>${lesson.activity.checks.map((c) => `<li>${esc(c)}</li>`).join('')}</ul><h3>Práticas a evitar</h3><ul>${lesson.activity.avoid.map((a) => `<li>${esc(a)}</li>`).join('')}</ul><div class="material-note"><strong>Exemplo ilustrativo do raciocínio.</strong> ${esc(lesson.activity.worked.text)}<ul>${lesson.activity.worked.questions.map((q) => `<li>${esc(q)}</li>`).join('')}</ul>${esc(lesson.activity.worked.note)}</div><p><a href="${esc(lesson.activity.tool.href)}">${esc(lesson.activity.tool.label)}</a></p></section>`
       : '';
 
     root.innerHTML = `<header class="material-head"><span>Módulo 11 · Engenharia de Software · ${esc(lesson.discipline || DEFAULT_DISC)}</span><h1>${esc(lesson.title)}</h1><p>${esc(lesson.subtitle)} · Prof. ${esc(lesson.professor || DEFAULT_PROF)} · ${esc(lesson.date)}</p></header><div class="mat-layout"><aside class="mat-sidebar"></aside><article class="mat-article material-body">`
@@ -3306,7 +3376,7 @@ SELECT (SELECT count(*) FROM (SELECT product_id FROM gold.dim_produto_hist
       + timeboxSection
       + preClass
       + dbeaverHtml('material')
-      + `<section class="material-box"><h2>Objetivo da aula</h2><p>${esc(lesson.objective)}</p><h3>Ao final você deve conseguir</h3><ul>${lesson.outcomes.map((o) => `<li>${esc(o)}</li>`).join('')}</ul></section>`
+      + `<section class="material-box"><h2>Objetivo da aula</h2><p>${esc(lesson.objective)}</p><h3>Resultados de aprendizagem</h3><ul>${lesson.outcomes.map((o) => `<li>${esc(o)}</li>`).join('')}</ul></section>`
       + `<section class="material-box"><h2>Roteiro</h2><ol>${agenda.map((a) => `<li><strong>${esc(a.nav)}</strong> — ${esc(a.text)}</li>`).join('')}</ol></section>`
       + continuityHtml('material')
       + lesson.sections.map((s, i) => `<section class="material-section"><h2>${i + 1}. ${esc(s.title)}</h2><p>${esc(s.text)}</p>${s.diagram ? `<div class="mermaid-wrap medium"><div class="mermaid">${s.diagram}</div></div>` : ''}<h3>Checklist de aplicação</h3><ul>${checklistOf(s)}</ul><div class="material-note"><strong>Erro comum:</strong> ${esc(s.pitfall)}</div></section>`).join('')
@@ -3317,8 +3387,8 @@ SELECT (SELECT count(*) FROM (SELECT product_id FROM gold.dim_produto_hist
       + warmupSection
       + activitySection
       + ((lesson.activity && lesson.activity.slideOnly)
-        ? `<section class="material-box"><h2>Entregável e avaliação</h2><p>${esc(lesson.deliverable)}</p><p class="material-note">Os critérios de avaliação são apresentados em sala, junto do enunciado.</p></section>`
-        : `<section class="material-box"><h2>Entregável e avaliação</h2><p>${esc(lesson.deliverable)}</p><ul>${evaluationList}</ul></section>`)
+        ? `<section class="material-box"><h2>Entregável e avaliação</h2><p>${esc(lesson.deliverable)}</p><p class="material-note">Os critérios de avaliação são apresentados em sala, junto do enunciado.</p>${submissionNote('material')}</section>`
+        : `<section class="material-box"><h2>Entregável e avaliação</h2><p>${esc(lesson.deliverable)}</p><ul>${evaluationList}</ul>${submissionNote('material')}</section>`)
       + closingHtml()
       + `<section class="material-box"><h2>Referências</h2><ul>${lesson.references.map((x) => `<li>${referenceItem(x)}</li>`).join('')}</ul></section></article></div>`;
 
@@ -3345,7 +3415,7 @@ SELECT (SELECT count(*) FROM (SELECT product_id FROM gold.dim_produto_hist
       : '';
 
     const warmupPlan = lesson.warmup
-      ? `<section><h2>${esc(lesson.warmup.title)}</h2><p><strong>${esc(lesson.warmup.duration)}.</strong> ${esc(lesson.warmup.goal)} O professor resolve o modelo junto com a turma, usando uma nota fiscal de supermercado sintetizada (dados fictícios) como exemplo de trabalho — diferente da atividade do projeto, aqui o resultado é apresentado.</p><p>${esc(lesson.warmup.transition)}</p></section>`
+      ? `<section><h2>${esc(lesson.warmup.title)}</h2><p><strong>${esc(lesson.warmup.duration)}.</strong> ${esc(lesson.warmup.goal)} O professor resolve o modelo com a turma a partir de uma nota fiscal de supermercado sintetizada (dados fictícios); diferentemente da atividade do projeto, o resultado é apresentado.</p><p>${esc(lesson.warmup.transition)}</p></section>`
       : '';
 
     const activityPlan = (lesson.activity && lesson.activity.slideOnly)
@@ -3370,8 +3440,8 @@ SELECT (SELECT count(*) FROM (SELECT product_id FROM gold.dim_produto_hist
       + warmupPlan
       + activityPlan
       + ((lesson.activity && lesson.activity.slideOnly)
-        ? `<section><h2>Avaliação</h2><p>${esc(lesson.deliverable)}</p><p>Os critérios de avaliação são apresentados em sala, junto do enunciado.</p></section>`
-        : `<section><h2>Avaliação</h2><p>Entrega individual ou em grupo do artefato descrito no material, com apresentação curta e revisão por pares. ${esc(lesson.deliverable)}</p><ul>${evaluationList}</ul></section>`)
+        ? `<section><h2>Avaliação</h2><p>${esc(lesson.deliverable)}</p><p>Os critérios de avaliação são apresentados em sala, junto do enunciado.</p>${submissionNote('plan')}</section>`
+        : `<section><h2>Avaliação</h2><p>${lesson.evaluationMode ? `${esc(lesson.evaluationMode)} ` : ''}${esc(lesson.deliverable)}</p><ul>${evaluationList}</ul>${submissionNote('plan')}</section>`)
       + closingHtml()
       + `<section><h2>Bibliografia</h2><ul>${lesson.references.map((x) => `<li>${referenceItem(x)}</li>`).join('')}</ul></section></main></div>`;
 

@@ -28,7 +28,7 @@
           <div class="cover-badge rise">Módulo 11 · Engenharia de Software · Aula 10</div>
           <h1 class="cover-title rise" style="--delay:.07s">Armazenamento em<br><span>Grande Escala</span></h1>
           <p class="cover-subtitle rise" style="--delay:.14s">Formato físico, organização em disco e propriedades distribuídas do armazenamento, com a construção de um lakehouse local em MinIO e DuckDB sobre os dados da Olist.</p>
-          <p class="cover-meta rise" style="--delay:.2s">Computação 1 · Prof. Afonso Brandão · 01/09/2026</p>
+          <p class="cover-meta rise" style="--delay:.2s">Computação 2 · Prof. Afonso Brandão · 01/09/2026</p>
           <div class="cover-tags rise" style="--delay:.26s">
             <span class="cover-tag">Object storage</span>
             <span class="cover-tag">Parquet</span>
@@ -207,7 +207,7 @@
             <article class="card green rise" style="--delay:.1s">
               <span class="card-label">Leitura seletiva</span>
               <h3>Duas reduções independentes</h3>
-              <p>A projeção descarta as <strong>colunas</strong> não requisitadas, e o predicado descarta os <strong>blocos</strong> cujo intervalo não satisfaz o filtro. As duas se somam e ambas dependem de o dado estar ordenado de forma coerente com o filtro.</p>
+              <p>A projeção descarta as <strong>colunas</strong> não requisitadas, e o predicado descarta os <strong>blocos</strong> cujo intervalo não satisfaz o filtro. As duas se somam, e a segunda depende de o dado estar ordenado de forma coerente com o filtro.</p>
             </article>
             <article class="card rise" style="--delay:.16s">
               <span class="card-label">Indicador</span>
@@ -225,23 +225,24 @@
         <header class="slide-head green rise">
           <p class="eyebrow">Bloco 1 · Pruning em uma consulta</p>
           <h2 class="slide-title">A mesma consulta é podada no diretório, no bloco e na coluna</h2>
-          <p class="slide-subtitle">Aplicação dos três níveis sobre um fato particionado por ano e mês, com dez colunas e vinte e cinco meses de histórico. Cada nível reduz o conjunto antes do seguinte, e os descartes se compõem.</p>
+          <p class="slide-subtitle">Fato particionado por ano e mês em vinte e cinco diretórios, com dez colunas gravadas no arquivo e as linhas ordenadas por <span class="mono">data_pedido</span> dentro de cada partição. Cada nível reduz o conjunto antes do seguinte.</p>
         </header>
-        <div class="code-block rise" style="--delay:.05s"><span class="code-comment">-- faturamento de novembro de 2017</span>
+        <div class="code-block rise" style="--delay:.05s"><span class="code-comment">-- faturamento da primeira quinzena de novembro de 2017</span>
 <span class="code-keyword">SELECT</span> sum(valor_total)
 <span class="code-keyword">FROM</span>   fato_pedido
-<span class="code-keyword">WHERE</span>  ano = <span class="code-number">2017</span> <span class="code-keyword">AND</span> mes = <span class="code-number">11</span>;</div>
+<span class="code-keyword">WHERE</span>  ano = <span class="code-number">2017</span> <span class="code-keyword">AND</span> mes = <span class="code-number">11</span>
+  <span class="code-keyword">AND</span> data_pedido <span class="code-keyword">BETWEEN</span> <span class="code-keyword">DATE</span> <span class="code-string">'2017-11-01'</span> <span class="code-keyword">AND</span> <span class="code-keyword">DATE</span> <span class="code-string">'2017-11-15'</span>;</div>
         <table class="data-table rise" style="--delay:.1s">
           <thead>
             <tr><th style="width:22%">Nível de descarte</th><th style="width:30%">O que o motor consulta</th><th style="width:48%">Efeito nesta consulta</th></tr>
           </thead>
           <tbody>
-            <tr><td><strong>Diretório · partição</strong></td><td>Os prefixos <code>ano=</code> e <code>mes=</code> das chaves</td><td>Um diretório entre os vinte e cinco do conjunto é aberto, e os demais não chegam a ser listados.</td></tr>
-            <tr><td><strong>Bloco · row group</strong></td><td>O rodapé, com mínimo e máximo por bloco</td><td>O bloco cujo intervalo declarado exclui novembro é descartado sem que o dado seja lido.</td></tr>
-            <tr><td><strong>Coluna · projeção</strong></td><td>O schema declarado no rodapé</td><td>Dois trechos entre as dez colunas são buscados, e os oito restantes permanecem no disco.</td></tr>
+            <tr><td><strong>Diretório · partição</strong></td><td>Os prefixos <code>ano=</code> e <code>mes=</code> das chaves</td><td>Apenas os arquivos sob <code>ano=2017/mes=11</code> são abertos; os demais são descartados pelo caminho, sem leitura de conteúdo.</td></tr>
+            <tr><td><strong>Bloco · row group</strong></td><td>O rodapé, com mínimo e máximo de <code>data_pedido</code> por bloco</td><td>O bloco cujo intervalo declarado está inteiramente após 15 de novembro é descartado sem que o dado seja lido.</td></tr>
+            <tr><td><strong>Coluna · projeção</strong></td><td>O schema declarado no rodapé</td><td>Duas das dez colunas gravadas são lidas, <code>data_pedido</code> e <code>valor_total</code>; <code>ano</code> e <code>mes</code> vêm do caminho e não são lidas do arquivo.</td></tr>
           </tbody>
         </table>
-        <div class="observe-box rise" style="--delay:.16s"><strong>Condição do segundo nível:</strong> o dado precisa estar ordenado de forma coerente com o filtro. Sob gravação em ordem de chegada, todo bloco declara o intervalo completo do período, e nenhum bloco é descartado. O arquivo permanece colunar e o descarte por bloco deixa de ocorrer.</div>
+        <div class="observe-box rise" style="--delay:.16s"><strong>Condição do segundo nível:</strong> o dado precisa estar ordenado pela coluna filtrada. Sem ordenação por <span class="mono">data_pedido</span>, cada bloco declara um intervalo que cobre o mês inteiro, e nenhum bloco é descartado. O arquivo permanece colunar e o descarte por bloco deixa de ocorrer.</div>
       </div>
     </section>
 
@@ -291,7 +292,7 @@
             <article class="card green rise" style="--delay:.1s">
               <span class="card-label">Contrato</span>
               <h3>Evolução de schema declarada</h3>
-              <p>O consumidor resolve o schema de escrita contra o próprio schema de leitura. O campo acrescentado com valor padrão é lido por consumidor antigo, e o alias permite renomear a coluna sem quebrar o contrato. A compatibilidade é verificável antes da publicação.</p>
+              <p>O consumidor resolve o schema de escrita contra o próprio schema de leitura. O valor padrão do campo acrescentado permite ao consumidor novo ler registros antigos, o consumidor antigo ignora o campo que desconhece, e o alias permite renomear a coluna sem quebrar o contrato. A compatibilidade é verificável antes da publicação.</p>
             </article>
             <article class="card rise" style="--delay:.16s">
               <span class="card-label">Uso</span>
@@ -350,11 +351,11 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
           </thead>
           <tbody>
             <tr><td><strong>ano</strong></td><td>3</td><td>37 550</td><td>Grosseira: o filtro por mês varre o ano inteiro.</td></tr>
-            <tr><td><strong>ano e mês</strong></td><td>25</td><td>4 506</td><td>Adequada: filtro frequente e cardinalidade estável ao longo do tempo.</td></tr>
+            <tr><td><strong>ano e mês</strong></td><td>24</td><td>4 694</td><td>Adequada: filtro frequente e cardinalidade estável ao longo do tempo.</td></tr>
             <tr><td><strong>customer_state</strong></td><td>27</td><td>42% em SP</td><td>Enviesada: uma partição concentra a carga e anula o paralelismo.</td></tr>
             <tr><td><strong>product_id</strong></td><td>32 951</td><td>3,4</td><td>Pulverizada: o rodapé de cada arquivo supera o dado que ele descreve.</td></tr>
             <tr><td><strong>order_id</strong></td><td>98 666</td><td>1,1</td><td>Pulverizada: aproximadamente uma linha por arquivo.</td></tr>
-            <tr><td><strong>timestamp da compra</strong></td><td>98 875</td><td>1,1</td><td>Pulverizada: a precisão de segundo torna a coluna quase única.</td></tr>
+            <tr><td><strong>timestamp da compra</strong></td><td>98 112</td><td>1,1</td><td>Pulverizada: a precisão de segundo torna a coluna quase única.</td></tr>
           </tbody>
         </table>
         <div class="callout dark rise" style="--delay:.12s;margin-top:12px">Para a coluna de alta cardinalidade que aparece em filtro de igualdade, a ferramenta é a ordenação dentro da partição: o mínimo e o máximo por row group descartam blocos sem criar diretório algum.</div>
@@ -396,7 +397,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
         <div class="g2">
           <article class="card rise" style="--delay:.05s">
             <span class="card-label">Particionamento</span>
-            <h3>Dividir para caber e para paralelizar</h3>
+            <h3>Divisão do conjunto para capacidade e paralelismo</h3>
             <p>O conjunto é fatiado por uma chave e cada fatia reside em um nó. O mecanismo acrescenta capacidade e paralelismo, ao custo de <strong>distribuição desigual</strong> quando a chave é enviesada e de consultas que precisam cruzar fatias.</p>
             <ul>
               <li>A chave uniforme evita a sobrecarga de um nó.</li>
@@ -405,7 +406,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
           </article>
           <article class="card blue rise" style="--delay:.12s">
             <span class="card-label">Replicação</span>
-            <h3>Repetir para sobreviver e para ler perto</h3>
+            <h3>Repetição da fatia para durabilidade e leitura próxima</h3>
             <p>Cada fatia é gravada em mais de um nó. O mecanismo acrescenta <strong>durabilidade</strong> e disponibilidade de leitura, ao custo de espaço adicional e da necessidade de manter as cópias coerentes entre si.</p>
             <ul>
               <li>A falha de um nó preserva o dado nas demais réplicas.</li>
@@ -413,7 +414,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
             </ul>
           </article>
         </div>
-        <div class="callout dark rise" style="--delay:.19s;margin-top:12px">Os serviços de object storage implementam ambos os mecanismos. O conhecimento dessa implementação explica a latência de listagem, a cobrança por requisição e a leitura que devolve versão anterior.</div>
+        <div class="callout dark rise" style="--delay:.19s;margin-top:12px">Os serviços de object storage implementam ambos os mecanismos, e as garantias de consistência dependem do serviço: o Amazon S3 oferece consistência forte de leitura após escrita e de listagem desde dezembro de 2020, e o MinIO também é consistente; outros serviços admitem leitura e listagem defasadas.</div>
       </div>
     </section>
 
@@ -490,7 +491,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
           </thead>
           <tbody>
             <tr><td><strong>Escrita não atômica</strong></td><td>A consulta enxerga arquivos de uma carga ainda incompleta.</td><td>Publicar por troca de ponteiro: só o commit no catálogo torna a versão visível.</td></tr>
-            <tr><td><strong>Listagem eventual</strong></td><td>Arquivo recém-gravado não aparece imediatamente na listagem.</td><td>Registrar os arquivos no manifesto da tabela e consultá-lo no lugar da listagem do bucket.</td></tr>
+            <tr><td><strong>Listagem eventual</strong> (depende do serviço)</td><td>Arquivo recém-gravado pode não aparecer de imediato. S3 (desde dez/2020) e MinIO listam de forma consistente, mas a listagem inclui arquivos de carga em andamento.</td><td>Registrar os arquivos no manifesto da tabela e consultá-lo no lugar da listagem do bucket.</td></tr>
             <tr><td><strong>Reentrega de mensagens</strong></td><td>O mesmo pedido é ingerido duas vezes após uma falha parcial.</td><td>Ingestão idempotente por chave natural e janela, com deduplicação na camada silver.</td></tr>
             <tr><td><strong>Falha parcial de carga</strong></td><td>Metade das partições atualizada, metade não.</td><td>Reprocessar a partição integralmente, tratando a carga como unidade atômica.</td></tr>
             <tr><td><strong>Relógios distintos</strong></td><td>Eventos chegam fora de ordem e com atraso.</td><td>Separar data do evento da data de ingestão e declarar a janela de atraso aceita.</td></tr>
@@ -610,7 +611,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
             <div class="tier-when">Obrigação regulatória e auditoria.</div>
           </article>
         </div>
-        <div class="callout green rise" style="--delay:.28s;margin-top:12px">Antes de escolher a classe, defina a janela de retenção e o tempo aceitável de recuperação. Sem esses dois números, a política de lifecycle é arbitrária.</div>
+        <div class="callout green rise" style="--delay:.28s;margin-top:12px">Antes de escolher a classe, defina a janela de retenção e o tempo aceitável de recuperação, os dois parâmetros dos quais a política de lifecycle deriva.</div>
       </div>
     </section>
 
@@ -639,7 +640,7 @@ lake/<span class="code-bad">raw</span>/fato_pedido/
             <article class="card rise" style="--delay:.16s">
               <span class="card-label">Indicador de FinOps</span>
               <h3>Custo por domínio e por consulta</h3>
-              <p>Sem rótulo por domínio, o custo do armazenamento se apresenta como número único, sem responsável designado para reduzi-lo.</p>
+              <p>O rótulo por domínio decompõe o custo do armazenamento e atribui a cada parcela um responsável pela redução.</p>
             </article>
           </div>
         </div>
@@ -768,6 +769,7 @@ unzip olist-csv.zip -d olist/ &amp;&amp; duckdb lakehouse.duckdb</div>
           <p class="slide-subtitle">A camada preserva o conteúdo de origem. O ganho é de formato e de layout, e a contagem verifica a integridade da carga.</p>
         </header>
         <div class="code-block rise" style="--delay:.05s"><span class="code-comment">-- pedidos: particionado por ano e mês, com carimbo de ingestão</span>
+<span class="code-comment">-- reexecução: antes, mc rm -r --force local/lakehouse/bronze/orders</span>
 <span class="code-keyword">COPY</span> (
   <span class="code-keyword">SELECT</span> *, now() <span class="code-keyword">AS</span> ingerido_em,
          <span class="code-keyword">CAST</span>(strftime(order_purchase_timestamp, <span class="code-string">'%Y'</span>) <span class="code-keyword">AS</span> INT) <span class="code-keyword">AS</span> ano,
@@ -780,12 +782,11 @@ unzip olist-csv.zip -d olist/ &amp;&amp; duckdb lakehouse.duckdb</div>
 <span class="code-keyword">COPY</span> (<span class="code-keyword">SELECT</span> *, now() <span class="code-keyword">AS</span> ingerido_em <span class="code-keyword">FROM</span> read_csv_auto(<span class="code-string">'olist/olist_order_items_dataset.csv'</span>))
   <span class="code-keyword">TO</span> <span class="code-string">'s3://lakehouse/bronze/order_items.parquet'</span> (FORMAT parquet);
 <span class="code-comment">-- repita para customers, products e product_category_name_translation</span>
-
 <span class="code-comment">-- verificação obrigatória: a contagem da origem e a do destino coincidem?</span>
 <span class="code-keyword">SELECT</span> <span class="code-string">'csv'</span> <span class="code-keyword">AS</span> origem, count(*) <span class="code-keyword">FROM</span> read_csv_auto(<span class="code-string">'olist/olist_orders_dataset.csv'</span>)
 <span class="code-keyword">UNION</span> <span class="code-keyword">ALL</span>
 <span class="code-keyword">SELECT</span> <span class="code-string">'bronze'</span>, count(*) <span class="code-keyword">FROM</span> read_parquet(<span class="code-string">'s3://lakehouse/bronze/orders/**/*.parquet'</span>);</div>
-        <div class="observe-box rise" style="--delay:.12s"><strong>Esperado:</strong> 99 441 pedidos dos dois lados. Anote também o tamanho do CSV e o do prefixo no bucket, que constitui a primeira evidência medida do encontro.</div>
+        <div class="observe-box rise" style="--delay:.12s"><strong>Esperado:</strong> 99 441 pedidos dos dois lados. Anote também o tamanho do CSV e o do prefixo no bucket, que constitui a primeira evidência medida do encontro. <strong>Reexecução:</strong> <span class="mono">OVERWRITE_OR_IGNORE</span> substitui só arquivos de mesmo nome, e o prefixo é removido antes para não restarem arquivos da carga anterior.</div>
       </div>
     </section>
 
@@ -833,6 +834,30 @@ unzip olist-csv.zip -d olist/ &amp;&amp; duckdb lakehouse.duckdb</div>
       </div>
     </section>
 
+    <!-- Slide 26-A: Dimensão de produto -->
+    <section class="slide">
+      <div class="sc">
+        <header class="slide-head amber rise">
+          <p class="eyebrow">Segunda hora · Modelagem · dimensão de produto</p>
+          <h2 class="slide-title">A dimensão de produto aplica a tradução da categoria</h2>
+          <p class="slide-subtitle">A dimensão tem uma linha por produto e a categoria em inglês, que é o domínio usado nas consultas das perguntas 2 e 3. A junção com a tradução é externa, para que nenhum produto se perca.</p>
+        </header>
+        <div class="code-block rise" style="--delay:.05s"><span class="code-comment">-- a dimensão que a pergunta 2 exige: uma linha por produto</span>
+<span class="code-keyword">CREATE</span> <span class="code-keyword">OR</span> <span class="code-keyword">REPLACE</span> <span class="code-keyword">TABLE</span> gold.dim_produto <span class="code-keyword">AS</span>
+<span class="code-keyword">SELECT</span> p.product_id,
+       coalesce(t.product_category_name_english,  <span class="code-comment">-- categoria traduzida</span>
+                p.product_category_name,          <span class="code-comment">-- sem tradução: nome original</span>
+                <span class="code-string">'nao_informada'</span>) <span class="code-keyword">AS</span> categoria    <span class="code-comment">-- sem categoria</span>
+<span class="code-keyword">FROM</span> read_parquet(<span class="code-string">'s3://lakehouse/bronze/products.parquet'</span>) p
+<span class="code-keyword">LEFT</span> <span class="code-keyword">JOIN</span> read_parquet(<span class="code-string">'s3://lakehouse/bronze/product_category_name_translation.parquet'</span>) t
+  <span class="code-keyword">USING</span> (product_category_name);
+
+<span class="code-comment">-- conferência: a dimensão preserva todos os produtos da origem</span>
+<span class="code-keyword">SELECT</span> count(*) <span class="code-keyword">AS</span> produtos, count(<span class="code-keyword">DISTINCT</span> product_id) <span class="code-keyword">AS</span> chaves <span class="code-keyword">FROM</span> gold.dim_produto;</div>
+        <div class="observe-box rise" style="--delay:.12s"><strong>Esperado:</strong> 32 951 produtos e 32 951 chaves. Na origem, 610 produtos não têm categoria e duas categorias não têm tradução (<span class="mono">pc_gamer</span> e <span class="mono">portateis_cozinha_e_preparadores_de_alimentos</span>, com 13 produtos); o <span class="mono">coalesce</span> preserva os três casos com rótulo explícito.</div>
+      </div>
+    </section>
+
     <!-- Slide 27: Silver e fato -->
     <section class="slide">
       <div class="sc">
@@ -859,7 +884,7 @@ QUALIFY row_number() <span class="code-keyword">OVER</span> (<span class="code-k
 <span class="code-keyword">JOIN</span> gold.dim_geografia g <span class="code-keyword">ON</span> g.customer_id = p.customer_id
 <span class="code-keyword">JOIN</span> gold.dim_produto  d <span class="code-keyword">ON</span> d.product_id = i.product_id
 <span class="code-keyword">WHERE</span> p.order_status = <span class="code-string">'delivered'</span>;
-
+<span class="code-comment">-- reexecução: antes, mc rm -r --force local/lakehouse/gold/fato_item_venda</span>
 <span class="code-keyword">COPY</span> (<span class="code-keyword">SELECT</span> * <span class="code-keyword">FROM</span> gold.fato_item_venda) <span class="code-keyword">TO</span> <span class="code-string">'s3://lakehouse/gold/fato_item_venda'</span>
   (FORMAT parquet, PARTITION_BY (regiao), OVERWRITE_OR_IGNORE);</div>
         <div class="observe-box rise" style="--delay:.12s"><strong>Decisão a registrar:</strong> o filtro por <span class="mono">delivered</span> exclui pedidos cancelados e em trânsito. Trata-se de escolha de negócio, com efeito direto sobre as três respostas.</div>
@@ -973,7 +998,7 @@ QUALIFY row_number() <span class="code-keyword">OVER</span> (<span class="code-k
             <tr><td><strong>Número e tamanho de arquivos</strong></td><td><span class="mono">SELECT * FROM parquet_file_metadata('s3://lakehouse/bronze/orders/**/*.parquet')</span></td><td>Se a estratégia de partição gerou arquivos pequenos.</td></tr>
             <tr><td><strong>Estatística por bloco</strong></td><td><span class="mono">SELECT * FROM parquet_metadata('s3://lakehouse/gold/fato_item_venda/**/*.parquet')</span></td><td>Que mínimo e máximo por row group tornam o pruning possível.</td></tr>
             <tr><td><strong>Custo da consulta</strong></td><td><span class="mono">EXPLAIN ANALYZE</span> na pergunta 3, lendo do CSV e lendo da gold particionada.</td><td>Quanto do ganho vem do formato e quanto vem do layout.</td></tr>
-            <tr><td><strong>Idempotência</strong></td><td>Contagem na silver após duas execuções da carga bronze.</td><td>Que a reentrega não duplica o dado.</td></tr>
+            <tr><td><strong>Idempotência</strong></td><td>Após duas execuções da carga bronze, cada uma precedida da remoção do prefixo: <span class="mono">SELECT count(*) AS arquivos, sum(num_rows) AS linhas FROM parquet_file_metadata('s3://lakehouse/bronze/orders/**/*.parquet')</span></td><td>Que a reexecução não acumula arquivos nem duplica linhas: os dois números se repetem, com 99 441 linhas.</td></tr>
           </tbody>
         </table>
       </div>
@@ -1032,7 +1057,7 @@ QUALIFY row_number() <span class="code-keyword">OVER</span> (<span class="code-k
             <div class="accept rise" style="--delay:.15s"><span>3</span><p>O fato tem grão declarado e as dimensões que as três perguntas exigem.</p></div>
             <div class="accept rise" style="--delay:.18s"><span>4</span><p>A definição de volume e o recorte de status estão declarados por escrito.</p></div>
             <div class="accept rise" style="--delay:.21s"><span>5</span><p>As três consultas são executadas sobre a camada gold e devolvem valores medidos.</p></div>
-            <div class="accept rise" style="--delay:.24s"><span>6</span><p>Há ao menos uma evidência medida — tamanho, número de arquivos ou bytes lidos.</p></div>
+            <div class="accept rise" style="--delay:.24s"><span>6</span><p>Há ao menos uma evidência medida: tamanho, número de arquivos ou bytes lidos.</p></div>
           </div>
         </div>
       </div>
