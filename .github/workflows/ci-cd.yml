@@ -7,10 +7,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Só leitura no nível do workflow. As permissões de escrita ficam no job
+# deploy, o único que publica no Pages.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages
@@ -20,6 +20,8 @@ jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -30,11 +32,14 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
+      # --ignore-scripts barra os lifecycle scripts das dependências; os
+      # browsers vêm do passo seguinte, pelo binário que o lockfile fixou,
+      # em vez de npx, que buscaria o pacote na rede.
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        run: ./node_modules/.bin/playwright install --with-deps chromium
 
       - name: Run tests
         run: npm test
@@ -52,6 +57,10 @@ jobs:
     needs: test
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
