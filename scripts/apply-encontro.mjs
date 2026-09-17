@@ -167,6 +167,16 @@ function injetarBotao(html, botao) {
 function corrigirTotalSlides(html) {
   if (/getElementById\(['"]total-slides['"]\)\s*\.\s*textContent\s*=/.test(html)) return html;
   if (/total-slides['"]\s*\)\s*\.\s*innerHTML\s*=/.test(html)) return html;
+  // O elemento também pode ser guardado numa variável e só depois receber o
+  // total. Sem esta verificação o valor estático era somado a cada execução,
+  // embora o JavaScript o sobrescrevesse na carga.
+  const viaVariavel = html.match(
+    /(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*document\.getElementById\(['"]total-slides['"]\)/,
+  );
+  if (viaVariavel
+      && new RegExp(`\\b${viaVariavel[1]}\\s*\\.\\s*(?:textContent|innerHTML)\\s*=`).test(html)) {
+    return html;
+  }
   return html.replace(
     /(<span id="total-slides">)(\d+)(<\/span>)/,
     (_, a, n, b) => `${a}${Number(n) + 1}${b}`,
