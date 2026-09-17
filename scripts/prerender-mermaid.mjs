@@ -15,17 +15,42 @@
 import { chromium } from 'playwright';
 import { readFile, writeFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import path from 'node:path';
+import { RAIZ, caminhoNoProjeto, relativoAoProjeto } from './lib/entrada.mjs';
 
-const file = process.argv[2];
-if (!file) {
+const arg = process.argv[2];
+if (!arg) {
   console.error('Uso: node scripts/prerender-mermaid.mjs <arquivo.html>');
+  process.exit(1);
+}
+
+// O arquivo vem da linha de comando e é reescrito no fim: resolvê-lo contra a
+// raiz impede que um `../` no argumento leia ou sobrescreva fora do projeto.
+let file;
+try {
+  file = caminhoNoProjeto(arg, 'arquivo');
+} catch (e) {
+  console.error(e.message);
+  process.exit(1);
+}
+if (!file.endsWith('.html')) {
+  console.error('O alvo precisa ser um arquivo .html do acervo.');
   process.exit(1);
 }
 
 const PORT = 9876;
 
+// Binário do próprio projeto, em caminho absoluto: não depende do PATH nem do
+// npx, que buscaria o pacote na rede se ele faltasse em node_modules.
+const HTTP_SERVER = path.join(RAIZ, 'node_modules', '.bin',
+  process.platform === 'win32' ? 'http-server.cmd' : 'http-server');
+
 function startServer() {
-  const proc = spawn('npx', ['http-server', '.', '-p', String(PORT), '--silent'], {
+  if (!existsSync(HTTP_SERVER)) {
+    return Promise.reject(new Error(`http-server não encontrado em ${HTTP_SERVER}. Rode npm ci.`));
+  }
+  const proc = spawn(HTTP_SERVER, [RAIZ, '-p', String(PORT), '--silent'], {
     stdio: 'pipe',
     shell: process.platform === 'win32',
   });
@@ -45,7 +70,7 @@ async function main() {
     const browser = await chromium.launch();
     const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
 
-    const url = `http://localhost:${PORT}/${file.replaceAll('\\', '/')}`;
+    const url = `http://localhost:${PORT}/${relativoAoProjeto(file)}`;
     console.log(`Acessando ${url}`);
     await page.goto(url, { waitUntil: 'networkidle' });
     await page.waitForTimeout(1500);

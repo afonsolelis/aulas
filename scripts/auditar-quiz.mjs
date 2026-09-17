@@ -14,9 +14,11 @@
  * Lê do banco, que é a fonte de verdade — o seed pode divergir do aplicado.
  */
 
+import { paraLog, slugDeSala } from './lib/entrada.mjs';
+
 const URL_BASE = process.env.SUPABASE_URL || 'https://lcyxqwdgsrbcpecqyqje.supabase.co';
 const CHAVE = process.env.SUPABASE_KEY || 'sb_publishable_x68LvlGFJns-zsrYTERvqw_-x5GWA8p';
-const SLUG = process.argv[2] || 'gmud-m7-a5';
+const SLUG = slugDeSala(process.argv[2] || 'gmud-m7-a5');
 const TOKEN = process.env.QUIZ_TOKEN;
 
 if (!TOKEN) {
@@ -33,7 +35,7 @@ const resposta = await fetch(`${URL_BASE}/rest/v1/rpc/quiz_relatorio`, {
 });
 const dados = await resposta.json();
 if (!dados.ok) {
-  console.error('Falha:', dados.erro || JSON.stringify(dados));
+  console.error('Falha:', paraLog(dados.erro || dados));
   process.exit(2);
 }
 

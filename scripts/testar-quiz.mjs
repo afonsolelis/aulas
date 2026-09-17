@@ -18,11 +18,12 @@
  * do ensaio no placar.
  */
 
-import { execFileSync } from 'node:child_process';
+import { executarPsql } from './lib/psql.mjs';
+import { paraLog, slugDeSala } from './lib/entrada.mjs';
 
 const URL_BASE = process.env.SUPABASE_URL || 'https://lcyxqwdgsrbcpecqyqje.supabase.co';
 const CHAVE = process.env.SUPABASE_KEY || 'sb_publishable_x68LvlGFJns-zsrYTERvqw_-x5GWA8p';
-const SLUG = process.argv[2] || 'stakeholders-m7-a6';
+const SLUG = slugDeSala(process.argv[2] || 'stakeholders-m7-a6');
 const TOKEN = process.env.QUIZ_HOST_TOKEN;
 const BANCO = process.env.DATABASE_URL;
 
@@ -35,7 +36,7 @@ let verificacoes = 0;
 function conferir(condicao, descricao, detalhe) {
   verificacoes += 1;
   if (condicao) { console.log(`  ok   ${descricao}`); return true; }
-  console.log(`  FALHA ${descricao}${detalhe ? ` — ${detalhe}` : ''}`);
+  console.log(`  FALHA ${descricao}${detalhe ? ` — ${paraLog(detalhe)}` : ''}`);
   falhas.push(descricao);
   return false;
 }
@@ -56,10 +57,10 @@ const responder = (player, escolha) => rpc('quiz_responder', { p_player: player,
 
 /** Recua a abertura da pergunta para além do prazo, simulando o fim do tempo. */
 function expirar(segundos = 200) {
-  execFileSync('psql', [
-    `${BANCO}?sslmode=require`, '-v', 'ON_ERROR_STOP=1', '-q', '-c',
-    `update quiz_sessions set aberta_em = now() - interval '${segundos} seconds' where slug = '${SLUG}';`,
-  ], { stdio: 'pipe' });
+  executarPsql(BANCO,
+    "update quiz_sessions set aberta_em = now() - make_interval(secs => :'segundos'::double precision) " +
+    "where slug = :'slug';",
+    { slug: SLUG, segundos: Number(segundos) });
 }
 
 // ---------------------------------------------------------------------
@@ -83,7 +84,7 @@ const nomes = ['Ensaio Um', 'Ensaio Dois', 'Ensaio Tres'];
 const jogadores = [];
 for (const nome of nomes) {
   const e = await rpc('quiz_entrar', { p_slug: SLUG, p_nome: nome });
-  if (!e.ok) { console.log(`  FALHA entrada de ${nome} — ${e.erro}`); falhas.push('entrada'); process.exit(2); }
+  if (!e.ok) { console.log(`  FALHA entrada de ${nome} — ${paraLog(e.erro)}`); falhas.push('entrada'); process.exit(2); }
   jogadores.push(e.player_id);
 }
 d = await host('ver');
@@ -201,10 +202,10 @@ conferir(d.estado === 'lobby' && d.jogadores === 0, 'a sala volta ao lobby, sem 
 conferir(d.arquivadas > 0, 'o resultado do ensaio foi arquivado antes de apagar', `linhas = ${d.arquivadas}`);
 
 // O arquivamento do ensaio não deve ficar na série histórica da turma.
-execFileSync('psql', [
-  `${BANCO}?sslmode=require`, '-v', 'ON_ERROR_STOP=1', '-q', '-c',
-  `delete from quiz_relatorios where data_tag like '%${SLUG}' and data::text like '%Ensaio %';`,
-], { stdio: 'pipe' });
+executarPsql(BANCO,
+  "delete from quiz_relatorios where data_tag like '%' || :'slug' " +
+  "and data::text like '%Ensaio %';",
+  { slug: SLUG });
 console.log('  ok   o arquivamento do ensaio foi removido da série histórica');
 
 console.log(`\n${verificacoes} verificações, ${falhas.length} falha(s).`);

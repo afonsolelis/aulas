@@ -29,13 +29,14 @@
  */
 
 import { chromium } from 'playwright';
-import { execFileSync } from 'node:child_process';
+import { executarPsql } from './lib/psql.mjs';
+import { slugDeSala } from './lib/entrada.mjs';
 
 const BASE = process.env.PW_BASE_URL || 'http://127.0.0.1:8123';
 const PASTA = process.env.QUIZ_DIR || 'pages/module-7-sistemas-informacao/quiz';
 const AULA = process.env.QUIZ_AULA || 'lesson-6';
 const DIR = `${BASE}/${PASTA}`;
-const SLUG = process.env.QUIZ_SLUG || 'stakeholders-m7-a6';
+const SLUG = slugDeSala(process.env.QUIZ_SLUG || 'stakeholders-m7-a6');
 const TOKEN = process.env.QUIZ_HOST_TOKEN;
 const BANCO = process.env.DATABASE_URL;
 const SAIDA = process.env.SAIDA || '/tmp';
@@ -45,8 +46,9 @@ const falhas = [];
 // Supabase registra isso no console. Não é defeito da página.
 let ignorarConsole = false;
 const ok = (c, d, x) => { console.log(`  ${c ? 'ok  ' : 'FALHA'} ${d}${!c && x ? ` — ${x}` : ''}`); if (!c) falhas.push(d); };
-const expirar = () => execFileSync('psql', [`${BANCO}?sslmode=require`, '-q', '-c',
-  `update quiz_sessions set aberta_em = now() - interval '200 seconds' where slug='${SLUG}';`], { stdio: 'pipe' });
+const expirar = () => executarPsql(BANCO,
+  "update quiz_sessions set aberta_em = now() - interval '200 seconds' where slug = :'slug';",
+  { slug: SLUG });
 const espera = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const navegador = await chromium.launch({ headless: true });
@@ -211,8 +213,9 @@ await painel.click('#btn-reiniciar');
 await painel.waitForFunction(() => document.querySelector('#m-jogadores').textContent === '0', null, { timeout: 15000 });
 ok(true, 'a sala foi reiniciada ao fim do ensaio');
 
-execFileSync('psql', [`${BANCO}?sslmode=require`, '-q', '-c',
-  `delete from quiz_relatorios where data_tag like '%${SLUG}' and data::text like '%Ensaio %';`], { stdio: 'pipe' });
+executarPsql(BANCO,
+  "delete from quiz_relatorios where data_tag like '%' || :'slug' and data::text like '%Ensaio %';",
+  { slug: SLUG });
 
 await navegador.close();
 

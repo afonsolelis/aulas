@@ -9,12 +9,21 @@ import { PDFDocument } from 'pdf-lib';
 import { pathToFileURL } from 'url';
 import path from 'path';
 import fs from 'fs';
+import { caminhoNoProjeto } from './lib/entrada.mjs';
 
 const slideFile = 'pages/palestras/slides/slide_data-analytics.html';
-const outPath = process.argv[2] || '.tmp/cardiff-shots/palestra-cardiff.pdf';
-const shotsDir = '.tmp/cardiff-pdf-shots';
+// O destino vem da linha de comando: resolvido contra a raiz do repositório,
+// para um `../` no argumento não escrever fora do projeto.
+let outPath;
+try {
+  outPath = caminhoNoProjeto(process.argv[2] || '.tmp/cardiff-shots/palestra-cardiff.pdf', 'saída');
+} catch (e) {
+  console.error(e.message);
+  process.exit(1);
+}
+const shotsDir = caminhoNoProjeto('.tmp/cardiff-pdf-shots');
 
-const url = pathToFileURL(path.resolve(slideFile)).href;
+const url = pathToFileURL(caminhoNoProjeto(slideFile)).href;
 fs.mkdirSync(shotsDir, { recursive: true });
 fs.mkdirSync(path.dirname(outPath), { recursive: true });
 
