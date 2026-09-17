@@ -91,6 +91,22 @@
     .recado.erro { color: var(--es); }
     .link { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: .8rem;
             word-break: break-all; background: var(--areia); padding: 10px 12px; border-radius: 10px; }
+    .qr { margin-top: 14px; display: grid; justify-items: center; gap: 8px; }
+    .qr #qr-alvo { width: 100%; max-width: 230px; background: #fff; padding: 10px;
+                   border: 1px solid var(--line); border-radius: 12px; line-height: 0; }
+    .qr #qr-alvo svg { width: 100%; height: auto; display: block; }
+    .qr p { margin: 0; font-size: .74rem; color: var(--muted); text-align: center; }
+    .cronometro { margin-top: 14px; padding: 14px 16px; border-radius: 14px; background: var(--ink);
+                  color: var(--paper); display: grid; justify-items: center; gap: 2px; }
+    .cronometro .tempo { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 3.6rem;
+                         font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+    .cronometro .etiqueta { font-size: .78rem; font-weight: 700; opacity: .85; text-align: center; }
+    .cronometro.acabando { background: var(--es); }
+    .cronometro.encerrado { background: var(--muted); }
+    .nav-painel { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .nav-painel a { padding: 8px 12px; border-radius: 9px; border: 1px solid var(--line);
+                    background: var(--paper); color: var(--ink); text-decoration: none;
+                    font-size: .76rem; font-weight: 800; }
     .creditos { font-size: .72rem; color: var(--muted); text-align: center; }
     @media (max-width: 900px) { .grade { grid-template-columns: 1fr; } }
   </style>
@@ -140,13 +156,28 @@
             <button data-acao="iniciar">Reiniciar sequência</button>
             <button data-acao="lobby">Voltar ao lobby</button>
           </div>
+          <div class="cronometro" id="cronometro">
+            <span class="tempo" id="tempo-grande">--:--</span>
+            <span class="etiqueta" id="tempo-etiqueta">Sem prazo nesta fase</span>
+          </div>
           <p class="recado" id="recado"></p>
         </section>
         <section class="bloco">
           <h3>Acesso da turma</h3>
           <p class="link" id="url-aluno"></p>
           <button id="copiar">Copiar link</button>
-          <p style="margin-top:12px;font-size:.82rem;color:var(--muted)">Projete o caso por este painel. Cada estudante decide no próprio aparelho, e a justificativa que ele escreve circula sem o nome.</p>
+          <div class="qr" id="qr">
+          <div id="qr-alvo" role="img" aria-label="Código QR com o endereço da sala do TBL"></div>
+          <p id="qr-legenda">Aponte a câmera para entrar na sala.</p>
+        </div>
+        <p style="margin-top:12px;font-size:.82rem;color:var(--muted)">Projete o caso por este painel. Cada estudante decide no próprio aparelho, e a justificativa que ele escreve circula sem o nome.</p>
+        <nav class="nav-painel" aria-label="Navegação da aula">
+          <a href="../slides/slide-lesson-1.html">🖥️ Slides</a>
+          <a href="../materials/lesson-1-material.html">📖 Material</a>
+          <a href="../planos/lesson-1-plano.html">📋 Plano</a>
+          <a href="lesson-1-tbl.html">🗳️ Sala do aluno</a>
+          <a href="../../home-module-8-eng-software.html">🏠 Módulo</a>
+        </nav>
         </section>
       </div>
 
@@ -180,6 +211,7 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.114.0/dist/umd/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
   <script>
   const SUPABASE_URL = 'https://lcyxqwdgsrbcpecqyqje.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_x68LvlGFJns-zsrYTERvqw_-x5GWA8p';
@@ -372,11 +404,36 @@
       : '<p>Ninguém entrou na sala ainda.</p>';
   }
 
+  // Fases sem prazo mostram o motivo em vez de um relógio parado, para que a
+  // ausência de contagem não seja lida como falha da página.
+  const SEM_PRAZO = {
+    lobby: 'A contagem começa quando a questão abrir',
+    sintese: 'Síntese da questão, sem prazo',
+    revelacao: 'Consolidado das questões, sem prazo'
+  };
+
   function atualizarRelogio() {
     const restante = prazo ? Math.max(0, Math.ceil((prazo - Date.now()) / 1000)) : null;
     const el = $('#relogio');
     el.textContent = restante === null ? '--:--' : relogio(restante);
     el.classList.toggle('acabando', restante !== null && restante <= 60);
+
+    const caixa = $('#cronometro');
+    const tempo = $('#tempo-grande');
+    const etiqueta = $('#tempo-etiqueta');
+    if (!caixa || !tempo || !etiqueta) return;
+    const fase = s ? s.fase : 'lobby';
+    if (restante === null) {
+      tempo.textContent = '--:--';
+      etiqueta.textContent = SEM_PRAZO[fase] || 'Sem prazo nesta fase';
+    } else {
+      tempo.textContent = relogio(restante);
+      etiqueta.textContent = restante === 0
+        ? 'Tempo encerrado — a votação desta rodada está fechada'
+        : (DESCRICAO[fase] || 'Fase em andamento') + ' · questão ' + (s ? s.questao : 1);
+    }
+    caixa.classList.toggle('acabando', restante !== null && restante > 0 && restante <= 60);
+    caixa.classList.toggle('encerrado', restante === 0);
   }
 
   async function atualizar() {
@@ -441,6 +498,24 @@
   const urlAluno = location.protocol === 'file:'
     ? URL_PUBLICA : new URL('lesson-1-tbl.html', location.href).href;
   $('#url-aluno').textContent = urlAluno;
+
+  // O código QR evita a digitação do endereço no início da aula. Depende de uma
+  // biblioteca externa: sem ela, o bloco some e o link permanece como acesso.
+  (function desenharQr() {
+    const alvo = $('#qr-alvo');
+    if (!alvo) return;
+    try {
+      if (typeof window.qrcode !== 'function') throw new Error('biblioteca indisponível');
+      // Tipo 0 deixa a biblioteca escolher a menor versão que comporta o texto.
+      const qr = window.qrcode(0, 'M');
+      qr.addData(urlAluno);
+      qr.make();
+      alvo.innerHTML = qr.createSvgTag({ cellSize: 8, margin: 0, scalable: true });
+    } catch {
+      $('#qr').hidden = true;
+    }
+  })();
+
   $('#copiar').addEventListener('click', async () => {
     try { await navigator.clipboard.writeText(urlAluno); $('#copiar').textContent = 'Link copiado'; }
     catch { $('#copiar').textContent = 'Copie o endereço acima'; }

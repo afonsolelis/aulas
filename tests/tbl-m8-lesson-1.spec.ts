@@ -269,6 +269,14 @@ test.describe('TBL · Aula 1 do Módulo 8 · exceções fora do caminho feliz', 
     await sala.ligar(ctxBruno);
     const bruno = await abrirAluno(ctxBruno, 'Bruno');
 
+    // Painel: acesso da turma por link e por código QR, e cronômetro sem prazo
+    // no lobby — a ausência de contagem é explicada, e não exibida como relógio
+    // parado.
+    await expect(professor.locator('#url-aluno')).toContainText('lesson-1-tbl.html');
+    await expect(professor.locator('#qr-alvo svg')).toBeVisible();
+    await expect(professor.locator('#tempo-grande')).toHaveText('--:--');
+    await expect(professor.locator('#tempo-etiqueta')).toContainText('começa quando a questão abrir');
+
     // Lobby: o caso é legível, nada é votável e as questões não aparecem.
     await expect(ana.locator('#conteudo')).toContainText('A ordem que o sistema entendeu corretamente');
     await expect(ana.locator('button.opcao')).toHaveCount(0);
@@ -282,6 +290,10 @@ test.describe('TBL · Aula 1 do Módulo 8 · exceções fora do caminho feliz', 
     await expect(ana.locator('#conteudo')).toContainText('Regra de negócio incompleta');
     await expect(ana.locator('button.opcao')).toHaveCount(4);
     await expect(ana.locator('.barras')).toHaveCount(0);
+
+    // Com a questão aberta, o cronômetro do painel conta o prazo da fase.
+    await expect(professor.locator('#tempo-grande')).toHaveText(/^0[23]:\d{2}$/);
+    await expect(professor.locator('#tempo-etiqueta')).toContainText('Primeira decisão individual · questão 1');
 
     // A justificativa é condição para registrar a decisão.
     await ana.click('button.opcao[data-escolha="0"]');
