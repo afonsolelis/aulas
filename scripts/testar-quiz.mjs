@@ -79,6 +79,21 @@ await host('reiniciar');
 d = await host('ver');
 conferir(d.estado === 'lobby' && d.jogadores === 0, 'a sala começa vazia, no lobby');
 
+// Tempo por pergunta (supabase/quiz-tempo.sql). O ensaio calibra um valor
+// diferente dos 90 do seed, para provar que a troca chega ao servidor, e
+// devolve o tempo original da sala na limpeza.
+const TEMPO_ENSAIO = 60;
+const tempoOriginal = await rpc('quiz_tempo', { p_slug: SLUG, p_token: TOKEN });
+conferir(tempoOriginal.ok === true && Number.isInteger(tempoOriginal.segundos),
+  'o painel lê o tempo por pergunta da sala', JSON.stringify(tempoOriginal));
+conferir((await rpc('quiz_tempo', { p_slug: SLUG, p_token: 'token-errado', p_segundos: 30 })).ok === false,
+  'a troca de tempo exige o token do professor');
+conferir((await rpc('quiz_tempo', { p_slug: SLUG, p_token: TOKEN, p_segundos: 5 })).ok === false,
+  'a troca de tempo recusa valor fora de 10 a 600 segundos');
+const calibrado = await rpc('quiz_tempo', { p_slug: SLUG, p_token: TOKEN, p_segundos: TEMPO_ENSAIO });
+conferir(calibrado.ok === true && calibrado.segundos === TEMPO_ENSAIO,
+  `o tempo calibrado para ${TEMPO_ENSAIO} s é gravado`, JSON.stringify(calibrado));
+
 console.log('\n2. Entrada dos jogadores');
 const nomes = ['Ensaio Um', 'Ensaio Dois', 'Ensaio Tres'];
 const jogadores = [];
@@ -101,9 +116,14 @@ for (let ordem = 1; ordem <= TOTAL; ordem += 1) {
   if (ordem === 1 || ordem === TOTAL) {
     conferir(abriu.estado === 'pergunta' && abriu.ordem === ordem,
       `questão ${ordem} abre para a turma`, `estado ${abriu.estado}, ordem ${abriu.ordem}`);
-    conferir(p.segundos === 90, `questão ${ordem} dá noventa segundos`, `segundos = ${p.segundos}`);
+    conferir(p.segundos === TEMPO_ENSAIO, `questão ${ordem} dá os ${TEMPO_ENSAIO} s calibrados`, `segundos = ${p.segundos}`);
     conferir(p.peso === pesoEsperado,
       `questão ${ordem} tem peso ${pesoEsperado}`, `peso = ${p.peso}`);
+  }
+
+  if (ordem === 1) {
+    const trocaAberta = await rpc('quiz_tempo', { p_slug: SLUG, p_token: TOKEN, p_segundos: 30 });
+    conferir(trocaAberta.ok === false, 'a troca de tempo é recusada com a pergunta aberta', JSON.stringify(trocaAberta));
   }
 
   // O gabarito não chega ao aluno enquanto a pergunta está aberta.
@@ -207,6 +227,10 @@ executarPsql(BANCO,
   "and data::text like '%Ensaio %';",
   { slug: SLUG });
 console.log('  ok   o arquivamento do ensaio foi removido da série histórica');
+
+const devolvido = await rpc('quiz_tempo', { p_slug: SLUG, p_token: TOKEN, p_segundos: tempoOriginal.segundos });
+conferir(devolvido.ok === true && devolvido.segundos === tempoOriginal.segundos,
+  `a sala volta ao tempo original (${tempoOriginal.segundos} s)`, JSON.stringify(devolvido));
 
 console.log(`\n${verificacoes} verificações, ${falhas.length} falha(s).`);
 if (falhas.length) { falhas.forEach((f) => console.log(` - ${f}`)); process.exit(1); }

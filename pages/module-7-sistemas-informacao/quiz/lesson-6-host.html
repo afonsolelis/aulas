@@ -197,6 +197,12 @@
       background: color-mix(in srgb, var(--paper) 8%, transparent); color: var(--paper);
     }
     input:focus { outline: none; border-color: var(--si); }
+    /* Tempo por pergunta (supabase/quiz-tempo.sql) */
+    form.tempo { display: flex; gap: 8px; align-items: center; margin: 0; }
+    form.tempo label, form.tempo .unidade { font-size: .78rem; font-weight: 700; color: var(--muted); }
+    form.tempo input { width: 5.4em; padding: 10px; font-size: .95rem; text-align: right; }
+    form.tempo input:disabled { opacity: .35; }
+    form.tempo button { padding: 10px 14px; }
     .aviso { color: var(--alert); font-size: .85rem; font-weight: 700; min-height: 1.1em; }
     @media (max-width: 900px) {
       .duas-colunas, .grade-alt { grid-template-columns: 1fr; }
@@ -235,7 +241,7 @@
       <div class="lobby-texto">
         <h1>Aponte a câmera para entrar</h1>
         <div class="url-caixa" id="url-quiz"></div>
-        <p class="estado-txt">Cada aluno escolhe o próprio nome. A pergunta abre para todos ao mesmo tempo.</p>
+        <p class="estado-txt">Cada aluno escolhe o próprio nome. A pergunta abre para todos ao mesmo tempo, com <span id="lobby-segundos">90</span> segundos de cronômetro.</p>
         <div class="nomes" id="nomes"></div>
       </div>
     </section>
@@ -277,6 +283,13 @@
     <button id="btn-reabrir"  type="button" class="secundario">Reabrir</button>
     <button id="btn-encerrar" type="button" class="secundario">Encerrar sessão</button>
     <button id="btn-publicar" type="button" class="secundario">Publicar perguntas</button>
+    <form class="tempo" id="form-tempo" title="Segundos por pergunta. Troque entre perguntas; vale para a sala inteira.">
+      <label for="tempo-segundos">Tempo</label>
+      <input id="tempo-segundos" type="number" min="10" max="600" step="5" inputmode="numeric" required>
+      <span class="unidade">s</span>
+      <button id="btn-tempo" type="submit" class="secundario">Aplicar</button>
+      <span class="estado-txt" id="tempo-aviso" role="status"></span>
+    </form>
     <div class="direita">
       <span class="estado-txt" id="estado-txt"></span>
       <a class="link" href="lesson-6-perguntas.html">📝 Perguntas</a>
@@ -304,6 +317,61 @@
   let token = localStorage.getItem(CHAVE_TOKEN) || new URLSearchParams(location.search).get('token') || '';
   let ultimo = null;
   let laco = null;
+  let avisoTempoTimer = null;
+
+  /* Tempo por pergunta: o professor calibra entre perguntas e o valor vale
+     para todas as questões da sala, também nas turmas seguintes. Quem conta
+     o tempo (fechamento, pontuação, aparelho e este painel) lê o mesmo campo
+     no servidor. Ver supabase/quiz-tempo.sql. */
+  async function tempo(segundos) {
+    const args = { p_slug: SLUG, p_token: token };
+    if (segundos != null) args.p_segundos = segundos;
+    const { data, error } = await db.rpc('quiz_tempo', args);
+    if (error) throw error;
+    return data;
+  }
+
+  function mostrarTempo(segundos) {
+    if (!segundos) return;
+    el('lobby-segundos').textContent = segundos;
+    // não atropela o número que o professor está digitando
+    if (document.activeElement !== el('tempo-segundos')) el('tempo-segundos').value = segundos;
+  }
+
+  function avisoTempo(msg) {
+    el('tempo-aviso').textContent = msg;
+    clearTimeout(avisoTempoTimer);
+    avisoTempoTimer = setTimeout(() => { el('tempo-aviso').textContent = ''; }, 6000);
+  }
+
+  async function aplicarTempo(ev) {
+    ev.preventDefault();
+    const s = Number(el('tempo-segundos').value);
+    if (!Number.isInteger(s) || s < 10 || s > 600) { avisoTempo('Use de 10 a 600 segundos.'); return; }
+    el('btn-tempo').disabled = true;
+    try {
+      const d = await tempo(s);
+      if (!d.ok) { avisoTempo(d.erro); return; }
+      el('tempo-segundos').blur();
+      mostrarTempo(d.segundos);
+      avisoTempo(`Aplicado: ${d.segundos} s por pergunta.`);
+    } catch (e) {
+      avisoTempo('Falha de rede — o tempo não mudou.');
+      console.error(e);
+    } finally {
+      atualizarBotoes(ultimo);
+    }
+  }
+
+  async function carregarTempo() {
+    try {
+      const d = await tempo();
+      if (d.ok) mostrarTempo(d.segundos);
+    } catch (e) {
+      avisoTempo('Tempo fixo: falta aplicar supabase/quiz-tempo.sql.');
+      console.warn(e);
+    }
+  }
 
   function mostrar(tela) {
     document.querySelectorAll('[data-tela]').forEach((s) => s.classList.toggle('ativa', s.dataset.tela === tela));
@@ -348,6 +416,7 @@
       if (!d.ok) { el('aviso-auth').textContent = d.erro; return; }
       localStorage.setItem(CHAVE_TOKEN, token);
       aplicar(d);
+      carregarTempo();
       if (!laco) laco = setInterval(atualizar, 2000);
     } catch (e) {
       el('aviso-auth').textContent = 'Falha de rede ao verificar o token.';
@@ -474,6 +543,7 @@
       d.jogadores > 0 && respostas >= d.jogadores && d.estado !== 'lobby');
 
     offsetRelogio = new Date(d.servidor_agora).getTime() - Date.now();
+    if (d.pergunta) mostrarTempo(d.pergunta.segundos);
     if (d.estado === 'pergunta' && d.aberta_em && d.pergunta) {
       // Rearma apenas quando muda a pergunta ou o instante de abertura,
       // para a leitura periódica não reiniciar a contagem a cada 2 s.
@@ -549,6 +619,9 @@
     el('btn-publicar').classList.toggle('publicado', !!d.publicado);
     el('btn-publicar').disabled = false;
     el('btn-reiniciar').disabled = false;
+    // com a pergunta aberta o servidor recusa a troca; o campo espera a revelação
+    el('btn-tempo').disabled      = d.estado === 'pergunta';
+    el('tempo-segundos').disabled = d.estado === 'pergunta';
   }
 
   el('btn-auth').addEventListener('click', autenticar);
@@ -557,6 +630,7 @@
   el('btn-revelar').addEventListener('click', () => agir('revelar'));
   el('btn-reabrir').addEventListener('click', () => agir('reabrir'));
   el('btn-encerrar').addEventListener('click', () => agir('encerrar'));
+  el('form-tempo').addEventListener('submit', aplicarTempo);
   el('btn-publicar').addEventListener('click', () => {
     agir(ultimo && ultimo.publicado ? 'despublicar' : 'publicar');
   });

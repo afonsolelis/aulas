@@ -20,7 +20,7 @@ para outra aula, uma cópia das páginas com os caminhos ajustados.
 
 | Comportamento | Onde está | Observação |
 |---|---|---|
-| Noventa segundos por questão | `segundos` em `quiz_questions` | Padrão da coluna; o seed declara o valor |
+| Noventa segundos por questão, calibráveis | `segundos` em `quiz_questions`; `quiz_tempo()` | O seed declara 90. O campo **Tempo** do painel (10 a 600 s) chama `quiz_tempo`, que troca o valor de todas as questões da sala. Só entre perguntas (com pergunta aberta o servidor recusa) e persiste no Reiniciar; reaplicar o seed volta a 90 |
 | A pergunta fecha sozinha ao fim do tempo | `quiz_fechar_expirada()` | Chamada no início de `quiz_estado` e `quiz_host`; a virada de `quiz_sessions` chega à turma pelo Realtime, e o resultado aparece sem comando do professor |
 | Resposta após o prazo é recusada | `quiz_responder()` | Tolerância de um segundo, para a latência do aparelho |
 | A última questão vale o dobro | `peso` em `quiz_questions` | O seed grava 2 na última; as páginas anunciam antes de a turma responder |
@@ -262,6 +262,8 @@ série histórica.
   `publicado`). Idempotente e não destrutivo: é o arquivo a aplicar quando a
   lógica muda com a sala já criada.
 - `supabase/quiz-relatorio.sql` — colunas `tema`/`secao` e a função de relatório.
+- `supabase/quiz-tempo.sql` — a função `quiz_tempo`, que o campo **Tempo** do
+  painel chama. Cria só a função; aplicar depois de `quiz-funcoes.sql`.
 - `supabase/quiz-ingestao.sql` — tabela de recepção e arquivamento no reinício.
 - `scripts/auditar-quiz.mjs` — auditoria das questões.
 - Skills `escrita-academica` e `revisar-escrita` — registro da redação.
