@@ -2697,6 +2697,7 @@ SELECT (SELECT count(*) FROM (SELECT product_id FROM gold.dim_produto_hist
       objective: 'Definir indicadores de atualidade, completude, qualidade e custo para um pipeline, declarar objetivos de nível de serviço justificados pelo efeito no consumidor e construir uma verificação de anomalia capaz de detectar carga incompleta que conclui sem erro.',
       outcomes: [
         'Medir o pipeline pelas quatro dimensões de atualidade, completude, qualidade e custo, além da conclusão da tarefa.',
+        'Reconhecer que a execução bem-sucedida é compatível com a entrega incompleta, de modo que o desfecho da tarefa não é indicador de qualidade do dado.',
         'Distinguir métrica técnica, que indica a causa, de métrica de negócio, que indica a gravidade.',
         'Coletar métrica, registro de execução e linhagem, reconhecendo a pergunta que cada sinal responde.',
         'Declarar indicador, objetivo e orçamento de erro com justificativa negociada com quem consome.',
@@ -2802,7 +2803,7 @@ SELECT (SELECT count(*) FROM (SELECT product_id FROM gold.dim_produto_hist
         adr: 'ADR-OBS-01 — Alerta por sintoma observável pelo consumidor, em vez de alerta por falha de tarefa. Contexto: a carga que conclui sem trazer dado não gera falha. Consequência: exige referência histórica por dia da semana.',
         gherkin: 'Dada uma carga que conclui com 40% menos linhas que a referência do mesmo dia da semana, Quando a verificação de anomalia executa, Então o alerta dispara e a publicação fica suspensa.'
       },
-      estrategia: 'Primeira hora de exposição dialogada em três blocos, cada um encerrado por checklist de aplicação e erro comum. Segunda hora de atividade em grupo: os estudantes convertem a tabela de controle das Aulas 12 e 13 em série de execuções, calculam os quatro indicadores, declaram um objetivo por indicador com justificativa e detectam uma anomalia injetada pelo professor, medindo também quantos alertas falsos o limite escolhido produziria.',
+      estrategia: 'Primeira hora em TBL: a turma lê um caso de perda silenciosa de dados num armazém analítico e percorre cinco questões, uma para cada decisão que a observabilidade impõe. Em cada questão há decisão individual sem ver a turma, discussão com as justificativas exibidas sem identificação e segunda decisão, e a trajetória entre as duas rodadas é projetada. Segunda hora de exposição dialogada em três blocos, cada um retomando as decisões que a sala tomou sob restrição de custo e prazo e confrontando-as com a prática estabelecida, com checklist de aplicação e erro comum.',
       acceptance: [
         'Os quatro indicadores estão calculados sobre a série, com valor medido.',
         'A referência móvel exclui o dia em avaliação e respeita o dia da semana.',
