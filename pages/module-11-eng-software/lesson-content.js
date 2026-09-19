@@ -2693,19 +2693,29 @@ SELECT (SELECT count(*) FROM (SELECT product_id FROM gold.dim_produto_hist
     },
     15: {
       title: 'Métricas e Telemetria em ETLs', date: '21/09/2026',
-      subtitle: 'Instrumentar o pipeline para que o defeito seja descoberto pela equipe de dados antes de ser descoberto pelo negócio.',
-      objective: 'Definir indicadores de atualidade, completude, qualidade e custo para um pipeline, declarar objetivos de nível de serviço justificados pelo efeito no consumidor e construir uma verificação de anomalia capaz de detectar carga incompleta que conclui sem erro.',
+      subtitle: 'Encontro de avaliação escrita sobre observabilidade, aplicada ao pipeline que o grupo entrega ao parceiro. Este material é a base de estudo, ao lado dos dois artigos de leitura obrigatória.',
+      objective: 'Demonstrar, por escrito e individualmente, domínio dos conceitos de observabilidade — a definição de Kálmán, os três pilares, a instrumentação e seus custos, os tempos de incidente e a passagem do indicador ao alerta — aplicando cada um deles ao pipeline do próprio projeto.',
       outcomes: [
+        'Distinguir monitoramento de observabilidade e reconhecer a definição de Kálmán como origem do termo.',
+        'Atribuir a métricas, logs e traces a pergunta que cada sinal responde, e reconhecer que a correlação entre eles é o que leva do sintoma à causa.',
+        'Explicar o que é instrumentar uma aplicação e o que o padrão aberto preserva quando a ferramenta muda.',
+        'Justificar o que não coletar, considerando volume, cardinalidade, retenção e trabalho manual.',
+        'Relacionar cada sinal de telemetria ao tempo de incidente que ele encurta, entre descoberta, reconhecimento e reparo.',
         'Medir o pipeline pelas quatro dimensões de atualidade, completude, qualidade e custo, além da conclusão da tarefa.',
-        'Reconhecer que a execução bem-sucedida é compatível com a entrega incompleta, de modo que o desfecho da tarefa não é indicador de qualidade do dado.',
-        'Distinguir métrica técnica, que indica a causa, de métrica de negócio, que indica a gravidade.',
-        'Coletar métrica, registro de execução e linhagem, reconhecendo a pergunta que cada sinal responde.',
         'Declarar indicador, objetivo e orçamento de erro com justificativa negociada com quem consome.',
-        'Controlar a cardinalidade dos rótulos e a retenção da própria telemetria.',
-        'Detectar anomalia por referência móvel que absorve a sazonalidade semanal.',
         'Formular alerta por sintoma observável, com procedimento e destinatário declarados.'
       ],
       sections: [
+        {
+          nav: 'Avaliação', title: 'O que cai na prova de 21/09',
+          text: 'O encontro é uma avaliação escrita individual, no papel, sem consulta e sem aparelho eletrônico. Os vinte minutos iniciais recuperam em exposição os conceitos dos dois artigos de leitura obrigatória; em seguida o enunciado é projetado e permanece na tela durante os setenta e cinco minutos de escrita. O comando é único e dividido em cinco partes de peso declarado, e todas elas pedem que a resposta trate do pipeline do próprio projeto: resposta genérica, que serviria para qualquer pipeline, recebe metade da parte. A leitura obrigatória são os dois artigos indicados nas referências, e este material cobre a camada aplicada a ETL que as partes finais exigem.',
+          checklist: [
+            'Leia os dois artigos antes do encontro: a origem do termo em Kálmán, os três pilares, a instrumentação por agente, os tempos MTTD, MTTA e MTTR, o OpenTelemetry e as ferramentas abertas saem deles.',
+            'Reveja as etapas do pipeline do seu projeto com os nomes que elas têm no repositório do grupo, porque as respostas precisam citá-las.',
+            'Retome deste material as quatro dimensões, a distinção entre indicador e objetivo e a detecção de anomalia por referência móvel.'
+          ],
+          pitfall: 'Estudar apenas as definições dos artigos. Três das cinco partes pedem aplicação ao pipeline do grupo, e a definição isolada, sem o caso concreto, não completa a resposta.'
+        },
         {
           nav: 'O que medir', title: 'As quatro dimensões',
           text: 'Atualidade mede a distância entre o fato na origem e sua disponibilidade no destino; completude compara o que a origem tem com o que o destino recebeu; qualidade acompanha a taxa de rejeição por motivo; custo atribui bytes varridos e tempo de processamento ao domínio responsável. A execução bem-sucedida informa apenas que o processo terminou.',
@@ -2803,17 +2813,19 @@ SELECT (SELECT count(*) FROM (SELECT product_id FROM gold.dim_produto_hist
         adr: 'ADR-OBS-01 — Alerta por sintoma observável pelo consumidor, em vez de alerta por falha de tarefa. Contexto: a carga que conclui sem trazer dado não gera falha. Consequência: exige referência histórica por dia da semana.',
         gherkin: 'Dada uma carga que conclui com 40% menos linhas que a referência do mesmo dia da semana, Quando a verificação de anomalia executa, Então o alerta dispara e a publicação fica suspensa.'
       },
-      estrategia: 'Primeira hora em TBL: a turma lê um caso de perda silenciosa de dados num armazém analítico e percorre cinco questões, uma para cada decisão que a observabilidade impõe. Em cada questão há decisão individual sem ver a turma, discussão com as justificativas exibidas sem identificação e segunda decisão, e a trajetória entre as duas rodadas é projetada. Segunda hora de exposição dialogada em três blocos, cada um retomando as decisões que a sala tomou sob restrição de custo e prazo e confrontando-as com a prática estabelecida, com checklist de aplicação e erro comum.',
+      estrategia: 'Avaliação escrita individual, no papel, sem consulta e sem aparelho eletrônico. Os vinte minutos iniciais recuperam em exposição os conceitos dos dois artigos de leitura obrigatória, de modo que a prova cobre compreensão e aplicação, e não memória de leitura recente. O enunciado é projetado uma única vez, após o professor autenticar-se no slide, e permanece na tela durante a escrita: o texto não está no repositório e é buscado do banco no momento da aplicação. O comando é único e dividido em cinco partes de peso declarado, todas exigindo que a resposta trate do pipeline do próprio projeto.',
       acceptance: [
-        'Os quatro indicadores estão calculados sobre a série, com valor medido.',
-        'A referência móvel exclui o dia em avaliação e respeita o dia da semana.',
-        'Cada limite é justificado pelo efeito sobre o consumidor.',
-        'A anomalia injetada foi detectada, com o desvio medido em percentual.',
-        'O número de alertas falsos do limite adotado está contado na série inteira.',
-        'Cada alerta tem procedimento correspondente e destinatário declarado.'
+        'As cinco partes do comando estão respondidas e identificadas pela letra.',
+        'Monitoramento e observabilidade estão distinguidos, com a definição de Kálmán reconhecida.',
+        'A cada pilar corresponde o dado coletado, o ponto da execução e a pergunta que ele responde.',
+        'A instrumentação proposta cita as etapas do pipeline do grupo pelos nomes que elas têm no projeto.',
+        'O incidente descrito conclui com sucesso e ainda assim publica dado errado, e cada tempo de incidente está associado ao sinal que o encurta.',
+        'O indicador tem objetivo com limite numérico justificado pelo efeito no consumidor, e o alerta está formulado pelo sintoma, com destinatário e primeira ação.'
       ],
-      deliverable: 'O painel de telemetria do card de trabalho, com as quatro consultas de indicador, a consulta de anomalia e o limite adotado, a justificativa de cada limite pelo efeito no consumidor, o desvio medido da execução anômala, a contagem de alertas falsos que o limite produziria na série de trinta dias, e o procedimento e o destinatário declarados para cada alerta.',
+      deliverable: 'A prova manuscrita, em folhas identificadas com nome e turma e numeradas na ordem de leitura, com as cinco partes do comando respondidas e identificadas pela letra correspondente.',
       references: [
+        { label: 'RAFAEL, Andrey — A importância da observabilidade em tempos de computação em nuvem (Data Hackers, 2022) — leitura obrigatória', href: 'https://medium.com/data-hackers/a-import%C3%A2ncia-da-observabilidade-em-tempos-de-computa%C3%A7%C3%A3o-em-nuvem-6af0382ab30d' },
+        { label: 'InfoQ Brasil — Observabilidade em microsserviços (2018) — leitura obrigatória', href: 'https://www.infoq.com/br/news/2018/07/observability-microservices/' },
         { label: 'Google SRE Book — Service Level Objectives', href: 'https://sre.google/sre-book/service-level-objectives/' },
         { label: 'Google SRE Book — Monitoring Distributed Systems', href: 'https://sre.google/sre-book/monitoring-distributed-systems/' },
         { label: 'OpenTelemetry — Signals', href: 'https://opentelemetry.io/docs/concepts/signals/' },
