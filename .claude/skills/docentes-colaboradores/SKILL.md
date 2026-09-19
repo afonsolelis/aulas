@@ -59,8 +59,11 @@ Para cada aula `N` da tabela acima:
 - **Datas de aula.** `date` no config, `config/calendar.json` e o `📅` do card da home são
   definidos pela coordenação e mantidos pelo professor titular.
 - **Numeração, criação ou remoção de aulas**, e qualquer renumeração de arquivos.
-- **Aulas de outros docentes** — Afonso Brandão e Reginaldo no Módulo 11 — e qualquer
-  conteúdo de outro módulo.
+- **Aulas de outros docentes** — Afonso Brandão, Reginaldo e José Romualdo no Módulo 11 — e
+  qualquer conteúdo de outro módulo. A Aula 16, Integração do Datawarehouse com a Interface
+  Analítica, era de Afonso Brandão e passou a José Romualdo em 19/09/2026. A transferência
+  registra a titularidade da aula; o Prof. José Romualdo não recebeu acesso ao repositório,
+  e o material continua mantido pelo professor titular.
 - **Arquivos globais de estrutura:** `css/inteli-styles.css`, `tests/`, `scripts/`,
   `config/calendar.json`, `index.html`.
 - **`git push` direto na `main`** (sem PR) e **merge de PR que saia do escopo permitido**
