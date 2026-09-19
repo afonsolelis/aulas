@@ -291,6 +291,21 @@ test.describe('TBL · Aula 15 do Módulo 11 · observabilidade de pipelines', ()
     await expect(ana.locator('button.opcao')).toHaveCount(4);
     await expect(ana.locator('.barras')).toHaveCount(0);
 
+    // Projeção: as quatro alternativas são discutidas com a turma olhando para
+    // elas, então precisam caber lado a lado e acima da dobra.
+    const layout = await professor.evaluate(() => {
+      const cartoes = [...document.querySelectorAll('#projecao .opcao')];
+      return {
+        cartoes: cartoes.length,
+        linhas: new Set(cartoes.map(c => Math.round(c.getBoundingClientRect().top))).size,
+        fim: Math.max(...cartoes.map(c => c.getBoundingClientRect().bottom)),
+        altura: window.innerHeight,
+      };
+    });
+    expect(layout.cartoes).toBe(4);
+    expect(layout.linhas).toBe(1);
+    expect(layout.fim).toBeLessThanOrEqual(layout.altura);
+
     // Com a questão aberta, o cronômetro do painel conta o prazo da fase.
     await expect(professor.locator('#tempo-grande')).toHaveText(/^0[23]:\d{2}$/);
     await expect(professor.locator('#tempo-etiqueta')).toContainText('Primeira decisão individual · questão 1');
@@ -316,6 +331,11 @@ test.describe('TBL · Aula 15 do Módulo 11 · observabilidade de pipelines', ()
     await expect(ana.locator('#conteudo')).toContainText('A reconciliação verifica o fato');
     await expect(ana.locator('.barras')).toHaveCount(1);
     await expect(ana.locator('button.opcao')).toHaveCount(0);
+    // As alternativas continuam na tela, agora sem serem clicáveis, com o
+    // placar da primeira rodada dentro de cada cartão.
+    await expect(ana.locator('div.opcao')).toHaveCount(4);
+    await expect(ana.locator('.placar')).toHaveCount(4);
+    await expect(professor.locator('#projecao div.opcao')).toHaveCount(4);
 
     // Segunda decisão: a turma permanece à vista e a decisão começa em branco.
     await professor.click('#btn-avancar');
@@ -332,6 +352,12 @@ test.describe('TBL · Aula 15 do Módulo 11 · observabilidade de pipelines', ()
     await sincronizar(ana);
     await expect(ana.locator('#selo-fase')).toContainText('Síntese · questão 1 de 3');
     await expect(ana.locator('.barras')).toHaveCount(2);
+    // A síntese é onde a discussão acontece: as alternativas não saem da tela,
+    // e cada cartão carrega os placares das duas rodadas.
+    await expect(ana.locator('div.opcao')).toHaveCount(4);
+    await expect(professor.locator('#projecao div.opcao')).toHaveCount(4);
+    await expect(professor.locator('#projecao .placar').first()).toContainText('1ª');
+    await expect(professor.locator('#projecao .placar').first()).toContainText('2ª');
     await expect(ana.locator('#conteudo')).toContainText('D → B');
 
     // Questão 2: a sala avança de questão e a decisão recomeça em branco.
