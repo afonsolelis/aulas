@@ -118,7 +118,11 @@ for (const pagina of cfg.paginas) {
     test('o botão declara docente e sequencial do padrão de nome', () => {
       const html = readRepoFile(pagina.path);
       const enc = cfg.encontros[pagina.encontro];
-      expect(html).toContain(`data-encontro-docente="${enc.docente}"`);
+      // O atributo alimenta o nome do arquivo PDF, que é ASCII: um docente
+      // chamado José produz "2026-09-23-Jose-01". A acentuação permanece na
+      // ficha, que é texto lido em tela.
+      const semAcento = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '');
+      expect(html).toContain(`data-encontro-docente="${semAcento(enc.docente)}"`);
       expect(html).toContain(`data-encontro-seq="${pagina.seq}"`);
       expect(['01', '02', '03'], `sequencial inesperado em ${pagina.path}`).toContain(pagina.seq);
       const data = /data-encontro-data="([^"]*)"/.exec(html);

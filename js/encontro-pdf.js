@@ -30,9 +30,20 @@
     return `${d.getFullYear()}-${mm}-${dd}`;
   }
 
+  /**
+   * Nome de arquivo não leva acento. O docente pode chamar-se José ou
+   * Mônica, e o acervo é sincronizado com o Drive da coordenação e baixado
+   * em máquinas de sistemas diversos, onde a acentuação no nome vira
+   * caractere trocado ou arquivo que não abre. A ficha continua exibindo o
+   * nome escrito corretamente; apenas o arquivo é reduzido a ASCII.
+   */
+  function semAcento(texto) {
+    return texto.normalize('NFD').replace(/[̀-ͯ]/g, '');
+  }
+
   function nomeArquivo(btn) {
     const data = (btn.dataset.encontroData || '').trim() || hoje();
-    const docente = (btn.dataset.encontroDocente || 'Afonso').trim();
+    const docente = semAcento((btn.dataset.encontroDocente || 'Afonso').trim());
     const seq = (btn.dataset.encontroSeq || '01').trim();
     return `${data}-${docente}-${seq}`;
   }

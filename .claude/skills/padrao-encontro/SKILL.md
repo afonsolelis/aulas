@@ -41,11 +41,18 @@ ANO-MÊS-DIA-Nome-NoSequencial        →  2026-08-06-Afonso-01
 | Componente | Origem | Regra |
 |---|---|---|
 | `ANO-MÊS-DIA` | `data` do encontro em `config/encontros.json` | Formato `AAAA-MM-DD`. Quando o encontro ainda não tem data registrada, o botão usa a data da exportação. |
-| `Nome` | `docente` do encontro | Primeiro nome de quem ministra o encontro, conforme o config do módulo. Cada docente publica na própria pasta do Drive. |
+| `Nome` | `docente` do encontro | Primeiro nome de quem ministra o encontro, conforme o config do módulo, **sem acentuação**: `José` vira `Jose`. Cada docente publica na própria pasta do Drive. |
 | `NoSequencial` | tipo do artefato | `01` slides e páginas de aula · `02` material de leitura · `03` plano de ensino. Os três artefatos do mesmo encontro convivem sem colidir. |
 
 O nome é aplicado substituindo o `document.title` durante a impressão — é ele que o
 navegador sugere ao salvar em PDF. O título original é restaurado em seguida.
+
+A acentuação é removida em dois pontos: `scripts/apply-encontro.mjs` escreve
+`data-encontro-docente` já em ASCII, e `js/encontro-pdf.js` normaliza de novo ao montar o
+nome, de modo que uma página injetada antes dessa regra também sai correta. O acervo é
+sincronizado com o Drive da coordenação e baixado em sistemas diversos, onde o acento no
+nome do arquivo vira caractere trocado. A ficha do encontro continua exibindo o nome do
+docente escrito corretamente — ali é texto, não identificador.
 
 ## Fonte de verdade
 

@@ -54,12 +54,21 @@ function fichaHtml(enc, { titulo }) {
   );
 }
 
+/**
+ * O atributo alimenta o nome do arquivo PDF, que não leva acento — ver
+ * `semAcento` em js/encontro-pdf.js. A ficha do encontro continua exibindo
+ * o nome do docente escrito corretamente, com acentuação.
+ */
+function semAcento(texto) {
+  return String(texto).normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
 function botaoHtml(enc, seq, rel) {
   return (
     `${MARK.pdfStart}\n` +
     `<button type="button" class="pdf-export-btn" ` +
     `data-encontro-data="${esc(enc.data || '')}" ` +
-    `data-encontro-docente="${esc(enc.docente)}" ` +
+    `data-encontro-docente="${esc(semAcento(enc.docente))}" ` +
     `data-encontro-seq="${esc(seq)}" ` +
     `title="Exportar esta página em PDF com o nome padronizado">📄 Exportar PDF</button>\n` +
     `<script src="${rel}js/encontro-pdf.js" defer></script>\n` +
