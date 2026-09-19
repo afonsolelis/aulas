@@ -230,3 +230,7 @@ Dates are stored as `dd/mm/yyyy` strings to match exactly what is rendered in th
 ## Nested Projects
 
 `module_guidelines/es_06/` e `module_guidelines/in_02/` são subprojetos independentes (propostas, sprints, artefatos de disciplinas específicas) com seus **próprios** `AGENTS.md`/`AGENTS.md` — não fazem parte da arquitetura do portal HTML acima e suas regras não se aplicam fora dessas pastas.
+
+## Escrita (obrigatório)
+
+Todo texto destinado ao aluno (slides, materiais, páginas, quizzes, atividades) segue as skills `escrita-afonso` e `humanizacao`, em `.claude/skills/`. Aplique-as já na redação, e não só numa revisão posterior. Evite linguagem de rede social: título em forma de aforismo, travessão como conector, "não é X, é Y", negrito na prosa, setas decorativas e frases de efeito no fechamento. Títulos de slide devem ser descritivos e curtos, cabendo em uma linha na projeção. Preserve números, fatos, código e prompts.
