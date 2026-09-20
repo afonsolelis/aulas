@@ -155,7 +155,7 @@
           <label for="campo-token">Token do professor</label>
           <input type="password" id="campo-token" name="token" placeholder="••••••••••••" autocomplete="off" spellcheck="false" required>
           <button type="submit" id="btn-abrir">Abrir a prova</button>
-          <p class="prova-status" id="status-abertura" role="status" aria-live="polite">A prova ocupa os slides seguintes assim que o token for aceito.</p>
+          <p class="prova-status" id="status-abertura" role="status" aria-live="polite">O enunciado inteiro ocupa o slide seguinte assim que o token for aceito.</p>
         </form>
         <div class="callout rise" style="--delay:.12s">
           <p>O texto digitado fica oculto na projeção e não é gravado em disco. As tentativas erradas são contadas: oito falhas em cinco minutos suspendem novas tentativas, e o token correto continua valendo durante a suspensão.</p>
@@ -328,34 +328,12 @@
       return secao;
     }
 
-    function slideComando(prova) {
+    /* Enunciado inteiro em um slide. A prova dura setenta e cinco minutos e
+       o professor não volta ao teclado durante a escrita: contexto, comando,
+       regras e as cinco partes ficam na mesma tela, do token ao recolhimento. */
+    function slideProva(prova) {
       const regras = (prova.regras || [])
         .map((r) => '<li>' + escapar(r) + '</li>').join('');
-      return montarSecao(
-        '<header class="slide-head dark">' +
-          '<p class="eyebrow">Prova escrita · ' + escapar(prova.duracao) + ' minutos</p>' +
-          '<h2 class="slide-title">' + escapar(prova.titulo) + '</h2>' +
-        '</header>' +
-        '<div class="prova-contexto"><p>' + escapar(prova.contexto) + '</p></div>' +
-        '<div class="prova-comando"><span class="card-label">Comando</span><p>' +
-          escapar(prova.comando) + '</p></div>' +
-        '<ul class="prova-regras">' + regras + '</ul>',
-        'slide-prova-comando'
-      );
-    }
-
-    function slideParte(parte) {
-      return montarSecao(
-        '<header class="slide-head red">' +
-          '<p class="eyebrow">Parte ' + escapar(parte.rotulo) + ' · peso ' + escapar(parte.peso) + '</p>' +
-          '<h2 class="slide-title">' + escapar(parte.titulo) + '</h2>' +
-        '</header>' +
-        '<div class="prova-parte"><span class="prova-rotulo">' + escapar(parte.rotulo) + '</span>' +
-          '<p>' + escapar(parte.enunciado) + '</p></div>'
-      );
-    }
-
-    function slideConsolidado(prova) {
       const partes = (prova.partes || []).map((p) =>
         '<article class="prova-item">' +
           '<span class="prova-rotulo pequeno">' + escapar(p.rotulo) + '</span>' +
@@ -364,11 +342,21 @@
         '</article>').join('');
       return montarSecao(
         '<header class="slide-head dark">' +
-          '<p class="eyebrow">Prova completa · permanece projetada durante a escrita</p>' +
+          '<p class="eyebrow">Prova escrita · ' + escapar(prova.duracao) + ' minutos · ' +
+            (prova.partes || []).length + ' partes</p>' +
           '<h2 class="slide-title">' + escapar(prova.titulo) + '</h2>' +
-          '<p class="slide-subtitle">' + escapar(prova.comando) + '</p>' +
         '</header>' +
-        '<div class="prova-lista">' + partes + '</div>',
+        '<div class="prova-unico">' +
+          '<div class="prova-col">' +
+            '<div class="prova-contexto"><span class="card-label">Situação</span><p>' +
+              escapar(prova.contexto) + '</p></div>' +
+            '<div class="prova-comando"><span class="card-label">Comando</span><p>' +
+              escapar(prova.comando) + '</p></div>' +
+            '<div class="prova-regrario"><span class="card-label">Regras</span>' +
+              '<ul class="prova-regras">' + regras + '</ul></div>' +
+          '</div>' +
+          '<div class="prova-lista">' + partes + '</div>' +
+        '</div>',
         'slide-prova-completa'
       );
     }
@@ -376,19 +364,15 @@
     function projetar(prova) {
       document.querySelectorAll('.prova-slide').forEach((s) => s.remove());
 
-      const fragmento = document.createDocumentFragment();
-      fragmento.appendChild(slideComando(prova));
-      (prova.partes || []).forEach((parte) => fragmento.appendChild(slideParte(parte)));
-      fragmento.appendChild(slideConsolidado(prova));
-
-      abertura.after(fragmento);
+      abertura.after(slideProva(prova));
       indexarSlides();
 
       form.hidden = true;
       status.hidden = true;
       abertura.querySelector('.callout').innerHTML =
-        '<p>Prova aberta: ' + (prova.partes || []).length +
-        ' partes nos slides seguintes. O slide final traz o comando inteiro e é o que fica projetado durante a escrita.</p>';
+        '<p>Prova aberta. O enunciado inteiro está no slide seguinte, com as ' +
+        (prova.partes || []).length +
+        ' partes, e permanece projetado durante a escrita sem que seja preciso avançar.</p>';
 
       showSlide(slides.indexOf(abertura) + 1);
     }
