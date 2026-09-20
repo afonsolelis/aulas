@@ -77,7 +77,8 @@ Antes de entregar, confirme:
 - O mecanismo proposto está identificado como evidência ou hipótese?
 - A conclusão responde ao objetivo sem exceder o desenho do estudo?
 - O texto continua reconhecível como assertivo e aplicado?
+- Toda afirmação empírica tem fonte declarada? Expressões como “nas turmas anteriores”, “observado nos testes” e “na maioria dos casos” exigem dado real; sem ele, enuncie o mecanismo ou a expectativa, e não uma observação.
 
 ## Amostra autoral e humanização
 
-A dissertação está em `../../../../tese/escrita/Afonso Cesar Lelis Brandao.pdf` (projeto irmão `tese`). Para retirar ornamentação, frases de efeito e padrões repetitivos, aplique [humanizacao](../humanizacao/SKILL.md), preservando evidências, citações e a marcação do arquivo (comandos LaTeX, tags e entidades HTML). A amostra orienta a voz sem substituir normas atuais ou instruções do usuário.
+A dissertação está em `../../../../tese/escrita/Afonso Cesar Lelis Brandao.pdf` (projeto irmão `tese`). Esse caminho resolve apenas na máquina do autor: a pasta `tese` não é versionada neste repositório e não existe em sessões remotas, onde o acervo é clonado sozinho. Quando o PDF não estiver acessível, use [references/amostra-prosa-autoral.md](references/amostra-prosa-autoral.md), que reproduz trechos autorais anotados e dispensa a dissertação para calibrar a voz. Para retirar ornamentação, frases de efeito e padrões repetitivos, aplique [humanizacao](../humanizacao/SKILL.md), preservando evidências, citações e a marcação do arquivo (comandos LaTeX, tags e entidades HTML). A amostra orienta a voz sem substituir normas atuais ou instruções do usuário.
