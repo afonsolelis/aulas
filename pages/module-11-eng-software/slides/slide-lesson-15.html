@@ -307,6 +307,8 @@
     const botao = document.getElementById('btn-abrir');
     const status = document.getElementById('status-abertura');
     const abertura = document.getElementById('slide-abertura');
+    const AVISO_ABERTURA = abertura.querySelector('.callout').innerHTML;
+    const STATUS_ABERTURA = status.textContent;
 
     /* sessionStorage, e não localStorage: o token morre ao fechar a aba,
        e a máquina da sala não fica guardando credencial de professor. */
@@ -341,10 +343,13 @@
           '<p>' + escapar(p.enunciado) + '</p></div>' +
         '</article>').join('');
       return montarSecao(
-        '<header class="slide-head dark">' +
-          '<p class="eyebrow">Prova escrita · ' + escapar(prova.duracao) + ' minutos · ' +
-            (prova.partes || []).length + ' partes</p>' +
-          '<h2 class="slide-title">' + escapar(prova.titulo) + '</h2>' +
+        '<header class="slide-head dark prova-cabeca">' +
+          '<div>' +
+            '<p class="eyebrow">Prova escrita · ' + escapar(prova.duracao) + ' minutos · ' +
+              (prova.partes || []).length + ' partes</p>' +
+            '<h2 class="slide-title">' + escapar(prova.titulo) + '</h2>' +
+          '</div>' +
+          '<button type="button" class="prova-fechar">Fechar o enunciado</button>' +
         '</header>' +
         '<div class="prova-unico">' +
           '<div class="prova-col">' +
@@ -361,10 +366,28 @@
       );
     }
 
+    /* Fechar devolve o deck ao estado anterior ao token. O slide do enunciado
+       é removido, a memória de sessão é apagada e o formulário volta em branco,
+       de modo que reabrir a prova exige digitar o token outra vez. */
+    function fechar() {
+      document.querySelectorAll('.prova-slide').forEach((s) => s.remove());
+      try { sessionStorage.removeItem(GUARDA_TOKEN); } catch (e) { /* aba privada */ }
+      form.hidden = false;
+      status.hidden = false;
+      campo.value = '';
+      status.textContent = STATUS_ABERTURA;
+      abertura.querySelector('.callout').innerHTML = AVISO_ABERTURA;
+      indexarSlides();
+      showSlide(slides.indexOf(abertura));
+      campo.focus();
+    }
+
     function projetar(prova) {
       document.querySelectorAll('.prova-slide').forEach((s) => s.remove());
 
-      abertura.after(slideProva(prova));
+      const slide = slideProva(prova);
+      abertura.after(slide);
+      slide.querySelector('.prova-fechar').addEventListener('click', fechar);
       indexarSlides();
 
       form.hidden = true;

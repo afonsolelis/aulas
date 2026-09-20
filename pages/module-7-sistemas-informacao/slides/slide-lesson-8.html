@@ -220,6 +220,9 @@
     .prova-slide { padding:50px 58px 68px 26px; }  /* a direita abre espaço para o selo fixo da semana */
     .prova-slide .sc { width:96%; max-height:none; height:100%; transform:none; display:flex; flex-direction:column; }
     .prova-slide .sh { padding:9px 17px; margin-bottom:0; }
+    .prova-cabeca { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+    .prova-fechar { flex:0 0 auto; padding:7px 15px; border:1px solid rgba(255,255,255,.42); border-radius:999px; background:rgba(255,255,255,.15); color:var(--paper); font:800 .74rem 'Manrope',sans-serif; cursor:pointer; }
+    .prova-fechar:hover { background:rgba(255,255,255,.28); }
     .prova-slide .sh .st { font-size:clamp(1rem,1.5vw,1.95rem); }
     .prova-slide .sh .ss { font-size:clamp(.66rem,.92vw,1.12rem); }
     .prova-unico { display:grid; grid-template-columns:minmax(0,38fr) minmax(0,62fr); gap:9px; margin:9px 0 0; min-height:0; flex:1; align-items:start; }
@@ -233,8 +236,8 @@
     .prova-regrario { padding:8px 13px; border:1px solid var(--line); border-radius:10px; background:var(--paper); }
     .prova-unico .prova-regras { display:grid; grid-template-columns:1fr; gap:2px; margin:3px 0 0; padding:0 0 0 15px; }
     .prova-unico .prova-regras li { font-size:clamp(.58rem,.8vw,1rem); line-height:1.34; }
-    .prova-unico .prova-lista { display:grid; gap:4px; align-content:start; min-height:0; }
-    .prova-unico .prova-item { padding:4px 11px; gap:9px; }
+    .prova-unico .prova-lista { display:grid; gap:3px; align-content:start; min-height:0; }
+    .prova-unico .prova-item { padding:3px 11px; gap:9px; }
     .prova-unico .prova-item h3 { font-size:clamp(.72rem,1vw,1.28rem); margin:0 0 1px; }
     .prova-unico .prova-item p { font-size:clamp(.68rem,.95vw,1.22rem); line-height:1.38; }
     .prova-unico .prova-rotulo.pequeno { width:clamp(27px,2.05vw,41px); height:clamp(27px,2.05vw,41px); border-radius:8px; font-size:clamp(.82rem,1.12vw,1.4rem); }
@@ -505,6 +508,8 @@
   const botao = document.getElementById('btn-abrir');
   const status = document.getElementById('status-abertura');
   const abertura = document.getElementById('slide-abertura');
+  const AVISO_ABERTURA = abertura.querySelector('.callout').innerHTML;
+  const STATUS_ABERTURA = status.textContent;
 
   /* sessionStorage, e não localStorage: o token morre ao fechar a aba,
      e a máquina da sala não fica guardando credencial de professor. */
@@ -538,10 +543,13 @@
         '<p>' + escapar(p.enunciado) + '</p></div>' +
       '</article>').join('');
     return montarSecao(
-      '<header class="sh dark">' +
-        '<div class="st">' + escapar(prova.titulo) + '</div>' +
-        '<p class="ss">Prova escrita · ' + escapar(prova.duracao) + ' minutos · ' +
-          (prova.partes || []).length + ' partes</p>' +
+      '<header class="sh dark prova-cabeca">' +
+        '<div>' +
+          '<div class="st">' + escapar(prova.titulo) + '</div>' +
+          '<p class="ss">Prova escrita · ' + escapar(prova.duracao) + ' minutos · ' +
+            (prova.partes || []).length + ' partes</p>' +
+        '</div>' +
+        '<button type="button" class="prova-fechar">Fechar o enunciado</button>' +
       '</header>' +
       '<div class="prova-unico">' +
         '<div class="prova-col">' +
@@ -558,10 +566,27 @@
     );
   }
 
+  /* Fechar devolve o deck ao estado anterior ao token. O slide do enunciado
+     é removido, a memória de sessão é apagada e o formulário volta em branco,
+     de modo que reabrir a prova exige digitar o token outra vez. */
+  function fechar() {
+    document.querySelectorAll('.prova-slide').forEach((s) => s.remove());
+    try { sessionStorage.removeItem(GUARDA_TOKEN); } catch (e) { /* aba privada */ }
+    form.hidden = false;
+    campo.value = '';
+    status.textContent = STATUS_ABERTURA;
+    abertura.querySelector('.callout').innerHTML = AVISO_ABERTURA;
+    indexarSlides();
+    showSlide(slides.indexOf(abertura));
+    campo.focus();
+  }
+
   function projetar(prova) {
     document.querySelectorAll('.prova-slide').forEach((s) => s.remove());
 
-    abertura.after(slideProva(prova));
+    const slide = slideProva(prova);
+    abertura.after(slide);
+    slide.querySelector('.prova-fechar').addEventListener('click', fechar);
     indexarSlides();
 
     form.hidden = true;
