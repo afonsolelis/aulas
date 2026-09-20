@@ -2787,8 +2787,8 @@ SELECT (SELECT count(*) FROM (SELECT product_id FROM gold.dim_produto_hist
           pitfall: 'Manter alerta sem procedimento associado. Em poucas semanas ele se torna ruído, e o volume de alertas ignorados passa a ocultar os relevantes.'
         },
         {
-          nav: 'Card de trabalho', title: 'As três perguntas da atividade em sala',
-          text: 'A segunda hora do encontro é atividade em grupo sobre a tabela de execuções das Aulas 12 e 13: quais são os quatro indicadores do pipeline; qual limite o grupo declara para cada um e com que justificativa; e em quantas execuções a anomalia injetada pelo professor é detectada. A terceira exige medir também os alertas falsos do limite escolhido.',
+          nav: 'Três perguntas', title: 'Medir o pipeline do grupo',
+          text: 'Três perguntas organizam o estudo sobre a tabela de execuções das Aulas 12 e 13: quais são os quatro indicadores do pipeline; qual limite o grupo declara para cada um, e com que justificativa; e em quantas execuções uma queda de volume seria detectada pelo limite escolhido. A terceira exige medir também os alertas falsos que esse limite produziria na série.',
           checklist: [
             'Calcule os quatro indicadores sobre a série, com uma consulta por dimensão.',
             'Justifique cada limite pelo efeito sobre o consumidor.',
@@ -2797,8 +2797,8 @@ SELECT (SELECT count(*) FROM (SELECT product_id FROM gold.dim_produto_hist
           pitfall: 'Adotar o limite sem testá-lo contra a série histórica. O limite de 5% marca várias execuções legítimas, e o de 50% deixa passar a carga com 40% menos registros.'
         },
         {
-          nav: 'Telemetria em DuckDB', title: 'Construção do painel em sala',
-          text: 'O laboratório converte a tabela de controle em série de trinta execuções com sazonalidade semanal, calcula atualidade, completude, qualidade e custo, declara um objetivo por indicador e detecta uma anomalia injetada que conclui com status de sucesso. A IA gera as consultas e critica a própria cobertura, e a escolha do limite permanece com o grupo.',
+          nav: 'Telemetria em DuckDB', title: 'O painel sobre a tabela de controle',
+          text: 'A tabela de controle das Aulas 12 e 13 sustenta a construção do painel fora do encontro: converter as execuções em série de trinta dias com sazonalidade semanal, calcular atualidade, completude, qualidade e custo, declarar um objetivo por indicador e verificar se uma execução que conclui com status de sucesso e volume menor seria detectada. Consultas geradas por IA reduzem o tempo dessa construção, e a escolha do limite permanece com o grupo.',
           checklist: [
             'Confirme que a sazonalidade semanal está presente na série antes de medir.',
             'Verifique que a janela da referência exclui a execução em avaliação.',
