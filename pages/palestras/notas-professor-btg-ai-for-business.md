@@ -7,7 +7,7 @@ Roteiro de fala do encontro com os embaixadores do BTG Pactual (23/09/2026). O d
 
 | Horário | Telas | Conteúdo | Conduz |
 |---|---|---|---|
-| 09:00 – 09:15 | 5–11 | Da máquina à generalização: sete telas visuais, do ENIAC aos três limites do estado atual | Rodrigo |
+| 09:00 – 09:15 | 5–11 | Da máquina à generalização: sete telas visuais, do ENIAC ao que o estado atual faz e não garante | Rodrigo |
 | 09:15 – 09:22 | 12–13 | Como o Gemini produz uma resposta; o token e a troca de modelo | Afonso |
 | 09:22 – 09:30 | 14–17 | Terminologia: contexto, ferramenta, agente, skill e harness | Rodrigo |
 
@@ -113,7 +113,7 @@ A referência humana está no comportamento observado, não na exigência de que
 
 #### Expansão opcional
 
-Pontuar que imitar convincentemente uma conversa não prova verdade, consciência ou compreensão. Essa diferença voltará no último slide.
+Pontuar que imitar convincentemente uma conversa não prova verdade, consciência ou compreensão. Essa diferença voltará na tela 11.
 
 #### Transição
 
