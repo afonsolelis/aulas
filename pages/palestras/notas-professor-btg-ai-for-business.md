@@ -7,11 +7,12 @@ Roteiro de fala do encontro com os embaixadores do BTG Pactual (23/09/2026). O d
 
 | Horário | Telas | Conteúdo | Conduz |
 |---|---|---|---|
-| 09:00 – 09:15 | 5–11 | Da máquina à generalização: sete telas visuais, do ENIAC ao que o estado atual faz e não garante | Rodrigo |
-| 09:15 – 09:22 | 12–13 | Como o Gemini produz uma resposta; o token e a troca de modelo | Afonso |
+| 09:00 – 09:02 | 1–4 | Abertura: capa, contrato do dia, agenda e divisor do bloco | Afonso |
+| 09:02 – 09:16 | 5–11 | Da máquina à generalização: sete telas visuais, do ENIAC ao que o estado atual faz e não garante | Rodrigo |
+| 09:16 – 09:22 | 12–13 | Como o Gemini produz uma resposta; o token e a troca de modelo | Afonso |
 | 09:22 – 09:30 | 14–17 | Terminologia: contexto, ferramenta, agente, skill e harness | Rodrigo |
 
-A tela 4 é o divisor do bloco. O roteiro abaixo, escrito por Rodrigo Nicola, cobre as telas 5 a 11.
+A abertura é curta porque o contrato do dia e a agenda já estão impressos na tela e no material. O roteiro abaixo, escrito por Rodrigo Nicola, cobre as telas 5 a 11.
 
 ## Da máquina à generalização (telas 5–11)
 
@@ -45,7 +46,7 @@ Os slides são deliberadamente incompletos. A apresentação está na fala; a te
 | Estado atual | 2min30 | 15s |
 | **Total** | **14min15** | **5min** |
 
-O núcleo deixa 45 segundos de margem dentro de uma janela de 15 minutos. As expansões levam o bloco a aproximadamente 19min15.
+Na aula de 23/09 o bloco ocupa 09:02 – 09:16 e cabe só o núcleo, com 45 segundos de margem. As expansões levam o bloco a aproximadamente 19min15 e só entram se o tempo de outra parte do Momento 1 for cedido.
 
 ### Tela 5 · ENIAC, 1946
 
@@ -243,7 +244,7 @@ Fazer uma pausa breve entre as três afirmações. Não acrescentar uma nova tax
 #### O Jogo da Imitação
 
 - Imagem: pôster de lançamento de *The Imitation Game* (2014).
-- Situação: material protegido por direitos autorais, reproduzido localmente em baixa resolução para identificação e comentário em contexto educacional.
+- Situação: material protegido por direitos autorais. O deck não guarda cópia do arquivo: a tela 6 carrega a imagem direto da Wikipédia, e sem rede exibe o título e o ano do filme no lugar.
 - Fonte da reprodução: <https://en.wikipedia.org/wiki/File:The_Imitation_Game_(2014).png>
 - Observação: a justificativa de fair use da Wikipédia em inglês não é uma licença geral de reutilização. A imagem não deve ser tratada como Creative Commons nem redistribuída como material livre.
 
