@@ -3,14 +3,34 @@
 Roteiro de fala do encontro com os embaixadores do BTG Pactual (23/09/2026). O deck está em
 `slides/slide_btg-ai-for-business.html` e as imagens em `assets/historia-ia/`.
 
-## Momento 1 · Conceitos iniciais (09:00 – 09:30, Afonso e Rodrigo)
+## Grade oficial do evento
+
+A programação do Inteli para o dia fixa a abertura institucional, o tour e o encerramento; os blocos do deck se encaixam nela assim:
+
+| Horário | Evento | Blocos do deck |
+|---|---|---|
+| 08:30 – 09:00 | Recepção e coffee | — |
+| 09:00 – 09:10 | Abertura institucional (Victor Machado) | — |
+| 09:10 – 10:00 | Imersão em IA · Parte 1 | Conceitos iniciais (09:10 – 09:40); caso e decomposição (09:40 – 10:00) |
+| 10:00 – 10:20 | Tour pelo campus e intervalo (Tainah) | Tour opcional, com foto na escadaria; quem fica na sala fecha o problema da dupla |
+| 10:20 – 11:55 | Imersão em IA · Parte 2 | Rodada 1 (10:20 – 11:10, 50 min); Rodada 2 (11:10 – 11:40); leitura crítica (11:40 – 11:55) |
+| 11:55 – 12:00 | Intervalo | — |
+| 12:00 – 12:45 | Imersão em IA · Parte 3 | Rodada 3 (12:00 – 12:35, 35 min); fechamento (12:35 – 12:45) |
+| 12:45 – 12:55 | Q&A aberto sobre IA | Tela de perguntas |
+| 12:55 – 13:00 | Encerramento | Entrega do certificado impresso |
+
+Pamela Tomazi acompanha a sala nas três partes e dá suporte técnico às duplas. O tour é opcional, e isso precisa ser dito com clareza antes das 10:00.
+
+No fechamento, as telas se dividem em 12:35 (o que não se delega), 12:37 (Carta de Aplicação, seis minutos) e 12:43 (checklist).
+
+## Momento 1 · Conceitos iniciais (09:10 – 09:40, Afonso e Rodrigo)
 
 | Horário | Telas | Conteúdo | Conduz |
 |---|---|---|---|
-| 09:00 – 09:02 | 1–4 | Abertura: capa, contrato do dia, agenda e divisor do bloco | Afonso |
-| 09:02 – 09:16 | 5–11 | Da máquina à generalização: sete telas visuais, do ENIAC ao que o estado atual faz e não garante | Rodrigo |
-| 09:16 – 09:22 | 12–13 | Como o Gemini produz uma resposta; o token e a troca de modelo | Afonso |
-| 09:22 – 09:30 | 14–17 | Terminologia: contexto, ferramenta, agente, skill e harness | Rodrigo |
+| 09:10 – 09:12 | 1–4 | Abertura: capa, contrato do dia, agenda e divisor do bloco | Afonso |
+| 09:12 – 09:26 | 5–11 | Da máquina à generalização: sete telas visuais, do ENIAC ao que o estado atual faz e não garante | Rodrigo |
+| 09:26 – 09:32 | 12–13 | Como o Gemini produz uma resposta; o token e a troca de modelo | Afonso |
+| 09:32 – 09:40 | 14–17 | Terminologia: contexto, ferramenta, agente, skill e harness | Rodrigo |
 
 A abertura é curta porque o contrato do dia e a agenda já estão impressos na tela e no material. O roteiro abaixo, escrito por Rodrigo Nicola, cobre as telas 5 a 11.
 
@@ -46,7 +66,7 @@ Os slides são deliberadamente incompletos. A apresentação está na fala; a te
 | Estado atual | 2min30 | 15s |
 | **Total** | **14min15** | **5min** |
 
-Na aula de 23/09 o bloco ocupa 09:02 – 09:16 e cabe só o núcleo, com 45 segundos de margem. As expansões levam o bloco a aproximadamente 19min15 e só entram se o tempo de outra parte do Momento 1 for cedido.
+Na aula de 23/09 o bloco ocupa 09:12 – 09:26 e cabe só o núcleo, com 45 segundos de margem. As expansões levam o bloco a aproximadamente 19min15 e só entram se o tempo de outra parte do Momento 1 for cedido.
 
 ### Tela 5 · ENIAC, 1946
 
