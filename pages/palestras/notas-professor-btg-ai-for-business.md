@@ -27,14 +27,14 @@ No fechamento, as telas se dividem em 12:35 (o que não se delega), 12:37 (Carta
 
 | Horário | Telas | Conteúdo | Conduz |
 |---|---|---|---|
-| 09:10 – 09:12 | 1–5 | Abertura: capa, contrato do dia, professores, agenda e divisor do bloco | Afonso |
-| 09:12 – 09:26 | 6–12 | Da máquina à generalização: sete telas visuais, do ENIAC ao que o estado atual faz e não garante | Rodrigo |
-| 09:26 – 09:32 | 13–14 | Como o Gemini produz uma resposta; o token e a troca de modelo | Afonso |
-| 09:32 – 09:40 | 15–18 | Terminologia: contexto, ferramenta, agente, skill e harness | Rodrigo |
+| 09:10 – 09:12 | 1–6 | Abertura: capa, contrato do dia, professores, agenda, acesso aos slides e divisor do bloco | Afonso |
+| 09:12 – 09:26 | 7–13 | Da máquina à generalização: sete telas visuais, do ENIAC ao que o estado atual faz e não garante | Rodrigo |
+| 09:26 – 09:32 | 14–15 | Como o Gemini produz uma resposta; o token e a troca de modelo | Afonso |
+| 09:32 – 09:40 | 16–19 | Terminologia: contexto, ferramenta, agente, skill e harness | Rodrigo |
 
-A abertura é curta porque o contrato do dia e a agenda já estão impressos na tela e no material. O roteiro abaixo, escrito por Rodrigo Nicola, cobre as telas 6 a 12.
+A abertura é curta porque o contrato do dia e a agenda já estão impressos na tela e no material. O roteiro abaixo, escrito por Rodrigo Nicola, cobre as telas 7 a 13.
 
-## Da máquina à generalização (telas 6–12)
+## Da máquina à generalização (telas 7–13)
 
 ### Intenção
 
@@ -68,7 +68,7 @@ Os slides são deliberadamente incompletos. A apresentação está na fala; a te
 
 Na aula de 23/09 o bloco ocupa 09:12 – 09:26 e cabe só o núcleo, com 45 segundos de margem. As expansões levam o bloco a aproximadamente 19min15 e só entram se o tempo de outra parte do Momento 1 for cedido.
 
-### Tela 6 · ENIAC, 1946
+### Tela 7 · ENIAC, 1946
 
 #### Na tela
 
@@ -90,7 +90,7 @@ Contrastar a escassez daquele recurso com a disponibilidade atual de modelos com
 
 > A máquina já existia. A pergunta seguinte era muito mais ambiciosa: ela poderia fazer algo que reconheceríamos como inteligência?
 
-### Tela 7 · O Jogo da Imitação
+### Tela 8 · O Jogo da Imitação
 
 #### Na tela
 
@@ -114,7 +114,7 @@ Explicar em uma frase que o título do filme toma emprestado um experimento que 
 
 > O título nos leva a outro trabalho de Turing, publicado cinco anos depois do fim da guerra.
 
-### Tela 8 · Computing Machinery and Intelligence, 1950
+### Tela 9 · Computing Machinery and Intelligence, 1950
 
 #### Na tela
 
@@ -134,13 +134,13 @@ A referência humana está no comportamento observado, não na exigência de que
 
 #### Expansão opcional
 
-Pontuar que imitar convincentemente uma conversa não prova verdade, consciência ou compreensão. Essa diferença voltará na tela 12.
+Pontuar que imitar convincentemente uma conversa não prova verdade, consciência ou compreensão. Essa diferença voltará na tela 13.
 
 #### Transição
 
 > Turing oferece uma maneira de reconhecer o comportamento. Ainda faltava transformar essa pergunta em uma agenda de engenharia.
 
-### Tela 9 · Dartmouth, 1955
+### Tela 10 · Dartmouth, 1955
 
 #### Na tela
 
@@ -172,7 +172,7 @@ Ler ou parafrasear a hipótese inicial do documento e observar a ambição de se
 
 > Se uma máquina deve aprender e formar conceitos, será que precisamos programar uma regra para cada situação?
 
-### Tela 10 · Perceptron, 1958
+### Tela 11 · Perceptron, 1958
 
 #### Na tela
 
@@ -200,7 +200,7 @@ Explicar que a travessia até os modelos atuais exigiu mais que computadores rá
 
 > A ideia de aprender com exemplos apareceu cedo. O que levou décadas foi construir a combinação de algoritmo, dados e computação capaz de levá-la à linguagem em escala.
 
-### Tela 11 · Language Models are Few-Shot Learners, 2020
+### Tela 12 · Language Models are Few-Shot Learners, 2020
 
 #### Na tela
 
@@ -226,7 +226,7 @@ Dar verbalmente um exemplo de few-shot: apresentar duas ou três classificaçõe
 
 > Chegamos a uma forma muito útil de generalização. Agora precisamos separar essa capacidade das propriedades que tendemos a projetar sobre ela.
 
-### Tela 12 · Estado atual
+### Tela 13 · Estado atual
 
 #### Na tela
 
@@ -248,7 +248,7 @@ Usar essa tela para estabelecer o contrato do restante do encontro:
 
 Fazer uma pausa breve entre as três afirmações. Não acrescentar uma nova taxonomia de limitações.
 
-#### Transição para a tela 13 (Afonso)
+#### Transição para a tela 14 (Afonso)
 
 > Para desenhar essas etapas, precisamos entender como o modelo produz uma resposta e dispor de um vocabulário comum: contexto, ferramenta, agente, skill e harness.
 
@@ -264,7 +264,7 @@ Fazer uma pausa breve entre as três afirmações. Não acrescentar uma nova tax
 #### O Jogo da Imitação
 
 - Imagem: pôster de lançamento de *The Imitation Game* (2014).
-- Situação: material protegido por direitos autorais. O deck não guarda cópia do arquivo: a tela 7 carrega a imagem direto da Wikipédia, e sem rede exibe o título e o ano do filme no lugar.
+- Situação: material protegido por direitos autorais. O deck não guarda cópia do arquivo: a tela 8 carrega a imagem direto da Wikipédia, e sem rede exibe o título e o ano do filme no lugar.
 - Fonte da reprodução: <https://en.wikipedia.org/wiki/File:The_Imitation_Game_(2014).png>
 - Observação: a justificativa de fair use da Wikipédia em inglês não é uma licença geral de reutilização. A imagem não deve ser tratada como Creative Commons nem redistribuída como material livre.
 
