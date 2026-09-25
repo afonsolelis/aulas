@@ -1,8 +1,9 @@
 # Prompt 1: a versão estruturada em quatro partes
 
-Anexe os dois arquivos da pasta `benchmark/` e cole o prompt abaixo. As quatro partes
-(contexto, papel, restrições e formato de saída) estão marcadas para que o grupo possa
-alterar uma de cada vez e observar o efeito.
+Em uma conversa nova, anexe os dois arquivos da pasta `benchmark/` e cole o prompt abaixo.
+Se a ferramenta não aceitar esses formatos, use as versões `.docx` e `.xlsx` dos mesmos arquivos; se ela não aceitar anexos, cole o conteúdo dos dois arquivos abaixo do prompt, depois de uma linha `## DADOS`. Desligue a busca na web e a memória entre conversas, ou use conversa temporária, se a ferramenta oferecer essas opções.
+As quatro partes (contexto, papel, restrições e formato de saída) estão marcadas para que o
+grupo possa alterar uma de cada vez e observar o efeito.
 
 ```
 ## CONTEXTO
@@ -25,6 +26,8 @@ regulatórios (DEC, FEC, perdas, IASC) e cuidado com a qualidade da fonte.
    definição da métrica. Resultado sem esses três elementos é "reportado, não verificável".
 4. Não afirme relação de causa entre uso de IA e indicador se o documento não demonstrar.
 5. Quando um dado estiver ausente, escreva "não informado". Não estime.
+6. Para cada métrica de resultado, diga se a definição adotada mede o que o nome da métrica
+   sugere e o que ela deixa de fora.
 
 ## FORMATO DE SAÍDA
 A. Tabela "Problemas de comparabilidade": item | onde aparece | por que impede a comparação.

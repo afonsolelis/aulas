@@ -6,7 +6,8 @@ frases; se não couber, o problema ainda está grande demais e precisa ser recor
 ## 0. O problema
 - Quem sofre o problema hoje (cargo ou área):
 - A frase do problema ("Hoje, [quem] leva [quanto] para [fazer o quê], porque [causa]."):
-- Como saberemos que melhorou (indicador observável, com o valor de hoje):
+- Como saberemos que melhorou (indicador observável e valor de hoje, medido ou estimado; se
+  estimado, escreva "estimativa do grupo" e diga como medi-lo na semana 1):
 
 ## 1. Modelo
 - Qual ferramenta autorizada será usada (Copilot, Gemini, ChatGPT ou outra):

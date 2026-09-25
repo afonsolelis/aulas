@@ -8,7 +8,9 @@ mapeou no canvas de anatomia.
 ## CONTEXTO
 Nossa área é [área do grupo, ex.: ouvidoria, operação da distribuição, suprimentos].
 O problema que mapeamos é: [frase do problema, tal como está no canvas].
-Hoje ele é resolvido assim: [como o trabalho é feito hoje, quem faz, quanto tempo leva].
+Hoje ele é resolvido assim: [descrição genérica de como o trabalho é feito, quem faz e
+quanto tempo leva, sem nomes de pessoas, sistemas internos, números não publicados ou dados
+de cliente].
 
 ## PAPEL
 Continue como analista de planejamento do setor elétrico.
