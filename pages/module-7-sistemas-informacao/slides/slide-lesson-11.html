@@ -1,107 +1,687 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Aula 11 - Segurança em Sistemas distribuídos - Inteli</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔐</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
   <link href="../../../css/inteli-styles.css" rel="stylesheet">
   <style>
-    :root { --ac:#89cea5; --dk:#2e2640; }
-    body { margin:0; padding:0; overflow:hidden; font-family:'Manrope',sans-serif; background:#f5f7fb; color:var(--dk); }
+    :root {
+      --si: var(--inteli-green);
+      --ink: var(--inteli-dark-purple);
+      --alert: var(--inteli-coral);
+      --paper: var(--inteli-white);
+      --line: var(--inteli-light-gray);
+      --muted: var(--inteli-dark-gray);
+      --soft-si: color-mix(in srgb, var(--si) 18%, var(--paper));
+      --soft-ink: color-mix(in srgb, var(--ink) 8%, var(--paper));
+      --soft-alert: color-mix(in srgb, var(--alert) 12%, var(--paper));
+    }
+    *, *::before, *::after { box-sizing:border-box; }
+    body { margin:0; overflow:hidden; font-family:'Manrope',sans-serif; background:var(--soft-ink); color:var(--ink); }
     .slide-container { width:100vw; height:100vh; position:relative; overflow:hidden; }
-    .slide { position:absolute; inset:0; display:none; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:6vh 8vw; box-sizing:border-box; }
-    .slide.active { display:flex; }
-    .kicker { text-transform:uppercase; letter-spacing:.18em; font-weight:700; font-size:.95rem; color:var(--ac); margin-bottom:18px; }
-    .slide h1 { font-size:clamp(2rem,5vw,3.4rem); font-weight:800; margin:0 0 18px; line-height:1.1; }
-    .slide h2 { font-size:clamp(1.4rem,3vw,2.2rem); font-weight:700; margin:0 0 16px; }
-    .lead { font-size:clamp(1.05rem,2vw,1.35rem); max-width:780px; color:#475569; line-height:1.6; }
-    .badge-wip { display:inline-block; margin-top:26px; padding:8px 18px; border-radius:999px; background:rgba(137,206,165,.18); color:#2f8f78; font-weight:700; font-size:.95rem; border:1px solid rgba(47,143,120,.35); }
-    .prof { margin-top:20px; font-weight:600; color:var(--dk); }
-    .cover-bg { background:linear-gradient(135deg,#1e2a24 0%,#2f8f78 55%,#89cea5 100%); color:#fff; }
-    .cover-bg .lead { color:rgba(255,255,255,.9); }
-    .cover-bg .kicker { color:#eafff4; }
-    .slide-footer { position:fixed; left:0; right:0; bottom:0; height:56px; display:flex; align-items:center; justify-content:space-between; padding:0 22px; background:#fff; border-top:1px solid #e2e8f0; box-sizing:border-box; z-index:20; }
-    .nav-group { display:flex; align-items:center; gap:10px; }
-    .back-home { color:var(--dk); text-decoration:none; font-weight:700; display:inline-flex; align-items:center; gap:5px; padding:8px 14px; border-radius:10px; background:#f1f4f8; font-size:.9rem; }
-    .back-home:hover { background:#e2e8f0; }
-    .back-home.material { background:#2f8f78 !important; color:#fff !important; }
-    .back-home.material:hover { background:#267562 !important; color:#fff !important; }
-    .nav-btn { cursor:pointer; border:none; background:var(--dk); color:#fff; font-weight:700; padding:8px 16px; border-radius:10px; font-size:.9rem; }
-    .nav-btn:disabled { opacity:.4; cursor:default; }
-    .slide-counter { font-weight:700; color:var(--dk); min-width:70px; text-align:center; }
+    .slide { position:absolute; inset:0; display:none; padding:54px 52px 82px; overflow:hidden; }
+    .slide.active { display:flex; align-items:center; justify-content:center; }
+    .sc { width:min(1160px,100%); max-height:calc(100vh - 150px); margin:0 auto; }
+    .slide:not(.cover):not(.daily):not(.encontro-slide) .sc { width:86%; transform:scale(1.14); transform-origin:center; }
+    .cover .sc { width:88%; transform:scale(1.1); transform-origin:center; }
+    .daily .sc { width:88%; transform:scale(1.06); transform-origin:center; }
+    .top-nav { position:fixed; top:14px; left:18px; z-index:90; display:flex; gap:8px; }
+    .top-nav a { padding:7px 12px; border-radius:999px; background:color-mix(in srgb,var(--paper) 94%,transparent); color:var(--ink); border:1px solid var(--line); text-decoration:none; font-size:.75rem; font-weight:800; box-shadow:0 3px 12px color-mix(in srgb,var(--ink) 12%,transparent); }
+    .eyebrow { margin:0 0 7px; color:var(--si); font-size:.72rem; font-weight:800; letter-spacing:.14em; text-transform:uppercase; }
+    .sh { color:var(--paper); padding:15px 20px; border-radius:14px; margin-bottom:13px; }
+    .sh.green { background:linear-gradient(120deg,color-mix(in srgb,var(--si) 70%,var(--ink)),var(--si)); }
+    .sh.dark { background:linear-gradient(120deg,var(--ink),color-mix(in srgb,var(--ink) 72%,var(--si))); }
+    .sh.coral { background:linear-gradient(120deg,color-mix(in srgb,var(--alert) 80%,var(--ink)),var(--alert)); }
+    .st { margin:0 0 3px; font-size:1.75rem; line-height:1.16; font-weight:800; }
+    .ss { margin:0; font-size:.9rem; line-height:1.45; opacity:.92; }
+    .g2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:11px; }
+    .g3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+    .g4 { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:9px; }
+    .card { background:var(--paper); border:1px solid var(--line); border-left:5px solid var(--si); border-radius:12px; padding:13px 15px; box-shadow:0 5px 18px color-mix(in srgb,var(--ink) 8%,transparent); min-width:0; }
+    .card.dark { border-left-color:var(--ink); }
+    .card.coral { border-left-color:var(--alert); }
+    .card h3 { margin:0 0 5px; font-size:.96rem; line-height:1.3; }
+    .card p { margin:0; color:color-mix(in srgb,var(--ink) 78%,var(--paper)); font-size:.79rem; line-height:1.46; }
+    .card ul { margin:6px 0 0; padding-left:1.05rem; }
+    .card li { margin:0 0 3px; font-size:.77rem; line-height:1.38; }
+    .card a { color:color-mix(in srgb,var(--si) 62%,var(--ink)); text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:2px; font-weight:700; }
+    .label { display:inline-block; margin-bottom:7px; padding:3px 8px; border-radius:999px; background:var(--soft-si); color:color-mix(in srgb,var(--si) 60%,var(--ink)); font-size:.64rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+    .label.dark { background:var(--soft-ink); color:var(--ink); }
+    .label.coral { background:var(--soft-alert); color:color-mix(in srgb,var(--alert) 72%,var(--ink)); }
+    .callout { margin-top:11px; padding:10px 14px; border-radius:10px; background:var(--soft-si); border:1px solid color-mix(in srgb,var(--si) 45%,var(--paper)); font-size:.8rem; line-height:1.45; }
+    .callout.warn { background:var(--soft-alert); border-color:color-mix(in srgb,var(--alert) 45%,var(--paper)); }
+    .callout.dark { background:var(--soft-ink); border-color:color-mix(in srgb,var(--ink) 22%,var(--paper)); }
+    .tb-wrap { overflow:hidden; border-radius:11px; border:1px solid var(--line); background:var(--paper); }
+    table { width:100%; border-collapse:collapse; font-size:.72rem; }
+    th { padding:8px 9px; background:var(--ink); color:var(--paper); text-align:left; font-weight:800; }
+    td { padding:7px 9px; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.36; }
+    tr:last-child td { border-bottom:0; }
+    tbody tr:nth-child(even) { background:var(--soft-ink); }
+    code { font-family:'JetBrains Mono',monospace; color:var(--ink); background:var(--soft-si); border-radius:4px; padding:1px 5px; font-size:.88em; }
+    .flow { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); align-items:stretch; gap:18px; }
+    .flow .node { position:relative; padding:12px 10px; border-radius:11px; background:var(--paper); border:1px solid var(--line); text-align:center; }
+    .flow .node:not(:last-child)::after { content:'→'; position:absolute; right:-15px; top:50%; transform:translateY(-50%); color:var(--si); font-weight:800; }
+    .flow strong { display:block; font-size:.79rem; }
+    .flow span { display:block; margin-top:4px; font-size:.67rem; line-height:1.35; color:color-mix(in srgb,var(--ink) 68%,var(--paper)); }
+    .agenda { display:grid; grid-template-columns:repeat(8,minmax(0,1fr)); gap:5px; }
+    .agenda article { min-height:112px; padding:10px; background:var(--paper); border-radius:10px; border-top:4px solid var(--si); box-shadow:0 4px 12px color-mix(in srgb,var(--ink) 6%,transparent); }
+    .agenda article:nth-child(3n) { border-top-color:var(--ink); }
+    .agenda article:nth-child(4n) { border-top-color:var(--alert); }
+    .agenda b { display:block; font-size:1.15rem; line-height:1; margin-bottom:7px; }
+    .agenda strong { display:block; font-size:.69rem; line-height:1.25; }
+    .agenda span { display:block; margin-top:5px; font-size:.62rem; line-height:1.3; color:color-mix(in srgb,var(--ink) 68%,var(--paper)); }
+    .cycle { display:grid; grid-template-columns:88px 1fr; gap:12px; align-items:stretch; }
+    .cycle + .cycle { margin-top:8px; }
+    .cycle-time { display:grid; place-items:center; padding:10px; border-radius:10px; background:var(--ink); color:var(--paper); font-size:1rem; font-weight:800; }
+    .cycle-body { display:grid; grid-template-columns:1.1fr 1fr 1fr; gap:8px; padding:9px; border:1px solid var(--line); border-radius:10px; background:var(--paper); }
+    .cycle-body div { padding:4px 8px; border-left:3px solid var(--si); }
+    .cycle-body strong { display:block; font-size:.72rem; }
+    .cycle-body span { display:block; margin-top:2px; font-size:.65rem; line-height:1.32; }
+    .cover { background:linear-gradient(132deg,var(--ink) 0%,color-mix(in srgb,var(--ink) 48%,var(--si)) 58%,var(--si) 100%); color:var(--paper); }
+    .cover .sc { position:relative; }
+    .cover-grid { display:grid; grid-template-columns:1.45fr .85fr; gap:48px; align-items:center; }
+    .cover-badge { display:inline-block; margin-bottom:15px; padding:5px 12px; border:1px solid color-mix(in srgb,var(--paper) 40%,transparent); border-radius:999px; background:color-mix(in srgb,var(--paper) 12%,transparent); font-size:.72rem; font-weight:700; }
+    .cover h1 { margin:0; font-size:3.05rem; line-height:1.08; letter-spacing:-.035em; }
+    .cover .lead { margin:15px 0 22px; max-width:720px; font-size:1.08rem; line-height:1.55; color:color-mix(in srgb,var(--paper) 84%,var(--si)); }
+    .cover-tags { display:flex; flex-wrap:wrap; gap:7px; }
+    .cover-tags span { padding:6px 10px; border-radius:8px; background:color-mix(in srgb,var(--paper) 13%,transparent); border:1px solid color-mix(in srgb,var(--paper) 28%,transparent); font-size:.68rem; font-weight:700; }
+    .trace-map { display:grid; gap:9px; }
+    .trace-map div { padding:12px; border-radius:12px; background:color-mix(in srgb,var(--paper) 13%,transparent); border:1px solid color-mix(in srgb,var(--paper) 26%,transparent); }
+    .trace-map strong { display:block; font-size:.78rem; }
+    .trace-map span { display:block; margin-top:3px; font-size:.66rem; opacity:.83; }
+    .daily { background:linear-gradient(132deg,var(--ink),color-mix(in srgb,var(--ink) 42%,var(--si))); color:var(--paper); text-align:center; }
+    .daily-panel { max-width:870px; margin:auto; padding:25px 30px; border:1px solid color-mix(in srgb,var(--paper) 28%,transparent); border-radius:20px; background:color-mix(in srgb,var(--paper) 10%,transparent); }
+    .daily h2 { margin:0 0 5px; font-size:2rem; }
+    .daily p { margin:0 0 15px; font-size:.9rem; opacity:.86; }
+    .daily-timer { display:inline-block; margin:3px 0 14px; padding:8px 24px; border-radius:14px; background:color-mix(in srgb,var(--paper) 13%,transparent); font-family:'JetBrains Mono',monospace; font-size:3.1rem; font-weight:800; letter-spacing:.08em; }
+    .daily button { margin:0 4px; padding:8px 17px; border:1px solid color-mix(in srgb,var(--paper) 36%,transparent); border-radius:9px; background:color-mix(in srgb,var(--paper) 14%,transparent); color:var(--paper); font:700 .8rem 'Manrope',sans-serif; cursor:pointer; }
+    .daily-tags { display:flex; justify-content:center; gap:7px; flex-wrap:wrap; margin-top:14px; }
+    .daily-tags span { padding:5px 9px; border-radius:8px; background:color-mix(in srgb,var(--paper) 12%,transparent); font-size:.67rem; font-weight:700; }
+    .closing { display:grid; grid-template-columns:.8fr 1.2fr; gap:18px; align-items:stretch; }
+    .closing blockquote { margin:0; padding:24px; border-radius:14px; background:var(--ink); color:var(--paper); font-size:1.18rem; line-height:1.45; font-weight:700; }
+    .slide-footer { position:fixed; left:0; right:0; bottom:0; height:60px; z-index:100; display:flex; justify-content:space-between; align-items:center; gap:12px; padding:0 22px; background:color-mix(in srgb,var(--paper) 97%,transparent); border-top:1px solid var(--line); box-shadow:0 -3px 14px color-mix(in srgb,var(--ink) 8%,transparent); }
+    .footer-links, .nav-wrapper { display:flex; align-items:center; gap:9px; }
+    .back-home { padding:8px 13px; border-radius:9px; background:var(--soft-ink); color:var(--ink); text-decoration:none; font-size:.77rem; font-weight:800; }
+    .back-home.material { background:color-mix(in srgb,var(--si) 65%,var(--ink)); color:var(--paper); }
+    .back-home.plano { background:color-mix(in srgb,var(--ink) 82%,var(--paper)); color:var(--paper); }
+    .back-home.quiz { background:var(--alert); color:var(--paper); }
+    .back-home.painel { background:color-mix(in srgb,var(--ink) 82%,var(--paper)); color:var(--paper); }
+    .back-home.perguntas { background:color-mix(in srgb,var(--si) 40%,var(--paper)); color:var(--ink); }
+    .nav-btn, .fullscreen-btn { padding:8px 13px; border:0; border-radius:9px; background:var(--ink); color:var(--paper); font:800 .77rem 'Manrope',sans-serif; cursor:pointer; }
+    .nav-btn:disabled { background:var(--muted); cursor:default; }
+    .fullscreen-btn { background:var(--soft-ink); color:var(--ink); }
+    .slide-counter { min-width:68px; text-align:center; font-size:.78rem; font-weight:800; }
+    .fig { margin:0; background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:9px 11px 8px; box-shadow:0 5px 18px color-mix(in srgb,var(--ink) 8%,transparent); }
+    .fig svg { display:block; width:100%; height:auto; }
+    .fig figcaption { margin-top:6px; font-size:.66rem; line-height:1.34; color:color-mix(in srgb,var(--ink) 68%,var(--paper)); }
+    .fig figcaption strong { color:var(--ink); }
+    .dg-lb { font-size:12px; font-weight:800; fill:var(--ink); }
+    .dg-sm { font-size:10.5px; font-weight:600; fill:color-mix(in srgb,var(--ink) 66%,var(--paper)); }
+    .dg-xs { font-size:9.5px; font-weight:700; fill:color-mix(in srgb,var(--ink) 70%,var(--paper)); }
+    .dg-ly { font-size:10px; font-weight:800; letter-spacing:.08em; fill:var(--paper); }
+    .dg-pk { font-size:10px; font-weight:800; fill:color-mix(in srgb,var(--si) 45%,var(--ink)); font-family:'JetBrains Mono',monospace; }
+    .dg-at { font-size:10px; font-weight:600; fill:var(--ink); font-family:'JetBrains Mono',monospace; }
+    .dg-cd { font-size:11px; font-weight:800; fill:color-mix(in srgb,var(--alert) 70%,var(--ink)); }
+    .adm { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+    .adm div { padding:9px 11px; background:var(--paper); border:1px solid var(--line); border-radius:10px; }
+    .adm b { display:inline-grid; place-items:center; min-width:24px; height:24px; margin-right:6px; padding:0 5px; border-radius:7px; background:var(--si); color:var(--ink); font-size:.72rem; }
+    .adm div.hl b { background:var(--alert); color:var(--paper); }
+    .adm strong { font-size:.76rem; }
+    .adm span { display:block; margin-top:4px; font-size:.66rem; line-height:1.34; color:color-mix(in srgb,var(--ink) 70%,var(--paper)); }
+    .sql { margin:0; padding:10px 13px; border-radius:10px; background:var(--ink); color:var(--paper); font:500 .68rem/1.5 'JetBrains Mono',monospace; white-space:pre; overflow:hidden; }
+    .sql .k { color:var(--si); font-weight:600; }
+    .sql .c { color:color-mix(in srgb,var(--paper) 55%,var(--ink)); }
+    @media (min-width:1600px) and (min-height:900px) {
+      .slide { padding:76px 76px 100px; }
+      .sc { width:min(1500px,100%); max-height:calc(100vh - 190px); }
+      .slide:not(.cover):not(.daily):not(.encontro-slide) .sc { width:66%; transform:scale(1.43); }
+      .cover .sc { width:74%; transform:scale(1.22); }
+      .daily .sc { width:68%; transform:scale(1.3); }
+      .st { font-size:2.25rem; }
+      .ss { font-size:1.12rem; }
+      .card { padding:19px 21px; }
+      .card h3 { font-size:1.2rem; }
+      .card p, .card li { font-size:.98rem; }
+      .label { font-size:.78rem; }
+      .callout { font-size:1rem; padding:14px 18px; }
+      table { font-size:.91rem; }
+      th, td { padding:11px 13px; }
+      .agenda article { min-height:148px; padding:15px; }
+      .agenda b { font-size:1.5rem; }
+      .agenda strong { font-size:.9rem; }
+      .agenda span { font-size:.82rem; }
+      .flow strong { font-size:1rem; }
+      .flow span { font-size:.84rem; }
+      .cycle { grid-template-columns:112px 1fr; gap:16px; }
+      .cycle-time { font-size:1.3rem; }
+      .cycle-body strong { font-size:.93rem; }
+      .cycle-body span { font-size:.85rem; }
+      .cover h1 { font-size:4rem; }
+      .cover .lead { font-size:1.4rem; }
+      .cover-badge, .cover-tags span { font-size:.9rem; }
+      .trace-map strong { font-size:1rem; }
+      .trace-map span { font-size:.84rem; }
+      .closing blockquote { font-size:1.5rem; }
+      .fig figcaption { font-size:.85rem; }
+      .adm strong { font-size:.95rem; }
+      .adm span { font-size:.82rem; }
+      .sql { font-size:.86rem; }
+    }
+    @media (max-width:900px) {
+      .slide { padding-left:24px; padding-right:24px; }
+      .g4, .agenda { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .g3, .adm { grid-template-columns:1fr; }
+      .cover-grid, .closing { grid-template-columns:1fr; }
+      .flow { grid-template-columns:1fr; }
+      .flow .node::after { display:none; }
+    }
+    @media print { .top-nav { display:none!important; } }
   </style>
-
-<!-- semana:css:start -->
-<link rel="stylesheet" href="../../../css/semana-ano.css">
-<!-- semana:css:end -->
+  <script type="module">
+    import { animate, stagger } from 'https://cdn.jsdelivr.net/npm/animejs@4/+esm';
+    window.__anime = { animate, stagger };
+    window.dispatchEvent(new CustomEvent('anime-ready'));
+  </script>
 
 <!-- encontro:css:start -->
 <link rel="stylesheet" href="../../../css/encontro.css">
 <!-- encontro:css:end -->
+
+<!-- semana:css:start -->
+<link rel="stylesheet" href="../../../css/semana-ano.css">
+<!-- semana:css:end -->
 </head>
 <body>
+<nav class="top-nav" aria-label="Navegação da aula">
+  <a href="../../home-module-7-sistemas-informacao.html">← Voltar</a>
+  <a href="../materials/lesson-11-material.html">Material da aula</a>
+</nav>
+
 <div class="slide-container">
-  <section class="slide cover-bg active">
-    <div class="kicker">Módulo 7 · Semana 9 · Sistemas de Informação</div>
-    <h1>Aula 11 — Segurança em Sistemas distribuídos</h1>
-    <p class="lead">Segurança como requisito não funcional em sistemas distribuídos: confidencialidade e integridade dos dados e como o requisito é tratado no projeto.</p>
-    <div class="prof">🎓 Professor(a): Afonso Brandão</div>
+
+  <section class="slide cover active">
+    <div class="sc cover-grid">
+      <div>
+        <span class="cover-badge">Módulo 7 · Sistemas de Informação · Semana 9 · Aula 11</span>
+        <p class="eyebrow" style="color:var(--paper)">Encontro expositivo e aplicado · 01/10/2026</p>
+        <h1>Segurança em sistemas distribuídos</h1>
+        <p class="lead">Cada nó e cada canal do diagrama produzido na Aula 10 é um ponto em que o dado pode ser lido, alterado ou negado por quem não deveria. A segurança entra no projeto como requisito não funcional, escrito de forma verificável e tratado por mecanismos escolhidos para cada ameaça.</p>
+        <div class="cover-tags">
+          <span>Requisito não funcional</span><span>Fronteiras de confiança</span><span>STRIDE</span><span>Criptografia e TLS</span><span>Menor privilégio</span><span>Confiança zero</span>
+        </div>
+      </div>
+      <div class="trace-map">
+        <div><strong>Aula 10 · Arquitetura distribuída</strong><span>Nós, canais e pontos de falha da solução do grupo.</span></div>
+        <div><strong>Aula 11 · Modelagem de ameaças</strong><span>Ameaças, contramedidas e requisitos sobre o mesmo diagrama.</span></div>
+        <div><strong>Entrega final · Documentação</strong><span>Requisitos de segurança verificáveis da solução implantada.</span></div>
+      </div>
+    </div>
   </section>
+
+  <section class="slide daily">
+    <div class="sc">
+      <div class="daily-panel">
+        <p class="eyebrow" style="color:var(--paper)">Ritual do projeto</p>
+        <h2>Daily · 15 minutos</h2>
+        <p>Cada grupo informa o avanço do artefato de relatórios da Sprint 5, a atividade prevista para o encontro e os impedimentos que exigem decisão.</p>
+        <div class="daily-timer" id="daily-timer">15:00</div>
+        <div>
+          <button id="daily-start" type="button">Iniciar</button>
+          <button id="daily-reset" type="button">Resetar</button>
+        </div>
+        <div class="daily-tags">
+          <span>O que foi concluído</span><span>O que será produzido</span><span>Impedimentos</span><span>Progresso da entrega</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section class="slide">
-    <div class="kicker">Conteúdo em construção</div>
-    <h2>Slides em preparação</h2>
-    <p class="lead">Este deck é um placeholder. O conteúdo desta aula está sendo preparado pelo(a) Professor(a) Afonso Brandão.</p>
-    <span class="badge-wip">🚧 Em construção</span>
+    <div class="sc">
+      <header class="sh green reveal"><div class="st">Estrutura do encontro</div><p class="ss">Cinquenta e oito minutos de exposição em quatro blocos, trinta e cinco de atividade em grupo e sete de fechamento, após a daily.</p></header>
+      <div class="agenda reveal">
+        <article><b>15</b><strong>Daily</strong><span>Relatórios da Sprint 5 e impedimentos.</span></article>
+        <article><b>5</b><strong>Abertura</strong><span>A credencial de integração exposta.</span></article>
+        <article><b>15</b><strong>Requisito</strong><span>Propriedades, requisito verificável e superfície de ataque.</span></article>
+        <article><b>15</b><strong>Ameaças</strong><span>Fronteiras de confiança e STRIDE.</span></article>
+        <article><b>18</b><strong>Mecanismos</strong><span>Criptografia, identidade, privilégio e trilha.</span></article>
+        <article><b>10</b><strong>Arquitetura</strong><span>Defesa em profundidade e confiança zero.</span></article>
+        <article><b>35</b><strong>Atividade</strong><span>Modelagem de ameaças do diagrama.</span></article>
+        <article><b>7</b><strong>Fechamento</strong><span>Síntese e encaminhamento.</span></article>
+      </div>
+      <div class="callout dark reveal">A atividade parte do diagrama de canais que cada grupo produziu na Aula 10. O grupo que não o trouxer desenha primeiro, em cinco minutos, os nós e os canais da solução, e só então passa às ameaças.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh coral reveal"><div class="st">Situação-problema</div><p class="ss">A Serra Azul corrigiu a duplicidade de pedidos da Aula 10. Três semanas depois, o mesmo canal entre o aplicativo e o sistema de gestão é usado para um ataque.</p></header>
+      <article class="card coral reveal"><span class="label coral">Enunciado</span><h3>Preços e limites alterados por uma credencial de integração</h3>
+        <p>O aplicativo de força de vendas acessa a API do sistema de gestão com um único usuário de integração, cuja senha está gravada no pacote do aplicativo instalado nos 140 celulares. Na implantação, esse usuário recebeu um perfil amplo para não travar a operação, que inclui alterar preço e limite de crédito. Um celular furtado permite extrair a senha. Em um fim de semana, 38 itens têm o preço reduzido em 60% e três clientes têm o limite de crédito elevado para R$ 500 mil, com pedidos grandes feitos em seguida. A API aceita chamadas de qualquer origem e em qualquer volume, e a trilha de alteração registra apenas o usuário de integração, de modo que não se sabe quem agiu nem de onde.</p>
+      </article>
+      <div class="g4 reveal">
+        <article class="card"><span class="label">Requisito</span><h3>Nenhum requisito escrito</h3><p>O projeto não declarou o que devia ser protegido nem como verificar a proteção.</p></article>
+        <article class="card dark"><span class="label dark">Ameaça</span><h3>Nenhuma ameaça modelada</h3><p>Ninguém perguntou o que aconteceria se a credencial caísse em mãos erradas.</p></article>
+        <article class="card"><span class="label">Mecanismo</span><h3>Segredo e perfil inadequados</h3><p>A senha estava no código, e o perfil ia muito além do que o aplicativo usava.</p></article>
+        <article class="card coral"><span class="label coral">Arquitetura</span><h3>Entrada sem controle</h3><p>Não havia limite de volume, restrição de origem nem autoria individual.</p></article>
+      </div>
+      <div class="callout warn reveal">Questão norteadora: qual controle, se existisse, teria impedido o ataque, qual teria limitado o dano e qual teria permitido identificar o autor?</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Segurança como requisito não funcional</div><p class="ss">O requisito não funcional descreve qualidades do comportamento do sistema, como desempenho e segurança, em complemento às funções que ele executa. A ISO/IEC 25010 decompõe a segurança em propriedades que podem ser especificadas e verificadas uma a uma.</p></header>
+      <div class="tb-wrap reveal">
+        <table>
+          <thead><tr><th>Propriedade</th><th>Pergunta que responde</th><th>Violação no caso da Serra Azul</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Confidencialidade</strong></td><td>Só quem tem autorização acessa o dado?</td><td>A senha de integração ficou legível no pacote do aplicativo.</td></tr>
+            <tr><td><strong>Integridade</strong></td><td>O dado só é alterado por quem pode e da forma prevista?</td><td>Preços e limites foram modificados sem aprovação.</td></tr>
+            <tr><td><strong>Disponibilidade</strong></td><td>O serviço atende quem precisa, quando precisa?</td><td>A API sem limite de volume poderia ser derrubada por excesso de chamadas.</td></tr>
+            <tr><td><strong>Autenticidade</strong></td><td>O emissor é quem afirma ser?</td><td>Qualquer um com a senha se passava pelo aplicativo.</td></tr>
+            <tr><td><strong>Responsabilização</strong></td><td>É possível rastrear a ação até quem a praticou?</td><td>A trilha registrou apenas o usuário compartilhado, sem identificar a pessoa.</td></tr>
+            <tr><td><strong>Não repúdio</strong></td><td>Quem praticou a ação pode negá-la depois?</td><td>Qualquer vendedor poderia negar a autoria de uma alteração.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout dark reveal">A confidencialidade, a integridade e a disponibilidade formam a tríade clássica. Em sistemas empresariais, a responsabilização pesa tanto quanto elas, porque a auditoria e a segregação de funções vistas nas Aulas 5 e 7 dependem de saber quem fez cada operação.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh green reveal"><div class="st">Como escrever um requisito de segurança verificável</div><p class="ss">Um requisito vago não pode ser testado nem cobrado do fornecedor. A formulação verificável nomeia o ativo, a propriedade protegida, o mecanismo e o critério de aceite.</p></header>
+      <div class="g2 reveal">
+        <article class="card coral"><span class="label coral">Formulação vaga</span><h3>Não admite verificação</h3><ul><li>O sistema deve ser seguro.</li><li>As integrações devem usar boas práticas de segurança.</li><li>Os dados sensíveis devem ser protegidos.</li></ul></article>
+        <article class="card"><span class="label">Formulação verificável</span><h3>Admite teste e auditoria</h3><ul><li>Toda chamada à API de pedidos exige token emitido para a identidade do aplicativo, com validade máxima de 60 minutos; chamada sem token válido recebe recusa e é registrada.</li><li>O usuário de integração do aplicativo só pode criar pedido e consultar cliente, estoque e preço.</li></ul></article>
+      </div>
+      <div class="tb-wrap reveal" style="margin-top:11px">
+        <table>
+          <thead><tr><th>Elemento</th><th>Pergunta</th><th>Exemplo</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Ativo</strong></td><td>O que se protege?</td><td>Tabela de preços e limite de crédito do cliente.</td></tr>
+            <tr><td><strong>Propriedade</strong></td><td>Que propriedade se preserva?</td><td>Integridade e responsabilização.</td></tr>
+            <tr><td><strong>Mecanismo</strong></td><td>Como se preserva?</td><td>Autorização por papel e trilha de alteração com usuário nominal.</td></tr>
+            <tr><td><strong>Critério de aceite</strong></td><td>Como se comprova?</td><td>Teste em que o usuário de integração tenta alterar preço e recebe recusa registrada.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">A superfície de ataque do sistema distribuído</div><p class="ss">A Aula 10 listou a premissa falsa de que a rede é segura. Cada nó, cada canal e cada credencial acrescentados pela distribuição ampliam os pontos pelos quais um atacante pode agir.</p></header>
+      <div class="g3 reveal">
+        <article class="card"><span class="label">Ameaça ao canal</span><h3>Interceptação</h3><p>O atacante lê a mensagem em trânsito, como a senha ou o pedido enviado de uma rede sem fio pública.</p></article>
+        <article class="card dark"><span class="label dark">Ameaça ao canal</span><h3>Adulteração</h3><p>A mensagem é alterada no caminho, e o destino processa um pedido com quantidade ou preço trocados.</p></article>
+        <article class="card coral"><span class="label coral">Ameaça ao canal</span><h3>Repetição</h3><p>Uma mensagem legítima capturada é reenviada depois, reproduzindo a operação sem autorização nova.</p></article>
+        <article class="card coral"><span class="label coral">Ameaça ao nó</span><h3>Disfarce</h3><p>O atacante se apresenta com a identidade de outro participante, como fez quem usou a senha do aplicativo.</p></article>
+        <article class="card dark"><span class="label dark">Ameaça ao nó</span><h3>Negação de serviço</h3><p>O excesso de requisições esgota o serviço e impede o atendimento de quem tem direito a ele.</p></article>
+        <article class="card"><span class="label">Ameaça à credencial</span><h3>Vazamento de segredo</h3><p>Senha ou chave guardada no código, no repositório ou em planilha é obtida por quem não deveria.</p></article>
+      </div>
+      <div class="callout warn reveal">No caso, a proteção do canal por HTTPS existia e não impediu nada, porque o atacante usou uma credencial legítima. A segurança do canal e a segurança da identidade são problemas distintos e exigem mecanismos distintos.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh green reveal"><div class="st">Fronteiras de confiança e a classificação STRIDE</div><p class="ss">A fronteira de confiança separa regiões controladas por partes diferentes. Toda mensagem que a cruza deve ser examinada pelas seis categorias de ameaça propostas pela Microsoft (Kohnfelder e Garg, 1999).</p></header>
+      <div class="tb-wrap reveal">
+        <table>
+          <thead><tr><th>Categoria e ameaça</th><th>Propriedade violada</th><th>Pergunta sobre cada elemento do diagrama</th><th>Exemplo na Serra Azul</th></tr></thead>
+          <tbody>
+            <tr><td><strong>S</strong> · Spoofing: falsificação de identidade</td><td>Autenticidade</td><td>Alguém pode se passar por este participante?</td><td>Uso da senha extraída do aplicativo.</td></tr>
+            <tr><td><strong>T</strong> · Tampering: adulteração de dado</td><td>Integridade</td><td>O dado pode ser alterado em trânsito ou em repouso?</td><td>Troca da quantidade no pedido em trânsito.</td></tr>
+            <tr><td><strong>R</strong> · Repudiation: negação de autoria</td><td>Não repúdio</td><td>O autor pode negar o que fez?</td><td>Alteração registrada no usuário compartilhado.</td></tr>
+            <tr><td><strong>I</strong> · Information disclosure: vazamento de informação</td><td>Confidencialidade</td><td>O dado pode ser lido por quem não deveria?</td><td>Lista de clientes com limite exposta pela API.</td></tr>
+            <tr><td><strong>D</strong> · Denial of service: negação de serviço</td><td>Disponibilidade</td><td>O serviço pode ser esgotado ou derrubado?</td><td>Milhares de chamadas por minuto à API de pedidos.</td></tr>
+            <tr><td><strong>E</strong> · Elevation of privilege: elevação de privilégio</td><td>Autorização</td><td>O participante pode fazer mais do que deveria?</td><td>Aplicativo de vendas alterando limite de crédito.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout dark reveal">A classificação não precisa ser aplicada a todas as combinações possíveis. O ganho está em examinar, para cada canal que cruza uma fronteira, as categorias que fazem sentido para ele, de modo que nenhuma seja esquecida por falta de método.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">O diagrama da Aula 10 com as fronteiras de confiança</div><p class="ss">As regiões tracejadas indicam quem controla cada parte, e as marcas nos canais indicam as categorias STRIDE mais relevantes em cada travessia.</p></header>
+      <figure class="fig reveal">
+        <svg viewBox="0 0 900 330" role="img" aria-label="Diagrama da Serra Azul dividido em quatro regiões de confiança: internet e redes móveis com o aplicativo e o portal, rede corporativa com o armazém, nuvem do sistema de gestão ao centro e organizações externas com SEFAZ e banco; cada canal que cruza uma fronteira recebe marcas das categorias STRIDE">
+          <g font-family="Manrope">
+            <rect x="6" y="8" width="232" height="198" rx="12" fill="none" stroke="var(--alert)" stroke-width="1.5" stroke-dasharray="7 5"/>
+            <text class="dg-cd" x="18" y="25">INTERNET E REDES MÓVEIS</text>
+            <rect x="6" y="216" width="232" height="108" rx="12" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="7 5"/>
+            <text class="dg-xs" x="18" y="233">REDE CORPORATIVA</text>
+            <rect x="316" y="58" width="268" height="206" rx="12" fill="none" stroke="var(--si)" stroke-width="1.5" stroke-dasharray="7 5"/>
+            <text class="dg-xs" x="328" y="74">NUVEM DO SISTEMA DE GESTÃO</text>
+            <rect x="662" y="34" width="232" height="272" rx="12" fill="none" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="7 5"/>
+            <text class="dg-xs" x="674" y="51">ORGANIZAÇÕES EXTERNAS</text>
+            <rect x="330" y="84" width="240" height="166" rx="12" fill="var(--soft-si)" stroke="var(--si)" stroke-width="2"/>
+            <text class="dg-lb" x="450" y="104" text-anchor="middle">SAP S/4HANA</text>
+            <rect x="350" y="114" width="200" height="34" rx="7" fill="var(--paper)" stroke="var(--ink)"/><text class="dg-lb" x="450" y="130" text-anchor="middle">API e SAP Fiori</text><text class="dg-xs" x="450" y="142" text-anchor="middle">ponto de entrada</text>
+            <rect x="350" y="156" width="200" height="34" rx="7" fill="var(--paper)" stroke="var(--ink)"/><text class="dg-lb" x="450" y="172" text-anchor="middle">Aplicação</text><text class="dg-xs" x="450" y="184" text-anchor="middle">papéis e autorizações</text>
+            <rect x="350" y="198" width="200" height="34" rx="7" fill="var(--paper)" stroke="var(--ink)"/><text class="dg-lb" x="450" y="214" text-anchor="middle">Dados</text><text class="dg-xs" x="450" y="226" text-anchor="middle">preços, clientes, trilha</text>
+            <rect x="20" y="36" width="200" height="54" rx="9" fill="var(--paper)" stroke="var(--ink)"/><text class="dg-lb" x="120" y="60" text-anchor="middle">App de força de vendas</text><text class="dg-xs" x="120" y="76" text-anchor="middle">140 celulares, um furtado</text>
+            <rect x="20" y="138" width="200" height="54" rx="9" fill="var(--paper)" stroke="var(--ink)"/><text class="dg-lb" x="120" y="162" text-anchor="middle">Portal de clientes</text><text class="dg-xs" x="120" y="178" text-anchor="middle">acesso público</text>
+            <rect x="20" y="250" width="200" height="54" rx="9" fill="var(--paper)" stroke="var(--ink)"/><text class="dg-lb" x="120" y="274" text-anchor="middle">Sistema do armazém</text><text class="dg-xs" x="120" y="290" text-anchor="middle">separação e expedição</text>
+            <rect x="680" y="64" width="200" height="54" rx="9" fill="var(--paper)" stroke="var(--ink)"/><text class="dg-lb" x="780" y="88" text-anchor="middle">SEFAZ</text><text class="dg-xs" x="780" y="104" text-anchor="middle">NF-e assinada com certificado</text>
+            <rect x="680" y="222" width="200" height="54" rx="9" fill="var(--paper)" stroke="var(--ink)"/><text class="dg-lb" x="780" y="246" text-anchor="middle">Banco</text><text class="dg-xs" x="780" y="262" text-anchor="middle">arquivo de cobrança</text>
+            <path d="M220 63 C 280 63, 290 122, 330 130" fill="none" stroke="var(--ink)" stroke-width="2"/>
+            <path d="M220 165 H330" fill="none" stroke="var(--ink)" stroke-width="2"/>
+            <path d="M220 277 C 280 277, 290 215, 330 210" fill="none" stroke="var(--ink)" stroke-width="2"/>
+            <path d="M570 128 C 620 120, 630 91, 680 91" fill="none" stroke="var(--ink)" stroke-width="2"/>
+            <path d="M570 214 C 620 222, 630 249, 680 249" fill="none" stroke="var(--ink)" stroke-width="2"/>
+            <g font-size="11" font-weight="800" text-anchor="middle">
+              <circle cx="262" cy="52" r="10" fill="var(--alert)"/><text x="262" y="56" fill="var(--paper)">S</text>
+              <circle cx="286" cy="52" r="10" fill="var(--alert)"/><text x="286" y="56" fill="var(--paper)">E</text>
+              <circle cx="310" cy="52" r="10" fill="var(--alert)"/><text x="310" y="56" fill="var(--paper)">R</text>
+              <circle cx="258" cy="182" r="10" fill="var(--alert)"/><text x="258" y="186" fill="var(--paper)">D</text>
+              <circle cx="282" cy="182" r="10" fill="var(--alert)"/><text x="282" y="186" fill="var(--paper)">I</text>
+              <circle cx="296" cy="266" r="10" fill="var(--muted)"/><text x="296" y="270" fill="var(--paper)">T</text>
+              <circle cx="628" cy="90" r="10" fill="var(--ink)"/><text x="628" y="94" fill="var(--paper)">T</text>
+              <circle cx="612" cy="258" r="10" fill="var(--ink)"/><text x="612" y="262" fill="var(--paper)">T</text>
+              <circle cx="636" cy="258" r="10" fill="var(--ink)"/><text x="636" y="262" fill="var(--paper)">I</text>
+            </g>
+          </g>
+        </svg>
+        <figcaption><strong>Todo canal do diagrama cruza pelo menos uma fronteira.</strong> O canal com o aplicativo concentra falsificação de identidade, elevação de privilégio e repúdio, que foram as três categorias exploradas no ataque do caso.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh green reveal"><div class="st">Criptografia: os blocos básicos</div><p class="ss">Os mecanismos de proteção de canal e de identidade são construídos sobre quatro primitivas criptográficas, cada uma preservando uma propriedade diferente.</p></header>
+      <div class="g4 reveal">
+        <article class="card"><span class="label">Confidencialidade</span><h3>Cifra simétrica</h3><p>A mesma chave cifra e decifra. É rápida e serve para grandes volumes, mas exige que as partes compartilhem a chave com segurança.</p></article>
+        <article class="card dark"><span class="label dark">Troca de chaves</span><h3>Cifra assimétrica</h3><p>Cada parte tem uma chave pública, que pode ser divulgada, e uma chave privada, que nunca sai do seu poder.</p></article>
+        <article class="card"><span class="label">Integridade</span><h3>Função de resumo (hash)</h3><p>Gera um valor curto e único do conteúdo, e qualquer alteração no conteúdo muda esse valor.</p></article>
+        <article class="card coral"><span class="label coral">Autoria</span><h3>Assinatura digital</h3><p>O resumo cifrado com a chave privada prova quem assinou e que o conteúdo não mudou depois.</p></article>
+      </div>
+      <div class="g2 reveal" style="margin-top:11px">
+        <article class="card dark"><span class="label dark">Certificado digital</span><h3>A chave pública associada a uma identidade</h3><p>Uma autoridade certificadora atesta que a chave pública pertence a determinada pessoa, empresa ou servidor. No Brasil, a infraestrutura oficial é a ICP-Brasil.</p></article>
+        <article class="card"><span class="label">No sistema de gestão</span><h3>A NF-e assinada</h3><p>O arquivo da NF-e é assinado digitalmente com o certificado ICP-Brasil da empresa emissora antes do envio à SEFAZ. A assinatura garante autoria e integridade, e por isso a nota tem validade jurídica.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Proteção do canal com TLS</div><p class="ss">O TLS, protocolo do HTTPS, combina as primitivas anteriores para proteger a mensagem em trânsito entre dois pontos da rede.</p></header>
+      <div class="flow reveal" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+        <div class="node"><strong>1 · Apresentação</strong><span>O servidor envia seu certificado ao cliente.</span></div>
+        <div class="node"><strong>2 · Verificação</strong><span>O cliente confere se o certificado é válido e emitido para aquele endereço.</span></div>
+        <div class="node"><strong>3 · Acordo de chave</strong><span>As partes derivam uma chave simétrica de sessão sem transmiti-la.</span></div>
+        <div class="node"><strong>4 · Sessão cifrada</strong><span>As mensagens seguem cifradas e com verificação de integridade.</span></div>
+      </div>
+      <div class="g2 reveal" style="margin-top:12px">
+        <article class="card"><span class="label">O que o TLS garante</span><h3>Canal protegido</h3><ul><li>Confidencialidade da mensagem em trânsito.</li><li>Integridade da mensagem em trânsito.</li><li>Autenticidade do servidor e, no TLS mútuo, também do cliente.</li></ul></article>
+        <article class="card coral"><span class="label coral">O que o TLS não garante</span><h3>Limites do canal</h3><ul><li>Que o cliente autenticado tenha permissão para a operação.</li><li>Que o dado esteja protegido depois de gravado.</li><li>Que o celular ou o servidor nas pontas não estejam comprometidos.</li></ul></article>
+      </div>
+      <div class="callout warn reveal">O ataque do caso trafegou por HTTPS válido. O TLS protegeu uma conversa entre o atacante e a API, e por isso a defesa precisava estar na identidade e na autorização.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh green reveal"><div class="st">Autenticação, autorização e menor privilégio</div><p class="ss">A autenticação responde quem é o participante e a autorização, o que ele pode fazer. Em sistema distribuído, ambas valem para pessoas e para sistemas.</p></header>
+      <div class="g3 reveal">
+        <article class="card"><span class="label">Identidade de pessoa</span><h3>Usuário nominal</h3><p>Cada vendedor se autentica com credencial própria, de preferência com segundo fator, e responde pelas próprias ações.</p></article>
+        <article class="card dark"><span class="label dark">Identidade de sistema</span><h3>Credencial por integração</h3><p>Cada integração tem credencial exclusiva e acessa com token de validade curta e escopo limitado, como no OAuth 2.0.</p></article>
+        <article class="card coral"><span class="label coral">Autorização</span><h3>Menor privilégio</h3><p>Cada identidade recebe apenas as permissões necessárias à sua função. O que ela não precisa fazer, ela não consegue fazer.</p></article>
+      </div>
+      <div class="tb-wrap reveal" style="margin-top:11px">
+        <table>
+          <thead><tr><th>Elemento no SAP S/4HANA Cloud</th><th>Função</th><th>Aplicação ao caso</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Papel de negócio e catálogo</strong></td><td>Agrupa os aplicativos e as autorizações que um cargo pode usar.</td><td>O vendedor cria pedido; só o analista de crédito altera limite.</td></tr>
+            <tr><td><strong>Cenário de comunicação</strong></td><td>Define quais APIs uma integração pode acessar.</td><td>O aplicativo acessa criação de pedido e consultas, e nada além.</td></tr>
+            <tr><td><strong>Sistema e usuário de comunicação</strong></td><td>Identificam o sistema externo e a credencial que ele usa.</td><td>Credencial exclusiva do aplicativo, revogável sem afetar outras integrações.</td></tr>
+            <tr><td><strong>Arranjo de comunicação</strong></td><td>Liga o cenário ao sistema e ao usuário de comunicação.</td><td>Registro auditável do que cada integração pode fazer.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout warn reveal">Com o cenário restrito a pedidos e consultas, a senha extraída ainda criaria pedidos, mas não alteraria preço nem limite de crédito, porque o menor privilégio reduz o dano do vazamento.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Gestão de segredos e trilha de auditoria</div><p class="ss">O segredo precisa ficar fora do alcance de quem obtém o código ou o aparelho, e a trilha precisa permitir reconstruir quem fez o quê, quando e de onde.</p></header>
+      <div class="g2 reveal">
+        <article class="card"><span class="label">Gestão de segredos</span><h3>Senha e chave fora do código</h3><ul><li>O segredo fica em cofre próprio, fora do pacote, do repositório e de planilhas.</li><li>O aplicativo obtém token de curta duração após o login do vendedor, em vez de carregar senha fixa.</li><li>A credencial é trocada periodicamente e revogada assim que houver suspeita.</li></ul></article>
+        <article class="card dark"><span class="label dark">Trilha de auditoria</span><h3>Registro que sustenta a responsabilização</h3><ul><li>Usuário nominal de quem executou a operação, além da credencial de integração.</li><li>Data, hora, origem da chamada e operação executada.</li><li>Valor anterior e valor novo de todo campo crítico.</li><li>Registro protegido contra alteração e retido pelo prazo definido.</li></ul></article>
+      </div>
+      <div class="g2 reveal" style="margin-top:11px">
+        <article class="card coral"><span class="label coral">Detecção</span><h3>Alerta sobre comportamento anômalo</h3><p>Redução de preço acima de um limiar, alteração de limite fora do horário comercial ou volume incomum de chamadas geram alerta ao responsável, em vez de aparecer só no fechamento do mês.</p></article>
+        <article class="card"><span class="label">LGPD</span><h3>Dever de segurança e de comunicação</h3><p>A Lei nº 13.709/2018 exige medidas de segurança aptas a proteger os dados pessoais (art. 46) e a comunicação à ANPD e ao titular do incidente que possa acarretar risco ou dano relevante (art. 48).</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh green reveal"><div class="st">Defesa em profundidade e confiança zero</div><p class="ss">Nenhum controle isolado é suficiente. A arquitetura segura sobrepõe camadas de proteção e deixa de conceder confiança pelo simples fato de a chamada vir de dentro da rede.</p></header>
+      <div class="g2 reveal">
+        <article class="card"><span class="label">Defesa em profundidade</span><h3>Camadas independentes</h3><p>Se uma camada falha, a seguinte ainda protege o ativo. No caso, o vazamento da senha teria sido contido pela autorização restrita, e a alteração indevida teria sido detectada pelo alerta.</p></article>
+        <article class="card dark"><span class="label dark">Confiança zero (NIST SP 800-207)</span><h3>Nenhuma confiança implícita</h3><p>Toda requisição é autenticada e autorizada individualmente, qualquer que seja a rede de origem. A localização na rede corporativa deixa de ser credencial.</p></article>
+      </div>
+      <div class="g3 reveal" style="margin-top:11px">
+        <article class="card"><span class="label">Gateway de API</span><h3>Ponto único de entrada</h3><p>Centraliza a validação de token, o registro das chamadas e as regras de acesso antes de a requisição chegar ao sistema de gestão.</p></article>
+        <article class="card dark"><span class="label dark">Limitação de taxa</span><h3>Volume máximo por identidade</h3><p>Cada credencial tem um número máximo de chamadas por minuto, o que contém a negação de serviço e o uso abusivo de credencial vazada.</p></article>
+        <article class="card coral"><span class="label coral">Segmentação</span><h3>Isolamento de regiões</h3><p>Cada região de confiança só alcança os serviços de que precisa, o que limita o movimento de um atacante que invada uma delas.</p></article>
+      </div>
+      <div class="callout dark reveal">A Serra Azul teria contido o ataque com três camadas: credencial por vendedor com token de curta duração, cenário de comunicação sem alteração de preço e limite de chamadas no gateway. Nenhuma delas, sozinha, bastaria.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh coral reveal"><div class="st">Atividade · modelagem de ameaças do projeto</div><p class="ss">Trinta e cinco minutos, por grupo de projeto, sobre o diagrama de canais produzido na Aula 10. Cada ameaça identificada recebe uma contramedida e um requisito verificável.</p></header>
+      <div class="cycle reveal">
+        <div class="cycle-time">5</div>
+        <div class="cycle-body">
+          <div><strong>Fronteiras de confiança</strong><span>Regiões controladas por partes diferentes, desenhadas sobre o diagrama.</span></div>
+          <div><strong>Produto</strong><span>Diagrama com regiões tracejadas e ativos críticos marcados.</span></div>
+          <div><strong>Verificação</strong><span>Todo canal que cruza fronteira está identificado.</span></div>
+        </div>
+      </div>
+      <div class="cycle reveal">
+        <div class="cycle-time">12</div>
+        <div class="cycle-body">
+          <div><strong>Ameaças por STRIDE</strong><span>Categorias aplicáveis aos dois canais críticos e ao sistema de gestão.</span></div>
+          <div><strong>Produto</strong><span>Pelo menos seis ameaças, cobrindo ao menos quatro categorias.</span></div>
+          <div><strong>Verificação</strong><span>Cada ameaça nomeia elemento, atacante e efeito.</span></div>
+        </div>
+      </div>
+      <div class="cycle reveal">
+        <div class="cycle-time">10</div>
+        <div class="cycle-body">
+          <div><strong>Contramedidas e requisitos</strong><span>Mecanismo e requisito verificável para cada ameaça.</span></div>
+          <div><strong>Produto</strong><span>Tabela completa no padrão do gabarito.</span></div>
+          <div><strong>Verificação</strong><span>Todo requisito tem critério de aceite testável.</span></div>
+        </div>
+      </div>
+      <div class="cycle reveal">
+        <div class="cycle-time">8</div>
+        <div class="cycle-body">
+          <div><strong>Priorização e revisão</strong><span>Probabilidade e impacto de cada ameaça; troca com outro grupo.</span></div>
+          <div><strong>Produto</strong><span>Três ameaças prioritárias e parecer do grupo revisor.</span></div>
+          <div><strong>Verificação</strong><span>O revisor aponta ao menos uma ameaça ausente.</span></div>
+        </div>
+      </div>
+      <div class="callout dark reveal">O gabarito está no slide seguinte e na seção de atividade do material. Os requisitos verificáveis das três ameaças prioritárias entram na documentação da solução entregue ao parceiro.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh coral reveal"><div class="st">Gabarito da tabela de ameaças</div><p class="ss">Colunas obrigatórias e duas linhas preenchidas com o caso da Serra Azul.</p></header>
+      <div class="tb-wrap reveal">
+        <table>
+          <thead><tr><th>Elemento</th><th>STRIDE</th><th>Ameaça</th><th>Propriedade</th><th>Contramedida</th><th>Requisito verificável</th><th>Prioridade</th></tr></thead>
+          <tbody>
+            <tr><td>Canal app → API</td><td>S</td><td>Quem obtém a senha fixa se passa pelo aplicativo.</td><td>Autenticidade</td><td>Login nominal do vendedor e token de curta duração.</td><td>Nenhuma credencial fixa no pacote; token expira em até 60 min; teste com token vencido recebe recusa.</td><td>Alta</td></tr>
+            <tr><td>Usuário de integração</td><td>E</td><td>A credencial do aplicativo altera preço e limite de crédito.</td><td>Autorização</td><td>Cenário de comunicação restrito a pedido e consultas.</td><td>Tentativa de alterar preço pelo usuário de integração recebe recusa registrada na trilha.</td><td>Alta</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="g3 reveal" style="margin-top:11px">
+        <article class="card"><span class="label">Critério 1</span><h3>Cobertura</h3><p>Seis ameaças ou mais, em quatro categorias ou mais, nos canais críticos e no sistema de gestão.</p></article>
+        <article class="card dark"><span class="label dark">Critério 2</span><h3>Correspondência</h3><p>Cada contramedida trata a ameaça da mesma linha e preserva a propriedade indicada.</p></article>
+        <article class="card coral"><span class="label coral">Critério 3</span><h3>Verificabilidade</h3><p>Cada requisito pode ser aprovado ou reprovado por teste, inspeção ou auditoria.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Síntese do encontro</div><p class="ss">Seis proposições para tratar a segurança da solução do parceiro como requisito não funcional.</p></header>
+      <div class="closing reveal">
+        <blockquote>Cada canal que cruza uma fronteira de confiança precisa de identidade verificada, permissão mínima e registro que aponte o autor de cada operação.</blockquote>
+        <div class="g2">
+          <article class="card"><h3>1 · Requisito verificável</h3><p>O requisito de segurança nomeia ativo, propriedade, mecanismo e critério de aceite.</p></article>
+          <article class="card dark"><h3>2 · Ameaça antes do mecanismo</h3><p>A contramedida é escolhida em resposta a uma ameaça identificada no diagrama.</p></article>
+          <article class="card"><h3>3 · Canal e identidade separados</h3><p>O TLS protege a mensagem em trânsito, e a autorização decide o que o emissor pode fazer.</p></article>
+          <article class="card coral"><h3>4 · Credencial por integração</h3><p>Cada integração tem credencial própria, fora do código e revogável.</p></article>
+          <article class="card dark"><h3>5 · Menor privilégio</h3><p>Cada identidade recebe apenas as permissões de que precisa.</p></article>
+          <article class="card"><h3>6 · Autoria rastreável</h3><p>A trilha registra a pessoa, a origem e os valores anterior e novo.</p></article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh green reveal"><div class="st">Leituras e referências</div><p class="ss">Obras de referência sobre segurança em sistemas distribuídos e documentos normativos citados no encontro.</p></header>
+      <div class="g2 reveal">
+        <article class="card"><span class="label">Leituras recomendadas</span><h3>Fundamentos</h3>
+          <ul>
+            <li>COULOURIS, G. et al. <em>Sistemas Distribuídos: conceitos e projeto</em>. 5. ed. Porto Alegre: Bookman, 2013. Capítulo 11, sobre segurança.</li>
+            <li>VAN STEEN, M.; TANENBAUM, A. S. <a href="https://www.distributed-systems.net/index.php/books/ds4/" target="_blank" rel="noopener noreferrer"><em>Distributed Systems</em></a>. 4. ed., 2023. Capítulo 9, sobre segurança.</li>
+            <li>SHOSTACK, A. <em>Threat Modeling: designing for security</em>. Indianapolis: Wiley, 2014.</li>
+          </ul>
+        </article>
+        <article class="card dark"><span class="label dark">Fontes normativas</span><h3>Normas e guias</h3>
+          <ul>
+            <li>ISO/IEC 25010 — modelo de qualidade de produto de software.</li>
+            <li>NIST SP 800-207 — <em>Zero Trust Architecture</em>, 2020.</li>
+            <li>OWASP — <a href="https://owasp.org/API-Security/" target="_blank" rel="noopener noreferrer"><em>API Security Top 10</em></a>, 2023.</li>
+            <li>Lei nº 13.709/2018 — Lei Geral de Proteção de Dados Pessoais.</li>
+          </ul>
+        </article>
+      </div>
+      <div class="callout dark reveal">Próximo encontro: palestra sobre a carreira de consultor SAP, com profissional convidado. Os grupos preparam duas perguntas a partir das etapas da implantação vividas no projeto.</div>
+    </div>
   </section>
 
 <!-- encontro:meta:start -->
-<div class="slide encontro-slide"><div class="sc"><section class="encontro-meta" data-encontro-ficha><h2>Sobre este encontro</h2><p class="encontro-ref">Segurança em Sistemas distribuídos · 01/10/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>Ao final do encontro, o estudante deve ser capaz de aplicar ao projeto os conceitos de Segurança em Sistemas distribuídos. Escopo do encontro: Segurança como requisito não funcional em sistemas distribuídos: confidencialidade e integridade dos dados e como o requisito é tratado no projeto.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>Exposição dialogada dos conceitos, alternada com aplicação guiada ao projeto do grupo, e fechamento com verificação do entendimento.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol><li>Abertura: retomada do encontro anterior e enunciado do objetivo do dia</li><li>Desenvolvimento: exposição dos conceitos centrais do tema</li><li>Aplicação: exercício ou discussão dirigida sobre o projeto do grupo</li><li>Fechamento: síntese, verificação do entendimento e encaminhamentos</li></ol></div></section></div></div>
+<div class="slide encontro-slide"><div class="sc"><section class="encontro-meta" data-encontro-ficha><h2>Sobre este encontro</h2><p class="encontro-ref">Segurança em Sistemas distribuídos · 01/10/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>Ao final do encontro, o estudante deve ser capaz de tratar a segurança como requisito não funcional da solução implantada para o parceiro, identificando, sobre o diagrama de canais produzido na Aula 10, as fronteiras de confiança e as ameaças a cada nó e canal segundo a classificação STRIDE, e de propor para cada ameaça uma contramedida e um requisito verificável de confidencialidade, integridade, disponibilidade, autenticidade ou responsabilização.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>Exposição dialogada em quatro blocos (segurança como requisito não funcional, ameaças em sistemas distribuídos, mecanismos de proteção e arquitetura segura), cada um encerrado com a retomada de um incidente da Serra Azul em que a credencial de integração do aplicativo de força de vendas, com perfil amplo e gravada no código, foi usada para alterar preços e limites de crédito sem trilha que identificasse o autor; e atividade em grupo que aplica a modelagem de ameaças ao diagrama de canais da Aula 10 e produz a tabela de ameaças, contramedidas e requisitos não funcionais.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol><li>Daily: avanço do artefato de relatórios da Sprint 5, atividade prevista e impedimentos — 15 min</li><li>Abertura: retomada do diagrama da Aula 10 e situação-problema da credencial de integração exposta — 5 min</li><li>Requisito não funcional: propriedades de segurança, requisito verificável e superfície de ataque do sistema distribuído — 15 min</li><li>Ameaças: fronteiras de confiança, classificação STRIDE e ataques típicos a canais e nós — 15 min</li><li>Mecanismos: criptografia, TLS e certificados, autenticação, autorização por menor privilégio, segredos e trilha de auditoria — 18 min</li><li>Arquitetura segura: defesa em profundidade, confiança zero, gateway de API e limitação de taxa — 10 min</li><li>Atividade em grupo: fronteiras de confiança, tabela STRIDE, contramedidas e requisitos não funcionais sobre o diagrama da Aula 10 — 35 min</li><li>Fechamento: síntese das seis proposições e encaminhamento para a Aula 12 — 7 min</li></ol></div></section></div></div>
 <!-- encontro:meta:end -->
 </div>
 
-<div class="slide-footer">
-  <div class="nav-group">
+<footer class="slide-footer">
+  <div class="footer-links">
     <a href="../../home-module-7-sistemas-informacao.html" class="back-home">🏠 Home</a>
     <a href="../materials/lesson-11-material.html" class="back-home material">📖 Material</a>
+    <a href="../planos/lesson-11-plano.html" class="back-home plano">📋 Plano</a>
   </div>
-  <div class="nav-group">
-    <button class="nav-btn" id="prev">← Anterior</button>
-    <div class="slide-counter"><span id="current-slide">1</span> / <span id="total-slides">9</span></div>
-    <button class="nav-btn" id="next">Próximo →</button>
+  <div class="nav-wrapper">
+    <button class="nav-btn" id="prev" type="button">← Anterior</button>
+    <div class="slide-counter"><span id="current-slide">1</span> / <span id="total-slides">1</span></div>
+    <button class="nav-btn" id="next" type="button">Próximo →</button>
+    <button class="fullscreen-btn" id="fullscreen" type="button" aria-label="Alternar tela cheia">⛶</button>
   </div>
-</div>
+</footer>
 
 <script>
   const slides = Array.from(document.querySelectorAll('.slide'));
-  let idx = 0;
-  const cur = document.getElementById('current-slide');
-  const prev = document.getElementById('prev');
+  const current = document.getElementById('current-slide');
+  const total = document.getElementById('total-slides');
+  const previous = document.getElementById('prev');
   const next = document.getElementById('next');
-  function render() {
-    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
-    cur.textContent = idx + 1;
-    prev.disabled = idx === 0;
-    next.disabled = idx === slides.length - 1;
+  let slideIndex = 0;
+
+  function animateActiveSlide() {
+    const active = slides[slideIndex];
+    const items = active ? Array.from(active.querySelectorAll('.reveal')) : [];
+    if (!items.length || !window.__anime) return;
+    window.__anime.animate(items, {
+      opacity: { from: 0, to: 1 },
+      y: { from: 12, to: 0 },
+      delay: window.__anime.stagger(45),
+      duration: 420,
+      ease: 'outQuad'
+    });
   }
-  function go(d) { idx = Math.min(slides.length - 1, Math.max(0, idx + d)); render(); }
-  prev.addEventListener('click', () => go(-1));
-  next.addEventListener('click', () => go(1));
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowRight') go(1);
-    if (e.key === 'ArrowLeft') go(-1);
+
+  function showSlide(index) {
+    slideIndex = Math.max(0, Math.min(index, slides.length - 1));
+    slides.forEach((slide, position) => slide.classList.toggle('active', position === slideIndex));
+    current.textContent = String(slideIndex + 1);
+    total.textContent = String(slides.length);
+    previous.disabled = slideIndex === 0;
+    next.disabled = slideIndex === slides.length - 1;
+    animateActiveSlide();
+  }
+
+  window.showSlide = showSlide;
+  previous.addEventListener('click', () => showSlide(slideIndex - 1));
+  next.addEventListener('click', () => showSlide(slideIndex + 1));
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowRight' || event.key === 'PageDown') showSlide(slideIndex + 1);
+    if (event.key === 'ArrowLeft' || event.key === 'PageUp') showSlide(slideIndex - 1);
   });
-  render();
+  document.getElementById('fullscreen').addEventListener('click', () => {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+    else document.exitFullscreen();
+  });
+  window.addEventListener('anime-ready', animateActiveSlide);
+
+  let dailySeconds = 15 * 60;
+  let dailyInterval = null;
+  const dailyTimer = document.getElementById('daily-timer');
+  const dailyStart = document.getElementById('daily-start');
+  function renderDaily() {
+    const minutes = String(Math.floor(dailySeconds / 60)).padStart(2, '0');
+    const seconds = String(dailySeconds % 60).padStart(2, '0');
+    dailyTimer.textContent = `${minutes}:${seconds}`;
+  }
+  function stopDaily() {
+    if (dailyInterval) clearInterval(dailyInterval);
+    dailyInterval = null;
+    dailyStart.textContent = 'Iniciar';
+  }
+  dailyStart.addEventListener('click', () => {
+    if (dailyInterval) { stopDaily(); return; }
+    dailyStart.textContent = 'Pausar';
+    dailyInterval = setInterval(() => {
+      dailySeconds -= 1;
+      renderDaily();
+      if (dailySeconds <= 0) stopDaily();
+    }, 1000);
+  });
+  document.getElementById('daily-reset').addEventListener('click', () => {
+    stopDaily();
+    dailySeconds = 15 * 60;
+    renderDaily();
+  });
+  showSlide(0);
 </script>
-<!-- semana:js:start -->
-<script src="../../../js/semana-ano.js" defer></script>
-<!-- semana:js:end -->
 <!-- encontro:pdf:start -->
 <button type="button" class="pdf-export-btn" data-encontro-data="2026-10-01" data-encontro-docente="Afonso" data-encontro-seq="01" title="Exportar esta página em PDF com o nome padronizado">📄 Exportar PDF</button>
 <script src="../../../js/encontro-pdf.js" defer></script>
 <!-- encontro:pdf:end -->
+<!-- semana:js:start -->
+<script src="../../../js/semana-ano.js" defer></script>
+<!-- semana:js:end -->
 </body>
 </html>

@@ -1,75 +1,628 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Aula 11 — Segurança em Sistemas distribuídos — Material — Inteli</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
   <link href="../../../css/inteli-styles.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    body { font-family:'Manrope',sans-serif; color:#1e293b; background:#f8fafc; }
-    .material-header { background:linear-gradient(135deg,#1e2a24 0%,#2f8f78 55%,#89cea5 100%); color:#fff; padding:40px 0; }
-    .wip-box { background:#fff; border:1px solid #e2e8f0; border-left:5px solid #89cea5; border-radius:14px; padding:28px; margin:30px 0; }
-    .badge-wip { display:inline-block; padding:6px 16px; border-radius:999px; background:rgba(137,206,165,.18); color:#2f8f78; font-weight:700; border:1px solid rgba(47,143,120,.35); }
+    :root {
+      --si: var(--inteli-green);
+      --ink: var(--inteli-dark-purple);
+      --alert: var(--inteli-coral);
+      --paper: var(--inteli-white);
+      --line: var(--inteli-light-gray);
+      --muted: var(--inteli-dark-gray);
+      --soft-si: color-mix(in srgb,var(--si) 17%,var(--paper));
+      --soft-ink: color-mix(in srgb,var(--ink) 7%,var(--paper));
+      --soft-alert: color-mix(in srgb,var(--alert) 11%,var(--paper));
+    }
+    *, *::before, *::after { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; font-family:'Manrope',sans-serif; color:var(--ink); background:var(--soft-ink); }
+    a { color:color-mix(in srgb,var(--si) 58%,var(--ink)); }
+    #progress-bar { position:fixed; inset:0 auto auto 0; width:0; height:3px; z-index:9999; background:linear-gradient(90deg,var(--ink),var(--si)); }
+    .mat-header { color:var(--paper); background:linear-gradient(130deg,var(--ink),color-mix(in srgb,var(--ink) 45%,var(--si)) 62%,var(--si)); padding:42px 24px 34px; }
+    .head-inner { width:min(1160px,100%); margin:auto; display:flex; justify-content:space-between; align-items:end; gap:28px; }
+    .head-copy { max-width:780px; }
+    .badge { display:inline-block; margin-bottom:12px; padding:5px 11px; border:1px solid color-mix(in srgb,var(--paper) 36%,transparent); border-radius:999px; background:color-mix(in srgb,var(--paper) 12%,transparent); font-size:.72rem; font-weight:800; letter-spacing:.06em; }
+    .mat-section .badge { border-color:var(--line); background:var(--soft-si); color:var(--ink); margin-bottom:8px; }
+    .mat-header h1 { margin:0; font-size:2.45rem; line-height:1.12; letter-spacing:-.03em; }
+    .mat-header p { margin:10px 0 0; max-width:760px; color:color-mix(in srgb,var(--paper) 84%,var(--si)); line-height:1.6; }
+    .head-actions { display:flex; flex-wrap:wrap; gap:7px; justify-content:flex-end; }
+    .head-actions a { padding:8px 12px; border-radius:9px; color:var(--paper); border:1px solid color-mix(in srgb,var(--paper) 45%,transparent); text-decoration:none; font-size:.76rem; font-weight:800; white-space:nowrap; }
+    .head-actions a.primary { background:var(--paper); color:var(--ink); }
+    .fig { margin:16px 0 0; background:var(--paper); border:1px solid var(--line); border-radius:14px; padding:14px 16px 12px; box-shadow:0 4px 16px color-mix(in srgb,var(--ink) 7%,transparent); overflow-x:auto; }
+    .fig svg { display:block; width:100%; min-width:640px; height:auto; }
+    .fig figcaption { margin-top:9px; font-size:.83rem; line-height:1.5; color:color-mix(in srgb,var(--ink) 72%,var(--paper)); }
+    .fig figcaption strong { color:var(--ink); }
+    .dg-lb { font-size:12px; font-weight:800; fill:var(--ink); }
+    .dg-sm { font-size:10.5px; font-weight:600; fill:color-mix(in srgb,var(--ink) 66%,var(--paper)); }
+    .dg-xs { font-size:9.5px; font-weight:700; fill:color-mix(in srgb,var(--ink) 70%,var(--paper)); }
+    .dg-ly { font-size:10px; font-weight:800; letter-spacing:.08em; fill:var(--paper); }
+    .dg-pk { font-size:10px; font-weight:800; fill:color-mix(in srgb,var(--si) 45%,var(--ink)); font-family:'JetBrains Mono',monospace; }
+    .dg-at { font-size:10px; font-weight:600; fill:var(--ink); font-family:'JetBrains Mono',monospace; }
+    .dg-cd { font-size:11px; font-weight:800; fill:color-mix(in srgb,var(--alert) 70%,var(--ink)); }
+    .mat-layout { display:grid; grid-template-columns:280px minmax(0,1fr); gap:34px; width:min(1220px,100%); margin:auto; padding:36px 24px 64px; }
+    .mat-sidebar { position:sticky; top:18px; align-self:start; max-height:calc(100vh - 36px); overflow:auto; }
+    .mat-toc { padding:18px; border:1px solid var(--line); border-radius:14px; background:var(--paper); box-shadow:0 4px 16px color-mix(in srgb,var(--ink) 7%,transparent); }
+    .mat-toc h2 { margin:0 0 10px; font-size:.74rem; letter-spacing:.11em; text-transform:uppercase; }
+    .mat-toc a { display:block; padding:5px 8px; border-left:3px solid transparent; color:color-mix(in srgb,var(--ink) 68%,var(--paper)); text-decoration:none; font-size:.76rem; line-height:1.32; }
+    .mat-toc a:hover, .mat-toc a.active { color:var(--ink); background:var(--soft-si); border-left-color:var(--si); }
+    .toc-total { margin-top:10px; padding-top:10px; border-top:1px solid var(--line); color:color-mix(in srgb,var(--ink) 60%,var(--paper)); font-size:.7rem; }
+    .mat-article { min-width:0; }
+    .mat-section { margin:0 0 48px; scroll-margin-top:26px; }
+    .mat-section h2 { margin:0 0 18px; padding-bottom:10px; border-bottom:2px solid var(--line); font-size:1.65rem; line-height:1.25; }
+    .mat-section h3 { margin:25px 0 9px; font-size:1.08rem; }
+    .mat-section p, .mat-section li { font-size:.94rem; line-height:1.75; color:color-mix(in srgb,var(--ink) 82%,var(--paper)); }
+    .mat-section p { margin:0 0 14px; }
+    .mat-section ul, .mat-section ol { margin:10px 0 16px; padding-left:1.35rem; }
+    .mat-section li { margin-bottom:5px; }
+    .lead { font-size:1.05rem!important; color:var(--ink)!important; }
+    .g2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+    .g3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+    .card { padding:17px 18px; border:1px solid var(--line); border-left:5px solid var(--si); border-radius:12px; background:var(--paper); box-shadow:0 4px 14px color-mix(in srgb,var(--ink) 6%,transparent); }
+    .card.dark { border-left-color:var(--ink); }
+    .card.coral { border-left-color:var(--alert); }
+    .card h3 { margin:0 0 7px; }
+    .card p:last-child, .card ul:last-child { margin-bottom:0; }
+    .callout { margin:18px 0; padding:15px 18px; border:1px solid color-mix(in srgb,var(--si) 42%,var(--paper)); border-left:5px solid var(--si); border-radius:11px; background:var(--soft-si); }
+    .callout.dark { border-color:color-mix(in srgb,var(--ink) 23%,var(--paper)); border-left-color:var(--ink); background:var(--soft-ink); }
+    .callout.warn { border-color:color-mix(in srgb,var(--alert) 40%,var(--paper)); border-left-color:var(--alert); background:var(--soft-alert); }
+    .callout-label { margin-bottom:5px; color:var(--ink); font-size:.69rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
+    .callout p:last-child { margin:0; }
+    .table-wrap { margin:17px 0; overflow-x:auto; border:1px solid var(--line); border-radius:12px; background:var(--paper); }
+    table { width:100%; min-width:720px; border-collapse:collapse; font-size:.79rem; }
+    th { padding:10px 11px; background:var(--ink); color:var(--paper); text-align:left; font-weight:800; }
+    td { padding:10px 11px; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.5; }
+    tr:last-child td { border-bottom:0; }
+    tbody tr:nth-child(even) { background:var(--soft-ink); }
+    code { padding:2px 6px; border-radius:5px; background:var(--soft-si); color:var(--ink); font:600 .86em 'JetBrains Mono',monospace; }
+    pre.sql { margin:16px 0; padding:16px 18px; border-radius:12px; background:var(--ink); color:var(--paper); font:500 .8rem/1.6 'JetBrains Mono',monospace; overflow-x:auto; }
+    pre.sql code { padding:0; background:none; color:inherit; font:inherit; }
+    .template { margin:16px 0; padding:18px; border:1px dashed color-mix(in srgb,var(--ink) 35%,var(--paper)); border-radius:12px; background:var(--paper); }
+    .template h3 { margin-top:0; }
+    .template-row { display:grid; grid-template-columns:180px 1fr; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); }
+    .template-row:last-child { border-bottom:0; }
+    .template-row strong { font-size:.78rem; }
+    .template-row span { font-size:.82rem; line-height:1.5; color:color-mix(in srgb,var(--ink) 72%,var(--paper)); }
+    .trace { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:15px; margin:18px 0; }
+    .trace div { position:relative; padding:12px 10px; border:1px solid var(--line); border-radius:10px; background:var(--paper); text-align:center; font-size:.74rem; font-weight:800; line-height:1.4; }
+    .trace div span { display:block; margin-top:4px; font-weight:600; font-size:.72rem; color:color-mix(in srgb,var(--ink) 68%,var(--paper)); }
+    .trace div:not(:last-child)::after { content:'→'; position:absolute; right:-12px; top:50%; transform:translateY(-50%); color:var(--si); }
+    .checklist { list-style:none; padding:0!important; display:grid; gap:7px; }
+    .checklist li { position:relative; margin:0; padding:9px 10px 9px 34px; border:1px solid var(--line); border-radius:9px; background:var(--paper); }
+    .checklist li::before { content:'□'; position:absolute; left:11px; top:8px; color:color-mix(in srgb,var(--si) 56%,var(--ink)); font-weight:800; }
+    #float-nav { position:fixed; right:24px; bottom:25px; z-index:9998; display:flex; flex-direction:column; gap:7px; opacity:0; transform:translateY(12px); pointer-events:none; transition:.25s ease; }
+    #float-nav.visible { opacity:1; transform:none; pointer-events:auto; }
+    .fn-btn { padding:9px 13px; border-radius:999px; text-decoration:none; box-shadow:0 4px 16px color-mix(in srgb,var(--ink) 20%,transparent); font-size:.74rem; font-weight:800; text-align:center; }
+    .fn-btn-slides { background:var(--paper); color:var(--ink); border:2px solid var(--si); }
+    .fn-btn-alt { background:var(--paper); color:var(--ink); border:2px solid var(--ink); }
+    .fn-btn-back { background:var(--ink); color:var(--paper); }
+    .inteli-footer { padding:26px 20px; border-top:1px solid var(--line); background:var(--paper); text-align:center; font-size:.8rem; }
+    @media(max-width:960px) { .mat-layout { grid-template-columns:1fr; } .mat-sidebar { display:none; } .head-inner { display:block; } .head-actions { margin-top:20px; justify-content:flex-start; } }
+    @media(max-width:700px) { .g2,.g3 { grid-template-columns:1fr; } .mat-header h1 { font-size:1.9rem; } .trace { grid-template-columns:1fr; } .trace div::after { display:none; } .template-row { grid-template-columns:1fr; gap:2px; } }
   </style>
-
-<!-- semana:css:start -->
-<link rel="stylesheet" href="../../../css/semana-ano.css">
-<!-- semana:css:end -->
 
 <!-- encontro:css:start -->
 <link rel="stylesheet" href="../../../css/encontro.css">
 <!-- encontro:css:end -->
+
+<!-- semana:css:start -->
+<link rel="stylesheet" href="../../../css/semana-ano.css">
+<!-- semana:css:end -->
 </head>
 <body>
-  <div class="material-header">
-    <div class="container d-flex justify-content-between align-items-center flex-wrap gap-3">
-      <div>
-        <small class="text-uppercase fw-bold" style="letter-spacing:.15em;">Módulo 7 · Semana 9 · Sistemas de Informação</small>
-        <h1 class="mt-2 mb-1">Aula 11 — Segurança em Sistemas distribuídos</h1>
-        <p class="mb-0">Material de leitura · Professor(a): Afonso Brandão</p>
+  <div id="progress-bar" aria-hidden="true"></div>
+  <nav id="float-nav" aria-label="Navegação rápida">
+    <a class="fn-btn fn-btn-slides" href="../slides/slide-lesson-11.html">▶ Slides</a>
+    <a class="fn-btn fn-btn-alt" href="../planos/lesson-11-plano.html">📋 Plano</a>
+    <a class="fn-btn fn-btn-back" href="../../home-module-7-sistemas-informacao.html">← Módulo</a>
+  </nav>
+
+  <header class="mat-header">
+    <div class="head-inner">
+      <div class="head-copy">
+        <span class="badge">Módulo 7 · Sistemas de Informação · Semana 9 · Aula 11</span>
+        <h1>Segurança em Sistemas distribuídos</h1>
+        <p>Material de leitura sobre a segurança como requisito não funcional, as ameaças específicas dos sistemas distribuídos, a modelagem de ameaças pelo método STRIDE, os mecanismos de criptografia, autenticação, autorização, gestão de segredos e auditoria, e a arquitetura de defesa em profundidade e confiança zero aplicada às integrações de um sistema de gestão.</p>
       </div>
-      <div class="d-flex gap-2">
-        <a href="../slides/slide-lesson-11.html" class="btn btn-light btn-sm">▶ Slides</a>
-        <a href="../../home-module-7-sistemas-informacao.html" class="btn btn-outline-light btn-sm">← Voltar ao Módulo</a>
+      <div class="head-actions">
+        <a class="primary" href="../slides/slide-lesson-11.html">▶ Slides</a>
+        <a href="../planos/lesson-11-plano.html">📋 Plano de ensino</a>
+        <a href="../../home-module-7-sistemas-informacao.html">← Voltar ao módulo</a>
       </div>
     </div>
-  </div>
+  </header>
+
 <!-- encontro:meta:start -->
-<div class="container" style="max-width:1100px;margin:24px auto 0;padding:0 16px;"><section class="encontro-meta" data-encontro-ficha><h2>Sobre este encontro</h2><p class="encontro-ref">Segurança em Sistemas distribuídos · 01/10/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>Ao final do encontro, o estudante deve ser capaz de aplicar ao projeto os conceitos de Segurança em Sistemas distribuídos. Escopo do encontro: Segurança como requisito não funcional em sistemas distribuídos: confidencialidade e integridade dos dados e como o requisito é tratado no projeto.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>Exposição dialogada dos conceitos, alternada com aplicação guiada ao projeto do grupo, e fechamento com verificação do entendimento.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol><li>Abertura: retomada do encontro anterior e enunciado do objetivo do dia</li><li>Desenvolvimento: exposição dos conceitos centrais do tema</li><li>Aplicação: exercício ou discussão dirigida sobre o projeto do grupo</li><li>Fechamento: síntese, verificação do entendimento e encaminhamentos</li></ol></div></section></div>
+<div class="container" style="max-width:1100px;margin:24px auto 0;padding:0 16px;"><section class="encontro-meta" data-encontro-ficha><h2>Sobre este encontro</h2><p class="encontro-ref">Segurança em Sistemas distribuídos · 01/10/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>Ao final do encontro, o estudante deve ser capaz de tratar a segurança como requisito não funcional da solução implantada para o parceiro, identificando, sobre o diagrama de canais produzido na Aula 10, as fronteiras de confiança e as ameaças a cada nó e canal segundo a classificação STRIDE, e de propor para cada ameaça uma contramedida e um requisito verificável de confidencialidade, integridade, disponibilidade, autenticidade ou responsabilização.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>Exposição dialogada em quatro blocos (segurança como requisito não funcional, ameaças em sistemas distribuídos, mecanismos de proteção e arquitetura segura), cada um encerrado com a retomada de um incidente da Serra Azul em que a credencial de integração do aplicativo de força de vendas, com perfil amplo e gravada no código, foi usada para alterar preços e limites de crédito sem trilha que identificasse o autor; e atividade em grupo que aplica a modelagem de ameaças ao diagrama de canais da Aula 10 e produz a tabela de ameaças, contramedidas e requisitos não funcionais.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol><li>Daily: avanço do artefato de relatórios da Sprint 5, atividade prevista e impedimentos — 15 min</li><li>Abertura: retomada do diagrama da Aula 10 e situação-problema da credencial de integração exposta — 5 min</li><li>Requisito não funcional: propriedades de segurança, requisito verificável e superfície de ataque do sistema distribuído — 15 min</li><li>Ameaças: fronteiras de confiança, classificação STRIDE e ataques típicos a canais e nós — 15 min</li><li>Mecanismos: criptografia, TLS e certificados, autenticação, autorização por menor privilégio, segredos e trilha de auditoria — 18 min</li><li>Arquitetura segura: defesa em profundidade, confiança zero, gateway de API e limitação de taxa — 10 min</li><li>Atividade em grupo: fronteiras de confiança, tabela STRIDE, contramedidas e requisitos não funcionais sobre o diagrama da Aula 10 — 35 min</li><li>Fechamento: síntese das seis proposições e encaminhamento para a Aula 12 — 7 min</li></ol></div></section></div>
 <!-- encontro:meta:end -->
+<div class="mat-layout">
+    <aside class="mat-sidebar">
+      <nav class="mat-toc" aria-label="Sumário do material">
+        <h2>Neste material</h2>
+        <a href="#leitura">1. Como ler este material</a>
+        <a href="#requisito">2. Segurança como requisito não funcional</a>
+        <a href="#verificavel">3. Requisito de segurança verificável</a>
+        <a href="#superficie">4. A superfície de ataque do sistema distribuído</a>
+        <a href="#fronteiras">5. Fronteiras de confiança e modelagem de ameaças</a>
+        <a href="#stride">6. Classificação STRIDE</a>
+        <a href="#diagrama">7. O diagrama do caso com as fronteiras de confiança</a>
+        <a href="#criptografia">8. Criptografia: os blocos básicos</a>
+        <a href="#tls">9. Proteção do canal com TLS</a>
+        <a href="#autenticacao">10. Autenticação de pessoas e de sistemas</a>
+        <a href="#autorizacao">11. Autorização e menor privilégio</a>
+        <a href="#segredos">12. Gestão de segredos</a>
+        <a href="#auditoria">13. Trilha de auditoria e detecção</a>
+        <a href="#lgpd">14. Dados pessoais e LGPD</a>
+        <a href="#profundidade">15. Defesa em profundidade e confiança zero</a>
+        <a href="#gateway">16. Gateway de API, limitação de taxa e segmentação</a>
+        <a href="#retomada">17. Retomada do caso</a>
+        <a href="#atividade">18. Atividade do encontro</a>
+        <a href="#antipadroes">19. Falhas recorrentes</a>
+        <a href="#leituras">20. Leituras recomendadas</a>
+        <a href="#referencias">21. Referências</a>
+        <div class="toc-total">Tempo estimado de leitura: 30 minutos.</div>
+      </nav>
+    </aside>
 
+    <main class="mat-article">
 
+      <section class="mat-section" id="leitura">
+        <h2>1. Como ler este material</h2>
+        <p class="lead">A Aula 10 representou a solução do parceiro como sistema distribuído, com nós, canais e pontos de falha. Este encontro examina o mesmo diagrama sob outra pergunta: em que pontos alguém sem autorização pode ler, alterar ou impedir o acesso aos dados, e que controles evitam, limitam ou revelam essa ação.</p>
+        <p>A segurança é tratada aqui como requisito não funcional, na mesma família do desempenho e da disponibilidade. Isso significa que ela precisa ser escrita de forma verificável no início do projeto e cumprida por decisões de arquitetura, em vez de ser acrescentada no fim por meio de ferramentas avulsas. O profissional de Sistemas de Informação participa dessa especificação porque conhece os processos, os dados e as responsabilidades que os controles precisam proteger.</p>
+        <p>O material percorre quatro assuntos. O primeiro define as propriedades de segurança e mostra como transformá-las em requisitos verificáveis. O segundo apresenta as ameaças específicas dos sistemas distribuídos e o método STRIDE para identificá-las sobre o diagrama. O terceiro descreve os mecanismos de proteção: criptografia, TLS, autenticação, autorização, gestão de segredos e trilha de auditoria. O quarto trata da arquitetura segura, com defesa em profundidade, confiança zero, gateway de API e limitação de taxa.</p>
+        <div class="callout dark">
+          <div class="callout-label">Situação-problema do encontro</div>
+          <p>A Serra Azul corrigiu a duplicidade de pedidos analisada na Aula 10. Três semanas depois, o mesmo canal entre o aplicativo de força de vendas e o sistema de gestão é usado para um ataque. O aplicativo acessa a API com um único usuário de integração, cuja senha está gravada no pacote instalado nos 140 celulares. Na implantação, esse usuário recebeu um perfil amplo para não travar a operação, e o perfil inclui alterar preço e limite de crédito. Um celular furtado permite extrair a senha. Em um fim de semana, 38 itens têm o preço reduzido em 60% e três clientes têm o limite de crédito elevado para R$ 500 mil, e pedidos grandes são feitos em seguida. A API aceita chamadas de qualquer origem e em qualquer volume, e a trilha de alteração registra apenas o usuário de integração, de modo que não se sabe quem agiu nem de onde.</p>
+        </div>
+        <p>O caso reúne quatro ausências, uma para cada assunto do encontro: nenhum requisito de segurança foi escrito, nenhuma ameaça foi modelada, a senha e o perfil do usuário de integração eram inadequados e a entrada da API não tinha controle de volume, de origem nem de autoria. As seções seguintes retomam cada uma delas.</p>
+        <p>A leitura precede o encontro, e o diagrama de canais produzido na Aula 10 deve estar disponível. Na atividade, cada grupo desenha as fronteiras de confiança sobre esse diagrama, identifica as ameaças pelo método STRIDE e propõe, para cada uma, uma contramedida e um requisito verificável.</p>
+      </section>
 
+      <section class="mat-section" id="requisito">
+        <h2>2. Segurança como requisito não funcional</h2>
+        <p>Os requisitos funcionais descrevem o que o sistema faz, como registrar um pedido ou emitir uma nota. Os requisitos não funcionais descrevem qualidades do comportamento do sistema ao fazer essas coisas, como tempo de resposta, disponibilidade, facilidade de uso e segurança. A norma ISO/IEC 25010, que define o modelo de qualidade de produto de software, decompõe a segurança em propriedades que podem ser especificadas e verificadas separadamente.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Propriedade</th><th>Definição</th><th>Pergunta que responde</th><th>Violação no caso</th></tr></thead>
+            <tbody>
+              <tr><td>Confidencialidade</td><td>O dado é acessível apenas a quem tem autorização.</td><td>Quem pode ler este dado?</td><td>A senha de integração ficou legível no pacote do aplicativo.</td></tr>
+              <tr><td>Integridade</td><td>O dado só é alterado por quem pode e pela forma prevista.</td><td>Quem pode modificar este dado, e como?</td><td>Preços e limites foram modificados sem aprovação.</td></tr>
+              <tr><td>Disponibilidade</td><td>O serviço atende quem tem direito, quando precisa.</td><td>O serviço pode ser impedido de atender?</td><td>A API sem limite de volume poderia ser esgotada por excesso de chamadas.</td></tr>
+              <tr><td>Autenticidade</td><td>A identidade de um participante ou a origem de um dado pode ser comprovada.</td><td>O emissor é quem afirma ser?</td><td>Qualquer pessoa com a senha se passava pelo aplicativo.</td></tr>
+              <tr><td>Responsabilização</td><td>As ações podem ser rastreadas até quem as praticou.</td><td>É possível saber quem fez isto?</td><td>A trilha registrou apenas o usuário compartilhado.</td></tr>
+              <tr><td>Não repúdio</td><td>Quem praticou uma ação não pode negá-la depois.</td><td>O autor pode negar a autoria?</td><td>Qualquer vendedor poderia negar ter feito uma alteração.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>A confidencialidade, a integridade e a disponibilidade compõem a chamada tríade clássica da segurança da informação. Em sistemas empresariais, a responsabilização e o não repúdio têm peso equivalente, porque os controles vistos nas Aulas 5 e 7, como a aprovação de mudanças, a segregação de funções e a trilha de alteração de campos críticos, dependem de saber quem fez cada operação. Um sistema que protege o dado contra leitura, mas não registra quem o alterou, não sustenta auditoria.</p>
+        <div class="callout warn">
+          <div class="callout-label">Retomada do caso</div>
+          <p>O ataque da Serra Azul violou quatro das seis propriedades: autenticidade, porque o atacante se passou pelo aplicativo; integridade, porque alterou preços e limites; responsabilização, porque a trilha não identificava a pessoa; e confidencialidade, porque a senha estava legível. Nenhuma dessas propriedades havia sido declarada como requisito do projeto.</p>
+        </div>
+      </section>
 
+      <section class="mat-section" id="verificavel">
+        <h2>3. Requisito de segurança verificável</h2>
+        <p>Um requisito que não pode ser verificado não pode ser aprovado, testado nem cobrado de um fornecedor. Frases como "o sistema deve ser seguro" ou "as integrações devem seguir boas práticas de segurança" expressam uma intenção, mas não permitem decidir se foram cumpridas. A formulação verificável nomeia o que se protege, a propriedade preservada, o mecanismo usado e o critério pelo qual se comprova o cumprimento.</p>
+        <div class="template">
+          <h3>Elementos do requisito verificável</h3>
+          <div class="template-row"><strong>Ativo</strong><span>O dado, a função ou o serviço protegido, como a tabela de preços ou o limite de crédito.</span></div>
+          <div class="template-row"><strong>Propriedade</strong><span>A propriedade de segurança preservada, conforme a seção 2.</span></div>
+          <div class="template-row"><strong>Mecanismo</strong><span>O controle que preserva a propriedade, como autorização por papel ou token com validade curta.</span></div>
+          <div class="template-row"><strong>Critério de aceite</strong><span>O teste, a inspeção ou a auditoria que aprova ou reprova o requisito.</span></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Formulação vaga</th><th>Formulação verificável</th></tr></thead>
+            <tbody>
+              <tr><td>O sistema deve ser seguro.</td><td>Toda chamada à API de pedidos exige token emitido para a identidade do aplicativo, com validade máxima de 60 minutos; chamada sem token válido recebe recusa e é registrada com data, hora e origem.</td></tr>
+              <tr><td>O aplicativo deve ter acesso restrito.</td><td>O usuário de integração do aplicativo só pode criar pedido e consultar cliente, estoque e preço; a tentativa de qualquer outra operação é recusada e registrada.</td></tr>
+              <tr><td>As alterações devem ser rastreáveis.</td><td>Toda alteração de preço e de limite de crédito registra usuário nominal, data, hora, origem, valor anterior e valor novo, com retenção mínima de cinco anos.</td></tr>
+              <tr><td>A senha deve ser protegida.</td><td>Nenhuma credencial fixa consta do pacote do aplicativo nem do repositório de código, conforme inspeção automatizada a cada versão.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Os requisitos verificáveis entram no mesmo documento dos demais requisitos da solução e têm critério de aceite testado antes da entrada em produção. Na implantação de um sistema de gestão, isso significa incluí-los nos testes integrados e na lista de verificação da virada, ao lado dos critérios de aceite da carga de dados vistos na Aula 7.</p>
+      </section>
 
+      <section class="mat-section" id="superficie">
+        <h2>4. A superfície de ataque do sistema distribuído</h2>
+        <p>A superfície de ataque é o conjunto de pontos pelos quais um atacante pode tentar agir sobre o sistema. Um sistema executado em uma única máquina, sem acesso pela rede, tem superfície pequena. A distribuição a amplia de três formas: cada nó acrescentado é um novo alvo, cada canal é um trajeto em que a mensagem pode ser interceptada, e cada integração exige uma credencial que pode vazar. A Aula 10 listou, entre as falácias da rede, a premissa de que a rede é segura, e esta seção detalha por que ela é falsa.</p>
+        <p>Coulouris e colaboradores classificam as ameaças típicas aos canais e aos nós de um sistema distribuído.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Ameaça</th><th>Alvo</th><th>Descrição</th><th>Exemplo na Serra Azul</th></tr></thead>
+            <tbody>
+              <tr><td>Interceptação</td><td>Canal</td><td>O atacante lê a mensagem em trânsito.</td><td>Pedido e senha enviados de uma rede sem fio pública sem cifração.</td></tr>
+              <tr><td>Adulteração</td><td>Canal</td><td>O atacante altera a mensagem no caminho, e o destino a processa como legítima.</td><td>Quantidade ou preço trocados no pedido em trânsito.</td></tr>
+              <tr><td>Repetição</td><td>Canal</td><td>Uma mensagem legítima capturada é reenviada depois, reproduzindo a operação.</td><td>Reenvio de um pedido de crédito aprovado para obter nova aprovação.</td></tr>
+              <tr><td>Disfarce</td><td>Nó</td><td>O atacante se apresenta com a identidade de outro participante.</td><td>Uso da senha extraída para se passar pelo aplicativo.</td></tr>
+              <tr><td>Negação de serviço</td><td>Nó</td><td>O excesso de requisições esgota o serviço e impede o atendimento legítimo.</td><td>Milhares de chamadas por minuto à API de pedidos.</td></tr>
+              <tr><td>Vazamento de segredo</td><td>Credencial</td><td>Senha ou chave guardada em local acessível é obtida por quem não deveria.</td><td>Senha gravada no pacote instalado nos celulares.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout warn">
+          <div class="callout-label">Retomada do caso</div>
+          <p>O canal entre o aplicativo e a API usava HTTPS, e mesmo assim o ataque ocorreu, porque o atacante não interceptou mensagem alguma: ele usou uma credencial legítima e abriu a própria conexão protegida. A proteção do canal e a proteção da identidade são problemas distintos, e a Serra Azul havia tratado apenas o primeiro.</p>
+        </div>
+      </section>
 
+      <section class="mat-section" id="fronteiras">
+        <h2>5. Fronteiras de confiança e modelagem de ameaças</h2>
+        <p>A modelagem de ameaças é o procedimento de examinar o desenho de um sistema para identificar, antes da construção ou da entrada em produção, o que pode dar errado do ponto de vista da segurança e o que fazer a respeito. Shostack resume o procedimento em quatro perguntas: o que está sendo construído, o que pode dar errado, o que será feito a respeito e se a análise foi bem feita.</p>
+        <p>A primeira pergunta é respondida pelo diagrama de canais da Aula 10. Sobre ele, desenham-se as fronteiras de confiança, que são as linhas que separam regiões controladas por partes diferentes ou com níveis diferentes de confiança. A internet e as redes móveis são uma região; a rede corporativa, outra; a nuvem em que roda o sistema de gestão, outra; e cada organização externa, como a SEFAZ e o banco, forma uma região própria.</p>
+        <p>As fronteiras orientam a análise porque é ao cruzá-las que a mensagem sai do controle de quem a enviou. Dentro de uma região, o dado está sob as regras de uma única parte. Ao cruzar uma fronteira, ele passa por um trecho que nenhuma das partes controla por inteiro, e chega a um receptor que precisa decidir se confia no emissor. Por isso, todo canal que cruza uma fronteira é examinado com atenção, e todo dado que entra por ele é validado.</p>
+      </section>
 
+      <section class="mat-section" id="stride">
+        <h2>6. Classificação STRIDE</h2>
+        <p>A segunda pergunta da modelagem, o que pode dar errado, é respondida com auxílio de uma classificação de ameaças. A mais usada é a STRIDE, proposta por Loren Kohnfelder e Praerit Garg na Microsoft em 1999. O nome reúne as iniciais, em inglês, de seis categorias, cada uma correspondente à violação de uma propriedade de segurança.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Categoria</th><th>Ameaça</th><th>Propriedade violada</th><th>Pergunta sobre cada elemento do diagrama</th><th>Exemplo na Serra Azul</th></tr></thead>
+            <tbody>
+              <tr><td><strong>S</strong> · Spoofing</td><td>Falsificação de identidade</td><td>Autenticidade</td><td>Alguém pode se passar por este participante?</td><td>Uso da senha extraída do aplicativo.</td></tr>
+              <tr><td><strong>T</strong> · Tampering</td><td>Adulteração de dado</td><td>Integridade</td><td>O dado pode ser alterado em trânsito ou em repouso?</td><td>Troca da quantidade no pedido em trânsito.</td></tr>
+              <tr><td><strong>R</strong> · Repudiation</td><td>Negação de autoria</td><td>Não repúdio</td><td>O autor pode negar o que fez?</td><td>Alteração registrada no usuário compartilhado.</td></tr>
+              <tr><td><strong>I</strong> · Information disclosure</td><td>Vazamento de informação</td><td>Confidencialidade</td><td>O dado pode ser lido por quem não deveria?</td><td>Lista de clientes com limite de crédito exposta pela API.</td></tr>
+              <tr><td><strong>D</strong> · Denial of service</td><td>Negação de serviço</td><td>Disponibilidade</td><td>O serviço pode ser esgotado ou derrubado?</td><td>Milhares de chamadas por minuto à API de pedidos.</td></tr>
+              <tr><td><strong>E</strong> · Elevation of privilege</td><td>Elevação de privilégio</td><td>Autorização</td><td>O participante pode fazer mais do que deveria?</td><td>Aplicativo de vendas alterando limite de crédito.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>Procedimento de aplicação</h3>
+        <ol>
+          <li>Desenhar as fronteiras de confiança sobre o diagrama de canais.</li>
+          <li>Selecionar os elementos a examinar: os canais que cruzam fronteiras, os nós que recebem dados de fora e os depósitos de dados críticos.</li>
+          <li>Para cada elemento, percorrer as seis perguntas e registrar as ameaças plausíveis, com o atacante provável e o efeito sobre o processo.</li>
+          <li>Para cada ameaça, escolher uma contramedida e escrever o requisito verificável correspondente, conforme a seção 3.</li>
+          <li>Priorizar as ameaças pela combinação de probabilidade e impacto, e revisar a lista com alguém que não participou da análise.</li>
+        </ol>
+        <p>A classificação não exige examinar todas as combinações possíveis de elemento e categoria. Seu valor está em funcionar como lista de verificação, de modo que nenhuma categoria seja esquecida por falta de método. Na Serra Azul, uma única pergunta feita na implantação sobre o canal do aplicativo, se o participante pode fazer mais do que deveria, teria revelado o perfil amplo do usuário de integração.</p>
+      </section>
 
-  <main class="container py-4" style="max-width:880px;">
-    <p class="lead">Segurança como requisito não funcional em sistemas distribuídos: confidencialidade e integridade dos dados e como o requisito é tratado no projeto.</p>
+      <section class="mat-section" id="diagrama">
+        <h2>7. O diagrama do caso com as fronteiras de confiança</h2>
+        <p>A Figura 1 aplica o procedimento ao diagrama da Serra Azul. As regiões tracejadas indicam quem controla cada parte, e as marcas nos canais indicam as categorias STRIDE mais relevantes em cada travessia.</p>
+        <figure class="fig">
+          <svg viewBox="0 0 900 330" role="img" aria-label="Diagrama da Serra Azul dividido em quatro regiões de confiança: internet e redes móveis com o aplicativo e o portal, rede corporativa com o armazém, nuvem do sistema de gestão ao centro e organizações externas com SEFAZ e banco; cada canal que cruza uma fronteira recebe marcas das categorias STRIDE">
+          <g font-family="Manrope">
+            <rect x="6" y="8" width="232" height="198" rx="12" fill="none" stroke="var(--alert)" stroke-width="1.5" stroke-dasharray="7 5"/>
+            <text class="dg-cd" x="18" y="25">INTERNET E REDES MÓVEIS</text>
+            <rect x="6" y="216" width="232" height="108" rx="12" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="7 5"/>
+            <text class="dg-xs" x="18" y="233">REDE CORPORATIVA</text>
+            <rect x="316" y="58" width="268" height="206" rx="12" fill="none" stroke="var(--si)" stroke-width="1.5" stroke-dasharray="7 5"/>
+            <text class="dg-xs" x="328" y="74">NUVEM DO SISTEMA DE GESTÃO</text>
+            <rect x="662" y="34" width="232" height="272" rx="12" fill="none" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="7 5"/>
+            <text class="dg-xs" x="674" y="51">ORGANIZAÇÕES EXTERNAS</text>
+            <rect x="330" y="84" width="240" height="166" rx="12" fill="var(--soft-si)" stroke="var(--si)" stroke-width="2"/>
+            <text class="dg-lb" x="450" y="104" text-anchor="middle">SAP S/4HANA</text>
+            <rect x="350" y="114" width="200" height="34" rx="7" fill="var(--paper)" stroke="var(--ink)"/><text class="dg-lb" x="450" y="130" text-anchor="middle">API e SAP Fiori</text><text class="dg-xs" x="450" y="142" text-anchor="middle">ponto de entrada</text>
+            <rect x="350" y="156" width="200" height="34" rx="7" fill="var(--paper)" stroke="var(--ink)"/><text class="dg-lb" x="450" y="172" text-anchor="middle">Aplicação</text><text class="dg-xs" x="450" y="184" text-anchor="middle">papéis e autorizações</text>
+            <rect x="350" y="198" width="200" height="34" rx="7" fill="var(--paper)" stroke="var(--ink)"/><text class="dg-lb" x="450" y="214" text-anchor="middle">Dados</text><text class="dg-xs" x="450" y="226" text-anchor="middle">preços, clientes, trilha</text>
+            <rect x="20" y="36" width="200" height="54" rx="9" fill="var(--paper)" stroke="var(--ink)"/><text class="dg-lb" x="120" y="60" text-anchor="middle">App de força de vendas</text><text class="dg-xs" x="120" y="76" text-anchor="middle">140 celulares, um furtado</text>
+            <rect x="20" y="138" width="200" height="54" rx="9" fill="var(--paper)" stroke="var(--ink)"/><text class="dg-lb" x="120" y="162" text-anchor="middle">Portal de clientes</text><text class="dg-xs" x="120" y="178" text-anchor="middle">acesso público</text>
+            <rect x="20" y="250" width="200" height="54" rx="9" fill="var(--paper)" stroke="var(--ink)"/><text class="dg-lb" x="120" y="274" text-anchor="middle">Sistema do armazém</text><text class="dg-xs" x="120" y="290" text-anchor="middle">separação e expedição</text>
+            <rect x="680" y="64" width="200" height="54" rx="9" fill="var(--paper)" stroke="var(--ink)"/><text class="dg-lb" x="780" y="88" text-anchor="middle">SEFAZ</text><text class="dg-xs" x="780" y="104" text-anchor="middle">NF-e assinada com certificado</text>
+            <rect x="680" y="222" width="200" height="54" rx="9" fill="var(--paper)" stroke="var(--ink)"/><text class="dg-lb" x="780" y="246" text-anchor="middle">Banco</text><text class="dg-xs" x="780" y="262" text-anchor="middle">arquivo de cobrança</text>
+            <path d="M220 63 C 280 63, 290 122, 330 130" fill="none" stroke="var(--ink)" stroke-width="2"/>
+            <path d="M220 165 H330" fill="none" stroke="var(--ink)" stroke-width="2"/>
+            <path d="M220 277 C 280 277, 290 215, 330 210" fill="none" stroke="var(--ink)" stroke-width="2"/>
+            <path d="M570 128 C 620 120, 630 91, 680 91" fill="none" stroke="var(--ink)" stroke-width="2"/>
+            <path d="M570 214 C 620 222, 630 249, 680 249" fill="none" stroke="var(--ink)" stroke-width="2"/>
+            <g font-size="11" font-weight="800" text-anchor="middle">
+              <circle cx="262" cy="52" r="10" fill="var(--alert)"/><text x="262" y="56" fill="var(--paper)">S</text>
+              <circle cx="286" cy="52" r="10" fill="var(--alert)"/><text x="286" y="56" fill="var(--paper)">E</text>
+              <circle cx="310" cy="52" r="10" fill="var(--alert)"/><text x="310" y="56" fill="var(--paper)">R</text>
+              <circle cx="258" cy="182" r="10" fill="var(--alert)"/><text x="258" y="186" fill="var(--paper)">D</text>
+              <circle cx="282" cy="182" r="10" fill="var(--alert)"/><text x="282" y="186" fill="var(--paper)">I</text>
+              <circle cx="296" cy="266" r="10" fill="var(--muted)"/><text x="296" y="270" fill="var(--paper)">T</text>
+              <circle cx="628" cy="90" r="10" fill="var(--ink)"/><text x="628" y="94" fill="var(--paper)">T</text>
+              <circle cx="612" cy="258" r="10" fill="var(--ink)"/><text x="612" y="262" fill="var(--paper)">T</text>
+              <circle cx="636" cy="258" r="10" fill="var(--ink)"/><text x="636" y="262" fill="var(--paper)">I</text>
+            </g>
+          </g>
+        </svg>
+          <figcaption><strong>Figura 1. Fronteiras de confiança da Serra Azul.</strong> Todo canal do diagrama cruza pelo menos uma fronteira. O canal com o aplicativo concentra falsificação de identidade, elevação de privilégio e repúdio, as três categorias exploradas no ataque do caso. Fonte: elaboração própria.</figcaption>
+        </figure>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Canal</th><th>Fronteira cruzada</th><th>Categorias prioritárias</th><th>Justificativa</th></tr></thead>
+            <tbody>
+              <tr><td>Aplicativo → API</td><td>Internet e redes móveis para a nuvem do sistema de gestão.</td><td>S, E, R</td><td>Os aparelhos ficam fora do controle da empresa e podem ser furtados.</td></tr>
+              <tr><td>Portal → API</td><td>Internet para a nuvem do sistema de gestão.</td><td>D, I</td><td>O portal é público e pode receber volume abusivo ou consultas indevidas.</td></tr>
+              <tr><td>Armazém → sistema de gestão</td><td>Rede corporativa para a nuvem.</td><td>T</td><td>Mensagens de remessa alteradas mudariam o que é expedido.</td></tr>
+              <tr><td>Sistema de gestão → SEFAZ</td><td>Nuvem para organização externa.</td><td>T</td><td>A nota fiscal precisa chegar íntegra, e por isso é assinada.</td></tr>
+              <tr><td>Banco → sistema de gestão</td><td>Organização externa para a nuvem.</td><td>T, I</td><td>O arquivo de cobrança carrega dados financeiros e pode ser adulterado.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
 
-    <div class="wip-box">
-      <span class="badge-wip">🚧 Em construção</span>
-      <h2 class="h4 mt-3">Material em preparação</h2>
-      <p class="mb-0">Este material é um placeholder. O conteúdo de leitura desta aula está sendo preparado pelo(a) Professor(a) Afonso Brandão. Por enquanto, consulte os <a href="../slides/slide-lesson-11.html">slides</a> da aula.</p>
-    </div>
-  </main>
+      <section class="mat-section" id="criptografia">
+        <h2>8. Criptografia: os blocos básicos</h2>
+        <p>Os mecanismos de proteção de canal e de identidade são construídos sobre quatro primitivas criptográficas. Conhecer o que cada uma garante permite entender o que os mecanismos compostos a partir delas garantem e o que não garantem.</p>
+        <h3>Cifra simétrica</h3>
+        <p>A mesma chave cifra e decifra a mensagem. A cifra simétrica é rápida e adequada a grandes volumes, e preserva a confidencialidade. Seu problema é a distribuição da chave: as duas partes precisam possuí-la, e transmiti-la pela rede sem proteção a expõe.</p>
+        <h3>Cifra assimétrica</h3>
+        <p>Cada parte possui um par de chaves. A chave pública pode ser divulgada, e a chave privada nunca sai do poder do titular. O que é cifrado com a chave pública só pode ser decifrado com a privada, e vice-versa. A cifra assimétrica resolve o problema da distribuição de chaves, mas é lenta, e por isso costuma ser usada para combinar uma chave simétrica de sessão, que cifra o restante da comunicação.</p>
+        <h3>Função de resumo</h3>
+        <p>A função de resumo (hash) produz, a partir de um conteúdo de qualquer tamanho, um valor curto de tamanho fixo. É inviável encontrar dois conteúdos com o mesmo resumo ou reconstruir o conteúdo a partir dele, e qualquer alteração no conteúdo muda o resumo. Por isso, o resumo permite verificar a integridade.</p>
+        <h3>Assinatura digital</h3>
+        <p>A assinatura digital é o resumo do conteúdo cifrado com a chave privada do signatário. Qualquer pessoa pode decifrá-la com a chave pública e compará-la ao resumo do conteúdo recebido. Se coincidirem, comprova-se que o conteúdo não foi alterado e que foi assinado por quem detém a chave privada, o que preserva integridade, autenticidade e não repúdio.</p>
+        <h3>Certificado digital</h3>
+        <p>Resta saber se a chave pública pertence de fato a quem diz possuí-la. O certificado digital resolve essa questão: é um documento eletrônico, assinado por uma autoridade certificadora, que associa uma chave pública a uma identidade, seja pessoa, empresa ou servidor. No Brasil, a Infraestrutura de Chaves Públicas Brasileira, ICP-Brasil, é a cadeia oficial de autoridades certificadoras, e os documentos assinados com certificados emitidos nela têm validade jurídica.</p>
+        <div class="callout">
+          <div class="callout-label">No sistema de gestão</div>
+          <p>A NF-e é um exemplo cotidiano dessas primitivas. O arquivo da nota é assinado digitalmente com o certificado ICP-Brasil da empresa emissora antes de ser enviado à SEFAZ, e a comunicação com o webservice ocorre sobre canal protegido. A assinatura garante que a nota foi emitida por aquela empresa e não foi alterada depois, e é isso que lhe confere validade jurídica.</p>
+        </div>
+      </section>
 
-  <footer class="inteli-footer mt-auto py-4 bg-light border-top">
-    <div class="container text-center">
-      <p class="mb-1">Material criado pelo professor <strong>Afonso Brandão</strong> para o <strong>Inteli</strong>.</p>
-      <small class="text-muted">🔓 Licença de leitura aberta</small>
-    </div>
+      <section class="mat-section" id="tls">
+        <h2>9. Proteção do canal com TLS</h2>
+        <p>O TLS (Transport Layer Security), protocolo que dá o "S" ao HTTPS, combina as primitivas da seção anterior para proteger a comunicação entre dois pontos da rede. No estabelecimento da conexão, o servidor apresenta seu certificado; o cliente verifica se o certificado é válido, se foi emitido por autoridade confiável e se corresponde ao endereço acessado; as partes combinam uma chave simétrica de sessão sem transmiti-la; e a partir daí as mensagens seguem cifradas e com verificação de integridade.</p>
+        <div class="g2">
+          <article class="card"><h3>O que o TLS garante</h3><ul><li>Confidencialidade da mensagem em trânsito.</li><li>Integridade da mensagem em trânsito.</li><li>Autenticidade do servidor e, no TLS mútuo, em que o cliente também apresenta certificado, autenticidade do cliente.</li></ul></article>
+          <article class="card coral"><h3>O que o TLS não garante</h3><ul><li>Que o cliente autenticado tenha permissão para a operação solicitada.</li><li>Que o dado permaneça protegido depois de gravado no destino.</li><li>Que os dispositivos nas pontas, como o celular ou o servidor, não estejam comprometidos.</li></ul></article>
+        </div>
+        <p>O TLS é condição necessária em qualquer canal que cruze fronteira de confiança, e sua ausência expõe o sistema à interceptação e à adulteração. Ele é, porém, insuficiente, porque protege a conversa sem avaliar o que cada participante pode fazer nela.</p>
+        <div class="callout warn">
+          <div class="callout-label">Retomada do caso</div>
+          <p>O ataque à Serra Azul trafegou por HTTPS válido do começo ao fim. O TLS protegeu uma conversa entre o atacante e a API, com a mesma eficácia com que protegeria a conversa de um vendedor legítimo. A defesa precisava estar na identidade e na autorização, tratadas nas seções seguintes.</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="autenticacao">
+        <h2>10. Autenticação de pessoas e de sistemas</h2>
+        <p>A autenticação verifica que o participante é quem afirma ser. Em sistemas distribuídos, ela se aplica a dois tipos de participante, com mecanismos diferentes.</p>
+        <h3>Autenticação de pessoas</h3>
+        <p>Cada pessoa deve ter credencial própria e intransferível, de modo que as ações registradas possam ser atribuídas a ela. A senha isolada é frágil, e a autenticação em múltiplos fatores combina algo que a pessoa sabe, como a senha, com algo que ela possui, como o celular que recebe um código, ou algo que ela é, como a biometria. No caso da Serra Azul, o login nominal de cada vendedor no aplicativo teria permitido saber quem fez cada operação e bloquear apenas o acesso do aparelho furtado.</p>
+        <h3>Autenticação de sistemas</h3>
+        <p>Quando um sistema chama outro, também ele precisa provar sua identidade. A prática recomendada é que cada integração tenha credencial exclusiva, e que essa credencial seja usada para obter um token de acesso com validade curta e escopo limitado, em vez de ser enviada a cada chamada. O fluxo de credenciais de cliente do OAuth 2.0 segue esse modelo: o sistema cliente apresenta sua credencial a um servidor de autorização, recebe um token que expira em minutos e o apresenta à API. Se o token vazar, ele perde a validade em pouco tempo; se a credencial vazar, ela pode ser revogada sem afetar as demais integrações.</p>
+        <p>Quando a chamada parte de um aplicativo usado por uma pessoa, como o aplicativo do vendedor, o mais adequado é combinar as duas autenticações: o vendedor faz login com sua credencial nominal, e o aplicativo recebe um token emitido em nome dele. Assim, nenhuma senha fixa precisa ficar gravada no aparelho.</p>
+      </section>
+
+      <section class="mat-section" id="autorizacao">
+        <h2>11. Autorização e menor privilégio</h2>
+        <p>A autorização decide o que o participante autenticado pode fazer. O princípio que a orienta é o do menor privilégio: cada identidade recebe apenas as permissões necessárias à sua função, de modo que aquilo que ela não precisa fazer, ela não consegue fazer. O princípio não impede o vazamento de uma credencial, mas limita o dano que o vazamento causa.</p>
+        <p>O controle de acesso baseado em papéis organiza as permissões por função, de modo que se define o que o papel de vendedor pode fazer e cada vendedor recebe esse papel. Quando alguém muda de função, troca-se o papel, sem revisar permissões uma a uma. A segregação de funções, vista na Aula 7, acrescenta a regra de que certas combinações de permissões não podem pertencer ao mesmo papel, como criar um fornecedor e aprovar o pagamento a ele.</p>
+        <h3>Os elementos correspondentes no SAP S/4HANA Cloud</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Elemento</th><th>Função</th><th>Aplicação ao caso</th></tr></thead>
+            <tbody>
+              <tr><td>Papel de negócio e catálogo de negócio</td><td>Agrupam os aplicativos e as autorizações que um cargo pode usar.</td><td>O vendedor cria pedido; apenas o analista de crédito altera limite; apenas a área comercial altera preço.</td></tr>
+              <tr><td>Cenário de comunicação</td><td>Define o conjunto de APIs que uma integração pode acessar.</td><td>O aplicativo acessa criação de pedido e consultas de cliente, estoque e preço, e nada além.</td></tr>
+              <tr><td>Sistema de comunicação</td><td>Representa o sistema externo que se conecta.</td><td>O aplicativo de força de vendas registrado como sistema próprio.</td></tr>
+              <tr><td>Usuário de comunicação</td><td>Credencial que o sistema externo usa para se autenticar.</td><td>Credencial exclusiva do aplicativo, revogável sem afetar outras integrações.</td></tr>
+              <tr><td>Arranjo de comunicação</td><td>Liga o cenário ao sistema e ao usuário de comunicação.</td><td>Registro auditável do que cada integração pode fazer.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout warn">
+          <div class="callout-label">Retomada do caso</div>
+          <p>O perfil amplo concedido ao usuário de integração para não travar a operação repete o padrão discutido na Aula 7, em que a equipe escolheu o maior limite de crédito para não bloquear pedidos. Nos dois casos, a conveniência da implantação produziu uma exposição que ninguém aprovou. Com o cenário de comunicação restrito a pedidos e consultas, a senha extraída ainda permitiria criar pedidos, mas não alterar preço nem limite de crédito.</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="segredos">
+        <h2>12. Gestão de segredos</h2>
+        <p>Segredos são as senhas, chaves e certificados que os sistemas usam para se autenticar. Um segredo gravado no código-fonte, no pacote de um aplicativo, em arquivo de configuração versionado ou em planilha compartilhada deixa de ser segredo para qualquer pessoa que tenha acesso a esses lugares, e o pacote de um aplicativo móvel pode ser extraído de qualquer aparelho em que esteja instalado.</p>
+        <ul>
+          <li>Os segredos ficam em cofre próprio, com acesso controlado e registrado, fora do código, do pacote, do repositório e de planilhas.</li>
+          <li>O aplicativo instalado em aparelhos que a empresa não controla não carrega credencial fixa; ele obtém token de curta duração após o login do usuário.</li>
+          <li>Cada integração tem segredo próprio, para que a revogação de um não afete as demais.</li>
+          <li>Os segredos são trocados periodicamente e revogados de imediato diante de suspeita, como o furto de um aparelho.</li>
+          <li>A inspeção automatizada de cada versão do código procura credenciais esquecidas antes da publicação.</li>
+        </ul>
+      </section>
+
+      <section class="mat-section" id="auditoria">
+        <h2>13. Trilha de auditoria e detecção</h2>
+        <p>A trilha de auditoria é o registro das operações relevantes, feito de modo que permita reconstruir depois quem fez o quê, quando e de onde. Ela sustenta a responsabilização e o não repúdio, e é também o insumo da investigação quando um incidente ocorre.</p>
+        <div class="template">
+          <h3>Conteúdo mínimo do registro de uma operação crítica</h3>
+          <div class="template-row"><strong>Quem</strong><span>Usuário nominal de quem executou a operação, além da credencial de integração usada.</span></div>
+          <div class="template-row"><strong>Quando</strong><span>Data e hora, com relógio sincronizado entre os servidores.</span></div>
+          <div class="template-row"><strong>De onde</strong><span>Origem da chamada, como endereço de rede e identificador do aparelho.</span></div>
+          <div class="template-row"><strong>O quê</strong><span>Operação executada e objeto afetado.</span></div>
+          <div class="template-row"><strong>Valores</strong><span>Valor anterior e valor novo de todo campo crítico alterado.</span></div>
+          <div class="template-row"><strong>Proteção</strong><span>Registro protegido contra alteração e retido pelo prazo definido na política.</span></div>
+        </div>
+        <h3>Detecção de comportamento anômalo</h3>
+        <p>A trilha só ajuda depois do fato se alguém a consultar. A detecção a torna útil durante o fato, por meio de alertas sobre padrões que fogem ao normal: redução de preço acima de um limiar, alteração de limite de crédito fora do horário comercial, volume de chamadas muito acima da média de uma credencial ou acesso a partir de origem incomum. Na Serra Azul, um alerta sobre a primeira redução de preço de 60% teria interrompido o ataque na sexta-feira à noite, em vez de ele ser descoberto no fechamento.</p>
+      </section>
+
+      <section class="mat-section" id="lgpd">
+        <h2>14. Dados pessoais e LGPD</h2>
+        <p>A Lei Geral de Proteção de Dados Pessoais, Lei nº 13.709/2018, atribui aos agentes de tratamento deveres de segurança sobre os dados de pessoas naturais. O artigo 46 exige a adoção de medidas de segurança, técnicas e administrativas, aptas a proteger os dados pessoais de acessos não autorizados e de situações acidentais ou ilícitas de destruição, perda, alteração, comunicação ou difusão. O artigo 48 exige que o controlador comunique à Autoridade Nacional de Proteção de Dados e ao titular a ocorrência de incidente de segurança que possa acarretar risco ou dano relevante aos titulares.</p>
+        <p>Na Serra Azul, o cadastro de clientes inclui dados de contato de pessoas naturais, como proprietários de pequenos estabelecimentos e seus telefones. Se o ataque tivesse extraído esses dados pela API, além de alterar preços, a empresa teria de avaliar o risco aos titulares e, sendo relevante, comunicar o incidente. A modelagem de ameaças deve, por isso, marcar os depósitos e canais que carregam dados pessoais, como já se fez na matriz de governança da Aula 7.</p>
+      </section>
+
+      <section class="mat-section" id="profundidade">
+        <h2>15. Defesa em profundidade e confiança zero</h2>
+        <p>Nenhum controle isolado é suficiente, porque todo controle pode falhar, ser contornado ou ser mal configurado. A defesa em profundidade sobrepõe camadas independentes de proteção, de modo que a falha de uma seja contida pela seguinte. No caso, o vazamento da senha rompeu a primeira camada; a autorização restrita teria contido o dano, e o alerta de preço teria revelado a tentativa.</p>
+        <p>A arquitetura de confiança zero, descrita na publicação NIST SP 800-207, de 2020, parte da constatação de que a localização na rede não indica confiabilidade. O modelo tradicional protegia o perímetro e confiava em tudo o que estivesse dentro da rede corporativa. Em sistemas distribuídos, com serviços em nuvem, aparelhos móveis e integrações com terceiros, o perímetro deixa de existir de forma nítida, e um atacante que entre na rede ganharia confiança indevida. Na confiança zero, toda requisição é autenticada e autorizada individualmente, com base na identidade e no contexto, qualquer que seja a rede de origem, e o acesso concedido é o mínimo necessário para aquela requisição.</p>
+      </section>
+
+      <section class="mat-section" id="gateway">
+        <h2>16. Gateway de API, limitação de taxa e segmentação</h2>
+        <h3>Gateway de API</h3>
+        <p>O gateway de API é um ponto único de entrada pelo qual passam as chamadas externas antes de chegar ao sistema de gestão. Ele centraliza a validação dos tokens, o registro das chamadas, as regras de acesso por origem e a limitação de volume, de modo que esses controles não precisem ser reimplementados em cada serviço e possam ser auditados em um só lugar.</p>
+        <h3>Limitação de taxa</h3>
+        <p>A limitação de taxa fixa o número máximo de chamadas que cada credencial pode fazer em um intervalo. Um algoritmo comum é o balde de fichas: cada credencial tem um balde com capacidade fixa, que é reabastecido a uma taxa constante; cada chamada consome uma ficha, e a chamada que encontra o balde vazio é recusada. O mecanismo admite rajadas curtas até a capacidade do balde e impede que uma credencial, legítima ou vazada, esgote o serviço. Um vendedor faz algumas dezenas de chamadas por hora, e um volume de milhares por minuto indica abuso.</p>
+        <h3>Segmentação</h3>
+        <p>A segmentação divide a infraestrutura em regiões isoladas, cada uma alcançando apenas os serviços de que precisa. Se um atacante comprometer uma região, a segmentação limita seu movimento para as demais, e com isso reduz o alcance do incidente.</p>
+      </section>
+
+      <section class="mat-section" id="retomada">
+        <h2>17. Retomada do caso</h2>
+        <p>A questão norteadora do encontro pergunta qual controle teria impedido o ataque, qual teria limitado o dano e qual teria permitido identificar o autor. A tabela responde com os mecanismos vistos no material.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Efeito do controle</th><th>Controle</th><th>Propriedade preservada</th><th>Seção</th></tr></thead>
+            <tbody>
+              <tr><td>Impedir</td><td>Login nominal do vendedor e token de curta duração, sem senha fixa no aplicativo.</td><td>Autenticidade e confidencialidade.</td><td>10 e 12</td></tr>
+              <tr><td>Limitar o dano</td><td>Cenário de comunicação restrito a pedido e consultas.</td><td>Autorização e integridade.</td><td>11</td></tr>
+              <tr><td>Limitar o dano</td><td>Limite de chamadas por credencial no gateway de API.</td><td>Disponibilidade e integridade.</td><td>16</td></tr>
+              <tr><td>Detectar</td><td>Alerta sobre redução de preço acima do limiar e alteração de limite fora do horário.</td><td>Integridade.</td><td>13</td></tr>
+              <tr><td>Identificar o autor</td><td>Trilha com usuário nominal, origem e valores anterior e novo.</td><td>Responsabilização e não repúdio.</td><td>13</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Nenhum controle da tabela, sozinho, resolveria o caso, o que ilustra a defesa em profundidade. Todos eles, por outro lado, poderiam ter sido especificados como requisitos verificáveis na fase de desenho da integração, com custo pequeno diante do prejuízo de um fim de semana de vendas com preço errado.</p>
+      </section>
+
+      <section class="mat-section" id="atividade">
+        <h2>18. Atividade do encontro</h2>
+        <p class="lead">Atividade em grupo de projeto, com trinta e cinco minutos de duração, sobre o diagrama de canais produzido na Aula 10. Cada grupo identifica as ameaças à solução implantada para o parceiro e propõe, para cada uma, uma contramedida e um requisito verificável.</p>
+        <h3>Etapas</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Tempo</th><th>Etapa</th><th>Produto</th></tr></thead>
+            <tbody>
+              <tr><td><strong>5 min</strong></td><td>Fronteiras de confiança</td><td>Diagrama da Aula 10 com as regiões de confiança tracejadas e os ativos críticos marcados, inclusive os que contêm dados pessoais.</td></tr>
+              <tr><td><strong>12 min</strong></td><td>Ameaças por STRIDE</td><td>Pelo menos seis ameaças, cobrindo ao menos quatro categorias, nos dois canais críticos e no sistema de gestão.</td></tr>
+              <tr><td><strong>10 min</strong></td><td>Contramedidas e requisitos</td><td>Tabela completa no padrão do gabarito, com requisito verificável para cada ameaça.</td></tr>
+              <tr><td><strong>8 min</strong></td><td>Priorização e revisão</td><td>Três ameaças prioritárias por probabilidade e impacto e parecer de outro grupo sobre a tabela.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>Gabarito da tabela de ameaças</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Elemento</th><th>STRIDE</th><th>Ameaça</th><th>Propriedade</th><th>Contramedida</th><th>Requisito verificável</th><th>Prioridade</th></tr></thead>
+            <tbody>
+              <tr><td>Canal aplicativo → API</td><td>S</td><td>Quem obtém a senha fixa se passa pelo aplicativo.</td><td>Autenticidade</td><td>Login nominal do vendedor e token de curta duração.</td><td>Nenhuma credencial fixa no pacote; token expira em até 60 minutos; chamada com token vencido recebe recusa.</td><td>Alta</td></tr>
+              <tr><td>Usuário de integração</td><td>E</td><td>A credencial do aplicativo altera preço e limite de crédito.</td><td>Autorização</td><td>Cenário de comunicação restrito a pedido e consultas.</td><td>Tentativa de alterar preço pelo usuário de integração recebe recusa registrada na trilha.</td><td>Alta</td></tr>
+              <tr><td>Trilha de alteração</td><td>R</td><td>O autor de uma alteração de preço nega tê-la feito.</td><td>Não repúdio</td><td>Registro com usuário nominal, origem e valores.</td><td>Toda alteração de preço registra usuário nominal, origem, valor anterior e valor novo.</td><td>Média</td></tr>
+              <tr><td>API do portal</td><td>D</td><td>Volume abusivo de chamadas esgota a API.</td><td>Disponibilidade</td><td>Limitação de taxa no gateway.</td><td>Credencial que excede 600 chamadas por minuto recebe recusa, e o evento gera alerta.</td><td>Média</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>Revisão por outro grupo</h3>
+        <p>Os grupos trocam as tabelas. O grupo revisor verifica se cada contramedida trata a ameaça da mesma linha, se cada requisito pode ser aprovado ou reprovado por teste, inspeção ou auditoria, e aponta pelo menos uma ameaça plausível que não foi registrada.</p>
+        <h3>Critérios de avaliação</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Critério</th><th>Pontos</th><th>O que se espera</th></tr></thead>
+            <tbody>
+              <tr><td>Fronteiras de confiança</td><td>2</td><td>Regiões coerentes com quem controla cada parte, e todo canal que cruza fronteira identificado.</td></tr>
+              <tr><td>Cobertura das ameaças</td><td>3</td><td>Seis ameaças ou mais, em quatro categorias ou mais, com elemento, atacante e efeito descritos.</td></tr>
+              <tr><td>Correspondência das contramedidas</td><td>2</td><td>Cada contramedida trata a ameaça e preserva a propriedade indicada.</td></tr>
+              <tr><td>Verificabilidade dos requisitos</td><td>2</td><td>Cada requisito nomeia ativo, propriedade, mecanismo e critério de aceite.</td></tr>
+              <tr><td>Revisão</td><td>1</td><td>Parecer do grupo revisor com ao menos uma ameaça ausente apontada.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <ul class="checklist">
+          <li>As fronteiras de confiança foram desenhadas sobre o diagrama da Aula 10.</li>
+          <li>Os ativos com dados pessoais estão marcados.</li>
+          <li>A tabela tem ao menos seis ameaças em quatro categorias.</li>
+          <li>Todo requisito tem critério de aceite testável.</li>
+          <li>As três ameaças prioritárias foram escolhidas por probabilidade e impacto.</li>
+          <li>Os requisitos das ameaças prioritárias foram incluídos na documentação da solução.</li>
+        </ul>
+      </section>
+
+      <section class="mat-section" id="antipadroes">
+        <h2>19. Falhas recorrentes</h2>
+        <div class="g2">
+          <article class="card coral"><h3>Segurança reduzida ao HTTPS</h3><p>O canal é protegido por TLS e o assunto é dado por encerrado. A credencial vazada e o perfil amplo continuam expostos.</p></article>
+          <article class="card coral"><h3>Usuário de integração com perfil amplo</h3><p>A integração recebe todas as permissões para não travar a implantação, e ninguém revisa o perfil depois da virada.</p></article>
+          <article class="card coral"><h3>Senha no código ou no aplicativo</h3><p>A credencial é gravada no pacote, no repositório ou em planilha, e qualquer pessoa com acesso a esses lugares passa a possuí-la.</p></article>
+          <article class="card coral"><h3>Credencial compartilhada</h3><p>Vários usuários ou sistemas usam a mesma credencial. A trilha registra a credencial, e a autoria das ações se perde.</p></article>
+          <article class="card coral"><h3>Requisito sem critério de aceite</h3><p>O documento declara que a solução deve ser segura, sem dizer como isso será verificado. O requisito não pode ser testado nem cobrado.</p></article>
+          <article class="card coral"><h3>Trilha sem consulta</h3><p>O sistema registra as alterações, mas ninguém recebe alerta nem consulta o registro, e o incidente só é descoberto no fechamento.</p></article>
+        </div>
+      </section>
+
+      <section class="mat-section" id="leituras">
+        <h2>20. Leituras recomendadas</h2>
+        <p>As obras a seguir sustentam as seções 4 a 16. A terceira é a referência mais completa sobre modelagem de ameaças e desenvolve o método STRIDE.</p>
+        <div class="g2">
+          <article class="card">
+            <span class="badge">Livro</span>
+            <h3>Sistemas Distribuídos: conceitos e projeto</h3>
+            <p>COULOURIS, George; DOLLIMORE, Jean; KINDBERG, Tim; BLAIR, Gordon. 5. ed. Porto Alegre: Bookman, 2013.</p>
+            <p>O capítulo 11 trata das ameaças, das técnicas de segurança, da criptografia, dos certificados e dos protocolos de canal seguro.</p>
+          </article>
+          <article class="card dark">
+            <span class="badge">Livro · acesso aberto</span>
+            <h3><a href="https://www.distributed-systems.net/index.php/books/ds4/" target="_blank" rel="noopener noreferrer">Distributed Systems</a></h3>
+            <p>VAN STEEN, Maarten; TANENBAUM, Andrew S. 4. ed. 2023.</p>
+            <p>O capítulo 9 cobre os princípios de segurança, os canais seguros, o controle de acesso e o gerenciamento de segurança.</p>
+          </article>
+          <article class="card">
+            <span class="badge">Livro</span>
+            <h3>Threat Modeling: designing for security</h3>
+            <p>SHOSTACK, Adam. Indianapolis: Wiley, 2014.</p>
+            <p>As partes iniciais apresentam as quatro perguntas da modelagem de ameaças e a aplicação do STRIDE sobre diagramas de fluxo de dados.</p>
+          </article>
+          <article class="card dark">
+            <span class="badge">Guia · acesso aberto</span>
+            <h3><a href="https://owasp.org/API-Security/" target="_blank" rel="noopener noreferrer">OWASP API Security Top 10</a></h3>
+            <p>OWASP Foundation, 2023.</p>
+            <p>Lista os riscos mais frequentes em APIs, entre eles a falha de autorização por objeto, a autenticação quebrada e o consumo irrestrito de recursos.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="mat-section" id="referencias">
+        <h2>21. Referências</h2>
+        <ul>
+          <li>COULOURIS, G.; DOLLIMORE, J.; KINDBERG, T.; BLAIR, G. <em>Sistemas Distribuídos: conceitos e projeto</em>. 5. ed. Porto Alegre: Bookman, 2013.</li>
+          <li>VAN STEEN, M.; TANENBAUM, A. S. <a href="https://www.distributed-systems.net/index.php/books/ds4/" target="_blank" rel="noopener noreferrer"><em>Distributed Systems</em></a>. 4. ed. 2023.</li>
+          <li>SHOSTACK, A. <em>Threat Modeling: designing for security</em>. Indianapolis: Wiley, 2014.</li>
+          <li>KOHNFELDER, L.; GARG, P. <em>The threats to our products</em>. Microsoft, 1999.</li>
+          <li>ISO/IEC 25010. <em>Systems and software engineering: Systems and software Quality Requirements and Evaluation (SQuaRE): Product quality model</em>.</li>
+          <li>ROSE, S.; BORCHERT, O.; MITCHELL, S.; CONNELLY, S. <em>Zero Trust Architecture</em>. NIST Special Publication 800-207, 2020.</li>
+          <li>HARDT, D. (ed.). <em>The OAuth 2.0 Authorization Framework</em>. RFC 6749. IETF, 2012.</li>
+          <li>RESCORLA, E. <em>The Transport Layer Security (TLS) Protocol Version 1.3</em>. RFC 8446. IETF, 2018.</li>
+          <li>OWASP Foundation. <a href="https://owasp.org/API-Security/" target="_blank" rel="noopener noreferrer"><em>OWASP API Security Top 10</em></a>, 2023.</li>
+          <li>BRASIL. Lei nº 13.709, de 14 de agosto de 2018. Lei Geral de Proteção de Dados Pessoais.</li>
+        </ul>
+      </section>
+</main>
+  </div>
+
+  <footer class="inteli-footer">
+    <p>Material criado pelo professor <strong>Afonso Brandão</strong> para o <strong>Inteli</strong>.</p>
+    <small>Licença de leitura aberta.</small>
   </footer>
-<!-- semana:js:start -->
-<script src="../../../js/semana-ano.js" defer></script>
-<!-- semana:js:end -->
+
+<script>
+    const progress = document.getElementById('progress-bar');
+    const floatNav = document.getElementById('float-nav');
+    const header = document.querySelector('.mat-header');
+    const tocLinks = Array.from(document.querySelectorAll('.mat-toc a'));
+    const sections = tocLinks.map((link) => document.querySelector(link.getAttribute('href'))).filter(Boolean);
+    function updateReadingState() {
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+      progress.style.width = `${scrollable > 0 ? (window.scrollY / scrollable) * 100 : 0}%`;
+      floatNav.classList.toggle('visible', window.scrollY > header.offsetHeight * 0.7);
+      let activeId = sections[0] ? sections[0].id : '';
+      sections.forEach((section) => { if (section.getBoundingClientRect().top <= 150) activeId = section.id; });
+      tocLinks.forEach((link) => link.classList.toggle('active', link.getAttribute('href') === `#${activeId}`));
+    }
+    document.addEventListener('scroll', updateReadingState, { passive:true });
+    updateReadingState();
+  </script>
 <!-- encontro:pdf:start -->
 <button type="button" class="pdf-export-btn" data-encontro-data="2026-10-01" data-encontro-docente="Afonso" data-encontro-seq="02" title="Exportar esta página em PDF com o nome padronizado">📄 Exportar PDF</button>
 <script src="../../../js/encontro-pdf.js" defer></script>
 <!-- encontro:pdf:end -->
+<!-- semana:js:start -->
+<script src="../../../js/semana-ano.js" defer></script>
+<!-- semana:js:end -->
 </body>
 </html>
