@@ -5,6 +5,7 @@ interface CalendarLesson {
   number: number;
   date: string;
   title: string;
+  ponderada?: boolean;
 }
 
 interface CalendarModule {
@@ -29,6 +30,17 @@ interface Calendar {
 const calendar: Calendar = JSON.parse(readRepoFile('config/calendar.json'));
 
 const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
+
+/** Número de cada card de aula da home e se ele traz a flag de ponderada. */
+function extractPonderadaFlags(html: string): Map<number, boolean> {
+  const flags = new Map<number, boolean>();
+  const cards = html.split(/class="[^"]*\blesson-card\b[^"]*"/).slice(1);
+  for (const card of cards) {
+    const num = card.match(/class="lesson-number"[^>]*>\s*(\d+)\s*</);
+    if (num) flags.set(Number(num[1]), /class="ponderada-badge"/.test(card));
+  }
+  return flags;
+}
 
 function extractDatesFromHome(html: string): string[] {
   return [...html.matchAll(/<small>\s*📅\s*(\d{2}\/\d{2}\/\d{4})\s*<\/small>/g)].map((m) => m[1]);
@@ -77,6 +89,19 @@ test.describe('config/calendar.json - Consistência com cards das homes', () => 
             homeDates[i],
             `Aula ${mod.lessons[i].number} de ${mod.id}: card mostra "${homeDates[i]}" mas calendar.json diz "${calendarDates[i]}"`,
           ).toBe(calendarDates[i]);
+        }
+      });
+
+      test(`toda aula com "ponderada": true tem a flag de ponderada em ${mod.home}, e só ela`, () => {
+        const flags = extractPonderadaFlags(readRepoFile(mod.home));
+        for (const lesson of mod.lessons) {
+          const temFlag = flags.get(lesson.number) ?? false;
+          expect(
+            temFlag,
+            lesson.ponderada
+              ? `Aula ${lesson.number} de ${mod.id} tem ponderada no calendar.json, mas o card não traz <span class="ponderada-badge">`
+              : `Aula ${lesson.number} de ${mod.id} traz a flag de ponderada no card, mas não tem "ponderada": true no calendar.json`,
+          ).toBe(Boolean(lesson.ponderada));
         }
       });
 
