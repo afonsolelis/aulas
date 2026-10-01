@@ -1,6 +1,6 @@
 # Guia do facilitador · Copel · IA na Prática e Prototipagem
 
-Guia de condução do encontro de 09/10/2026 (3h30, dez participantes, três grupos). Fica fora
+Guia de condução do encontro de 09/10/2026 (9h às 13h, dez participantes, três grupos). Fica fora
 do kit dos participantes e não tem link nas páginas. O repositório é público; o guia não
 contém avaliação, e o gabarito do benchmark já está no material, recolhido.
 
@@ -25,20 +25,20 @@ anexado e passaria a procurar erros, o que esvaziaria a comparação com o Promp
 
 | Horário | Telas | Condução |
 |---|---|---|
-| 0:00 – 0:05 | 1–5 | Capa, contrato do dia, agenda, regras de dados e kit. Pedir que todos baixem o kit na tela 5. |
-| 0:05 – 0:15 | 6 | Prática 0. Iniciar o cronômetro de 10 min e circular pelos grupos. |
-| 0:15 – 0:27 | 7–10 | Bloco 1. Espectro, sete peças e exemplo da ouvidoria. |
-| 0:27 – 0:52 | 11 | Prática 1. Cronômetro de 25 min; conferir as peças 3, 6 e 7 em cada mesa. |
-| 0:52 – 1:04 | 12–16 | Bloco 2. Não revelar os sete pontos; mostrar só os dois prompts. |
-| 1:04 – 1:24 | 17 | Prática 2A. Confirmar que cada grupo usa conversa nova e sem busca na web. |
-| 1:24 – 1:34 | 18 | Devolutiva. Pedir a contagem de cada grupo antes de clicar em "Mostrar os sete pontos". |
-| 1:34 – 1:49 | 19 | Prática 2B. |
-| 1:49 – 1:59 | 20 | Intervalo. |
-| 1:59 – 2:09 | 21–23 | Bloco 3. MVP Zero, variante de fluxo e ciclo de refinamento. |
-| 2:09 – 2:34 | 24 | Iteração 1. Casos antes da instrução. |
-| 2:34 – 3:02 | 25 | Iterações 2 e 3 e preparo da demonstração. |
-| 3:02 – 3:17 | 26 | Demonstração: resetar o cronômetro de 5 min a cada grupo (4 + 1). |
-| 3:17 – 3:30 | 27–29 | Degraus, o que não se delega e trinta dias. A tela 29 pode virar leitura posterior se o tempo acabar. |
+| 9:00 – 9:05 | 1–5 | Capa, contrato do dia, agenda, regras de dados e kit. Pedir que todos baixem o kit na tela 5. |
+| 9:05 – 9:15 | 6 | Prática 0. Iniciar o cronômetro de 10 min e circular pelos grupos. |
+| 9:15 – 9:27 | 7–10 | Bloco 1. Espectro, sete peças e exemplo da ouvidoria. |
+| 9:27 – 9:52 | 11 | Prática 1. Cronômetro de 25 min; conferir as peças 3, 6 e 7 em cada mesa. |
+| 9:52 – 10:04 | 12–16 | Bloco 2. Não revelar os sete pontos; mostrar só os dois prompts. |
+| 10:04 – 10:29 | 17 | Prática 2A, 25 min. Confirmar que cada grupo usa conversa nova e sem busca na web. |
+| 10:29 – 10:39 | 18 | Devolutiva. Pedir a contagem de cada grupo antes de clicar em "Mostrar os sete pontos". |
+| 10:39 – 10:59 | 19 | Prática 2B, 20 min. |
+| 10:59 – 11:19 | 20 | Intervalo de 20 min. |
+| 11:19 – 11:29 | 21–23 | Bloco 3. MVP Zero, variante de fluxo e ciclo de refinamento. |
+| 11:29 – 11:59 | 24 | Iteração 1, 30 min. Casos antes da instrução. |
+| 11:59 – 12:32 | 25 | Iterações 2 e 3 (13 min cada) e preparo da demonstração (7 min). |
+| 12:32 – 12:47 | 26 | Demonstração: resetar o cronômetro de 5 min a cada grupo (4 + 1). |
+| 12:47 – 13:00 | 27–29 | Degraus, o que não se delega e trinta dias. A tela 29 pode virar leitura posterior se o tempo acabar. |
 
 ## 4. Saídas de referência
 Preencher depois do teste do checklist.
