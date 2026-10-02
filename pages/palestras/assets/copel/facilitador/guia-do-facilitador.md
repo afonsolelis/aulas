@@ -31,20 +31,20 @@ anexado e passaria a procurar erros, o que esvaziaria a comparação com o Promp
 
 | Horário | Telas | Condução |
 |---|---|---|
-| 0:00 – 0:05 | 1–5 | Capa, contrato do dia, agenda, regras de dados e arquivos. Na tela 5, mostrar onde ficam os links de cada prática. |
-| 0:05 – 0:15 | 6 | Prática 0. Iniciar o cronômetro de 10 min e circular pelos grupos. |
-| 0:15 – 0:27 | 7–10 | Bloco 1. Espectro, sete peças e exemplo da ouvidoria. |
-| 0:27 – 0:47 | 11 | Prática 1. Cronômetro de 20 min; conferir as peças 3, 6 e 7 em cada mesa. |
-| 0:47 – 0:59 | 12–16 | Bloco 2. Não revelar os sete pontos; mostrar só os dois prompts. |
-| 0:59 – 1:14 | 17 | Prática 2A. Confirmar que cada grupo usa conversa nova e sem busca na web. |
-| 1:14 – 1:22 | 18 | Devolutiva. Pedir a contagem de cada grupo antes de clicar em "Mostrar os sete pontos". |
-| 1:22 – 1:32 | 19 | Prática 2B. |
-| 1:32 – 1:47 | 20 | Intervalo de 15 min. |
-| 1:47 – 1:57 | 21–23 | Bloco 3. MVP Zero, variante de fluxo e ciclo de refinamento. |
-| 1:57 – 2:15 | 24 | Iteração 1. Casos antes da instrução. |
-| 2:15 – 2:35 | 25 | Iterações 2 e 3 e preparo da demonstração. |
-| 2:35 – 2:47 | 26 | Demonstração: resetar o cronômetro de 4 min a cada grupo (3 + 1). |
-| 2:47 – 3:00 | 27–29 | Degraus, o que não se delega e trinta dias. A tela 29 pode virar leitura posterior se o tempo acabar. |
+| 8:00 – 8:05 | 1–5 | Capa, contrato do dia, agenda, regras de dados e arquivos. Na tela 5, mostrar onde ficam os links de cada prática. |
+| 8:05 – 8:15 | 6 | Prática 0. Iniciar o cronômetro de 10 min e circular pelos grupos. |
+| 8:15 – 8:27 | 7–10 | Bloco 1. Espectro, sete peças e exemplo da ouvidoria. |
+| 8:27 – 8:47 | 11 | Prática 1. Cronômetro de 20 min; conferir as peças 3, 6 e 7 em cada mesa. |
+| 8:47 – 8:59 | 12–16 | Bloco 2. Não revelar os sete pontos; mostrar só os dois prompts. |
+| 8:59 – 9:14 | 17 | Prática 2A. Confirmar que cada grupo usa conversa nova e sem busca na web. |
+| 9:14 – 9:22 | 18 | Devolutiva. Pedir a contagem de cada grupo antes de clicar em "Mostrar os sete pontos". |
+| 9:22 – 9:32 | 19 | Prática 2B. |
+| 9:32 – 9:47 | 20 | Intervalo de 15 min. |
+| 9:47 – 9:57 | 21–23 | Bloco 3. MVP Zero, variante de fluxo e ciclo de refinamento. |
+| 9:57 – 10:15 | 24 | Iteração 1. Casos antes da instrução. |
+| 10:15 – 10:35 | 25 | Iterações 2 e 3 e preparo da demonstração. |
+| 10:35 – 10:47 | 26 | Demonstração: resetar o cronômetro de 4 min a cada grupo (3 + 1). |
+| 10:47 – 11:00 | 27–29 | Degraus, o que não se delega e trinta dias. A tela 29 pode virar leitura posterior se o tempo acabar. |
 
 ## 4. Saídas de referência
 Preencher depois do teste do checklist.
