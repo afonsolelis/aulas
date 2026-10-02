@@ -1,6 +1,7 @@
 # Molde da instrução do assistente
 
-Copie, preencha os colchetes e cole no campo de instruções da ferramenta.
+Copie, preencha os colchetes e cole como instrução da skill. Se a conta ainda não tiver
+skills, cole no campo de instruções de um Gem.
 
 ```
 ## CONTEXTO

@@ -1,7 +1,7 @@
 # Guia do facilitador · Copel · IA na Prática e Prototipagem
 
-Guia de condução do encontro de 09/10/2026 (9h às 13h, dez participantes, três grupos). Fica fora
-do kit dos participantes e não tem link nas páginas. O repositório é público; o guia não
+Guia de condução do encontro de 09/10/2026 (08h–11h; 3h de conteúdo; dez participantes; três grupos). Fica fora
+dos arquivos dos participantes e não tem link nas páginas. O repositório é público; o guia não
 contém avaliação, e o gabarito do benchmark já está no material, recolhido.
 
 ## 1. Nota sobre o benchmark
@@ -9,36 +9,42 @@ O relatório `benchmark/relatorio-benchmark-ia-distribuicao.md` contém de prop�
 inconsistências. O aviso foi retirado do próprio documento, porque o Prompt 0 lê o arquivo
 anexado e passaria a procurar erros, o que esvaziaria a comparação com o Prompt 1.
 
-## 2. Checklist pré-evento (até 02/10/2026)
-- [ ] Ferramenta e plano confirmados com a TI da Copel; atualizar a tela 4 do deck com o nome.
-- [ ] Criação de Gem, GPT personalizado ou agente habilitada nas contas dos participantes.
+## 2. Checklist pré-evento (até 07/10/2026)
+- [ ] Plano do Google Workspace da Copel confirmado com a TI.
+- [ ] Gemini Notebook ligado pelo admin para os participantes; conferir com a TI a política de
+      dados do Notebook, que tem certificações de conformidade próprias, distintas das do app
+      do Gemini.
+- [ ] Skills disponíveis nas contas (no Workspace, a liberação vai de 05/10 a meados de
+      novembro de 2026, conforme o canal de release do domínio). Se não estiverem, confirmar a
+      criação de Gem e avisar os grupos na tela 4 que o MVP vai para um Gem.
+- [ ] Notebook anexado a uma conversa pelo + e skill chamada com `/` testados em uma conta.
 - [ ] Uma conta testada por grupo, na rede da Copel.
 - [ ] Anexo de .md, .csv, .docx e .xlsx testado na ferramenta.
 - [ ] Busca na web e memória entre conversas desativáveis, ou conversa temporária disponível.
 - [ ] P0 e P1 rodados na ferramenta confirmada; saídas guardadas na seção 4 deste guia, com a
       contagem de pontos de cada uma.
-- [ ] Acesso a `afonsolelis.github.io/aulas` e ao zip do kit a partir da rede da Copel.
-- [ ] Zip do kit em pendrive.
+- [ ] Acesso a `afonsolelis.github.io/aulas` e aos arquivos das práticas a partir da rede da Copel.
+- [ ] Arquivos das práticas em pendrive.
 - [ ] Três cópias impressas das saídas de referência (plano B).
 
 ## 3. Roteiro por tela
 
 | Horário | Telas | Condução |
 |---|---|---|
-| 9:00 – 9:05 | 1–5 | Capa, contrato do dia, agenda, regras de dados e kit. Pedir que todos baixem o kit na tela 5. |
-| 9:05 – 9:15 | 6 | Prática 0. Iniciar o cronômetro de 10 min e circular pelos grupos. |
-| 9:15 – 9:27 | 7–10 | Bloco 1. Espectro, sete peças e exemplo da ouvidoria. |
-| 9:27 – 9:52 | 11 | Prática 1. Cronômetro de 25 min; conferir as peças 3, 6 e 7 em cada mesa. |
-| 9:52 – 10:04 | 12–16 | Bloco 2. Não revelar os sete pontos; mostrar só os dois prompts. |
-| 10:04 – 10:29 | 17 | Prática 2A, 25 min. Confirmar que cada grupo usa conversa nova e sem busca na web. |
-| 10:29 – 10:39 | 18 | Devolutiva. Pedir a contagem de cada grupo antes de clicar em "Mostrar os sete pontos". |
-| 10:39 – 10:59 | 19 | Prática 2B, 20 min. |
-| 10:59 – 11:19 | 20 | Intervalo de 20 min. |
-| 11:19 – 11:29 | 21–23 | Bloco 3. MVP Zero, variante de fluxo e ciclo de refinamento. |
-| 11:29 – 11:59 | 24 | Iteração 1, 30 min. Casos antes da instrução. |
-| 11:59 – 12:32 | 25 | Iterações 2 e 3 (13 min cada) e preparo da demonstração (7 min). |
-| 12:32 – 12:47 | 26 | Demonstração: resetar o cronômetro de 5 min a cada grupo (4 + 1). |
-| 12:47 – 13:00 | 27–29 | Degraus, o que não se delega e trinta dias. A tela 29 pode virar leitura posterior se o tempo acabar. |
+| 0:00 – 0:05 | 1–5 | Capa, contrato do dia, agenda, regras de dados e arquivos. Na tela 5, mostrar onde ficam os links de cada prática. |
+| 0:05 – 0:15 | 6 | Prática 0. Iniciar o cronômetro de 10 min e circular pelos grupos. |
+| 0:15 – 0:27 | 7–10 | Bloco 1. Espectro, sete peças e exemplo da ouvidoria. |
+| 0:27 – 0:47 | 11 | Prática 1. Cronômetro de 20 min; conferir as peças 3, 6 e 7 em cada mesa. |
+| 0:47 – 0:59 | 12–16 | Bloco 2. Não revelar os sete pontos; mostrar só os dois prompts. |
+| 0:59 – 1:14 | 17 | Prática 2A. Confirmar que cada grupo usa conversa nova e sem busca na web. |
+| 1:14 – 1:22 | 18 | Devolutiva. Pedir a contagem de cada grupo antes de clicar em "Mostrar os sete pontos". |
+| 1:22 – 1:32 | 19 | Prática 2B. |
+| 1:32 – 1:47 | 20 | Intervalo de 15 min. |
+| 1:47 – 1:57 | 21–23 | Bloco 3. MVP Zero, variante de fluxo e ciclo de refinamento. |
+| 1:57 – 2:15 | 24 | Iteração 1. Casos antes da instrução. |
+| 2:15 – 2:35 | 25 | Iterações 2 e 3 e preparo da demonstração. |
+| 2:35 – 2:47 | 26 | Demonstração: resetar o cronômetro de 4 min a cada grupo (3 + 1). |
+| 2:47 – 3:00 | 27–29 | Degraus, o que não se delega e trinta dias. A tela 29 pode virar leitura posterior se o tempo acabar. |
 
 ## 4. Saídas de referência
 Preencher depois do teste do checklist.
@@ -58,8 +64,9 @@ material, seção 7, no bloco recolhido "Gabarito dos sete pontos". Na contagem 
   versão fictícia de até dez linhas, ou usar `mvp-zero/conhecimento-ficticio/`.
 - Prática 1, a tarefa exige decidir algo de alçada: recortar o problema para a etapa anterior à
   decisão (organizar, classificar, preparar a minuta) e registrar a decisão na peça 7.
-- Iteração 1, a ferramenta não aceita o anexo: colar o conteúdo depois de `## DADOS`, ou usar
-  as versões .docx e .xlsx.
+- Iteração 1, o notebook não aparece no + da conversa: conferir se ele foi criado na mesma
+  conta; se o recurso estiver bloqueado, anexar os arquivos direto na conversa ou colar o
+  conteúdo depois de `## DADOS`.
 - Iteração 1, os três casos passaram de primeira: tornar o caso típico mais difícil (duas
   informações conflitantes, um dado faltando) e rodar de novo.
 
@@ -67,9 +74,9 @@ material, seção 7, no bloco recolhido "Gabarito dos sete pontos". Na contagem 
 - Ferramenta sem anexo: colar os arquivos abaixo do prompt, depois de `## DADOS`.
 - Sem ferramenta: os grupos contam os pontos nas saídas de referência impressas e escrevem a
   instrução do MVP no papel; a demonstração vira leitura crítica da instrução.
-- Criação de assistente bloqueada: conversa comum, com a instrução colada como primeira
-  mensagem.
-- Sem rede: zip no pendrive.
+- Skill e Gem bloqueados: conversa comum com o notebook anexado pelo +, e a instrução colada
+  como primeira mensagem.
+- Sem rede: arquivos no pendrive.
 
 ## 8. Exemplo preenchido
 Canvas da ouvidoria: tela 10 do deck e seção 5 do material.

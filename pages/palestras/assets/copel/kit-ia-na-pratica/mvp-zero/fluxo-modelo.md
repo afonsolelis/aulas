@@ -1,8 +1,9 @@
 # Molde do MVP Zero de fluxo
 
 Use este molde quando o problema do grupo for um processo recorrente, com gatilho definido, que
-se divide em etapas fixas. Cada etapa tem o próprio prompt, e hoje uma pessoa executa as etapas
-à mão, na ordem, colando a saída de uma como entrada da seguinte. Os três casos de teste e o
+se divide em etapas fixas. Cada etapa tem o próprio prompt, salvo como uma skill, e hoje uma
+pessoa chama as skills à mão, na ordem e na mesma conversa, de modo que a saída de uma etapa é a
+entrada da seguinte. Os três casos de teste e o
 registro de iterações são os mesmos do assistente, e cada iteração altera um componente de uma
 única etapa.
 
@@ -19,7 +20,7 @@ registro de iterações são os mesmos do assistente, e cada iteração altera u
 [especialidade assumida nesta etapa]
 
 ## RESTRIÇÕES
-- Use apenas a entrada recebida e os documentos anexados.
+- Use apenas a entrada recebida e as fontes do notebook anexado.
 - Quando faltar informação, escreva "não informado".
 
 ## FORMATO DE SAÍDA

@@ -10,7 +10,8 @@ frases; se não couber, o problema ainda está grande demais e precisa ser recor
   estimado, escreva "estimativa do grupo" e diga como medi-lo na semana 1):
 
 ## 1. Modelo
-- Qual ferramenta autorizada será usada (Copilot, Gemini, ChatGPT ou outra):
+- Ferramenta: Gemini, na conta corporativa da Copel. Recurso usado (skill, Gem ou conversa
+  comum):
 - Há restrição de dados para essa ferramenta? Qual:
 
 ## 2. Instrução
@@ -20,7 +21,8 @@ frases; se não couber, o problema ainda está grande demais e precisa ser recor
 
 ## 3. Conhecimento
 - Documentos que ele precisa consultar (norma, procedimento, planilha, histórico):
-- Esses documentos podem ser anexados? São públicos, internos ou restritos?
+- Esses documentos podem entrar como fontes de um notebook? São públicos, internos ou
+  restritos?
 
 ## 4. Ferramentas
 - Ele só lê e escreve texto, ou precisa buscar na web, rodar cálculo, ler planilha,

@@ -7,33 +7,34 @@ anexada, e a saída é lida por uma pessoa. O que se constrói hoje é a instru�
 casos concretos e melhorada a cada rodada.
 
 ## Onde construir
-Use a ferramenta autorizada pela empresa. As três opções mais comuns recebem o mesmo
-conteúdo com nomes diferentes:
+O MVP é construído no Gemini da conta corporativa da Copel, com dois recursos:
 
-| Ferramenta | Onde fica a instrução | Onde ficam os documentos |
+| Recurso | O que guarda | Como entra na conversa |
 |---|---|---|
-| Google Gemini | Gem, campo "Instruções" | Gem, campo "Conhecimento" |
-| ChatGPT | GPT personalizado, campo "Instruções" | GPT personalizado, "Conhecimento" |
-| Microsoft 365 Copilot | Agente, campo "Instruções" | Agente, "Conhecimento" |
+| Gemini Notebook | Os documentos de conhecimento, como fontes do notebook | Botão + da caixa de prompt, escolhendo o notebook |
+| Skill | A instrução nos quatro componentes | `/` seguido do nome da skill |
 
-Se nenhuma delas estiver liberada, o MVP roda em uma conversa comum: cole a instrução como
-primeira mensagem e anexe os documentos em seguida. O mesmo vale quando criar o assistente
-levar mais de cinco minutos.
+Se a conta ainda não tiver skills, cole a mesma instrução no campo de instruções de um Gem e
+anexe o notebook a ele. Se nem o Gem estiver liberado, ou se criar o assistente levar mais de
+cinco minutos, use uma conversa comum: anexe o notebook pelo + e cole a instrução como
+primeira mensagem.
 
 ## Iteração 1 (v1): dos casos de teste ao primeiro resultado
 1. Escreva os três casos em `casos-de-teste.md`: um típico, um de borda e um fora do escopo ou
    da alçada, cada um com a saída esperada escrita antes de rodar.
 2. Parta da resposta D do Prompt 2 e reescreva a instrução no molde `instrucao-modelo.md` (ou
    `fluxo-modelo.md`, na variante de fluxo).
-3. Crie o assistente na ferramenta e anexe o documento de conhecimento. Se o documento for
-   interno, use uma versão fictícia de até dez linhas, ou um dos arquivos de
+3. Crie um notebook no Gemini Notebook e adicione o documento de conhecimento como fonte. Se
+   o documento for interno, use uma versão fictícia de até dez linhas, ou um dos arquivos de
    `conhecimento-ficticio/`.
-4. Rode os três casos e anote no `registro-de-iteracoes.md` o que saiu certo e o que falhou.
+4. Crie a skill com a instrução v1. Em uma conversa nova, anexe o notebook pelo + e chame a
+   skill com `/` antes de colar cada caso.
+5. Rode os três casos e anote no `registro-de-iteracoes.md` o que saiu certo e o que falhou.
 
 ## Iterações 2 e 3 (v2, v3): uma correção por vez
 1. Escolha a falha mais grave do registro.
-2. Altere uma única parte da instrução (contexto, papel, restrição ou formato) para
-   corrigi-la. Se mudar duas coisas ao mesmo tempo, não será possível saber qual resolveu.
+2. Edite a skill alterando uma única parte da instrução (contexto, papel, restrição ou
+   formato) para corrigi-la. Se mudar duas coisas ao mesmo tempo, não será possível saber qual resolveu.
 3. Rode de novo os três casos, não apenas o que falhou, porque a correção de um caso pode
    quebrar outro.
 4. Registre a versão, o componente alterado, a mudança e o resultado.
@@ -41,8 +42,9 @@ levar mais de cinco minutos.
 ## Variante de fluxo
 Quando o problema do grupo é um processo recorrente, com gatilho definido e etapas que se
 repetem sempre na mesma ordem, o MVP Zero pode ser montado como fluxo. O grupo divide o
-trabalho em duas ou três etapas fixas, escreve um prompt para cada uma no molde
-`fluxo-modelo.md` e executa as etapas à mão, na ordem. Os casos de teste e o registro são os
+trabalho em duas ou três etapas fixas, escreve uma skill para cada uma no molde
+`fluxo-modelo.md` e chama as skills à mão, na ordem e na mesma conversa, com o notebook
+anexado. Os casos de teste e o registro são os
 mesmos, e cada iteração altera um componente de uma única etapa, anotada no registro.
 
 ## Critério de pronto para a demonstração
