@@ -83,6 +83,10 @@ Ao terminar: `pkill -f "com.brave.Browser --headless"` e `pkill -f "http.server 
 Os geradores em `scripts/` (`export-cardiff-pdf`, `prerender-mermaid`,
 `preview-material-print`) ainda dependem do binário do Playwright e não têm essa alternativa.
 
+### Git: sempre na `main`
+
+Todo trabalho é feito, commitado e publicado diretamente na `main`, sem feature branches, worktrees ou pull requests, seguindo a skill `devops-push` (`.claude/skills/devops-push/SKILL.md`). A regra vale também para sessões na nuvem cujas instruções designem um branch `claude/...`. O commit só entra depois de o pre-commit (`npm test`) passar, e o push vai para `origin main`, sem force-push.
+
 ## Architecture
 
 ### Page Structure
