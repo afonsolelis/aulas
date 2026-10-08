@@ -10,7 +10,7 @@ preparados para exercício em sala.
 |---|---|---|
 | Todos | `documento-do-participante.docx` | Onde o participante registra canvas, saídas, contagem, casos e iterações |
 | Abertura | `problemas-exemplo.md` | Escolher o problema, se o participante ainda não tiver um |
-| 1. Anatomia | `canvas-anatomia.md` | Mapear as sete peças do assistente que resolveria o problema |
+| 1. Anatomia | `documento-do-participante.docx`, seção 1 | Mapear as sete peças do assistente que resolveria o problema |
 | 2. Prompt | `benchmark/` + `prompts/p0-prompt-ingenuo.md` | Linha de base: o prompt sem estrutura |
 | 2. Prompt | `prompts/p1-prompt-estruturado.md` | Mesmo pedido com contexto, papel, restrições e formato |
 | 2. Prompt | `prompts/p2-traducao-para-o-seu-problema.md` | Levar o benchmark para o problema escolhido |
@@ -27,7 +27,8 @@ editor, e os prompts devem ser copiados deles tal como estão, apenas o trecho e
 de três crases. O `documento-do-participante.docx` abre no Word ou no Google Docs e reúne, em um só
 lugar, o canvas, as saídas dos prompts, a contagem de pontos, os casos de teste e o registro de
 iterações; cada participante mantém uma única cópia dele, e é a esse arquivo que os roteiros
-se referem como documento do participante. A planilha de indicadores está em duas versões com o mesmo
+se referem como documento do participante. O `canvas-anatomia.md` é a fonte da
+seção 1 desse documento e não precisa ser aberto em sala. A planilha de indicadores está em duas versões com o mesmo
 conteúdo: o .csv, que abre direto no Excel em português, e o .xlsx, para ferramentas que não
 aceitam .csv como anexo. Do mesmo modo, o relatório do benchmark está em .md e em .docx.
 
