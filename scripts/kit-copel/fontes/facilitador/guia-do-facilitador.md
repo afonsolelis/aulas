@@ -36,11 +36,16 @@ dois lados da mesa tenham argumentos.
 - [ ] Workflow de referência rodado nos três casos e na proposta B; nota de leitura da proposta B
       guardado na seção 6, como apoio à discussão de fechamento.
 - [ ] Página dos papéis (`pages/palestras/ferramentas/copel-papeis-do-conselho.html`) aberta em um
-      celular pelo QR code do slide 26. As posições seguem a tabela da seção 4; para mudá-las sem
-      editar a página, acrescente ao endereço `#posicoes=` e oito letras F ou C, na ordem dos
-      conselheiros 1 a 8 (por exemplo, `#posicoes=CCFCFCFF`), e projete esse endereço.
-- [ ] Dez números escritos em papel (diretor, presidente e conselheiros 1 a 8), para entregar na
-      volta do intervalo. Cartões impressos (`conselho/cartoes-de-papel.docx`) só como plano B.
+      celular pelo QR code do slide 26. Cada celular recebe um dos dez papéis, sorteado sem
+      repetição pelo Supabase (`supabase/conselho-papeis.sql`); quem recarrega vê o mesmo papel, e
+      a partir do 11º celular a página oferece a escolha manual por número. As posições seguem a
+      tabela da seção 4; para mudá-las, acrescente ao endereço do QR code `#posicoes=` e oito
+      letras F ou C, na ordem dos conselheiros 1 a 8.
+- [ ] Painel do professor: o mesmo endereço com `#host=` seguido do token do professor (combinado
+      fora do repositório). Mostra quantos papéis já foram sorteados e tem o botão Reiniciar o
+      sorteio. Reiniciar depois dos testes e de novo às 9:55, antes de projetar o slide 26.
+- [ ] Cartões impressos (`conselho/cartoes-de-papel.docx`) só como plano B, para o caso de faltar
+      internet.
 - [ ] Acesso a `afonsolelis.github.io/aulas` e aos arquivos das práticas a partir da rede da Copel.
 - [ ] Arquivos das práticas em pendrive.
 - [ ] Três cópias impressas das saídas de referência e da proposta B (plano B).
@@ -55,11 +60,11 @@ dois lados da mesa tenham argumentos.
 | 8:35 – 8:45 | 12–16 | Bloco 2. Não revelar os sete pontos; mostrar a minuta e os dois prompts. |
 | 8:45 – 9:00 | 17 | Prática 2. Confirmar que cada participante usa conversa nova, sem busca na web, e anexa a minuta e o benchmark. |
 | 9:00 – 9:10 | 18 | Devolutiva. Pedir a contagem a três ou quatro participantes antes de clicar em "Mostrar os sete pontos". |
-| 9:10 – 9:25 | 19 | Intervalo de 15 min. Entregar os números dos papéis na volta, virados para baixo. |
+| 9:10 – 9:25 | 19 | Intervalo de 15 min. Reiniciar o sorteio pelo painel do professor. |
 | 9:25 – 9:32 | 20–22 | Bloco 3. As três skills, os três casos e o ciclo de uma mudança por vez. |
 | 9:32 – 9:47 | 23 | Iteração 1. Saídas esperadas antes das skills. |
 | 9:47 – 10:00 | 24 | Iteração 2. Casos de borda e fora da alçada. |
-| 10:00 – 10:05 | 25–26 | Abertura da simulação. Pedir que escaneiem o QR code e toquem no número recebido. |
+| 10:00 – 10:05 | 25–26 | Abertura da simulação. Pedir que escaneiem o QR code; cada celular recebe um papel sorteado. |
 | 10:05 – 10:20 | 27 | Preparação. Circular pela sala e conferir se cada argumento cita seção ou achado. |
 | 10:20 – 10:45 | 28 | Reunião. O presidente conduz; o facilitador projeta e preenche a ata. |
 | 10:45 – 10:52 | 29 | Deliberação e ata. |
