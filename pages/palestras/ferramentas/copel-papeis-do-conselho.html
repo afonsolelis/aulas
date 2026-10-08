@@ -61,9 +61,20 @@
   </header>
 
   <main>
-    <section id="escolha">
-      <p class="intro">Toque no número que o professor atribuiu a você. O seu cartão mostra a perspectiva, a posição que você vai sustentar e como se preparar para a reunião.</p>
+    <section id="sorteando">
+      <p class="intro">Sorteando o seu papel na reunião…</p>
+    </section>
+
+    <section id="escolha" hidden>
+      <p class="intro" id="escolha-intro">Toque no número que o professor atribuiu a você. O seu cartão mostra a perspectiva, a posição que você vai sustentar e como se preparar para a reunião.</p>
       <div class="grade" id="grade"></div>
+    </section>
+
+    <section id="host" hidden>
+      <h2 style="font-size:1.1rem;margin:0 0 8px;">Painel do professor</h2>
+      <p class="intro" id="host-resumo">Carregando…</p>
+      <table id="host-tabela" style="width:100%;border-collapse:collapse;background:#fff;font-size:.95rem;"></table>
+      <div class="acoes"><button type="button" id="host-atualizar">Atualizar</button><button type="button" id="host-reiniciar">Reiniciar o sorteio</button></div>
     </section>
 
     <section id="cartao" hidden aria-live="polite"></section>
@@ -79,6 +90,20 @@
        do facilitador; para alterá-la, acrescente ao endereço, por exemplo, #posicoes=CCFCFCFF. */
     const PADRAO = 'CCFCFCFF';
     const PROPOSTA = '../assets/copel/kit-ia-na-pratica/conselho/proposta-b-medicao-inteligente.docx';
+    const SALA = 'copel-2026-10-09';
+    const SUPABASE_URL = 'https://lcyxqwdgsrbcpecqyqje.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_x68LvlGFJns-zsrYTERvqw_-x5GWA8p';
+
+    async function rpc(fn, args) {
+      const r = await fetch(SUPABASE_URL + '/rest/v1/rpc/' + fn, {
+        method: 'POST',
+        headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify(args),
+      });
+      const corpo = await r.json().catch(() => null);
+      if (!r.ok) throw new Error((corpo && corpo.message) || ('HTTP ' + r.status));
+      return corpo;
+    }
 
     const PAPEIS = [
       { id: 'diretor', rotulo: 'Diretor(a) proponente', curto: 'Defende a proposta', largo: true,
@@ -152,13 +177,15 @@
             '<h3>Preparação · 10:05 – 10:20</h3><ol>' + d.preparo.map((x) => '<li>' + esc(x) + '</li>').join('') + '</ol>' +
             '<h3>Na reunião</h3><p>' + esc(d.fala) + '</p>' +
             '<div class="regra">Argumento sem referência a uma seção da proposta ou a um achado da nota de leitura não é considerado na deliberação.</div>' +
-            '<div class="acoes"><a href="' + PROPOSTA + '" download>Baixar a proposta B</a><button type="button" id="trocar">Escolher outro papel</button></div>' +
+            '<div class="acoes"><a href="' + PROPOSTA + '" download>Baixar a proposta B</a><button type="button" id="trocar">Trocar de papel (só com o professor)</button></div>' +
           '</div>' +
         '</article>';
       document.getElementById('escolha').hidden = true;
+      document.getElementById('sorteando').hidden = true;
       caixa.hidden = false;
       document.getElementById('trocar').addEventListener('click', () => {
         caixa.hidden = true;
+        document.getElementById('escolha-intro').textContent = 'Escolha manual, apenas com orientação do professor: toque no número que ele indicar.';
         document.getElementById('escolha').hidden = false;
         try { localStorage.removeItem('copel-papel'); } catch (e) { /* sem armazenamento local */ }
       });
@@ -166,12 +193,64 @@
       window.scrollTo(0, 0);
     }
 
-    // Quem já escolheu o papel volta direto ao cartão ao reabrir a página.
-    try {
-      const salvo = localStorage.getItem('copel-papel');
-      const p = PAPEIS.find((x) => (x.n ? 'c' + x.n : x.id) === salvo);
-      if (p) mostrar(p, true);
-    } catch (e) { /* sem armazenamento local */ }
+    const porId = (id) => PAPEIS.find((x) => (x.n ? 'c' + x.n : x.id) === id);
+
+    function manual(motivo) {
+      document.getElementById('sorteando').hidden = true;
+      document.getElementById('escolha-intro').textContent = motivo;
+      document.getElementById('escolha').hidden = false;
+    }
+
+    function dispositivo() {
+      try {
+        let id = localStorage.getItem('copel-dispositivo');
+        if (!id) { id = crypto.randomUUID(); localStorage.setItem('copel-dispositivo', id); }
+        return id;
+      } catch (e) { return crypto.randomUUID(); }
+    }
+
+    async function sortear() {
+      // Quem já tem papel neste celular volta direto ao cartão.
+      try {
+        const salvo = porId(localStorage.getItem('copel-papel'));
+        if (salvo) { mostrar(salvo, true); return; }
+      } catch (e) { /* sem armazenamento local */ }
+      try {
+        const papel = await rpc('conselho_papel_pegar', { p_sala: SALA, p_dispositivo: dispositivo() });
+        const p = porId(papel);
+        if (p) { mostrar(p); return; }
+        manual('Os dez papéis já foram sorteados. Toque no número que o professor indicar.');
+      } catch (e) {
+        manual('Não foi possível sortear automaticamente. Toque no número que o professor atribuiu a você.');
+      }
+    }
+
+    // Painel do professor: abrir a página com #host=TOKEN.
+    const token = (location.hash.match(/host=([^&]+)/) || [])[1];
+    async function painel(acao) {
+      const resumo = document.getElementById('host-resumo');
+      try {
+        const linhas = await rpc('conselho_papeis_host', { p_sala: SALA, p_token: decodeURIComponent(token), p_acao: acao });
+        const nomes = { diretor: 'Diretor(a) proponente', presidente: 'Presidente' };
+        document.getElementById('host-tabela').innerHTML = linhas.map((l) =>
+          '<tr style="border-bottom:1px solid var(--cp-line)"><td style="padding:8px">' + (nomes[l.papel] || ('Conselheiro(a) ' + l.papel.slice(1) + ' · ' + porId(l.papel).rotulo)) +
+          '</td><td style="padding:8px;font-weight:700;color:' + (l.ocupado ? 'var(--cp-ok)' : 'var(--cp-muted)') + '">' + (l.ocupado ? 'sorteado' : 'livre') + '</td></tr>').join('');
+        resumo.textContent = linhas.filter((l) => l.ocupado).length + ' de 10 papéis sorteados. Posições dos conselheiros 1 a 8: ' + posicoes() + ' (F = a favor, C = contra).';
+      } catch (e) {
+        resumo.textContent = 'Erro: ' + e.message;
+      }
+    }
+    if (token) {
+      document.getElementById('sorteando').hidden = true;
+      document.getElementById('host').hidden = false;
+      document.getElementById('host-atualizar').addEventListener('click', () => painel('ver'));
+      document.getElementById('host-reiniciar').addEventListener('click', () => {
+        if (confirm('Liberar os dez papéis para um novo sorteio?')) painel('reiniciar');
+      });
+      painel('ver');
+    } else {
+      sortear();
+    }
   </script>
 <!-- semana:js:start -->
 <script src="../../../js/semana-ano.js" defer></script>
