@@ -10,4 +10,4 @@ Analise esse benchmark de distribuidoras e me diga quais são as melhores práti
 que a gente deveria adotar.
 ```
 
-Guarde a resposta inteira, sem editar, no `documento-do-grupo.docx`.
+Guarde a resposta inteira, sem editar, no `documento-do-participante.docx`.

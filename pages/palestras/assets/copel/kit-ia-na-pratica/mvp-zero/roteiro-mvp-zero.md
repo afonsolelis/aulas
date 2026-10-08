@@ -1,7 +1,7 @@
 # Roteiro do MVP Zero
 
 O MVP Zero é a menor versão do assistente que já roda sobre um caso representativo do trabalho
-do grupo, escrito com dados fictícios, e cuja saída pode ser julgada por quem conhece o
+de quem o constrói, escrito com dados fictícios, e cuja saída pode ser julgada por quem conhece o
 trabalho. Ele não tem integração com sistema nem interface própria: a entrada é colada ou
 anexada, e a saída é lida por uma pessoa. O que se constrói hoje é a instrução, testada contra
 casos concretos e melhorada a cada rodada.
@@ -40,8 +40,8 @@ primeira mensagem.
 4. Registre a versão, o componente alterado, a mudança e o resultado.
 
 ## Variante de fluxo
-Quando o problema do grupo é um processo recorrente, com gatilho definido e etapas que se
-repetem sempre na mesma ordem, o MVP Zero pode ser montado como fluxo. O grupo divide o
+Quando o problema escolhido é um processo recorrente, com gatilho definido e etapas que se
+repetem sempre na mesma ordem, o MVP Zero pode ser montado como fluxo. O participante divide o
 trabalho em duas ou três etapas fixas, escreve uma skill para cada uma no molde
 `fluxo-modelo.md` e chama as skills à mão, na ordem e na mesma conversa, com o notebook
 anexado. Os casos de teste e o registro são os
@@ -51,4 +51,4 @@ mesmos, e cada iteração altera um componente de uma única etapa, anotada no r
 - Os três casos rodam e a saída tem sempre o mesmo formato.
 - O caso fora do escopo ou da alçada é recusado ou devolvido para pessoa, sem resposta
   inventada.
-- O grupo sabe dizer qual mudança da instrução produziu a maior melhora.
+- O participante sabe dizer qual mudança da instrução produziu a maior melhora.

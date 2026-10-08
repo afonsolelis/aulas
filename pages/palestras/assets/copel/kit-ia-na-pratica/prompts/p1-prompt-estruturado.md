@@ -2,8 +2,8 @@
 
 Em uma conversa nova, anexe os dois arquivos da pasta `benchmark/` e cole o prompt abaixo.
 Se a ferramenta não aceitar esses formatos, use as versões `.docx` e `.xlsx` dos mesmos arquivos; se ela não aceitar anexos, cole o conteúdo dos dois arquivos abaixo do prompt, depois de uma linha `## DADOS`. Desligue a busca na web e a memória entre conversas, ou use conversa temporária, se a ferramenta oferecer essas opções.
-As quatro partes (contexto, papel, restrições e formato de saída) estão marcadas para que o
-grupo possa alterar uma de cada vez e observar o efeito.
+As quatro partes (contexto, papel, restrições e formato de saída) estão marcadas para que
+seja possível alterar uma de cada vez e observar o efeito.
 
 ```
 ## CONTEXTO
