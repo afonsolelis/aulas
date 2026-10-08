@@ -5,8 +5,11 @@
  * Os .md e o .csv da pasta do kit são a fonte de verdade. Este script produz, com o
  * LibreOffice em modo headless:
  *   - benchmark/relatorio-benchmark-ia-distribuicao.docx (a partir do .md)
+ *   - propostas/*.docx, conselho/proposta-b-medicao-inteligente.docx e
+ *     conselho/cartoes-de-papel.docx (a partir dos .md)
  *   - benchmark/indicadores-distribuidoras.xlsx (a partir do .csv pt-BR)
- *   - documento-do-participante.docx (montado a partir do canvas, dos casos e do registro)
+ *   - documento-do-participante.docx (montado a partir do canvas, dos casos, do registro
+ *     e da preparação para a reunião do conselho)
  *
  * Uso: node scripts/kit-copel/build-kit.mjs
  */
@@ -105,9 +108,16 @@ function htmlToDocx(html, destino) {
 
 const ler = (rel) => fs.readFileSync(path.join(KIT, rel), 'utf8');
 
-// 1. Relatório do benchmark em .docx
-htmlToDocx(page('Benchmark de mercado', mdToHtml(ler('benchmark/relatorio-benchmark-ia-distribuicao.md'))),
-  path.join(KIT, 'benchmark/relatorio-benchmark-ia-distribuicao.docx'));
+// 1. Relatório do benchmark, propostas e cartões de papel em .docx
+for (const [titulo, rel] of [
+  ['Benchmark de mercado', 'benchmark/relatorio-benchmark-ia-distribuicao.md'],
+  ['Proposta PRJ-2026-014', 'propostas/proposta-a-ia-perdas.md'],
+  ['Proposta PRJ-2026-019', 'propostas/proposta-c-religacao.md'],
+  ['Proposta PRJ-2026-021', 'conselho/proposta-b-medicao-inteligente.md'],
+  ['Cartões de papel', 'conselho/cartoes-de-papel.md'],
+]) {
+  htmlToDocx(page(titulo, mdToHtml(ler(rel))), path.join(KIT, rel.replace(/\.md$/, '.docx')));
+}
 
 // 2. Planilha em .xlsx (CSV com ponto e vírgula, aspas, UTF-8, primeira linha, idioma pt-BR)
 const csv = path.join(TMP, 'indicadores-distribuidoras.csv');
@@ -126,16 +136,21 @@ const participante = [
   '<h1>Documento do participante</h1>',
   '<p>IA na Prática e Prototipagem · Copel · AI for Business. Participante: ______________________________________ Área: ________________</p>',
   '<p>Uma cópia por participante. Cole aqui, sem editar, as saídas das ferramentas, e preencha os campos na ordem das práticas.</p>',
-  '<h2>1. Problema e canvas de anatomia (Prática 0 e Prática 1)</h2>', mdToHtml(semTitulo(ler('canvas-anatomia.md'))),
-  '<h2>2. Saída do Prompt 0 (Prática 2A)</h2>', campo(10),
-  '<h2>3. Saída do Prompt 1 (Prática 2A)</h2>', campo(10),
+  '<h2>1. Canvas de anatomia do workflow (Prática 1)</h2>', mdToHtml(semTitulo(ler('canvas-anatomia.md'))),
+  '<h2>2. Saída do Prompt 0 sobre a minuta A (Prática 2)</h2>', campo(10),
+  '<h2>3. Saída do Prompt 1 sobre a minuta A (Prática 2)</h2>', campo(10),
   '<h2>4. Contagem de pontos</h2>', contagem,
   '<h2>5. Uma afirmação sem base de cada saída</h2>', '<p>Prompt 0:</p>', campo(2), '<p>Prompt 1:</p>', campo(2),
-  '<h2>6. Saída do Prompt 2 (Prática 2B)</h2>', campo(8),
-  '<h2>7. Instrução do MVP Zero (skill), ou uma skill por etapa na variante de fluxo</h2>',
-  '<p>Versão 1:</p>', campo(6), '<p>Versão 2 (o que mudou):</p>', campo(3), '<p>Versão 3 (o que mudou):</p>', campo(3),
-  '<h2>8. Casos de teste</h2>', mdToHtml(semTitulo(ler('mvp-zero/casos-de-teste.md'))),
-  '<h2>9. Registro de iterações</h2>', mdToHtml(semTitulo(ler('mvp-zero/registro-de-iteracoes.md'))),
+  '<h2>6. Instruções das três skills do workflow (Prática 3)</h2>',
+  '<p>Extração, versão 1:</p>', campo(4), '<p>Verificação, versão 1:</p>', campo(4), '<p>Parecer, versão 1:</p>', campo(4),
+  '<p>Versão 2 (etapa, componente e o que mudou):</p>', campo(3),
+  '<h2>7. Casos de teste</h2>', mdToHtml(semTitulo(ler('mvp-zero/casos-de-teste.md'))),
+  '<h2>8. Registro de iterações</h2>', mdToHtml(semTitulo(ler('mvp-zero/registro-de-iteracoes.md'))),
+  '<h2>9. Reunião do conselho: preparação</h2>',
+  '<p>Papel e posição atribuídos:</p>', campo(1),
+  '<p>Parecer do workflow sobre a proposta B (cole sem editar):</p>', campo(10),
+  '<p>Três argumentos, cada um com a seção da proposta ou o achado do parecer que o sustenta:</p>', campo(6),
+  '<p>A objeção que espero ouvir e como responderia:</p>', campo(3),
 ].join('\n');
 htmlToDocx(page('Documento do participante', participante), path.join(KIT, 'documento-do-participante.docx'));
 

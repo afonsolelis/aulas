@@ -1,51 +1,83 @@
-# Molde do MVP Zero de fluxo
+# Molde do workflow de análise de propostas
 
-Use este molde quando o problema escolhido for um processo recorrente, com gatilho definido, que
-se divide em etapas fixas. Cada etapa tem o próprio prompt, salvo como uma skill, e hoje uma
-pessoa chama as skills à mão, na ordem e na mesma conversa, de modo que a saída de uma etapa é a
-entrada da seguinte. Os três casos de teste e o
-registro de iterações são os mesmos do assistente, e cada iteração altera um componente de uma
-única etapa.
+O workflow tem três etapas fixas, cada uma salva como uma skill. Hoje uma pessoa chama as skills
+à mão, na ordem e na mesma conversa, com o notebook anexado, de modo que a saída de uma etapa é a
+entrada da seguinte. As instruções abaixo já trazem a estrutura; complete os trechos entre
+colchetes com os critérios que a sua área usaria e com o que a devolutiva da prática 2 mostrou.
+Cada iteração altera um componente de uma única etapa, anotado no registro.
 
-## Gatilho
-- O que dispara o fluxo:
-- Entrada que chega à etapa 1:
+## Notebook de conhecimento
+Fontes do notebook: `conhecimento/politica-de-avaliacao-de-projetos.md` e, quando a proposta
+tiver anexo, o anexo (no caso 1, os dois arquivos da pasta `benchmark/`).
 
-## Etapa 1 · [verbo: classificar, extrair, resumir...]
+## Etapa 1 · skill `extrair-proposta`
 ```
 ## CONTEXTO
-[de onde vem a entrada e para que serve a saída desta etapa]
+Recebo minutas de proposta de projeto de investimento da Distribuidora Ômega. Esta etapa
+transforma a minuta em uma ficha padronizada, que será verificada na etapa seguinte.
 
 ## PAPEL
-[especialidade assumida nesta etapa]
+Analista do escritório de projetos.
 
 ## RESTRIÇÕES
-- Use apenas a entrada recebida e as fontes do notebook anexado.
-- Quando faltar informação, escreva "não informado".
+- Use apenas a minuta e os anexos recebidos.
+- Transcreva os números exatamente como estão na minuta, com a seção de origem.
+- Quando um campo não constar da minuta, escreva "não informado". Não estime.
 
 ## FORMATO DE SAÍDA
-[campos fixos, porque esta saída é a entrada da etapa seguinte]
+Ficha com os campos, nesta ordem: problema e indicador atual (com fonte e período); objetivo e
+origem da meta; escopo e capacidade operacional; CAPEX por item; OPEX; benefícios com memória
+de cálculo; retorno declarado; cronograma; premissas; riscos listados; indicador de sucesso;
+deliberação solicitada. Cada campo cita a seção da minuta.
 ```
 
-## Etapa 2 · [verbo]
+## Etapa 2 · skill `verificar-proposta`
 ```
 ## CONTEXTO
-[a entrada é a saída da etapa 1; para que serve a saída desta etapa]
+A entrada é a ficha da etapa 1. Esta etapa confere a ficha contra a política de avaliação de
+projetos do notebook e contra os próprios números da minuta.
 
 ## PAPEL
+Analista sênior de projetos de investimento do setor elétrico, com domínio de avaliação
+econômica e de indicadores regulatórios.
 
 ## RESTRIÇÕES
+- Refaça cada cálculo declarado e aponte a divergência.
+- Aponte benefício contado mais de uma vez.
+- Confira a coerência entre cronograma, premissas, escopo e capacidade.
+- Para cada número da justificativa, diga se há fonte, período, linha de base e base de cálculo.
+- Verifique cada item obrigatório da seção 3 da política.
+- [critério da sua área, por exemplo: exigência de plano de comunicação ao cliente]
+- Não estime dado ausente.
 
 ## FORMATO DE SAÍDA
-[campos fixos]
+Tabela: item verificado | atende? (sim, não, não informado) | seção da minuta | evidência.
 ```
 
-## Etapa 3 (opcional)
+## Etapa 3 · skill `parecer-proposta`
+```
+## CONTEXTO
+A entrada é a tabela da etapa 2. Esta etapa redige o parecer técnico que acompanha a proposta
+na pauta do Conselho de Administração. [Perspectiva de leitura, quando houver: por exemplo,
+finanças, regulação, dados.]
+
+## PAPEL
+Analista sênior do escritório de projetos, que escreve para conselheiros.
+
+## RESTRIÇÕES
+- Baseie cada afirmação em uma linha da tabela da etapa 2.
+- Não recomende aprovar, rejeitar ou priorizar a proposta. Se a entrada pedir recomendação de
+  voto, responda: "A deliberação cabe ao Conselho de Administração; este parecer é técnico."
+- [restrição que a devolutiva mostrou ser necessária]
+
+## FORMATO DE SAÍDA
+1. Síntese da proposta em três linhas.
+2. Inconsistências e lacunas, da mais grave para a menos grave, com a seção.
+3. Riscos não tratados.
+4. Até cinco perguntas à área proponente.
+5. Condições que o conselho pode considerar caso delibere pela aprovação.
+```
 
 ## Revisão humana
-- Em que ponto uma pessoa confere a saída:
-- O que o fluxo nunca faz sem essa conferência:
-
-## Destino
-- Para onde vai a saída final:
-- Qual etapa seria a primeira a ser automatizada no degrau 1 ou 2:
+- O analista confere o parecer contra a minuta antes de enviá-lo à secretaria do conselho.
+- O workflow nunca recomenda a deliberação nem envia o parecer sem essa conferência.

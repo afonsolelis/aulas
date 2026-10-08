@@ -1,54 +1,41 @@
-# Roteiro do MVP Zero
+# Roteiro do workflow de análise de propostas
 
-O MVP Zero é a menor versão do assistente que já roda sobre um caso representativo do trabalho
-de quem o constrói, escrito com dados fictícios, e cuja saída pode ser julgada por quem conhece o
-trabalho. Ele não tem integração com sistema nem interface própria: a entrada é colada ou
-anexada, e a saída é lida por uma pessoa. O que se constrói hoje é a instrução, testada contra
-casos concretos e melhorada a cada rodada.
+O MVP de hoje é um workflow de três etapas que transforma uma minuta de proposta de projeto em
+parecer técnico para o conselho: a extração produz uma ficha padronizada, a verificação confere
+a ficha contra a política de avaliação de projetos e contra os próprios números da minuta, e o
+parecer redige as inconsistências, os riscos não tratados e as perguntas à área proponente. Ele
+não tem integração com sistema: a minuta é anexada, as skills são chamadas à mão e o parecer é
+lido por uma pessoa antes de seguir.
 
 ## Onde construir
-O MVP é construído no Gemini da conta corporativa da Copel, com dois recursos:
+O workflow é construído no Gemini da conta corporativa da Copel, com dois recursos:
 
 | Recurso | O que guarda | Como entra na conversa |
 |---|---|---|
-| Gemini Notebook | Os documentos de conhecimento, como fontes do notebook | Botão + da caixa de prompt, escolhendo o notebook |
-| Skill | A instrução nos quatro componentes | `/` seguido do nome da skill |
+| Gemini Notebook | A política de avaliação de projetos e os anexos das propostas | Botão + da caixa de prompt, escolhendo o notebook |
+| Skill | A instrução de cada etapa, nos quatro componentes | `/` seguido do nome da skill |
 
-Se a conta ainda não tiver skills, cole a mesma instrução no campo de instruções de um Gem e
-anexe o notebook a ele. Se nem o Gem estiver liberado, ou se criar o assistente levar mais de
-cinco minutos, use uma conversa comum: anexe o notebook pelo + e cole a instrução como
-primeira mensagem.
+Se a conta ainda não tiver skills, crie três Gems, um por etapa, cada um com o notebook anexado,
+e passe a saída de um para o outro. Se nem o Gem estiver liberado, use uma conversa comum: anexe
+o notebook pelo + e cole a instrução de cada etapa como mensagem, na ordem.
 
-## Iteração 1 (v1): dos casos de teste ao primeiro resultado
-1. Escreva os três casos em `casos-de-teste.md`: um típico, um de borda e um fora do escopo ou
-   da alçada, cada um com a saída esperada escrita antes de rodar.
-2. Parta da resposta D do Prompt 2 e reescreva a instrução no molde `instrucao-modelo.md` (ou
-   `fluxo-modelo.md`, na variante de fluxo).
-3. Crie um notebook no Gemini Notebook e adicione o documento de conhecimento como fonte. Se
-   o documento for interno, use uma versão fictícia de até dez linhas, ou um dos arquivos de
-   `conhecimento-ficticio/`.
-4. Crie a skill com a instrução v1. Em uma conversa nova, anexe o notebook pelo + e chame a
-   skill com `/` antes de colar cada caso.
-5. Rode os três casos e anote no `registro-de-iteracoes.md` o que saiu certo e o que falhou.
+## Iteração 1 (v1): montar e rodar no caso típico
+1. Escreva a saída esperada dos três casos em `casos-de-teste.md`.
+2. Crie um notebook com `conhecimento/politica-de-avaliacao-de-projetos.md` e os dois arquivos
+   de `benchmark/` como fontes.
+3. Crie as três skills a partir de `fluxo-modelo.md`, completando os trechos entre colchetes.
+4. Em uma conversa nova, anexe o notebook e a minuta A, e chame `/extrair-proposta`,
+   `/verificar-proposta` e `/parecer-proposta`, nessa ordem.
+5. Compare o parecer com a saída esperada e registre a v1 em `registro-de-iteracoes.md`.
 
-## Iterações 2 e 3 (v2, v3): uma correção por vez
-1. Escolha a falha mais grave do registro.
-2. Edite a skill alterando uma única parte da instrução (contexto, papel, restrição ou
-   formato) para corrigi-la. Se mudar duas coisas ao mesmo tempo, não será possível saber qual resolveu.
-3. Rode de novo os três casos, não apenas o que falhou, porque a correção de um caso pode
-   quebrar outro.
-4. Registre a versão, o componente alterado, a mudança e o resultado.
+## Iteração 2 (v2): os casos de borda e fora da alçada
+1. Rode o workflow nos casos 2 e 3, em conversas novas.
+2. Escolha a falha mais grave entre os três casos.
+3. Edite uma única skill, alterando um único componente, e rode de novo os três casos, porque a
+   correção de um caso pode quebrar outro.
+4. Registre a etapa, o componente alterado, a mudança e o resultado.
 
-## Variante de fluxo
-Quando o problema escolhido é um processo recorrente, com gatilho definido e etapas que se
-repetem sempre na mesma ordem, o MVP Zero pode ser montado como fluxo. O participante divide o
-trabalho em duas ou três etapas fixas, escreve uma skill para cada uma no molde
-`fluxo-modelo.md` e chama as skills à mão, na ordem e na mesma conversa, com o notebook
-anexado. Os casos de teste e o registro são os
-mesmos, e cada iteração altera um componente de uma única etapa, anotada no registro.
-
-## Critério de pronto para a demonstração
-- Os três casos rodam e a saída tem sempre o mesmo formato.
-- O caso fora do escopo ou da alçada é recusado ou devolvido para pessoa, sem resposta
-  inventada.
-- O participante sabe dizer qual mudança da instrução produziu a maior melhora.
+## Critério de pronto para a reunião do conselho
+- Os três casos rodam e o parecer tem sempre as cinco seções do formato.
+- A proposta incompleta é devolvida com as lacunas, sem valores estimados.
+- O pedido de recomendação de voto é recusado.
