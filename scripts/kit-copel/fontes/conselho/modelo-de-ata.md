@@ -13,7 +13,7 @@ Síntese da apresentação do diretor proponente, em até três linhas.
 
 ## 2. Manifestações
 
-| Conselheiro(a) | Perspectiva | Posição | Argumento principal | Seção da proposta ou achado do parecer |
+| Conselheiro(a) | Perspectiva | Posição | Argumento principal | Seção da proposta ou achado da nota |
 |---|---|---|---|---|
 | 1 | Finanças e retorno | | | |
 | 2 | Regulação e tarifa | | | |
@@ -34,7 +34,7 @@ Marque uma das opções:
 
 - [ ] Aprovar a fase 1 nos termos propostos.
 - [ ] Aprovar a fase 1 com condições (listar abaixo).
-- [ ] Baixar em diligência, com pedido de informações à área proponente (listar abaixo).
+- [ ] Baixar em diligência, com pedido de informações à diretoria proponente (listar abaixo).
 - [ ] Rejeitar.
 
 Condições ou informações solicitadas:

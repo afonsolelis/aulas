@@ -5,10 +5,12 @@ individual). Fica fora dos arquivos dos participantes e não tem link nas págin
 público; o guia não contém avaliação, e o gabarito da minuta A já está no material, recolhido.
 
 ## 1. Desenho do encontro
-Cada participante atua como analista do escritório de projetos da Distribuidora Ômega, empresa
-fictícia. Nas duas primeiras horas, analisa a minuta A (IA contra perdas não técnicas, com o
-benchmark como anexo) e constrói um workflow de três skills que transforma a minuta em parecer
-técnico. Na última hora, o conselho da Ômega delibera sobre a proposta B (medição inteligente), e
+Cada participante atua como conselheiro da Distribuidora Ômega, empresa fictícia, que recebe o
+material da pauta antes da reunião e usa a IA como assessor técnico na leitura das propostas. A
+frase que resume o enquadramento para a sala: o analista é o papel que o conselheiro dá ao
+modelo, e o voto continua com o conselheiro. Nas duas primeiras horas, analisa a minuta A (IA contra perdas não técnicas, com o
+benchmark como anexo) e constrói um workflow de três skills que transforma a minuta em nota de
+leitura do conselheiro. Na última hora, o conselho da Ômega delibera sobre a proposta B (medição inteligente), e
 cada participante usa o próprio workflow para sustentar o papel recebido.
 
 A minuta A tem sete falhas plantadas, e o aviso foi retirado do próprio documento, porque o
@@ -31,7 +33,7 @@ dois lados da mesa tenham argumentos.
 - [ ] Busca na web e memória entre conversas desativáveis, ou conversa temporária disponível.
 - [ ] P0 e P1 rodados sobre a minuta A; saídas guardadas na seção 6 deste guia, com a contagem
       de pontos de cada uma.
-- [ ] Workflow de referência rodado nos três casos e na proposta B; parecer da proposta B
+- [ ] Workflow de referência rodado nos três casos e na proposta B; nota de leitura da proposta B
       guardado na seção 6, como apoio à discussão de fechamento.
 - [ ] Dez cartões de papel impressos (`conselho/cartoes-de-papel.docx`), com a posição de cada
       conselheiro anotada (seção 4).
@@ -44,8 +46,8 @@ dois lados da mesa tenham argumentos.
 | Horário | Telas | Condução |
 |---|---|---|
 | 8:00 – 8:10 | 1–6 | Capa, contrato, agenda, regras de dados e arquivos. Na tela 6, apresentar o caso da Ômega e antecipar que a última hora é uma reunião do conselho. |
-| 8:10 – 8:20 | 7–10 | Bloco 1. Espectro, sete peças e o canvas do workflow de análise de propostas. |
-| 8:20 – 8:35 | 11 | Prática 1. Cronômetro de 15 min; conferir com cada participante o critério da área na peça 2. |
+| 8:10 – 8:20 | 7–10 | Bloco 1. Espectro, sete peças e o canvas do workflow de leitura crítica de propostas. |
+| 8:20 – 8:35 | 11 | Prática 1. Cronômetro de 15 min; conferir com cada participante o critério que ele sempre cobra, na peça 2. |
 | 8:35 – 8:45 | 12–16 | Bloco 2. Não revelar os sete pontos; mostrar a minuta e os dois prompts. |
 | 8:45 – 9:00 | 17 | Prática 2. Confirmar que cada participante usa conversa nova, sem busca na web, e anexa a minuta e o benchmark. |
 | 9:00 – 9:10 | 18 | Devolutiva. Pedir a contagem a três ou quatro participantes antes de clicar em "Mostrar os sete pontos". |
@@ -57,7 +59,7 @@ dois lados da mesa tenham argumentos.
 | 10:05 – 10:20 | 27 | Preparação. Circular pela sala e conferir se cada argumento cita seção ou achado. |
 | 10:20 – 10:45 | 28 | Reunião. O presidente conduz; o facilitador projeta e preenche a ata. |
 | 10:45 – 10:52 | 29 | Deliberação e ata. |
-| 10:52 – 11:00 | 30 | Fechamento: quantos argumentos vieram do parecer e o que ficou com o conselho. |
+| 10:52 – 11:00 | 30 | Fechamento: quantos argumentos vieram da nota de leitura e o que ficou com o conselheiro. |
 | 11:00 | 31 | Pesquisa de avaliação: deixar o QR code projetado enquanto os participantes respondem. |
 
 ## 4. Papéis e posições
@@ -85,7 +87,7 @@ para a sala.
 
 ## 5. Respostas aos boxes "Chame o professor"
 - Prática 1, o participante não sabe que documento a verificação consultaria: perguntar "o que
-  um analista novo precisaria ler para saber se uma proposta está completa?" (política de
+  você precisaria ter em mãos para saber se uma proposta está completa?" (política de
   investimentos, alçadas, modelo de proposta).
 - Iteração 1, o notebook não aparece no + da conversa: conferir se ele foi criado na mesma
   conta; se o recurso estiver bloqueado, anexar a política e o benchmark direto na conversa ou
@@ -101,7 +103,7 @@ Preencher depois do teste do checklist.
 - Ferramenta e modelo: ______ Data: ______
 - Saída do P0 sobre a minuta A (resumo e pontos encontrados): ______
 - Saída do P1 sobre a minuta A (resumo e pontos encontrados): ______
-- Parecer do workflow de referência sobre a proposta B: ______
+- Nota de leitura do workflow de referência sobre a proposta B: ______
 
 ## 7. Gabarito estendido
 Os sete pontos da minuta A, os pontos adicionais aceitos e a explicação de cada um estão no
@@ -112,7 +114,7 @@ indicador que mede o modelo ou a linha de base sem fonte.
 ## 8. Plano B
 - Ferramenta sem anexo: colar os arquivos abaixo do prompt, depois de `## DADOS`.
 - Sem ferramenta: os participantes contam os pontos nas saídas de referência impressas, escrevem
-  as instruções das skills no papel e preparam os argumentos da reunião a partir do parecer de
+  as instruções das skills no papel e preparam os argumentos da reunião a partir da nota de leitura de
   referência impresso.
 - Skill e Gem bloqueados: conversa comum com o notebook anexado pelo +, e as três instruções
   coladas como mensagens, na ordem.

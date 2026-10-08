@@ -1,21 +1,21 @@
-# Política de avaliação de propostas de projeto da Distribuidora Ômega
+# Política de investimentos da Distribuidora Ômega
 
 > **Documento fictício, preparado para exercício em sala.** A política abaixo foi escrita para o
-> treinamento e serve de documento de conhecimento do workflow de análise de propostas. Ela não
-> reproduz norma de nenhuma empresa real.
+> treinamento e serve de documento de conhecimento do workflow de leitura crítica de propostas.
+> Ela não reproduz norma de nenhuma empresa real.
 
 ## 1. Finalidade
 
-Esta política define o conteúdo mínimo de uma proposta de projeto de investimento, os critérios
-que o escritório de projetos verifica antes de a proposta seguir para a instância de aprovação e
-o formato do parecer técnico que a acompanha.
+Esta política, aprovada pelo Conselho de Administração, define o que toda proposta de projeto de
+investimento precisa demonstrar para ser deliberada, os critérios econômicos que o conselho
+adota e as instâncias de aprovação.
 
 ## 2. Instâncias de aprovação
 
 | Valor do investimento (CAPEX) | Instância |
 |---|---|
 | Até R$ 10 milhões | Diretoria Executiva |
-| Acima de R$ 10 milhões | Conselho de Administração, com parecer do escritório de projetos |
+| Acima de R$ 10 milhões | Conselho de Administração |
 
 ## 3. Conteúdo obrigatório da proposta
 
@@ -42,9 +42,9 @@ o formato do parecer técnico que a acompanha.
 - Projetos com investimento acima de R$ 50 milhões devem ser divididos em fases, com ponto de
   decisão (gate) entre elas.
 
-## 5. Parecer técnico do escritório de projetos
+## 5. Proposta incompleta
 
-O parecer verifica a proposta contra os itens 3 e 4, aponta inconsistências e lacunas com a
-seção em que aparecem e formula as perguntas que a área proponente deve responder. O parecer não
-recomenda aprovar, rejeitar ou priorizar a proposta, porque essa decisão cabe à instância de
-aprovação.
+Proposta que não atenda aos itens 3 e 4 pode ser baixada em diligência, com pedido de
+informações à diretoria proponente, antes de ser deliberada. A análise preparatória feita por
+qualquer conselheiro, com ou sem apoio de ferramentas, organiza a leitura e não substitui o voto,
+que é de cada conselheiro.

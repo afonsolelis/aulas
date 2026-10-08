@@ -10,11 +10,12 @@ alterar uma de cada vez e observar o efeito.
 
 ```
 ## CONTEXTO
-Sou analista do escritório de projetos da Distribuidora Ômega. Recebi da Diretoria Comercial a
-minuta de proposta PRJ-2026-014 (arquivo proposta-a-ia-perdas.docx), que tem como anexo um
+Sou conselheiro de administração da Distribuidora Ômega. Recebi na pauta da próxima reunião a
+minuta de proposta PRJ-2026-014, da Diretoria Comercial (arquivo proposta-a-ia-perdas.docx), que tem como anexo um
 relatório de benchmark (relatorio-benchmark-ia-distribuicao.docx) e a planilha que o acompanha
-(indicadores-distribuidoras.xlsx). Meu parecer técnico vai acompanhar a proposta na pauta do
-Conselho de Administração. A decisão de aprovar ou não é do conselho.
+(indicadores-distribuidoras.xlsx). Preciso chegar à reunião sabendo o que é
+coerente, o que falta e o que perguntar à diretoria. A decisão é do colegiado, e o voto é
+meu.
 
 ## PAPEL
 Atue como analista sênior de projetos de investimento do setor elétrico, com domínio de
@@ -39,6 +40,6 @@ perdas, e com cuidado com a qualidade da fonte.
 A. Tabela "Inconsistências": item | seção | por que importa para a decisão.
 B. Tabela "Premissas e números": premissa ou número | fonte | verificável? (sim/não e por quê).
 C. Lista de riscos ausentes da matriz, com o motivo de cada um.
-D. Até cinco perguntas que a área proponente deve responder antes da reunião do conselho.
+D. Até cinco perguntas que eu deveria fazer à diretoria antes ou durante a reunião.
 E. Um parágrafo de no máximo 80 palavras sobre a sustentação da justificativa da proposta.
 ```

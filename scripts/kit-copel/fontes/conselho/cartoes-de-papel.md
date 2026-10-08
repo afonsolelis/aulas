@@ -6,15 +6,15 @@
 
 Cada participante recebe um cartão. O diretor proponente defende a proposta e o presidente
 conduz a reunião. Os oito conselheiros examinam a proposta pela perspectiva do seu cartão e
-sustentam a posição atribuída com argumentos tirados da própria proposta e do parecer gerado pelo
-workflow. Argumento sem referência a uma seção da proposta ou a um achado do parecer não é
+sustentam a posição atribuída com argumentos tirados da própria proposta e da nota de leitura gerada
+pelo workflow. Argumento sem referência a uma seção da proposta ou a um achado da nota não é
 considerado na deliberação.
 
 ## Diretor(a) proponente
 
 Apresenta a proposta em até quatro minutos e responde às perguntas na réplica. Deve conhecer o
 resultado do piloto, a divisão em fases e o cenário regulatório adotado, e reconhecer as
-fragilidades que o parecer apontar, propondo como tratá-las.
+fragilidades que a leitura crítica dos conselheiros apontar, propondo como tratá-las.
 
 ## Presidente do conselho
 

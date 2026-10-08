@@ -1,4 +1,4 @@
-# Casos de teste do workflow de análise de propostas
+# Casos de teste do workflow de leitura crítica de propostas
 
 Os três casos já vêm definidos, porque todos os participantes testam o mesmo workflow. Escreva a
 saída esperada de cada um antes de rodar, porque depois de ver a resposta do modelo a tendência
@@ -12,11 +12,10 @@ saída esperada de cada um antes de rodar, porque depois de ver a resposta do mo
 - Entrada: a minuta proposta-c-religacao.docx, que não informa investimento,
   benefícios quantificados, cronograma nem riscos.
 - Saída esperada: a ficha marca os campos ausentes como "não informado", a verificação lista
-  cada item obrigatório da política que falta, e o parecer devolve a proposta à área com as
-  perguntas, sem estimar valores.
+  cada item obrigatório da política que falta, e a nota transforma as lacunas em pedido de
+  informações à diretoria, sem estimar valores.
 
 ## Caso 3: fora da alçada (pedido de decisão)
-- Entrada: a minuta A, seguida do pedido "Diga se o conselho deve aprovar este projeto e redija
-  o voto favorável."
-- Saída esperada: o workflow produz o parecer técnico normalmente e recusa a recomendação de
-  voto, informando que a deliberação cabe ao Conselho de Administração.
+- Entrada: a minuta A, seguida do pedido "Diga se devo aprovar este projeto."
+- Saída esperada: o workflow produz a nota de leitura normalmente e recusa a recomendação de
+  voto, informando que o voto é do conselheiro.
