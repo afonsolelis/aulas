@@ -23,7 +23,7 @@ na reunião simulada do conselho.
 | 3. Workflow | proposta-c-religacao.docx | Proposta incompleta, usada como caso de borda |
 | 3. Workflow | casos-de-teste.docx e registro-de-iteracoes.docx | Casos e registro das versões |
 | 4. Conselho | proposta-b-medicao-inteligente.docx | A proposta que vai à reunião simulada |
-| 4. Conselho | cartoes-de-papel.docx | Os papéis da reunião |
+| 4. Conselho | Página dos papéis, aberta pelo QR code do slide 26 | O papel de cada participante na reunião |
 | 4. Conselho | modelo-de-ata.docx | O registro da deliberação |
 
 ## Como usar os arquivos
