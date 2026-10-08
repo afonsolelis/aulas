@@ -58,6 +58,7 @@ dois lados da mesa tenham argumentos.
 | 10:20 – 10:45 | 28 | Reunião. O presidente conduz; o facilitador projeta e preenche a ata. |
 | 10:45 – 10:52 | 29 | Deliberação e ata. |
 | 10:52 – 11:00 | 30 | Fechamento: quantos argumentos vieram do parecer e o que ficou com o conselho. |
+| 11:00 | 31 | Pesquisa de avaliação: deixar o QR code projetado enquanto os participantes respondem. |
 
 ## 4. Papéis e posições
 Sugestão de distribuição, a ajustar ao perfil de cada participante: diretor proponente para quem
