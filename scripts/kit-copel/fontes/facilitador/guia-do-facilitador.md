@@ -26,7 +26,8 @@ dois lados da mesa tenham argumentos.
 - [ ] Notebook anexado a uma conversa pelo + e três skills chamadas em sequência, testados em
       uma conta.
 - [ ] Contas dos dez participantes testadas, na rede da Copel.
-- [ ] Anexo de .md, .csv, .docx e .xlsx testado na ferramenta.
+- [ ] Anexo de .docx e .xlsx testado na conversa e como fonte do notebook. Se o Notebook recusar
+      .docx, converter os documentos de conhecimento para Google Docs ou PDF antes da aula.
 - [ ] Busca na web e memória entre conversas desativáveis, ou conversa temporária disponível.
 - [ ] P0 e P1 rodados sobre a minuta A; saídas guardadas na seção 6 deste guia, com a contagem
       de pontos de cada uma.

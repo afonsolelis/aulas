@@ -9,7 +9,7 @@
 
 Este relatório compara cinco distribuidoras de porte médio e grande quanto a indicadores de
 continuidade, perdas e atendimento, e registra os casos de uso de inteligência artificial que
-cada uma tornou públicos. Os indicadores estão na planilha `indicadores-distribuidoras.csv`,
+cada uma tornou públicos. Os indicadores estão na planilha indicadores-distribuidoras.xlsx,
 que acompanha este documento. Os casos de uso foram levantados em relatórios anuais, artigos
 técnicos e comunicados à imprensa, e a fonte de cada um está indicada ao final da seção.
 

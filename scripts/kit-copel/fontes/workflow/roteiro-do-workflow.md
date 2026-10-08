@@ -20,13 +20,14 @@ e passe a saída de um para o outro. Se nem o Gem estiver liberado, use uma conv
 o notebook pelo + e cole a instrução de cada etapa como mensagem, na ordem.
 
 ## Iteração 1 (v1): montar e rodar no caso típico
-1. Escreva a saída esperada dos três casos em `casos-de-teste.md`.
-2. Crie um notebook com `conhecimento/politica-de-avaliacao-de-projetos.md` e os dois arquivos
-   de `benchmark/` como fontes.
-3. Crie as três skills a partir de `fluxo-modelo.md`, completando os trechos entre colchetes.
+1. Escreva a saída esperada dos três casos em casos-de-teste.docx.
+2. Crie um notebook com politica-de-avaliacao-de-projetos.docx, o relatório do benchmark e a
+   planilha de indicadores como fontes.
+3. Crie as três skills a partir de instrucoes-das-skills.docx, copiando cada quadro e completando
+   os trechos entre colchetes.
 4. Em uma conversa nova, anexe o notebook e a minuta A, e chame `/extrair-proposta`,
    `/verificar-proposta` e `/parecer-proposta`, nessa ordem.
-5. Compare o parecer com a saída esperada e registre a v1 em `registro-de-iteracoes.md`.
+5. Compare o parecer com a saída esperada e registre a v1 em registro-de-iteracoes.docx.
 
 ## Iteração 2 (v2): os casos de borda e fora da alçada
 1. Rode o workflow nos casos 2 e 3, em conversas novas.

@@ -1,14 +1,14 @@
-# Molde do workflow de análise de propostas
+# Instruções das três skills do workflow
 
 O workflow tem três etapas fixas, cada uma salva como uma skill. Hoje uma pessoa chama as skills
 à mão, na ordem e na mesma conversa, com o notebook anexado, de modo que a saída de uma etapa é a
-entrada da seguinte. As instruções abaixo já trazem a estrutura; complete os trechos entre
+entrada da seguinte. Copie cada instrução do quadro correspondente para uma skill. As instruções já trazem a estrutura; complete os trechos entre
 colchetes com os critérios que a sua área usaria e com o que a devolutiva da prática 2 mostrou.
 Cada iteração altera um componente de uma única etapa, anotado no registro.
 
 ## Notebook de conhecimento
-Fontes do notebook: `conhecimento/politica-de-avaliacao-de-projetos.md` e, quando a proposta
-tiver anexo, o anexo (no caso 1, os dois arquivos da pasta `benchmark/`).
+Fontes do notebook: politica-de-avaliacao-de-projetos.docx e, quando a proposta tiver anexo, o
+anexo (no caso 1, o relatório do benchmark e a planilha de indicadores).
 
 ## Etapa 1 · skill `extrair-proposta`
 ```

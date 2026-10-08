@@ -5,11 +5,11 @@ saída esperada de cada um antes de rodar, porque depois de ver a resposta do mo
 é aceitá-la.
 
 ## Caso 1: típico
-- Entrada: a minuta `propostas/proposta-a-ia-perdas.md`, com o benchmark anexo.
+- Entrada: a minuta proposta-a-ia-perdas.docx, com o benchmark anexo.
 - Saída esperada (escreva antes de rodar; use os pontos que a devolutiva mostrou):
 
 ## Caso 2: de borda (proposta incompleta)
-- Entrada: a minuta `propostas/proposta-c-religacao.md`, que não informa investimento,
+- Entrada: a minuta proposta-c-religacao.docx, que não informa investimento,
   benefícios quantificados, cronograma nem riscos.
 - Saída esperada: a ficha marca os campos ausentes como "não informado", a verificação lista
   cada item obrigatório da política que falta, e o parecer devolve a proposta à área com as

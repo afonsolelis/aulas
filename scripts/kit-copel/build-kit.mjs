@@ -2,14 +2,14 @@
 /**
  * Gera os arquivos derivados do kit do treinamento da Copel.
  *
- * Os .md e o .csv da pasta do kit são a fonte de verdade. Este script produz, com o
+ * As fontes de verdade são os .md e o .csv de scripts/kit-copel/fontes/, que não são
+ * publicados: os participantes recebem apenas .docx e .xlsx. Este script produz, com o
  * LibreOffice em modo headless:
- *   - benchmark/relatorio-benchmark-ia-distribuicao.docx (a partir do .md)
- *   - propostas/*.docx, conselho/proposta-b-medicao-inteligente.docx e
- *     conselho/cartoes-de-papel.docx (a partir dos .md)
- *   - benchmark/indicadores-distribuidoras.xlsx (a partir do .csv pt-BR)
+ *   - um .docx para cada .md das fontes, na mesma estrutura de pastas do kit (o guia do
+ *     facilitador vai para assets/copel/facilitador/);
+ *   - benchmark/indicadores-distribuidoras.xlsx (a partir do .csv pt-BR);
  *   - documento-do-participante.docx (montado a partir do canvas, dos casos, do registro
- *     e da preparação para a reunião do conselho)
+ *     e da preparação para a reunião do conselho).
  *
  * Uso: node scripts/kit-copel/build-kit.mjs
  */
@@ -21,6 +21,7 @@ import path from 'node:path';
 const REPO = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', '..');
 const BASE = path.join(REPO, 'pages/palestras/assets/copel');
 const KIT = path.join(BASE, 'kit-ia-na-pratica');
+const FONTES = path.join(REPO, 'scripts/kit-copel/fontes');
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'kit-copel-'));
 
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -106,22 +107,24 @@ function htmlToDocx(html, destino) {
   fs.copyFileSync(path.join(TMP, `${nome}.docx`), destino);
 }
 
-const ler = (rel) => fs.readFileSync(path.join(KIT, rel), 'utf8');
+const ler = (rel) => fs.readFileSync(path.join(FONTES, rel), 'utf8');
 
-// 1. Relatório do benchmark, propostas e cartões de papel em .docx
-for (const [titulo, rel] of [
-  ['Benchmark de mercado', 'benchmark/relatorio-benchmark-ia-distribuicao.md'],
-  ['Proposta PRJ-2026-014', 'propostas/proposta-a-ia-perdas.md'],
-  ['Proposta PRJ-2026-019', 'propostas/proposta-c-religacao.md'],
-  ['Proposta PRJ-2026-021', 'conselho/proposta-b-medicao-inteligente.md'],
-  ['Cartões de papel', 'conselho/cartoes-de-papel.md'],
-]) {
-  htmlToDocx(page(titulo, mdToHtml(ler(rel))), path.join(KIT, rel.replace(/\.md$/, '.docx')));
+// 1. Um .docx para cada .md das fontes; o canvas só entra no documento do participante.
+const listar = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+  e.isDirectory() ? listar(path.join(dir, e.name)) : [path.join(dir, e.name)]);
+for (const arq of listar(FONTES).filter((f) => f.endsWith('.md'))) {
+  const rel = path.relative(FONTES, arq);
+  if (rel === 'canvas-anatomia.md') continue;
+  const md = ler(rel);
+  const titulo = (md.match(/^# (.*)$/m) || [, path.basename(rel, '.md')])[1];
+  const destino = rel.startsWith('facilitador/') ? path.join(BASE, rel) : path.join(KIT, rel);
+  fs.mkdirSync(path.dirname(destino), { recursive: true });
+  htmlToDocx(page(titulo, mdToHtml(md)), destino.replace(/\.md$/, '.docx'));
 }
 
 // 2. Planilha em .xlsx (CSV com ponto e vírgula, aspas, UTF-8, primeira linha, idioma pt-BR)
 const csv = path.join(TMP, 'indicadores-distribuidoras.csv');
-fs.copyFileSync(path.join(KIT, 'benchmark/indicadores-distribuidoras.csv'), csv);
+fs.copyFileSync(path.join(FONTES, 'benchmark/indicadores-distribuidoras.csv'), csv);
 soffice(['--infilter=CSV:59,34,76,1,,1046', '--convert-to', 'xlsx', '--outdir', TMP, csv], TMP);
 fs.copyFileSync(path.join(TMP, 'indicadores-distribuidoras.xlsx'), path.join(KIT, 'benchmark/indicadores-distribuidoras.xlsx'));
 
@@ -144,8 +147,8 @@ const participante = [
   '<h2>6. Instruções das três skills do workflow (Prática 3)</h2>',
   '<p>Extração, versão 1:</p>', campo(4), '<p>Verificação, versão 1:</p>', campo(4), '<p>Parecer, versão 1:</p>', campo(4),
   '<p>Versão 2 (etapa, componente e o que mudou):</p>', campo(3),
-  '<h2>7. Casos de teste</h2>', mdToHtml(semTitulo(ler('mvp-zero/casos-de-teste.md'))),
-  '<h2>8. Registro de iterações</h2>', mdToHtml(semTitulo(ler('mvp-zero/registro-de-iteracoes.md'))),
+  '<h2>7. Casos de teste</h2>', mdToHtml(semTitulo(ler('workflow/casos-de-teste.md'))),
+  '<h2>8. Registro de iterações</h2>', mdToHtml(semTitulo(ler('workflow/registro-de-iteracoes.md'))),
   '<h2>9. Reunião do conselho: preparação</h2>',
   '<p>Papel e posição atribuídos:</p>', campo(1),
   '<p>Parecer do workflow sobre a proposta B (cole sem editar):</p>', campo(10),
