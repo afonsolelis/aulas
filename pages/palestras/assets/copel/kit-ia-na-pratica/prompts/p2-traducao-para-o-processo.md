@@ -1,12 +1,12 @@
-# Prompt 2: traduzir o benchmark para a realidade do grupo
+# Prompt 2: traduzir o benchmark para o processo da dupla
 
 Na mesma conversa em que o Prompt 1 rodou, cole o prompt abaixo depois de preencher os
-colchetes. O objetivo é sair da comparação entre empresas e chegar ao problema que o grupo
-mapeou no canvas de anatomia.
+colchetes. O objetivo é sair da comparação entre empresas e chegar ao processo que a dupla
+mapeou no canvas de anatomia, com o olhar de quem precisa avaliar se o uso de IA nele deve ser aprovado.
 
 ```
 ## CONTEXTO
-Nossa área é [área do grupo, ex.: ouvidoria, operação da distribuição, suprimentos].
+O processo da Copel que analisamos é da área de [área, ex.: ouvidoria, operação da distribuição, suprimentos].
 O problema que mapeamos é: [frase do problema, tal como está no canvas].
 Hoje ele é resolvido assim: [descrição genérica de como o trabalho é feito, quem faz e
 quanto tempo leva, sem nomes de pessoas, sistemas internos, números não publicados ou dados
@@ -28,3 +28,4 @@ B. O que no caso do benchmark não se transfere para a nossa área, em até trê
 C. O indicador que usaríamos para saber se o MVP ajudou, com a forma de medi-lo hoje.
 D. Uma primeira versão, em até 120 palavras, da instrução de um assistente que faria a
    parte do trabalho que pode ser delegada.
+E. Duas perguntas que precisam ser respondidas antes de aprovar o uso desse assistente, sobre revisão humana, risco de erro ou forma de medir o resultado.

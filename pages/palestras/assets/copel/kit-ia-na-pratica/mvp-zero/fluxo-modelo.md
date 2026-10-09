@@ -1,6 +1,6 @@
 # Molde do MVP Zero de fluxo
 
-Use este molde quando o problema do grupo for um processo recorrente, com gatilho definido, que
+Use este molde quando o processo escolhido pela dupla for recorrente, com gatilho definido, que
 se divide em etapas fixas. Cada etapa tem o próprio prompt, salvo como uma skill, e hoje uma
 pessoa chama as skills à mão, na ordem e na mesma conversa, de modo que a saída de uma etapa é a
 entrada da seguinte. Os três casos de teste e o

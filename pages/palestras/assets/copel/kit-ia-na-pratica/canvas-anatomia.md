@@ -1,13 +1,13 @@
 # Canvas de anatomia do assistente
 
-Preencha em grupo, uma peça por vez e na ordem. Cada resposta deve caber em uma ou duas
+Preencha em dupla, uma peça por vez e na ordem. Cada resposta deve caber em uma ou duas
 frases; se não couber, o problema ainda está grande demais e precisa ser recortado.
 
 ## 0. O problema
 - Quem sofre o problema hoje (cargo ou área):
 - A frase do problema ("Hoje, [quem] leva [quanto] para [fazer o quê], porque [causa]."):
 - Como saberemos que melhorou (indicador observável e valor de hoje, medido ou estimado; se
-  estimado, escreva "estimativa do grupo" e diga como medi-lo na semana 1):
+  estimado, escreva "estimativa da dupla" e diga como a área responsável poderia medi-lo):
 
 ## 1. Modelo
 - Ferramenta: Gemini, na conta corporativa da Copel. Recurso usado (skill, Gem ou conversa

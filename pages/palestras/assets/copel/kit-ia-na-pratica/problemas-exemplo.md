@@ -1,8 +1,10 @@
 # Problemas-exemplo do setor elétrico
 
-Use esta lista apenas se o grupo não tiver um problema próprio. Em todos os casos, trabalhe
-com documentos fictícios ou públicos; dado de cliente e informação interna não publicada não
-entram na ferramenta durante o treinamento.
+Os oito itens abaixo são processos do setor elétrico em que a IA generativa pode atuar, e a
+dupla pode escolher um deles ou outro processo da Copel que conheça. Ao trabalhar o processo,
+a dupla examina também o que precisa ser respondido antes de aprovar o uso de um assistente
+nele. Em todos os casos, trabalhe com documentos fictícios ou públicos, porque dado
+de cliente e informação interna não publicada não entram na ferramenta durante o encontro.
 
 1. Triagem de manifestações da ouvidoria. Classificar cada manifestação por tema
    (interrupção, fatura, ligação nova, dano elétrico), urgência e prazo de resposta, e sugerir
@@ -16,14 +18,14 @@ entram na ferramenta durante o treinamento.
    conhecimento fictício em `mvp-zero/conhecimento-ficticio/`.
 4. Análise de propostas em compras. Conferir se cada proposta atende aos requisitos do
    edital e listar o que falta, sem emitir juízo de adjudicação. Use um edital público e uma
-   proposta fictícia escrita pelo grupo, porque propostas reais de fornecedores não entram na
+   proposta fictícia escrita pela dupla, porque propostas reais de fornecedores não entram na
    ferramenta.
 5. Minuta de resposta a ofício. Organizar o que o ofício pede, localizar nos documentos
    anexados as informações que respondem a cada item e montar a minuta para revisão. Use
    ofício e documentos fictícios.
 6. Comparação de propostas no mercado livre. Colocar lado a lado prazo, preço, flexibilidade,
    garantias e cláusulas de saída de duas ou três propostas de contrato de energia. Use
-   propostas fictícias escritas pelo grupo, porque contratos e propostas reais são
+   propostas fictícias escritas pela dupla, porque contratos e propostas reais são
    confidenciais.
 7. Resumo de norma pública da ANEEL para equipe não técnica. A partir de um trecho de
    resolução ou de módulo do PRODIST, produzir um resumo com obrigações, prazos e a quem se

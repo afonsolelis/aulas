@@ -6,7 +6,7 @@
  * LibreOffice em modo headless:
  *   - benchmark/relatorio-benchmark-ia-distribuicao.docx (a partir do .md)
  *   - benchmark/indicadores-distribuidoras.xlsx (a partir do .csv pt-BR)
- *   - documento-do-grupo.docx (montado a partir do canvas, dos casos e do registro)
+ *   - documento-da-dupla.docx (montado a partir do canvas, dos casos e do registro)
  *
  * Uso: node scripts/kit-copel/build-kit.mjs
  */
@@ -115,17 +115,17 @@ fs.copyFileSync(path.join(KIT, 'benchmark/indicadores-distribuidoras.csv'), csv)
 soffice(['--infilter=CSV:59,34,76,1,,1046', '--convert-to', 'xlsx', '--outdir', TMP, csv], TMP);
 fs.copyFileSync(path.join(TMP, 'indicadores-distribuidoras.xlsx'), path.join(KIT, 'benchmark/indicadores-distribuidoras.xlsx'));
 
-// 3. Documento do grupo
+// 3. Documento da dupla
 const campo = (n = 6) => '<table border="1" cellpadding="6" style="border-collapse:collapse;width:100%"><tr><td>' + '&nbsp;<br>'.repeat(n) + '</td></tr></table>';
 const contagem = '<table border="1" cellpadding="4" style="border-collapse:collapse;width:100%"><tr><th>Ponto</th><th>Achado pelo Prompt 0 (sim/não)</th><th>Achado pelo Prompt 1 (sim/não)</th><th>Onde a saída apontou</th></tr>'
   + [1, 2, 3, 4, 5, 6, 7].map((n) => `<tr><td>${n}</td><td></td><td></td><td></td></tr>`).join('')
   + '<tr><td>Pontos adicionais</td><td></td><td></td><td></td></tr></table>';
 // Os títulos internos descem um nível para ficarem abaixo das seções numeradas do documento.
 const semTitulo = (md) => md.replace(/^# .*\n/, '').replace(/^## /gm, '### ');
-const grupo = [
-  '<h1>Documento do grupo</h1>',
-  '<p>IA na Prática e Prototipagem · Copel · AI for Business. Grupo: ________________ Integrantes: ______________________________________</p>',
-  '<p>Uma cópia por grupo. Cole aqui, sem editar, as saídas das ferramentas, e preencha os campos na ordem das práticas.</p>',
+const dupla = [
+  '<h1>Documento da dupla</h1>',
+  '<p>IA na Prática e Prototipagem · Copel · AI for Business. Dupla: ____ Integrantes: ______________________________________</p>',
+  '<p>Uma cópia por dupla. Cole aqui, sem editar, as saídas do Gemini, e preencha os campos na ordem das práticas.</p>',
   '<h2>1. Problema e canvas de anatomia (Prática 0 e Prática 1)</h2>', mdToHtml(semTitulo(ler('canvas-anatomia.md'))),
   '<h2>2. Saída do Prompt 0 (Prática 2A)</h2>', campo(10),
   '<h2>3. Saída do Prompt 1 (Prática 2A)</h2>', campo(10),
@@ -137,7 +137,7 @@ const grupo = [
   '<h2>8. Casos de teste</h2>', mdToHtml(semTitulo(ler('mvp-zero/casos-de-teste.md'))),
   '<h2>9. Registro de iterações</h2>', mdToHtml(semTitulo(ler('mvp-zero/registro-de-iteracoes.md'))),
 ].join('\n');
-htmlToDocx(page('Documento do grupo', grupo), path.join(KIT, 'documento-do-grupo.docx'));
+htmlToDocx(page('Documento da dupla', dupla), path.join(KIT, 'documento-da-dupla.docx'));
 
 fs.rmSync(TMP, { recursive: true, force: true });
 console.log('kit gerado:', path.relative(REPO, KIT));

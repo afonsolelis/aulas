@@ -2,15 +2,16 @@
 
 Em uma conversa nova, anexe os dois arquivos da pasta `benchmark/` e cole o prompt abaixo.
 Se a ferramenta não aceitar esses formatos, use as versões `.docx` e `.xlsx` dos mesmos arquivos; se ela não aceitar anexos, cole o conteúdo dos dois arquivos abaixo do prompt, depois de uma linha `## DADOS`. Desligue a busca na web e a memória entre conversas, ou use conversa temporária, se a ferramenta oferecer essas opções.
-As quatro partes (contexto, papel, restrições e formato de saída) estão marcadas para que o
-grupo possa alterar uma de cada vez e observar o efeito.
+As quatro partes (contexto, papel, restrições e formato de saída) estão marcadas para que a
+dupla possa alterar uma de cada vez e observar o efeito.
 
 ```
 ## CONTEXTO
-Sou analista de uma distribuidora de energia do Sul do Brasil. Recebi um relatório de
+Sou gestor de uma distribuidora de energia do Sul do Brasil. Recebi um relatório de
 benchmark (arquivo relatorio-benchmark-ia-distribuicao.md) e a planilha de indicadores que
-o acompanha (indicadores-distribuidoras.csv). Vou usar a análise para propor à minha gerência
-um caso de uso de IA a ser testado nos próximos 90 dias. A decisão final é da gerência.
+o acompanha (indicadores-distribuidoras.csv). Vou usar a análise para avaliar uma proposta de
+testar um caso de uso de IA nos próximos 90 dias e para definir o que precisa ser respondido
+antes de aprová-la.
 
 ## PAPEL
 Atue como analista de planejamento do setor elétrico, com experiência em indicadores
