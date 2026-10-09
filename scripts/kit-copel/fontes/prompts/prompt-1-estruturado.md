@@ -3,7 +3,7 @@
 Em uma conversa nova, anexe os mesmos três arquivos do Prompt 0 (a minuta, o relatório do
 benchmark e a planilha de indicadores), copie o texto do quadro abaixo e cole na conversa. Se a
 ferramenta não aceitar anexos, copie o conteúdo dos arquivos e cole abaixo do prompt, depois de
-uma linha com o texto ## DADOS. Desligue a busca na web e a memória
+uma linha com o texto "## DADOS". Desligue a busca na web e a memória
 entre conversas, ou use conversa temporária, se a ferramenta oferecer essas opções. As quatro
 partes (contexto, papel, restrições e formato de saída) estão marcadas para que seja possível
 alterar uma de cada vez e observar o efeito.
