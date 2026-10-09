@@ -65,6 +65,19 @@ test.describe('indicador da semana do ano — cobertura', () => {
     const css = readRepoFile('css/semana-ano.css');
     expect(css).toMatch(/@media print[\s\S]*\.semana-badge[\s\S]*display:\s*none/);
   });
+
+  test('o botão de volta ao início deve existir e não aparecer na página impressa', () => {
+    const js = readRepoFile('js/semana-ano.js');
+    expect(js).toContain('inicio-badge');
+    expect(js).toContain("'index.html'");
+    const css = readRepoFile('css/semana-ano.css');
+    expect(css).toMatch(/@media print[\s\S]*\.inicio-badge[\s\S]*display:\s*none/);
+  });
+
+  test('nenhuma página deve esconder o indicador da semana', () => {
+    const escondem = paginas.filter((p) => /\.semana-badge\s*\{[^}]*display:\s*none/.test(readRepoFile(p)));
+    expect(escondem, `Páginas que escondem o indicador:\n${escondem.join('\n')}`).toEqual([]);
+  });
 });
 
 test.describe('indicador da semana do ano — cálculo ISO 8601', () => {

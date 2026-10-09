@@ -9,12 +9,59 @@
  * a que contém a primeira quinta-feira de janeiro. Sob essa convenção o ano tem
  * 52 ou 53 semanas, e o valor de y varia conforme o ano.
  *
+ * Acima da bolha fica um botão com o ícone de casa que leva ao index.html da
+ * raiz do acervo. O caminho até a raiz é deduzido do endereço do próprio
+ * script, que toda página carrega por caminho relativo a partir de js/, de modo
+ * que o link funciona em qualquer profundidade, por file:// ou por HTTP.
+ *
  * Injetado em todas as páginas por scripts/apply-semana.mjs.
  */
 (function () {
   'use strict';
 
   var DIA_MS = 86400000;
+
+  // Capturado na avaliação do script: dentro de um callback de DOMContentLoaded
+  // o document.currentScript já é nulo.
+  var SCRIPT_SRC = (function () {
+    if (typeof document === 'undefined') return '';
+    var atual = document.currentScript;
+    if (atual && atual.src) return atual.src;
+    var tag = document.querySelector('script[src*="semana-ano.js"]');
+    return tag ? tag.src : '';
+  })();
+
+  /** Endereço absoluto do index.html da raiz, ou nulo se não houver como deduzi-lo. */
+  function enderecoInicio() {
+    var raiz = SCRIPT_SRC.replace(/js\/semana-ano\.js(?:[?#].*)?$/, '');
+    if (!raiz || raiz === SCRIPT_SRC) return null;
+    return raiz + 'index.html';
+  }
+
+  /** Verdadeiro quando a página atual já é o index da raiz. */
+  function estaNoInicio(inicio) {
+    var aqui = location.href.split('#')[0].split('?')[0];
+    return aqui === inicio || aqui === inicio.replace(/index\.html$/, '');
+  }
+
+  var ICONE_CASA =
+    '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">' +
+    '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5.5v-6h-5v6H4a1 1 0 0 1-1-1z" ' +
+    'fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
+
+  function montarInicio() {
+    if (document.querySelector('.inicio-badge')) return;
+    var inicio = enderecoInicio();
+    if (!inicio || estaNoInicio(inicio)) return;
+
+    var link = document.createElement('a');
+    link.className = 'inicio-badge';
+    link.href = inicio;
+    link.title = 'Voltar ao início';
+    link.setAttribute('aria-label', 'Voltar à página inicial do acervo');
+    link.innerHTML = ICONE_CASA;
+    document.body.appendChild(link);
+  }
 
   /** Índice do dia da semana com a segunda-feira em zero, conforme a ISO 8601. */
   function diaIso(data) {
@@ -52,6 +99,8 @@
   }
 
   function montar() {
+    montarInicio();
+
     // O script é injetado uma vez por página; o guarda protege a inclusão dupla.
     if (document.querySelector('.semana-badge')) return;
 

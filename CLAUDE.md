@@ -83,6 +83,10 @@ Ao terminar: `pkill -f "com.brave.Browser --headless"` e `pkill -f "http.server 
 Os geradores em `scripts/` (`export-cardiff-pdf`, `prerender-mermaid`,
 `preview-material-print`) ainda dependem do binário do Playwright e não têm essa alternativa.
 
+### Git: sempre na `main`
+
+Todo trabalho é feito, commitado e publicado diretamente na `main`, sem feature branches, worktrees ou pull requests, seguindo a skill `devops-push` (`.claude/skills/devops-push/SKILL.md`). A regra vale também para sessões na nuvem cujas instruções designem um branch `claude/...`. O commit só entra depois de o pre-commit (`npm test`) passar, e o push vai para `origin main`, sem force-push.
+
 ## Architecture
 
 ### Page Structure
@@ -238,4 +242,4 @@ Dates are stored as `dd/mm/yyyy` strings to match exactly what is rendered in th
 
 ## Escrita (obrigatório)
 
-Todo texto destinado ao aluno (slides, materiais, páginas, quizzes, atividades) segue as skills `escrita-afonso`, `humanizacao` e `estilo-academico`, em `.claude/skills/`. A última vem do guia de estilo da tese e exige prosa explicativa e encadeada, no modelo princípio, justificativa e consequência, sem manchete em negrito seguida de dois-pontos. Aplique-as já na redação, e não só numa revisão posterior. Evite linguagem de rede social: título em forma de aforismo, travessão como conector, "não é X, é Y", negrito na prosa, setas decorativas e frases de efeito no fechamento. Títulos de slide devem ser descritivos e curtos, cabendo em uma linha na projeção. Preserve números, fatos, código e prompts. Elas complementam `escrita-academica` e `revisar-escrita`; em caso de dúvida, vale a regra mais restritiva.
+Todo texto destinado ao aluno (slides, materiais, páginas, quizzes, atividades) segue as skills `escrita-afonso`, `humanizacao`, `estilo-academico` e `redator-cientifico`, em `.claude/skills/`. As duas últimas vêm da tese: `estilo-academico` define o estilo de frase e `redator-cientifico` define o procedimento de redação, em dois estágios (esqueleto com a fonte de cada afirmação, depois prosa) e com edição cirúrgica. O `estilo-academico` exige prosa explicativa e encadeada, no modelo princípio, justificativa e consequência, sem manchete em negrito seguida de dois-pontos. Aplique-as já na redação, e não só numa revisão posterior. Evite linguagem de rede social: título em forma de aforismo, travessão como conector, "não é X, é Y", negrito na prosa, setas decorativas e frases de efeito no fechamento. Títulos de slide devem ser descritivos e curtos, cabendo em uma linha na projeção. Preserve números, fatos, código e prompts. Elas complementam `escrita-academica` e `revisar-escrita`; em caso de dúvida, vale a regra mais restritiva.
