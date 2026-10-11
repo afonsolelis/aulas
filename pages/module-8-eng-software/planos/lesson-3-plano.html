@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aula 3 — Plano de Ensino — Simulação com redes de filas no JMT — Inteli</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗂️</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+  <link href="../../../css/inteli-styles.css" rel="stylesheet">
+  <style>
+    :root {
+      --es: var(--eng-software-yellow);
+      --ink: var(--inteli-dark-purple);
+      --ok: var(--inteli-green);
+      --paper: var(--inteli-white);
+      --line: var(--inteli-light-gray);
+      --soft-es: color-mix(in srgb,var(--es) 12%,var(--paper));
+      --soft-ink: color-mix(in srgb,var(--ink) 7%,var(--paper));
+      --soft-ok: color-mix(in srgb,var(--ok) 20%,var(--paper));
+    }
+    *, *::before, *::after { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; font-family:'Manrope',sans-serif; color:var(--ink); background:var(--soft-ink); }
+    a { color:color-mix(in srgb,var(--es) 58%,var(--ink)); }
+    #progress-bar { position:fixed; inset:0 auto auto 0; width:0; height:3px; z-index:9999; background:linear-gradient(90deg,var(--ink),var(--es)); }
+    .plano-header { color:var(--paper); background:linear-gradient(130deg,var(--ink),color-mix(in srgb,var(--ink) 45%,var(--es)) 62%,var(--es)); padding:42px 24px 34px; }
+    .head-inner { width:min(1160px,100%); margin:auto; display:flex; justify-content:space-between; align-items:end; gap:28px; }
+    .head-copy { max-width:780px; }
+    .badge { display:inline-block; margin-bottom:12px; padding:5px 11px; border:1px solid color-mix(in srgb,var(--paper) 36%,transparent); border-radius:999px; background:color-mix(in srgb,var(--paper) 12%,transparent); font-size:.72rem; font-weight:800; letter-spacing:.06em; }
+    .plano-header h1 { margin:0; font-size:2.4rem; line-height:1.12; letter-spacing:-.03em; }
+    .plano-header p { margin:10px 0 0; color:color-mix(in srgb,var(--paper) 88%,var(--es)); line-height:1.55; }
+    .head-actions { display:flex; flex-wrap:wrap; gap:7px; justify-content:flex-end; }
+    .head-actions a { padding:8px 12px; border-radius:9px; color:var(--paper); border:1px solid color-mix(in srgb,var(--paper) 45%,transparent); text-decoration:none; font-size:.76rem; font-weight:800; white-space:nowrap; }
+    .head-actions a.primary { background:var(--paper); color:var(--ink); }
+    .plan-layout { display:grid; grid-template-columns:270px minmax(0,1fr); gap:34px; width:min(1200px,100%); margin:auto; padding:36px 24px 64px; }
+    .mat-sidebar { position:sticky; top:18px; align-self:start; max-height:calc(100vh - 36px); overflow:auto; }
+    .mat-toc { padding:18px; border:1px solid var(--line); border-radius:14px; background:var(--paper); box-shadow:0 4px 16px color-mix(in srgb,var(--ink) 7%,transparent); }
+    .mat-toc h2 { margin:0 0 10px; font-size:.74rem; letter-spacing:.11em; text-transform:uppercase; }
+    .mat-toc a { display:block; padding:5px 8px; border-left:3px solid transparent; color:color-mix(in srgb,var(--ink) 68%,var(--paper)); text-decoration:none; font-size:.76rem; line-height:1.32; }
+    .mat-toc a:hover, .mat-toc a.active { color:var(--ink); background:var(--soft-es); border-left-color:var(--es); }
+    .toc-total { margin-top:10px; padding-top:10px; border-top:1px solid var(--line); color:color-mix(in srgb,var(--ink) 60%,var(--paper)); font-size:.7rem; }
+    .plan-main { min-width:0; }
+    .plan-section { margin:0 0 46px; scroll-margin-top:26px; }
+    .plan-section h2 { margin:0 0 18px; padding-bottom:10px; border-bottom:2px solid var(--line); font-size:1.62rem; }
+    .plan-section h3 { margin:24px 0 9px; font-size:1.06rem; }
+    .plan-section p, .plan-section li { font-size:.93rem; line-height:1.72; color:color-mix(in srgb,var(--ink) 82%,var(--paper)); }
+    .plan-section p { margin:0 0 13px; }
+    .plan-section ul, .plan-section ol { margin:9px 0 15px; padding-left:1.35rem; }
+    .plan-section li { margin-bottom:5px; }
+    .g2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:13px; }
+    .g3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+    .card { padding:16px 18px; border:1px solid var(--line); border-left:5px solid var(--es); border-radius:12px; background:var(--paper); box-shadow:0 4px 14px color-mix(in srgb,var(--ink) 6%,transparent); }
+    .card.dark { border-left-color:var(--ink); }
+    .card.grn { border-left-color:var(--ok); }
+    .card h3 { margin:0 0 7px; }
+    .card p:last-child, .card ul:last-child { margin-bottom:0; }
+    .callout { margin:17px 0; padding:15px 18px; border:1px solid color-mix(in srgb,var(--es) 38%,var(--paper)); border-left:5px solid var(--es); border-radius:11px; background:var(--soft-es); }
+    .callout.dark { border-color:color-mix(in srgb,var(--ink) 23%,var(--paper)); border-left-color:var(--ink); background:var(--soft-ink); }
+    .callout.grn { border-color:color-mix(in srgb,var(--ok) 50%,var(--paper)); border-left-color:var(--ok); background:var(--soft-ok); }
+    .callout-label { margin-bottom:5px; color:var(--ink); font-size:.69rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
+    .callout p:last-child { margin:0; }
+    .table-wrap { margin:17px 0; overflow-x:auto; border:1px solid var(--line); border-radius:12px; background:var(--paper); }
+    table { width:100%; min-width:720px; border-collapse:collapse; font-size:.79rem; }
+    th { padding:10px 11px; background:var(--ink); color:var(--paper); text-align:left; font-weight:800; }
+    td { padding:10px 11px; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.5; }
+    tr:last-child td { border-bottom:0; }
+    tbody tr:nth-child(even) { background:var(--soft-ink); }
+    code { padding:2px 6px; border-radius:5px; background:var(--soft-es); color:var(--ink); font:600 .86em 'JetBrains Mono',monospace; }
+    .time { white-space:nowrap; font-weight:800; color:var(--ink); }
+    .checklist { list-style:none; padding:0!important; display:grid; gap:7px; }
+    .checklist li { position:relative; margin:0; padding:9px 10px 9px 34px; border:1px solid var(--line); border-radius:9px; background:var(--paper); }
+    .checklist li::before { content:'□'; position:absolute; left:11px; top:8px; color:color-mix(in srgb,var(--es) 56%,var(--ink)); font-weight:800; }
+    #float-nav { position:fixed; right:24px; bottom:25px; z-index:9998; display:flex; flex-direction:column; gap:7px; opacity:0; transform:translateY(12px); pointer-events:none; transition:.25s ease; }
+    #float-nav.visible { opacity:1; transform:none; pointer-events:auto; }
+    .fn-btn { padding:9px 13px; border-radius:999px; text-decoration:none; box-shadow:0 4px 16px color-mix(in srgb,var(--ink) 20%,transparent); font-size:.74rem; font-weight:800; text-align:center; }
+    .fn-btn-slides { background:var(--paper); color:var(--ink); border:2px solid var(--es); }
+    .fn-btn-alt { background:var(--paper); color:var(--ink); border:2px solid var(--ink); }
+    .fn-btn-back { background:var(--ink); color:var(--paper); }
+    .inteli-footer { padding:26px 20px; border-top:1px solid var(--line); background:var(--paper); text-align:center; font-size:.8rem; }
+    @media(max-width:960px) { .plan-layout { grid-template-columns:1fr; } .mat-sidebar { display:none; } .head-inner { display:block; } .head-actions { margin-top:20px; justify-content:flex-start; } }
+    @media(max-width:700px) { .g2,.g3 { grid-template-columns:1fr; } .plano-header h1 { font-size:1.9rem; } }
+  </style>
+
+
+<!-- encontro:css:start -->
+<link rel="stylesheet" href="../../../css/encontro.css">
+<!-- encontro:css:end -->
+
+<!-- semana:css:start -->
+<link rel="stylesheet" href="../../../css/semana-ano.css">
+<!-- semana:css:end -->
+</head>
+<body>
+  <div id="progress-bar" aria-hidden="true"></div>
+  <nav id="float-nav" aria-label="Navegação rápida">
+    <a class="fn-btn fn-btn-slides" href="../slides/slide-lesson-3.html">▶ Slides</a>
+    <a class="fn-btn fn-btn-alt" href="../materials/lesson-3-material.html">📖 Material</a>
+    <a class="fn-btn fn-btn-back" href="../../home-module-8-eng-software.html">← Módulo</a>
+  </nav>
+
+  <header class="plano-header">
+    <div class="head-inner">
+      <div class="head-copy">
+        <span class="badge">Módulo 8 · Engenharia de Software · Aula 3</span>
+        <h1>Plano de ensino · Simulação com redes de filas no JMT</h1>
+        <p>Mínimo de teoria das filas aplicado à rede do caso da promoção relâmpago, demonstração no JMT do ciclo de simulação, correção e medição, com a falha de uma réplica no pico, e ponderada individual em sala com a simulação de uma rede de filas e o roteiro do vídeo de entrega.</p>
+      </div>
+      <div class="head-actions">
+        <a class="primary" href="../slides/slide-lesson-3.html">▶ Slides</a>
+        <a href="../materials/lesson-3-material.html">📖 Material</a>
+        <a href="../../home-module-8-eng-software.html">← Voltar ao módulo</a>
+      </div>
+    </div>
+  </header>
+<!-- encontro:meta:start -->
+<div class="container" style="max-width:1100px;margin:24px auto 0;padding:0 16px;"><section class="encontro-meta" data-encontro-ficha><h2>Sobre este encontro</h2><p class="encontro-ref">Simulação de desempenho, tolerância a falhas e acesso simultâneo · 03/11/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>Ao final do encontro, o estudante deve ser capaz de modelar o sistema do projeto como uma rede de filas aberta, calcular utilização, tempo de resposta e população com a Lei da Utilização e a Lei de Little, identificar o gargalo pela maior demanda de serviço, simular o modelo no JMT, comparar o resultado com o cálculo analítico e justificar, pela diferença medida entre duas versões do modelo, qual ajuste arquitetural deve ser priorizado.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>O encontro antecede a aula de Teoria das Filas do prof. Leandro e, por isso, apresenta apenas o mínimo de teoria necessário à prática: taxas de chegada e de serviço, utilização, Lei de Little e demanda de serviço. A demonstração percorre o ciclo de simulação, correção e medição sobre o caso da promoção relâmpago, primeiro no JMVA, pela solução analítica, e depois no JSIMgraph, pela simulação, incluindo a falha de uma réplica. A ponderada em sala ocupa sessenta minutos: cada estudante constrói e simula no JMT uma rede de filas e prepara o roteiro do vídeo de até cinco minutos exigido na entrega.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol><li>Daily: estado dos artefatos, atividade prevista e impedimentos — 15 min</li><li>Abertura: do cenário de qualidade à medida obtida por simulação — 5 min</li><li>Mínimo de teoria das filas: λ, μ, utilização, M/M/1, Lei de Little, demanda de serviço e gargalo — 15 min</li><li>Demonstração no JMT: simulação, correção e medição do caso da promoção, com falha de uma réplica — 20 min</li><li>Ponderada em sala: rede de filas no JMT e roteiro do vídeo de até cinco minutos — 60 min</li><li>Encaminhamentos e fechamento: entrega na Adalove e ligação com o artefato Simulação do sistema novo — 5 min</li></ol></div></section></div>
+<!-- encontro:meta:end -->
+
+
+  <div class="plan-layout">
+    <aside class="mat-sidebar">
+      <nav class="mat-toc" aria-label="Sumário do plano">
+        <h2>Neste plano</h2>
+        <a href="#identificacao">1. Identificação</a>
+        <a href="#objetivo">2. Objetivo</a>
+        <a href="#produtos">3. Produtos do encontro</a>
+        <a href="#preparacao">4. Preparação</a>
+        <a href="#cronograma">5. Cronograma</a>
+        <a href="#conducao">6. Roteiro de condução</a>
+        <a href="#metodologia">7. Metodologia</a>
+        <a href="#verificacao">8. Verificação da aprendizagem</a>
+        <a href="#recursos">9. Recursos</a>
+        <a href="#riscos">10. Riscos e contingências</a>
+        <a href="#fechamento">11. Fechamento</a>
+        <a href="#referencias">12. Referências</a>
+        <div class="toc-total">Duração do encontro: 120 minutos.</div>
+      </nav>
+    </aside>
+
+    <main class="plan-main">
+      <section class="plan-section" id="identificacao">
+        <h2>1. Identificação</h2>
+        <div class="table-wrap">
+          <table>
+            <tbody>
+              <tr><th>Componente</th><th>Registro</th></tr>
+              <tr><td>Módulo</td><td>Módulo 8 · Arquitetura digital segura e tolerante a falhas</td></tr>
+              <tr><td>Curso e turma</td><td>Engenharia de Software · 2026-2B-T17 · 32 estudantes organizados em grupos</td></tr>
+              <tr><td>Encontro</td><td>Aula 3 · Simulação de desempenho, tolerância a falhas e acesso simultâneo</td></tr>
+              <tr><td>Data e duração</td><td>Terça-feira, 03/11/2026, às 11h · Semana 4 · 120 minutos</td></tr>
+              <tr><td>Docente</td><td>Afonso Brandão</td></tr>
+              <tr><td>Natureza</td><td>Exposição dialogada curta, demonstração no JMT e ponderada individual em sala</td></tr>
+              <tr><td>Avaliação</td><td>Ponderada individual de peso 3: simulação de uma rede de filas no JMT e vídeo de até 5 minutos, entregue na Adalove</td></tr>
+              <tr><td>Encontros vizinhos</td><td>27/10, cenários de qualidade da promoção relâmpago; 28/10, simulação para reproduzir defeitos, com o prof. Reginaldo; 04/11, táticas e testes não funcionais; 05/11, Teoria das Filas e Redes de Petri, com o prof. Leandro</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="plan-section" id="objetivo">
+        <h2>2. Objetivo de aprendizagem</h2>
+        <div class="callout dark"><p>Ao final do encontro, o estudante deve ser capaz de modelar o sistema do projeto como uma rede de filas aberta, calcular utilização, tempo de resposta e população com a Lei da Utilização e a Lei de Little, identificar o gargalo pela maior demanda de serviço, simular o modelo no JMT, comparar o resultado com o cálculo analítico e justificar, pela diferença medida entre duas versões do modelo, qual ajuste arquitetural deve ser priorizado.</p></div>
+        <h3>Resultados observáveis</h3>
+        <ul>
+          <li>Calcular a utilização de uma estação a partir da taxa de chegada e do tempo de serviço e verificar a condição de estabilidade.</li>
+          <li>Aplicar a Lei de Little para obter o número médio de requisições em curso a partir da vazão e do tempo de resposta.</li>
+          <li>Calcular a demanda de serviço de cada estação, inclusive as visitadas mais de uma vez, e identificar o gargalo e a vazão máxima.</li>
+          <li>Calcular o tempo de resposta de uma rede aberta de forma-produto pela soma das residências D/(1 − U).</li>
+          <li>Construir a rede no JSIMgraph e resolvê-la no JMVA, com os mesmos parâmetros.</li>
+          <li>Comparar valores simulados e analíticos, lendo o intervalo de confiança da simulação.</li>
+          <li>Escolher a primeira correção pela maior demanda de serviço e medir seu efeito sob a mesma carga.</li>
+          <li>Avaliar se o cenário de desempenho continua atendido com a falha de um componente replicado.</li>
+          <li>Declarar os limites do modelo, em especial a hipótese exponencial e a origem dos parâmetros.</li>
+        </ul>
+      </section>
+
+      <section class="plan-section" id="produtos">
+        <h2>3. Produtos do encontro</h2>
+        <div class="g3">
+          <article class="card"><h3>Rede de filas no JMT</h3><p>Modelo individual, preferencialmente do fluxo crítico do projeto, resolvido no JMVA e simulado no JSIMgraph, com ao menos uma correção aplicada e medida.</p></article>
+          <article class="card grn"><h3>Roteiro do vídeo</h3><p>Roteiro em três blocos, modelo, simulação e análise, com os números que serão apresentados e os limites do modelo declarados.</p></article>
+          <article class="card dark"><h3>Vídeo da ponderada</h3><p>Vídeo de até 5 minutos entregue na Adalove, avaliado pela rubrica de 3,0, 3,0 e 4,0 pontos descrita na seção 8.</p></article>
+        </div>
+        <div class="callout"><div class="callout-label">Registro transversal</div><p>O modelo construído na ponderada é o ponto de partida do artefato Simulação do sistema novo da Sprint 2, de peso 3, que compara os modelos do sistema atual e do sistema novo sob os mesmos cenários, massa de dados e métricas, com registro em <code>docs/Projeto.md</code> e modelos versionados.</p></div>
+      </section>
+
+      <section class="plan-section" id="preparacao">
+        <h2>4. Preparação</h2>
+        <div class="g2">
+          <div>
+            <h3>Responsabilidade dos estudantes</h3>
+            <ul class="checklist">
+              <li>Ler as seções 2 a 14 do material antes do encontro e refazer à mão a tabela de 40 req/s da seção 9.</li>
+              <li>Instalar o JMT a partir do site oficial e confirmar que o arquivo <code>.jar</code> abre, o que exige Java instalado.</li>
+              <li>Assistir às três lições em vídeo do JMT indicadas nos autoestudos, sobre introdução, JMVA e JSIMgraph.</li>
+              <li>Levar o fluxo crítico do projeto identificado, com as estações que a requisição atravessa e estimativas de tempo de serviço e de visitas.</li>
+              <li>Levar o cenário de desempenho escrito em 27/10, com a medida de resposta e a carga.</li>
+              <li>Levar computador com o JMT funcionando e fone de ouvido com microfone, se possível, para o ensaio do vídeo.</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Responsabilidade do docente</h3>
+            <ul class="checklist">
+              <li>Instalar e testar o JMT na máquina de projeção, abrindo JMVA e JSIMgraph e executando uma simulação completa.</li>
+              <li>Preparar os arquivos do exemplo: modelo atual, Correção 1, Correção 2 e Correção 2 com uma réplica em falha, no JMVA e no JSIMgraph.</li>
+              <li>Executar previamente as simulações do pico e registrar os valores e intervalos obtidos, para o caso de a execução em sala demorar a convergir.</li>
+              <li>Conferir as tabelas do deck com as fórmulas: 0,717 s, 0,650 s, 0,128 s e 0,0618 s a 40 req/s.</li>
+              <li>Copiar o arquivo <code>.jar</code> do JMT para um pendrive ou pasta compartilhada, para estudantes sem instalação concluída.</li>
+              <li>Confirmar na Adalove a atividade de entrega da ponderada e o prazo.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="plan-section" id="cronograma">
+        <h2>5. Cronograma</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th style="width:12%">Tempo</th><th style="width:26%">Bloco</th><th style="width:62%">Conteúdo</th></tr></thead>
+            <tbody>
+              <tr><td class="time">15 min</td><td><strong>Daily</strong></td><td>Estado dos artefatos, atividade prevista e impedimentos.</td></tr>
+              <tr><td class="time">5 min</td><td><strong>Abertura</strong></td><td>Do cenário de qualidade à medida obtida por simulação: o cenário de 0,2 s a 40 req/s, a aula de 28/10 e a pergunta guia.</td></tr>
+              <tr><td class="time">15 min</td><td><strong>Mínimo de teoria das filas</strong></td><td>λ, μ, utilização, M/M/1, Lei de Little, demanda de serviço e gargalo, com a fórmula de residência em rede aberta de forma-produto.</td></tr>
+              <tr><td class="time">20 min</td><td><strong>Demonstração no JMT</strong></td><td>Simulação, correção e medição do caso da promoção, com falha de uma réplica: JMVA, What-if, JSIMgraph e comparação entre analítico e simulado.</td></tr>
+              <tr><td class="time">60 min</td><td><strong>Ponderada em sala</strong></td><td>Rede de filas no JMT e roteiro do vídeo de até cinco minutos.</td></tr>
+              <tr><td class="time">5 min</td><td><strong>Encaminhamentos e fechamento</strong></td><td>Entrega na Adalove e ligação com o artefato Simulação do sistema novo.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="plan-section" id="conducao">
+        <h2>6. Roteiro de condução</h2>
+        <h3>Abertura e teoria, 20 minutos</h3>
+        <ol>
+          <li>Retomar o cenário de desempenho de 27/10 e a aula de 28/10 do prof. Reginaldo, e enunciar a pergunta guia: qual ajuste deve vir primeiro para atender 0,2 s a 40 req/s, e como demonstrá-lo antes de implementar.</li>
+          <li>Informar que a aula de Teoria das Filas do prof. Leandro ocorre em 05/11 e que hoje entram apenas os resultados necessários ao cálculo.</li>
+          <li>Apresentar λ, μ e ρ com o exemplo do estoque a 40 req/s, que resulta em ρ = 0,80.</li>
+          <li>Mostrar a tabela da M/M/1 e pedir à turma que estime o tempo de resposta com ρ = 0,96 antes de revelar o fator 25.</li>
+          <li>Apresentar a Lei de Little e a Lei da Utilização com os números do caso, incluindo as 240 visitas por segundo ao banco.</li>
+          <li>Definir demanda de serviço, gargalo e vazão máxima, e perguntar à turma qual estação é o gargalo antes de calcular as demandas.</li>
+        </ol>
+        <h3>Demonstração, 20 minutos</h3>
+        <ol start="7">
+          <li>Projetar a rede do caso e resolver a 10 req/s e a 40 req/s no JMVA, conferindo com as tabelas do deck.</li>
+          <li>Executar o What-if de 10 a 41 req/s e mostrar onde a curva cruza 0,2 s e onde se torna vertical.</li>
+          <li>Comparar, no JMVA, a réplica sem cache, com 0,650 s, e o cache, com 0,128 s, e explicar a diferença pela posição de cada correção em relação ao gargalo.</li>
+          <li>Abrir no JSIMgraph o modelo da Correção 2, executar a simulação a 40 req/s e ler valores e intervalos de confiança diante do resultado analítico de 0,0618 s.</li>
+          <li>Desviar todo o tráfego para uma réplica, simular de novo e mostrar o retorno a cerca de 0,128 s, dentro do cenário.</li>
+        </ol>
+        <h3>Ponderada, 60 minutos</h3>
+        <ol start="12">
+          <li>Projetar o enunciado, a rubrica e o roteiro sugerido do vídeo, e recomendar a modelagem do fluxo crítico do projeto.</li>
+          <li>Anunciar as marcas de tempo de 15, 35 e 50 minutos e projetar o cronômetro.</li>
+          <li>Circular pela sala nos primeiros 15 minutos verificando unidades, visitas e demandas calculadas à mão antes do uso do JMT.</li>
+          <li>Entre 15 e 35 minutos, verificar se cada estudante tem resultado do JMVA e do JSIMgraph e se a taxa de chegada está abaixo de 1/D<sub>máx</sub>.</li>
+          <li>Entre 35 e 50 minutos, verificar se a correção escolhida atua sobre o gargalo e se a nova medição usa a mesma carga.</li>
+          <li>Nos 10 minutos finais, revisar roteiros por amostragem, verificando a presença dos quatro elementos da análise crítica.</li>
+        </ol>
+        <h3>Encaminhamentos e fechamento, 5 minutos</h3>
+        <ol start="18">
+          <li>Informar a entrega na Adalove e relacionar o modelo construído ao artefato Simulação do sistema novo.</li>
+          <li>Anunciar os encontros de 04/11, sobre táticas e testes não funcionais, e de 05/11, com o prof. Leandro.</li>
+          <li>Fechar com a tabela do ciclo, que reúne as cinco versões do modelo sob a mesma carga.</li>
+        </ol>
+      </section>
+
+      <section class="plan-section" id="metodologia">
+        <h2>7. Metodologia</h2>
+        <p>O encontro antecede a aula de Teoria das Filas do prof. Leandro e, por isso, apresenta apenas o mínimo de teoria necessário à prática. A escolha se justifica porque as leis operacionais e a fórmula de residência em rede aberta bastam para resolver o caso e para conferir a saída do JMT, enquanto a fundamentação dos resultados é tratada dois dias depois. A exposição usa sempre os números do caso, de modo que cada fórmula aparece já aplicada a uma estação conhecida pela turma desde 27/10.</p>
+        <p>A demonstração percorre o ciclo de simulação, correção e medição sobre o caso da promoção relâmpago, primeiro no JMVA, pela solução analítica, e depois no JSIMgraph, pela simulação, incluindo a falha de uma réplica. A ordem é deliberada: o resultado analítico serve de referência para validar o modelo simulado, e a comparação entre a réplica sem cache e o cache torna visível o critério de prioridade pela demanda de serviço. A ponderada ocupa sessenta minutos e repete, sobre um sistema escolhido pelo estudante, as mesmas operações demonstradas, o que permite que a avaliação verifique a transferência do procedimento e não a memorização do exemplo.</p>
+      </section>
+
+      <section class="plan-section" id="verificacao">
+        <h2>8. Verificação da aprendizagem</h2>
+        <p>A verificação formal é a ponderada individual, de peso 3, com o enunciado a seguir: Faça a simulação de uma rede de filas no software JMT. Grave um vídeo de até 5 minutos descrevendo o modelo de rede de filas construído, como realizou a simulação e uma análise dos resultados da simulação.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th style="width:10%">Pontos</th><th style="width:26%">Critério</th><th style="width:32%">Evidência esperada</th><th style="width:32%">Indício de insuficiência</th></tr></thead>
+            <tbody>
+              <tr><td class="time">3,0</td><td><strong>Descrição do modelo de rede de filas construído</strong></td><td>Estações, ligações, classe aberta, λ, S, V e D de cada estação, com a origem de cada parâmetro.</td><td>Diagrama sem parâmetros, unidades misturadas ou visitas ignoradas.</td></tr>
+              <tr><td class="time">3,0</td><td><strong>Explicação objetiva de como realizou a simulação</strong></td><td>Ferramentas, distribuições, métricas pedidas, critério de parada e versões simuladas, com a solução analítica como referência.</td><td>Narração das telas sem dizer o que foi configurado e por quê.</td></tr>
+              <tr><td class="time">4,0</td><td><strong>Análise crítica sobre os resultados da simulação</strong></td><td>Gargalo pela maior demanda, comparação entre analítico e simulado com intervalo de confiança, efeito medido de uma correção e limites do modelo.</td><td>Repetição dos números sem interpretação, correção fora do gargalo ou resultado instável lido como média.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Durante a ponderada, a verificação informal ocorre nas três marcas de tempo do roteiro de condução, em que o docente confere o cálculo à mão, a coerência entre JMVA e JSIMgraph e a escolha da correção.</p>
+      </section>
+
+      <section class="plan-section" id="recursos">
+        <h2>9. Recursos</h2>
+        <ul>
+          <li>Deck de slides, material de leitura e plano publicados no acervo.</li>
+          <li>JMT instalado na máquina de projeção, com os arquivos do exemplo nas quatro versões do modelo.</li>
+          <li>Arquivo <code>.jar</code> do JMT em pendrive ou pasta compartilhada.</li>
+          <li>Computador por estudante com Java e JMT instalados.</li>
+          <li>Projeção e cronômetro visível para as marcas de tempo da ponderada.</li>
+          <li>Atividade de entrega da ponderada configurada na Adalove.</li>
+          <li>Lições em vídeo do JMT e site oficial, listados nos autoestudos.</li>
+        </ul>
+      </section>
+
+      <section class="plan-section" id="riscos">
+        <h2>10. Riscos e contingências</h2>
+        <div class="g2">
+          <article class="card"><h3>Estudante sem Java ou sem JMT</h3><p>O JMT é escrito em Java e roda como arquivo <code>.jar</code>, sem instalador. Distribui-se o arquivo pelo pendrive e, se faltar a máquina virtual Java, o estudante começa pelo cálculo à mão do modelo enquanto instala o Java ou trabalha em dupla no computador de um colega, com modelo e vídeo individuais.</p></article>
+          <article class="card dark"><h3>Laboratório sem permissão de instalação</h3><p>Como o <code>.jar</code> não exige instalação, ele pode ser executado a partir da pasta do usuário quando houver Java na máquina. Sem Java, a ponderada é realizada nos computadores pessoais, e o docente registra os casos para ajuste do prazo de entrega.</p></article>
+          <article class="card grn"><h3>Simulação do pico demorando a convergir</h3><p>Com o banco a 0,96, a simulação pode demorar e o intervalo ficar largo. Projetam-se os resultados registrados na preparação e simula-se em sala a 10 req/s, em que a convergência é rápida.</p></article>
+          <article class="card"><h3>Teoria excedendo o tempo previsto</h3><p>Reduz-se a demonstração ao JMVA e à comparação entre réplica sem cache e cache, e a falha de réplica é mostrada pela tabela do deck. A ponderada mantém os sessenta minutos.</p></article>
+          <article class="card dark"><h3>Grupo sem fluxo crítico definido</h3><p>O estudante modela o caso da promoção com outros parâmetros, alternativa prevista no enunciado, e registra o fluxo do projeto como pendência do artefato da Sprint 2.</p></article>
+          <article class="card grn"><h3>Gravação inviável em sala</h3><p>O encontro garante o modelo simulado e o roteiro escrito. A gravação pode ser concluída fora da sala, dentro do prazo registrado na Adalove.</p></article>
+        </div>
+      </section>
+
+      <section class="plan-section" id="fechamento">
+        <h2>11. Fechamento</h2>
+        <p>O encontro encerra com a tabela que reúne as cinco versões do modelo avaliadas a 40 req/s. A tabela mostra que a prioridade dos ajustes foi definida pela demanda de serviço de cada estação e confirmada por nova medida do tempo de resposta, que a réplica sem cache, escolhida por palpite, reduziria o tempo de resposta em menos de 10%, e que a Correção 2 mantém o cenário atendido com uma réplica em falha. Em seguida, o modelo de cada estudante é relacionado ao artefato Simulação do sistema novo da Sprint 2, e os encontros de 04/11 e 05/11 são anunciados como continuidade do tema.</p>
+      </section>
+
+      <section class="plan-section" id="referencias">
+        <h2>12. Referências</h2>
+        <ul>
+          <li>BASS, L.; CLEMENTS, P.; KAZMAN, R. <em>Software Architecture in Practice</em>. 4. ed. Boston: Addison-Wesley, 2021. Cap. 9, Performance.</li>
+          <li>BERTOLI, M.; CASALE, G.; SERAZZI, G. JMT: performance engineering tools for system modeling. <em>ACM SIGMETRICS Performance Evaluation Review</em>, v. 36, n. 4, p. 10–15, 2009.</li>
+          <li>JACKSON, J. R. Networks of waiting lines. <em>Operations Research</em>, v. 5, n. 4, p. 518–521, 1957.</li>
+          <li>LAZOWSKA, E. D.; ZAHORJAN, J.; GRAHAM, G. S.; SEVCIK, K. C. <em>Quantitative System Performance: computer system analysis using queueing network models</em>. Englewood Cliffs: Prentice-Hall, 1984.</li>
+          <li>LITTLE, J. D. C. A proof for the queuing formula L = λW. <em>Operations Research</em>, v. 9, n. 3, p. 383–387, 1961.</li>
+          <li>MENASCÉ, D. A.; ALMEIDA, V. A. F.; DOWDY, L. W. <em>Performance by Design: computer capacity planning by example</em>. Upper Saddle River: Prentice Hall, 2004.</li>
+          <li>JMT: Java Modelling Tools. Site oficial, com download e manual. <a href="https://jmt.sourceforge.net/" target="_blank" rel="noopener noreferrer">jmt.sourceforge.net</a>.</li>
+          <li>Autoestudos do encontro: Coleta de Dados para Simulação; Validação de Modelos de Simulação; JMT Lecture: Introduction to queueing modelling and JMT; JMT Lecture: A single-station open model with JMVA; JMT Lecture: A single station open model with JSIMgraph; Exemplo de Cabeleireiro. Links no material da aula, seção 22.</li>
+        </ul>
+      </section>
+    </main>
+  </div>
+
+  <footer class="inteli-footer">
+    <p>Plano de ensino elaborado pelo professor <strong>Afonso Brandão</strong> para o <strong>Inteli</strong>.</p>
+    <small>Licença de leitura aberta.</small>
+  </footer>
+
+  <script>
+    const progress = document.getElementById('progress-bar');
+    const floatNav = document.getElementById('float-nav');
+    const header = document.querySelector('.plano-header');
+    const tocLinks = Array.from(document.querySelectorAll('.mat-toc a'));
+    const sections = tocLinks.map((link) => document.querySelector(link.getAttribute('href'))).filter(Boolean);
+    function updateReadingState() {
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+      progress.style.width = `${scrollable > 0 ? (window.scrollY / scrollable) * 100 : 0}%`;
+      floatNav.classList.toggle('visible', window.scrollY > header.offsetHeight * 0.7);
+      let activeId = sections[0] ? sections[0].id : '';
+      sections.forEach((section) => { if (section.getBoundingClientRect().top <= 150) activeId = section.id; });
+      tocLinks.forEach((link) => link.classList.toggle('active', link.getAttribute('href') === `#${activeId}`));
+    }
+    document.addEventListener('scroll', updateReadingState, { passive:true });
+    updateReadingState();
+  </script>
+<!-- encontro:pdf:start -->
+<button type="button" class="pdf-export-btn" data-encontro-data="2026-11-03" data-encontro-docente="Afonso" data-encontro-seq="03" title="Exportar esta página em PDF com o nome padronizado">📄 Exportar PDF</button>
+<script src="../../../js/encontro-pdf.js" defer></script>
+<!-- encontro:pdf:end -->
+<!-- semana:js:start -->
+<script src="../../../js/semana-ano.js" defer></script>
+<!-- semana:js:end -->
+</body>
+</html>

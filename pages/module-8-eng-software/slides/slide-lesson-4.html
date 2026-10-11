@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aula 4 - As decisões arquiteturais resolvem os defeitos? - Inteli</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+  <link href="../../../css/inteli-styles.css" rel="stylesheet">
+  <style>
+    :root {
+      --es: var(--eng-software-yellow);
+      --ink: var(--inteli-dark-purple);
+      --ok: var(--inteli-green);
+      --paper: var(--inteli-white);
+      --line: var(--inteli-light-gray);
+      --muted: var(--inteli-dark-gray);
+      --soft-es: color-mix(in srgb, var(--es) 13%, var(--paper));
+      --soft-ink: color-mix(in srgb, var(--ink) 8%, var(--paper));
+      --soft-ok: color-mix(in srgb, var(--ok) 22%, var(--paper));
+    }
+    *, *::before, *::after { box-sizing:border-box; }
+    body { margin:0; overflow:hidden; font-family:'Manrope',sans-serif; background:var(--soft-ink); color:var(--ink); }
+    .slide-container { width:100vw; height:100vh; position:relative; overflow:hidden; }
+    .slide { position:absolute; inset:0; display:none; padding:54px 52px 82px; overflow:hidden; }
+    .slide.active { display:flex; align-items:center; justify-content:center; }
+    .sc { width:min(1160px,100%); max-height:calc(100vh - 150px); margin:0 auto; }
+    .slide:not(.cover):not(.daily):not(.encontro-slide) .sc { width:86%; transform:scale(1.14); transform-origin:center; }
+    .cover .sc { width:88%; transform:scale(1.1); transform-origin:center; }
+    .daily .sc { width:88%; transform:scale(1.06); transform-origin:center; }
+    .top-nav { position:fixed; top:14px; left:18px; z-index:90; display:flex; gap:8px; }
+    .top-nav a { padding:7px 12px; border-radius:999px; background:color-mix(in srgb,var(--paper) 94%,transparent); color:var(--ink); border:1px solid var(--line); text-decoration:none; font-size:.75rem; font-weight:800; box-shadow:0 3px 12px color-mix(in srgb,var(--ink) 12%,transparent); }
+    .eyebrow { margin:0 0 7px; color:var(--es); font-size:.72rem; font-weight:800; letter-spacing:.14em; text-transform:uppercase; }
+    .sh { color:var(--paper); padding:15px 20px; border-radius:14px; margin-bottom:13px; }
+    .sh.red { background:linear-gradient(120deg,color-mix(in srgb,var(--es) 62%,var(--ink)),var(--es)); }
+    .sh.dark { background:linear-gradient(120deg,var(--ink),color-mix(in srgb,var(--ink) 68%,var(--es))); }
+    .sh.green { background:linear-gradient(120deg,color-mix(in srgb,var(--ok) 55%,var(--ink)),color-mix(in srgb,var(--ok) 88%,var(--ink))); }
+    .st { margin:0 0 3px; font-size:1.75rem; line-height:1.16; font-weight:800; }
+    .ss { margin:0; font-size:.9rem; line-height:1.45; opacity:.92; }
+    .g2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:11px; }
+    .g3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+    .g4 { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:9px; }
+    .g-wide { display:grid; grid-template-columns:1.25fr 1fr; gap:12px; align-items:stretch; }
+    .card { background:var(--paper); border:1px solid var(--line); border-left:5px solid var(--es); border-radius:12px; padding:13px 15px; box-shadow:0 5px 18px color-mix(in srgb,var(--ink) 8%,transparent); min-width:0; }
+    .card.dark { border-left-color:var(--ink); }
+    .card.grn { border-left-color:var(--ok); }
+    .card h3 { margin:0 0 5px; font-size:.96rem; line-height:1.3; }
+    .card p { margin:0; color:color-mix(in srgb,var(--ink) 78%,var(--paper)); font-size:.79rem; line-height:1.46; }
+    .card p + p { margin-top:5px; }
+    .card ul { margin:6px 0 0; padding-left:1.05rem; }
+    .card li { margin:0 0 3px; font-size:.77rem; line-height:1.38; }
+    .label { display:inline-block; margin-bottom:7px; padding:3px 8px; border-radius:999px; background:var(--soft-es); color:color-mix(in srgb,var(--es) 55%,var(--ink)); font-size:.64rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+    .label.dark { background:var(--soft-ink); color:var(--ink); }
+    .label.grn { background:var(--soft-ok); color:color-mix(in srgb,var(--ok) 40%,var(--ink)); }
+    .callout { margin-top:11px; padding:10px 14px; border-radius:10px; background:var(--soft-es); border:1px solid color-mix(in srgb,var(--es) 38%,var(--paper)); font-size:.8rem; line-height:1.45; }
+    .callout.dark { background:var(--soft-ink); border-color:color-mix(in srgb,var(--ink) 22%,var(--paper)); }
+    .callout.grn { background:var(--soft-ok); border-color:color-mix(in srgb,var(--ok) 55%,var(--paper)); }
+    .tb-wrap { overflow:hidden; border-radius:11px; border:1px solid var(--line); background:var(--paper); }
+    table { width:100%; border-collapse:collapse; font-size:.72rem; }
+    th { padding:8px 9px; background:var(--ink); color:var(--paper); text-align:left; font-weight:800; }
+    td { padding:7px 9px; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.36; }
+    tr:last-child td { border-bottom:0; }
+    tbody tr:nth-child(even) { background:var(--soft-ink); }
+    .tb-tight td { padding:6px 9px; }
+    code { font-family:'JetBrains Mono',monospace; color:var(--ink); background:var(--soft-es); border-radius:4px; padding:1px 5px; font-size:.88em; }
+    .agenda { display:grid; grid-template-columns:repeat(9,minmax(0,1fr)); gap:6px; }
+    .agenda article { min-height:118px; padding:9px; background:var(--paper); border-radius:10px; border-top:4px solid var(--es); box-shadow:0 4px 12px color-mix(in srgb,var(--ink) 6%,transparent); }
+    .agenda article:nth-child(3n) { border-top-color:var(--ink); }
+    .agenda article:nth-child(3n+2) { border-top-color:var(--ok); }
+    .agenda b { display:block; font-size:1.15rem; line-height:1; margin-bottom:7px; }
+    .agenda strong { display:block; font-size:.67rem; line-height:1.25; }
+    .agenda span { display:block; margin-top:5px; font-size:.6rem; line-height:1.3; color:color-mix(in srgb,var(--ink) 68%,var(--paper)); }
+    .check { list-style:none; padding:0; margin:0; display:grid; gap:6px; }
+    .check li { position:relative; padding:7px 9px 7px 30px; background:var(--paper); border:1px solid var(--line); border-radius:9px; font-size:.75rem; line-height:1.35; }
+    .check li::before { content:'✓'; position:absolute; left:10px; top:7px; color:color-mix(in srgb,var(--ok) 40%,var(--ink)); font-weight:800; }
+    .metric { font-size:1.55rem; font-weight:800; line-height:1.05; margin:2px 0 5px; color:var(--ink); }
+    .cover { background:linear-gradient(132deg,var(--ink) 0%,color-mix(in srgb,var(--ink) 46%,var(--es)) 58%,var(--es) 100%); color:var(--paper); }
+    .cover .sc { position:relative; }
+    .cover-grid { display:grid; grid-template-columns:1.45fr .85fr; gap:48px; align-items:center; }
+    .cover-badge { display:inline-block; margin-bottom:15px; padding:5px 12px; border:1px solid color-mix(in srgb,var(--paper) 40%,transparent); border-radius:999px; background:color-mix(in srgb,var(--paper) 12%,transparent); font-size:.72rem; font-weight:700; }
+    .cover h1 { margin:0; font-size:2.6rem; line-height:1.08; letter-spacing:-.035em; }
+    .cover .lead { margin:15px 0 22px; max-width:720px; font-size:1.04rem; line-height:1.55; color:color-mix(in srgb,var(--paper) 88%,var(--es)); }
+    .cover-tags { display:flex; flex-wrap:wrap; gap:7px; }
+    .cover-tags span { padding:6px 10px; border-radius:8px; background:color-mix(in srgb,var(--paper) 13%,transparent); border:1px solid color-mix(in srgb,var(--paper) 28%,transparent); font-size:.68rem; font-weight:700; }
+    .trace-map { display:grid; gap:9px; }
+    .trace-map div { padding:12px; border-radius:12px; background:color-mix(in srgb,var(--paper) 13%,transparent); border:1px solid color-mix(in srgb,var(--paper) 26%,transparent); }
+    .trace-map strong { display:block; font-size:.78rem; }
+    .trace-map span { display:block; margin-top:3px; font-size:.66rem; opacity:.85; }
+    .daily { background:linear-gradient(132deg,var(--ink),color-mix(in srgb,var(--ink) 44%,var(--es))); color:var(--paper); text-align:center; }
+    .daily-panel { max-width:870px; margin:auto; padding:25px 30px; border:1px solid color-mix(in srgb,var(--paper) 28%,transparent); border-radius:20px; background:color-mix(in srgb,var(--paper) 10%,transparent); }
+    .daily h2 { margin:0 0 5px; font-size:2rem; }
+    .daily p { margin:0 0 15px; font-size:.9rem; opacity:.88; }
+    .daily-timer { display:inline-block; margin:3px 0 14px; padding:8px 24px; border-radius:14px; background:color-mix(in srgb,var(--paper) 13%,transparent); font-family:'JetBrains Mono',monospace; font-size:3.1rem; font-weight:800; letter-spacing:.08em; }
+    .daily button { margin:0 4px; padding:8px 17px; border:1px solid color-mix(in srgb,var(--paper) 36%,transparent); border-radius:9px; background:color-mix(in srgb,var(--paper) 14%,transparent); color:var(--paper); font:700 .8rem 'Manrope',sans-serif; cursor:pointer; }
+    .daily-tags { display:flex; justify-content:center; gap:7px; flex-wrap:wrap; margin-top:14px; }
+    .daily-tags span { padding:5px 9px; border-radius:8px; background:color-mix(in srgb,var(--paper) 12%,transparent); font-size:.67rem; font-weight:700; }
+    .closing { display:grid; grid-template-columns:.8fr 1.2fr; gap:18px; align-items:stretch; }
+    .closing blockquote { margin:0; padding:24px; border-radius:14px; background:var(--ink); color:var(--paper); font-size:1.08rem; line-height:1.45; font-weight:700; }
+    .diagram { background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:10px 12px; box-shadow:0 5px 18px color-mix(in srgb,var(--ink) 8%,transparent); }
+    .diagram svg { display:block; width:100%; height:auto; }
+    .diagram .box { fill:var(--paper); stroke:var(--ink); stroke-width:1.5; }
+    .diagram .box.hot { fill:var(--soft-es); stroke:var(--es); }
+    .diagram .box.ok { fill:var(--soft-ok); stroke:color-mix(in srgb,var(--ok) 50%,var(--ink)); }
+    .diagram .wire { stroke:var(--ink); stroke-width:1.5; fill:none; }
+    .diagram .t { fill:var(--ink); font:700 13px 'Manrope',sans-serif; }
+    .diagram .ts { fill:color-mix(in srgb,var(--ink) 70%,var(--paper)); font:600 11px 'Manrope',sans-serif; }
+    .diagram .tr { fill:var(--ink); font:800 15px 'Manrope',sans-serif; }
+    .diagram .cap { fill:color-mix(in srgb,var(--es) 60%,var(--ink)); font:800 11px 'Manrope',sans-serif; letter-spacing:.08em; }
+    .slide-footer { position:fixed; left:0; right:0; bottom:0; height:60px; z-index:100; display:flex; justify-content:space-between; align-items:center; gap:12px; padding:0 22px; background:color-mix(in srgb,var(--paper) 97%,transparent); border-top:1px solid var(--line); box-shadow:0 -3px 14px color-mix(in srgb,var(--ink) 8%,transparent); }
+    .footer-links, .nav-wrapper { display:flex; align-items:center; gap:9px; }
+    .back-home { padding:8px 13px; border-radius:9px; background:var(--soft-ink); color:var(--ink); text-decoration:none; font-size:.77rem; font-weight:800; }
+    .back-home.material { background:#2f8f78; color:white; }
+    .back-home.plano { background:color-mix(in srgb,var(--ink) 82%,var(--paper)); color:var(--paper); }
+    .nav-btn, .fullscreen-btn { padding:8px 13px; border:0; border-radius:9px; background:var(--ink); color:var(--paper); font:800 .77rem 'Manrope',sans-serif; cursor:pointer; }
+    .nav-btn:disabled { background:var(--muted); cursor:default; }
+    .fullscreen-btn { background:var(--soft-ink); color:var(--ink); }
+    .slide-counter { min-width:68px; text-align:center; font-size:.78rem; font-weight:800; }
+    .src { margin-top:9px; font-size:.66rem; line-height:1.4; color:color-mix(in srgb,var(--ink) 62%,var(--paper)); }
+    .src a { color:color-mix(in srgb,var(--es) 58%,var(--ink)); }
+    @media (min-width:1600px) and (min-height:900px) {
+      .slide { padding:76px 76px 100px; }
+      .sc { width:min(1500px,100%); max-height:calc(100vh - 190px); }
+      .slide:not(.cover):not(.daily):not(.encontro-slide) .sc { width:66%; transform:scale(1.43); }
+      .cover .sc { width:74%; transform:scale(1.22); }
+      .daily .sc { width:68%; transform:scale(1.3); }
+      .st { font-size:2.1rem; }
+      .ss { font-size:1.05rem; }
+      .card { padding:17px 19px; }
+      .card h3 { font-size:1.12rem; }
+      .card p, .card li { font-size:.92rem; }
+      .label { font-size:.74rem; }
+      .callout { font-size:.95rem; padding:13px 17px; }
+      table { font-size:.84rem; }
+      th, td { padding:9px 11px; }
+      .agenda article { min-height:150px; padding:13px; }
+      .agenda b { font-size:1.45rem; }
+      .agenda strong { font-size:.84rem; }
+      .agenda span { font-size:.76rem; }
+      .check li { font-size:.9rem; padding:10px 12px 10px 34px; }
+      .metric { font-size:1.9rem; }
+      .closing blockquote { font-size:1.35rem; }
+      .cover h1 { font-size:3.3rem; }
+      .cover .lead { font-size:1.3rem; }
+      .cover-badge, .cover-tags span { font-size:.9rem; }
+      .trace-map strong { font-size:1rem; }
+      .trace-map span { font-size:.84rem; }
+      .src { font-size:.82rem; }
+    }
+    .encontro-slide .encontro-meta { padding:16px 22px; }
+    .encontro-slide .encontro-meta .encontro-ref { margin-bottom:10px; }
+    .encontro-slide .encontro-item + .encontro-item { margin-top:9px; padding-top:9px; }
+    .encontro-slide .encontro-item p, .encontro-slide .encontro-item li { font-size:.8rem; line-height:1.45; margin-bottom:2px; }
+    .encontro-slide .encontro-item ol { columns:2; column-gap:28px; }
+    @media (min-width:1600px) and (min-height:900px) {
+      .encontro-slide .encontro-item p, .encontro-slide .encontro-item li { font-size:1.02rem; line-height:1.55; }
+      .encontro-slide .encontro-meta > h2 { font-size:1.4rem; }
+    }
+    @media (max-width:900px) {
+      .slide { padding-left:24px; padding-right:24px; }
+      .g4, .agenda { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .g3 { grid-template-columns:1fr; }
+      .cover-grid, .closing, .g-wide { grid-template-columns:1fr; }
+    }
+    @media print { .top-nav { display:none!important; } }
+  </style>
+  <script type="module">
+    import { animate, stagger } from 'https://cdn.jsdelivr.net/npm/animejs@4/+esm';
+    window.__anime = { animate, stagger };
+    window.dispatchEvent(new CustomEvent('anime-ready'));
+  </script>
+
+<!-- encontro:css:start -->
+<link rel="stylesheet" href="../../../css/encontro.css">
+<!-- encontro:css:end -->
+
+<!-- semana:css:start -->
+<link rel="stylesheet" href="../../../css/semana-ano.css">
+<!-- semana:css:end -->
+</head>
+<body>
+<nav class="top-nav" aria-label="Navegação da aula">
+  <a href="../../home-module-8-eng-software.html">← Voltar</a>
+  <a href="../materials/lesson-4-material.html">Material da aula</a>
+  <a href="../planos/lesson-4-plano.html">Plano de ensino</a>
+</nav>
+
+<div class="slide-container">
+
+  <!-- ====== SLIDE 1: CAPA ====== -->
+  <section class="slide cover active">
+    <div class="sc cover-grid">
+      <div>
+        <span class="cover-badge">Módulo 8 · Engenharia de Software · Aula 4</span>
+        <p class="eyebrow" style="color:var(--paper)">Semana 4 · 04/11/2026 · Prof. Afonso Brandão</p>
+        <h1>As decisões arquiteturais resolvem os defeitos?</h1>
+        <p class="lead">Táticas de disponibilidade, desempenho e segurança aplicadas ao caso da promoção relâmpago, com a previsão do efeito de cada tática no modelo de simulação e o teste não funcional que confirma, ou não, esse efeito no sistema novo.</p>
+        <div class="cover-tags">
+          <span>Táticas arquiteturais</span><span>Disponibilidade em série e em paralelo</span><span>Natanz</span><span>Testes não funcionais</span><span>Sistema atual e sistema novo</span>
+        </div>
+      </div>
+      <div class="trace-map">
+        <div><strong>Pergunta guia</strong><span>Como saber se a tática escolhida para um cenário de qualidade corrigiu o defeito que o modelo do sistema atual revelou?</span></div>
+        <div><strong>Objeto do encontro</strong><span>Catálogo de táticas de Bass, Clements e Kazman e os testes de carga, de falha e de ataque que verificam cada uma.</span></div>
+        <div><strong>Produto do encontro</strong><span>Matriz de cenário, tática, efeito previsto e teste do projeto, insumo do artefato Simulação do sistema novo.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 2: DAILY ====== -->
+  <section class="slide daily">
+    <div class="sc">
+      <div class="daily-panel">
+        <p class="eyebrow" style="color:var(--paper)">Ritual do projeto</p>
+        <h2>Daily · 15 minutos</h2>
+        <p>Cada grupo informa o avanço dos artefatos da Sprint 2, a atividade prevista para o encontro e os impedimentos que exigem decisão.</p>
+        <div class="daily-timer" id="daily-timer">15:00</div>
+        <div>
+          <button id="daily-start" type="button">Iniciar</button>
+          <button id="daily-reset" type="button">Resetar</button>
+        </div>
+        <div class="daily-tags">
+          <span>O que foi concluído</span><span>O que será produzido</span><span>Impedimentos</span><span>Progresso da entrega</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 3: OBJETIVO E AGENDA ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh red reveal"><div class="st">Objetivo e estrutura do encontro</div><p class="ss">Ao final do encontro, cada grupo deve ser capaz de escolher uma tática para cada cenário de qualidade, prever o efeito dela no modelo de simulação e especificar o teste não funcional que confirma esse efeito.</p></header>
+      <div class="agenda reveal">
+        <article><b>15</b><strong>Daily</strong><span>Estado dos artefatos e impedimentos.</span></article>
+        <article><b>5</b><strong>Abertura</strong><span>A pergunta e o critério de comparação.</span></article>
+        <article><b>15</b><strong>Disponibilidade</strong><span>Detectar, recuperar e prevenir; série e paralelo.</span></article>
+        <article><b>10</b><strong>Desempenho</strong><span>Demanda e recursos no modelo de filas.</span></article>
+        <article><b>15</b><strong>Segurança</strong><span>Detectar, resistir, reagir e recuperar; Natanz.</span></article>
+        <article><b>15</b><strong>Testes não funcionais</strong><span>Estímulo, métrica e oráculo.</span></article>
+        <article><b>35</b><strong>Prática em grupo</strong><span>Matriz de cenário, tática, efeito e teste.</span></article>
+        <article><b>5</b><strong>Encaminhamentos</strong><span>Artefato Simulação do sistema novo.</span></article>
+        <article><b>5</b><strong>Fechamento</strong><span>A decisão confirmada pela medida.</span></article>
+      </div>
+      <div class="callout dark reveal">A prática em grupo é formativa e não recebe nota. A matriz produzida nela organiza a comparação entre o sistema atual e o sistema novo que o artefato da Sprint 2 exige, de modo que o tempo de aula já adianta a entrega.</div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 4: A PERGUNTA E O CRITÉRIO ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Como responder à pergunta do encontro</div><p class="ss">Uma decisão arquitetural resolve um defeito quando o teste do sistema novo atinge a medida da resposta do cenário. A afirmação só vale se a comparação com o sistema atual for feita em condições idênticas.</p></header>
+      <div class="g3 reveal">
+        <article class="card"><span class="label">Mesmos cenários</span><h3>A pergunta não muda</h3><p>Os cenários de qualidade escritos na Aula 2 são aplicados aos dois sistemas sem alteração de estímulo, de ambiente nem de medida da resposta, porque trocar o cenário troca o problema.</p></article>
+        <article class="card dark"><span class="label dark">Mesma massa de dados</span><h3>A carga não muda</h3><p>O catálogo de produtos, o estoque inicial e o perfil de acessos são os mesmos nas duas execuções, uma vez que uma massa menor reduz as visitas ao banco por si só.</p></article>
+        <article class="card grn"><span class="label grn">Mesmas métricas</span><h3>A régua não muda</h3><p>Tempo de resposta, vazão, requisições perdidas e reservas recusadas são medidos com o mesmo instrumento e a mesma janela nos dois sistemas.</p></article>
+      </div>
+      <div class="callout reveal">A melhoria precisa ser explicada pela tática, isto é, por uma mudança de estrutura como um cache, uma réplica ou um limitador de taxa. Dobrar a CPU do banco também reduz o tempo de resposta, mas altera apenas um parâmetro do modelo e não responde à pergunta sobre a decisão arquitetural.</div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 5: OS TRÊS CENÁRIOS DO CASO ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh red reveal"><div class="st">Os três cenários da promoção relâmpago</div><p class="ss">O caso usado no ATAM com o prof. Reginaldo e nas Aulas 2 e 3 combina avalanche de acessos simultâneos e venda descasada de estoque. Três dos cenários escritos pelos grupos orientam esta aula.</p></header>
+      <div class="g3 reveal">
+        <article class="card"><span class="label">Desempenho</span><h3>Pico de reservas</h3><p>No pico da promoção chegam 40 requisições por segundo ao serviço de reservas.</p><p>A medida da resposta exige tempo médio de resposta igual ou inferior a 0,2 s.</p></article>
+        <article class="card dark"><span class="label dark">Disponibilidade</span><h3>Instância caída no pico</h3><p>Uma instância do serviço de estoque para de responder durante o pico.</p><p>O sistema precisa detectar a falha e redirecionar as requisições para as instâncias que continuam operando.</p></article>
+        <article class="card grn"><span class="label grn">Segurança</span><h3>Bots no estoque</h3><p>Scripts automatizados fazem reservas em massa do estoque promocional.</p><p>Nenhuma conta pode ultrapassar o limite de reservas, e a requisição acima dele precisa ser recusada e registrada.</p></article>
+      </div>
+      <div class="callout dark reveal">Cada cenário tem seis partes: fonte, estímulo, artefato, ambiente, resposta e medida da resposta. A medida da resposta é a parte que vira oráculo do teste não funcional, e por isso ela precisa ter número e unidade.</div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 6: O QUE O MODELO MOSTROU ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">O que a simulação no JMT mostrou</div><p class="ss">Na Aula 3, a rede de filas Web, Estoque e Banco foi resolvida para 40 req/s. O banco recebe seis visitas por requisição e opera a 96% de utilização, o que faz dele o gargalo do sistema atual.</p></header>
+      <div class="tb-wrap reveal">
+        <table>
+          <thead><tr><th style="width:30%">Configuração do modelo</th><th style="width:16%">R a 40 req/s</th><th style="width:54%">Leitura</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Sistema atual</strong><br>banco com 6 visitas por requisição</td><td><strong>≈ 0,717 s</strong></td><td>Fora do cenário. Com 96% de utilização a 40 req/s, a demanda do banco é de 0,024 s por requisição, e o sistema satura pouco acima de 41,7 req/s.</td></tr>
+            <tr><td><strong>Cache no estoque</strong><br>banco com 2 visitas</td><td><strong>≈ 0,128 s</strong></td><td>Dentro do cenário. A demanda do banco cai a um terço, porque duas de cada três leituras passam a ser atendidas pelo cache.</td></tr>
+            <tr><td><strong>Cache e duas réplicas do estoque</strong></td><td><strong>≈ 0,062 s</strong></td><td>Dentro do cenário, com folga. A vazão máxima do modelo sobe para 100 req/s.</td></tr>
+            <tr><td><strong>Cache e duas réplicas, uma caída no pico</strong></td><td><strong>≈ 0,128 s</strong></td><td>Ainda dentro do cenário. A réplica sobrevivente absorve a carga e o tempo volta ao valor da configuração só com cache.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout reveal">Esses números são previsões do modelo. A aula de hoje nomeia as táticas que estão por trás de cada linha e define o teste que verifica, no sistema construído, se a previsão se confirma.</div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 7: O QUE É UMA TÁTICA ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh green reveal"><div class="st">Tática arquitetural</div><p class="ss">Bass, Clements e Kazman definem tática como uma decisão de projeto que influencia a resposta do sistema a um estímulo de um atributo de qualidade. A tática liga diretamente o cenário à estrutura.</p></header>
+      <div class="g-wide reveal">
+        <div class="tb-wrap">
+          <table>
+            <thead><tr><th style="width:24%">Atributo</th><th style="width:38%">Estímulo que a tática controla</th><th style="width:38%">Resposta que ela melhora</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Disponibilidade</strong></td><td>Falha de um componente, que se torna defeito visível ao usuário.</td><td>Tempo fora do ar e tempo até a recuperação.</td></tr>
+              <tr><td><strong>Desempenho</strong></td><td>Chegada de eventos, como requisições, em taxa periódica, estocástica ou esporádica.</td><td>Tempo de resposta, vazão e variação entre requisições.</td></tr>
+              <tr><td><strong>Segurança</strong></td><td>Ataque, isto é, tentativa de acesso ou de uso não autorizado.</td><td>Confidencialidade, integridade e disponibilidade dos dados e serviços.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="g2" style="grid-template-columns:1fr">
+          <article class="card"><span class="label">Tática e padrão</span><h3>Escalas diferentes</h3><p>A tática atua sobre uma única resposta de qualidade. O padrão arquitetural combina várias táticas e é o assunto do prof. Reginaldo em 13/11.</p></article>
+          <article class="card dark"><span class="label dark">Tática e mecanismo</span><h3>Decisão e implementação</h3><p>A tática é a decisão, como manter múltiplas cópias de dados. O mecanismo é a forma concreta, como um Redis na frente do banco.</p></article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 8: DISPONIBILIDADE · DETECTAR ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh red reveal"><div class="st">Disponibilidade: detectar falhas</div><p class="ss">A recuperação começa pela detecção, uma vez que o sistema não redireciona tráfego para longe de uma instância que ele ainda considera saudável.</p></header>
+      <div class="tb-wrap reveal">
+        <table class="tb-tight">
+          <thead><tr><th style="width:24%">Tática</th><th style="width:40%">O que faz</th><th style="width:36%">No caso da promoção</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Monitor</strong></td><td>Componente que acompanha a saúde de outras partes do sistema.</td><td>Balanceador que acompanha as instâncias do estoque.</td></tr>
+            <tr><td><strong>Ping/echo</strong></td><td>O monitor envia uma solicitação e espera a resposta dentro de um prazo.</td><td>Checagem periódica de <code>/health</code> em cada instância.</td></tr>
+            <tr><td><strong>Heartbeat</strong></td><td>O componente emite sinais periódicos, e a ausência do sinal indica falha.</td><td>Instância que deixa de reportar ao registro de serviços.</td></tr>
+            <tr><td><strong>Timestamp</strong></td><td>Marcação de tempo que revela eventos fora de ordem.</td><td>Atualizações de estoque que chegam em ordem trocada.</td></tr>
+            <tr><td><strong>Verificação de sanidade</strong></td><td>Confere se um valor ou operação é plausível.</td><td>Saldo de estoque negativo depois de uma reserva.</td></tr>
+            <tr><td><strong>Monitoramento de condição</strong></td><td>Acompanha condições do processo para antecipar a falha.</td><td>Fila de conexões do banco crescendo durante o pico.</td></tr>
+            <tr><td><strong>Votação, exceção e autoteste</strong></td><td>Comparação entre réplicas, captura de exceções e testes que o componente executa em si mesmo.</td><td>Exceção de tempo limite na chamada ao banco tratada como sinal de falha.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 9: DISPONIBILIDADE · RECUPERAR ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Disponibilidade: recuperar de falhas</div><p class="ss">O livro separa a recuperação em preparação e reparo, que mantém o serviço enquanto a falha existe, e reintrodução, que devolve o componente reparado à operação sem nova interrupção.</p></header>
+      <div class="g2 reveal">
+        <article class="card"><span class="label">Preparação e reparo</span><h3>Manter o serviço durante a falha</h3>
+          <ul>
+            <li>Redundância ativa, passiva ou sobressalente, conforme a réplica processe junto, receba o estado periodicamente ou precise ser iniciada.</li>
+            <li>Tratamento de exceção, retry e ignorar comportamento defeituoso.</li>
+            <li>Rollback a um estado anterior e atualização de software em serviço.</li>
+            <li>Degradação, que mantém as funções críticas e suspende as demais.</li>
+            <li>Reconfiguração, que redistribui as responsabilidades entre os recursos restantes.</li>
+          </ul>
+        </article>
+        <article class="card dark"><span class="label dark">Reintrodução</span><h3>Devolver o componente reparado</h3>
+          <ul>
+            <li>Shadow, em que o componente opera em paralelo, sem efeito, até provar o comportamento correto.</li>
+            <li>Ressincronização de estado, que atualiza a réplica antes de ela voltar a atender.</li>
+            <li>Reinício escalonado, que reinicia primeiro o menor escopo possível.</li>
+            <li>Encaminhamento sem interrupção, que separa o plano de controle do plano de dados.</li>
+          </ul>
+        </article>
+      </div>
+      <div class="callout reveal">No cenário da instância caída, a resposta combina três táticas. A redundância ativa mantém uma segunda réplica do estoque atendendo, o heartbeat detecta a parada e a reconfiguração retira a instância do balanceador. Na volta, a ressincronização de estado impede que a réplica reparada responda com saldo antigo.</div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 10: DISPONIBILIDADE · PREVENIR ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh green reveal"><div class="st">Disponibilidade: prevenir falhas</div><p class="ss">A prevenção atua antes que a falha aconteça, retirando o componente de serviço ou impedindo que uma operação deixe o sistema em estado inconsistente.</p></header>
+      <div class="g3 reveal">
+        <article class="card"><span class="label">Retirada de serviço</span><h3>Parar antes de quebrar</h3><p>A instância é retirada do balanceador para manutenção planejada antes do horário da promoção, em vez de falhar no pico.</p></article>
+        <article class="card dark"><span class="label dark">Transações</span><h3>Tudo ou nada</h3><p>A reserva que debita o estoque e cria o pedido ocorre numa única transação, o que impede a venda descasada quando um dos passos falha.</p></article>
+        <article class="card grn"><span class="label grn">Modelo preditivo</span><h3>Agir pela tendência</h3><p>O crescimento do tempo de resposta do banco, acompanhado por monitoramento de condição, aciona a escala antes da saturação.</p></article>
+      </div>
+      <div class="g2 reveal" style="margin-top:10px">
+        <article class="card"><span class="label">Prevenção de exceção</span><h3>Eliminar a condição de erro</h3><p>Validar a quantidade pedida contra o saldo antes de tentar a reserva evita a exceção, em vez de tratá-la depois.</p></article>
+        <article class="card dark"><span class="label dark">Aumento do conjunto de competências</span><h3>Tratar mais casos como normais</h3><p>O componente passa a operar casos que antes levavam à falha, como responder com o último saldo conhecido quando o banco atrasa.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 11: SÉRIE E PARALELO ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh red reveal"><div class="st">Disponibilidade em série e em paralelo</div><p class="ss">Em série, o sistema só funciona se todos os componentes funcionam, e as disponibilidades se multiplicam. Em paralelo, o elemento só falha se todas as réplicas falham ao mesmo tempo.</p></header>
+      <div class="g-wide reveal" style="grid-template-columns:1.35fr 1fr">
+        <div class="diagram">
+          <svg viewBox="0 0 640 300" role="img" aria-label="Diagrama de disponibilidade: Web, Estoque e Banco em série resultam em 98,41%; com duas réplicas do Estoque em paralelo o sistema chega a 99,39%">
+            <text class="cap" x="10" y="20">ATUAL · EM SÉRIE</text>
+            <line class="wire" x1="130" y1="62" x2="250" y2="62"/>
+            <line class="wire" x1="370" y1="62" x2="470" y2="62"/>
+            <rect class="box" x="10" y="35" width="120" height="54" rx="9"/>
+            <text class="t" x="70" y="58" text-anchor="middle">Web</text>
+            <text class="ts" x="70" y="77" text-anchor="middle">99,9%</text>
+            <rect class="box hot" x="250" y="35" width="120" height="54" rx="9"/>
+            <text class="t" x="310" y="58" text-anchor="middle">Estoque</text>
+            <text class="ts" x="310" y="77" text-anchor="middle">99,0%</text>
+            <rect class="box" x="470" y="35" width="120" height="54" rx="9"/>
+            <text class="t" x="530" y="58" text-anchor="middle">Banco</text>
+            <text class="ts" x="530" y="77" text-anchor="middle">99,5%</text>
+            <text class="tr" x="10" y="118">A = 0,999 × 0,990 × 0,995 = 98,41%</text>
+            <text class="cap" x="10" y="160">NOVO · ESTOQUE EM PARALELO</text>
+            <rect class="box" x="10" y="205" width="120" height="54" rx="9"/>
+            <text class="t" x="70" y="228" text-anchor="middle">Web</text>
+            <text class="ts" x="70" y="247" text-anchor="middle">99,9%</text>
+            <path class="wire" d="M130 232 H190 V198 H250 M190 232 V266 H250"/>
+            <path class="wire" d="M370 198 H420 V232 H470 M370 266 H420 V232"/>
+            <rect class="box ok" x="250" y="175" width="120" height="44" rx="9"/>
+            <text class="t" x="310" y="202" text-anchor="middle">Estoque A · 99,0%</text>
+            <rect class="box ok" x="250" y="244" width="120" height="44" rx="9"/>
+            <text class="t" x="310" y="271" text-anchor="middle">Estoque B · 99,0%</text>
+            <rect class="box hot" x="470" y="205" width="120" height="54" rx="9"/>
+            <text class="t" x="530" y="228" text-anchor="middle">Banco</text>
+            <text class="ts" x="530" y="247" text-anchor="middle">99,5% · elo fraco</text>
+          </svg>
+        </div>
+        <div class="g2" style="grid-template-columns:1fr">
+          <article class="card"><span class="label">Sistema atual</span><div class="metric">98,41%</div><p>Cerca de 688 minutos, ou 11,5 horas, fora do ar em 30 dias.</p></article>
+          <article class="card grn"><span class="label grn">Estoque em duas réplicas</span><div class="metric">99,39%</div><p>O estoque passa a 1 − 0,01² = 99,99%, e o sistema fica cerca de 263 minutos, ou 4,4 horas, fora do ar em 30 dias.</p></article>
+          <article class="card dark"><span class="label dark">Consequência</span><p>O elo mais fraco passa a ser o banco, com 99,5%, e é nele que a próxima decisão de disponibilidade deve atuar.</p></article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 12: MTBF, MTTR E INDEPENDÊNCIA ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Tempo de reparo e falhas de modo comum</div><p class="ss">A disponibilidade depende de quanto tempo o componente opera entre falhas e de quanto tempo leva para voltar. O cálculo em paralelo, por sua vez, só vale se as réplicas falharem de forma independente.</p></header>
+      <div class="g2 reveal">
+        <article class="card"><span class="label">Disponibilidade em regime</span><h3>A = MTBF / (MTBF + MTTR)</h3><p>MTBF é o tempo médio entre falhas e MTTR é o tempo médio de reparo. Com MTBF de 99 horas e MTTR de 1 hora, A = 99%; reduzir o MTTR para 6 minutos leva A a cerca de 99,9% sem mudar a frequência das falhas.</p><p>Por isso a detecção rápida por heartbeat, que encurta o MTTR, é uma tática tão importante quanto a redundância.</p></article>
+        <article class="card dark"><span class="label dark">Hipótese do cálculo</span><h3>Falhas independentes</h3><p>A conta 1 − 0,01² supõe que a falha de uma réplica não altera a probabilidade de falha da outra. A hipótese deixa de valer na falha de modo comum, quando uma única causa derruba as duas.</p>
+          <ul>
+            <li>As duas réplicas estão na mesma zona de disponibilidade.</li>
+            <li>As duas executam a mesma versão, com o mesmo defeito.</li>
+            <li>As duas dependem da mesma fonte de energia ou do mesmo switch.</li>
+          </ul>
+        </article>
+      </div>
+      <div class="callout reveal">Sob falha de modo comum, a disponibilidade do par se aproxima da disponibilidade de uma réplica isolada, e os 99,39% do slide anterior deixam de ser uma estimativa defensável. A matriz da prática deve declarar onde as réplicas ficam e o que elas compartilham.</div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 13: DESEMPENHO · DEMANDA ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh red reveal"><div class="st">Desempenho: controlar a demanda de recursos</div><p class="ss">A primeira família de táticas de desempenho reduz o trabalho que chega aos recursos ou o trabalho que cada evento exige, e atua sobre a taxa de chegada e sobre a demanda de serviço.</p></header>
+      <div class="tb-wrap reveal">
+        <table class="tb-tight">
+          <thead><tr><th style="width:26%">Tática</th><th style="width:38%">O que faz</th><th style="width:36%">No caso da promoção</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Gerenciar a taxa de requisições</strong></td><td>Reduz a frequência com que as requisições são aceitas ou amostradas.</td><td>Limitador de taxa por conta no endpoint de reserva.</td></tr>
+            <tr><td><strong>Limitar a resposta a eventos</strong></td><td>Processa eventos até uma taxa máxima e enfileira ou descarta o excedente.</td><td>Fila de espera virtual na entrada da promoção.</td></tr>
+            <tr><td><strong>Priorizar eventos</strong></td><td>Atende primeiro os eventos de maior importância.</td><td>Finalização de compra antes de consulta ao catálogo.</td></tr>
+            <tr><td><strong>Reduzir o overhead</strong></td><td>Elimina intermediários e chamadas que não agregam ao resultado.</td><td>Consultas ao banco agrupadas numa única chamada.</td></tr>
+            <tr><td><strong>Limitar tempos de execução</strong></td><td>Impõe teto ao tempo gasto em cada evento.</td><td>Tempo limite na chamada do estoque ao banco.</td></tr>
+            <tr><td><strong>Aumentar a eficiência</strong></td><td>Melhora o algoritmo ou a consulta nos trechos críticos.</td><td>Índice na tabela de estoque por produto.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 14: DESEMPENHO · RECURSOS ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Desempenho: gerenciar recursos</div><p class="ss">A segunda família mantém a demanda e altera a capacidade ou a organização dos recursos que a atendem, atuando sobre o número de servidores, as visitas e a disciplina da fila.</p></header>
+      <div class="tb-wrap reveal">
+        <table class="tb-tight">
+          <thead><tr><th style="width:28%">Tática</th><th style="width:36%">O que faz</th><th style="width:36%">No caso da promoção</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Aumentar recursos</strong></td><td>Processador mais rápido, mais memória ou rede mais larga.</td><td>Dobrar a CPU do banco, que muda parâmetro e não estrutura.</td></tr>
+            <tr><td><strong>Introduzir concorrência</strong></td><td>Processa requisições em paralelo.</td><td>Pool de threads no serviço de estoque.</td></tr>
+            <tr><td><strong>Manter múltiplas cópias de computação</strong></td><td>Réplicas do mesmo serviço atrás de um balanceador.</td><td>Duas réplicas do serviço de estoque.</td></tr>
+            <tr><td><strong>Manter múltiplas cópias de dados</strong></td><td>Cache ou réplica de leitura próxima de quem consulta.</td><td>Cache de saldo no serviço de estoque.</td></tr>
+            <tr><td><strong>Limitar o tamanho das filas</strong></td><td>Teto de requisições em espera, com descarte do excedente.</td><td>Fila do estoque limitada e resposta 503 acima do teto.</td></tr>
+            <tr><td><strong>Escalonar recursos</strong></td><td>Política que decide quem usa o recurso e em que ordem.</td><td>Prioridade para a confirmação de pagamento.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 15: TÁTICAS NO MODELO DE FILAS ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh green reveal"><div class="st">Cada tática muda um termo do modelo de filas</div><p class="ss">A previsão do efeito de uma tática é feita no mesmo modelo da Aula 3. A demanda de um centro é D = V × S, a utilização é U = X × D, e a tática se reconhece pelo termo que ela altera.</p></header>
+      <div class="g4 reveal">
+        <article class="card"><span class="label">Cópias de dados</span><h3>Cache reduz V</h3><p>As visitas ao banco caem de 6 para 2 por requisição, a demanda cai a um terço e R passa de ≈ 0,717 s para ≈ 0,128 s.</p></article>
+        <article class="card dark"><span class="label dark">Cópias de computação</span><h3>Réplica aumenta servidores</h3><p>O estoque passa a ter dois servidores, a carga se divide entre eles e R cai para ≈ 0,062 s, com vazão máxima de 100 req/s.</p></article>
+        <article class="card grn"><span class="label grn">Controle da demanda</span><h3>Limitador reduz λ</h3><p>O limitador de taxa recusa o excedente na entrada, de modo que a taxa efetiva que chega ao estoque fica abaixo da saturação.</p></article>
+        <article class="card"><span class="label">Fila limitada</span><h3>Teto protege R</h3><p>Ao descartar acima do teto, a fila deixa de crescer sem limite, e quem é atendido mantém tempo de resposta dentro do cenário.</p></article>
+      </div>
+      <div class="callout dark reveal">As duas últimas táticas trocam tempo de resposta por requisições recusadas. O modelo precisa registrar essa taxa de recusa, e o cenário precisa dizer quanto de recusa é aceitável, caso contrário a melhoria de R esconde a perda de vendas.</div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 16: SEGURANÇA · DETECTAR E RESISTIR ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh red reveal"><div class="st">Segurança: detectar e resistir a ataques</div><p class="ss">No cenário dos bots, o atacante usa a interface legítima de reserva. A defesa depende de reconhecer o padrão automatizado e de limitar o que cada ator pode fazer.</p></header>
+      <div class="g2 reveal">
+        <article class="card"><span class="label">Detectar ataques</span><h3>Reconhecer o padrão</h3>
+          <ul>
+            <li>Detecção de intrusão, que compara o tráfego com assinaturas ou com o comportamento normal.</li>
+            <li>Detecção de negação de serviço, que identifica tráfego anômalo na entrada.</li>
+            <li>Verificação de integridade de mensagem, por resumo criptográfico ou assinatura.</li>
+            <li>Detecção de anomalia na entrega de mensagens, como atraso ou ritmo incompatível com uso humano.</li>
+          </ul>
+        </article>
+        <article class="card dark"><span class="label dark">Resistir a ataques</span><h3>Limitar o que cada ator faz</h3>
+          <ul>
+            <li>Identificar, autenticar e autorizar atores.</li>
+            <li>Limitar o acesso e limitar a exposição, reduzindo os pontos de entrada.</li>
+            <li>Criptografar dados e separar entidades em redes ou serviços distintos.</li>
+            <li>Validar a entrada e alterar as configurações padrão de credenciais.</li>
+          </ul>
+        </article>
+      </div>
+      <div class="callout reveal">Para os bots, a combinação mínima é autenticar a conta, autorizar a reserva apenas para o próprio titular e limitar a taxa por conta. A detecção de ritmo incompatível com uso humano complementa o limite quando o atacante distribui o ataque entre muitas contas.</div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 17: SEGURANÇA · REAGIR E RECUPERAR ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Segurança: reagir e recuperar</div><p class="ss">Quando o ataque já ocorreu, a arquitetura precisa interromper o dano e permitir reconstituir o que aconteceu, o que exige registro feito antes do ataque.</p></header>
+      <div class="g3 reveal">
+        <article class="card"><span class="label">Reagir</span><h3>Revogar acesso</h3><p>Sessões e tokens das contas identificadas como bots são invalidados no momento da detecção.</p></article>
+        <article class="card dark"><span class="label dark">Reagir</span><h3>Restringir login</h3><p>Novas tentativas da mesma origem passam a exigir desafio adicional ou ficam bloqueadas por um período.</p></article>
+        <article class="card grn"><span class="label grn">Reagir</span><h3>Informar atores</h3><p>A equipe de operação e o titular legítimo da conta são avisados do bloqueio e do motivo.</p></article>
+      </div>
+      <div class="g2 reveal" style="margin-top:10px">
+        <article class="card"><span class="label">Recuperar</span><h3>Auditoria</h3><p>A trilha registra conta, origem, instante e resultado de cada reserva, o que permite desfazer as reservas fraudulentas e devolver o estoque à promoção.</p></article>
+        <article class="card dark"><span class="label dark">Recuperar</span><h3>Não repúdio</h3><p>É a mesma propriedade examinada na Aula 1 com o caso do PIX. O registro assinado impede que o titular de uma conta negue validamente a reserva que fez.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 18: NATANZ ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh red reveal"><div class="st">Natanz como cenário de segurança e disponibilidade</div><p class="ss">O autoestudo da aula anterior, reportagem do Guardian de 11/04/2021, relata um problema na rede de distribuição elétrica da usina de Natanz um dia depois de o Irã ligar novas centrífugas.</p></header>
+      <div class="g2 reveal">
+        <article class="card"><span class="label">O que a reportagem traz</span><h3>Os fatos declarados</h3>
+          <ul>
+            <li>O incidente atingiu a alimentação elétrica da instalação.</li>
+            <li>Ocorreu um dia depois da ativação de novas centrífugas.</li>
+            <li>O governo iraniano qualificou o episódio como sabotagem e o chamou de terrorismo nuclear.</li>
+            <li>Natanz já havia sido alvo do Stuxnet, revelado em 2010.</li>
+          </ul>
+          <p>A reportagem não estabelece autoria nem descreve o mecanismo técnico, e a leitura arquitetural não deve supor esses dados.</p>
+        </article>
+        <article class="card dark"><span class="label dark">Leitura arquitetural</span><h3>Um ataque que vira falha de disponibilidade</h3>
+          <ul>
+            <li>A rede elétrica é um ponto único de falha para todas as centrífugas.</li>
+            <li>Uma única causa atinge todas as réplicas, o que caracteriza falha de modo comum.</li>
+            <li>Redundância no mesmo prédio, na mesma alimentação, não cobre esse cenário.</li>
+            <li>As táticas pertinentes são separar entidades, detectar intrusão e auditar.</li>
+          </ul>
+        </article>
+      </div>
+      <div class="callout reveal">A pergunta para o projeto é qual dependência compartilhada pode derrubar as duas réplicas do estoque ao mesmo tempo, seja ela a zona de nuvem, a versão implantada ou o banco que ambas consultam.</div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 19: ESTRUTURA DE UM TESTE NÃO FUNCIONAL ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh green reveal"><div class="st">Estrutura de um teste não funcional</div><p class="ss">O teste não funcional reproduz o estímulo do cenário de forma controlada, mede a resposta e decide pelo oráculo, que é a própria medida da resposta escrita na Aula 2.</p></header>
+      <div class="g4 reveal">
+        <article class="card"><span class="label">1 · Estímulo injetado</span><h3>Carga, falha ou ataque</h3><p>40 req/s sustentados, uma réplica derrubada no meio do teste ou um script que simula o bot.</p></article>
+        <article class="card dark"><span class="label dark">2 · Ambiente</span><h3>Igual nos dois sistemas</h3><p>Mesma massa de dados, mesma infraestrutura e mesma duração para o sistema atual e o novo.</p></article>
+        <article class="card grn"><span class="label grn">3 · Métrica</span><h3>O que se mede</h3><p>Percentis de tempo de resposta, vazão, tempo de detecção, MTTR, requisições perdidas e reservas recusadas.</p></article>
+        <article class="card"><span class="label">4 · Oráculo</span><h3>Quem decide</h3><p>Limiar numérico derivado da medida da resposta, avaliado automaticamente ao final da execução.</p></article>
+      </div>
+      <div class="tb-wrap reveal" style="margin-top:11px">
+        <table>
+          <thead><tr><th style="width:20%">Cenário</th><th style="width:40%">Estímulo do teste</th><th style="width:40%">Oráculo</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Desempenho</strong></td><td>Carga constante de 40 req/s sobre o endpoint de reserva.</td><td>Tempo médio ≤ 0,2 s, com p95 e p99 reportados.</td></tr>
+            <tr><td><strong>Disponibilidade</strong></td><td>Uma réplica do estoque derrubada durante a carga de 40 req/s.</td><td>Detecção e redirecionamento dentro do tempo declarado no cenário.</td></tr>
+            <tr><td><strong>Segurança</strong></td><td>Script que reserva em massa a partir de poucas contas.</td><td>Nenhuma conta passa do limite; o excedente é recusado e registrado.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 20: TESTES DE DESEMPENHO ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh red reveal"><div class="st">Testes de desempenho</div><p class="ss">Os quatro tipos variam a forma da carga no tempo. Ferramentas como k6, JMeter e Locust geram a carga em taxa controlada e reportam a distribuição dos tempos.</p></header>
+      <div class="g4 reveal">
+        <article class="card"><span class="label">Carga</span><h3>40 req/s sustentados</h3><p>Verifica o cenário na taxa prevista e compara o tempo médio medido com a previsão do modelo.</p></article>
+        <article class="card dark"><span class="label dark">Estresse</span><h3>Aumentar até romper</h3><p>Espera-se a ruptura pouco acima de 41,7 req/s no sistema atual e perto de 100 req/s no sistema novo.</p></article>
+        <article class="card grn"><span class="label grn">Pico</span><h3>De 10 para 40 req/s</h3><p>Salto instantâneo, que mostra se o sistema absorve a avalanche da abertura da promoção.</p></article>
+        <article class="card"><span class="label">Resistência</span><h3>Horas de carga</h3><p>Execução longa, chamada soak, que procura vazamento de memória e conexões que não são devolvidas.</p></article>
+      </div>
+      <div class="g2 reveal" style="margin-top:10px">
+        <article class="card dark"><span class="label dark">Média e percentil</span><h3>O que o modelo de filas não informa</h3><p>O modelo da Aula 3 entrega o tempo médio. A média esconde a cauda da distribuição, e uma média de 0,128 s convive com clientes que esperam vários segundos.</p><p>O teste mede p95 e p99, e o grupo declara no cenário o limite aceitável para a cauda.</p></article>
+        <article class="card"><span class="label">Comparação com o modelo</span><h3>Previsão e medida lado a lado</h3><p>Se a medida diverge muito da previsão, o modelo precisa ser revisto antes de servir de base para a decisão, por exemplo com novas medidas de S e de V.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 21: TESTES DE DISPONIBILIDADE ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Testes de disponibilidade por injeção de falhas</div><p class="ss">A engenharia do caos, descrita por Basiri e colegas a partir da prática da Netflix, trata a falha como experimento controlado, com hipótese declarada antes da execução.</p></header>
+      <div class="g3 reveal">
+        <article class="card"><span class="label">1 · Estado estável</span><h3>Hipótese</h3><p>Durante a carga de 40 req/s, o tempo médio de reserva permanece abaixo de 0,2 s e a taxa de erro fica abaixo do limite do cenário.</p></article>
+        <article class="card dark"><span class="label dark">2 · Evento real</span><h3>Falha injetada</h3><p>Uma réplica do estoque é derrubada no meio do teste, ou uma latência adicional é injetada nas respostas do banco.</p></article>
+        <article class="card grn"><span class="label grn">3 · Raio de impacto</span><h3>Escopo limitado</h3><p>O experimento atinge um serviço, em ambiente de homologação, e tem critério de interrupção imediata.</p></article>
+      </div>
+      <div class="tb-wrap reveal" style="margin-top:11px">
+        <table>
+          <thead><tr><th style="width:26%">Métrica</th><th style="width:40%">Como medir</th><th style="width:34%">Relação com o cenário</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Tempo de detecção</strong></td><td>Intervalo entre a injeção e a retirada da réplica do balanceador.</td><td>Depende do período do heartbeat.</td></tr>
+            <tr><td><strong>Tempo de recuperação</strong></td><td>Intervalo até o tempo de resposta voltar ao estado estável; é o MTTR medido.</td><td>Entra na conta MTBF / (MTBF + MTTR).</td></tr>
+            <tr><td><strong>Requisições perdidas</strong></td><td>Respostas de erro ou sem resposta durante a janela de falha.</td><td>Precisa caber no limite declarado.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 22: TESTES DE SEGURANÇA ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh red reveal"><div class="st">Testes de segurança</div><p class="ss">Cada tática de segurança tem um teste que tenta contorná-la. O oráculo exige ao mesmo tempo a recusa da ação indevida e o registro dela na trilha de auditoria.</p></header>
+      <div class="g4 reveal">
+        <article class="card"><span class="label">Limitação de taxa</span><h3>Script que simula o bot</h3><p>Dispara reservas de poucas contas em ritmo acima do limite e conta quantas são aceitas.</p></article>
+        <article class="card dark"><span class="label dark">Autorização</span><h3>Token de outro usuário</h3><p>Tenta reservar ou cancelar estoque em nome de outra conta, usando um token válido de terceiro.</p></article>
+        <article class="card grn"><span class="label grn">Varredura DAST</span><h3>OWASP ZAP</h3><p>Examina a aplicação em execução em busca de vulnerabilidades conhecidas, como injeção e falhas de configuração.</p></article>
+        <article class="card"><span class="label">Auditoria</span><h3>Conferência da trilha</h3><p>Verifica se cada tentativa recusada aparece no registro com conta, origem, instante e motivo.</p></article>
+      </div>
+      <div class="callout dark reveal">O oráculo do cenário dos bots tem duas partes verificáveis automaticamente. Nenhuma conta ultrapassa o limite de reservas, e toda requisição não autorizada recebe recusa e fica registrada. Um teste que só confere a recusa deixa sem verificação a tática de recuperação.</div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 23: A DECISÃO RESOLVEU O DEFEITO? ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh green reveal"><div class="st">Quando a decisão resolveu o defeito</div><p class="ss">A resposta à pergunta do encontro é operacional. A decisão resolve o defeito quando o teste do sistema novo atinge a medida da resposta, nas mesmas condições em que o sistema atual falhou.</p></header>
+      <div class="g4 reveal">
+        <article class="card"><span class="label">1 · Simulação</span><h3>Prever</h3><p>O modelo do sistema novo, com a tática incorporada, prevê o efeito sobre a métrica do cenário.</p></article>
+        <article class="card dark"><span class="label dark">2 · Correção</span><h3>Construir</h3><p>O mecanismo concreto é implementado, como o cache, a segunda réplica ou o limitador.</p></article>
+        <article class="card grn"><span class="label grn">3 · Medição</span><h3>Testar</h3><p>O mesmo teste roda no atual e no novo, com a mesma massa de dados e as mesmas métricas.</p></article>
+        <article class="card"><span class="label">4 · Decisão</span><h3>Comparar</h3><p>Se a medida não atinge o cenário, o grupo volta à simulação com a nova informação.</p></article>
+      </div>
+      <div class="tb-wrap reveal" style="margin-top:11px">
+        <table>
+          <thead><tr><th style="width:34%">Situação observada</th><th style="width:66%">Conclusão</th></tr></thead>
+          <tbody>
+            <tr><td>O novo atinge a medida e o atual não.</td><td>A decisão resolveu o defeito, desde que a diferença decorra da tática e não de mudança de parâmetro.</td></tr>
+            <tr><td>Os dois atingem a medida.</td><td>O cenário não discrimina, ou o defeito estava em outro lugar; a carga do teste precisa ser revista.</td></tr>
+            <tr><td>Nenhum dos dois atinge a medida.</td><td>A tática foi insuficiente ou o modelo errou a previsão; o ciclo recomeça pela simulação.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 24: PRÁTICA · ENUNCIADO ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh red reveal"><div class="st">Prática em grupo · 35 minutos</div><p class="ss">Cada grupo monta a matriz do próprio projeto, com uma linha por cenário e no mínimo um cenário de desempenho, um de disponibilidade e um de segurança. A atividade é formativa e não recebe nota.</p></header>
+      <div class="g-wide reveal">
+        <div class="tb-wrap">
+          <table class="tb-tight">
+            <thead><tr><th style="width:32%">Coluna da matriz</th><th style="width:68%">O que preencher</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Cenário</strong></td><td>Estímulo e medida da resposta, com número e unidade.</td></tr>
+              <tr><td><strong>Tática</strong></td><td>Nome e categoria do livro, como detectar falhas ou gerenciar recursos.</td></tr>
+              <tr><td><strong>Mecanismo</strong></td><td>A implementação concreta que realiza a tática.</td></tr>
+              <tr><td><strong>Efeito previsto</strong></td><td>O termo do modelo que muda: V, S, λ, número de servidores ou roteamento.</td></tr>
+              <tr><td><strong>Teste não funcional</strong></td><td>Estímulo, ferramenta, métrica e oráculo.</td></tr>
+              <tr><td><strong>Atual × novo</strong></td><td>Resultado nos dois sistemas, preenchido no artefato da Sprint 2.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <ul class="check">
+            <li>Os cenários são os mesmos usados no modelo do sistema atual.</li>
+            <li>Cada tática tem nome e categoria do catálogo do livro.</li>
+            <li>O efeito previsto aponta o termo do modelo que muda e a direção da mudança.</li>
+            <li>Nenhuma melhoria depende só de aumentar um parâmetro.</li>
+            <li>Cada teste tem oráculo numérico ligado à medida da resposta.</li>
+            <li>As réplicas declaram o que compartilham, como zona, versão e banco.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 25: PRÁTICA · EXEMPLO DA MATRIZ ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Exemplo da matriz com o caso da promoção</div><p class="ss">As três linhas abaixo usam os cenários e os números do caso. A última coluna fica em aberto, porque só se preenche depois de rodar os testes nos dois sistemas.</p></header>
+      <div class="tb-wrap reveal">
+        <table style="font-size:.7rem">
+          <thead><tr><th style="width:16%">Cenário</th><th style="width:15%">Tática</th><th style="width:14%">Mecanismo</th><th style="width:19%">Efeito previsto</th><th style="width:24%">Teste não funcional</th><th style="width:12%">Atual × novo</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Desempenho</strong><br>40 req/s; média ≤ 0,2 s</td><td>Manter múltiplas cópias de dados (gerenciar recursos)</td><td>Cache de saldo no serviço de estoque</td><td>V do banco de 6 para 2; R de ≈ 0,717 s para ≈ 0,128 s</td><td>Carga de 40 req/s no k6 por 10 min; métrica média, p95 e p99; oráculo média ≤ 0,2 s</td><td>A preencher</td></tr>
+            <tr><td><strong>Disponibilidade</strong><br>réplica do estoque cai no pico</td><td>Redundância ativa e heartbeat (recuperar e detectar)</td><td>Duas réplicas atrás do balanceador com checagem de saúde</td><td>Estoque com 2 servidores; com uma caída, R ≈ 0,128 s</td><td>Derrubar uma réplica durante a carga; métrica tempo de detecção, MTTR e perdas; oráculo dentro do limite declarado</td><td>A preencher</td></tr>
+            <tr><td><strong>Segurança</strong><br>bots reservam em massa</td><td>Autorizar atores e limitar acesso (resistir); auditoria (recuperar)</td><td>Limitador de taxa por conta e trilha de reservas</td><td>λ efetivo por conta limitado; excedente recusado na entrada</td><td>Script do bot contra o endpoint; métrica reservas aceitas por conta; oráculo nenhuma acima do limite e recusas registradas</td><td>A preencher</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout reveal">A matriz alimenta diretamente o artefato Simulação do sistema novo. A coluna da tática sustenta a justificativa das melhorias, e a coluna do teste define o que precisa ser executado nos dois sistemas.</div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 26: ENCAMINHAMENTOS ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh green reveal"><div class="st">Artefato da Sprint 2: Simulação do sistema novo</div><p class="ss">O artefato tem peso 3 e é entregue no arquivo Projeto.md, na pasta docs, com modelos, scripts e massas de dados versionados no repositório.</p></header>
+      <div class="g3 reveal">
+        <article class="card"><span class="label">4,0 pontos</span><h3>Simulação do sistema atual</h3><p>Revisão do modelo do sistema atual, com os cenários de qualidade aplicados e os resultados registrados.</p></article>
+        <article class="card dark"><span class="label dark">4,0 pontos</span><h3>Simulação do sistema novo</h3><p>Modelo do sistema novo com as táticas incorporadas, submetido exatamente aos mesmos cenários.</p></article>
+        <article class="card grn"><span class="label grn">2,0 pontos</span><h3>Justificativa das melhorias</h3><p>Evidência das diferenças nos resultados e na estrutura, relacionadas às táticas e aos componentes adotados.</p></article>
+      </div>
+      <div class="callout dark reveal">A correção verifica dois pontos. Os cenários do sistema novo precisam ser os mesmos do sistema atual, e as melhorias precisam ser explicadas pelas táticas e não por alteração de parâmetros. A matriz de hoje é o roteiro dessa comparação.</div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 27: AUTOESTUDOS ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh red reveal"><div class="st">Autoestudos do encontro</div><p class="ss">Os três autoestudos são obrigatórios, têm 40 minutos cada e usam o mesmo livro, disponível no Philos com o login da biblioteca do Inteli.</p></header>
+      <div class="g3 reveal">
+        <article class="card"><span class="label">Item 4.2</span><h3>Tática arquitetural para disponibilidade</h3><p>Detecção, recuperação e prevenção de falhas, base das linhas de disponibilidade da matriz.</p></article>
+        <article class="card dark"><span class="label dark">Item 9.2</span><h3>Tática arquitetural para desempenho</h3><p>Controle da demanda e gerenciamento de recursos, lidos junto com o modelo de filas da Aula 3.</p></article>
+        <article class="card grn"><span class="label grn">Item 11.2</span><h3>Tática arquitetural para segurança</h3><p>Detectar, resistir, reagir e recuperar, aplicados ao cenário dos bots e ao caso de Natanz.</p></article>
+      </div>
+      <div class="callout reveal">BASS, L.; CLEMENTS, P.; KAZMAN, R. <em>Software Architecture in Practice</em>. 4. ed. Addison-Wesley, 2021. Acesso pelo <a href="https://philos.sophia.com.br/terminal/9418/acervo/detalhe/14370?guid=1695386921125&amp;returnUrl=%2fterminal%2f9418%2fresultado%2flistar%3fguid%3d1695386921125%26quantidadePaginas%3d1%26codigoRegistro%3d14370%2314370&amp;i=1" target="_blank" rel="noopener noreferrer">acervo do Philos</a>. O prof. Reginaldo retoma esses atributos em 11/11, com questionários por tática, e em 13/11, com padrões arquiteturais.</div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 28: FECHAMENTO ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">A decisão arquitetural confirmada pela medida</div><p class="ss">O que o encontro acrescenta ao projeto e à entrega da Sprint 2.</p></header>
+      <div class="closing reveal">
+        <blockquote>Uma decisão arquitetural resolve um defeito quando a tática altera a estrutura do sistema, o modelo prevê o efeito dessa alteração e o teste do sistema novo atinge a medida da resposta nas mesmas condições em que o sistema atual falhou.</blockquote>
+        <div class="g2">
+          <article class="card"><h3>1 · Tática nomeada</h3><p>Cada cenário recebe uma tática do catálogo, com categoria e mecanismo concreto.</p></article>
+          <article class="card dark"><h3>2 · Efeito previsto</h3><p>A tática é lida no modelo pelo termo que altera: visitas, servidores, taxa de chegada ou fila.</p></article>
+          <article class="card grn"><h3>3 · Teste com oráculo</h3><p>Carga, falha ou ataque injetado, com métrica e limiar derivados do cenário.</p></article>
+          <article class="card"><h3>4 · Comparação válida</h3><p>Mesmos cenários, mesma massa e mesmas métricas no sistema atual e no novo.</p></article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+<!-- encontro:meta:start -->
+<div class="slide encontro-slide"><div class="sc"><section class="encontro-meta" data-encontro-ficha><h2>Sobre este encontro</h2><p class="encontro-ref">As decisões arquiteturais resolvem os defeitos? · 04/11/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>Ao final do encontro, o estudante deve ser capaz de selecionar, para cada cenário de qualidade do projeto, uma tática de disponibilidade, desempenho ou segurança, prever o efeito dessa tática no modelo de simulação, especificar o teste não funcional que confirma o efeito, com carga, falha ou ataque injetado, métrica e oráculo, e decidir, comparando sistema atual e sistema novo sob os mesmos cenários, se a decisão arquitetural resolveu o defeito.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>A pergunta do encontro é respondida com o critério do artefato da Sprint 2: a comparação só é válida se cenários, massa de dados e métricas forem os mesmos nos dois sistemas. A exposição dialogada percorre as táticas de disponibilidade, desempenho e segurança do catálogo de Bass, Clements e Kazman, cada uma aplicada ao caso da promoção relâmpago, com o cálculo de disponibilidade em série e em paralelo e o caso de Natanz lido como cenário de segurança. Em seguida, apresenta os testes não funcionais que verificam cada família de tática. Na prática em grupo, cada equipe monta a matriz de cenário, tática, efeito previsto e teste do próprio projeto, que alimenta o artefato Simulação do sistema novo.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol><li>Daily: estado dos artefatos, atividade prevista e impedimentos — 15 min</li><li>Abertura: a pergunta do encontro e o critério de comparação entre sistema atual e sistema novo — 5 min</li><li>Táticas de disponibilidade: detectar, recuperar e prevenir falhas, com disponibilidade em série e em paralelo — 15 min</li><li>Táticas de desempenho: controlar a demanda e gerenciar recursos, lidas no modelo de filas — 10 min</li><li>Táticas de segurança: detectar, resistir, reagir e recuperar, com o caso de Natanz — 15 min</li><li>Testes não funcionais de desempenho, disponibilidade e segurança, cada um com métrica e oráculo — 15 min</li><li>Prática em grupo: matriz de cenário, tática, efeito previsto e teste do projeto — 35 min</li><li>Encaminhamentos: o artefato Simulação do sistema novo da Sprint 2 — 5 min</li><li>Fechamento: a decisão arquitetural confirmada pela medida — 5 min</li></ol></div></section></div></div>
+<!-- encontro:meta:end -->
+</div>
+
+<footer class="slide-footer">
+  <div class="footer-links">
+    <a href="../../home-module-8-eng-software.html" class="back-home">🏠 Home</a>
+    <a href="../materials/lesson-4-material.html" class="back-home material">📖 Material</a>
+    <a href="../planos/lesson-4-plano.html" class="back-home plano">🗂️ Plano</a>
+  </div>
+  <div class="nav-wrapper">
+    <button class="nav-btn" id="prev" type="button">← Anterior</button>
+    <div class="slide-counter"><span id="current-slide">1</span> / <span id="total-slides">29</span></div>
+    <button class="nav-btn" id="next" type="button">Próximo →</button>
+    <button class="fullscreen-btn" id="fullscreen" type="button" aria-label="Alternar tela cheia">⛶</button>
+  </div>
+</footer>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const current = document.getElementById('current-slide');
+  const total = document.getElementById('total-slides');
+  const previous = document.getElementById('prev');
+  const next = document.getElementById('next');
+  let slideIndex = 0;
+
+  function animateActiveSlide() {
+    const active = slides[slideIndex];
+    const items = active ? Array.from(active.querySelectorAll('.reveal')) : [];
+    if (!items.length || !window.__anime) return;
+    window.__anime.animate(items, {
+      opacity: { from: 0, to: 1 },
+      y: { from: 12, to: 0 },
+      delay: window.__anime.stagger(45),
+      duration: 420,
+      ease: 'outQuad'
+    });
+  }
+
+  function showSlide(index) {
+    slideIndex = Math.max(0, Math.min(index, slides.length - 1));
+    slides.forEach((slide, position) => slide.classList.toggle('active', position === slideIndex));
+    current.textContent = String(slideIndex + 1);
+    total.textContent = String(slides.length);
+    previous.disabled = slideIndex === 0;
+    next.disabled = slideIndex === slides.length - 1;
+    animateActiveSlide();
+  }
+
+  window.showSlide = showSlide;
+  previous.addEventListener('click', () => showSlide(slideIndex - 1));
+  next.addEventListener('click', () => showSlide(slideIndex + 1));
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowRight' || event.key === 'PageDown') showSlide(slideIndex + 1);
+    if (event.key === 'ArrowLeft' || event.key === 'PageUp') showSlide(slideIndex - 1);
+  });
+  document.getElementById('fullscreen').addEventListener('click', () => {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+    else document.exitFullscreen();
+  });
+  window.addEventListener('anime-ready', animateActiveSlide);
+
+  let dailySeconds = 15 * 60;
+  let dailyInterval = null;
+  const dailyTimer = document.getElementById('daily-timer');
+  const dailyStart = document.getElementById('daily-start');
+  function renderDaily() {
+    const minutes = String(Math.floor(dailySeconds / 60)).padStart(2, '0');
+    const seconds = String(dailySeconds % 60).padStart(2, '0');
+    dailyTimer.textContent = `${minutes}:${seconds}`;
+  }
+  function stopDaily() {
+    if (dailyInterval) clearInterval(dailyInterval);
+    dailyInterval = null;
+    dailyStart.textContent = 'Iniciar';
+  }
+  dailyStart.addEventListener('click', () => {
+    if (dailyInterval) { stopDaily(); return; }
+    dailyStart.textContent = 'Pausar';
+    dailyInterval = setInterval(() => {
+      dailySeconds -= 1;
+      renderDaily();
+      if (dailySeconds <= 0) stopDaily();
+    }, 1000);
+  });
+  document.getElementById('daily-reset').addEventListener('click', () => {
+    stopDaily();
+    dailySeconds = 15 * 60;
+    renderDaily();
+  });
+  showSlide(0);
+</script>
+<!-- encontro:pdf:start -->
+<button type="button" class="pdf-export-btn" data-encontro-data="2026-11-04" data-encontro-docente="Afonso" data-encontro-seq="01" title="Exportar esta página em PDF com o nome padronizado">📄 Exportar PDF</button>
+<script src="../../../js/encontro-pdf.js" defer></script>
+<!-- encontro:pdf:end -->
+<!-- semana:js:start -->
+<script src="../../../js/semana-ano.js" defer></script>
+<!-- semana:js:end -->
+</body>
+</html>

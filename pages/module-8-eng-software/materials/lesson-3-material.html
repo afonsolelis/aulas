@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aula 3 — Simulação com redes de filas no JMT — Material — Inteli</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+  <link href="../../../css/inteli-styles.css" rel="stylesheet">
+  <style>
+    :root {
+      --es: var(--eng-software-yellow);
+      --ink: var(--inteli-dark-purple);
+      --ok: var(--inteli-green);
+      --paper: var(--inteli-white);
+      --line: var(--inteli-light-gray);
+      --soft-es: color-mix(in srgb,var(--es) 12%,var(--paper));
+      --soft-ink: color-mix(in srgb,var(--ink) 7%,var(--paper));
+      --soft-ok: color-mix(in srgb,var(--ok) 20%,var(--paper));
+    }
+    *, *::before, *::after { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; font-family:'Manrope',sans-serif; color:var(--ink); background:var(--soft-ink); }
+    a { color:color-mix(in srgb,var(--es) 58%,var(--ink)); }
+    #progress-bar { position:fixed; inset:0 auto auto 0; width:0; height:3px; z-index:9999; background:linear-gradient(90deg,var(--ink),var(--es)); }
+    .mat-header { color:var(--paper); background:linear-gradient(130deg,var(--ink),color-mix(in srgb,var(--ink) 45%,var(--es)) 62%,var(--es)); padding:42px 24px 34px; }
+    .head-inner { width:min(1160px,100%); margin:auto; display:flex; justify-content:space-between; align-items:end; gap:28px; }
+    .head-copy { max-width:780px; }
+    .badge { display:inline-block; margin-bottom:12px; padding:5px 11px; border:1px solid color-mix(in srgb,var(--paper) 36%,transparent); border-radius:999px; background:color-mix(in srgb,var(--paper) 12%,transparent); font-size:.72rem; font-weight:800; letter-spacing:.06em; }
+    .mat-header h1 { margin:0; font-size:2.45rem; line-height:1.12; letter-spacing:-.03em; }
+    .mat-header p { margin:10px 0 0; max-width:760px; color:color-mix(in srgb,var(--paper) 88%,var(--es)); line-height:1.6; }
+    .head-actions { display:flex; flex-wrap:wrap; gap:7px; justify-content:flex-end; }
+    .head-actions a { padding:8px 12px; border-radius:9px; color:var(--paper); border:1px solid color-mix(in srgb,var(--paper) 45%,transparent); text-decoration:none; font-size:.76rem; font-weight:800; white-space:nowrap; }
+    .head-actions a.primary { background:var(--paper); color:var(--ink); }
+    .mat-layout { display:grid; grid-template-columns:280px minmax(0,1fr); gap:34px; width:min(1220px,100%); margin:auto; padding:36px 24px 64px; }
+    .mat-sidebar { position:sticky; top:18px; align-self:start; max-height:calc(100vh - 36px); overflow:auto; }
+    .mat-toc { padding:18px; border:1px solid var(--line); border-radius:14px; background:var(--paper); box-shadow:0 4px 16px color-mix(in srgb,var(--ink) 7%,transparent); }
+    .mat-toc h2 { margin:0 0 10px; font-size:.74rem; letter-spacing:.11em; text-transform:uppercase; }
+    .mat-toc a { display:block; padding:5px 8px; border-left:3px solid transparent; color:color-mix(in srgb,var(--ink) 68%,var(--paper)); text-decoration:none; font-size:.76rem; line-height:1.32; }
+    .mat-toc a:hover, .mat-toc a.active { color:var(--ink); background:var(--soft-es); border-left-color:var(--es); }
+    .toc-total { margin-top:10px; padding-top:10px; border-top:1px solid var(--line); color:color-mix(in srgb,var(--ink) 60%,var(--paper)); font-size:.7rem; }
+    .mat-article { min-width:0; }
+    .mat-section { margin:0 0 48px; scroll-margin-top:26px; }
+    .mat-section h2 { margin:0 0 18px; padding-bottom:10px; border-bottom:2px solid var(--line); font-size:1.65rem; line-height:1.25; }
+    .mat-section h3 { margin:25px 0 9px; font-size:1.08rem; }
+    .mat-section p, .mat-section li { font-size:.94rem; line-height:1.75; color:color-mix(in srgb,var(--ink) 82%,var(--paper)); }
+    .mat-section p { margin:0 0 14px; }
+    .mat-section ul, .mat-section ol { margin:10px 0 16px; padding-left:1.35rem; }
+    .mat-section li { margin-bottom:5px; }
+    .lead { font-size:1.05rem!important; color:var(--ink)!important; }
+    .mat-section p { text-align:justify; text-justify:inter-word; hyphens:auto; }
+    .caso-ensino { padding:20px 22px; border:1px solid var(--line); border-left:5px solid var(--ink);
+                   border-radius:12px; background:var(--paper); box-shadow:0 4px 14px color-mix(in srgb,var(--ink) 6%,transparent); }
+    .caso-ensino p:last-child { margin-bottom:0; }
+    .caso-ensino strong { color:color-mix(in srgb,var(--es) 62%,var(--ink)); font-weight:800; }
+    .g2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+    .g3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+    .card { padding:17px 18px; border:1px solid var(--line); border-left:5px solid var(--es); border-radius:12px; background:var(--paper); box-shadow:0 4px 14px color-mix(in srgb,var(--ink) 6%,transparent); }
+    .card.dark { border-left-color:var(--ink); }
+    .card.grn { border-left-color:var(--ok); }
+    .card h3 { margin:0 0 7px; }
+    .card p:last-child, .card ul:last-child { margin-bottom:0; }
+    .callout { margin:18px 0; padding:15px 18px; border:1px solid color-mix(in srgb,var(--es) 38%,var(--paper)); border-left:5px solid var(--es); border-radius:11px; background:var(--soft-es); }
+    .callout.dark { border-color:color-mix(in srgb,var(--ink) 23%,var(--paper)); border-left-color:var(--ink); background:var(--soft-ink); }
+    .callout.grn { border-color:color-mix(in srgb,var(--ok) 50%,var(--paper)); border-left-color:var(--ok); background:var(--soft-ok); }
+    .callout-label { margin-bottom:5px; color:var(--ink); font-size:.69rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
+    .callout p:last-child { margin:0; }
+    .table-wrap { margin:17px 0; overflow-x:auto; border:1px solid var(--line); border-radius:12px; background:var(--paper); }
+    table { width:100%; min-width:720px; border-collapse:collapse; font-size:.79rem; }
+    th { padding:10px 11px; background:var(--ink); color:var(--paper); text-align:left; font-weight:800; }
+    td { padding:10px 11px; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.5; }
+    tr:last-child td { border-bottom:0; }
+    tbody tr:nth-child(even) { background:var(--soft-ink); }
+    code { padding:2px 6px; border-radius:5px; background:var(--soft-es); color:var(--ink); font:600 .86em 'JetBrains Mono',monospace; }
+    .time { white-space:nowrap; font-weight:800; color:var(--ink); }
+    pre { margin:14px 0; padding:14px 16px; overflow-x:auto; border:1px solid var(--line); border-radius:11px; background:var(--paper); }
+    pre code { background:none; padding:0; font-size:.8rem; line-height:1.6; }
+    .video-embed { position:relative; margin:18px 0 8px; padding-top:56.25%; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--ink); }
+    .video-embed iframe { position:absolute; inset:0; width:100%; height:100%; border:0; }
+    .video-cap { font-size:.82rem!important; color:color-mix(in srgb,var(--ink) 66%,var(--paper))!important; }
+    .template { margin:16px 0; padding:18px; border:1px dashed color-mix(in srgb,var(--ink) 35%,var(--paper)); border-radius:12px; background:var(--paper); }
+    .template h3 { margin-top:0; }
+    .template-row { display:grid; grid-template-columns:200px 1fr; gap:12px; padding:7px 0; border-bottom:1px solid var(--line); }
+    .template-row:last-child { border-bottom:0; }
+    .template-row strong { font-size:.78rem; }
+    .template-row span { font-size:.82rem; line-height:1.5; color:color-mix(in srgb,var(--ink) 72%,var(--paper)); }
+    .trace { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:15px; margin:18px 0; }
+    .trace div { position:relative; padding:12px 8px; border:1px solid var(--line); border-radius:10px; background:var(--paper); text-align:center; font-size:.72rem; font-weight:800; }
+    .trace div:not(:last-child)::after { content:'→'; position:absolute; right:-12px; color:var(--es); }
+    .checklist { list-style:none; padding:0!important; display:grid; gap:7px; }
+    .checklist li { position:relative; margin:0; padding:9px 10px 9px 34px; border:1px solid var(--line); border-radius:9px; background:var(--paper); }
+    .checklist li::before { content:'□'; position:absolute; left:11px; top:8px; color:color-mix(in srgb,var(--es) 56%,var(--ink)); font-weight:800; }
+    #float-nav { position:fixed; right:24px; bottom:25px; z-index:9998; display:flex; flex-direction:column; gap:7px; opacity:0; transform:translateY(12px); pointer-events:none; transition:.25s ease; }
+    #float-nav.visible { opacity:1; transform:none; pointer-events:auto; }
+    .fn-btn { padding:9px 13px; border-radius:999px; text-decoration:none; box-shadow:0 4px 16px color-mix(in srgb,var(--ink) 20%,transparent); font-size:.74rem; font-weight:800; text-align:center; }
+    .fn-btn-slides { background:var(--paper); color:var(--ink); border:2px solid var(--es); }
+    .fn-btn-alt { background:var(--paper); color:var(--ink); border:2px solid var(--ink); }
+    .fn-btn-back { background:var(--ink); color:var(--paper); }
+    .inteli-footer { padding:26px 20px; border-top:1px solid var(--line); background:var(--paper); text-align:center; font-size:.8rem; }
+    @media(max-width:960px) { .mat-layout { grid-template-columns:1fr; } .mat-sidebar { display:none; } .head-inner { display:block; } .head-actions { margin-top:20px; justify-content:flex-start; } }
+    @media(max-width:700px) { .g2,.g3 { grid-template-columns:1fr; } .mat-header h1 { font-size:1.9rem; } .trace { grid-template-columns:1fr; } .trace div::after { display:none; } .template-row { grid-template-columns:1fr; gap:2px; } }
+    .fgrid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin:16px 0 18px; }
+    .fgrid.two { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .fbox { display:flex; flex-direction:column; justify-content:center; gap:5px; padding:13px 15px; border:1px solid var(--line); border-top:4px solid var(--ink); border-radius:11px; background:var(--paper); text-align:center; box-shadow:0 4px 12px color-mix(in srgb,var(--ink) 6%,transparent); }
+    .fx { font-family:'Cambria Math','STIX Two Math','Times New Roman',Georgia,serif; font-size:1.25rem; white-space:nowrap; color:var(--ink); }
+    .fbox small { font-size:.78rem; line-height:1.4; color:color-mix(in srgb,var(--ink) 70%,var(--paper)); }
+    td.n, th.n { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+    tr.hl td { background:var(--soft-es)!important; font-weight:700; }
+    tr.ok td { background:var(--soft-ok)!important; font-weight:700; }
+    .qnet { width:100%; height:auto; display:block; }
+    .qnet .node { fill:var(--paper); stroke:var(--ink); stroke-width:2; }
+    .qnet .queue { fill:var(--soft-es); stroke:var(--ink); stroke-width:1.5; }
+    .qnet .srv { fill:var(--paper); stroke:var(--es); stroke-width:3; }
+    .qnet .srv.hot { fill:var(--soft-es); stroke:var(--es); stroke-width:4; }
+    .qnet .edge { stroke:var(--ink); stroke-width:2; fill:none; }
+    .qnet .head { fill:var(--ink); }
+    .qnet text { fill:var(--ink); font-family:'Manrope',sans-serif; }
+    .qnet .t1 { font-size:15px; font-weight:800; }
+    .qnet .t2 { font-size:12px; font-weight:600; }
+    .qnet .t3 { font-size:11px; font-weight:700; fill:color-mix(in srgb,var(--es) 60%,var(--ink)); }
+    .steps { margin:12px 0 18px; padding:0!important; list-style:none; counter-reset:step; display:grid; gap:7px; }
+    .steps li { counter-increment:step; position:relative; margin:0; padding:9px 12px 9px 44px; border:1px solid var(--line); border-radius:9px; background:var(--paper); }
+    .steps li::before { content:counter(step); position:absolute; left:11px; top:9px; width:22px; height:22px; display:grid; place-items:center; border-radius:6px; background:var(--ink); color:var(--paper); font-size:.72rem; font-weight:800; }
+    .checklist.interactive li { cursor:pointer; user-select:none; }
+    .checklist.interactive li.done { background:var(--soft-ok); }
+    .checklist.interactive li.done::before { content:'■'; }
+    .mat-toc a { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+    .toc-min { flex:none; white-space:nowrap; color:color-mix(in srgb,var(--ink) 50%,var(--paper)); font-size:.66rem; font-weight:700; }
+    @media(max-width:700px) { .fgrid, .fgrid.two { grid-template-columns:1fr; } .fx { white-space:normal; } }
+  </style>
+
+<!-- encontro:css:start -->
+<link rel="stylesheet" href="../../../css/encontro.css">
+<!-- encontro:css:end -->
+
+<!-- semana:css:start -->
+<link rel="stylesheet" href="../../../css/semana-ano.css">
+<!-- semana:css:end -->
+</head>
+<body>
+  <div id="progress-bar" aria-hidden="true"></div>
+  <nav id="float-nav" aria-label="Navegação rápida">
+    <a class="fn-btn fn-btn-slides" href="../slides/slide-lesson-3.html">▶ Slides</a>
+    <a class="fn-btn fn-btn-alt" href="../planos/lesson-3-plano.html">📋 Plano</a>
+    <a class="fn-btn fn-btn-back" href="../../home-module-8-eng-software.html">← Módulo</a>
+  </nav>
+
+  <header class="mat-header">
+    <div class="head-inner">
+      <div class="head-copy">
+        <span class="badge">Módulo 8 · Engenharia de Software · Aula 3 · 03/11/2026</span>
+        <h1>Simulação com redes de filas no JMT</h1>
+        <p>Material de leitura do encontro Simulação de desempenho, tolerância a falhas e acesso simultâneo. O texto apresenta o mínimo de teoria das filas necessário para modelar um sistema como rede aberta, resolve passo a passo o caso da promoção relâmpago no ciclo de simulação, correção e medição, descreve o uso do JMVA e do JSIMgraph e orienta a ponderada em sala.</p>
+      </div>
+      <div class="head-actions">
+        <a class="primary" href="../slides/slide-lesson-3.html">▶ Slides</a>
+        <a href="../planos/lesson-3-plano.html">📋 Plano de ensino</a>
+        <a href="../../home-module-8-eng-software.html">← Voltar ao módulo</a>
+      </div>
+    </div>
+  </header>
+
+
+<!-- encontro:meta:start -->
+<div class="container" style="max-width:1100px;margin:24px auto 0;padding:0 16px;"><section class="encontro-meta" data-encontro-ficha><h2>Sobre este encontro</h2><p class="encontro-ref">Simulação de desempenho, tolerância a falhas e acesso simultâneo · 03/11/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>Ao final do encontro, o estudante deve ser capaz de modelar o sistema do projeto como uma rede de filas aberta, calcular utilização, tempo de resposta e população com a Lei da Utilização e a Lei de Little, identificar o gargalo pela maior demanda de serviço, simular o modelo no JMT, comparar o resultado com o cálculo analítico e justificar, pela diferença medida entre duas versões do modelo, qual ajuste arquitetural deve ser priorizado.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>O encontro antecede a aula de Teoria das Filas do prof. Leandro e, por isso, apresenta apenas o mínimo de teoria necessário à prática: taxas de chegada e de serviço, utilização, Lei de Little e demanda de serviço. A demonstração percorre o ciclo de simulação, correção e medição sobre o caso da promoção relâmpago, primeiro no JMVA, pela solução analítica, e depois no JSIMgraph, pela simulação, incluindo a falha de uma réplica. A ponderada em sala ocupa sessenta minutos: cada estudante constrói e simula no JMT uma rede de filas e prepara o roteiro do vídeo de até cinco minutos exigido na entrega.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol><li>Daily: estado dos artefatos, atividade prevista e impedimentos — 15 min</li><li>Abertura: do cenário de qualidade à medida obtida por simulação — 5 min</li><li>Mínimo de teoria das filas: λ, μ, utilização, M/M/1, Lei de Little, demanda de serviço e gargalo — 15 min</li><li>Demonstração no JMT: simulação, correção e medição do caso da promoção, com falha de uma réplica — 20 min</li><li>Ponderada em sala: rede de filas no JMT e roteiro do vídeo de até cinco minutos — 60 min</li><li>Encaminhamentos e fechamento: entrega na Adalove e ligação com o artefato Simulação do sistema novo — 5 min</li></ol></div></section></div>
+<!-- encontro:meta:end -->
+<div class="mat-layout">
+    <aside class="mat-sidebar">
+      <nav class="mat-toc" aria-label="Sumário do material">
+        <h2>Neste material</h2>
+        <a href="#leitura">1. Como ler este material <span class="toc-min">1 min</span></a>
+        <a href="#contexto">2. Do cenário de qualidade ao modelo <span class="toc-min">2 min</span></a>
+        <a href="#taxas">3. Chegadas, serviço e utilização <span class="toc-min">2 min</span></a>
+        <a href="#mm1">4. A fila M/M/1 <span class="toc-min">2 min</span></a>
+        <a href="#leis">5. Lei de Little e Lei da Utilização <span class="toc-min">2 min</span></a>
+        <a href="#demanda">6. Demanda de serviço e gargalo <span class="toc-min">2 min</span></a>
+        <a href="#rede">7. Redes abertas de forma-produto <span class="toc-min">2 min</span></a>
+        <a href="#caso">8. O caso da promoção como rede de filas <span class="toc-min">1 min</span></a>
+        <a href="#atual">9. Exemplo resolvido: o modelo atual <span class="toc-min">2 min</span></a>
+        <a href="#prioridade">10. Onde corrigir primeiro <span class="toc-min">1 min</span></a>
+        <a href="#correcao1">11. Correção 1: cache no estoque <span class="toc-min">1 min</span></a>
+        <a href="#correcao2">12. Correção 2: réplicas do estoque <span class="toc-min">1 min</span></a>
+        <a href="#falha">13. Falha de uma réplica no pico <span class="toc-min">1 min</span></a>
+        <a href="#ciclo">14. O ciclo de simulação, correção e medição <span class="toc-min">2 min</span></a>
+        <a href="#jmt">15. Solução analítica e simulação no JMT <span class="toc-min">2 min</span></a>
+        <a href="#jmva">16. Passo a passo no JMVA <span class="toc-min">1 min</span></a>
+        <a href="#jsim">17. Passo a passo no JSIMgraph <span class="toc-min">2 min</span></a>
+        <a href="#validacao">18. Coleta de dados e validação <span class="toc-min">1 min</span></a>
+        <a href="#limites">19. Limites do modelo <span class="toc-min">1 min</span></a>
+        <a href="#ponderada">20. Ponderada em sala <span class="toc-min">3 min</span></a>
+        <a href="#sprint">21. Ligação com a Sprint 2 <span class="toc-min">1 min</span></a>
+        <a href="#autoestudos">22. Autoestudos <span class="toc-min">1 min</span></a>
+        <a href="#verificacao">23. Verificação da leitura <span class="toc-min">1 min</span></a>
+        <a href="#referencias">24. Referências <span class="toc-min">1 min</span></a>
+        <div class="toc-total">Tempo estimado de leitura: 36 minutos.</div>
+      </nav>
+    </aside>
+
+    <main class="mat-article">
+
+      <section class="mat-section" id="leitura">
+        <h2>1. Como ler este material</h2>
+        <p class="lead">O encontro de 03/11 dedica sessenta dos seus cento e vinte minutos à ponderada em sala, de modo que a teoria e a demonstração precisam caber em trinta e cinco minutos. Este material contém, por escrito, tudo o que a exposição condensa, e a leitura prévia das seções 3 a 9 é o que permite acompanhar a demonstração no ritmo previsto.</p>
+        <p>As seções 2 a 7 apresentam o mínimo de teoria das filas usado no encontro: taxas de chegada e de serviço, utilização, a fila M/M/1, a Lei de Little, a Lei da Utilização, a demanda de serviço e o tempo de resposta em uma rede aberta. As seções 8 a 14 resolvem o caso da promoção relâmpago, desde o sistema atual, que viola o cenário de desempenho, até a versão que o atende mesmo com um componente em falha. As seções 15 a 19 tratam da ferramenta JMT, da coleta de parâmetros e da validação do modelo, e as seções 20 a 22 orientam a ponderada, a ligação com o artefato da Sprint 2 e os autoestudos.</p>
+        <p>Todos os números do exemplo foram calculados com as fórmulas apresentadas, e o leitor deve refazer ao menos as contas da seção 9 com calculadora. Essa conferência manual é o mesmo procedimento que, na ponderada, permite reconhecer um resultado do JMT obtido com parâmetro ou unidade errados.</p>
+      </section>
+
+      <section class="mat-section" id="contexto">
+        <h2>2. Do cenário de qualidade ao modelo</h2>
+        <p>Em 27/10, na Aula 2, os grupos escreveram cenários de qualidade em seis partes sobre o caso de uma promoção relâmpago de comércio eletrônico. O caso reúne dois defeitos: a avalanche de acessos simultâneos no início da promoção, que degrada o tempo de resposta, e a venda descasada do estoque, em que o sistema vende unidades que já não existem. O cenário de desempenho fixou a medida de resposta que orienta este encontro, um tempo médio de resposta de até 0,2 s quando a carga é de 40 requisições por segundo.</p>
+        <p>Em 28/10, a aula do prof. Reginaldo tratou da simulação para reproduzir defeitos, aplicada ao sistema atual, que manifesta o defeito, e ao sistema novo, que deve eliminá-lo. O presente encontro dá a esse raciocínio uma forma quantitativa. Uma vez que o sistema novo ainda não existe, a única maneira de verificar antes da implementação se ele atenderá ao cenário consiste em representá-lo por um modelo cujos resultados possam ser calculados e simulados.</p>
+        <p>A descrição oficial do encontro pede que as decisões arquiteturais sejam priorizadas com base nos resultados obtidos por simulação, correção e medição. A sequência dessas três operações organiza a demonstração e a ponderada. Primeiro se simula o sistema como está, depois se aplica a correção indicada pelo resultado e, por fim, mede-se novamente sob a mesma carga, o que revela se a correção funcionou e qual é o próximo ponto de estrangulamento.</p>
+        <div class="callout dark">
+          <div class="callout-label">Escopo teórico do encontro</div>
+          <p>A aula de Teoria das Filas e Redes de Petri do prof. Leandro ocorre em 05/11, depois deste encontro. Por isso, os resultados das seções 3 a 7 são apresentados sem demonstração, apenas na medida em que o cálculo do exemplo e a leitura do JMT os exigem, e serão aprofundados na quinta-feira.</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="taxas">
+        <h2>3. Chegadas, serviço e utilização</h2>
+        <p>Uma rede de filas representa um sistema como um conjunto de estações, cada uma composta por uma fila de espera e por um ou mais servidores. Em um sistema web, uma estação pode corresponder a um processo de aplicação, a um serviço ou a um banco de dados, e as requisições que circulam entre elas são chamadas de clientes ou trabalhos. O comportamento de uma estação isolada depende de duas grandezas, a frequência com que as requisições chegam e o tempo que cada uma ocupa o servidor.</p>
+        <div class="fgrid">
+          <div class="fbox"><span class="fx"><i>λ</i></span><small>Taxa de chegada, em requisições por segundo.</small></div>
+          <div class="fbox"><span class="fx"><i>μ</i> = 1 / <i>S</i></span><small>Taxa de serviço de um servidor, em requisições por segundo.</small></div>
+          <div class="fbox"><span class="fx"><i>ρ</i> = <i>λ</i> / <i>μ</i> = <i>λ</i> · <i>S</i></span><small>Utilização, adimensional, entre 0 e 1.</small></div>
+        </div>
+        <p>Nessas expressões, λ é o número médio de requisições que chegam à estação por unidade de tempo; S é o tempo médio de serviço, isto é, o tempo em que o servidor fica efetivamente ocupado com uma requisição, sem contar a espera; μ é o número máximo de requisições que um servidor consegue atender por unidade de tempo, igual ao inverso de S; e ρ é a fração do tempo em que o servidor permanece ocupado. Todas as grandezas precisam estar na mesma unidade de tempo, e neste material a unidade é sempre o segundo.</p>
+        <p>Tome-se o serviço de estoque do caso, com S = 0,020 s. Sua taxa de serviço é μ = 1/0,020 = 50 req/s, e, ao receber λ = 40 req/s, a utilização resulta em ρ = 40 × 0,020 = 0,80, o que significa que o servidor fica ocupado 80% do tempo. Se a estação recebesse 50 req/s ou mais, a utilização chegaria a 1, e a fila cresceria sem limite enquanto durasse o pico, porque as requisições chegariam mais depressa do que podem ser atendidas. A condição ρ &lt; 1 é, portanto, a condição de estabilidade da estação, e só sob ela faz sentido falar em tempo médio de resposta.</p>
+      </section>
+
+      <section class="mat-section" id="mm1">
+        <h2>4. A fila M/M/1</h2>
+        <p>A notação de Kendall descreve uma estação em três posições: a primeira indica a distribuição dos intervalos entre chegadas, a segunda a distribuição do tempo de serviço e a terceira o número de servidores. A letra M, de markoviano, indica distribuição exponencial, que tem a propriedade de não guardar memória do tempo já decorrido. Uma fila M/M/1 tem, portanto, chegadas de Poisson, tempo de serviço exponencial e um único servidor, e é o modelo mais simples que produz espera por efeito de variabilidade.</p>
+        <div class="fgrid two">
+          <div class="fbox"><span class="fx"><i>R</i> = <i>S</i> / (1 − <i>ρ</i>) = 1 / (<i>μ</i> − <i>λ</i>)</span><small>Tempo médio de resposta: espera na fila mais serviço.</small></div>
+          <div class="fbox"><span class="fx"><i>N</i> = <i>ρ</i> / (1 − <i>ρ</i>)</span><small>Número médio de requisições na estação, em espera ou em serviço.</small></div>
+        </div>
+        <p>O tempo médio de resposta R é o intervalo entre a chegada da requisição à estação e o fim do seu atendimento, e inclui a espera na fila, igual a R − S. A expressão mostra que R cresce de forma não linear com a utilização. Com ρ = 0,50 a resposta vale o dobro do tempo de serviço; com ρ = 0,80, cinco vezes; com ρ = 0,90, dez vezes; e com ρ = 0,96, vinte e cinco vezes. A tabela a seguir aplica esses fatores ao serviço de estoque, com S = 0,020 s.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Utilização ρ</th><th class="n">Fator 1/(1 − ρ)</th><th class="n">R com S = 0,020 s</th><th class="n">Espera R − S</th></tr></thead>
+            <tbody>
+              <tr><td>0,50</td><td class="n">2</td><td class="n">0,040 s</td><td class="n">0,020 s</td></tr>
+              <tr><td>0,80</td><td class="n">5</td><td class="n">0,100 s</td><td class="n">0,080 s</td></tr>
+              <tr><td>0,90</td><td class="n">10</td><td class="n">0,200 s</td><td class="n">0,180 s</td></tr>
+              <tr class="hl"><td>0,96</td><td class="n">25</td><td class="n">0,500 s</td><td class="n">0,480 s</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>O mecanismo por trás da curva é a variabilidade. Mesmo que em média o servidor dê conta da carga, as chegadas se agrupam ao acaso e alguns atendimentos demoram mais que a média, de modo que se forma fila nos intervalos de acúmulo. Quanto mais próxima de 1 estiver a utilização, menos tempo ocioso o servidor tem para esvaziar a fila entre um acúmulo e outro, e a espera passa a dominar o tempo de resposta. Em consequência, uma única estação perto da saturação pode responder sozinha pela maior parte do tempo de resposta de um sistema inteiro, que é exatamente o que ocorre com o banco do caso.</p>
+      </section>
+
+      <section class="mat-section" id="leis">
+        <h2>5. Lei de Little e Lei da Utilização</h2>
+        <p>Duas relações entre médias, conhecidas como leis operacionais, sustentam quase todo o raciocínio de desempenho deste encontro. Elas são chamadas operacionais porque valem para grandezas medidas em um intervalo de observação, sem nenhuma hipótese sobre a distribuição das chegadas ou dos tempos de serviço, e por isso se aplicam tanto ao modelo quanto ao sistema real e às saídas do simulador.</p>
+        <div class="fgrid two">
+          <div class="fbox"><span class="fx"><i>N</i> = <i>X</i> · <i>R</i></span><small>Lei de Little.</small></div>
+          <div class="fbox"><span class="fx"><i>U</i> = <i>X</i> · <i>S</i></span><small>Lei da Utilização.</small></div>
+        </div>
+        <p>Na Lei de Little, N é o número médio de requisições presentes no sistema, X é a vazão, ou seja, o número de requisições concluídas por segundo, e R é o tempo médio que cada uma permanece no sistema. Em um sistema aberto estável, tudo o que entra acaba saindo, de modo que a vazão é igual à taxa de chegada, X = λ. A lei vale para o sistema inteiro e também para cada estação isoladamente. Aplicada ao caso, ela informa que, se o sistema responde em 0,0677 s com 10 req/s, há em média 10 × 0,0677 ≈ 0,68 requisições em curso; com 40 req/s e tempo de resposta de 0,717 s, o número sobe para cerca de 28,7, o que dá forma numérica à expressão acesso simultâneo do título do encontro.</p>
+        <p>Na Lei da Utilização, U é a utilização de uma estação, X é a vazão que essa estação atende e S é o tempo médio de serviço por atendimento. A lei generaliza a relação ρ = λ · S da seção 3 e permite calcular a utilização a partir de grandezas fáceis de medir. No caso, cada compra visita o banco seis vezes, de modo que, com 40 compras por segundo, o banco realiza 6 × 40 = 240 atendimentos por segundo; com 0,004 s por atendimento, a utilização é U = 240 × 0,004 = 0,96.</p>
+        <p>As duas leis servem também como conferência rápida da saída do JMT. Se o simulador informar uma utilização que não coincide com a vazão multiplicada pelo tempo de serviço, ou um número médio de clientes que não coincide com a vazão multiplicada pelo tempo de resposta, o erro está na configuração do modelo ou na leitura do resultado, e a discrepância nada informa sobre o sistema representado.</p>
+      </section>
+
+      <section class="mat-section" id="demanda">
+        <h2>6. Demanda de serviço, gargalo e vazão máxima</h2>
+        <p>Quando uma requisição atravessa várias estações, e algumas mais de uma vez, o tempo de serviço por visita deixa de ser a grandeza relevante. O que importa é o tempo total que a requisição consome de cada estação ao longo de todo o seu percurso, chamado demanda de serviço.</p>
+        <div class="fgrid">
+          <div class="fbox"><span class="fx"><i>D<sub>k</sub></i> = <i>V<sub>k</sub></i> · <i>S<sub>k</sub></i></span><small>Demanda de serviço na estação k.</small></div>
+          <div class="fbox"><span class="fx"><i>X<sub>k</sub></i> = <i>V<sub>k</sub></i> · <i>X</i></span><small>Lei do Fluxo Forçado.</small></div>
+          <div class="fbox"><span class="fx"><i>U<sub>k</sub></i> = <i>X</i> · <i>D<sub>k</sub></i></span><small>Utilização em função da vazão do sistema.</small></div>
+        </div>
+        <p>Nessas expressões, V<sub>k</sub> é o número médio de visitas que uma requisição faz à estação k, S<sub>k</sub> é o tempo médio de serviço por visita, D<sub>k</sub> é a demanda de serviço, X é a vazão do sistema e X<sub>k</sub> é a vazão da estação k. A Lei do Fluxo Forçado afirma que cada estação atende V<sub>k</sub> visitas para cada requisição concluída pelo sistema, e, combinada com a Lei da Utilização, leva a U<sub>k</sub> = X<sub>k</sub> · S<sub>k</sub> = X · V<sub>k</sub> · S<sub>k</sub> = X · D<sub>k</sub>.</p>
+        <p>A última expressão tem uma consequência direta para a arquitetura. Como todas as estações estão submetidas à mesma vazão X, a de maior demanda é a de maior utilização e, portanto, a primeira a atingir U = 1 quando a carga cresce. Essa estação é o gargalo do sistema, e ela fixa a vazão máxima que o sistema suporta.</p>
+        <div class="fgrid two">
+          <div class="fbox"><span class="fx"><i>X</i> ≤ 1 / <i>D</i><sub>máx</sub></span><small>Limite superior da vazão do sistema.</small></div>
+          <div class="fbox"><span class="fx"><i>R</i> ≥ Σ<sub>k</sub> <i>D<sub>k</sub></i></span><small>Limite inferior do tempo de resposta, atingido sem fila.</small></div>
+        </div>
+        <p>No caso, a maior demanda é a do banco, D = 0,024 s, e a vazão máxima é 1/0,024 ≈ 41,7 req/s. Qualquer melhoria em outra estação deixa esse limite intacto, e é por isso que a primeira correção precisa ser escolhida pela demanda e não pelo tempo de serviço por visita, que no banco é justamente o menor dos três. O segundo limite indica que, mesmo sem nenhuma fila, uma requisição do caso nunca responde em menos que 0,010 + 0,020 + 0,024 = 0,054 s.</p>
+      </section>
+
+      <section class="mat-section" id="rede">
+        <h2>7. Redes abertas de forma-produto</h2>
+        <p>Uma rede é aberta quando as requisições chegam de fora, percorrem as estações e deixam o sistema, de modo que o número de requisições presentes varia com a carga. Ela se opõe à rede fechada, em que uma população fixa circula indefinidamente, como os usuários de um sistema interativo que alternam entre pensar e submeter um pedido. A promoção relâmpago é modelada como rede aberta porque a carga é dada pela taxa de chegada de compradores, que independe de quantos já estão no sistema.</p>
+        <p>Jackson (1957) mostrou que, em uma rede aberta com chegadas de Poisson, estações de serviço exponencial com atendimento por ordem de chegada e roteamento probabilístico entre estações, cada estação se comporta como uma fila M/M/1 independente, alimentada pela taxa X<sub>k</sub> = V<sub>k</sub> · λ. Redes com essa propriedade são chamadas de redes de forma-produto, porque a probabilidade conjunta do estado da rede é o produto das probabilidades de cada estação, e o resultado foi estendido a várias classes de clientes e outras disciplinas de atendimento por Baskett, Chandy, Muntz e Palacios (1975).</p>
+        <div class="fgrid two">
+          <div class="fbox"><span class="fx"><i>R<sub>k</sub></i> = <i>D<sub>k</sub></i> / (1 − <i>U<sub>k</sub></i>)</span><small>Tempo de residência na estação k, somadas todas as visitas.</small></div>
+          <div class="fbox"><span class="fx"><i>R</i> = Σ<sub>k</sub> <i>R<sub>k</sub></i> &nbsp;·&nbsp; <i>N</i> = <i>λ</i> · <i>R</i></span><small>Tempo de resposta do sistema e população média.</small></div>
+        </div>
+        <p>O tempo de residência R<sub>k</sub> é o tempo total que uma requisição passa na estação k, somando espera e serviço em todas as visitas. Ele resulta de aplicar a fórmula da M/M/1 a cada visita, S<sub>k</sub>/(1 − U<sub>k</sub>), e multiplicar pelo número de visitas V<sub>k</sub>. Somando as residências obtém-se o tempo de resposta do sistema, e a Lei de Little fornece a população média. São essas três fórmulas, com U<sub>k</sub> = λ · D<sub>k</sub>, que resolvem todo o exemplo deste material.</p>
+        <div class="callout">
+          <div class="callout-label">Validade das fórmulas</div>
+          <p>As hipóteses de Poisson nas chegadas e de serviço exponencial raramente valem com exatidão em um sistema real. Quando não valem, as fórmulas passam a ser aproximações, cuja qualidade precisa ser verificada por simulação com outras distribuições ou por comparação com medidas, tema das seções 18 e 19.</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="caso">
+        <h2>8. O caso da promoção como rede de filas</h2>
+        <p>A compra na promoção atravessa três estações de servidor único. A camada web recebe a requisição e a encaminha ao serviço de estoque, que verifica a disponibilidade e reserva a unidade comprada, e o serviço de estoque consulta e atualiza o banco de dados em seis operações por compra. As chegadas são de Poisson, os tempos de serviço são exponenciais e a rede é aberta, de modo que as fórmulas da seção 7 se aplicam exatamente ao modelo.</p>
+        <div class="card dark" style="padding:12px 16px">
+          <svg class="qnet" viewBox="0 0 860 186" role="img" aria-label="Rede de filas aberta: chegadas de clientes, estação Web, estação Estoque, estação Banco com retorno ao próprio banco com probabilidade cinco sextos e saída do sistema">
+            <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+            <circle class="node" cx="50" cy="90" r="24"/><text class="t1" x="50" y="140" text-anchor="middle">Clientes</text><text class="t2" x="50" y="158" text-anchor="middle">chegada λ</text>
+            <line class="edge" x1="74" y1="90" x2="148" y2="90" marker-end="url(#ah)"/>
+            <rect class="queue" x="150" y="72" width="66" height="36" rx="4"/><line class="edge" x1="172" y1="72" x2="172" y2="108" style="stroke-width:1"/><line class="edge" x1="194" y1="72" x2="194" y2="108" style="stroke-width:1"/>
+            <circle class="srv" cx="243" cy="90" r="24"/><text class="t1" x="208" y="140" text-anchor="middle">Web</text><text class="t2" x="208" y="158" text-anchor="middle">V = 1 · S = 0,010 s · D = 0,010 s</text>
+            <line class="edge" x1="267" y1="90" x2="343" y2="90" marker-end="url(#ah)"/>
+            <rect class="queue" x="345" y="72" width="66" height="36" rx="4"/><line class="edge" x1="367" y1="72" x2="367" y2="108" style="stroke-width:1"/><line class="edge" x1="389" y1="72" x2="389" y2="108" style="stroke-width:1"/>
+            <circle class="srv" cx="438" cy="90" r="24"/><text class="t1" x="403" y="140" text-anchor="middle">Estoque</text><text class="t2" x="403" y="158" text-anchor="middle">V = 1 · S = 0,020 s · D = 0,020 s</text>
+            <line class="edge" x1="462" y1="90" x2="538" y2="90" marker-end="url(#ah)"/>
+            <rect class="queue" x="540" y="72" width="66" height="36" rx="4"/><line class="edge" x1="562" y1="72" x2="562" y2="108" style="stroke-width:1"/><line class="edge" x1="584" y1="72" x2="584" y2="108" style="stroke-width:1"/>
+            <circle class="srv hot" cx="633" cy="90" r="24"/><text class="t1" x="598" y="140" text-anchor="middle">Banco</text><text class="t2" x="598" y="158" text-anchor="middle">V = 6 · S = 0,004 s · D = 0,024 s</text><text class="t3" x="598" y="177" text-anchor="middle">gargalo · vazão máxima 1/0,024 ≈ 41,7 req/s</text>
+            <path class="edge" d="M633 66 C633 18, 573 18, 573 70" marker-end="url(#ah)"/><text class="t2" x="650" y="30">retorno p = 5/6</text>
+            <line class="edge" x1="657" y1="90" x2="764" y2="90" marker-end="url(#ah)"/><text class="t2" x="710" y="80" text-anchor="middle">1/6</text>
+            <circle class="node" cx="790" cy="90" r="24"/><text class="t1" x="790" y="140" text-anchor="middle">Saída</text><text class="t2" x="790" y="158" text-anchor="middle">resposta R</text>
+          </svg>
+        </div>
+        <p class="video-cap">Figura 1. Rede de filas do caso da promoção, com os parâmetros de cada estação. O retorno ao banco representa as seis visitas por requisição.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Estação</th><th class="n">Visitas V</th><th class="n">Serviço por visita S (s)</th><th class="n">Demanda D = V · S (s)</th></tr></thead>
+            <tbody>
+              <tr><td>Web</td><td class="n">1</td><td class="n">0,010</td><td class="n">0,010</td></tr>
+              <tr><td>Serviço de estoque</td><td class="n">1</td><td class="n">0,020</td><td class="n">0,020</td></tr>
+              <tr class="hl"><td>Banco</td><td class="n">6</td><td class="n">0,004</td><td class="n">0,024</td></tr>
+              <tr><td>Soma das demandas</td><td class="n"></td><td class="n"></td><td class="n">0,054</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>As seis visitas ao banco podem ser representadas de duas maneiras equivalentes. Na primeira, o banco recebe uma única visita com tempo de serviço igual à demanda agregada, 0,024 s. Na segunda, que corresponde à Figura 1, cada visita dura 0,004 s e, ao terminar, a requisição volta ao banco com probabilidade p ou sai com probabilidade 1 − p. O número de visitas segue então uma distribuição geométrica cuja média é 1/(1 − p), de modo que seis visitas em média correspondem a 1/(1 − p) = 6, isto é, p = 5/6. Em uma rede de forma-produto, as duas representações produzem as mesmas utilizações e os mesmos tempos médios de residência, porque estes dependem apenas da demanda D.</p>
+      </section>
+
+      <section class="mat-section" id="atual">
+        <h2>9. Exemplo resolvido: o modelo atual</h2>
+        <p>A resolução segue sempre os mesmos quatro passos: calcular a utilização de cada estação por U<sub>k</sub> = λ · D<sub>k</sub>, conferir que todas são menores que 1, calcular cada residência por R<sub>k</sub> = D<sub>k</sub>/(1 − U<sub>k</sub>) e somar as residências para obter R, aplicando em seguida a Lei de Little.</p>
+        <h3>Fora do pico, com 10 req/s</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Estação</th><th class="n">U = 10 · D</th><th class="n">Cálculo de R<sub>k</sub></th><th class="n">R<sub>k</sub> (s)</th></tr></thead>
+            <tbody>
+              <tr><td>Web</td><td class="n">0,10</td><td class="n">0,010 / 0,90</td><td class="n">0,0111</td></tr>
+              <tr><td>Serviço de estoque</td><td class="n">0,20</td><td class="n">0,020 / 0,80</td><td class="n">0,0250</td></tr>
+              <tr><td>Banco</td><td class="n">0,24</td><td class="n">0,024 / 0,76</td><td class="n">0,0316</td></tr>
+              <tr class="ok"><td>Sistema</td><td class="n"></td><td class="n">N = 10 × 0,0677</td><td class="n">R = 0,0677 · N ≈ 0,68</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Com utilizações entre 0,10 e 0,24, as requisições raramente encontram fila, e o tempo de resposta de 0,0677 s fica pouco acima do limite inferior de 0,054 s calculado na seção 6. Um teste de carga conduzido apenas nessa faixa aprovaria o sistema atual sem dizer nada sobre o pico, que é a condição exigida pelo cenário.</p>
+        <h3>No pico, com 40 req/s</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Estação</th><th class="n">U = 40 · D</th><th class="n">Cálculo de R<sub>k</sub></th><th class="n">R<sub>k</sub> (s)</th><th class="n">Parcela de R</th></tr></thead>
+            <tbody>
+              <tr><td>Web</td><td class="n">0,40</td><td class="n">0,010 / 0,60</td><td class="n">0,0167</td><td class="n">2%</td></tr>
+              <tr><td>Serviço de estoque</td><td class="n">0,80</td><td class="n">0,020 / 0,20</td><td class="n">0,100</td><td class="n">14%</td></tr>
+              <tr class="hl"><td>Banco</td><td class="n">0,96</td><td class="n">0,024 / 0,04</td><td class="n">0,600</td><td class="n">84%</td></tr>
+              <tr><td>Sistema</td><td class="n"></td><td class="n">N = 40 × 0,717</td><td class="n">R ≈ 0,717</td><td class="n">N ≈ 28,7</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Com a carga quadruplicada, o tempo de resposta aumenta mais de dez vezes e chega a 0,717 s, o que viola o cenário de 0,2 s por uma margem superior a três vezes e meia. O banco, com utilização de 0,96, responde sozinho por 0,600 s, cerca de 84% do total, e a Lei de Little indica que há em média 28,7 compras em curso, quase todas esperando o banco.</p>
+        <p>Com 45 req/s o modelo deixa de ter solução estável. A utilização do banco seria 45 × 0,024 = 1,08, maior que 1, porque a carga excede a vazão máxima de 41,7 req/s calculada na seção 6. Nessa condição, a fila do banco cresce durante todo o pico, e qualquer tempo médio de resposta lido no simulador depende apenas da duração da simulação, sem representar um estado do sistema.</p>
+      </section>
+
+      <section class="mat-section" id="prioridade">
+        <h2>10. Onde corrigir primeiro</h2>
+        <p>Diante do resultado da seção 9, uma reação comum é atacar o serviço de estoque, que tem o maior tempo de serviço por visita e é a peça de código mais complexa do fluxo. O modelo permite avaliar esse palpite antes de qualquer implementação, comparando-o com a correção dirigida à estação de maior demanda.</p>
+        <p>Considere-se primeiro a replicação do estoque sem cache. Com duas réplicas atrás de um balanceador, cada uma recebe 20 req/s, opera com utilização 20 × 0,020 = 0,40 e apresenta residência 0,020/0,60 = 0,0333 s. O banco, porém, continua recebendo seis visitas por compra e permanece com utilização 0,96 e residência 0,600 s. O tempo de resposta resulta em 0,0167 + 0,0333 + 0,600 = 0,650 s, uma redução de apenas 0,067 s, e o cenário continua violado.</p>
+        <p>Considere-se em seguida um cache no serviço de estoque que atenda parte das consultas sem acessar o banco, reduzindo as visitas de seis para duas por compra. A demanda do banco cai para 2 × 0,004 = 0,008 s, e o tempo de resposta, calculado na seção 11, cai para cerca de 0,128 s. A redução é de 0,589 s, quase nove vezes maior que a da réplica, e o cenário passa a ser atendido.</p>
+        <div class="callout grn">
+          <div class="callout-label">Critério de prioridade</div>
+          <p>A diferença entre as duas alternativas decorre da posição de cada uma em relação ao gargalo. A réplica atua sobre uma estação que contribuía com 14% do tempo de resposta, enquanto o cache atua sobre a que contribuía com 84%. A primeira correção deve ser escolhida pela maior demanda de serviço calculada, porque é ela que limita a vazão e concentra a espera.</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="correcao1">
+        <h2>11. Correção 1: cache no serviço de estoque</h2>
+        <p>Com o cache, o banco passa a V = 2 e D = 0,008 s, enquanto as demais estações permanecem como estavam. A tabela aplica os quatro passos da seção 9 sob a mesma carga de 40 req/s.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Estação</th><th class="n">D (s)</th><th class="n">U = 40 · D</th><th class="n">Cálculo de R<sub>k</sub></th><th class="n">R<sub>k</sub> (s)</th></tr></thead>
+            <tbody>
+              <tr><td>Web</td><td class="n">0,010</td><td class="n">0,40</td><td class="n">0,010 / 0,60</td><td class="n">0,0167</td></tr>
+              <tr class="hl"><td>Serviço de estoque</td><td class="n">0,020</td><td class="n">0,80</td><td class="n">0,020 / 0,20</td><td class="n">0,100</td></tr>
+              <tr><td>Banco (V = 2)</td><td class="n">0,008</td><td class="n">0,32</td><td class="n">0,008 / 0,68</td><td class="n">0,0118</td></tr>
+              <tr class="ok"><td>Sistema</td><td class="n"></td><td class="n"></td><td class="n">N = 40 × 0,128</td><td class="n">R ≈ 0,128 · N ≈ 5,1</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>O tempo de resposta de cerca de 0,128 s atende o cenário, e a população média cai de 28,7 para 5,1 requisições. A nova medição revela, contudo, que o gargalo mudou de lugar. A maior demanda passa a ser a do serviço de estoque, D = 0,020 s, e a vazão máxima sobe de 41,7 para 1/0,020 = 50 req/s.</p>
+        <p>A margem obtida é estreita. O estoque opera com utilização 0,80, e a vazão máxima fica apenas 25% acima da carga do cenário, de modo que um pico um pouco maior que o previsto voltaria a elevar rapidamente o tempo de resposta, conforme a curva da seção 4. Além disso, o estoque continua sendo uma instância única, e sua falha interrompe a compra. As duas observações justificam uma segunda iteração do ciclo, agora dirigida ao novo gargalo.</p>
+      </section>
+
+      <section class="mat-section" id="correcao2">
+        <h2>12. Correção 2: cache e réplicas do estoque</h2>
+        <p>Mantido o cache, a segunda correção acrescenta uma réplica do serviço de estoque e um balanceador que distribui as compras igualmente entre as duas. Cada requisição passa por apenas uma réplica, e cada réplica recebe 20 req/s.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Estação</th><th class="n">Carga</th><th class="n">U</th><th class="n">Cálculo de R<sub>k</sub></th><th class="n">R<sub>k</sub> (s)</th></tr></thead>
+            <tbody>
+              <tr><td>Web</td><td class="n">40 req/s</td><td class="n">0,40</td><td class="n">0,010 / 0,60</td><td class="n">0,0167</td></tr>
+              <tr><td>Réplica A do estoque</td><td class="n">20 req/s</td><td class="n">0,40</td><td class="n">0,020 / 0,60</td><td class="n">0,0333</td></tr>
+              <tr><td>Réplica B do estoque</td><td class="n">20 req/s</td><td class="n">0,40</td><td class="n">0,020 / 0,60</td><td class="n">0,0333</td></tr>
+              <tr><td>Banco (V = 2)</td><td class="n">40 req/s</td><td class="n">0,32</td><td class="n">0,008 / 0,68</td><td class="n">0,0118</td></tr>
+              <tr class="ok"><td>Sistema</td><td class="n"></td><td class="n"></td><td class="n">N = 40 × 0,0618</td><td class="n">R ≈ 0,0618 · N ≈ 2,47</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Como cada requisição atravessa a web, uma das réplicas e o banco, o tempo de resposta inclui uma única réplica e vale 0,0167 + 0,0333 + 0,0118 ≈ 0,0618 s. Em termos de demanda por requisição do sistema, cada réplica é visitada por metade das compras, isto é, V = 0,5, e sua demanda é 0,5 × 0,020 = 0,010 s, igual à da web. A vazão máxima passa a 1/0,010 = 100 req/s, e o gargalo é compartilhado pela web e pelas réplicas.</p>
+        <p>A segunda correção reduz o tempo de resposta à metade em relação à primeira e dobra a vazão máxima. Mais importante para o título do encontro, ela introduz redundância no serviço de estoque, cuja consequência é examinada na seção seguinte.</p>
+      </section>
+
+      <section class="mat-section" id="falha">
+        <h2>13. Falha de uma réplica no pico</h2>
+        <p>A expressão tolerância a falhas e acesso simultâneo, no título do encontro, é lida aqui como uma pergunta verificável: o cenário de desempenho continua atendido se um componente falhar justamente durante o pico de acessos simultâneos? A pergunta é relevante porque, em uma promoção relâmpago, a carga máxima é também o momento em que a falha de um componente sobrecarregado é mais provável e mais custosa.</p>
+        <p>Suponha-se que a réplica B do estoque caia com a promoção em curso. O balanceador passa a enviar todas as 40 req/s à réplica A, que volta à utilização 40 × 0,020 = 0,80 e à residência 0,020/0,20 = 0,100 s. A web e o banco não se alteram.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Estação com a réplica B fora</th><th class="n">U</th><th class="n">R<sub>k</sub> (s)</th></tr></thead>
+            <tbody>
+              <tr><td>Web</td><td class="n">0,40</td><td class="n">0,0167</td></tr>
+              <tr class="hl"><td>Réplica A, com 40 req/s</td><td class="n">0,80</td><td class="n">0,100</td></tr>
+              <tr><td>Banco (V = 2)</td><td class="n">0,32</td><td class="n">0,0118</td></tr>
+              <tr class="ok"><td>Sistema</td><td class="n"></td><td class="n">R ≈ 0,128</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>O sistema retorna exatamente ao estado da Correção 1, com tempo de resposta de cerca de 0,128 s, ainda dentro do cenário. A falha degrada o desempenho, que passa de 0,0618 s para 0,128 s, mas não o leva à violação. Com a Correção 1 isolada, ao contrário, não existe réplica sobrevivente, e a falha da única instância do estoque torna a compra indisponível durante o pico.</p>
+        <p>O resultado mostra que a segunda réplica cumpre duas funções que o modelo permite distinguir e quantificar. Com as duas réplicas em operação, ela dobra a vazão máxima e reduz o tempo de resposta; com uma delas em falha, ela preserva o atendimento ao cenário. A justificativa arquitetural da Correção 2 combina, portanto, desempenho e disponibilidade, e o modelo fornece o número que sustenta cada parte dessa justificativa.</p>
+      </section>
+
+      <section class="mat-section" id="ciclo">
+        <h2>14. O ciclo de simulação, correção e medição</h2>
+        <p>A tabela reúne as versões do modelo examinadas nas seções anteriores, todas avaliadas sob a mesma carga de 40 req/s e com as mesmas métricas. É essa uniformidade que torna as linhas comparáveis entre si e que permite atribuir cada diferença à mudança feita no modelo.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Versão do modelo</th><th class="n">R (s)</th><th class="n">N</th><th>Gargalo</th><th class="n">Vazão máxima</th><th>Cenário de 0,2 s</th></tr></thead>
+            <tbody>
+              <tr><td>Sistema atual</td><td class="n">0,717</td><td class="n">28,7</td><td>Banco, D = 0,024 s</td><td class="n">41,7 req/s</td><td>violado</td></tr>
+              <tr><td>Duas réplicas do estoque, sem cache</td><td class="n">0,650</td><td class="n">26,0</td><td>Banco, D = 0,024 s</td><td class="n">41,7 req/s</td><td>violado</td></tr>
+              <tr><td>Correção 1: cache</td><td class="n">0,128</td><td class="n">5,1</td><td>Estoque, D = 0,020 s</td><td class="n">50 req/s</td><td>atendido</td></tr>
+              <tr class="ok"><td>Correção 2: cache e duas réplicas</td><td class="n">0,0618</td><td class="n">2,47</td><td>Web e réplicas, D = 0,010 s</td><td class="n">100 req/s</td><td>atendido</td></tr>
+              <tr><td>Correção 2 com uma réplica em falha</td><td class="n">0,128</td><td class="n">5,1</td><td>Estoque, D = 0,020 s</td><td class="n">50 req/s</td><td>atendido</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>O percurso ilustra a lição central do encontro. A simulação do sistema atual identificou o banco como gargalo; a correção foi escolhida por atuar sobre ele, embora o maior tempo de serviço por visita fosse o do estoque; e a nova medição revelou o gargalo seguinte, que orientou a segunda iteração. A alternativa intuitiva, replicar o estoque antes de tratar o banco, aparece na segunda linha e mostra o custo de inverter a ordem: o investimento em infraestrutura reduziria o tempo de resposta em menos de 10%.</p>
+        <div class="trace">
+          <div>Simular o sistema atual</div><div>Localizar a maior demanda</div><div>Aplicar a correção</div><div>Medir sob a mesma carga</div><div>Repetir sobre o novo gargalo</div>
+        </div>
+        <p>As três operações que a descrição oficial do encontro enumera, simulação, correção e medição, formam assim um ciclo que se repete até que o cenário seja atendido com a margem e a tolerância a falhas desejadas. Cada volta do ciclo produz uma evidência quantitativa que justifica a decisão arquitetural seguinte, e é essa sequência de evidências que o artefato da Sprint 2 pede para registrar.</p>
+      </section>
+
+      <section class="mat-section" id="jmt">
+        <h2>15. Solução analítica e simulação no JMT</h2>
+        <p>O Java Modelling Tools, ou JMT, é um conjunto gratuito e de código aberto de ferramentas para modelagem de desempenho por redes de filas, descrito por Bertoli, Casale e Serazzi (2009). Por ser escrito em Java, é distribuído como arquivo <code>.jar</code> e roda em qualquer sistema operacional com uma máquina virtual Java instalada. Duas de suas ferramentas são usadas neste encontro, o JMVA e o JSIMgraph, que obtêm as métricas do mesmo modelo por caminhos diferentes.</p>
+        <p>O JMVA resolve o modelo analiticamente. O nome vem de Mean Value Analysis, o algoritmo de análise do valor médio proposto por Reiser e Lavenberg (1980) para redes fechadas. Em redes abertas de forma-produto, a solução coincide com as fórmulas da seção 7. O usuário descreve a rede como uma lista de estações com suas demandas de serviço, sem desenho, e recebe valores médios exatos para aquele modelo, em fração de segundo. A ferramenta oferece ainda uma análise What-if, que repete a solução variando um parâmetro, como a taxa de chegada, e apresenta as métricas em função dele.</p>
+        <p>O JSIMgraph simula o modelo por eventos discretos. A rede é desenhada com fonte, estações, ligações e saída, e o simulador gera, com números pseudoaleatórios, uma sequência de chegadas e de atendimentos a partir da qual estima as métricas pedidas. Cada estimativa vem acompanhada de um intervalo de confiança, porque resulta de uma amostra, e o período inicial da simulação, em que o sistema parte vazio e ainda não atingiu o regime, é descartado para não distorcer as médias. Em compensação, o simulador admite distribuições, disciplinas e roteamentos que violam as hipóteses de forma-produto e que o JMVA não resolve.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Aspecto</th><th>JMVA</th><th>JSIMgraph</th></tr></thead>
+            <tbody>
+              <tr><td>Método</td><td>Solução analítica por análise do valor médio</td><td>Simulação de eventos discretos</td></tr>
+              <tr><td>Entrada</td><td>Lista de estações, demandas ou tempos de serviço e visitas</td><td>Rede desenhada com componentes e ligações</td></tr>
+              <tr><td>Resultado</td><td>Médias exatas para o modelo</td><td>Estimativas com intervalo de confiança</td></tr>
+              <tr><td>Hipóteses</td><td>Forma-produto</td><td>Distribuições e roteamentos gerais</td></tr>
+              <tr><td>Uso no encontro</td><td>Valores de referência e curva What-if</td><td>Simulação do modelo, das correções e da falha</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout dark">
+          <div class="callout-label">Comparação como validação</div>
+          <p>Com o mesmo modelo exponencial, os valores simulados devem ficar próximos dos analíticos, e os intervalos de confiança devem conter o valor do JMVA na maior parte das métricas. Essa comparação valida a construção do modelo no simulador. Uma diferença grande indica, antes de qualquer conclusão sobre o sistema, um erro de parâmetro, de unidade ou de roteamento.</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="jmva">
+        <h2>16. Passo a passo no JMVA</h2>
+        <p>A demonstração começa pela solução analítica, porque ela fornece em segundos os valores que a simulação precisará reproduzir. Os passos abaixo descrevem as operações, e os rótulos exatos das telas podem variar entre versões da ferramenta.</p>
+        <ol class="steps">
+          <li>Baixe o JMT no site oficial, execute o arquivo <code>.jar</code> e, na janela inicial, escolha o JMVA.</li>
+          <li>Declare uma classe de clientes do tipo aberto e informe a taxa de chegada λ = 40 req/s.</li>
+          <li>Cadastre três estações de fila com servidor único, nomeadas Web, Estoque e Banco.</li>
+          <li>Informe as demandas de serviço: 0,010 s na Web, 0,020 s no Estoque e 0,024 s no Banco. Se preferir a forma de tempos de serviço e visitas, informe S = 0,004 s e V = 6 no Banco, e a ferramenta calcula a demanda.</li>
+          <li>Resolva o modelo e leia, para cada estação, a utilização, o tempo de residência e o número médio de clientes, e, para o sistema, o tempo de resposta.</li>
+          <li>Na análise What-if, varie a taxa de chegada de 10 a 41 req/s e observe a curva do tempo de resposta em função da carga.</li>
+          <li>Repita a solução com o banco em D = 0,008 s, que representa a Correção 1, e compare os resultados.</li>
+        </ol>
+        <p>No passo 5 devem aparecer as utilizações de 0,40, 0,80 e 0,96, o tempo de resposta próximo de 0,717 s e cerca de 28,7 clientes no sistema. A curva do passo 6 passa de 0,0677 s com 10 req/s para 0,150 s com 30 req/s, cruza o limite de 0,2 s entre 33 e 34 req/s e torna-se quase vertical perto de 41,7 req/s. O intervalo termina em 41 porque, a partir de 41,7 req/s, o modelo não tem solução estável.</p>
+      </section>
+
+      <section class="mat-section" id="jsim">
+        <h2>17. Passo a passo no JSIMgraph</h2>
+        <p>No JSIMgraph, a mesma rede é desenhada com os componentes do editor. Como na seção anterior, os passos descrevem as operações e os rótulos podem variar entre versões.</p>
+        <h3>Construção da rede</h3>
+        <ol class="steps">
+          <li>Escolha o JSIMgraph na janela inicial do JMT e posicione, da esquerda para a direita, um Source, três Queue e um Sink.</li>
+          <li>Nomeie as estações como Web, Estoque e Banco e ligue os componentes em sequência: Source, Web, Estoque, Banco e Sink.</li>
+          <li>Defina uma classe de clientes aberta, associada ao Source, com tempo entre chegadas exponencial de taxa λ = 40 req/s, o que corresponde a uma média de 0,025 s entre chegadas.</li>
+          <li>Em cada Queue, mantenha um servidor e defina tempo de serviço exponencial com média de 0,010 s na Web e de 0,020 s no Estoque.</li>
+          <li>Represente as seis visitas ao Banco por uma das duas formas descritas a seguir.</li>
+        </ol>
+        <p>Na representação por demanda agregada, o Banco recebe uma única visita com tempo de serviço exponencial de média 0,024 s. É a forma mais simples, e, no modelo de forma-produto, produz as mesmas utilizações e os mesmos tempos médios de residência da forma detalhada. Na representação por roteamento probabilístico, o Banco recebe tempo de serviço de média 0,004 s e, na sua seção de roteamento, a estratégia probabilística envia a requisição de volta ao próprio Banco com probabilidade 5/6 e ao Sink com probabilidade 1/6, o que produz em média 1/(1 − 5/6) = 6 visitas. Se a versão em uso não permitir ligar a estação a ela mesma, adote a demanda agregada e declare essa escolha no vídeo.</p>
+        <h3>Métricas, execução e leitura</h3>
+        <ol class="steps" style="counter-reset:step 5">
+          <li>Defina as métricas antes de executar: tempo de resposta do sistema e, por estação, utilização, tempo de resposta e número de clientes.</li>
+          <li>Execute a simulação. O simulador encerra quando as estimativas atingem a precisão pedida nos parâmetros de simulação ou quando alcança o número máximo de amostras.</li>
+          <li>Leia cada métrica com o seu intervalo de confiança e compare com o valor do JMVA.</li>
+          <li>Altere o modelo para a correção desejada, mantendo carga, distribuições e métricas, e simule novamente.</li>
+          <li>Para representar a falha de uma réplica na Correção 2, remova a réplica ou desvie para a outra todo o tráfego que o balanceador lhe enviava, e meça a degradação.</li>
+        </ol>
+        <p>Na Correção 2, o balanceador pode ser representado por roteamento probabilístico na saída da Web, com probabilidade 1/2 para cada réplica, e as duas réplicas se ligam ao Banco. Na falha, a probabilidade da réplica restante passa a 1.</p>
+        <div class="callout">
+          <div class="callout-label">Simulação perto da saturação</div>
+          <p>Com o banco a 0,96 de utilização, as amostras sucessivas do tempo de resposta são fortemente correlacionadas, a simulação demora a convergir e o intervalo de confiança tende a ficar largo. Por isso, recomenda-se validar o modelo primeiro com 10 req/s, em que a convergência é rápida e a comparação com o JMVA é direta, e só depois simular o pico.</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="validacao">
+        <h2>18. Coleta de dados e validação do modelo</h2>
+        <p>No exemplo, os parâmetros foram dados prontos. No projeto, eles precisam ser obtidos do sistema, e um modelo só sustenta uma decisão arquitetural depois de comparado com medidas do sistema que pretende representar. Os autoestudos Coleta de Dados para Simulação e Validação de Modelos de Simulação tratam dessas duas etapas.</p>
+        <p>A taxa de chegada pode ser estimada pela contagem de requisições por intervalo nos logs de acesso, ou fixada pela carga aplicada em um teste de carga. O tempo de serviço de cada componente e o número de visitas ao banco por requisição saem da instrumentação do código, por exemplo do registro do tempo gasto em cada chamada e do número de consultas emitidas por requisição. Quando os componentes ainda não existem, como no sistema novo, os parâmetros são estimativas, e a origem de cada uma precisa ser declarada.</p>
+        <p>A distribuição das chegadas também precisa ser conferida. A hipótese de Poisson implica intervalos entre chegadas exponenciais, e a forma de verificá-la é registrar esses intervalos e compará-los com a distribuição exponencial de mesma média. Chegadas em rajada, comuns no início de uma promoção, têm variabilidade maior que a exponencial e produzem filas maiores que as previstas pelo modelo; serviços muito regulares produzem o efeito contrário.</p>
+        <p>A validação compara o modelo com o sistema sob a mesma carga. Se, aplicada uma carga conhecida, as utilizações e o tempo de resposta medidos ficarem próximos dos previstos, o modelo representa o sistema atual com fidelidade suficiente para que suas previsões sobre o sistema novo tenham valor de evidência. Se não ficarem, o modelo precisa ser revisto antes de ser usado para decidir.</p>
+      </section>
+
+      <section class="mat-section" id="limites">
+        <h2>19. Limites do modelo</h2>
+        <p>Todo resultado deste material vale para o modelo, e a passagem do modelo para o sistema depende de hipóteses que a análise crítica da ponderada deve declarar. A primeira é a das distribuições exponenciais, que, como discutido na seção 18, pode subestimar ou superestimar a espera conforme a variabilidade real das chegadas e dos atendimentos.</p>
+        <p>A segunda é a independência entre as estações. O modelo supõe que o banco atende cada visita em tempo que não depende do estado das outras requisições, o que ignora, por exemplo, a contenção por bloqueios quando várias compras atualizam o mesmo item de estoque, situação típica da promoção relâmpago. Esse efeito eleva o tempo de serviço justamente no pico e não aparece em um modelo de demanda constante.</p>
+        <p>A terceira é o regime estacionário. As fórmulas descrevem médias de longo prazo sob carga constante, enquanto a promoção produz um pico de curta duração a partir de um sistema quase vazio. Em um pico breve, a fila pode não chegar a se formar por completo, ou, quando λ supera a vazão máxima, crescer durante todo o intervalo sem atingir regime. Por fim, o cache da Correção 1 foi representado apenas pela redução de visitas ao banco, sem modelar a taxa de acerto, a invalidação nem a consistência com o estoque real, que se relaciona com o defeito de venda descasada do caso.</p>
+      </section>
+
+      <section class="mat-section" id="ponderada">
+        <h2>20. Ponderada em sala</h2>
+        <p>A ponderada do encontro é individual, tem peso 3 e ocupa os sessenta minutos centrais da aula. A entrega é feita na Adalove, no prazo ali registrado.</p>
+        <div class="callout dark">
+          <div class="callout-label">Enunciado</div>
+          <p>Faça a simulação de uma rede de filas no software JMT. Grave um vídeo de até 5 minutos descrevendo o modelo de rede de filas construído, como realizou a simulação e uma análise dos resultados da simulação.</p>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th class="n">Pontos</th><th>Critério da rubrica</th><th>O que o vídeo precisa mostrar</th></tr></thead>
+            <tbody>
+              <tr><td class="n">3,0</td><td>Descrição do modelo de rede de filas construído</td><td>Estações e ligações, classe de clientes, taxa de chegada, tempos de serviço e visitas, com a origem de cada parâmetro.</td></tr>
+              <tr><td class="n">3,0</td><td>Explicação objetiva de como realizou a simulação</td><td>Ferramentas usadas, distribuições, métricas pedidas, critério de parada e versões do modelo simuladas.</td></tr>
+              <tr><td class="n">4,0</td><td>Análise crítica sobre os resultados da simulação</td><td>Gargalo, comparação entre analítico e simulado, efeito de uma correção e limites do modelo.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>O que modelar</h3>
+        <p>Recomenda-se modelar o fluxo crítico do sistema do próprio projeto, isto é, a requisição de maior importância para o parceiro, representada pelas estações que ela atravessa. Essa escolha adianta o artefato Simulação do sistema novo da Sprint 2, descrito na seção 21, porque o modelo do sistema atual construído hoje será revisado e comparado ao do sistema novo. Na falta de parâmetros medidos, use estimativas e declare de onde saiu cada número. Como alternativa, é aceito o caso da promoção com outros parâmetros, como outra taxa de chegada, outro número de visitas ao banco ou outra correção, desde que os resultados sejam recalculados e não copiados deste material.</p>
+        <h3>Uso dos sessenta minutos</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Intervalo</th><th>Atividade</th></tr></thead>
+            <tbody>
+              <tr><td class="time">0–15 min</td><td>Desenhar a rede em papel, definir estações, visitas e tempos de serviço e calcular à mão as demandas e o gargalo.</td></tr>
+              <tr><td class="time">15–35 min</td><td>Resolver o modelo no JMVA e simulá-lo no JSIMgraph, registrando valores e intervalos de confiança.</td></tr>
+              <tr><td class="time">35–50 min</td><td>Aplicar uma correção dirigida ao gargalo e medir novamente sob a mesma carga.</td></tr>
+              <tr><td class="time">50–60 min</td><td>Escrever o roteiro do vídeo e preparar as telas que serão gravadas.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>Roteiro do vídeo</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Tempo</th><th>Bloco</th><th>Conteúdo</th></tr></thead>
+            <tbody>
+              <tr><td class="time">0:00–1:00</td><td>Modelo</td><td>Sistema representado, estações e ligações, classe aberta, λ, S, V e D de cada estação, e origem dos parâmetros.</td></tr>
+              <tr><td class="time">1:00–2:30</td><td>Simulação</td><td>Configuração no JMT, distribuições, métricas, critério de parada, versões simuladas e solução analítica usada como referência.</td></tr>
+              <tr><td class="time">2:30–5:00</td><td>Análise</td><td>Gargalo, comparação entre analítico e simulado, efeito medido da correção e limites do modelo.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>O que conta como análise crítica</h3>
+        <p>O critério de maior peso exige interpretar os números, isto é, dizer o que eles indicam sobre o sistema e até onde o modelo autoriza essa conclusão. Uma análise crítica contém, no mínimo, os quatro elementos abaixo.</p>
+        <ul class="checklist">
+          <li>O gargalo identificado pela maior demanda de serviço, com o valor de D e a vazão máxima que dele decorre.</li>
+          <li>A comparação entre os resultados analíticos do JMVA e os simulados no JSIMgraph, com o intervalo de confiança e a explicação de eventuais diferenças.</li>
+          <li>O efeito de ao menos uma correção, medido sob a mesma carga e com as mesmas métricas, incluindo o novo gargalo.</li>
+          <li>Os limites do modelo, em especial a hipótese de distribuições exponenciais, a origem dos parâmetros e os efeitos que o modelo não representa.</li>
+        </ul>
+        <h3>Erros comuns</h3>
+        <ul>
+          <li>Misturar milissegundos e segundos entre estações, o que produz utilizações mil vezes maiores ou menores que as reais.</li>
+          <li>Informar o tempo de serviço por visita onde a ferramenta espera a demanda, ou o contrário, perdendo o efeito das visitas repetidas.</li>
+          <li>Simular com taxa de chegada acima de 1/D<sub>máx</sub> e apresentar o resultado como tempo médio de resposta do sistema.</li>
+          <li>Apresentar um valor simulado sem o intervalo de confiança, ou um intervalo que não contém o valor analítico sem comentar a diferença.</li>
+          <li>Comparar versões do modelo sob cargas ou métricas diferentes.</li>
+          <li>Narrar as telas do JMT sem interpretar os números, o que atende aos dois primeiros critérios e deixa o terceiro sem evidência.</li>
+          <li>Ultrapassar os cinco minutos do vídeo.</li>
+        </ul>
+      </section>
+
+      <section class="mat-section" id="sprint">
+        <h2>21. Ligação com o artefato da Sprint 2</h2>
+        <p>O artefato Simulação do sistema novo, de peso 3, pede que o grupo revise o modelo do sistema atual e construa o modelo do sistema novo, aplicando aos dois os mesmos cenários, a mesma massa de dados e as mesmas métricas. A entrega deve evidenciar as diferenças nos resultados e na estrutura entre os dois sistemas, explicadas pelas táticas arquiteturais adotadas e não apenas por mudança de parâmetros. O registro é feito no arquivo <code>Projeto.md</code>, na pasta <code>docs</code> do repositório, com os modelos versionados, e o JMT pode ser usado como ferramenta.</p>
+        <p>O exemplo deste material segue exatamente essa lógica. A Correção 2 difere do sistema atual na estrutura, porque acrescenta um cache e uma réplica com balanceador, e cada diferença de resultado é atribuída a uma tática identificada: o cache reduz as visitas ao banco, e a réplica divide a carga do estoque e tolera a falha de uma instância. Uma comparação em que o sistema novo apenas recebesse tempos de serviço menores, sem mudança estrutural que os justificasse, não atenderia ao critério do artefato.</p>
+        <p>Os próximos encontros completam o percurso. Em 04/11, a Aula 4 trata das táticas arquiteturais de disponibilidade, desempenho e segurança e dos testes não funcionais que confirmam o efeito previsto no modelo. Em 05/11, a aula de Teoria das Filas e Redes de Petri do prof. Leandro aprofunda os resultados usados aqui.</p>
+      </section>
+
+      <section class="mat-section" id="autoestudos">
+        <h2>22. Autoestudos</h2>
+        <p>Os sete autoestudos do encontro são obrigatórios e somam cerca de 118 minutos. As três lições em vídeo do JMT executam, em um modelo de estação única, as mesmas operações demonstradas em sala, e são a preparação mais direta para a ponderada.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Autoestudo</th><th>Relação com o encontro</th><th class="n">Duração</th></tr></thead>
+            <tbody>
+              <tr><td><a href="https://www.youtube.com/watch?v=RU04ZrmCPb4&amp;list=PLxI8Can9yAHcn4b7BuUgRQOJkABuYfHYN&amp;index=12" target="_blank" rel="noopener noreferrer">Coleta de Dados para Simulação</a></td><td>Obtenção das taxas e das distribuições que alimentam o modelo, seção 18.</td><td class="n">22 min</td></tr>
+              <tr><td><a href="https://www.youtube.com/watch?v=QZ7bz_rgNmk&amp;list=PLxI8Can9yAHcn4b7BuUgRQOJkABuYfHYN&amp;index=25" target="_blank" rel="noopener noreferrer">Validação de Modelos de Simulação</a></td><td>Comparação do modelo com o sistema real, seções 18 e 19.</td><td class="n">17 min</td></tr>
+              <tr><td><a href="https://www.youtube.com/watch?v=kR_-by3u8JM&amp;list=PL5yYxD_4CokRTQt-cI2y5m3m-p3FhUsSe" target="_blank" rel="noopener noreferrer">JMT Lecture: Introduction to queueing modelling and JMT</a></td><td>Introdução à modelagem por filas e à ferramenta, seção 15.</td><td class="n">14 min</td></tr>
+              <tr><td><a href="https://www.youtube.com/watch?v=MSQvBro1RIY&amp;list=PL5yYxD_4CokRTQt-cI2y5m3m-p3FhUsSe&amp;index=3" target="_blank" rel="noopener noreferrer">JMT Lecture: A single-station open model with JMVA</a></td><td>Modelo aberto de uma estação resolvido no JMVA, seção 16.</td><td class="n">10 min</td></tr>
+              <tr><td><a href="https://www.youtube.com/watch?v=uzc6irO_xA8&amp;list=PL5yYxD_4CokRTQt-cI2y5m3m-p3FhUsSe&amp;index=4" target="_blank" rel="noopener noreferrer">JMT Lecture: A single station open model with JSIMgraph</a></td><td>Modelo aberto de uma estação simulado no JSIMgraph, seção 17.</td><td class="n">17 min</td></tr>
+              <tr><td><a href="https://jmt.sourceforge.net/" target="_blank" rel="noopener noreferrer">Site do JMT (download e manual)</a></td><td>Instalação da ferramenta e consulta ao manual.</td><td class="n">20 min</td></tr>
+              <tr><td><a href="https://www.youtube.com/watch?v=d1-u_ey1_ls&amp;list=PLxI8Can9yAHcn4b7BuUgRQOJkABuYfHYN&amp;index=27" target="_blank" rel="noopener noreferrer">Exemplo de Cabeleireiro</a></td><td>Avaliação de um fluxo por simulação.</td><td class="n">18 min</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Recomenda-se instalar o JMT e assistir às três lições em vídeo antes do encontro, porque a ponderada não reserva tempo para instalação. Quem não conseguir executar o arquivo <code>.jar</code> deve verificar a instalação do Java antes de 03/11.</p>
+      </section>
+
+      <section class="mat-section" id="verificacao">
+        <h2>23. Verificação da leitura</h2>
+        <p>Os itens abaixo servem de autoavaliação antes do encontro. Marque cada um quando conseguir realizá-lo sem consultar o texto.</p>
+        <ul class="checklist interactive" id="checklist">
+          <li>Calcular a utilização de uma estação a partir de λ e S e dizer se ela é estável.</li>
+          <li>Explicar por que o tempo de resposta de uma M/M/1 quintuplica entre ρ = 0,80 e ρ = 0,96.</li>
+          <li>Aplicar a Lei de Little para obter o número médio de requisições em curso.</li>
+          <li>Calcular a demanda de serviço de uma estação visitada várias vezes por requisição.</li>
+          <li>Identificar o gargalo e a vazão máxima de uma rede a partir das demandas.</li>
+          <li>Refazer à mão a tabela de 40 req/s da seção 9.</li>
+          <li>Justificar, com números, por que o cache vem antes da réplica no caso da promoção.</li>
+          <li>Explicar por que a Correção 2 atende ao cenário mesmo com uma réplica em falha.</li>
+          <li>Distinguir o que o JMVA e o JSIMgraph entregam e por que a comparação entre eles valida o modelo.</li>
+          <li>Representar seis visitas ao banco por demanda agregada e por retorno com p = 5/6.</li>
+          <li>Enumerar ao menos três limites do modelo do caso.</li>
+        </ul>
+      </section>
+
+      <section class="mat-section" id="referencias">
+        <h2>24. Referências</h2>
+        <ul>
+          <li>BASKETT, F.; CHANDY, K. M.; MUNTZ, R. R.; PALACIOS, F. G. Open, closed, and mixed networks of queues with different classes of customers. <em>Journal of the ACM</em>, v. 22, n. 2, p. 248–260, 1975.</li>
+          <li>BASS, L.; CLEMENTS, P.; KAZMAN, R. <em>Software Architecture in Practice</em>. 4. ed. Boston: Addison-Wesley, 2021. Cap. 9, Performance.</li>
+          <li>BERTOLI, M.; CASALE, G.; SERAZZI, G. JMT: performance engineering tools for system modeling. <em>ACM SIGMETRICS Performance Evaluation Review</em>, v. 36, n. 4, p. 10–15, 2009.</li>
+          <li>DENNING, P. J.; BUZEN, J. P. The operational analysis of queueing network models. <em>ACM Computing Surveys</em>, v. 10, n. 3, p. 225–261, 1978.</li>
+          <li>JACKSON, J. R. Networks of waiting lines. <em>Operations Research</em>, v. 5, n. 4, p. 518–521, 1957.</li>
+          <li>LAZOWSKA, E. D.; ZAHORJAN, J.; GRAHAM, G. S.; SEVCIK, K. C. <em>Quantitative System Performance: computer system analysis using queueing network models</em>. Englewood Cliffs: Prentice-Hall, 1984.</li>
+          <li>LITTLE, J. D. C. A proof for the queuing formula L = λW. <em>Operations Research</em>, v. 9, n. 3, p. 383–387, 1961.</li>
+          <li>MENASCÉ, D. A.; ALMEIDA, V. A. F.; DOWDY, L. W. <em>Performance by Design: computer capacity planning by example</em>. Upper Saddle River: Prentice Hall, 2004.</li>
+          <li>REISER, M.; LAVENBERG, S. S. Mean-value analysis of closed multichain queuing networks. <em>Journal of the ACM</em>, v. 27, n. 2, p. 313–322, 1980.</li>
+          <li>JMT: Java Modelling Tools. Site oficial, com download e manual. <a href="https://jmt.sourceforge.net/" target="_blank" rel="noopener noreferrer">jmt.sourceforge.net</a>.</li>
+        </ul>
+      </section>
+
+    </main>
+  </div>
+
+  <footer class="inteli-footer">
+    <p>Material criado pelo professor <strong>Afonso Brandão</strong> para o <strong>Inteli</strong>.</p>
+    <small>Licença de leitura aberta.</small>
+  </footer>
+
+  <script>
+    const progress = document.getElementById('progress-bar');
+    const floatNav = document.getElementById('float-nav');
+    const header = document.querySelector('.mat-header');
+    const tocLinks = Array.from(document.querySelectorAll('.mat-toc a'));
+    const sections = tocLinks.map((link) => document.querySelector(link.getAttribute('href'))).filter(Boolean);
+    function updateReadingState() {
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+      progress.style.width = `${scrollable > 0 ? (window.scrollY / scrollable) * 100 : 0}%`;
+      floatNav.classList.toggle('visible', window.scrollY > header.offsetHeight * 0.7);
+      let activeId = sections[0] ? sections[0].id : '';
+      sections.forEach((section) => { if (section.getBoundingClientRect().top <= 150) activeId = section.id; });
+      tocLinks.forEach((link) => link.classList.toggle('active', link.getAttribute('href') === `#${activeId}`));
+    }
+    document.addEventListener('scroll', updateReadingState, { passive:true });
+    updateReadingState();
+    document.querySelectorAll('.checklist.interactive li').forEach((item) => {
+      item.addEventListener('click', () => item.classList.toggle('done'));
+    });
+  </script>
+<!-- encontro:pdf:start -->
+<button type="button" class="pdf-export-btn" data-encontro-data="2026-11-03" data-encontro-docente="Afonso" data-encontro-seq="02" title="Exportar esta página em PDF com o nome padronizado">📄 Exportar PDF</button>
+<script src="../../../js/encontro-pdf.js" defer></script>
+<!-- encontro:pdf:end -->
+<!-- semana:js:start -->
+<script src="../../../js/semana-ano.js" defer></script>
+<!-- semana:js:end -->
+</body>
+</html>

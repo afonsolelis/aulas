@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aula 3 - Simulação com redes de filas no JMT - Inteli</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📈</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+  <link href="../../../css/inteli-styles.css" rel="stylesheet">
+  <style>
+    :root {
+      --es: var(--eng-software-yellow);
+      --ink: var(--inteli-dark-purple);
+      --ok: var(--inteli-green);
+      --paper: var(--inteli-white);
+      --line: var(--inteli-light-gray);
+      --muted: var(--inteli-dark-gray);
+      --soft-es: color-mix(in srgb, var(--es) 13%, var(--paper));
+      --soft-ink: color-mix(in srgb, var(--ink) 8%, var(--paper));
+      --soft-ok: color-mix(in srgb, var(--ok) 22%, var(--paper));
+    }
+    *, *::before, *::after { box-sizing:border-box; }
+    body { margin:0; overflow:hidden; font-family:'Manrope',sans-serif; background:var(--soft-ink); color:var(--ink); }
+    .slide-container { width:100vw; height:100vh; position:relative; overflow:hidden; }
+    .slide { position:absolute; inset:0; display:none; padding:54px 52px 82px; overflow:hidden; }
+    .slide.active { display:flex; align-items:center; justify-content:center; }
+    .sc { width:min(1160px,100%); max-height:calc(100vh - 150px); margin:0 auto; }
+    .slide:not(.cover):not(.daily):not(.encontro-slide) .sc { width:86%; transform:scale(1.14); transform-origin:center; }
+    .cover .sc { width:88%; transform:scale(1.1); transform-origin:center; }
+    .daily .sc { width:88%; transform:scale(1.06); transform-origin:center; }
+    .top-nav { position:fixed; top:14px; left:18px; z-index:90; display:flex; gap:8px; }
+    .top-nav a { padding:7px 12px; border-radius:999px; background:color-mix(in srgb,var(--paper) 94%,transparent); color:var(--ink); border:1px solid var(--line); text-decoration:none; font-size:.75rem; font-weight:800; box-shadow:0 3px 12px color-mix(in srgb,var(--ink) 12%,transparent); }
+    .eyebrow { margin:0 0 7px; color:var(--es); font-size:.72rem; font-weight:800; letter-spacing:.14em; text-transform:uppercase; }
+    .sh { color:var(--paper); padding:15px 20px; border-radius:14px; margin-bottom:13px; }
+    .sh.red { background:linear-gradient(120deg,color-mix(in srgb,var(--es) 62%,var(--ink)),var(--es)); }
+    .sh.dark { background:linear-gradient(120deg,var(--ink),color-mix(in srgb,var(--ink) 68%,var(--es))); }
+    .sh.green { background:linear-gradient(120deg,color-mix(in srgb,var(--ok) 55%,var(--ink)),color-mix(in srgb,var(--ok) 88%,var(--ink))); }
+    .st { margin:0 0 3px; font-size:1.75rem; line-height:1.16; font-weight:800; }
+    .ss { margin:0; font-size:.9rem; line-height:1.45; opacity:.92; }
+    .g2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:11px; }
+    .g3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+    .g4 { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:9px; }
+    .card { background:var(--paper); border:1px solid var(--line); border-left:5px solid var(--es); border-radius:12px; padding:13px 15px; box-shadow:0 5px 18px color-mix(in srgb,var(--ink) 8%,transparent); min-width:0; }
+    .card.dark { border-left-color:var(--ink); }
+    .card.grn { border-left-color:var(--ok); }
+    .card h3 { margin:0 0 5px; font-size:.96rem; line-height:1.3; }
+    .card p { margin:0; color:color-mix(in srgb,var(--ink) 78%,var(--paper)); font-size:.79rem; line-height:1.46; }
+    .card p + p { margin-top:5px; }
+    .card ul { margin:6px 0 0; padding-left:1.05rem; }
+    .card li { margin:0 0 3px; font-size:.77rem; line-height:1.38; }
+    .label { display:inline-block; margin-bottom:7px; padding:3px 8px; border-radius:999px; background:var(--soft-es); color:color-mix(in srgb,var(--es) 55%,var(--ink)); font-size:.64rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+    .label.dark { background:var(--soft-ink); color:var(--ink); }
+    .label.grn { background:var(--soft-ok); color:color-mix(in srgb,var(--ok) 40%,var(--ink)); }
+    .callout { margin-top:11px; padding:10px 14px; border-radius:10px; background:var(--soft-es); border:1px solid color-mix(in srgb,var(--es) 38%,var(--paper)); font-size:.8rem; line-height:1.45; }
+    .callout.dark { background:var(--soft-ink); border-color:color-mix(in srgb,var(--ink) 22%,var(--paper)); }
+    .callout.grn { background:var(--soft-ok); border-color:color-mix(in srgb,var(--ok) 55%,var(--paper)); }
+    .tb-wrap { overflow:hidden; border-radius:11px; border:1px solid var(--line); background:var(--paper); }
+    table { width:100%; border-collapse:collapse; font-size:.72rem; }
+    th { padding:8px 9px; background:var(--ink); color:var(--paper); text-align:left; font-weight:800; }
+    td { padding:7px 9px; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.36; }
+    tr:last-child td { border-bottom:0; }
+    tbody tr:nth-child(even) { background:var(--soft-ink); }
+    code { font-family:'JetBrains Mono',monospace; color:var(--ink); background:var(--soft-es); border-radius:4px; padding:1px 5px; font-size:.88em; }
+    .flow { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); align-items:stretch; gap:18px; }
+    .flow .node { position:relative; padding:12px 10px; border-radius:11px; background:var(--paper); border:1px solid var(--line); text-align:center; }
+    .flow .node:not(:last-child)::after { content:'→'; position:absolute; right:-15px; top:50%; transform:translateY(-50%); color:var(--es); font-weight:800; }
+    .flow strong { display:block; font-size:.79rem; }
+    .flow span { display:block; margin-top:4px; font-size:.67rem; line-height:1.35; color:color-mix(in srgb,var(--ink) 68%,var(--paper)); }
+    .agenda { display:grid; grid-template-columns:repeat(8,minmax(0,1fr)); gap:6px; }
+    .agenda article { min-height:112px; padding:10px; background:var(--paper); border-radius:10px; border-top:4px solid var(--es); box-shadow:0 4px 12px color-mix(in srgb,var(--ink) 6%,transparent); }
+    .agenda article:nth-child(3n) { border-top-color:var(--ink); }
+    .agenda article:nth-child(4n) { border-top-color:var(--ok); }
+    .agenda b { display:block; font-size:1.15rem; line-height:1; margin-bottom:7px; }
+    .agenda strong { display:block; font-size:.69rem; line-height:1.25; }
+    .agenda span { display:block; margin-top:5px; font-size:.62rem; line-height:1.3; color:color-mix(in srgb,var(--ink) 68%,var(--paper)); }
+    .check { list-style:none; padding:0; margin:0; display:grid; gap:6px; }
+    .check li { position:relative; padding:7px 9px 7px 30px; background:var(--paper); border:1px solid var(--line); border-radius:9px; font-size:.75rem; line-height:1.35; }
+    .check li::before { content:'✓'; position:absolute; left:10px; top:7px; color:color-mix(in srgb,var(--ok) 40%,var(--ink)); font-weight:800; }
+    .number { width:31px; height:31px; display:grid; place-items:center; border-radius:9px; background:var(--es); color:var(--paper); font-weight:800; font-size:.85rem; margin-bottom:8px; }
+    .cover { background:linear-gradient(132deg,var(--ink) 0%,color-mix(in srgb,var(--ink) 46%,var(--es)) 58%,var(--es) 100%); color:var(--paper); }
+    .cover .sc { position:relative; }
+    .cover-grid { display:grid; grid-template-columns:1.45fr .85fr; gap:48px; align-items:center; }
+    .cover-badge { display:inline-block; margin-bottom:15px; padding:5px 12px; border:1px solid color-mix(in srgb,var(--paper) 40%,transparent); border-radius:999px; background:color-mix(in srgb,var(--paper) 12%,transparent); font-size:.72rem; font-weight:700; }
+    .cover h1 { margin:0; font-size:3.05rem; line-height:1.08; letter-spacing:-.035em; }
+    .cover .lead { margin:15px 0 22px; max-width:720px; font-size:1.08rem; line-height:1.55; color:color-mix(in srgb,var(--paper) 88%,var(--es)); }
+    .cover-tags { display:flex; flex-wrap:wrap; gap:7px; }
+    .cover-tags span { padding:6px 10px; border-radius:8px; background:color-mix(in srgb,var(--paper) 13%,transparent); border:1px solid color-mix(in srgb,var(--paper) 28%,transparent); font-size:.68rem; font-weight:700; }
+    .trace-map { display:grid; gap:9px; }
+    .trace-map div { padding:12px; border-radius:12px; background:color-mix(in srgb,var(--paper) 13%,transparent); border:1px solid color-mix(in srgb,var(--paper) 26%,transparent); }
+    .trace-map strong { display:block; font-size:.78rem; }
+    .trace-map span { display:block; margin-top:3px; font-size:.66rem; opacity:.85; }
+    .daily { background:linear-gradient(132deg,var(--ink),color-mix(in srgb,var(--ink) 44%,var(--es))); color:var(--paper); text-align:center; }
+    .daily-panel { max-width:870px; margin:auto; padding:25px 30px; border:1px solid color-mix(in srgb,var(--paper) 28%,transparent); border-radius:20px; background:color-mix(in srgb,var(--paper) 10%,transparent); }
+    .daily h2 { margin:0 0 5px; font-size:2rem; }
+    .daily p { margin:0 0 15px; font-size:.9rem; opacity:.88; }
+    .daily-timer { display:inline-block; margin:3px 0 14px; padding:8px 24px; border-radius:14px; background:color-mix(in srgb,var(--paper) 13%,transparent); font-family:'JetBrains Mono',monospace; font-size:3.1rem; font-weight:800; letter-spacing:.08em; }
+    .daily button { margin:0 4px; padding:8px 17px; border:1px solid color-mix(in srgb,var(--paper) 36%,transparent); border-radius:9px; background:color-mix(in srgb,var(--paper) 14%,transparent); color:var(--paper); font:700 .8rem 'Manrope',sans-serif; cursor:pointer; }
+    .daily-tags { display:flex; justify-content:center; gap:7px; flex-wrap:wrap; margin-top:14px; }
+    .daily-tags span { padding:5px 9px; border-radius:8px; background:color-mix(in srgb,var(--paper) 12%,transparent); font-size:.67rem; font-weight:700; }
+    .closing { display:grid; grid-template-columns:.8fr 1.2fr; gap:18px; align-items:stretch; }
+    .closing blockquote { margin:0; padding:24px; border-radius:14px; background:var(--ink); color:var(--paper); font-size:1.18rem; line-height:1.45; font-weight:700; }
+    .slide-footer { position:fixed; left:0; right:0; bottom:0; height:60px; z-index:100; display:flex; justify-content:space-between; align-items:center; gap:12px; padding:0 22px; background:color-mix(in srgb,var(--paper) 97%,transparent); border-top:1px solid var(--line); box-shadow:0 -3px 14px color-mix(in srgb,var(--ink) 8%,transparent); }
+    .footer-links, .nav-wrapper { display:flex; align-items:center; gap:9px; }
+    .back-home { padding:8px 13px; border-radius:9px; background:var(--soft-ink); color:var(--ink); text-decoration:none; font-size:.77rem; font-weight:800; }
+    .back-home.material { background:#2f8f78; color:white; }
+    .back-home.plano { background:color-mix(in srgb,var(--ink) 82%,var(--paper)); color:var(--paper); }
+    .back-home.painel { background:var(--es); color:var(--ink); }
+    .nav-btn, .fullscreen-btn { padding:8px 13px; border:0; border-radius:9px; background:var(--ink); color:var(--paper); font:800 .77rem 'Manrope',sans-serif; cursor:pointer; }
+    .nav-btn:disabled { background:var(--muted); cursor:default; }
+    .fullscreen-btn { background:var(--soft-ink); color:var(--ink); }
+    .slide-counter { min-width:68px; text-align:center; font-size:.78rem; font-weight:800; }
+    pre { margin:0; padding:10px 14px; border-radius:11px; border:1px solid var(--line); background:var(--paper); overflow:hidden; box-shadow:0 5px 18px color-mix(in srgb,var(--ink) 8%,transparent); }
+    pre code { display:block; padding:0; background:none; border-radius:0; font-size:.58rem; line-height:1.44; white-space:pre; color:color-mix(in srgb,var(--ink) 88%,var(--paper)); }
+    pre b { color:color-mix(in srgb,var(--es) 62%,var(--ink)); font-weight:800; }
+    pre i { color:color-mix(in srgb,var(--ink) 52%,var(--paper)); font-style:normal; }
+    .src { margin-top:9px; font-size:.66rem; line-height:1.4; color:color-mix(in srgb,var(--ink) 62%,var(--paper)); }
+    .src a { color:color-mix(in srgb,var(--es) 58%,var(--ink)); }
+    @media (min-width:1600px) and (min-height:900px) {
+      .slide { padding:76px 76px 100px; }
+      .sc { width:min(1500px,100%); max-height:calc(100vh - 190px); }
+      .slide:not(.cover):not(.daily):not(.encontro-slide) .sc { width:66%; transform:scale(1.43); }
+      .cover .sc { width:74%; transform:scale(1.22); }
+      .daily .sc { width:68%; transform:scale(1.3); }
+      .st { font-size:2.25rem; }
+      .ss { font-size:1.12rem; }
+      .card { padding:19px 21px; }
+      .card h3 { font-size:1.2rem; }
+      .card p, .card li { font-size:.98rem; }
+      .label { font-size:.78rem; }
+      .callout { font-size:1rem; padding:14px 18px; }
+      table { font-size:.91rem; }
+      th, td { padding:11px 13px; }
+      .agenda article { min-height:148px; padding:15px; }
+      .agenda b { font-size:1.5rem; }
+      .agenda strong { font-size:.9rem; }
+      .agenda span { font-size:.82rem; }
+      .flow strong { font-size:1rem; }
+      .flow span { font-size:.84rem; }
+      .check li { font-size:.96rem; padding:11px 12px 11px 34px; }
+      .cover h1 { font-size:4rem; }
+      .cover .lead { font-size:1.4rem; }
+      .cover-badge, .cover-tags span { font-size:.9rem; }
+      .trace-map strong { font-size:1rem; }
+      .trace-map span { font-size:.84rem; }
+      .closing blockquote { font-size:1.5rem; }
+      pre code { font-size:.75rem; }
+      .src { font-size:.82rem; }
+    }
+    @media (max-width:900px) {
+      .slide { padding-left:24px; padding-right:24px; }
+      .g4, .agenda { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .g3 { grid-template-columns:1fr; }
+      .cover-grid, .closing { grid-template-columns:1fr; }
+      .flow { grid-template-columns:1fr; }
+      .flow .node::after { display:none; }
+    }
+    @media print { .top-nav { display:none!important; } }
+    .agenda.six { grid-template-columns:repeat(6,minmax(0,1fr)); }
+    .flow.four { grid-template-columns:repeat(4,minmax(0,1fr)); }
+    .fx { font-family:'Cambria Math','STIX Two Math','Times New Roman',Georgia,serif; font-size:1.02rem; letter-spacing:.01em; white-space:nowrap; }
+    .fx i { font-style:italic; }
+    .fbox { display:flex; flex-direction:column; justify-content:center; gap:4px; padding:11px 14px; border-radius:11px; background:var(--paper); border:1px solid var(--line); border-top:4px solid var(--ink); text-align:center; box-shadow:0 4px 12px color-mix(in srgb,var(--ink) 6%,transparent); }
+    .fbox .fx { font-size:1.22rem; }
+    .fbox small { font-size:.68rem; line-height:1.35; color:color-mix(in srgb,var(--ink) 70%,var(--paper)); }
+    td.n, th.n { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+    tr.hl td { background:var(--soft-es)!important; font-weight:700; }
+    tr.ok td { background:var(--soft-ok)!important; font-weight:700; }
+    .tag-bad { display:inline-block; padding:1px 7px; border-radius:999px; background:var(--soft-es); color:color-mix(in srgb,var(--es) 55%,var(--ink)); font-size:.64rem; font-weight:800; }
+    .tag-ok { display:inline-block; padding:1px 7px; border-radius:999px; background:var(--soft-ok); color:color-mix(in srgb,var(--ok) 35%,var(--ink)); font-size:.64rem; font-weight:800; }
+    .steps { margin:0; padding:0; list-style:none; counter-reset:step; display:grid; gap:6px; }
+    .steps li { counter-increment:step; position:relative; padding:7px 10px 7px 38px; background:var(--paper); border:1px solid var(--line); border-radius:9px; font-size:.75rem; line-height:1.4; }
+    .steps li::before { content:counter(step); position:absolute; left:9px; top:6px; width:21px; height:21px; display:grid; place-items:center; border-radius:6px; background:var(--ink); color:var(--paper); font-size:.66rem; font-weight:800; }
+    .qnet { width:100%; height:auto; display:block; }
+    .qnet .node { fill:var(--paper); stroke:var(--ink); stroke-width:2; }
+    .qnet .queue { fill:var(--soft-es); stroke:var(--ink); stroke-width:1.5; }
+    .qnet .srv { fill:var(--paper); stroke:var(--es); stroke-width:3; }
+    .qnet .srv.hot { fill:var(--soft-es); stroke:var(--es); stroke-width:4; }
+    .qnet .edge { stroke:var(--ink); stroke-width:2; fill:none; }
+    .qnet .head { fill:var(--ink); }
+    .qnet text { fill:var(--ink); font-family:'Manrope',sans-serif; }
+    .qnet .t1 { font-size:15px; font-weight:800; }
+    .qnet .t2 { font-size:12px; font-weight:600; }
+    .qnet .t3 { font-size:11px; font-weight:700; fill:color-mix(in srgb,var(--es) 60%,var(--ink)); }
+    .quote { margin:0; padding:14px 18px; border-radius:12px; background:var(--ink); color:var(--paper); font-size:.92rem; line-height:1.5; font-weight:600; }
+    .auto li a { color:color-mix(in srgb,var(--es) 58%,var(--ink)); font-weight:700; }
+    @media (min-width:1600px) and (min-height:900px) {
+      .fx { font-size:1.25rem; }
+      .fbox .fx { font-size:1.5rem; }
+      .fbox small { font-size:.85rem; }
+      .steps li { font-size:.95rem; padding:10px 12px 10px 44px; }
+      .steps li::before { width:25px; height:25px; font-size:.8rem; top:9px; }
+      .quote { font-size:1.15rem; }
+      .tag-bad, .tag-ok { font-size:.8rem; }
+    }
+    @media (max-width:900px) { .agenda.six { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  </style>
+  <script type="module">
+    import { animate, stagger } from 'https://cdn.jsdelivr.net/npm/animejs@4/+esm';
+    window.__anime = { animate, stagger };
+    window.dispatchEvent(new CustomEvent('anime-ready'));
+  </script>
+
+<!-- encontro:css:start -->
+<link rel="stylesheet" href="../../../css/encontro.css">
+<!-- encontro:css:end -->
+
+<!-- semana:css:start -->
+<link rel="stylesheet" href="../../../css/semana-ano.css">
+<!-- semana:css:end -->
+</head>
+<body>
+<nav class="top-nav" aria-label="Navegação da aula">
+  <a href="../../home-module-8-eng-software.html">← Voltar</a>
+  <a href="../materials/lesson-3-material.html">Material da aula</a>
+  <a href="../planos/lesson-3-plano.html">Plano de ensino</a>
+</nav>
+
+<div class="slide-container">
+
+  <!-- ====== SLIDE 1: CAPA ====== -->
+  <section class="slide cover active">
+    <div class="sc cover-grid">
+      <div>
+        <span class="cover-badge">Módulo 8 · Engenharia de Software · Aula 3</span>
+        <p class="eyebrow" style="color:var(--paper)">Semana 4 · terça, 03/11/2026 · 11h · Prof. Afonso Brandão</p>
+        <h1>Simulação com redes de filas no JMT</h1>
+        <p class="lead">Simulação de desempenho, tolerância a falhas e acesso simultâneo. O cenário de desempenho da promoção relâmpago, escrito em 27/10, é convertido em uma rede de filas que pode ser calculada, simulada e corrigida, de modo que a prioridade dos ajustes arquiteturais decorra da medida obtida.</p>
+        <div class="cover-tags">
+          <span>Rede de filas aberta</span><span>Lei de Little</span><span>Demanda de serviço e gargalo</span><span>JMVA e JSIMgraph</span><span>Ponderada em sala</span>
+        </div>
+      </div>
+      <div class="trace-map">
+        <div><strong>Pergunta guia</strong><span>Qual ajuste arquitetural deve vir primeiro para que a promoção responda em até 0,2 s a 40 req/s, e como demonstrá-lo antes de implementar?</span></div>
+        <div><strong>Objeto do encontro</strong><span>O ciclo de simulação, correção e medição aplicado a uma rede aberta de três estações.</span></div>
+        <div><strong>Produto do encontro</strong><span>Rede de filas simulada no JMT e roteiro do vídeo de até cinco minutos exigido na ponderada.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 2: DAILY ====== -->
+  <section class="slide daily">
+    <div class="sc">
+      <div class="daily-panel">
+        <p class="eyebrow" style="color:var(--paper)">Ritual do projeto</p>
+        <h2>Daily · 15 minutos</h2>
+        <p>Cada grupo informa o avanço dos artefatos, a atividade prevista para o encontro e os impedimentos que exigem decisão.</p>
+        <div class="daily-timer" id="daily-timer">15:00</div>
+        <div>
+          <button id="daily-start" type="button">Iniciar</button>
+          <button id="daily-reset" type="button">Resetar</button>
+        </div>
+        <div class="daily-tags">
+          <span>O que foi concluído</span><span>O que será produzido</span><span>Impedimentos</span><span>Progresso da entrega</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 3: OBJETIVO E AGENDA ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh red reveal"><div class="st">Objetivo e estrutura do encontro</div><p class="ss">Ao final do encontro, cada estudante deve modelar um sistema como rede de filas aberta, identificar o gargalo pela demanda de serviço, simulá-lo no JMT e justificar, pela diferença medida entre duas versões do modelo, qual ajuste priorizar.</p></header>
+      <div class="agenda six reveal">
+        <article><b>15</b><strong>Daily</strong><span>Estado dos artefatos, atividade prevista e impedimentos.</span></article>
+        <article><b>5</b><strong>Abertura</strong><span>Do cenário de qualidade à medida obtida por simulação.</span></article>
+        <article><b>15</b><strong>Mínimo de teoria</strong><span>λ, μ, utilização, M/M/1, Lei de Little, demanda de serviço e gargalo.</span></article>
+        <article><b>20</b><strong>Demonstração no JMT</strong><span>Simulação, correção e medição do caso da promoção, com falha de uma réplica.</span></article>
+        <article><b>60</b><strong>Ponderada em sala</strong><span>Rede de filas no JMT e roteiro do vídeo de até cinco minutos.</span></article>
+        <article><b>5</b><strong>Encaminhamentos</strong><span>Entrega na Adalove e artefato Simulação do sistema novo.</span></article>
+      </div>
+      <div class="callout dark reveal">A ponderada é individual e ocupa metade do encontro. Por esse motivo, a teoria se limita ao que o cálculo do exemplo exige, e a demonstração percorre no JMT as mesmas operações que a entrega pede: construir o modelo, simulá-lo e analisar o resultado.</div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 4: ABERTURA ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Do cenário de qualidade à medida simulada</div><p class="ss">O cenário escrito em 27/10 fixa uma medida de resposta verificável. A simulação permite verificá-la antes que o sistema novo exista, desde que o sistema seja representado por um modelo.</p></header>
+      <div class="g3 reveal">
+        <article class="card"><span class="label">27/10 · Aula 2</span><h3>O cenário de desempenho</h3><p>Na promoção relâmpago, uma avalanche de acessos simultâneos chega à compra e ao estoque. A medida de resposta exige tempo médio de até 0,2 s com 40 requisições por segundo.</p></article>
+        <article class="card dark"><span class="label dark">28/10 · Prof. Reginaldo</span><h3>Simulação para reproduzir defeitos</h3><p>A aula tratou da simulação do sistema atual, que reproduz o defeito, e do sistema novo, que deve eliminá-lo. Hoje o mesmo raciocínio recebe um modelo quantitativo.</p></article>
+        <article class="card grn"><span class="label grn">Hoje</span><h3>Uma pergunta que se responde com número</h3><p>O modelo indica qual estação impede o cenário de ser atendido, quanto cada correção reduz o tempo de resposta e o que acontece quando uma réplica falha no pico.</p></article>
+      </div>
+      <div class="callout reveal">A descrição oficial do encontro pede decisões arquiteturais priorizadas com base em resultados obtidos por simulação, correção e medição. A ordem dessas três operações organiza toda a demonstração e também a análise exigida no vídeo da ponderada.</div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 5: ESCOPO TEÓRICO ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh red reveal"><div class="st">O mínimo de teoria e a aula de quinta-feira</div><p class="ss">A aula de Teoria das Filas e Redes de Petri do prof. Leandro ocorre em 05/11, depois deste encontro. Hoje entram apenas os resultados necessários para calcular o exemplo e ler a saída do JMT.</p></header>
+      <div class="g2 reveal">
+        <article class="card"><span class="label">Hoje, 03/11</span><h3>Resultados usados no cálculo</h3>
+          <ul>
+            <li>Taxa de chegada λ, taxa de serviço μ e utilização ρ = λ/μ.</li>
+            <li>Fila M/M/1 e o tempo de resposta R = S/(1 − ρ).</li>
+            <li>Lei de Little, Lei da Utilização e demanda de serviço D = V · S.</li>
+            <li>Gargalo, vazão máxima e tempo de resposta em rede aberta de forma-produto.</li>
+          </ul>
+        </article>
+        <article class="card dark"><span class="label dark">Quinta, 05/11 · Prof. Leandro</span><h3>Aprofundamento</h3>
+          <ul>
+            <li>Teoria das Filas tratada com a fundamentação que hoje fica de fora.</li>
+            <li>Redes de Petri, que não são usadas neste encontro.</li>
+          </ul>
+          <p style="margin-top:8px">Os resultados de hoje são apresentados sem demonstração e serão retomados com rigor na aula do prof. Leandro.</p>
+        </article>
+      </div>
+      <div class="callout dark reveal">A Lei de Little e a Lei da Utilização são leis operacionais, ou seja, valem para médias medidas em um intervalo sem nenhuma hipótese sobre a distribuição das chegadas. Por isso servem tanto para o cálculo quanto para conferir a saída do simulador.</div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 6: λ, μ, ρ ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Taxa de chegada, taxa de serviço e utilização</div><p class="ss">Uma estação é descrita pela frequência com que recebe requisições e pela rapidez com que as atende. A razão entre as duas indica a fração do tempo em que o servidor fica ocupado.</p></header>
+      <div class="g3 reveal">
+        <div class="fbox"><span class="fx"><i>λ</i> (req/s)</span><small>Taxa de chegada: requisições que chegam por segundo à estação.</small></div>
+        <div class="fbox"><span class="fx"><i>μ</i> = 1 / <i>S</i></span><small>Taxa de serviço: requisições que um servidor atende por segundo, inverso do tempo médio de serviço <i>S</i>.</small></div>
+        <div class="fbox"><span class="fx"><i>ρ</i> = <i>λ</i> / <i>μ</i> = <i>λ</i> · <i>S</i></span><small>Utilização: fração do tempo em que o servidor está ocupado.</small></div>
+      </div>
+      <div class="g2 reveal" style="margin-top:11px">
+        <article class="card"><span class="label">Exemplo</span><h3>Serviço de estoque a 40 req/s</h3><p>Com S = 0,020 s, a estação atende no máximo μ = 1/0,020 = 50 req/s. Recebendo λ = 40 req/s, ela permanece ocupada ρ = 40 × 0,020 = 0,80 do tempo.</p></article>
+        <article class="card dark"><span class="label dark">Condição de estabilidade</span><h3>ρ precisa ser menor que 1</h3><p>Se a estação recebe mais requisições do que consegue atender, a fila cresce sem limite enquanto durar o pico, e o tempo médio de resposta deixa de existir como valor estável.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 7: M/M/1 ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh red reveal"><div class="st">A fila M/M/1 e o efeito da utilização</div><p class="ss">Na fila M/M/1, as chegadas seguem um processo de Poisson, o serviço é exponencial e há um único servidor. O tempo de resposta inclui a espera na fila e cresce de forma não linear com a utilização.</p></header>
+      <div class="g2 reveal" style="grid-template-columns:.9fr 1.1fr">
+        <div style="display:grid;gap:10px">
+          <div class="fbox"><span class="fx"><i>R</i> = <i>S</i> / (1 − <i>ρ</i>) = 1 / (<i>μ</i> − <i>λ</i>)</span><small>R é o tempo médio de resposta, soma da espera na fila com o tempo de serviço.</small></div>
+          <article class="card"><p>A notação de Kendall lê-se em três posições: a primeira letra descreve as chegadas, a segunda o serviço e o número final indica quantos servidores a estação possui. A letra M indica comportamento sem memória, isto é, exponencial.</p></article>
+        </div>
+        <div class="tb-wrap">
+          <table>
+            <thead><tr><th>Utilização ρ</th><th class="n">R em múltiplos de S</th><th class="n">R com S = 0,020 s</th></tr></thead>
+            <tbody>
+              <tr><td>0,50</td><td class="n">2 S</td><td class="n">0,040 s</td></tr>
+              <tr><td>0,80</td><td class="n">5 S</td><td class="n">0,100 s</td></tr>
+              <tr><td>0,90</td><td class="n">10 S</td><td class="n">0,200 s</td></tr>
+              <tr class="hl"><td>0,96</td><td class="n">25 S</td><td class="n">0,500 s</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="callout reveal">Entre 0,80 e 0,96 de utilização o tempo de serviço não muda, mas o tempo de resposta fica cinco vezes maior, porque quase toda requisição encontra fila ao chegar. Uma estação perto da saturação domina o tempo de resposta do sistema inteiro.</div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 8: LITTLE E UTILIZAÇÃO ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Lei de Little e Lei da Utilização</div><p class="ss">As duas leis relacionam grandezas médias que o JMT informa e que podem ser medidas no sistema real, e por isso permitem conferir um resultado em poucos segundos.</p></header>
+      <div class="g2 reveal">
+        <div class="fbox"><span class="fx"><i>N</i> = <i>X</i> · <i>R</i></span><small>Lei de Little: o número médio de requisições no sistema N é a vazão X multiplicada pelo tempo médio de resposta R. Em sistema aberto estável, X = λ.</small></div>
+        <div class="fbox"><span class="fx"><i>U</i> = <i>X</i> · <i>S</i></span><small>Lei da Utilização: a utilização de uma estação é a vazão que ela atende multiplicada pelo tempo médio de serviço de cada atendimento.</small></div>
+      </div>
+      <div class="g2 reveal" style="margin-top:11px">
+        <article class="card"><span class="label">Little no exemplo</span><h3>Quantas compras estão em curso</h3><p>A 10 req/s, o modelo atual responde em 0,0677 s, de modo que há em média N = 10 × 0,0677 ≈ 0,68 requisições no sistema. A 40 req/s, com R ≈ 0,717 s, esse número sobe para cerca de 28,7.</p></article>
+        <article class="card dark"><span class="label dark">Utilização no exemplo</span><h3>Por que o banco satura</h3><p>Cada compra visita o banco seis vezes, de modo que a 40 req/s o banco atende 6 × 40 = 240 visitas por segundo. Com S = 0,004 s por visita, U = 240 × 0,004 = 0,96.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 9: DEMANDA E GARGALO ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh red reveal"><div class="st">Demanda de serviço, gargalo e vazão máxima</div><p class="ss">A demanda de serviço reúne em um só número o tempo que uma requisição consome de cada estação, somadas todas as visitas. Por isso é ela que identifica o gargalo, mesmo quando o tempo de serviço por visita de uma estação é pequeno.</p></header>
+      <div class="g4 reveal">
+        <div class="fbox"><span class="fx"><i>D<sub>k</sub></i> = <i>V<sub>k</sub></i> · <i>S<sub>k</sub></i></span><small>Demanda: visitas por requisição vezes o tempo de serviço por visita na estação k.</small></div>
+        <div class="fbox"><span class="fx"><i>U<sub>k</sub></i> = <i>X</i> · <i>D<sub>k</sub></i></span><small>Utilização da estação k em função da vazão do sistema X.</small></div>
+        <div class="fbox"><span class="fx"><i>X</i> ≤ 1 / <i>D</i><sub>máx</sub></span><small>Vazão máxima: o sistema satura quando a estação de maior demanda chega a U = 1.</small></div>
+        <div class="fbox"><span class="fx"><i>R<sub>k</sub></i> = <i>D<sub>k</sub></i> / (1 − <i>U<sub>k</sub></i>)</span><small>Tempo de residência na estação k, somadas todas as visitas; R = Σ R<sub>k</sub>.</small></div>
+      </div>
+      <div class="g2 reveal" style="margin-top:11px">
+        <article class="card"><span class="label">Gargalo</span><h3>A estação de maior D</h3><p>Como todas as estações recebem a mesma vazão X, a de maior demanda é a primeira a saturar. Melhorar qualquer outra estação não eleva a vazão máxima do sistema.</p></article>
+        <article class="card dark"><span class="label dark">Hipóteses da fórmula de R<sub>k</sub></span><h3>Rede aberta de forma-produto</h3><p>A expressão vale para rede aberta com chegadas de Poisson, servidores únicos com serviço exponencial e atendimento por ordem de chegada. Fora dessas hipóteses, o resultado é uma aproximação.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 10: O CASO COMO REDE ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">O caso da promoção como rede de filas</div><p class="ss">A compra atravessa três estações de servidor único. O banco é visitado seis vezes por requisição, porque o serviço de estoque consulta e atualiza o estoque em várias operações.</p></header>
+      <div class="card dark reveal" style="padding:10px 14px">
+        <svg class="qnet" viewBox="0 0 860 186" role="img" aria-label="Rede de filas aberta: chegadas de clientes, estação Web, estação Estoque, estação Banco com retorno ao próprio banco e saída do sistema">
+          <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+          <circle class="node" cx="50" cy="90" r="24"/><text class="t1" x="50" y="140" text-anchor="middle">Clientes</text><text class="t2" x="50" y="158" text-anchor="middle">chegada λ</text>
+          <line class="edge" x1="74" y1="90" x2="148" y2="90" marker-end="url(#ah)"/>
+          <rect class="queue" x="150" y="72" width="66" height="36" rx="4"/><line class="edge" x1="172" y1="72" x2="172" y2="108" style="stroke-width:1"/><line class="edge" x1="194" y1="72" x2="194" y2="108" style="stroke-width:1"/>
+          <circle class="srv" cx="243" cy="90" r="24"/><text class="t1" x="208" y="140" text-anchor="middle">Web</text><text class="t2" x="208" y="158" text-anchor="middle">V = 1 · S = 0,010 s · D = 0,010 s</text>
+          <line class="edge" x1="267" y1="90" x2="343" y2="90" marker-end="url(#ah)"/>
+          <rect class="queue" x="345" y="72" width="66" height="36" rx="4"/><line class="edge" x1="367" y1="72" x2="367" y2="108" style="stroke-width:1"/><line class="edge" x1="389" y1="72" x2="389" y2="108" style="stroke-width:1"/>
+          <circle class="srv" cx="438" cy="90" r="24"/><text class="t1" x="403" y="140" text-anchor="middle">Estoque</text><text class="t2" x="403" y="158" text-anchor="middle">V = 1 · S = 0,020 s · D = 0,020 s</text>
+          <line class="edge" x1="462" y1="90" x2="538" y2="90" marker-end="url(#ah)"/>
+          <rect class="queue" x="540" y="72" width="66" height="36" rx="4"/><line class="edge" x1="562" y1="72" x2="562" y2="108" style="stroke-width:1"/><line class="edge" x1="584" y1="72" x2="584" y2="108" style="stroke-width:1"/>
+          <circle class="srv hot" cx="633" cy="90" r="24"/><text class="t1" x="598" y="140" text-anchor="middle">Banco</text><text class="t2" x="598" y="158" text-anchor="middle">V = 6 · S = 0,004 s · D = 0,024 s</text><text class="t3" x="598" y="177" text-anchor="middle">gargalo · vazão máxima 1/0,024 ≈ 41,7 req/s</text>
+          <path class="edge" d="M633 66 C633 18, 573 18, 573 70" marker-end="url(#ah)"/><text class="t2" x="650" y="30">retorno p = 5/6</text>
+          <line class="edge" x1="657" y1="90" x2="764" y2="90" marker-end="url(#ah)"/><text class="t2" x="710" y="80" text-anchor="middle">1/6</text>
+          <circle class="node" cx="790" cy="90" r="24"/><text class="t1" x="790" y="140" text-anchor="middle">Saída</text><text class="t2" x="790" y="158" text-anchor="middle">resposta R</text>
+        </svg>
+      </div>
+      <div class="callout reveal">O tempo de serviço do banco por visita é o menor dos três, mas as seis visitas fazem dele a estação de maior demanda. Com retorno ao banco de probabilidade p, o número médio de visitas é 1/(1 − p), e por isso seis visitas correspondem a p = 5/6.</div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 11: 10 REQ/S ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh red reveal"><div class="st">Modelo atual com 10 req/s</div><p class="ss">Fora do pico, todas as estações operam com folga, e o tempo de resposta total fica pouco acima da soma das demandas de serviço, que é 0,054 s.</p></header>
+      <div class="tb-wrap reveal">
+        <table>
+          <thead><tr><th>Estação</th><th class="n">D<sub>k</sub> (s)</th><th class="n">U<sub>k</sub> = λ · D<sub>k</sub></th><th class="n">R<sub>k</sub> = D<sub>k</sub>/(1 − U<sub>k</sub>) (s)</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Web</strong></td><td class="n">0,010</td><td class="n">0,10</td><td class="n">0,0111</td></tr>
+            <tr><td><strong>Serviço de estoque</strong></td><td class="n">0,020</td><td class="n">0,20</td><td class="n">0,0250</td></tr>
+            <tr><td><strong>Banco</strong></td><td class="n">0,024</td><td class="n">0,24</td><td class="n">0,0316</td></tr>
+            <tr class="ok"><td>Sistema</td><td class="n">0,054</td><td class="n">λ = 10 req/s</td><td class="n">R = 0,0677 · N = λR ≈ 0,68</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="g2 reveal" style="margin-top:11px">
+        <article class="card grn"><span class="label grn">Leitura</span><h3>A espera é pequena</h3><p>Com utilizações entre 0,10 e 0,24, a requisição raramente encontra fila, e cada R<sub>k</sub> fica próximo da demanda D<sub>k</sub> da estação.</p></article>
+        <article class="card"><span class="label">Limite do resultado</span><h3>O cenário exige 40 req/s</h3><p>O cenário de qualidade exige o tempo de resposta a 40 req/s. Um teste feito só com carga baixa aprovaria o sistema atual sem informar nada sobre o pico.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 12: 40 REQ/S ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Modelo atual com 40 req/s</div><p class="ss">No pico da promoção, o banco chega a 0,96 de utilização e responde sozinho por 0,600 s dos 0,717 s do tempo de resposta, o que viola o cenário de 0,2 s.</p></header>
+      <div class="tb-wrap reveal">
+        <table>
+          <thead><tr><th>Estação</th><th class="n">D<sub>k</sub> (s)</th><th class="n">U<sub>k</sub></th><th class="n">R<sub>k</sub> (s)</th><th class="n">Parcela de R</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Web</strong></td><td class="n">0,010</td><td class="n">0,40</td><td class="n">0,0167</td><td class="n">2%</td></tr>
+            <tr><td><strong>Serviço de estoque</strong></td><td class="n">0,020</td><td class="n">0,80</td><td class="n">0,100</td><td class="n">14%</td></tr>
+            <tr class="hl"><td><strong>Banco</strong></td><td class="n">0,024</td><td class="n">0,96</td><td class="n">0,600</td><td class="n">84%</td></tr>
+            <tr><td>Sistema</td><td class="n"></td><td class="n">λ = 40 req/s</td><td class="n">R ≈ 0,717</td><td class="n">N ≈ 28,7 <span class="tag-bad">viola 0,2 s</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="g2 reveal" style="margin-top:11px">
+        <article class="card dark"><span class="label dark">Acesso simultâneo</span><h3>Quase 29 compras ao mesmo tempo</h3><p>Pela Lei de Little, a 40 req/s há em média 28,7 requisições em curso, quase todas esperando o banco. Esse acúmulo é a avalanche de acessos simultâneos descrita no caso.</p></article>
+        <article class="card"><span class="label">A 45 req/s</span><h3>O modelo fica instável</h3><p>A vazão máxima é 1/0,024 ≈ 41,7 req/s. Com λ = 45 req/s, o banco teria U = 1,08, a fila cresceria durante todo o pico e não existe tempo médio de resposta estável.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 13: GARGALO X PALPITE ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh red reveal"><div class="st">Onde corrigir primeiro</div><p class="ss">O serviço de estoque tem o maior tempo de serviço e parece o candidato natural à correção. O modelo permite comparar esse palpite com a correção dirigida ao gargalo antes de escrever qualquer código.</p></header>
+      <div class="g2 reveal">
+        <article class="card"><span class="label">Palpite</span><h3>Replicar o estoque sem cache</h3><p>Com duas réplicas, cada uma recebe 20 req/s e responde em 0,0333 s, mas o banco continua com seis visitas e U = 0,96.</p>
+          <div class="tb-wrap" style="margin-top:8px"><table><tbody>
+            <tr><td>Web + estoque + banco</td><td class="n">0,0167 + 0,0333 + 0,600</td></tr>
+            <tr class="hl"><td>Tempo de resposta</td><td class="n">R ≈ 0,650 s <span class="tag-bad">viola</span></td></tr>
+          </tbody></table></div>
+        </article>
+        <article class="card grn"><span class="label grn">Gargalo</span><h3>Cache no serviço de estoque</h3><p>O cache reduz as visitas ao banco de seis para duas, e a demanda do banco cai de 0,024 s para 0,008 s.</p>
+          <div class="tb-wrap" style="margin-top:8px"><table><tbody>
+            <tr><td>Web + estoque + banco</td><td class="n">0,0167 + 0,100 + 0,0118</td></tr>
+            <tr class="ok"><td>Tempo de resposta</td><td class="n">R ≈ 0,128 s <span class="tag-ok">atende</span></td></tr>
+          </tbody></table></div>
+        </article>
+      </div>
+      <div class="callout dark reveal">A réplica do estoque reduz em 0,067 s o tempo de resposta, porque atua sobre uma estação que contribuía com 14% dele. O cache reduz 0,589 s, porque atua sobre a estação de maior demanda. A primeira correção é escolhida pelo gargalo calculado.</div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 14: CORREÇÃO 1 ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Correção 1: cache no serviço de estoque</div><p class="ss">Com o banco em V = 2 e D = 0,008 s, o tempo de resposta a 40 req/s cai para cerca de 0,128 s e o cenário passa a ser atendido.</p></header>
+      <div class="tb-wrap reveal">
+        <table>
+          <thead><tr><th>Estação</th><th class="n">D<sub>k</sub> (s)</th><th class="n">U<sub>k</sub></th><th class="n">R<sub>k</sub> (s)</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Web</strong></td><td class="n">0,010</td><td class="n">0,40</td><td class="n">0,0167</td></tr>
+            <tr class="hl"><td><strong>Serviço de estoque</strong> (novo gargalo)</td><td class="n">0,020</td><td class="n">0,80</td><td class="n">0,100</td></tr>
+            <tr><td><strong>Banco</strong> (V = 2)</td><td class="n">0,008</td><td class="n">0,32</td><td class="n">0,0118</td></tr>
+            <tr class="ok"><td>Sistema a 40 req/s</td><td class="n"></td><td class="n"></td><td class="n">R ≈ 0,128 · N ≈ 5,1 <span class="tag-ok">atende</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="g2 reveal" style="margin-top:11px">
+        <article class="card"><span class="label">Medição</span><h3>O gargalo mudou de lugar</h3><p>A maior demanda agora é a do estoque, com D = 0,020 s, e a vazão máxima sobe para 1/0,020 = 50 req/s. O ciclo recomeça a partir dessa nova estação.</p></article>
+        <article class="card dark"><span class="label dark">Margem</span><h3>Pouca folga para o pico</h3><p>O estoque opera a 0,80 de utilização e a vazão máxima fica apenas 25% acima da carga do cenário, de modo que uma variação moderada da demanda volta a degradar a resposta.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 15: CORREÇÃO 2 ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh red reveal"><div class="st">Correção 2: cache e duas réplicas do estoque</div><p class="ss">Com o cache mantido, duas réplicas do estoque atrás de um balanceador dividem a carga, e cada requisição passa por apenas uma delas.</p></header>
+      <div class="tb-wrap reveal">
+        <table>
+          <thead><tr><th>Estação</th><th class="n">Carga</th><th class="n">D por requisição atendida (s)</th><th class="n">U<sub>k</sub></th><th class="n">R<sub>k</sub> (s)</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Web</strong></td><td class="n">40 req/s</td><td class="n">0,010</td><td class="n">0,40</td><td class="n">0,0167</td></tr>
+            <tr><td><strong>Réplica A do estoque</strong></td><td class="n">20 req/s</td><td class="n">0,020</td><td class="n">0,40</td><td class="n">0,0333</td></tr>
+            <tr><td><strong>Réplica B do estoque</strong></td><td class="n">20 req/s</td><td class="n">0,020</td><td class="n">0,40</td><td class="n">0,0333</td></tr>
+            <tr><td><strong>Banco</strong> (V = 2)</td><td class="n">40 req/s</td><td class="n">0,008</td><td class="n">0,32</td><td class="n">0,0118</td></tr>
+            <tr class="ok"><td>Sistema a 40 req/s</td><td class="n"></td><td class="n"></td><td class="n"></td><td class="n">R ≈ 0,0618 · N ≈ 2,47</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout reveal">Cada requisição atravessa a web, uma réplica e o banco, de modo que R ≈ 0,0167 + 0,0333 + 0,0118 = 0,0618 s. Como cada réplica recebe metade do tráfego, a demanda de estoque por requisição do sistema cai para 0,010 s, empatada com a web, e a vazão máxima passa a 100 req/s.</div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 16: FALHA DE RÉPLICA ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Falha de uma réplica durante o pico</div><p class="ss">A leitura de tolerância a falhas e acesso simultâneo do título consiste em perguntar se o cenário continua atendido quando um componente cai justamente sob a carga máxima.</p></header>
+      <div class="g2 reveal" style="grid-template-columns:1.15fr .85fr">
+        <div class="tb-wrap">
+          <table>
+            <thead><tr><th>Estação com a réplica B fora</th><th class="n">U<sub>k</sub></th><th class="n">R<sub>k</sub> (s)</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Web</strong></td><td class="n">0,40</td><td class="n">0,0167</td></tr>
+              <tr class="hl"><td><strong>Réplica A</strong>, com os 40 req/s</td><td class="n">0,80</td><td class="n">0,100</td></tr>
+              <tr><td><strong>Banco</strong> (V = 2)</td><td class="n">0,32</td><td class="n">0,0118</td></tr>
+              <tr class="ok"><td>Sistema a 40 req/s</td><td class="n"></td><td class="n">R ≈ 0,128 <span class="tag-ok">atende</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <article class="card grn"><span class="label grn">Leitura</span><h3>O sistema degrada sem violar o cenário</h3><p>Todo o tráfego passa à réplica restante, que volta a U = 0,80, e o sistema retorna ao estado da Correção 1, ainda dentro dos 0,2 s.</p><p>Com a Correção 1 isolada não há réplica sobrevivente, e a falha da única instância do estoque interrompe a compra.</p></article>
+      </div>
+      <div class="callout dark reveal">A segunda réplica dobra a vazão máxima quando as duas operam e garante o cenário quando uma delas falha. A justificativa da Correção 2 combina, portanto, desempenho no pico e tolerância à perda de uma instância.</div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 17: CICLO ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh red reveal"><div class="st">O ciclo de simulação, correção e medição</div><p class="ss">Cada versão do modelo é avaliada sob a mesma carga de 40 req/s, e a correção seguinte é escolhida pelo gargalo que a medição anterior revelou.</p></header>
+      <div class="tb-wrap reveal">
+        <table>
+          <thead><tr><th>Versão do modelo</th><th class="n">R (s)</th><th class="n">N</th><th>Gargalo</th><th class="n">Vazão máxima</th><th>Cenário de 0,2 s</th></tr></thead>
+          <tbody>
+            <tr><td>Sistema atual</td><td class="n">0,717</td><td class="n">28,7</td><td>Banco, D = 0,024 s</td><td class="n">41,7 req/s</td><td><span class="tag-bad">viola</span></td></tr>
+            <tr><td>Duas réplicas do estoque, sem cache</td><td class="n">0,650</td><td class="n">26,0</td><td>Banco, D = 0,024 s</td><td class="n">41,7 req/s</td><td><span class="tag-bad">viola</span></td></tr>
+            <tr><td>Correção 1: cache</td><td class="n">0,128</td><td class="n">5,1</td><td>Estoque, D = 0,020 s</td><td class="n">50 req/s</td><td><span class="tag-ok">atende</span></td></tr>
+            <tr class="ok"><td>Correção 2: cache e duas réplicas</td><td class="n">0,0618</td><td class="n">2,47</td><td>Web e réplicas, D = 0,010 s</td><td class="n">100 req/s</td><td><span class="tag-ok">atende</span></td></tr>
+            <tr><td>Correção 2 com uma réplica em falha</td><td class="n">0,128</td><td class="n">5,1</td><td>Estoque, D = 0,020 s</td><td class="n">50 req/s</td><td><span class="tag-ok">atende</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="flow four reveal" style="margin-top:12px">
+        <div class="node"><strong>Simular</strong><span>Modelo atual sob a carga do cenário.</span></div>
+        <div class="node"><strong>Localizar o gargalo</strong><span>Estação de maior demanda D.</span></div>
+        <div class="node"><strong>Corrigir</strong><span>Tática que reduz V, S ou divide a carga.</span></div>
+        <div class="node"><strong>Medir de novo</strong><span>Mesma carga, mesmas métricas.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 18: JMVA X JSIMGRAPH ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">JMVA e JSIMgraph: solução analítica e simulação</div><p class="ss">O JMT, ferramenta gratuita escrita em Java, oferece as duas formas de obter as métricas do mesmo modelo, e a concordância entre elas é uma forma de validar o modelo construído.</p></header>
+      <div class="g2 reveal">
+        <article class="card"><span class="label">JMVA</span><h3>Solução analítica por MVA</h3>
+          <ul>
+            <li>Resolve o modelo pela análise do valor médio (MVA) e devolve as médias exatas para aquele modelo.</li>
+            <li>Recebe a rede como lista de estações com demandas de serviço, sem desenho.</li>
+            <li>A análise What-if varia um parâmetro, como a taxa de chegada, e traça as métricas em função dele.</li>
+            <li>Exige as hipóteses de forma-produto.</li>
+          </ul>
+        </article>
+        <article class="card dark"><span class="label dark">JSIMgraph</span><h3>Simulação de eventos discretos</h3>
+          <ul>
+            <li>A rede é desenhada com fonte, estações, ligações e saída, e o simulador gera chegadas e atendimentos.</li>
+            <li>Cada métrica sai como estimativa amostral, acompanhada de intervalo de confiança.</li>
+            <li>O período de aquecimento inicial, em que o sistema parte vazio, é descartado das estimativas.</li>
+            <li>Admite distribuições e roteamentos fora das hipóteses de forma-produto.</li>
+          </ul>
+        </article>
+      </div>
+      <div class="callout reveal">Com o mesmo modelo exponencial, os valores simulados devem cair perto dos analíticos, e o intervalo de confiança deve conter o valor do JMVA na maioria das métricas. Uma diferença grande indica erro de parâmetro, de unidade ou de roteamento antes de indicar qualquer fato sobre o sistema.</div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 19: PASSO A PASSO JMVA ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh red reveal"><div class="st">Passo a passo no JMVA</div><p class="ss">A demonstração começa pela solução analítica, porque ela produz em segundos os valores de referência que a simulação precisará reproduzir.</p></header>
+      <div class="g2 reveal" style="grid-template-columns:1.2fr .8fr">
+        <ol class="steps">
+          <li>Abra o JMT, que roda como arquivo <code>.jar</code> em qualquer máquina com Java, e escolha o JMVA.</li>
+          <li>Declare um modelo aberto com uma classe de clientes e taxa de chegada λ = 40 req/s.</li>
+          <li>Cadastre três estações de fila com servidor único: Web, Estoque e Banco.</li>
+          <li>Informe as demandas de serviço de 0,010 s, 0,020 s e 0,024 s. Se a versão aceitar tempo de serviço e visitas, informe S = 0,004 s e V = 6 no banco.</li>
+          <li>Resolva o modelo e leia, por estação, utilização, tempo de residência e número médio de clientes.</li>
+          <li>Na análise What-if, varie λ de 10 a 41 req/s e observe a curva do tempo de resposta.</li>
+        </ol>
+        <article class="card dark"><span class="label dark">O que conferir</span><h3>Os valores do slide de 40 req/s</h3><p>Utilizações de 0,40, 0,80 e 0,96, tempo de resposta próximo de 0,717 s e cerca de 28,7 clientes no sistema.</p><p>A curva do What-if mostra a subida abrupta do tempo de resposta quando λ se aproxima de 41,7 req/s, e por isso o intervalo termina em 41.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 20: PASSO A PASSO JSIMGRAPH (REDE) ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Passo a passo no JSIMgraph: a rede</div><p class="ss">No JSIMgraph a rede é desenhada com os componentes do editor, e cada estação recebe a mesma parametrização usada no JMVA.</p></header>
+      <div class="g2 reveal">
+        <ol class="steps">
+          <li>Desenhe, da esquerda para a direita, um Source, três Queue chamadas Web, Estoque e Banco e um Sink, ligados em sequência.</li>
+          <li>Defina uma classe aberta com tempo entre chegadas exponencial de taxa λ = 40 req/s, isto é, média de 0,025 s entre chegadas.</li>
+          <li>Em cada Queue, mantenha um servidor e defina tempo de serviço exponencial: 0,010 s na Web e 0,020 s no Estoque.</li>
+          <li>No Banco, escolha uma das duas representações das seis visitas, descritas ao lado.</li>
+        </ol>
+        <div style="display:grid;gap:9px">
+          <article class="card"><span class="label">Opção A · demanda agregada</span><h3>Uma visita com S = 0,024 s</h3><p>O banco recebe uma visita por requisição com tempo de serviço igual à demanda D. É a forma mais simples e produz as mesmas médias no modelo de forma-produto.</p></article>
+          <article class="card dark"><span class="label dark">Opção B · retorno probabilístico</span><h3>S = 0,004 s e retorno p = 5/6</h3><p>Na saída do Banco, uma ligação volta ao próprio Banco com probabilidade 5/6 e outra segue ao Sink com 1/6, o que dá em média 1/(1 − 5/6) = 6 visitas. Se o editor não aceitar a ligação, use a opção A.</p></article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 21: JSIMGRAPH (MÉTRICAS) ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh red reveal"><div class="st">JSIMgraph: métricas, execução e leitura</div><p class="ss">A simulação só responde ao que foi pedido como métrica antes da execução, e cada resposta vem acompanhada de um intervalo de confiança que precisa ser lido junto com o valor.</p></header>
+      <div class="g2 reveal" style="grid-template-columns:1fr 1fr">
+        <ol class="steps" style="counter-reset:step 4">
+          <li>Defina as métricas: tempo de resposta do sistema e, por estação, utilização e número de clientes.</li>
+          <li>Execute a simulação e aguarde até que as estimativas atinjam a precisão pedida ou o limite de amostras.</li>
+          <li>Leia cada valor com o seu intervalo de confiança e compare com o JMVA.</li>
+          <li>Altere o modelo para a correção, mantendo carga e métricas, e simule outra vez.</li>
+          <li>Desligue uma réplica, direcionando todo o tráfego à outra, e meça a degradação.</li>
+        </ol>
+        <div style="display:grid;gap:9px">
+          <div class="tb-wrap"><table>
+            <thead><tr><th>Métrica a 40 req/s</th><th class="n">JMVA</th><th>Simulação</th></tr></thead>
+            <tbody>
+              <tr><td>U Web · Estoque · Banco</td><td class="n">0,40 · 0,80 · 0,96</td><td>valor e intervalo</td></tr>
+              <tr><td>Tempo de resposta do sistema</td><td class="n">0,717 s</td><td>valor e intervalo</td></tr>
+              <tr><td>Clientes no sistema</td><td class="n">28,7</td><td>valor e intervalo</td></tr>
+            </tbody>
+          </table></div>
+          <article class="card dark"><p>Com o banco a 0,96, as amostras são muito correlacionadas, a simulação demora a convergir e o intervalo fica largo. Valide o modelo primeiro a 10 req/s, onde a convergência é rápida, e só depois simule o pico.</p></article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 22: COLETA E VALIDAÇÃO ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Coleta de dados e validação do modelo</div><p class="ss">Os parâmetros do exemplo foram dados prontos. No projeto, eles precisam ser obtidos do sistema, e o modelo só sustenta uma decisão depois de comparado com medidas reais.</p></header>
+      <div class="g3 reveal">
+        <article class="card"><span class="label">Taxas</span><h3>De onde vêm λ, S e V</h3><p>A taxa de chegada sai da contagem de requisições por intervalo nos logs ou da carga aplicada em um teste. Tempos de serviço e visitas saem da instrumentação de cada componente e do número de consultas ao banco por requisição.</p></article>
+        <article class="card dark"><span class="label dark">Distribuição</span><h3>As chegadas são exponenciais?</h3><p>A hipótese de Poisson precisa ser conferida nos intervalos entre chegadas registrados. Chegadas em rajada ou serviço muito regular afastam o sistema real do modelo M/M/1.</p></article>
+        <article class="card grn"><span class="label grn">Validação</span><h3>Modelo contra sistema</h3><p>Sob a mesma carga, utilização e tempo de resposta do modelo são comparados com os medidos. Só depois dessa conferência a previsão para o sistema novo passa a ter valor de evidência.</p></article>
+      </div>
+      <div class="callout reveal">Os autoestudos Coleta de Dados para Simulação e Validação de Modelos de Simulação tratam dessas duas etapas e são a base do que a ponderada chama de limites do modelo.</div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 23: PONDERADA ENUNCIADO ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh green reveal"><div class="st">Ponderada em sala: enunciado e rubrica</div><p class="ss">Avaliação individual de peso 3, realizada nos 60 minutos do encontro e entregue na Adalove.</p></header>
+      <blockquote class="quote reveal">Faça a simulação de uma rede de filas no software JMT. Grave um vídeo de até 5 minutos descrevendo o modelo de rede de filas construído, como realizou a simulação e uma análise dos resultados da simulação.</blockquote>
+      <div class="tb-wrap reveal" style="margin-top:11px">
+        <table>
+          <thead><tr><th style="width:14%" class="n">Pontos</th><th style="width:34%">Critério</th><th>O que o vídeo precisa mostrar</th></tr></thead>
+          <tbody>
+            <tr><td class="n"><strong>3,0</strong></td><td>Descrição do modelo de rede de filas construído</td><td>Estações, ligações, classe de clientes, taxa de chegada, tempos de serviço, visitas e a origem de cada parâmetro.</td></tr>
+            <tr><td class="n"><strong>3,0</strong></td><td>Explicação objetiva de como realizou a simulação</td><td>Ferramenta usada, distribuições, métricas pedidas, critério de parada e versões do modelo simuladas.</td></tr>
+            <tr><td class="n"><strong>4,0</strong></td><td>Análise crítica sobre os resultados da simulação</td><td>Gargalo, comparação com o cálculo analítico, efeito de uma correção e limites do modelo.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 24: PONDERADA ROTEIRO ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh green reveal"><div class="st">O que modelar e como roteirizar o vídeo</div><p class="ss">Recomenda-se modelar o sistema do próprio projeto, porque o modelo construído hoje adianta o artefato Simulação do sistema novo da Sprint 2.</p></header>
+      <div class="g2 reveal">
+        <article class="card"><span class="label">Escolha do sistema</span><h3>Projeto ou caso da promoção</h3>
+          <ul>
+            <li>Preferencial: o fluxo crítico do projeto, com as estações que uma requisição atravessa e parâmetros estimados ou medidos.</li>
+            <li>Alternativa: o caso da promoção com outros parâmetros, como outra taxa de chegada, outras visitas ao banco ou outra correção.</li>
+            <li>Em qualquer caso, declare de onde saiu cada número.</li>
+          </ul>
+        </article>
+        <div class="tb-wrap">
+          <table>
+            <thead><tr><th>Tempo do vídeo</th><th>Bloco</th></tr></thead>
+            <tbody>
+              <tr><td class="n">0:00–1:00</td><td>Modelo: estações, ligações, classe, λ, S e V.</td></tr>
+              <tr><td class="n">1:00–2:30</td><td>Simulação: como foi configurada e executada no JMT.</td></tr>
+              <tr><td class="n">2:30–5:00</td><td>Análise: gargalo, analítico e simulado, correção e limites.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="g4 reveal" style="margin-top:11px">
+        <article class="card"><span class="label">0–15 min</span><p>Desenhar a rede e fixar os parâmetros.</p></article>
+        <article class="card dark"><span class="label dark">15–35 min</span><p>Resolver no JMVA e simular no JSIMgraph.</p></article>
+        <article class="card grn"><span class="label grn">35–50 min</span><p>Aplicar uma correção e medir de novo.</p></article>
+        <article class="card"><span class="label">50–60 min</span><p>Escrever o roteiro e preparar a gravação.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 25: ANÁLISE CRÍTICA ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh green reveal"><div class="st">O que conta como análise crítica</div><p class="ss">O critério de maior peso exige interpretar os números, isto é, dizer o que eles indicam sobre o sistema e até onde o modelo autoriza essa conclusão.</p></header>
+      <div class="g2 reveal">
+        <article class="card grn"><span class="label grn">A análise contém</span><h3>Quatro elementos verificáveis</h3>
+          <ul class="check">
+            <li>O gargalo identificado pela maior demanda de serviço, com o valor de D.</li>
+            <li>A comparação entre o resultado analítico e o simulado, com o intervalo de confiança.</li>
+            <li>O efeito medido de uma correção sob a mesma carga e as mesmas métricas.</li>
+            <li>Os limites do modelo, em especial a hipótese exponencial e a origem dos parâmetros.</li>
+          </ul>
+        </article>
+        <article class="card"><span class="label">Erros comuns</span><h3>O que costuma custar pontos</h3>
+          <ul>
+            <li>Misturar milissegundos e segundos entre estações.</li>
+            <li>Confundir tempo de serviço por visita com demanda de serviço.</li>
+            <li>Simular com λ acima de 1/D<sub>máx</sub> e ler o resultado como se fosse estável.</li>
+            <li>Apresentar um valor simulado sem o intervalo de confiança.</li>
+            <li>Narrar as telas do JMT sem interpretar os números.</li>
+            <li>Ultrapassar os cinco minutos do vídeo.</li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 26: AUTOESTUDOS ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Autoestudos do encontro</div><p class="ss">Os sete autoestudos são obrigatórios e somam cerca de 118 minutos. As lições em vídeo do JMT reproduzem, em modelo de uma estação, as operações demonstradas hoje.</p></header>
+      <div class="tb-wrap reveal auto">
+        <table>
+          <thead><tr><th>Autoestudo</th><th>Para que serve neste encontro</th><th class="n">Duração</th></tr></thead>
+          <tbody>
+            <tr><td><a href="https://www.youtube.com/watch?v=RU04ZrmCPb4&amp;list=PLxI8Can9yAHcn4b7BuUgRQOJkABuYfHYN&amp;index=12" target="_blank" rel="noopener noreferrer">Coleta de Dados para Simulação</a></td><td>Obtenção das taxas e das distribuições que alimentam o modelo.</td><td class="n">22 min</td></tr>
+            <tr><td><a href="https://www.youtube.com/watch?v=QZ7bz_rgNmk&amp;list=PLxI8Can9yAHcn4b7BuUgRQOJkABuYfHYN&amp;index=25" target="_blank" rel="noopener noreferrer">Validação de Modelos de Simulação</a></td><td>Comparação do modelo com o sistema real.</td><td class="n">17 min</td></tr>
+            <tr><td><a href="https://www.youtube.com/watch?v=kR_-by3u8JM&amp;list=PL5yYxD_4CokRTQt-cI2y5m3m-p3FhUsSe" target="_blank" rel="noopener noreferrer">JMT Lecture: Introduction to queueing modelling and JMT</a></td><td>Visão geral da modelagem por filas e da ferramenta.</td><td class="n">14 min</td></tr>
+            <tr><td><a href="https://www.youtube.com/watch?v=MSQvBro1RIY&amp;list=PL5yYxD_4CokRTQt-cI2y5m3m-p3FhUsSe&amp;index=3" target="_blank" rel="noopener noreferrer">JMT Lecture: A single-station open model with JMVA</a></td><td>Modelo aberto de uma estação resolvido no JMVA.</td><td class="n">10 min</td></tr>
+            <tr><td><a href="https://www.youtube.com/watch?v=uzc6irO_xA8&amp;list=PL5yYxD_4CokRTQt-cI2y5m3m-p3FhUsSe&amp;index=4" target="_blank" rel="noopener noreferrer">JMT Lecture: A single station open model with JSIMgraph</a></td><td>O mesmo modelo simulado no JSIMgraph.</td><td class="n">17 min</td></tr>
+            <tr><td><a href="https://jmt.sourceforge.net/" target="_blank" rel="noopener noreferrer">Site do JMT (download e manual)</a></td><td>Instalação da ferramenta e consulta ao manual.</td><td class="n">20 min</td></tr>
+            <tr><td><a href="https://www.youtube.com/watch?v=d1-u_ey1_ls&amp;list=PLxI8Can9yAHcn4b7BuUgRQOJkABuYfHYN&amp;index=27" target="_blank" rel="noopener noreferrer">Exemplo de Cabeleireiro</a></td><td>Avaliação de um fluxo por simulação.</td><td class="n">18 min</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 27: ENCAMINHAMENTOS ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh red reveal"><div class="st">Encaminhamentos e artefato da Sprint 2</div><p class="ss">O vídeo da ponderada é entregue na Adalove. O modelo construído hoje é o ponto de partida do artefato Simulação do sistema novo, de peso 3.</p></header>
+      <div class="g2 reveal">
+        <article class="card"><span class="label">Sprint 2 · peso 3</span><h3>Simulação do sistema novo</h3>
+          <ul>
+            <li>Revisar o modelo do sistema atual e construir o do sistema novo.</li>
+            <li>Aplicar aos dois os mesmos cenários, a mesma massa de dados e as mesmas métricas.</li>
+            <li>Evidenciar diferenças nos resultados e na estrutura, explicadas pelas táticas adotadas e não apenas por mudança de parâmetros.</li>
+            <li>Entregar em <code>Projeto.md</code>, na pasta <code>docs</code>, com os modelos versionados; o JMT pode ser usado.</li>
+          </ul>
+        </article>
+        <article class="card dark"><span class="label dark">Próximos encontros</span><h3>O que vem nesta semana</h3>
+          <ul>
+            <li>Quarta, 04/11: táticas arquiteturais e testes não funcionais que confirmam o efeito previsto no modelo.</li>
+            <li>Quinta, 05/11: Teoria das Filas e Redes de Petri com o prof. Leandro, que aprofunda os resultados usados hoje.</li>
+          </ul>
+        </article>
+      </div>
+      <div class="callout dark reveal">No exemplo de hoje, a Correção 2 difere do sistema atual nos números e também na estrutura, porque acrescenta cache e réplica. É esse tipo de diferença, atribuída a uma tática, que o artefato da Sprint 2 pede para evidenciar.</div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 28: FECHAMENTO ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Fechamento</div><p class="ss">O encontro percorreu o ciclo completo sobre o mesmo caso e com a mesma carga, do sistema que viola o cenário até a versão que o atende mesmo com uma réplica em falha.</p></header>
+      <div class="closing reveal">
+        <blockquote>A prioridade dos ajustes foi definida pela demanda de serviço de cada estação e confirmada por nova medida do tempo de resposta, com o cálculo analítico usado para conferir a simulação.</blockquote>
+        <div class="g2">
+          <article class="card"><h3>1 · Modelo</h3><p>O cenário de 0,2 s a 40 req/s foi representado por uma rede aberta de três estações com demandas declaradas.</p></article>
+          <article class="card dark"><h3>2 · Gargalo</h3><p>A maior demanda, a do banco, explicava 84% do tempo de resposta e indicou onde corrigir primeiro.</p></article>
+          <article class="card grn"><h3>3 · Medição</h3><p>Cada correção foi avaliada sob a mesma carga, e a medição revelou o gargalo seguinte.</p></article>
+          <article class="card"><h3>4 · Falha</h3><p>A réplica do estoque manteve o cenário atendido com uma instância fora, o que responde à pergunta de tolerância a falhas.</p></article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+<!-- encontro:meta:start -->
+<div class="slide encontro-slide"><div class="sc"><section class="encontro-meta" data-encontro-ficha><h2>Sobre este encontro</h2><p class="encontro-ref">Simulação de desempenho, tolerância a falhas e acesso simultâneo · 03/11/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>Ao final do encontro, o estudante deve ser capaz de modelar o sistema do projeto como uma rede de filas aberta, calcular utilização, tempo de resposta e população com a Lei da Utilização e a Lei de Little, identificar o gargalo pela maior demanda de serviço, simular o modelo no JMT, comparar o resultado com o cálculo analítico e justificar, pela diferença medida entre duas versões do modelo, qual ajuste arquitetural deve ser priorizado.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>O encontro antecede a aula de Teoria das Filas do prof. Leandro e, por isso, apresenta apenas o mínimo de teoria necessário à prática: taxas de chegada e de serviço, utilização, Lei de Little e demanda de serviço. A demonstração percorre o ciclo de simulação, correção e medição sobre o caso da promoção relâmpago, primeiro no JMVA, pela solução analítica, e depois no JSIMgraph, pela simulação, incluindo a falha de uma réplica. A ponderada em sala ocupa sessenta minutos: cada estudante constrói e simula no JMT uma rede de filas e prepara o roteiro do vídeo de até cinco minutos exigido na entrega.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol><li>Daily: estado dos artefatos, atividade prevista e impedimentos — 15 min</li><li>Abertura: do cenário de qualidade à medida obtida por simulação — 5 min</li><li>Mínimo de teoria das filas: λ, μ, utilização, M/M/1, Lei de Little, demanda de serviço e gargalo — 15 min</li><li>Demonstração no JMT: simulação, correção e medição do caso da promoção, com falha de uma réplica — 20 min</li><li>Ponderada em sala: rede de filas no JMT e roteiro do vídeo de até cinco minutos — 60 min</li><li>Encaminhamentos e fechamento: entrega na Adalove e ligação com o artefato Simulação do sistema novo — 5 min</li></ol></div></section></div></div>
+<!-- encontro:meta:end -->
+</div>
+
+<footer class="slide-footer">
+  <div class="footer-links">
+    <a href="../../home-module-8-eng-software.html" class="back-home">🏠 Home</a>
+    <a href="../materials/lesson-3-material.html" class="back-home material">📖 Material</a>
+    <a href="../planos/lesson-3-plano.html" class="back-home plano">🗂️ Plano</a>
+  </div>
+  <div class="nav-wrapper">
+    <button class="nav-btn" id="prev" type="button">← Anterior</button>
+    <div class="slide-counter"><span id="current-slide">1</span> / <span id="total-slides">28</span></div>
+    <button class="nav-btn" id="next" type="button">Próximo →</button>
+    <button class="fullscreen-btn" id="fullscreen" type="button" aria-label="Alternar tela cheia">⛶</button>
+  </div>
+</footer>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const current = document.getElementById('current-slide');
+  const total = document.getElementById('total-slides');
+  const previous = document.getElementById('prev');
+  const next = document.getElementById('next');
+  let slideIndex = 0;
+
+  function animateActiveSlide() {
+    const active = slides[slideIndex];
+    const items = active ? Array.from(active.querySelectorAll('.reveal')) : [];
+    if (!items.length || !window.__anime) return;
+    window.__anime.animate(items, {
+      opacity: { from: 0, to: 1 },
+      y: { from: 12, to: 0 },
+      delay: window.__anime.stagger(45),
+      duration: 420,
+      ease: 'outQuad'
+    });
+  }
+
+  function showSlide(index) {
+    slideIndex = Math.max(0, Math.min(index, slides.length - 1));
+    slides.forEach((slide, position) => slide.classList.toggle('active', position === slideIndex));
+    current.textContent = String(slideIndex + 1);
+    total.textContent = String(slides.length);
+    previous.disabled = slideIndex === 0;
+    next.disabled = slideIndex === slides.length - 1;
+    animateActiveSlide();
+  }
+
+  window.showSlide = showSlide;
+  previous.addEventListener('click', () => showSlide(slideIndex - 1));
+  next.addEventListener('click', () => showSlide(slideIndex + 1));
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowRight' || event.key === 'PageDown') showSlide(slideIndex + 1);
+    if (event.key === 'ArrowLeft' || event.key === 'PageUp') showSlide(slideIndex - 1);
+  });
+  document.getElementById('fullscreen').addEventListener('click', () => {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+    else document.exitFullscreen();
+  });
+  window.addEventListener('anime-ready', animateActiveSlide);
+
+  let dailySeconds = 15 * 60;
+  let dailyInterval = null;
+  const dailyTimer = document.getElementById('daily-timer');
+  const dailyStart = document.getElementById('daily-start');
+  function renderDaily() {
+    const minutes = String(Math.floor(dailySeconds / 60)).padStart(2, '0');
+    const seconds = String(dailySeconds % 60).padStart(2, '0');
+    dailyTimer.textContent = `${minutes}:${seconds}`;
+  }
+  function stopDaily() {
+    if (dailyInterval) clearInterval(dailyInterval);
+    dailyInterval = null;
+    dailyStart.textContent = 'Iniciar';
+  }
+  dailyStart.addEventListener('click', () => {
+    if (dailyInterval) { stopDaily(); return; }
+    dailyStart.textContent = 'Pausar';
+    dailyInterval = setInterval(() => {
+      dailySeconds -= 1;
+      renderDaily();
+      if (dailySeconds <= 0) stopDaily();
+    }, 1000);
+  });
+  document.getElementById('daily-reset').addEventListener('click', () => {
+    stopDaily();
+    dailySeconds = 15 * 60;
+    renderDaily();
+  });
+  showSlide(0);
+</script>
+<!-- encontro:pdf:start -->
+<button type="button" class="pdf-export-btn" data-encontro-data="2026-11-03" data-encontro-docente="Afonso" data-encontro-seq="01" title="Exportar esta página em PDF com o nome padronizado">📄 Exportar PDF</button>
+<script src="../../../js/encontro-pdf.js" defer></script>
+<!-- encontro:pdf:end -->
+<!-- semana:js:start -->
+<script src="../../../js/semana-ano.js" defer></script>
+<!-- semana:js:end -->
+</body>
+</html>
