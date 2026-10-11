@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 7 - DataApp Package with Layered Architecture - Inteli</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📦</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+  <link href="../../../css/inteli-styles.css" rel="stylesheet">
+  <style>
+    :root {
+      --si: var(--si-blue);
+      --ink: var(--inteli-dark-purple);
+      --accent: var(--inteli-purple);
+      --paper: var(--inteli-white);
+      --line: var(--inteli-light-gray);
+      --muted: var(--inteli-dark-gray);
+      --si-deep: color-mix(in srgb, var(--si) 42%, var(--ink));
+      --soft-si: color-mix(in srgb, var(--si) 20%, var(--paper));
+      --soft-ink: color-mix(in srgb, var(--ink) 7%, var(--paper));
+      --soft-accent: color-mix(in srgb, var(--accent) 13%, var(--paper));
+    }
+    *, *::before, *::after { box-sizing:border-box; }
+    body { margin:0; overflow:hidden; font-family:'Manrope',sans-serif; background:var(--soft-ink); color:var(--ink); }
+    .slide-container { width:100vw; height:100vh; position:relative; overflow:hidden; }
+    .slide { position:absolute; inset:0; display:none; padding:54px 52px 82px; overflow:hidden; }
+    .slide.active { display:flex; align-items:center; justify-content:center; }
+    .sc { width:min(1160px,100%); max-height:calc(100vh - 150px); margin:0 auto; }
+    .slide:not(.cover):not(.daily):not(.encontro-slide) .sc { width:86%; transform:scale(1.14); transform-origin:center; }
+    .cover .sc { width:88%; transform:scale(1.1); transform-origin:center; }
+    .daily .sc { width:88%; transform:scale(1.06); transform-origin:center; }
+    .top-nav { position:fixed; top:14px; left:18px; z-index:90; display:flex; gap:8px; }
+    .top-nav a { padding:7px 12px; border-radius:999px; background:color-mix(in srgb,var(--paper) 94%,transparent); color:var(--ink); border:1px solid var(--line); text-decoration:none; font-size:.75rem; font-weight:800; box-shadow:0 3px 12px color-mix(in srgb,var(--ink) 12%,transparent); }
+    .eyebrow { margin:0 0 7px; color:var(--si-deep); font-size:.72rem; font-weight:800; letter-spacing:.14em; text-transform:uppercase; }
+    .sh { color:var(--paper); padding:15px 20px; border-radius:14px; margin-bottom:13px; }
+    .sh.si { background:linear-gradient(120deg,var(--si-deep),color-mix(in srgb,var(--si) 70%,var(--ink))); }
+    .sh.dark { background:linear-gradient(120deg,var(--ink),color-mix(in srgb,var(--ink) 70%,var(--si))); }
+    .st { margin:0 0 3px; font-size:1.75rem; line-height:1.16; font-weight:800; }
+    .ss { margin:0; font-size:.9rem; line-height:1.45; opacity:.92; }
+    .g2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:11px; }
+    .g3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+    .card { background:var(--paper); border:1px solid var(--line); border-left:5px solid var(--si); border-radius:12px; padding:13px 15px; box-shadow:0 5px 18px color-mix(in srgb,var(--ink) 8%,transparent); min-width:0; display:flex; flex-direction:column; }
+    .card.dark { border-left-color:var(--ink); }
+    .card.grn { border-left-color:var(--accent); }
+    .card h3 { margin:0 0 5px; font-size:.96rem; line-height:1.3; }
+    .card h3 a { color:var(--ink); text-decoration:underline; text-decoration-color:color-mix(in srgb,var(--si) 70%,var(--ink)); text-underline-offset:3px; }
+    .card p { margin:0; color:color-mix(in srgb,var(--ink) 78%,var(--paper)); font-size:.79rem; line-height:1.46; }
+    .label { align-self:flex-start; display:inline-block; margin-bottom:7px; padding:3px 8px; border-radius:999px; background:var(--soft-si); color:var(--si-deep); font-size:.64rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+    .label.dark { background:var(--soft-ink); color:var(--ink); }
+    .label.grn { background:var(--soft-accent); color:color-mix(in srgb,var(--accent) 55%,var(--ink)); }
+    .ss-meta { margin-top:auto; padding-top:8px; display:flex; flex-wrap:wrap; gap:6px; }
+    .ss-src { font-family:'JetBrains Mono',monospace; font-size:.62rem; color:color-mix(in srgb,var(--ink) 60%,var(--paper)); }
+    .callout { margin-top:11px; padding:10px 14px; border-radius:10px; background:var(--soft-si); border:1px solid color-mix(in srgb,var(--si) 50%,var(--paper)); font-size:.8rem; line-height:1.45; }
+    .callout.dark { background:var(--soft-ink); border-color:color-mix(in srgb,var(--ink) 22%,var(--paper)); }
+    .agenda { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; }
+    .agenda article { min-height:104px; padding:11px; background:var(--paper); border-radius:10px; border-top:4px solid var(--si); box-shadow:0 4px 12px color-mix(in srgb,var(--ink) 6%,transparent); }
+    .agenda article:nth-child(even) { border-top-color:var(--ink); }
+    .agenda b { display:block; font-size:1.15rem; line-height:1; margin-bottom:7px; color:var(--si-deep); }
+    .agenda strong { display:block; font-size:.74rem; line-height:1.3; }
+    .agenda span { display:block; margin-top:5px; font-size:.64rem; line-height:1.3; color:color-mix(in srgb,var(--ink) 68%,var(--paper)); }
+    .cover { background:linear-gradient(132deg,var(--ink) 0%,color-mix(in srgb,var(--ink) 50%,var(--si)) 60%,var(--si-deep) 100%); color:var(--paper); }
+    .cover-badge { display:inline-block; margin-bottom:15px; padding:5px 12px; border:1px solid color-mix(in srgb,var(--paper) 40%,transparent); border-radius:999px; background:color-mix(in srgb,var(--paper) 12%,transparent); font-size:.72rem; font-weight:700; }
+    .cover h1 { margin:0; font-size:3.05rem; line-height:1.08; letter-spacing:-.035em; }
+    .cover .lead { margin:15px 0 22px; max-width:820px; font-size:1.08rem; line-height:1.55; color:color-mix(in srgb,var(--paper) 90%,var(--si)); }
+    .cover-tags { display:flex; flex-wrap:wrap; gap:7px; }
+    .cover-tags span { padding:6px 10px; border-radius:8px; background:color-mix(in srgb,var(--paper) 13%,transparent); border:1px solid color-mix(in srgb,var(--paper) 28%,transparent); font-size:.68rem; font-weight:700; }
+    .daily { background:linear-gradient(132deg,var(--ink),color-mix(in srgb,var(--ink) 50%,var(--si))); color:var(--paper); text-align:center; }
+    .daily-panel { max-width:870px; margin:auto; padding:25px 30px; border:1px solid color-mix(in srgb,var(--paper) 28%,transparent); border-radius:20px; background:color-mix(in srgb,var(--paper) 10%,transparent); }
+    .daily h2 { margin:0 0 5px; font-size:2rem; }
+    .daily p { margin:0 0 15px; font-size:.9rem; opacity:.88; }
+    .daily-timer { display:inline-block; margin:3px 0 14px; padding:8px 24px; border-radius:14px; background:color-mix(in srgb,var(--paper) 13%,transparent); font-family:'JetBrains Mono',monospace; font-size:3.1rem; font-weight:800; letter-spacing:.08em; }
+    .daily button { margin:0 4px; padding:8px 17px; border:1px solid color-mix(in srgb,var(--paper) 36%,transparent); border-radius:9px; background:color-mix(in srgb,var(--paper) 14%,transparent); color:var(--paper); font:700 .8rem 'Manrope',sans-serif; cursor:pointer; }
+    .daily-tags { display:flex; justify-content:center; gap:7px; flex-wrap:wrap; margin-top:14px; }
+    .daily-tags span { padding:5px 9px; border-radius:8px; background:color-mix(in srgb,var(--paper) 12%,transparent); font-size:.67rem; font-weight:700; }
+    .slide-footer { position:fixed; left:0; right:0; bottom:0; height:60px; z-index:100; display:flex; justify-content:space-between; align-items:center; gap:12px; padding:0 22px; background:color-mix(in srgb,var(--paper) 97%,transparent); border-top:1px solid var(--line); box-shadow:0 -3px 14px color-mix(in srgb,var(--ink) 8%,transparent); }
+    .footer-links, .nav-wrapper { display:flex; align-items:center; gap:9px; }
+    .back-home { padding:8px 13px; border-radius:9px; background:var(--soft-ink); color:var(--ink); text-decoration:none; font-size:.77rem; font-weight:800; }
+    .nav-btn, .fullscreen-btn { padding:8px 13px; border:0; border-radius:9px; background:var(--ink); color:var(--paper); font:800 .77rem 'Manrope',sans-serif; cursor:pointer; }
+    .nav-btn:disabled { background:var(--muted); cursor:default; }
+    .fullscreen-btn { background:var(--soft-ink); color:var(--ink); }
+    .slide-counter { min-width:68px; text-align:center; font-size:.78rem; font-weight:800; }
+    @media (min-width:1600px) and (min-height:900px) {
+      .slide { padding:76px 76px 100px; }
+      .sc { width:min(1500px,100%); max-height:calc(100vh - 190px); }
+      .slide:not(.cover):not(.daily):not(.encontro-slide) .sc { width:66%; transform:scale(1.43); }
+      .cover .sc { width:74%; transform:scale(1.22); }
+      .daily .sc { width:68%; transform:scale(1.3); }
+      .st { font-size:2.25rem; }
+      .ss { font-size:1.12rem; }
+      .card { padding:19px 21px; }
+      .card h3 { font-size:1.2rem; }
+      .card p { font-size:.98rem; }
+      .label { font-size:.78rem; }
+      .ss-src { font-size:.76rem; }
+      .callout { font-size:1rem; padding:14px 18px; }
+      .agenda article { min-height:140px; padding:15px; }
+      .agenda b { font-size:1.5rem; }
+      .agenda strong { font-size:.92rem; }
+      .agenda span { font-size:.82rem; }
+      .cover h1 { font-size:4rem; }
+      .cover .lead { font-size:1.4rem; }
+      .cover-badge, .cover-tags span { font-size:.9rem; }
+    }
+    @media (max-width:900px) {
+      .slide { padding-left:24px; padding-right:24px; }
+      .g2, .g3 { grid-template-columns:1fr; }
+      .agenda { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    }
+    @media print { .top-nav { display:none!important; } }
+  </style>
+  <script type="module">
+    import { animate, stagger } from 'https://cdn.jsdelivr.net/npm/animejs@4/+esm';
+    window.__anime = { animate, stagger };
+    window.dispatchEvent(new CustomEvent('anime-ready'));
+  </script>
+
+<!-- encontro:css:start -->
+<link rel="stylesheet" href="../../../css/encontro.css">
+<!-- encontro:css:end -->
+
+<!-- semana:css:start -->
+<link rel="stylesheet" href="../../../css/semana-ano.css">
+<!-- semana:css:end -->
+</head>
+<body>
+<nav class="top-nav" aria-label="Lesson navigation">
+  <a href="../../home-module-8-sistemas-informacao.html">← Back</a>
+</nav>
+
+<div class="slide-container">
+
+  <!-- ====== SLIDE 1: COVER ====== -->
+  <section class="slide cover active">
+    <div class="sc">
+      <span class="cover-badge">Module 8 · Information Systems · Lesson 7 · Week 7</span>
+      <p class="eyebrow" style="color:var(--paper)">Instruction session · Friday, November 27, 2026</p>
+      <h1>DataApp Package with Layered Architecture</h1>
+      <p class="lead">Packaging the DataApp as a Python package organised in Views, ETLs and Processors. The layered architecture separates interface, data movement and business logic.</p>
+      <div class="cover-tags"><span>Layered architecture</span><span>Views · ETLs · Processors</span><span>Python packaging</span><span>pyproject / setup.py</span><span>Graded activity</span></div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 2: DAILY ====== -->
+  <section class="slide daily">
+    <div class="sc">
+      <div class="daily-panel">
+        <p class="eyebrow" style="color:var(--paper)">Project ritual</p>
+        <h2>Daily · 15 minutes</h2>
+        <p>Each group reports the progress of its deliverables, the work planned for this session and the blockers that require a decision.</p>
+        <div class="daily-timer" id="daily-timer">15:00</div>
+        <div>
+          <button id="daily-start" type="button">Start</button>
+          <button id="daily-reset" type="button">Reset</button>
+        </div>
+        <div class="daily-tags">
+          <span>What I did</span><span>What I will do</span><span>Blockers</span><span>Progress</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 3: SESSION STRUCTURE ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh si reveal"><div class="st">Session objective and structure</div><p class="ss">By the end of the session, students should be able to structure the DataApp as an installable Python package in three layers (Views, ETLs and Processors), integrate the layers in a basic data flow and document the package.</p></header>
+      <div class="agenda reveal"><article><b>1</b><strong>Daily</strong><span>15 min</span></article><article><b>2</b><strong>Layered architecture: Views, ETLs and Processors</strong><span></span></article><article><b>3</b><strong>Python package structure and setup files</strong><span></span></article><article><b>4</b><strong>Graded DataApp Packaging activity</strong><span></span></article><article><b>5</b><strong>Self-study and next steps</strong><span></span></article></div>
+      <div class="callout dark reveal">Provisional structure, drawn from the session description on Adalove. The lesson content will be refined before the session.</div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 4: SELF-STUDY ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><div class="st">Self-study for this session</div><p class="ss">4 readings and videos assigned on Adalove, to be completed before the next session.</p></header>
+      <div class="g2 reveal">
+        <article class="card"><span class="label">Self-study 1</span><h3><a href="https://learn.microsoft.com/en-us/azure/databricks/lakehouse/medallion" target="_blank" rel="noopener noreferrer">What is the medallion lakehouse architecture?</a></h3><p>Databricks documentation on the Bronze, Silver and Gold layers and the incremental gain in data quality.</p><div class="ss-meta"><span class="ss-src">learn.microsoft.com</span><span class="ss-src">· 30 min</span></div></article>
+        <article class="card dark"><span class="label dark">Self-study 2</span><h3><a href="https://dev.to/vaib/the-data-lakehouse-and-medallion-architecture-unifying-data-for-bi-and-ml-5014" target="_blank" rel="noopener noreferrer">The Data Lakehouse and Medallion Architecture: Unifying Data for BI and ML (with Python code snippets)</a></h3><p>Medallion architecture illustrated with Python and PySpark code moving data between layers.</p><div class="ss-meta"><span class="ss-src">dev.to</span><span class="ss-src">· 40 min</span></div></article>
+        <article class="card grn"><span class="label grn">Self-study 3</span><h3><a href="https://packaging.python.org/tutorials/packaging-projects/" target="_blank" rel="noopener noreferrer">Packaging Python Projects (Official Tutorial)</a></h3><p>Official guide to project structure, configuration files and building a Python package.</p><div class="ss-meta"><span class="ss-src">packaging.python.org</span><span class="ss-src">· 40 min</span></div></article>
+        <article class="card"><span class="label">Self-study 4</span><h3><a href="https://www.youtube.com/watch?v=jjzOXp_8TgA" target="_blank" rel="noopener noreferrer">Creating Your Own Python Package (YouTube)</a></h3><p>Video walkthrough of package structure, pyproject.toml, wheels and local testing.</p><div class="ss-meta"><span class="ss-src">youtube.com</span><span class="ss-src">· 30 min</span></div></article>
+      </div>
+    </div>
+  </section>
+
+
+<!-- encontro:meta:start -->
+<div class="slide encontro-slide"><div class="sc"><section class="encontro-meta" data-encontro-ficha><h2>Sobre este encontro</h2><p class="encontro-ref">DataApp Package with Layered Architecture · 27/11/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>By the end of the session, students should be able to structure the DataApp as an installable Python package in three layers (Views, ETLs and Processors), integrate the layers in a basic data flow and document the package.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>Exposition on layered architecture and Python packaging, followed by the in-class graded DataApp Packaging activity, in which each student packages the application with tests and submits it through a pull request.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol><li>Daily — 15 min</li><li>Layered architecture: Views, ETLs and Processors</li><li>Python package structure and setup files</li><li>Graded DataApp Packaging activity</li><li>Self-study and next steps</li></ol></div></section></div></div>
+<!-- encontro:meta:end -->
+</div>
+
+<footer class="slide-footer">
+  <div class="footer-links">
+    <a href="../../home-module-8-sistemas-informacao.html" class="back-home">🏠 Home</a>
+  </div>
+  <div class="nav-wrapper">
+    <button class="nav-btn" id="prev" type="button">← Previous</button>
+    <div class="slide-counter"><span id="current-slide">1</span> / <span id="total-slides">4</span></div>
+    <button class="nav-btn" id="next" type="button">Next →</button>
+    <button class="fullscreen-btn" id="fullscreen" type="button" aria-label="Toggle full screen">⛶</button>
+  </div>
+</footer>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const current = document.getElementById('current-slide');
+  const total = document.getElementById('total-slides');
+  const previous = document.getElementById('prev');
+  const next = document.getElementById('next');
+  let slideIndex = 0;
+
+  function animateActiveSlide() {
+    const active = slides[slideIndex];
+    const items = active ? Array.from(active.querySelectorAll('.reveal')) : [];
+    if (!items.length || !window.__anime) return;
+    window.__anime.animate(items, {
+      opacity: { from: 0, to: 1 },
+      y: { from: 12, to: 0 },
+      delay: window.__anime.stagger(45),
+      duration: 420,
+      ease: 'outQuad'
+    });
+  }
+
+  function showSlide(index) {
+    slideIndex = Math.max(0, Math.min(index, slides.length - 1));
+    slides.forEach((slide, position) => slide.classList.toggle('active', position === slideIndex));
+    current.textContent = String(slideIndex + 1);
+    total.textContent = String(slides.length);
+    previous.disabled = slideIndex === 0;
+    next.disabled = slideIndex === slides.length - 1;
+    animateActiveSlide();
+  }
+
+  window.showSlide = showSlide;
+  previous.addEventListener('click', () => showSlide(slideIndex - 1));
+  next.addEventListener('click', () => showSlide(slideIndex + 1));
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowRight' || event.key === 'PageDown') showSlide(slideIndex + 1);
+    if (event.key === 'ArrowLeft' || event.key === 'PageUp') showSlide(slideIndex - 1);
+  });
+  document.getElementById('fullscreen').addEventListener('click', () => {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+    else document.exitFullscreen();
+  });
+  window.addEventListener('anime-ready', animateActiveSlide);
+
+  let dailySeconds = 15 * 60;
+  let dailyInterval = null;
+  const dailyTimer = document.getElementById('daily-timer');
+  const dailyStart = document.getElementById('daily-start');
+  function renderDaily() {
+    const minutes = String(Math.floor(dailySeconds / 60)).padStart(2, '0');
+    const seconds = String(dailySeconds % 60).padStart(2, '0');
+    dailyTimer.textContent = `${minutes}:${seconds}`;
+  }
+  function stopDaily() {
+    if (dailyInterval) clearInterval(dailyInterval);
+    dailyInterval = null;
+    dailyStart.textContent = 'Start';
+  }
+  dailyStart.addEventListener('click', () => {
+    if (dailyInterval) { stopDaily(); return; }
+    dailyStart.textContent = 'Pause';
+    dailyInterval = setInterval(() => {
+      dailySeconds -= 1;
+      renderDaily();
+      if (dailySeconds <= 0) stopDaily();
+    }, 1000);
+  });
+  document.getElementById('daily-reset').addEventListener('click', () => {
+    stopDaily();
+    dailySeconds = 15 * 60;
+    renderDaily();
+  });
+  showSlide(0);
+</script>
+<!-- encontro:pdf:start -->
+<button type="button" class="pdf-export-btn" data-encontro-data="2026-11-27" data-encontro-docente="Afonso" data-encontro-seq="01" title="Exportar esta página em PDF com o nome padronizado">📄 Exportar PDF</button>
+<script src="../../../js/encontro-pdf.js" defer></script>
+<!-- encontro:pdf:end -->
+<!-- semana:js:start -->
+<script src="../../../js/semana-ano.js" defer></script>
+<!-- semana:js:end -->
+</body>
+</html>
