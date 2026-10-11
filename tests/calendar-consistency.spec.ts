@@ -36,7 +36,7 @@ function extractPonderadaFlags(html: string): Map<number, boolean> {
   const flags = new Map<number, boolean>();
   const cards = html.split(/class="[^"]*\blesson-card\b[^"]*"/).slice(1);
   for (const card of cards) {
-    const num = card.match(/class="lesson-number"[^>]*>\s*(\d+)\s*</);
+    const num = card.match(/class="lesson-number(?:\s[^"]*)?"[^>]*>\s*(\d+)\s*</);
     if (num) flags.set(Number(num[1]), /class="ponderada-badge"/.test(card));
   }
   return flags;
