@@ -133,8 +133,6 @@
     @media print { .sr { opacity:1!important; transform:none!important; } }
   </style>
 
-
-
 <!-- encontro:css:start -->
 <link rel="stylesheet" href="../../../css/encontro.css">
 <!-- encontro:css:end -->
@@ -166,8 +164,6 @@
     </div>
   </header>
 
-  
-
 <!-- encontro:meta:start -->
 <div class="container" style="max-width:1100px;margin:24px auto 0;padding:0 16px;"><section class="encontro-meta" data-encontro-ficha><h2>About this session</h2><p class="encontro-ref">Architectural Tactics for Data Flow and Transformations · 22/10/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Learning objective</h3><p>By the end of the session, students should be able to justify the content and the treatment of each layer of a medallion architecture, choose among architectural tactics by weighing their gains and costs, and represent the pipeline as a UML component diagram whose tactics explain how it scales.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Session strategy</h3><p>Team-based learning followed by exposition. The class discusses one case through five questions about a medallion pipeline, each with four tactics whose gains and costs are declared, deciding individually, discussing the anonymous justifications and deciding again. The exposition then organises those decisions into the layers of the medallion architecture, the data quality checks of each layer, the UML component diagram and the scalability tactics, which support the individual graded Architecture Activity due at 16:00.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Session structure</h3><ol><li>Daily — 15 min</li><li>From information to computation, and the rules of the TBL — 5 min</li><li>TBL: five decisions about a medallion pipeline — 50 min</li><li>Medallion layers, data quality and component diagrams — 30 min</li><li>Graded Architecture Activity: scope and deadline — 10 min</li><li>Self-study and next steps — 10 min</li></ol></div></section></div>
 <!-- encontro:meta:end -->
@@ -197,7 +193,7 @@
 
       <section class="mat-section" id="reading">
         <h2>1. How to read this material</h2>
-        <p class="lead">This material accompanies Lesson 3, which opens with a team-based learning session on a medallion pipeline and continues with an exposition that organises the decisions discussed in class. It can be read before the session, to prepare the vocabulary, or after it, to consolidate what the discussion raised.</p>
+        <p class="lead">This material accompanies Lesson 3, which opens with a team-based learning session on a medallion pipeline and continues with an exposition that organises the decisions discussed in class. It is meant to be read after the session, to consolidate what the discussion raised. Before the session, read the three self-studies.</p>
         <p>The text follows the path of the data through the pipeline. It starts by placing the lesson in the computational viewpoint of the RM-ODP and by describing how the team-based learning session works. It then presents the medallion architecture layer by layer, the data quality checks that belong to each layer, the UML component diagram as the notation that documents the pipeline, and the tactics that allow the pipeline to grow. The last sections prepare the graded Architecture Activity, whose statement is on Adalove.</p>
         <p>The examples continue the fictitious pharmacy chain used in Lessons 1 and 2. The chain must deliver a weekly stock-out rate of continuous-use medicines to its purchasing team, from three sources with very different behaviour: point-of-sale terminals that resend files, an ERP with a nightly extract and suppliers whose CSV files change without notice.</p>
       </section>
@@ -250,13 +246,13 @@ s3://pharmacy-lake/bronze/<span class="hl-str">source=supplier</span>/<span clas
       <section class="mat-section" id="silver">
         <h2>6. Silver: conforming the entities</h2>
         <p>The Silver layer turns the deliveries into entities that the whole organisation can trust. It applies types, removes duplicates, resolves keys between sources and enforces the invariants declared in the information viewpoint. At the end of Silver, a sale line exists once, a stock position exists once per product, store and day, and the fields that the LGPD protects have been removed or pseudonymised.</p>
-        <p>The hardest decisions of Silver concern data that changes after it arrives. In the case, POS terminals resend whole days after a connection loss, and stock counts are corrected up to three days later by inventory audits. Merging by key and keeping the latest version gives simple tables, but it silently changes past values of the indicator. Keeping every version with a validity interval preserves the history, at the price of more complex queries. Holding data in quarantine until a settling window has passed gives stable published days, but delays the indicator. The second question of the TBL places the class in front of this choice, and the new information released during its discussion shows that resends are not exact duplicates.</p>
+        <p>The hardest decisions of Silver concern data that changes after it arrives. In the case, POS terminals resend whole days after a connection loss, and stock counts are corrected up to three days later by inventory audits. Merging by key and keeping the latest version gives simple tables, but it silently changes past values of the indicator. Keeping every version with a validity interval preserves the history, at the price of more complex queries. Holding data in quarantine until a settling window has passed gives stable published days, but delays the indicator. The second question of the TBL places the class in front of this choice.</p>
         <p>Silver is also the natural place for most data quality checks, because it is the first layer in which the grain and the invariants are known. Rows that break a rule can be rejected, corrected or sent to a quarantine area, and the volume of each outcome is itself a quality indicator that should be monitored.</p>
         <div class="code-wrap">
           <div class="code-label">PySpark · deduplicate resends keeping the latest delivery<button class="code-copy" type="button">Copy</button></div>
           <pre class="code-block"><code><span class="hl-kw">from</span> pyspark.sql <span class="hl-kw">import</span> Window, functions <span class="hl-kw">as</span> F
 
-latest = Window.<span class="hl-fn">partitionBy</span>(<span class="hl-str">"sale_id"</span>, <span class="hl-str">"product_id"</span>).<span class="hl-fn">orderBy</span>(F.<span class="hl-fn">col</span>(<span class="hl-str">"ingested_at"</span>).<span class="hl-fn">desc</span>())
+latest = Window.<span class="hl-fn">partitionBy</span>(<span class="hl-str">"sale_id"</span>, <span class="hl-str">"product_id"</span>).<span class="hl-fn">orderBy</span>(F.<span class="hl-fn">col</span>(<span class="hl-str">"ingested_at"</span>).<span class="hl-fn">desc</span>(), F.<span class="hl-fn">col</span>(<span class="hl-str">"batch_id"</span>).<span class="hl-fn">desc</span>())
 
 silver_sale_line = (
     bronze_sale_line
@@ -271,7 +267,7 @@ silver_sale_line = (
       <section class="mat-section" id="gold">
         <h2>7. Gold: modelling for consumption</h2>
         <p>The Gold layer organises the conformed data for a specific use. In the case, that use is the weekly stock-out rate read by the purchasing team every Monday, and later the questions that analysts will ask about it. The modelling choice determines how easily those later questions can be answered.</p>
-        <p>A star schema, with a periodic snapshot fact of stock positions and conformed dimensions of store, product and date, lets new questions reuse the same dimensions and computes the indicator from a single fact with a declared grain. A wide table built for the dashboard is faster to deliver, but each new question requires a new table, and the definitions of store or product drift apart. Precomputed aggregates are compact, but they lose the detail needed to explain an indicator. Views over Silver avoid duplicating data, but recompute the indicator at every read. The fourth question of the TBL discusses these options, and Lessons 5 and 6 of the module develop dimensional modelling and data cubes in detail.</p>
+        <p>A star schema, with a periodic snapshot fact of stock positions and conformed dimensions of store, product and date, lets new questions reuse the same dimensions and computes the indicator from a single fact with a declared grain. A wide table built for the dashboard is faster to deliver, but each new question requires a new table, and the definitions of store or product drift apart. Keeping the daily detail and computing the weekly rate in the BI tool preserves traceability, but moves the formula into the reports, where it can diverge. Views over Silver avoid duplicating data, but recompute the indicator at every read. The fourth question of the TBL discusses these options, and Lessons 5 and 6 of the module develop dimensional modelling and data cubes in detail.</p>
         <p>Whatever the model, Gold must match the definitions of the Data Model Canvas. The formula, unit and periodicity of the KPI written in block 4 are the specification that the Gold layer implements, and the reconciliation between them is the first check of this layer.</p>
       </section>
 
@@ -329,7 +325,7 @@ I4 )- D
 
       <section class="mat-section" id="scalability">
         <h2>10. Scalability tactics</h2>
-        <p>A pipeline scales when the work of each run grows with the new data and not with the whole history. In the case, thirty new stores will increase the POS volume by about a third, and the fifth question of the TBL asks which tactic carries that growth. The tactics below are the usual candidates, and each one has a cost that the architecture must state.</p>
+        <p>A pipeline scales when the work of each run grows with the new data, independently of the size of the history. In the case, thirty new stores will increase the POS volume by about a third, and the fifth question of the TBL asks which tactic carries that growth. The tactics below are the usual candidates, and each one has a cost that the architecture must state.</p>
         <div class="g2 sr">
           <article class="card"><h3>Partitioning</h3><p>Data is split by date and store, so that each run reads and writes only the partitions that changed. Frequent small loads create many small files, and a compaction job becomes necessary.</p></article>
           <article class="card dark"><h3>Incremental processing</h3><p>Each component records a watermark and reads only data newer than it. Late data, such as audited stock counts, arrives behind the watermark and needs a lookback window.</p></article>
@@ -352,13 +348,13 @@ I4 )- D
       <section class="mat-section" id="activity">
         <h2>11. Preparing the Architecture Activity</h2>
         <p>The graded Architecture Activity of this session is individual, has weight 4 and must be submitted on Adalove by 16:00 on Thursday, October 22. Its statement and its coverage checklist are on Adalove, together with a support reading on design patterns for modern data pipelines. This section does not repeat the statement. It explains how the content of the session helps to answer it.</p>
-        <p>The proposal asks for an architecture that covers the data lifecycle from ingestion to visualisation, with a diagram of the flow and an explanation of each component. The decisions of the TBL provide the raw material. Each question corresponds to a component or a boundary of the architecture, and the justification written in class already contains the assumption and the cost that the explanation should state. The medallion layers provide the structure of the processing, the quality checks of section 8 provide the treatment of data quality, and the tactics of section 10 provide the arguments about scalability and efficiency.</p>
+        <p>The decisions of the TBL provide the raw material for the proposal. Each question corresponds to a component or a boundary of the architecture, and the justification written in class already contains the assumption and the cost that the explanation should state. The medallion layers provide the structure of the processing, the quality checks of section 8 provide the treatment of data quality, and the tactics of section 10 provide the arguments about scalability and efficiency.</p>
         <p>A proposal is easier to assess when the diagram and the text follow the same order. Draw the components from the sources to the dashboard, then explain the role of each one in the same sequence, and close each explanation with the cost of the tactic chosen for it. A diagram whose boxes are not explained in the text, or a text that mentions components absent from the diagram, forces the reader to reconstruct the architecture.</p>
       </section>
 
       <section class="mat-section" id="mistakes">
         <h2>12. Recurring mistakes</h2>
-        <p>The most common mistake is to treat the layers as storage locations and not as contracts. A diagram that shows three boxes named Bronze, Silver and Gold without saying what each guarantees describes folders, and it does not explain why the data in Gold can be trusted.</p>
+        <p>The most common mistake is to treat the layers as storage locations, without stating the contract of each one. A diagram that shows three boxes named Bronze, Silver and Gold without saying what each guarantees describes folders, and it does not explain why the data in Gold can be trusted.</p>
         <p>The second mistake is to choose a tactic without stating its cost. Every tactic of the TBL had one, and the architecture is judged by whether the cost it accepted fits the case. The third is to place all the quality checks at the end of the pipeline, where a missing delivery is found only after the indicator has been published. The fourth, finally, is to mix viewpoints in the component diagram by drawing servers, cloud services and functions as if they were the same kind of element. The component diagram shows functions and interfaces, and the deployment of those functions belongs to another diagram.</p>
       </section>
 
