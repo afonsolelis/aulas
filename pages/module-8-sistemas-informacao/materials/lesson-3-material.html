@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 3 — Architectural Tactics for Data Flow and Transformations — Reading Material — Inteli</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+  <link href="../../../css/inteli-styles.css" rel="stylesheet">
+  <style>
+    :root {
+      --si: var(--si-blue);
+      --ink: var(--inteli-dark-purple);
+      --coral: var(--inteli-coral);
+      --paper: var(--inteli-white);
+      --line: var(--inteli-light-gray);
+      --si-deep: color-mix(in srgb,var(--si) 42%,var(--ink));
+      --soft-si: color-mix(in srgb,var(--si) 18%,var(--paper));
+      --soft-ink: color-mix(in srgb,var(--ink) 6%,var(--paper));
+      --soft-coral: color-mix(in srgb,var(--coral) 10%,var(--paper));
+    }
+    *, *::before, *::after { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; font-family:'Manrope',sans-serif; color:var(--ink); background:var(--soft-ink); }
+    a { color:var(--si-deep); }
+    #progress-bar { position:fixed; inset:0 auto auto 0; width:0; height:3px; z-index:9999; background:linear-gradient(90deg,var(--ink),var(--si)); }
+    .mat-header { color:var(--paper); background:linear-gradient(130deg,var(--ink),color-mix(in srgb,var(--ink) 50%,var(--si)) 62%,var(--si-deep)); padding:42px 24px 34px; }
+    .head-inner { width:min(1160px,100%); margin:auto; display:flex; justify-content:space-between; align-items:end; gap:28px; }
+    .head-copy { max-width:780px; }
+    .badge { display:inline-block; margin-bottom:12px; padding:5px 11px; border:1px solid color-mix(in srgb,var(--paper) 36%,transparent); border-radius:999px; background:color-mix(in srgb,var(--paper) 12%,transparent); font-size:.72rem; font-weight:800; letter-spacing:.06em; }
+    .mat-header h1 { margin:0; font-size:2.45rem; line-height:1.12; letter-spacing:-.03em; }
+    .mat-header p { margin:10px 0 0; max-width:760px; color:color-mix(in srgb,var(--paper) 90%,var(--si)); line-height:1.6; }
+    .head-actions { display:flex; flex-wrap:wrap; gap:7px; justify-content:flex-end; }
+    .head-actions a { padding:8px 12px; border-radius:9px; color:var(--paper); border:1px solid color-mix(in srgb,var(--paper) 45%,transparent); text-decoration:none; font-size:.76rem; font-weight:800; white-space:nowrap; }
+    .head-actions a.primary { background:var(--paper); color:var(--ink); }
+    .mat-layout { display:grid; grid-template-columns:280px minmax(0,1fr); gap:34px; width:min(1220px,100%); margin:auto; padding:36px 24px 64px; }
+    .mat-sidebar { position:sticky; top:18px; align-self:start; max-height:calc(100vh - 36px); overflow:auto; }
+    .mat-toc { padding:18px; border:1px solid var(--line); border-radius:14px; background:var(--paper); box-shadow:0 4px 16px color-mix(in srgb,var(--ink) 7%,transparent); }
+    .mat-toc h2 { margin:0 0 10px; font-size:.74rem; letter-spacing:.11em; text-transform:uppercase; }
+    .mat-toc a { display:flex; justify-content:space-between; gap:8px; padding:5px 8px; border-left:3px solid transparent; color:color-mix(in srgb,var(--ink) 68%,var(--paper)); text-decoration:none; font-size:.76rem; line-height:1.32; }
+    .mat-toc a span { flex-shrink:0; font-size:.68rem; color:color-mix(in srgb,var(--ink) 50%,var(--paper)); }
+    .mat-toc a:hover, .mat-toc a.active { color:var(--ink); background:var(--soft-si); border-left-color:var(--si-deep); }
+    .toc-total { margin-top:10px; padding-top:10px; border-top:1px solid var(--line); color:color-mix(in srgb,var(--ink) 60%,var(--paper)); font-size:.7rem; }
+    .mat-article { min-width:0; }
+    .mat-section { margin:0 0 48px; scroll-margin-top:26px; }
+    .mat-section h2 { margin:0 0 18px; padding-bottom:10px; border-bottom:2px solid var(--line); font-size:1.65rem; line-height:1.25; }
+    .mat-section h3 { margin:25px 0 9px; font-size:1.08rem; }
+    .mat-section p, .mat-section li { font-size:.94rem; line-height:1.75; color:color-mix(in srgb,var(--ink) 84%,var(--paper)); }
+    .mat-section p { margin:0 0 14px; text-align:justify; text-justify:inter-word; hyphens:auto; }
+    .mat-section ul, .mat-section ol { margin:10px 0 16px; padding-left:1.35rem; }
+    .mat-section li { margin-bottom:5px; }
+    .lead { font-size:1.05rem!important; color:var(--ink)!important; }
+    .g2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin:16px 0; }
+    .g3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin:16px 0; }
+    .card { padding:17px 18px; border:1px solid var(--line); border-left:5px solid var(--si); border-radius:12px; background:var(--paper); box-shadow:0 4px 14px color-mix(in srgb,var(--ink) 6%,transparent); }
+    .card.dark { border-left-color:var(--ink); }
+    .card.coral { border-left-color:var(--coral); }
+    .card h3 { margin:0 0 7px; font-size:1rem; }
+    .card p { text-align:left!important; }
+    .card p:last-child { margin-bottom:0; }
+    .callout { margin:18px 0; padding:15px 18px; border:1px solid color-mix(in srgb,var(--si) 55%,var(--paper)); border-left:5px solid var(--si-deep); border-radius:11px; background:var(--soft-si); }
+    .callout-info { }
+    .callout-warn { border-color:color-mix(in srgb,var(--coral) 35%,var(--paper)); border-left-color:var(--coral); background:var(--soft-coral); }
+    .callout-tip { border-color:color-mix(in srgb,var(--ink) 20%,var(--paper)); border-left-color:var(--ink); background:var(--paper); }
+    .callout-label { margin-bottom:5px; color:var(--ink); font-size:.69rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
+    .callout p:last-child { margin:0; }
+    .table-wrap { margin:17px 0; overflow-x:auto; border:1px solid var(--line); border-radius:12px; background:var(--paper); }
+    table { width:100%; min-width:720px; border-collapse:collapse; font-size:.8rem; }
+    th { padding:10px 11px; background:var(--ink); color:var(--paper); text-align:left; font-weight:800; }
+    td { padding:10px 11px; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.5; }
+    tr:last-child td { border-bottom:0; }
+    tbody tr:nth-child(even) { background:var(--soft-ink); }
+    code { padding:2px 6px; border-radius:5px; background:var(--soft-si); color:var(--ink); font:600 .86em 'JetBrains Mono',monospace; }
+    .code-wrap { margin:16px 0; border:1px solid var(--line); border-radius:11px; overflow:hidden; background:var(--ink); }
+    .code-label { display:flex; justify-content:space-between; align-items:center; padding:7px 12px; background:color-mix(in srgb,var(--ink) 82%,var(--si)); color:var(--paper); font-size:.7rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+    .code-copy { padding:3px 9px; border:1px solid color-mix(in srgb,var(--paper) 40%,transparent); border-radius:6px; background:transparent; color:var(--paper); font:700 .68rem 'Manrope',sans-serif; cursor:pointer; }
+    .code-block { margin:0; padding:14px 16px; overflow-x:auto; color:var(--paper); }
+    .code-block code { padding:0; background:none; color:inherit; font-size:.8rem; line-height:1.6; }
+    .hl-kw { color:color-mix(in srgb,var(--si) 85%,var(--paper)); font-weight:700; }
+    .hl-fn { color:color-mix(in srgb,var(--coral) 55%,var(--paper)); }
+    .hl-str { color:color-mix(in srgb,var(--si) 45%,var(--paper)); }
+    .hl-num { color:color-mix(in srgb,var(--coral) 35%,var(--paper)); }
+    .hl-cmt { color:var(--inteli-dark-gray); font-style:italic; }
+    .vp { display:inline-block; padding:2px 9px; border-radius:999px; font-size:.7rem; font-weight:800; white-space:nowrap; color:var(--paper); }
+    .vp-e { background:var(--ink); }
+    .vp-i { background:var(--si-deep); }
+    .vp-c { background:color-mix(in srgb,var(--coral) 72%,var(--ink)); }
+    .vp-n { background:color-mix(in srgb,var(--inteli-dark-gray) 40%,var(--ink)); }
+    .vp-t { background:var(--paper); color:var(--ink); box-shadow:inset 0 0 0 1.5px var(--ink); }
+    .vp-map { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; margin:20px 0 8px; }
+    .vp-map article { padding:14px 12px; border-radius:12px; background:var(--paper); border:1px solid var(--line); border-top:5px solid var(--ink); box-shadow:0 4px 14px color-mix(in srgb,var(--ink) 6%,transparent); }
+    .vp-map article:nth-child(2) { border-top-color:var(--si-deep); }
+    .vp-map article:nth-child(3) { border-top-color:color-mix(in srgb,var(--coral) 72%,var(--ink)); }
+    .vp-map article:nth-child(4) { border-top-color:color-mix(in srgb,var(--inteli-dark-gray) 40%,var(--ink)); }
+    .vp-map article:nth-child(5) { border-top-color:var(--inteli-dark-gray); }
+    .vp-map strong { display:block; margin-bottom:5px; font-size:.86rem; }
+    .vp-map p { margin:0!important; font-size:.78rem!important; line-height:1.45!important; text-align:left!important; }
+    .vp-axis { margin:0 0 18px; padding:9px 12px; border-radius:10px; background:var(--paper); border:1px dashed color-mix(in srgb,var(--ink) 30%,var(--paper)); text-align:center; font-size:.78rem; font-weight:700; }
+    .trace { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:16px; margin:18px 0; }
+    .trace div { position:relative; padding:12px 10px; border:1px solid var(--line); border-radius:10px; background:var(--paper); font-size:.76rem; line-height:1.4; }
+    .trace div strong { display:block; margin:6px 0 3px; font-size:.82rem; }
+    .trace div:not(:last-child)::after { content:''; position:absolute; right:-14px; top:50%; width:12px; height:2px; background:var(--si-deep); }
+    .layers { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:12px; margin:20px 0; }
+    .layer { position:relative; padding:14px 12px; border-radius:12px; color:var(--paper); }
+    .layer b { display:block; font-size:.95rem; margin-bottom:4px; }
+    .layer span { display:block; font-size:.76rem; line-height:1.4; opacity:.92; }
+    .layer:not(:last-child)::after { content:''; position:absolute; right:-12px; top:50%; width:12px; height:2px; background:var(--ink); }
+    .l-src { background:color-mix(in srgb,var(--inteli-dark-gray) 40%,var(--ink)); }
+    .l-b { background:color-mix(in srgb,var(--coral) 55%,var(--ink)); }
+    .l-s { background:var(--si-deep); }
+    .l-g { background:var(--ink); }
+    .l-c { background:var(--paper); color:var(--ink); box-shadow:inset 0 0 0 2px var(--ink); }
+    .sr { opacity:0; transform:translateY(20px); transition:opacity .6s, transform .6s; }
+    .sr.vis { opacity:1; transform:none; }
+    .check-list { list-style:none; padding:0!important; display:grid; gap:7px; }
+    .check-list li { position:relative; margin:0!important; padding:9px 10px 9px 36px; border:1px solid var(--line); border-radius:9px; background:var(--paper); cursor:pointer; user-select:none; }
+    .check-list li::before { content:''; position:absolute; left:11px; top:11px; width:15px; height:15px; border:2px solid var(--si-deep); border-radius:4px; }
+    .check-list li.done { color:color-mix(in srgb,var(--ink) 55%,var(--paper)); text-decoration:line-through; background:var(--soft-si); }
+    .check-list li.done::before { background:var(--si-deep); }
+    .refs li { font-size:.86rem!important; }
+    #float-nav { position:fixed; right:24px; bottom:25px; z-index:9998; display:flex; flex-direction:column; gap:7px; opacity:0; transform:translateY(12px); pointer-events:none; transition:.25s ease; }
+    #float-nav.visible { opacity:1; transform:none; pointer-events:auto; }
+    .fn-btn { padding:9px 13px; border-radius:999px; text-decoration:none; box-shadow:0 4px 16px color-mix(in srgb,var(--ink) 20%,transparent); font-size:.74rem; font-weight:800; text-align:center; }
+    .fn-btn-slides { background:var(--paper); color:var(--ink); border:2px solid var(--si-deep); }
+    .fn-btn-alt { background:var(--paper); color:var(--ink); border:2px solid var(--ink); }
+    .fn-btn-back { background:var(--ink); color:var(--paper); }
+    .inteli-footer { padding:26px 20px; border-top:1px solid var(--line); background:var(--paper); text-align:center; font-size:.8rem; }
+    .inteli-footer img { height:40px; margin-bottom:8px; }
+    @media(max-width:960px) { .mat-layout { grid-template-columns:1fr; } .mat-sidebar { display:none; } .head-inner { display:block; } .head-actions { margin-top:20px; justify-content:flex-start; } .vp-map { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @media(max-width:700px) { .layers { grid-template-columns:1fr; } .layer::after { display:none; } .g2,.g3,.vp-map { grid-template-columns:1fr; } .mat-header h1 { font-size:1.9rem; } .trace { grid-template-columns:1fr; } .trace div::after { display:none; } }
+    @media print { .sr { opacity:1!important; transform:none!important; } }
+  </style>
+
+
+
+<!-- encontro:css:start -->
+<link rel="stylesheet" href="../../../css/encontro.css">
+<!-- encontro:css:end -->
+
+<!-- semana:css:start -->
+<link rel="stylesheet" href="../../../css/semana-ano.css">
+<!-- semana:css:end -->
+</head>
+<body>
+  <div id="progress-bar" aria-hidden="true"></div>
+  <nav id="float-nav" aria-label="Quick navigation">
+    <a class="fn-btn fn-btn-slides" href="../slides/slide-lesson-3.html">▶ Slides</a>
+    <a class="fn-btn fn-btn-alt" href="../tbl/lesson-3-tbl.html">🗳️ TBL room</a>
+    <a class="fn-btn fn-btn-back" href="../../home-module-8-sistemas-informacao.html">← Module</a>
+  </nav>
+
+  <header class="mat-header">
+    <div class="head-inner">
+      <div class="head-copy">
+        <span class="badge">Module 8 · Information Systems · Lesson 3 · Week 2</span>
+        <h1>Architectural Tactics for Data Flow and Transformations</h1>
+        <p>Reading material on the computational viewpoint of the data pipeline. It describes the team-based learning session of the lesson, the three layers of the medallion architecture and their contracts, the data quality checks of each layer, the UML component diagram and the scalability tactics, and it prepares the graded Architecture Activity.</p>
+      </div>
+      <div class="head-actions">
+        <a class="primary" href="../slides/slide-lesson-3.html">▶ Slides</a>
+        <a href="../tbl/lesson-3-tbl.html">🗳️ TBL room</a>
+        <a href="../../home-module-8-sistemas-informacao.html">← Back to module</a>
+      </div>
+    </div>
+  </header>
+
+  
+
+<!-- encontro:meta:start -->
+<div class="container" style="max-width:1100px;margin:24px auto 0;padding:0 16px;"><section class="encontro-meta" data-encontro-ficha><h2>About this session</h2><p class="encontro-ref">Architectural Tactics for Data Flow and Transformations · 22/10/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Learning objective</h3><p>By the end of the session, students should be able to justify the content and the treatment of each layer of a medallion architecture, choose among architectural tactics by weighing their gains and costs, and represent the pipeline as a UML component diagram whose tactics explain how it scales.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Session strategy</h3><p>Team-based learning followed by exposition. The class discusses one case through five questions about a medallion pipeline, each with four tactics whose gains and costs are declared, deciding individually, discussing the anonymous justifications and deciding again. The exposition then organises those decisions into the layers of the medallion architecture, the data quality checks of each layer, the UML component diagram and the scalability tactics, which support the individual graded Architecture Activity due at 16:00.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Session structure</h3><ol><li>Daily — 15 min</li><li>From information to computation, and the rules of the TBL — 5 min</li><li>TBL: five decisions about a medallion pipeline — 50 min</li><li>Medallion layers, data quality and component diagrams — 30 min</li><li>Graded Architecture Activity: scope and deadline — 10 min</li><li>Self-study and next steps — 10 min</li></ol></div></section></div>
+<!-- encontro:meta:end -->
+<div class="mat-layout">
+    <aside class="mat-sidebar">
+      <nav class="mat-toc" aria-label="Table of contents">
+        <h2>In this material</h2>
+        <a href="#reading">1. How to read this material</a>
+        <a href="#computational">2. The computational viewpoint</a>
+        <a href="#tbl">3. The team-based learning session</a>
+        <a href="#medallion">4. The medallion architecture</a>
+        <a href="#bronze">5. Bronze: keeping what arrived</a>
+        <a href="#silver">6. Silver: conforming the entities</a>
+        <a href="#gold">7. Gold: modelling for consumption</a>
+        <a href="#quality">8. Data quality across the layers</a>
+        <a href="#components">9. UML component diagrams</a>
+        <a href="#scalability">10. Scalability tactics</a>
+        <a href="#activity">11. Preparing the Architecture Activity</a>
+        <a href="#mistakes">12. Recurring mistakes</a>
+        <a href="#checklist">13. Checklist</a>
+        <a href="#references">14. References</a>
+        <div class="toc-total" id="toc-total"></div>
+      </nav>
+    </aside>
+
+    <article class="mat-article">
+
+      <section class="mat-section" id="reading">
+        <h2>1. How to read this material</h2>
+        <p class="lead">This material accompanies Lesson 3, which opens with a team-based learning session on a medallion pipeline and continues with an exposition that organises the decisions discussed in class. It can be read before the session, to prepare the vocabulary, or after it, to consolidate what the discussion raised.</p>
+        <p>The text follows the path of the data through the pipeline. It starts by placing the lesson in the computational viewpoint of the RM-ODP and by describing how the team-based learning session works. It then presents the medallion architecture layer by layer, the data quality checks that belong to each layer, the UML component diagram as the notation that documents the pipeline, and the tactics that allow the pipeline to grow. The last sections prepare the graded Architecture Activity, whose statement is on Adalove.</p>
+        <p>The examples continue the fictitious pharmacy chain used in Lessons 1 and 2. The chain must deliver a weekly stock-out rate of continuous-use medicines to its purchasing team, from three sources with very different behaviour: point-of-sale terminals that resend files, an ERP with a nightly extract and suppliers whose CSV files change without notice.</p>
+      </section>
+
+      <section class="mat-section" id="computational">
+        <h2>2. The computational viewpoint</h2>
+        <p>Lessons 1 and 2 worked in the information viewpoint of the RM-ODP. They stated which information the partner needs, defined indicators and their grain, and checked those definitions against the data in an exploratory analysis. That work says what the platform must deliver, but it does not say which functions produce it. The computational viewpoint addresses that question by decomposing the system into objects that perform functions and interact through interfaces.</p>
+        <p>In a data platform, the computational objects are the components of the pipeline: connectors that extract data from the sources, jobs that conform and deduplicate it, models that organise it for analysis and services that deliver it to consumers. Each component offers an interface to the next one, and the interface is a contract. When the conformance job promises one stock position per product, store and day, the dimensional model can rely on that grain without checking it again.</p>
+        <p>The correspondence between the two viewpoints is direct. Every invariant written in the information viewpoint, such as stock on hand never being negative, must be enforced by some component, and the architecture must show which one. An invariant that no component enforces exists only on paper, and the indicator that depends on it will be wrong the first time the source violates it.</p>
+      </section>
+
+      <section class="mat-section" id="tbl">
+        <h2>3. The team-based learning session</h2>
+        <p>The session opens with a team-based learning activity built on a single case and five questions. Each question presents a decision of the pipeline and four tactics, and each tactic declares a gain and a cost. None of them is correct, because each one answers one requirement of the case and leaves another uncovered. The purpose of the activity is to make the class reason about trade-offs before the exposition names the concepts involved.</p>
+        <p>Every question follows the same cycle. In the first decision, which lasts three minutes, each student chooses a tactic on their phone and writes the assumption that must hold for it to work. In the discussion, which lasts four minutes, the anonymous justifications appear for everyone, and the professor asks first for the cost of the least chosen tactics. In the second decision, which lasts two minutes, the first distribution is visible and each student keeps or changes their choice. The synthesis then shows both distributions and the shifts between them. In one of the questions, new information about the case is released during the discussion and may change the criterion of the decision.</p>
+        <p>The quality of a justification depends on the assumption it declares. "It is the best practice" cannot be confirmed or refuted by the case, whereas "the purchasing team accepts a three-day delay in the indicator" can be checked with the partner. Writing verifiable assumptions is the same skill that the Architecture Activity asks for when it requires the role of each component to be explained.</p>
+        <div class="callout callout-tip">
+          <div class="callout-label">Before the session</div>
+          <p>Read the three self-studies. The case study of the e-commerce company introduces the layers, the component diagram guide introduces the notation, and the article on data quality shows the problems specific to each layer. The TBL assumes this vocabulary.</p>
+        </div>
+      </section>
+
+      <section class="mat-section" id="medallion">
+        <h2>4. The medallion architecture</h2>
+        <p>The medallion architecture is a pattern for organising a lakehouse into layers of increasing refinement, usually called Bronze, Silver and Gold. The name was popularised by Databricks, but the idea is older than the term. It separates the preservation of what the sources sent from the conformance of the data into reliable entities, and both from the modelling of the data for a specific use. Each separation exists because the three activities change at different rates and for different reasons.</p>
+        <p>A layer is defined by the guarantee it gives to the next one. Bronze guarantees that what arrived is kept and can be traced to its delivery. Silver guarantees conformed entities with a declared grain and enforced invariants. Gold guarantees data modelled according to the business definitions of the indicators. When the guarantees are stated, a team can replace the technology of one layer without touching the others, and a failure can be located in the layer whose guarantee was broken.</p>
+        <div class="layers sr" id="layer-diagram">
+          <div class="layer l-src"><b>Sources</b><span>POS files · ERP extract · supplier CSVs</span></div>
+          <div class="layer l-b"><b>Bronze</b><span>as received, partitioned by source and date</span></div>
+          <div class="layer l-s"><b>Silver</b><span>typed, deduplicated, one row per declared grain</span></div>
+          <div class="layer l-g"><b>Gold</b><span>facts, dimensions and the weekly stock-out rate</span></div>
+          <div class="layer l-c"><b>Consumption</b><span>Monday dashboard of the purchasing team</span></div>
+        </div>
+        <p>The pattern does not prescribe tools. Bronze can be a bucket of files in object storage, Silver a set of Parquet tables and Gold a schema in PostgreSQL, which is close to what the module builds over the next sprints. What the pattern prescribes is the order of the transformations and the existence of a contract at each boundary.</p>
+      </section>
+
+      <section class="mat-section" id="bronze">
+        <h2>5. Bronze: keeping what arrived</h2>
+        <p>The Bronze layer receives the data from the sources. Its main function is to allow any later step to be repeated, which requires keeping the data in a form close to what was delivered and recording when and from where it came. A Bronze layer that stores the original files, partitioned by source and ingestion date, lets the team rebuild Silver after discovering an error in a transformation, without asking the sources to send the data again.</p>
+        <p>This function conflicts with other concerns, and the first question of the TBL explores the conflict. Keeping every delivery as received means keeping every POS resend and every sensitive field in clear text. Typing and deduplicating on arrival reduces the volume, but a wrong rule applied at ingestion destroys information that cannot be recovered. Keeping only the latest snapshot is simple, but it erases the history of corrections that explains why an indicator changed. None of these options is free, and the architecture must state which cost it accepts.</p>
+        <p>Whatever the choice, Bronze needs metadata. Each record or file should carry at least the source, the ingestion timestamp and an identifier of the delivery, so that a row in Gold can be traced back to the file that produced it.</p>
+        <div class="code-wrap">
+          <div class="code-label">Text · Bronze path convention<button class="code-copy" type="button">Copy</button></div>
+          <pre class="code-block"><code>s3://pharmacy-lake/bronze/<span class="hl-str">source=pos</span>/<span class="hl-str">entity=sale_line</span>/<span class="hl-str">ingestion_date=2026-10-22</span>/batch_1415.json
+s3://pharmacy-lake/bronze/<span class="hl-str">source=erp</span>/<span class="hl-str">entity=stock_position</span>/<span class="hl-str">ingestion_date=2026-10-22</span>/extract.parquet
+s3://pharmacy-lake/bronze/<span class="hl-str">source=supplier</span>/<span class="hl-str">entity=delivery</span>/<span class="hl-str">ingestion_date=2026-10-22</span>/acme_0930.csv</code></pre>
+        </div>
+      </section>
+
+      <section class="mat-section" id="silver">
+        <h2>6. Silver: conforming the entities</h2>
+        <p>The Silver layer turns the deliveries into entities that the whole organisation can trust. It applies types, removes duplicates, resolves keys between sources and enforces the invariants declared in the information viewpoint. At the end of Silver, a sale line exists once, a stock position exists once per product, store and day, and the fields that the LGPD protects have been removed or pseudonymised.</p>
+        <p>The hardest decisions of Silver concern data that changes after it arrives. In the case, POS terminals resend whole days after a connection loss, and stock counts are corrected up to three days later by inventory audits. Merging by key and keeping the latest version gives simple tables, but it silently changes past values of the indicator. Keeping every version with a validity interval preserves the history, at the price of more complex queries. Holding data in quarantine until a settling window has passed gives stable published days, but delays the indicator. The second question of the TBL places the class in front of this choice, and the new information released during its discussion shows that resends are not exact duplicates.</p>
+        <p>Silver is also the natural place for most data quality checks, because it is the first layer in which the grain and the invariants are known. Rows that break a rule can be rejected, corrected or sent to a quarantine area, and the volume of each outcome is itself a quality indicator that should be monitored.</p>
+        <div class="code-wrap">
+          <div class="code-label">PySpark · deduplicate resends keeping the latest delivery<button class="code-copy" type="button">Copy</button></div>
+          <pre class="code-block"><code><span class="hl-kw">from</span> pyspark.sql <span class="hl-kw">import</span> Window, functions <span class="hl-kw">as</span> F
+
+latest = Window.<span class="hl-fn">partitionBy</span>(<span class="hl-str">"sale_id"</span>, <span class="hl-str">"product_id"</span>).<span class="hl-fn">orderBy</span>(F.<span class="hl-fn">col</span>(<span class="hl-str">"ingested_at"</span>).<span class="hl-fn">desc</span>())
+
+silver_sale_line = (
+    bronze_sale_line
+    .<span class="hl-fn">withColumn</span>(<span class="hl-str">"rn"</span>, F.<span class="hl-fn">row_number</span>().<span class="hl-fn">over</span>(latest))
+    .<span class="hl-fn">filter</span>(<span class="hl-str">"rn = 1"</span>)
+    .<span class="hl-fn">drop</span>(<span class="hl-str">"rn"</span>, <span class="hl-str">"cpf"</span>, <span class="hl-str">"prescription_number"</span>)
+)</code></pre>
+        </div>
+        <p>The snippet implements one of the tactics of the second question. Keeping only the latest delivery per sale line is correct if a resend is always the most recent truth, and the case shows when that assumption holds. If the partner needs to reproduce past values of the indicator, the same window can be used to close and open validity intervals instead of discarding older rows.</p>
+      </section>
+
+      <section class="mat-section" id="gold">
+        <h2>7. Gold: modelling for consumption</h2>
+        <p>The Gold layer organises the conformed data for a specific use. In the case, that use is the weekly stock-out rate read by the purchasing team every Monday, and later the questions that analysts will ask about it. The modelling choice determines how easily those later questions can be answered.</p>
+        <p>A star schema, with a periodic snapshot fact of stock positions and conformed dimensions of store, product and date, lets new questions reuse the same dimensions and computes the indicator from a single fact with a declared grain. A wide table built for the dashboard is faster to deliver, but each new question requires a new table, and the definitions of store or product drift apart. Precomputed aggregates are compact, but they lose the detail needed to explain an indicator. Views over Silver avoid duplicating data, but recompute the indicator at every read. The fourth question of the TBL discusses these options, and Lessons 5 and 6 of the module develop dimensional modelling and data cubes in detail.</p>
+        <p>Whatever the model, Gold must match the definitions of the Data Model Canvas. The formula, unit and periodicity of the KPI written in block 4 are the specification that the Gold layer implements, and the reconciliation between them is the first check of this layer.</p>
+      </section>
+
+      <section class="mat-section" id="quality">
+        <h2>8. Data quality across the layers</h2>
+        <p>Each layer tests what its contract promises. Placing a check in the wrong layer has a cost. A check in Bronze that depends on business rules lacks the context it needs, and a completeness check left to Gold detects a missing delivery only after the indicator has already been published with a gap. The table below organises the checks of the case by layer.</p>
+        <div class="table-wrap sr">
+          <table>
+            <thead><tr><th>Layer</th><th>Question the check answers</th><th>Examples in the case</th><th>Action on failure</th></tr></thead>
+            <tbody>
+              <tr><td>Bronze</td><td>Did everything arrive?</td><td>Files per store and period, expected schema of supplier CSVs, arrival time, volume compared with the same weekday</td><td>Alert the data custodian and hold the dependent loads</td></tr>
+              <tr><td>Silver</td><td>Does the data obey the model?</td><td>Uniqueness of the grain, <code>on_hand ≥ 0</code>, every sale line referring to an existing product, share of rows in quarantine</td><td>Quarantine the rows and record the volume</td></tr>
+              <tr><td>Gold</td><td>Does the indicator make sense?</td><td>Totals reconciled with Silver, stock-out rate between 0 and 1, data freshness before the Monday dashboard</td><td>Mark the dashboard as stale and notify its owner</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="code-wrap">
+          <div class="code-label">SQL · grain check before publishing Silver<button class="code-copy" type="button">Copy</button></div>
+          <pre class="code-block"><code><span class="hl-kw">SELECT</span> store_id, product_id, date, <span class="hl-fn">COUNT</span>(*) <span class="hl-kw">AS</span> rows_per_key
+<span class="hl-kw">FROM</span> silver.stock_position
+<span class="hl-kw">GROUP BY</span> store_id, product_id, date
+<span class="hl-kw">HAVING</span> <span class="hl-fn">COUNT</span>(*) &gt; <span class="hl-num">1</span>;  <span class="hl-cmt">-- must return no rows</span></code></pre>
+        </div>
+      </section>
+
+      <section class="mat-section" id="components">
+        <h2>9. UML component diagrams</h2>
+        <p>The component diagram of the UML shows the modular parts of a system and the interfaces through which they connect. A component is a replaceable unit with a defined responsibility. It provides interfaces, which are the services it offers, and requires interfaces, which are the services it needs. In the notation, a provided interface is drawn as a ball and a required interface as a socket, and the connection between a ball and a socket shows that one component satisfies what the other needs.</p>
+        <p>For a data pipeline, the diagram makes the contracts between layers visible. The connectors provide raw files, the Bronze store requires them and provides raw partitions, the conformance jobs require those partitions and provide conformed entities, and so on until the dashboard. Reading the diagram from left to right reproduces the path of the data, and each interface marks a point where a quality check can be placed. Dependencies, drawn as dashed arrows, show relationships that are not data flows, such as a job that depends on a configuration service.</p>
+        <p>The diagram belongs to the computational viewpoint. It shows functions and interfaces, not machines. Where each component runs, on which node and with which technology, is the concern of the engineering and technology viewpoints, which the module develops in Sprints 4 and 5 with deployment concerns.</p>
+        <div class="code-wrap">
+          <div class="code-label">PlantUML · component diagram of the case<button class="code-copy" type="button">Copy</button></div>
+          <pre class="code-block"><code>@startuml
+<span class="hl-kw">component</span> <span class="hl-str">"Source connectors"</span> <span class="hl-kw">as</span> C
+<span class="hl-kw">component</span> <span class="hl-str">"Bronze store"</span> <span class="hl-kw">as</span> B
+<span class="hl-kw">component</span> <span class="hl-str">"Conformance jobs"</span> <span class="hl-kw">as</span> S
+<span class="hl-kw">component</span> <span class="hl-str">"Dimensional model"</span> <span class="hl-kw">as</span> G
+<span class="hl-kw">component</span> <span class="hl-str">"Purchasing dashboard"</span> <span class="hl-kw">as</span> D
+<span class="hl-kw">interface</span> <span class="hl-str">"raw files"</span> <span class="hl-kw">as</span> I1
+<span class="hl-kw">interface</span> <span class="hl-str">"raw partitions"</span> <span class="hl-kw">as</span> I2
+<span class="hl-kw">interface</span> <span class="hl-str">"conformed entities"</span> <span class="hl-kw">as</span> I3
+<span class="hl-kw">interface</span> <span class="hl-str">"KPI views"</span> <span class="hl-kw">as</span> I4
+C - I1
+I1 )- B
+B - I2
+I2 )- S
+S - I3
+I3 )- G
+G - I4
+I4 )- D
+@enduml</code></pre>
+        </div>
+        <p>In PlantUML, the line <code>C - I1</code> declares that the component provides the interface, and <code>I1 )- B</code> declares that the next component requires it. The same structure can be drawn in any UML tool, and what matters for the Architecture Activity is that each component and each interface is named and explained.</p>
+      </section>
+
+      <section class="mat-section" id="scalability">
+        <h2>10. Scalability tactics</h2>
+        <p>A pipeline scales when the work of each run grows with the new data and not with the whole history. In the case, thirty new stores will increase the POS volume by about a third, and the fifth question of the TBL asks which tactic carries that growth. The tactics below are the usual candidates, and each one has a cost that the architecture must state.</p>
+        <div class="g2 sr">
+          <article class="card"><h3>Partitioning</h3><p>Data is split by date and store, so that each run reads and writes only the partitions that changed. Frequent small loads create many small files, and a compaction job becomes necessary.</p></article>
+          <article class="card dark"><h3>Incremental processing</h3><p>Each component records a watermark and reads only data newer than it. Late data, such as audited stock counts, arrives behind the watermark and needs a lookback window.</p></article>
+          <article class="card coral"><h3>Idempotent reruns</h3><p>Rerunning a day produces the same result as the first run, which makes reprocessing after a failure safe. The usual technique is to overwrite whole partitions instead of appending rows.</p></article>
+          <article class="card"><h3>Decoupling through layers</h3><p>Each layer can be recomputed from the previous one. A fix in a Silver rule is applied by recomputing Silver from Bronze, without new extractions from the sources.</p></article>
+        </div>
+        <div class="code-wrap">
+          <div class="code-label">PySpark · idempotent write of one day<button class="code-copy" type="button">Copy</button></div>
+          <pre class="code-block"><code>spark.conf.<span class="hl-fn">set</span>(<span class="hl-str">"spark.sql.sources.partitionOverwriteMode"</span>, <span class="hl-str">"dynamic"</span>)
+
+(silver_stock_position
+    .<span class="hl-fn">filter</span>(F.<span class="hl-fn">col</span>(<span class="hl-str">"date"</span>) == run_date)
+    .write.<span class="hl-fn">mode</span>(<span class="hl-str">"overwrite"</span>)
+    .<span class="hl-fn">partitionBy</span>(<span class="hl-str">"date"</span>)
+    .<span class="hl-fn">parquet</span>(<span class="hl-str">"s3://pharmacy-lake/silver/stock_position/"</span>))</code></pre>
+        </div>
+        <p>With dynamic partition overwrite, the job replaces only the partition of the day it processed, so running it twice leaves the table in the same state. This property is what allows a late stock count to be absorbed by reprocessing the affected days.</p>
+      </section>
+
+      <section class="mat-section" id="activity">
+        <h2>11. Preparing the Architecture Activity</h2>
+        <p>The graded Architecture Activity of this session is individual, has weight 4 and must be submitted on Adalove by 16:00 on Thursday, October 22. Its statement and its coverage checklist are on Adalove, together with a support reading on design patterns for modern data pipelines. This section does not repeat the statement. It explains how the content of the session helps to answer it.</p>
+        <p>The proposal asks for an architecture that covers the data lifecycle from ingestion to visualisation, with a diagram of the flow and an explanation of each component. The decisions of the TBL provide the raw material. Each question corresponds to a component or a boundary of the architecture, and the justification written in class already contains the assumption and the cost that the explanation should state. The medallion layers provide the structure of the processing, the quality checks of section 8 provide the treatment of data quality, and the tactics of section 10 provide the arguments about scalability and efficiency.</p>
+        <p>A proposal is easier to assess when the diagram and the text follow the same order. Draw the components from the sources to the dashboard, then explain the role of each one in the same sequence, and close each explanation with the cost of the tactic chosen for it. A diagram whose boxes are not explained in the text, or a text that mentions components absent from the diagram, forces the reader to reconstruct the architecture.</p>
+      </section>
+
+      <section class="mat-section" id="mistakes">
+        <h2>12. Recurring mistakes</h2>
+        <p>The most common mistake is to treat the layers as storage locations and not as contracts. A diagram that shows three boxes named Bronze, Silver and Gold without saying what each guarantees describes folders, and it does not explain why the data in Gold can be trusted.</p>
+        <p>The second mistake is to choose a tactic without stating its cost. Every tactic of the TBL had one, and the architecture is judged by whether the cost it accepted fits the case. The third is to place all the quality checks at the end of the pipeline, where a missing delivery is found only after the indicator has been published. The fourth, finally, is to mix viewpoints in the component diagram by drawing servers, cloud services and functions as if they were the same kind of element. The component diagram shows functions and interfaces, and the deployment of those functions belongs to another diagram.</p>
+      </section>
+
+      <section class="mat-section" id="checklist">
+        <h2>13. Checklist</h2>
+        <p>Use the list below to review your understanding of the session and your proposal for the Architecture Activity. Click an item to mark it as done.</p>
+        <ul class="check-list" id="lesson-checklist">
+          <li>I can state the guarantee that each medallion layer gives to the next one.</li>
+          <li>I can explain why Bronze keeps data close to what the sources delivered, and what that costs.</li>
+          <li>I can describe at least two ways of handling resends and late data in Silver, with their costs.</li>
+          <li>I know where the sensitive fields of the case are protected in my architecture.</li>
+          <li>My Gold layer implements the KPI definitions of the Data Model Canvas.</li>
+          <li>Each layer of my architecture has at least one quality check, with an action on failure.</li>
+          <li>My component diagram names every component and every interface.</li>
+          <li>My text explains the components in the same order as the diagram.</li>
+          <li>I stated which scalability tactic the pipeline uses and what it costs.</li>
+          <li>I submitted the Architecture Activity on Adalove before 16:00.</li>
+        </ul>
+      </section>
+
+      <section class="mat-section" id="references">
+        <h2>14. References</h2>
+        <ul class="refs">
+          <li>ARMBRUST, M.; GHODSI, A.; XIN, R.; ZAHARIA, M. Lakehouse: a new generation of open platforms that unify data warehousing and advanced analytics. In: <em>Conference on Innovative Data Systems Research (CIDR)</em>, 2021.</li>
+          <li>BASS, L.; CLEMENTS, P.; KAZMAN, R. <em>Software Architecture in Practice</em>. 4th ed. Boston: Addison-Wesley, 2021.</li>
+          <li>OBJECT MANAGEMENT GROUP. <em>OMG Unified Modeling Language (OMG UML), Version 2.5.1</em>. 2017.</li>
+          <li>REIS, J.; HOUSLEY, M. <em>Fundamentals of Data Engineering</em>. Sebastopol: O'Reilly, 2022.</li>
+          <li>KIMBALL, R.; ROSS, M. <em>The Data Warehouse Toolkit: The Definitive Guide to Dimensional Modeling</em>. 3rd ed. Indianapolis: Wiley, 2013.</li>
+          <li>ISO/IEC 10746-3:2009. Information technology — Open Distributed Processing — Reference model: Architecture.</li>
+          <li>MICHAELSEN, L. K.; KNIGHT, A. B.; FINK, L. D. (eds.). <em>Team-Based Learning: A Transformative Use of Small Groups</em>. Westport: Praeger, 2002.</li>
+        </ul>
+      </section>
+
+    </article>
+  </div>
+
+  <footer class="inteli-footer">
+    <img src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli logo">
+    <p>Material created by Professor <strong>Afonso Brandão</strong> for <strong>Inteli</strong>.</p>
+    <small>🔓 Open reading licence</small>
+  </footer>
+
+  <script>
+    const progress = document.getElementById('progress-bar');
+    const floatNav = document.getElementById('float-nav');
+    const header = document.querySelector('.mat-header');
+    const tocLinks = Array.from(document.querySelectorAll('.mat-toc a'));
+    const sections = tocLinks.map((link) => document.querySelector(link.getAttribute('href'))).filter(Boolean);
+
+    // Reading time per section, estimated at 200 words per minute over the rendered text.
+    let totalMinutes = 0;
+    tocLinks.forEach((link) => {
+      const section = document.querySelector(link.getAttribute('href'));
+      if (!section) return;
+      const words = section.innerText.trim().split(/\s+/).length;
+      const minutes = Math.max(1, Math.round(words / 200));
+      totalMinutes += minutes;
+      const tag = document.createElement('span');
+      tag.textContent = `${minutes} min`;
+      link.appendChild(tag);
+    });
+    document.getElementById('toc-total').textContent = `Estimated reading time: ${totalMinutes} minutes.`;
+
+    function updateReadingState() {
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+      progress.style.width = `${scrollable > 0 ? (window.scrollY / scrollable) * 100 : 0}%`;
+      floatNav.classList.toggle('visible', header.getBoundingClientRect().bottom < 0);
+      let activeId = sections[0] ? sections[0].id : '';
+      sections.forEach((section) => { if (section.getBoundingClientRect().top <= 150) activeId = section.id; });
+      tocLinks.forEach((link) => link.classList.toggle('active', link.getAttribute('href') === `#${activeId}`));
+    }
+    document.addEventListener('scroll', updateReadingState, { passive:true });
+    updateReadingState();
+
+    const srObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) { entry.target.classList.add('vis'); srObserver.unobserve(entry.target); }
+      });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.sr').forEach((el) => srObserver.observe(el));
+
+    document.querySelectorAll('.code-copy').forEach((button) => {
+      button.addEventListener('click', () => {
+        const code = button.closest('.code-wrap').querySelector('code').innerText;
+        navigator.clipboard.writeText(code).then(() => {
+          button.textContent = 'Copied';
+          setTimeout(() => { button.textContent = 'Copy'; }, 1500);
+        });
+      });
+    });
+
+    document.querySelectorAll('#lesson-checklist li').forEach((item) => {
+      item.addEventListener('click', () => item.classList.toggle('done'));
+    });
+  </script>
+<!-- encontro:pdf:start -->
+<button type="button" class="pdf-export-btn" data-encontro-data="2026-10-22" data-encontro-docente="Afonso" data-encontro-seq="02" title="Export this page as a PDF with the standard file name">📄 Export PDF</button>
+<script src="../../../js/encontro-pdf.js" defer></script>
+<!-- encontro:pdf:end -->
+<!-- semana:js:start -->
+<script src="../../../js/semana-ano.js" defer></script>
+<!-- semana:js:end -->
+</body>
+</html>
