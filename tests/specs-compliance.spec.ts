@@ -186,8 +186,9 @@ test.describe('home-pages.md - Páginas Home', () => {
   test('módulos em construção devem indicar estado de construção', () => {
     underConstructionHomes.forEach((file) => {
       const html = read(file);
-      expect(html).toMatch(/Em construção|sendo preparadas/i);
-      expect(html).toContain('Voltar para Página Inicial');
+      // Homes de módulos internacionais, como o Módulo 8 de SI, são escritas em inglês.
+      expect(html).toMatch(/Em construção|sendo preparadas|Under construction/i);
+      expect(html).toMatch(/Voltar para Página Inicial|Back to Home Page/);
     });
   });
 });
@@ -309,8 +310,9 @@ test.describe('placeholders.md - Placeholders e Conteúdo em Construção', () =
   test('módulos em construção devem manter mensagem clara e navegação de retorno', () => {
     underConstructionHomes.forEach((file) => {
       const html = read(file);
-      expect(html).toMatch(/Em construção|sendo preparadas/i);
-      expect(html).toContain('Voltar para Página Inicial');
+      // Homes de módulos internacionais, como o Módulo 8 de SI, são escritas em inglês.
+      expect(html).toMatch(/Em construção|sendo preparadas|Under construction/i);
+      expect(html).toMatch(/Voltar para Página Inicial|Back to Home Page/);
     });
   });
 
