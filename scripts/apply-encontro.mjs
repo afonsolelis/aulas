@@ -41,15 +41,40 @@ function toRoot(pagePath) {
   return depth ? '../'.repeat(depth) : './';
 }
 
+/**
+ * Rótulos da ficha e do botão. Encontros de módulos internacionais declaram
+ * `"idioma": "en"` em config/encontros.json; os demais seguem em português.
+ */
+const ROTULOS = {
+  pt: {
+    ficha: 'Sobre este encontro',
+    objetivo: 'Objetivo de aprendizagem',
+    estrategia: 'Estratégia do encontro',
+    agenda: 'Estrutura do encontro',
+    botao: '📄 Exportar PDF',
+    titulo: 'Exportar esta página em PDF com o nome padronizado',
+  },
+  en: {
+    ficha: 'About this session',
+    objetivo: 'Learning objective',
+    estrategia: 'Session strategy',
+    agenda: 'Session structure',
+    botao: '📄 Export PDF',
+    titulo: 'Export this page as a PDF with the standard file name',
+  },
+};
+const rotulos = (enc) => ROTULOS[enc.idioma] || ROTULOS.pt;
+
 function fichaHtml(enc, { titulo }) {
+  const r = rotulos(enc);
   const itens = enc.agenda.map((a) => `<li>${esc(a)}</li>`).join('');
   return (
     `<section class="encontro-meta" data-encontro-ficha>` +
-    `<h2>Sobre este encontro</h2>` +
+    `<h2>${r.ficha}</h2>` +
     `<p class="encontro-ref">${esc(titulo)}${enc.data ? ` · ${esc(enc.data.split('-').reverse().join('/'))}` : ''} · Prof. ${esc(enc.docente)}</p>` +
-    `<div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>${esc(enc.objetivo)}</p></div>` +
-    `<div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>${esc(enc.estrategia)}</p></div>` +
-    `<div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol>${itens}</ol></div>` +
+    `<div class="encontro-item" data-encontro="objetivo"><h3>${r.objetivo}</h3><p>${esc(enc.objetivo)}</p></div>` +
+    `<div class="encontro-item" data-encontro="estrategia"><h3>${r.estrategia}</h3><p>${esc(enc.estrategia)}</p></div>` +
+    `<div class="encontro-item" data-encontro="agenda"><h3>${r.agenda}</h3><ol>${itens}</ol></div>` +
     `</section>`
   );
 }
@@ -70,7 +95,7 @@ function botaoHtml(enc, seq, rel) {
     `data-encontro-data="${esc(enc.data || '')}" ` +
     `data-encontro-docente="${esc(semAcento(enc.docente))}" ` +
     `data-encontro-seq="${esc(seq)}" ` +
-    `title="Exportar esta página em PDF com o nome padronizado">📄 Exportar PDF</button>\n` +
+    `title="${rotulos(enc).titulo}">${rotulos(enc).botao}</button>\n` +
     `<script src="${rel}js/encontro-pdf.js" defer></script>\n` +
     `${MARK.pdfEnd}`
   );
