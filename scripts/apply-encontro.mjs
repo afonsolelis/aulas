@@ -217,6 +217,9 @@ function corrigirTotalSlides(html) {
   );
 }
 
+/** Decks de slides ficam em `slides/` e não levam botão de exportação em PDF. */
+const ehDeck = (p) => /\/slides\//.test(p);
+
 function main() {
   const args = process.argv.slice(2);
   const check = args.includes('--check');
@@ -263,7 +266,9 @@ function main() {
 
     const rel = toRoot(pg.path);
     html = injetarCss(html, rel);
-    html = injetarBotao(html, botaoHtml(enc, pg.seq, rel));
+    // O botão de PDF existe só nas páginas de leitura (material, plano, aula);
+    // os decks de slides não o recebem, e `limpar` já retirou o de versões antigas.
+    if (!ehDeck(pg.path)) html = injetarBotao(html, botaoHtml(enc, pg.seq, rel));
 
     if (!check) fs.writeFileSync(abs, html);
     relatorio.aplicadas++;

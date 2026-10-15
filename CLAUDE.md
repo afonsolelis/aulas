@@ -143,7 +143,7 @@ Estrutura base:
 </div>
 ```
 
-Navegação: use o padrão `.slide/.active` com JS próprio (setas do teclado + botões prev/next). Inclua também um `.top-nav` com link para o material da aula e "← Voltar". Importe `css/inteli-styles.css` via caminho relativo e a fonte Manrope do Google Fonts.
+Navegação: use o padrão `.slide/.active` com JS próprio (setas do teclado + botões prev/next). O link para o material da aula fica só no footer (`📖 Material`); não o repita no `.top-nav`, que se limita a "← Voltar" e a links que o footer não tem. Decks de slides não levam botão de exportação em PDF, que existe só nas páginas de material, plano e aula. Importe `css/inteli-styles.css` via caminho relativo e a fonte Manrope do Google Fonts.
 
 ### CSS Design System
 

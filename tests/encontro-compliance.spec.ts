@@ -92,42 +92,52 @@ test.describe('padrao-encontro.md - Ficha do encontro', () => {
 });
 
 for (const pagina of cfg.paginas) {
+  // O botão de PDF existe só nas páginas de leitura; os decks de slides não o têm.
+  const ehDeck = /\/slides\//.test(pagina.path);
   test.describe(`padrao-encontro.md - ${pagina.path}`, () => {
-    test('tem botão de exportação em PDF', () => {
-      const html = readRepoFile(pagina.path);
-      expect(html, 'botão .pdf-export-btn ausente').toContain('class="pdf-export-btn"');
-      expect(html, 'script js/encontro-pdf.js não referenciado').toMatch(/src="[^"]*js\/encontro-pdf\.js"/);
-    });
+    if (ehDeck) {
+      test('deck de slides não tem botão de exportação em PDF', () => {
+        const html = readRepoFile(pagina.path);
+        expect(html, 'decks não levam .pdf-export-btn').not.toMatch(/<button[^>]*pdf-export-btn/);
+        expect(html, 'decks não carregam js/encontro-pdf.js').not.toMatch(/src="[^"]*js\/encontro-pdf\.js"/);
+      });
+    } else {
+      test('tem botão de exportação em PDF', () => {
+        const html = readRepoFile(pagina.path);
+        expect(html, 'botão .pdf-export-btn ausente').toContain('class="pdf-export-btn"');
+        expect(html, 'script js/encontro-pdf.js não referenciado').toMatch(/src="[^"]*js\/encontro-pdf\.js"/);
+      });
 
-    test('carrega a folha de estilo do padrão (botão e impressão A4)', () => {
+      test('o script de exportação resolve por caminho relativo válido', () => {
+        const html = readRepoFile(pagina.path);
+        const src = /src="([^"]*js\/encontro-pdf\.js)"/.exec(html);
+        expect(src, 'referência ao script não encontrada').not.toBeNull();
+        const abs = path.resolve(REPO, path.dirname(pagina.path), src![1]);
+        expect(fs.existsSync(abs), `caminho não resolve: ${src![1]} em ${pagina.path}`).toBe(true);
+      });
+
+      test('o botão declara docente e sequencial do padrão de nome', () => {
+        const html = readRepoFile(pagina.path);
+        const enc = cfg.encontros[pagina.encontro];
+        // O atributo alimenta o nome do arquivo PDF, que é ASCII: um docente
+        // chamado José produz "2026-09-23-Jose-01". A acentuação permanece na
+        // ficha, que é texto lido em tela.
+        const semAcento = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '');
+        expect(html).toContain(`data-encontro-docente="${semAcento(enc.docente)}"`);
+        expect(html).toContain(`data-encontro-seq="${pagina.seq}"`);
+        expect(['01', '02', '03'], `sequencial inesperado em ${pagina.path}`).toContain(pagina.seq);
+        const data = /data-encontro-data="([^"]*)"/.exec(html);
+        expect(data).not.toBeNull();
+        if (data![1]) expect(data![1]).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      });
+    }
+
+    test('carrega a folha de estilo do padrão (ficha, botão e impressão A4)', () => {
       const html = readRepoFile(pagina.path);
       const link = /<link[^>]+href="([^"]*css\/encontro\.css)"/.exec(html);
       expect(link, 'css/encontro.css não referenciado — sem ele o botão fica sem estilo e o PDF não sai em A4').not.toBeNull();
       const abs = path.resolve(REPO, path.dirname(pagina.path), link![1]);
       expect(fs.existsSync(abs), `caminho não resolve: ${link![1]} em ${pagina.path}`).toBe(true);
-    });
-
-    test('o script de exportação resolve por caminho relativo válido', () => {
-      const html = readRepoFile(pagina.path);
-      const src = /src="([^"]*js\/encontro-pdf\.js)"/.exec(html);
-      expect(src, 'referência ao script não encontrada').not.toBeNull();
-      const abs = path.resolve(REPO, path.dirname(pagina.path), src![1]);
-      expect(fs.existsSync(abs), `caminho não resolve: ${src![1]} em ${pagina.path}`).toBe(true);
-    });
-
-    test('o botão declara docente e sequencial do padrão de nome', () => {
-      const html = readRepoFile(pagina.path);
-      const enc = cfg.encontros[pagina.encontro];
-      // O atributo alimenta o nome do arquivo PDF, que é ASCII: um docente
-      // chamado José produz "2026-09-23-Jose-01". A acentuação permanece na
-      // ficha, que é texto lido em tela.
-      const semAcento = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '');
-      expect(html).toContain(`data-encontro-docente="${semAcento(enc.docente)}"`);
-      expect(html).toContain(`data-encontro-seq="${pagina.seq}"`);
-      expect(['01', '02', '03'], `sequencial inesperado em ${pagina.path}`).toContain(pagina.seq);
-      const data = /data-encontro-data="([^"]*)"/.exec(html);
-      expect(data).not.toBeNull();
-      if (data![1]) expect(data![1]).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     });
 
     test('exibe objetivo de aprendizagem, estratégia e estrutura do encontro', () => {

@@ -1,6 +1,6 @@
 ---
 name: padrao-encontro
-description: Padrão obrigatório de toda página de aula do acervo — botão de exportação em PDF com o nome de arquivo padronizado pelo Inteli (ANO-MÊS-DIA-Nome-NoSequencial), ficha do encontro com objetivo de aprendizagem, estratégia e estrutura, e navegação flutuante (barra de progresso e botões entre slides, material, plano e home do módulo). Use ao criar ou editar qualquer slide, material, plano ou página de aula, ao registrar um encontro novo e ao investigar falhas do spec tests/encontro-compliance.spec.ts.
+description: Padrão obrigatório de toda página de aula do acervo — botão de exportação em PDF nas páginas de leitura (material, plano e aula, nunca nos slides) com o nome de arquivo padronizado pelo Inteli (ANO-MÊS-DIA-Nome-NoSequencial), ficha do encontro com objetivo de aprendizagem, estratégia e estrutura, e navegação flutuante (barra de progresso e botões entre slides, material, plano e home do módulo). Use ao criar ou editar qualquer slide, material, plano ou página de aula, ao registrar um encontro novo e ao investigar falhas do spec tests/encontro-compliance.spec.ts.
 type: reference
 ---
 
@@ -9,7 +9,10 @@ type: reference
 Toda página de aula do acervo — slides, material de leitura, plano de ensino e página de
 aula — deve satisfazer, **sem exceção**, três requisitos:
 
-1. **Botão de exportação em PDF**, com o nome de arquivo padronizado pela coordenação.
+1. **Botão de exportação em PDF**, com o nome de arquivo padronizado pela coordenação,
+   apenas nas páginas de leitura (material, plano e página de aula). Os decks de slides
+   não têm o botão, por decisão do professor em 15/10/2026; o spec falha se um deck o
+   trouxer, e `scripts/apply-encontro.mjs` não o injeta em caminhos `slides/`.
 2. **Ficha do encontro**, declarando objetivo de aprendizagem, estratégia e estrutura.
 3. **Navegação flutuante e sumário lateral**, nas páginas de leitura longa (material e
    plano) — ver [Navegação flutuante](#navegação-flutuante).
