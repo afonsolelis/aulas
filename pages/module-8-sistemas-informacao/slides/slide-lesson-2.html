@@ -114,6 +114,14 @@
     .steps-3 p { font-size:.88rem; line-height:1.5; }
     .steps article.done { opacity:.55; }
     .steps-8 { grid-template-columns:repeat(4,minmax(0,1fr)); }
+    .steps article.focus { outline:2px solid var(--si); outline-offset:2px; }
+    /* Balão de comentário apontando para o passo 3 (coluna 3 da grade de 4) */
+    .bubble { position:relative; width:58%; margin:0 0 14px auto; padding:9px 13px; border-radius:12px; background:var(--soft-si); border:1px solid color-mix(in srgb,var(--si) 55%,var(--paper)); font-size:.76rem; line-height:1.45; box-shadow:0 4px 12px color-mix(in srgb,var(--ink) 8%,transparent); }
+    .bubble::after { content:""; position:absolute; bottom:-8px; left:calc(35.5% - 8px); width:14px; height:14px; background:var(--soft-si); border-right:1px solid color-mix(in srgb,var(--si) 55%,var(--paper)); border-bottom:1px solid color-mix(in srgb,var(--si) 55%,var(--paper)); transform:rotate(45deg); }
+    .bubble .label { margin:0 6px 0 0; }
+    .steps-6 { grid-template-columns:repeat(6,minmax(0,1fr)); }
+    .code-mini pre.prompt { white-space:pre-wrap; font-size:.66rem; line-height:1.42; }
+    .code-mini + .code-mini { margin-top:9px; }
     .slide-footer { position:fixed; left:0; right:0; bottom:0; height:60px; z-index:100; display:flex; justify-content:space-between; align-items:center; gap:12px; padding:0 22px; background:color-mix(in srgb,var(--paper) 97%,transparent); border-top:1px solid var(--line); box-shadow:0 -3px 14px color-mix(in srgb,var(--ink) 8%,transparent); }
     .footer-links, .nav-wrapper { display:flex; align-items:center; gap:9px; }
     .back-home { padding:8px 13px; border-radius:9px; background:var(--soft-ink); color:var(--ink); text-decoration:none; font-size:.77rem; font-weight:800; }
@@ -150,6 +158,7 @@
       .flow p, .steps p { font-size:.9rem; }
       .flow strong, .steps strong { font-size:1rem; }
       .code-mini pre { font-size:.86rem; }
+      .code-mini pre.prompt { font-size:.8rem; }
       .storage-band { font-size:.96rem; }
     }
     @media (max-width:900px) {
@@ -166,13 +175,13 @@
     window.dispatchEvent(new CustomEvent('anime-ready'));
   </script>
 
-<!-- encontro:css:start -->
-<link rel="stylesheet" href="../../../css/encontro.css">
-<!-- encontro:css:end -->
-
 <!-- semana:css:start -->
 <link rel="stylesheet" href="../../../css/semana-ano.css">
 <!-- semana:css:end -->
+
+<!-- encontro:css:start -->
+<link rel="stylesheet" href="../../../css/encontro.css">
+<!-- encontro:css:end -->
 </head>
 <body>
 <nav class="top-nav" aria-label="Lesson navigation">
@@ -214,16 +223,16 @@
   <!-- ====== SLIDE 3: SESSION STRUCTURE ====== -->
   <section class="slide">
     <div class="sc">
-      <header class="sh si reveal"><div class="st">Session objective and structure</div><p class="ss">By the end of the session, students should be able to complete the eight-step exploratory analysis on the partner data, starting from the Steps 1 and 2 prepared before class, record the findings in a data quality log linked to the Data Model Canvas, store a sample in the Data Lake with an idempotent Parquet write, and present the findings, their volume and the canvas blocks they change to the class.</p></header>
+      <header class="sh si reveal"><div class="st">Session objective and structure</div><p class="ss">By the end of the session, students should be able to conduct the eight-step exploratory analysis on the partner data with an AI assistant, sending it only the schema and aggregated outputs, record the findings in a data quality log, use the log to fill the Data Model Canvas, store a Parquet sample in the Data Lake and present the findings to the class.</p></header>
       <div class="agenda agenda-6 reveal">
         <article><b>1</b><strong>Daily</strong><span>15 min</span></article>
         <article><b>2</b><strong>Entry check on the pre-class notebook</strong><span>5 min</span></article>
-        <article><b>3</b><strong>Focused exposition: steps 3 to 8, where the entry check showed doubts</strong><span>15 min</span></article>
-        <article><b>4</b><strong>Group practice on the partner data: steps 3 to 8, quality log and Parquet</strong><span>45 min</span></article>
+        <article><b>3</b><strong>Focused exposition: steps 3 to 8 and the discovery loop with AI</strong><span>15 min</span></article>
+        <article><b>4</b><strong>Group practice: AI-assisted steps 3 to 8, log, canvas and Parquet</strong><span>45 min</span></article>
         <article><b>5</b><strong>Group presentations: what each group achieved</strong><span>30 min</span></article>
         <article><b>6</b><strong>Sprint 1 deliverables and self-study</strong><span>10 min</span></article>
       </div>
-      <div class="callout dark reveal">The session follows a flipped format. Steps 1 and 2 were run before class in the starter notebook, on synthetic data of the fictitious pharmacy chain of Lesson 1, and the time in class is spent on the partner data.</div>
+      <div class="callout dark reveal">The session follows a flipped format. Steps 1 and 2 were run before class in the starter notebook, on synthetic data of the fictitious pharmacy chain of Lesson 1, and the time in class is spent on the partner data, with an AI assistant that writes the checks and interprets their aggregated results.</div>
     </div>
   </section>
 
@@ -281,15 +290,92 @@ poetry install</pre></div>
     <div class="sc">
       <p class="eyebrow">Reference for the focused exposition</p>
       <header class="sh dark reveal"><div class="st">The exploratory analysis in eight steps</div><p class="ss">Each step answers one question about the data and produces an entry in the data quality log. The order matters, because a later step depends on what the earlier ones established, such as the grain before the distributions.</p></header>
+      <div class="bubble reveal"><span class="label">What is the grain?</span>The grain of a table is what a single row represents. In <code>stock_position</code>, the declared grain is one row per store, product and day, so each combination of <code>store_id</code>, <code>product_id</code> and <code>date</code> should appear only once. Step 3 checks this by counting the rows that repeat the key.</div>
       <div class="steps steps-8 reveal">
         <article class="done"><b>1</b><strong>Start from the canvas</strong><p>Done before class in the starter notebook.</p></article>
         <article class="done"><b>2</b><strong>Load and inventory</strong><p>Done before class in the starter notebook.</p></article>
-        <article><b>3</b><strong>Structure and grain</strong><p>Does the declared key identify each row?</p></article>
+        <article class="focus"><b>3</b><strong>Structure and grain</strong><p>Does the declared key identify each row?</p></article>
         <article><b>4</b><strong>Completeness</strong><p>Where are values missing, and following which pattern?</p></article>
         <article><b>5</b><strong>Univariate profile</strong><p>How is each column distributed, and where are the outliers?</p></article>
         <article><b>6</b><strong>Relationships</strong><p>How do the variables move together and over time?</p></article>
         <article><b>7</b><strong>Consistency across tables</strong><p>Do the joins and the invariants hold?</p></article>
         <article><b>8</b><strong>Record and decide</strong><p>What enters the log, and which canvas block changes?</p></article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 7A: DISCOVERY LOOP WITH AI ====== -->
+  <section class="slide">
+    <div class="sc">
+      <p class="eyebrow">Reference for the focused exposition</p>
+      <header class="sh si reveal"><div class="st">Conducting the steps with an AI assistant</div><p class="ss">The assistant writes the code of each check and interprets its aggregated output, while the group runs the code, reproduces every finding in the notebook and takes the decisions. The division follows from what each side can verify, since the assistant never sees the data and may propose causes that the output does not support.</p></header>
+      <div class="steps steps-6 reveal">
+        <article><b>1</b><strong>Context</strong><p>Canvas assumptions, schema and the inventory of Step 2, sent once per table.</p></article>
+        <article><b>2</b><strong>Ask</strong><p>The assistant writes the check of the step and states the result that would confirm the canvas.</p></article>
+        <article><b>3</b><strong>Run</strong><p>The group reads the code, runs it in the notebook and keeps the cell.</p></article>
+        <article><b>4</b><strong>Return</strong><p>Only the aggregated output goes back: counts, rates, quantiles and frequencies.</p></article>
+        <article><b>5</b><strong>Interpret</strong><p>The assistant lists findings and probable causes, and marks what only the partner can decide.</p></article>
+        <article><b>6</b><strong>Decide</strong><p>The group checks each finding against the cell that produced it and writes the log row.</p></article>
+      </div>
+      <div class="g2 reveal" style="margin-top:11px">
+        <article class="card"><span class="label">What may be sent</span><p>Column names and types, row counts, null rates, quantiles, counts of invariant violations and frequencies of codes such as store or product identifiers.</p></article>
+        <article class="card dark"><span class="label dark">What is never sent</span><p>Rows of the partner data, including the output of <code>head()</code> or <code>sample()</code>, free-text fields and any value of the personal or sensitive columns classified in block 8 under the LGPD.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 7B: DISCOVERY PROMPTS ====== -->
+  <section class="slide">
+    <div class="sc">
+      <p class="eyebrow">Reference for the focused exposition</p>
+      <header class="sh dark reveal"><div class="st">Prompts for the discovery: context and steps 3 to 7</div><p class="ss">The context prompt is sent once per table. The step prompt is repeated for Steps 3 to 7 with the question of each step from slide 7, and the interpretation prompt follows every run, with the aggregated output in place of the placeholder.</p></header>
+      <div class="g2 reveal">
+        <div class="code-mini"><span class="code-cap">Prompt 1 · Context, once per table</span><pre class="prompt">You are helping a data engineering team explore one table before its data model is built. You will never receive rows of the data, only the canvas assumptions, the schema and aggregated outputs that we compute ourselves.
+
+Analytical question (canvas block 2): &lt;question&gt;
+Table: &lt;table&gt;
+Declared grain: one row per &lt;entity, entity, period&gt;
+Key columns: &lt;columns&gt;
+Invariants we expect: &lt;list&gt;
+Related tables and join keys: &lt;list&gt;
+Inventory from Step 2 (shape, dtypes, period):
+&lt;paste output&gt;
+
+Wait for each step before writing code.</pre></div>
+        <div>
+          <div class="code-mini"><span class="code-cap">Prompt 2 · One step, Steps 3 to 7</span><pre class="prompt">Step &lt;n&gt; · &lt;name&gt;. Question: &lt;question of the step&gt;.
+Write pandas code for &lt;table&gt; that prints only aggregates (counts, rates, quantiles, top-10 frequencies), never rows. State the result that confirms the canvas and the result that would contradict it.</pre></div>
+          <div class="code-mini"><span class="code-cap">Prompt 3 · Interpretation, after each run</span><pre class="prompt">Output of Step &lt;n&gt;:
+&lt;paste aggregated output&gt;
+Compare it with the canvas assumptions. List each finding with its volume and at most two probable causes that this output supports. Mark as "ask the partner" what the output cannot decide, and do not propose corrections to the data.</pre></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 7C: LOG AND CANVAS PROMPT ====== -->
+  <section class="slide">
+    <div class="sc">
+      <p class="eyebrow">Reference for the focused exposition</p>
+      <header class="sh si reveal"><div class="st">Prompts for the log and the Data Model Canvas</div><p class="ss">Step 8 turns the verified findings into rows of the log and the rows into text for the canvas. The assistant drafts both, and the group keeps a line only when it can point to the notebook cell that supports it.</p></header>
+      <div class="g2 g2-wide reveal">
+        <div class="code-mini"><span class="code-cap">Prompt 4 · Log and canvas, Step 8</span><pre class="prompt">Turn the verified findings below into rows of our data quality log, with the columns ID | Table | Check | Finding and volume | Probable cause | Decision | Canvas block. Use only blocks 4, 6, 14 and cube j as destinations.
+
+Then draft the text of the cube blocks a (grain), d (facts), e (measures) and f (dimensions), and of blocks 8 (policies) and m (classification), citing the finding ID behind each line. Leave a block empty when no finding supports it.
+
+Findings confirmed in the notebook:
+&lt;paste list&gt;</pre></div>
+        <table class="tbl tbl-sm">
+          <thead><tr><th>Finding</th><th>Canvas block</th></tr></thead>
+          <tbody>
+            <tr><td>Declared key holds or repeats</td><td>Cube a · 14</td></tr>
+            <tr><td>Measures the data supports</td><td>Cube e · 4</td></tr>
+            <tr><td>Dimensions with usable cardinality</td><td>Cube f</td></tr>
+            <tr><td>Questions only the partner answers</td><td>6</td></tr>
+            <tr><td>Checks the pipeline must repeat</td><td>14 · cube j</td></tr>
+            <tr><td>Personal or sensitive columns</td><td>8 · cube m</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </section>
@@ -425,11 +511,11 @@ display((sales["sold_at"] &gt; pd.Timestamp.now()).sum())</pre></div></article>
     <div class="sc">
       <header class="sh si reveal"><div class="st">Group practice: steps 3 to 8 on the partner data</div><p class="ss">Each group completes the empty cells of the starter notebook on the synthetic data, where the defects are known, and then applies the same cells to one partner table that supports a question in block 2 of the canvas. The practice lasts 45 minutes.</p></header>
       <div class="g3 reveal">
-        <article class="card"><span class="label">Run</span><p>Steps 3 to 7 on the chosen partner table: grain, completeness, profile, relationships and consistency. The last cell writes the table as Parquet with the code on slide 16 and reads it back.</p></article>
-        <article class="card dark"><span class="label dark">Record</span><p>Step 8: one row of the data quality log for each finding, with its volume, probable cause, decision and canvas block. The template is in the notebook and in section 12 of the material.</p></article>
+        <article class="card"><span class="label">Run</span><p>Steps 3 to 7 on the chosen partner table with Prompts 1 to 3, keeping in the notebook the cell that reproduces each finding. The last cell writes the table as Parquet and reads it back.</p></article>
+        <article class="card dark"><span class="label dark">Record</span><p>Step 8 with Prompt 4: one row of the data quality log for each verified finding, and the canvas text that the log supports. The template is in section 12 of the material.</p></article>
         <article class="card grn"><span class="label grn">Prepare</span><p>The five elements of the presentation that closes the session: three findings, one invariant violation, the canvas blocks, the Parquet sample and the next step.</p></article>
       </div>
-      <div class="callout dark reveal">Partner extracts stay in a folder listed in <code>.gitignore</code>. Only the notebook, the lock file and the log are committed.</div>
+      <div class="callout dark reveal">Partner extracts stay in a folder listed in <code>.gitignore</code>, and only aggregated outputs are pasted into the assistant. The notebook, the lock file, the log and the prompts used are committed.</div>
     </div>
   </section>
 
@@ -495,7 +581,7 @@ len(back) == len(sales)</pre></div>
         <article><b>4</b><strong>Parquet sample</strong><p>The path in the raw zone and the row count read back.</p></article>
         <article><b>5</b><strong>Next step</strong><p>What the group will complete for the deliverable on Friday.</p></article>
       </div>
-      <div class="callout reveal">After each presentation, the class asks the group one question, about the evidence behind a finding, the decision attached to it or the cause attributed to a defect.</div>
+      <div class="callout reveal">After each presentation, the class asks the group one question, about the evidence behind a finding, the decision attached to it or a cause suggested by the assistant that the notebook did not confirm.</div>
     </div>
   </section>
 
@@ -524,7 +610,7 @@ len(back) == len(sales)</pre></div>
   </section>
 
 <!-- encontro:meta:start -->
-<div class="slide encontro-slide"><div class="sc"><section class="encontro-meta" data-encontro-ficha><h2>About this session</h2><p class="encontro-ref">Advanced Exploratory Data Analysis · 19/10/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Learning objective</h3><p>By the end of the session, students should be able to complete the eight-step exploratory analysis on the partner data, starting from the Steps 1 and 2 prepared before class, record the findings in a data quality log linked to the Data Model Canvas, store a sample in the Data Lake with an idempotent Parquet write, and present the findings, their volume and the canvas blocks they change to the class.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Session strategy</h3><p>Flipped session. Before class, each member prepares the environment, runs Steps 1 and 2 of the starter notebook on synthetic data and reads the material on the first steps. The session opens with an oral entry check and a focused exposition of Steps 3 to 8 directed at the doubts it reveals. The groups then apply Steps 3 to 8 to the partner data, record the findings in the data quality log and write a Parquet sample, and each group presents what it achieved to the class, which asks one question per group.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Session structure</h3><ol><li>Daily — 15 min</li><li>Entry check on the pre-class notebook — 5 min</li><li>Focused exposition: steps 3 to 8, where the entry check showed doubts — 15 min</li><li>Group practice on the partner data: steps 3 to 8, quality log and Parquet — 45 min</li><li>Group presentations: what each group achieved — 30 min</li><li>Sprint 1 deliverables and self-study — 10 min</li></ol></div></section></div></div>
+<div class="slide encontro-slide"><div class="sc"><section class="encontro-meta" data-encontro-ficha><h2>About this session</h2><p class="encontro-ref">Advanced Exploratory Data Analysis · 19/10/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Learning objective</h3><p>By the end of the session, students should be able to conduct the eight-step exploratory analysis on the partner data with an AI assistant, sending it only the schema and aggregated outputs and reproducing in the notebook every finding it proposes, record the findings in a data quality log, use the log to fill the blocks of the Data Model Canvas, store a sample in the Data Lake with an idempotent Parquet write, and present the findings, their volume and the canvas blocks they change to the class.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Session strategy</h3><p>Flipped session. Before class, each member prepares the environment, runs Steps 1 and 2 of the starter notebook on synthetic data and reads the material on the first steps. The session opens with an oral entry check and a focused exposition of Steps 3 to 8 and of the discovery loop with an AI assistant, in which the assistant writes the checks and interprets aggregated outputs while the group runs the code and decides. The groups then conduct Steps 3 to 8 on the partner data with the prompts of the session, record the findings in the data quality log, turn them into canvas entries and write a Parquet sample, and each group presents what it achieved to the class, which asks one question per group.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Session structure</h3><ol><li>Daily — 15 min</li><li>Entry check on the pre-class notebook — 5 min</li><li>Focused exposition: steps 3 to 8 and the discovery loop with an AI assistant — 15 min</li><li>Group practice on the partner data: AI-assisted steps 3 to 8, quality log, canvas and Parquet — 45 min</li><li>Group presentations: what each group achieved — 30 min</li><li>Sprint 1 deliverables and self-study — 10 min</li></ol></div></section></div></div>
 <!-- encontro:meta:end -->
 </div>
 
@@ -532,6 +618,7 @@ len(back) == len(sales)</pre></div>
   <div class="footer-links">
     <a href="../../home-module-8-sistemas-informacao.html" class="back-home">🏠 Home</a>
     <a href="../materials/lesson-2-material.html" class="back-home material-link">📖 Material</a>
+    <a href="../notebooks/lesson-2-starter.ipynb" class="back-home" download>📓 Notebook</a>
   </div>
   <div class="nav-wrapper">
     <button class="nav-btn" id="prev" type="button">← Previous</button>
