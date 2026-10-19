@@ -40,6 +40,10 @@
     .st { margin:0 0 3px; font-size:1.75rem; line-height:1.16; font-weight:800; }
     .ss { margin:0; font-size:.9rem; line-height:1.45; opacity:.92; }
     .g2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:11px; }
+    .g4 { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+    .g4 .code-mini { margin-top:auto; }
+    .g4 .code-mini pre { font-size:.62rem; padding:7px 10px; }
+    .g4 .card p { margin-bottom:8px; }
     .g3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
     .card { background:var(--paper); border:1px solid var(--line); border-left:5px solid var(--si); border-radius:12px; padding:13px 15px; box-shadow:0 5px 18px color-mix(in srgb,var(--ink) 8%,transparent); min-width:0; display:flex; flex-direction:column; }
     .card.dark { border-left-color:var(--ink); }
@@ -671,6 +675,38 @@ display((sales["sold_at"] &gt; pd.Timestamp.now()).sum())</pre></div></article>
           <tr><td>7 · Orphans</td><td><code>merge(..., indicator=True)</code></td><td><code>sales.join(products, "product_id", "left_anti").count()</code></td></tr>
         </tbody>
       </table>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 13b: TOOLS FOR A ONE-MACHINE VOLUME ====== -->
+  <section class="slide">
+    <div class="sc">
+      <p class="eyebrow">Reference for the focused exposition</p>
+      <header class="sh dark reveal"><div class="st">Four ways to study distributed processing on one machine</div><p class="ss">The partner data fits on a single laptop, so a real cluster would add cost without adding learning. Each tool below runs locally and makes one concept of the architecture visible. The Sprint 1 deliverable still requires the notebook in Apache Spark.</p></header>
+      <div class="g4 reveal">
+        <article class="card"><span class="label">Dask</span><h3>A local cluster with a live dashboard</h3><p>Starts a scheduler and several workers on the cores of the machine. The dashboard shows each task on a timeline, the memory of each worker and the data moved between them while the computation runs.</p>
+          <div class="code-mini"><pre>from dask.distributed \
+    import Client
+c = Client(n_workers=4)
+c.dashboard_link</pre></div></article>
+        <article class="card dark"><span class="label dark">Ray</span><h3>Tasks and stateful actors</h3><p>Distributes Python functions as remote tasks and keeps state inside actors, which are objects that live on a worker and answer calls asynchronously. It is a common base for training and serving AI models.</p>
+          <div class="code-mini"><pre>ray.init()
+@ray.remote
+class Counter:
+    def add(self, n): ...</pre></div></article>
+        <article class="card grn"><span class="label grn">Spark in Docker</span><h3>The real engine in standalone mode</h3><p>One master container and two worker containers on the same machine reproduce the roles of a Spark cluster, with the Spark UI on port 8080, at no cloud cost. The notebook of the deliverable connects to the master.</p>
+          <div class="code-mini"><pre>SparkSession.builder \
+  .master(
+  "spark://localhost:7077")\
+  .getOrCreate()</pre></div></article>
+        <article class="card"><span class="label">DuckDB + partitions</span><h3>Reading only the partitions a query needs</h3><p>Reads the Parquet folders of the raw zone, written as <code>ingestion_date=YYYY-MM-DD/</code>, and skips the folders the filter excludes. The same pruning is how Spark avoids reading a whole bucket in S3.</p>
+          <div class="code-mini"><pre>FROM read_parquet(
+  'sale_line/*/*.parquet',
+  hive_partitioning=true)
+WHERE ingestion_date
+  = '2026-10-19'</pre></div></article>
+      </div>
+      <div class="callout dark reveal">Dask and Ray show how work is divided among workers, Spark in Docker runs the engine of the deliverable with the roles of a cluster, and DuckDB shows the effect of partitioning. Dask, Ray and DuckDB complement the Spark notebook and do not replace it in the deliverable.</div>
     </div>
   </section>
 
