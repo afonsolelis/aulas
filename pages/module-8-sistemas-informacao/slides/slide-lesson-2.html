@@ -122,6 +122,18 @@
     .steps-6 { grid-template-columns:repeat(6,minmax(0,1fr)); }
     .code-mini pre.prompt { white-space:pre-wrap; font-size:.66rem; line-height:1.42; }
     .code-mini + .code-mini { margin-top:9px; }
+    /* Slide do grão: tabelas pequenas com a chave destacada */
+    .grain-card { display:flex; flex-direction:column; gap:8px; }
+    .grain-tbl { width:100%; border-collapse:separate; border-spacing:0; font-family:'JetBrains Mono',monospace; font-size:.66rem; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+    .grain-tbl th { padding:5px 7px; background:var(--ink); color:var(--paper); text-align:left; font-weight:700; }
+    .grain-tbl th.k { background:var(--si-deep); }
+    .grain-tbl td { padding:4px 7px; border-top:1px solid var(--line); }
+    .grain-tbl td.k { background:var(--soft-si); font-weight:700; }
+    .grain-tbl tr.rep td { background:color-mix(in srgb,var(--inteli-coral) 22%,var(--paper)); }
+    .grain-tbl tr.rep td.diff { font-weight:800; color:color-mix(in srgb,var(--inteli-coral) 70%,var(--ink)); }
+    .verdict { font-size:.74rem; line-height:1.42; color:color-mix(in srgb,var(--ink) 80%,var(--paper)); }
+    .grain-strip { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); gap:12px; align-items:center; margin-top:11px; padding:10px 14px; border-radius:10px; background:var(--soft-ink); border:1px dashed color-mix(in srgb,var(--ink) 30%,var(--paper)); font-size:.76rem; line-height:1.4; }
+    .grain-strip .arrow { font-weight:800; color:var(--si-deep); font-size:1.1rem; }
     .slide-footer { position:fixed; left:0; right:0; bottom:0; height:60px; z-index:100; display:flex; justify-content:space-between; align-items:center; gap:12px; padding:0 22px; background:color-mix(in srgb,var(--paper) 97%,transparent); border-top:1px solid var(--line); box-shadow:0 -3px 14px color-mix(in srgb,var(--ink) 8%,transparent); }
     .footer-links, .nav-wrapper { display:flex; align-items:center; gap:9px; }
     .back-home { padding:8px 13px; border-radius:9px; background:var(--soft-ink); color:var(--ink); text-decoration:none; font-size:.77rem; font-weight:800; }
@@ -159,6 +171,8 @@
       .flow strong, .steps strong { font-size:1rem; }
       .code-mini pre { font-size:.86rem; }
       .code-mini pre.prompt { font-size:.8rem; }
+      .grain-tbl { font-size:.82rem; }
+      .verdict, .grain-strip { font-size:.92rem; }
       .storage-band { font-size:.96rem; }
     }
     @media (max-width:900px) {
@@ -300,6 +314,48 @@ poetry install</pre></div>
         <article><b>6</b><strong>Relationships</strong><p>How do the variables move together and over time?</p></article>
         <article><b>7</b><strong>Consistency across tables</strong><p>Do the joins and the invariants hold?</p></article>
         <article><b>8</b><strong>Record and decide</strong><p>What enters the log, and which canvas block changes?</p></article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== SLIDE 7-GRAIN: WHAT THE GRAIN MEANS ====== -->
+  <section class="slide">
+    <div class="sc">
+      <p class="eyebrow">Reference for the focused exposition</p>
+      <header class="sh si reveal"><div class="st">What the grain of a table means</div><p class="ss">The grain states what a single row of the table represents. In <code>stock_position</code> each row is the stock of one product in one store on one day, so the three highlighted columns form the key, and the same combination of store, product and day can appear only once.</p></header>
+      <div class="g3 reveal">
+        <article class="card grain-card"><span class="label">The declared grain holds</span>
+          <table class="grain-tbl"><thead><tr><th class="k">store_id</th><th class="k">product_id</th><th class="k">date</th><th>on_hand</th></tr></thead><tbody>
+            <tr><td class="k">1</td><td class="k">7</td><td class="k">2026-08-01</td><td>12</td></tr>
+            <tr><td class="k">1</td><td class="k">7</td><td class="k">2026-08-02</td><td>9</td></tr>
+            <tr><td class="k">1</td><td class="k">8</td><td class="k">2026-08-01</td><td>15</td></tr>
+            <tr><td class="k">2</td><td class="k">7</td><td class="k">2026-08-01</td><td>0</td></tr>
+          </tbody></table>
+          <p class="verdict">Every combination appears once, so counting rows counts store-product-days and summing <code>on_hand</code> gives the real stock.</p>
+        </article>
+        <article class="card dark grain-card"><span class="label dark">Repeated key, identical rows</span>
+          <table class="grain-tbl"><thead><tr><th class="k">store_id</th><th class="k">product_id</th><th class="k">date</th><th>on_hand</th></tr></thead><tbody>
+            <tr><td class="k">1</td><td class="k">7</td><td class="k">2026-08-01</td><td>12</td></tr>
+            <tr class="rep"><td class="k">1</td><td class="k">7</td><td class="k">2026-08-02</td><td>9</td></tr>
+            <tr class="rep"><td class="k">1</td><td class="k">7</td><td class="k">2026-08-02</td><td>9</td></tr>
+            <tr><td class="k">1</td><td class="k">8</td><td class="k">2026-08-01</td><td>15</td></tr>
+          </tbody></table>
+          <p class="verdict">The same record was sent twice. The grain is correct, but the extract has a duplicate, and the stock of that day is counted as 18 instead of 9.</p>
+        </article>
+        <article class="card grn grain-card"><span class="label grn">Repeated key, different rows</span>
+          <table class="grain-tbl"><thead><tr><th class="k">store_id</th><th class="k">product_id</th><th class="k">date</th><th>on_hand</th></tr></thead><tbody>
+            <tr><td class="k">1</td><td class="k">7</td><td class="k">2026-08-01</td><td>12</td></tr>
+            <tr class="rep"><td class="k">1</td><td class="k">7</td><td class="k">2026-08-02</td><td class="diff">9</td></tr>
+            <tr class="rep"><td class="k">1</td><td class="k">7</td><td class="k">2026-08-02</td><td class="diff">4</td></tr>
+            <tr><td class="k">1</td><td class="k">8</td><td class="k">2026-08-01</td><td>15</td></tr>
+          </tbody></table>
+          <p class="verdict">The rows disagree, so the store may count the stock more than once a day or resend a corrected value. Only the partner can say which, and the answer may make the real grain finer than the declared one.</p>
+        </article>
+      </div>
+      <div class="grain-strip reveal">
+        <span>The same sales can be stored at different grains. <code>sale_line</code> keeps one row per item of a receipt.</span>
+        <span class="arrow">→</span>
+        <span>A daily summary keeps one row per store, product and day. A finer grain can always be aggregated into a coarser one, but never the reverse.</span>
       </div>
     </div>
   </section>
