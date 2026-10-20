@@ -354,6 +354,8 @@
     .enquete-vazio { font-size: .8rem; color: var(--sf-muted); }
     .enquete-legenda { font-size: .82rem; display: flex; gap: 12px; align-items: center; justify-content: space-between; }
     .enquete-atualizar { flex: none; font: inherit; font-size: .78rem; font-weight: 700; background: var(--sf-deep); color: #fff; border: none; border-radius: 2px; padding: 6px 12px; cursor: pointer; }
+    .enquete-botoes { flex: none; display: flex; gap: 8px; }
+    .enquete-atualizar.zerar { background: #fff; color: var(--sf-warn); border: 1px solid var(--sf-warn); }
     .acordo { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 2px; font-size: .7rem; font-weight: 800; letter-spacing: .02em; white-space: nowrap; vertical-align: 1px; background: var(--sf-line); color: var(--sf-deep); }
     .acordo:empty { display: none; }
     .acordo.alto { background: var(--sf-ok); color: #fff; }
@@ -738,7 +740,7 @@
           <tr data-enquete-linha="E"><td><strong>E</strong></td><td data-campo="tipo"></td><td data-campo="maturidade"></td><td data-campo="pergunta"></td></tr>
           <tr data-enquete-linha="F"><td><strong>F</strong></td><td data-campo="tipo"></td><td data-campo="maturidade"></td><td data-campo="pergunta"></td></tr>
         </table>
-        <div class="callout enquete-legenda">Tipo: P preditiva, G generativa, C combinação. Maturidade: 1 consolidado, 2 piloto supervisionado, 3 promessa. Perguntas: 1 melhor do que o quê, 2 validado em que dados, 3 quem percebe o erro, 4 qual etapa não encurta. <button type="button" class="enquete-atualizar" data-enquete-atualizar>Atualizar agora</button></div>
+        <div class="callout enquete-legenda">Tipo: P preditiva, G generativa, C combinação. Maturidade: 1 consolidado, 2 piloto supervisionado, 3 promessa. Perguntas: 1 melhor do que o quê, 2 validado em que dados, 3 quem percebe o erro, 4 qual etapa não encurta. <span class="enquete-botoes"><button type="button" class="enquete-atualizar" data-enquete-atualizar>Atualizar agora</button><button type="button" class="enquete-atualizar zerar" data-enquete-zerar>Zerar votos</button></span></div>
       </div>
     </div>
 
@@ -1803,6 +1805,28 @@
       }
 
       document.querySelectorAll('[data-enquete-atualizar]').forEach((b) => b.addEventListener('click', carregar));
+      // Zerar exige o token do professor, guardado neste navegador depois do primeiro uso.
+      const CHAVE_TOKEN = 'enquete-host:' + SALA;
+      document.querySelectorAll('[data-enquete-zerar]').forEach((b) => b.addEventListener('click', async () => {
+        let token = '';
+        try { token = localStorage.getItem(CHAVE_TOKEN) || ''; } catch (e) { /* sem armazenamento local */ }
+        if (!token) token = (prompt('Token do professor para zerar a enquete') || '').trim();
+        if (!token) return;
+        if (!confirm('Apagar todos os votos da enquete?')) return;
+        try {
+          const r = await fetch(SUPABASE_URL + '/rest/v1/rpc/enquete_zerar', {
+            method: 'POST', headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ p_sala: SALA, p_token: token }),
+          });
+          const corpo = await r.json().catch(() => null);
+          if (!r.ok) throw new Error((corpo && corpo.message) || ('HTTP ' + r.status));
+          try { localStorage.setItem(CHAVE_TOKEN, token); } catch (e) { /* sem armazenamento local */ }
+          await carregar();
+        } catch (e) {
+          try { localStorage.removeItem(CHAVE_TOKEN); } catch (er) { /* sem armazenamento local */ }
+          document.querySelectorAll('[data-enquete-total]').forEach((el) => { el.textContent = 'Não foi possível zerar: ' + e.message + '.'; });
+        }
+      }));
       carregar();
       // Atualiza a cada 5 s enquanto o slide do resultado ou a devolutiva estiver na tela.
       setInterval(() => {

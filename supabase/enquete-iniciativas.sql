@@ -91,3 +91,40 @@ revoke all on function enquete_responder(text, uuid, jsonb) from public;
 revoke all on function enquete_resultado(text)              from public;
 grant execute on function enquete_responder(text, uuid, jsonb) to anon, authenticated;
 grant execute on function enquete_resultado(text)              to anon, authenticated;
+
+-- Zerar a enquete, restrito ao professor. O token é conferido pelo hash SHA-256 em
+-- enquete_host_tokens; o token em texto claro nunca entra no repositório e o insert do hash
+-- é feito à parte:
+--   insert into enquete_host_tokens (sala, token_hash)
+--   values ('sindusfarma-2026-10-20', encode(sha256(convert_to('<token>', 'utf8')), 'hex'))
+--   on conflict (sala) do update set token_hash = excluded.token_hash;
+create table if not exists enquete_host_tokens (
+  sala       text primary key references enquete_salas(sala) on delete cascade,
+  token_hash text not null
+);
+alter table enquete_host_tokens enable row level security;
+revoke all on enquete_host_tokens from anon, authenticated;
+
+create or replace function enquete_zerar(p_sala text, p_token text)
+returns int
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_n int;
+begin
+  if not exists (
+    select 1 from enquete_host_tokens t
+    where t.sala = p_sala and t.token_hash = encode(sha256(convert_to(trim(p_token), 'utf8')), 'hex')
+  ) then
+    raise exception 'token do professor inválido';
+  end if;
+  delete from enquete_respostas r where r.sala = p_sala;
+  get diagnostics v_n = row_count;
+  return v_n;
+end;
+$$;
+
+revoke all on function enquete_zerar(text, text) from public;
+grant execute on function enquete_zerar(text, text) to anon, authenticated;
