@@ -1,0 +1,64 @@
+@startuml
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 13
+skinparam backgroundColor #FFFFFF
+skinparam roundCorner 8
+skinparam ArrowColor #2E2640
+skinparam ClassBorderColor #2E2640
+skinparam ClassBackgroundColor #FFFFFF
+skinparam ClassHeaderBackgroundColor #E6F0FB
+skinparam ComponentBorderColor #2E2640
+skinparam ComponentBackgroundColor #FFFFFF
+skinparam InterfaceBorderColor #2E2640
+skinparam NoteBorderColor #855EDE
+skinparam NoteBackgroundColor #F4EFFC
+skinparam ParticipantBorderColor #2E2640
+skinparam ParticipantBackgroundColor #E6F0FB
+skinparam ActorBorderColor #2E2640
+skinparam NodeBorderColor #2E2640
+skinparam ArtifactBorderColor #2E2640
+skinparam DatabaseBorderColor #2E2640
+skinparam StateBorderColor #2E2640
+skinparam StateBackgroundColor #FFFFFF
+autonumber
+participant "Orchestrator" as O
+participant "POS connector" as P
+participant "Bronze store" as B
+participant "Quality checks" as Q
+participant "Conformance job" as C
+participant "Silver store" as S
+activate O
+O -> P : extract(runDate)
+activate P
+P -> B : write(batch, metadata)
+activate B
+B --> P : ack
+deactivate B
+P --> O : batchId
+deactivate P
+O -> Q : checkArrival(runDate)
+activate Q
+alt all stores delivered
+  Q --> O : complete
+  deactivate Q
+  O -> C : run(runDate)
+  activate C
+  loop for each store partition
+    C -> B : read(store, runDate)
+    activate B
+    B --> C : rows
+    deactivate B
+    C -> C : deduplicate(rows)
+    C -> S : overwrite(partition)
+  end
+  C --> O : RunResult
+  deactivate C
+else files missing
+  Q --> O : missing(storeIds)
+  O -> O : holdDependentLoads()
+  O ->> O : alertCustodian(storeIds)
+end
+ref over O, S : Build Gold model and refresh the purchasing dashboard
+deactivate O
+@enduml

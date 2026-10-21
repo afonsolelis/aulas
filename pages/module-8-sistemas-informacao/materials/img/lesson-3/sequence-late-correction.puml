@@ -1,0 +1,51 @@
+@startuml
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 13
+skinparam backgroundColor #FFFFFF
+skinparam roundCorner 8
+skinparam ArrowColor #2E2640
+skinparam ClassBorderColor #2E2640
+skinparam ClassBackgroundColor #FFFFFF
+skinparam ClassHeaderBackgroundColor #E6F0FB
+skinparam ComponentBorderColor #2E2640
+skinparam ComponentBackgroundColor #FFFFFF
+skinparam InterfaceBorderColor #2E2640
+skinparam NoteBorderColor #855EDE
+skinparam NoteBackgroundColor #F4EFFC
+skinparam ParticipantBorderColor #2E2640
+skinparam ParticipantBackgroundColor #E6F0FB
+skinparam ActorBorderColor #2E2640
+skinparam NodeBorderColor #2E2640
+skinparam ArtifactBorderColor #2E2640
+skinparam DatabaseBorderColor #2E2640
+skinparam StateBorderColor #2E2640
+skinparam StateBackgroundColor #FFFFFF
+autonumber
+actor "Inventory auditor" as A
+participant "ERP" as E
+participant "ERP connector" as N
+participant "Bronze store" as B
+participant "Conformance job" as C
+participant "Silver store" as S
+participant "Gold build" as G
+A -> E : correctCount(store, product, auditDate)
+note right of E : the correction may refer\nto any of the last 3 days
+... nightly extract ...
+N -> E : extract(changedSince)
+activate N
+E --> N : corrected rows
+N -> B : write(batch, metadata)
+deactivate N
+C -> B : read(lookback = 3 days)
+activate C
+C -> C : affectedDates(rows)
+loop for each affected date
+  C -> S : overwrite(partition(date))
+end
+C ->> G : reprocess(affectedDates)
+deactivate C
+activate G
+G -> G : rebuildWeeklyStockOutRate()
+deactivate G
+@enduml
