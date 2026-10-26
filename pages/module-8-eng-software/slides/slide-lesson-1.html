@@ -200,6 +200,12 @@
       .six { grid-template-columns:repeat(2,minmax(0,1fr)); }
       .tree, .tree-row { grid-template-columns:1fr; }
     }
+    .ponder-head { display:flex; align-items:center; justify-content:space-between; gap:18px; }
+    .ponder-timer { flex-shrink:0; text-align:center; padding:8px 12px; border-radius:12px; background:color-mix(in srgb,var(--ink) 30%,transparent); border:1px solid color-mix(in srgb,var(--paper) 30%,transparent); }
+    .ponder-clock { font-family:'JetBrains Mono',monospace; font-size:2rem; font-weight:800; line-height:1.1; letter-spacing:.06em; margin-bottom:5px; }
+    .ponder-clock.done { color:var(--inteli-yellow, #ffd166); }
+    .ponder-timer button { margin:0 3px; padding:4px 10px; border:1px solid color-mix(in srgb,var(--paper) 40%,transparent); border-radius:7px; background:color-mix(in srgb,var(--paper) 16%,transparent); color:var(--paper); font:700 .68rem 'Manrope',sans-serif; cursor:pointer; }
+    @media (min-width:1600px) and (min-height:900px) { .ponder-clock { font-size:2.5rem; } .ponder-timer button { font-size:.82rem; padding:5px 12px; } }
     @media print { .top-nav { display:none!important; } }
   </style>
   <script type="module">
@@ -492,7 +498,9 @@
   <!-- ====== SLIDE 15: PONDERADA INDIVIDUAL ====== -->
   <section class="slide">
     <div class="sc">
-      <header class="sh red reveal"><div class="st">Ponderada em sala · um cenário por estudante</div><p class="ss">Atividade individual e obrigatória, com peso 3, realizada nos próximos 45 minutos e entregue no repositório pessoal do GitLab até o fim do encontro.</p></header>
+      <header class="sh red reveal ponder-head"><div><div class="st">Ponderada em sala · um cenário por estudante</div><p class="ss">Atividade individual e obrigatória, com peso 3, entregue no repositório pessoal do GitLab até o fim do encontro.</p></div>
+        <div class="ponder-timer" aria-live="polite"><div class="ponder-clock" id="ponder-timer">60:00</div><div><button id="ponder-start" type="button">Iniciar</button><button id="ponder-reset" type="button">Resetar</button></div></div>
+      </header>
       <div class="g2 reveal">
         <article class="card"><span class="label">Enunciado oficial</span><h3>Cenário de atributo de qualidade</h3><p>"Com o seu grupo, montar um cenário completo de acordo com o item "3.7 Summary" do livro. Elencar um atributo de qualidade para a montagem do cenário. Para esse autoestudo ponderado, recomenda-se escolher um atributo de qualidade que será elaborado no projeto."</p></article>
         <article class="card dark"><span class="label dark">Organização da atividade</span><h3>Entrega individual, conjunto do grupo</h3>
@@ -891,6 +899,38 @@ ___
     stopDaily();
     dailySeconds = 15 * 60;
     renderDaily();
+  });
+  // Cronômetro da ponderada em sala (60 min)
+  const PONDER_TOTAL = 60 * 60;
+  let ponderSeconds = PONDER_TOTAL;
+  let ponderInterval = null;
+  const ponderTimer = document.getElementById('ponder-timer');
+  const ponderStart = document.getElementById('ponder-start');
+  function renderPonder() {
+    const minutes = String(Math.floor(ponderSeconds / 60)).padStart(2, '0');
+    const seconds = String(ponderSeconds % 60).padStart(2, '0');
+    ponderTimer.textContent = `${minutes}:${seconds}`;
+    ponderTimer.classList.toggle('done', ponderSeconds <= 0);
+  }
+  function stopPonder() {
+    if (ponderInterval) clearInterval(ponderInterval);
+    ponderInterval = null;
+    ponderStart.textContent = 'Iniciar';
+  }
+  ponderStart.addEventListener('click', () => {
+    if (ponderInterval) { stopPonder(); return; }
+    if (ponderSeconds <= 0) return;
+    ponderStart.textContent = 'Pausar';
+    ponderInterval = setInterval(() => {
+      ponderSeconds -= 1;
+      renderPonder();
+      if (ponderSeconds <= 0) stopPonder();
+    }, 1000);
+  });
+  document.getElementById('ponder-reset').addEventListener('click', () => {
+    stopPonder();
+    ponderSeconds = PONDER_TOTAL;
+    renderPonder();
   });
   showSlide(0);
 </script>
