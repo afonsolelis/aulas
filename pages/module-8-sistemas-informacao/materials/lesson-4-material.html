@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 4 — ETL: Object Storage to Data Warehouse — Reading Material — Inteli</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+  <link href="../../../css/inteli-styles.css" rel="stylesheet">
+  <style>
+    :root {
+      --si: var(--si-blue);
+      --ink: var(--inteli-dark-purple);
+      --coral: var(--inteli-coral);
+      --paper: var(--inteli-white);
+      --line: var(--inteli-light-gray);
+      --si-deep: color-mix(in srgb,var(--si) 42%,var(--ink));
+      --soft-si: color-mix(in srgb,var(--si) 18%,var(--paper));
+      --soft-ink: color-mix(in srgb,var(--ink) 6%,var(--paper));
+      --soft-coral: color-mix(in srgb,var(--coral) 10%,var(--paper));
+    }
+    *, *::before, *::after { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; font-family:'Manrope',sans-serif; color:var(--ink); background:var(--soft-ink); }
+    a { color:var(--si-deep); }
+    #progress-bar { position:fixed; inset:0 auto auto 0; width:0; height:3px; z-index:9999; background:linear-gradient(90deg,var(--ink),var(--si)); }
+    .mat-header { color:var(--paper); background:linear-gradient(130deg,var(--ink),color-mix(in srgb,var(--ink) 50%,var(--si)) 62%,var(--si-deep)); padding:42px 24px 34px; }
+    .head-inner { width:min(1160px,100%); margin:auto; display:flex; justify-content:space-between; align-items:end; gap:28px; }
+    .head-copy { max-width:780px; }
+    .badge { display:inline-block; margin-bottom:12px; padding:5px 11px; border:1px solid color-mix(in srgb,var(--paper) 36%,transparent); border-radius:999px; background:color-mix(in srgb,var(--paper) 12%,transparent); font-size:.72rem; font-weight:800; letter-spacing:.06em; }
+    .mat-header h1 { margin:0; font-size:2.45rem; line-height:1.12; letter-spacing:-.03em; }
+    .mat-header p { margin:10px 0 0; max-width:760px; color:color-mix(in srgb,var(--paper) 90%,var(--si)); line-height:1.6; }
+    .head-actions { display:flex; flex-wrap:wrap; gap:7px; justify-content:flex-end; }
+    .head-actions a { padding:8px 12px; border-radius:9px; color:var(--paper); border:1px solid color-mix(in srgb,var(--paper) 45%,transparent); text-decoration:none; font-size:.76rem; font-weight:800; white-space:nowrap; }
+    .head-actions a.primary { background:var(--paper); color:var(--ink); }
+    .mat-layout { display:grid; grid-template-columns:290px minmax(0,1fr); gap:34px; width:min(1240px,100%); margin:auto; padding:36px 24px 64px; }
+    .mat-sidebar { position:sticky; top:18px; align-self:start; max-height:calc(100vh - 36px); overflow:auto; }
+    .mat-toc { padding:18px; border:1px solid var(--line); border-radius:14px; background:var(--paper); box-shadow:0 4px 16px color-mix(in srgb,var(--ink) 7%,transparent); }
+    .mat-toc h2 { margin:0 0 10px; font-size:.74rem; letter-spacing:.11em; text-transform:uppercase; }
+    .toc-part { margin:12px 0 4px; padding:0 8px; font-size:.64rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--si-deep); }
+    .mat-toc a { display:flex; justify-content:space-between; gap:8px; padding:5px 8px; border-left:3px solid transparent; color:color-mix(in srgb,var(--ink) 68%,var(--paper)); text-decoration:none; font-size:.76rem; line-height:1.32; }
+    .mat-toc a span { flex-shrink:0; font-size:.68rem; color:color-mix(in srgb,var(--ink) 50%,var(--paper)); }
+    .mat-toc a:hover, .mat-toc a.active { color:var(--ink); background:var(--soft-si); border-left-color:var(--si-deep); }
+    .toc-total { margin-top:10px; padding-top:10px; border-top:1px solid var(--line); color:color-mix(in srgb,var(--ink) 60%,var(--paper)); font-size:.7rem; }
+    .mat-article { min-width:0; }
+    .part-title { margin:8px 0 26px; padding:14px 18px; border-radius:12px; background:var(--ink); color:var(--paper); }
+    .part-title small { display:block; font-size:.68rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:color-mix(in srgb,var(--paper) 75%,var(--si)); }
+    .part-title strong { display:block; margin-top:3px; font-size:1.15rem; }
+    .mat-section { margin:0 0 52px; scroll-margin-top:26px; }
+    .mat-section h2 { margin:0 0 18px; padding-bottom:10px; border-bottom:2px solid var(--line); font-size:1.65rem; line-height:1.25; }
+    .mat-section h3 { margin:28px 0 9px; font-size:1.1rem; }
+    .mat-section h4 { margin:20px 0 6px; font-size:.95rem; }
+    .mat-section p, .mat-section li, .mat-section dd { font-size:.94rem; line-height:1.75; color:color-mix(in srgb,var(--ink) 84%,var(--paper)); }
+    .mat-section p { margin:0 0 14px; text-align:justify; text-justify:inter-word; hyphens:auto; }
+    .mat-section ul, .mat-section ol { margin:10px 0 16px; padding-left:1.35rem; }
+    .mat-section li { margin-bottom:5px; }
+    .lead { font-size:1.05rem!important; color:var(--ink)!important; }
+    .g2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin:16px 0; }
+    .g3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin:16px 0; }
+    .card { padding:17px 18px; border:1px solid var(--line); border-left:5px solid var(--si); border-radius:12px; background:var(--paper); box-shadow:0 4px 14px color-mix(in srgb,var(--ink) 6%,transparent); }
+    .card.dark { border-left-color:var(--ink); }
+    .card.coral { border-left-color:var(--coral); }
+    .card h3, .card h4 { margin:0 0 7px; font-size:1rem; }
+    .card p { text-align:left!important; }
+    .card p:last-child { margin-bottom:0; }
+    .callout { margin:18px 0; padding:15px 18px; border:1px solid color-mix(in srgb,var(--si) 55%,var(--paper)); border-left:5px solid var(--si-deep); border-radius:11px; background:var(--soft-si); }
+    .callout-warn { border-color:color-mix(in srgb,var(--coral) 35%,var(--paper)); border-left-color:var(--coral); background:var(--soft-coral); }
+    .callout-tip { border-color:color-mix(in srgb,var(--ink) 20%,var(--paper)); border-left-color:var(--ink); background:var(--paper); }
+    .callout-label { margin-bottom:5px; color:var(--ink); font-size:.69rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
+    .callout p:last-child { margin:0; }
+    .table-wrap { margin:17px 0; overflow-x:auto; border:1px solid var(--line); border-radius:12px; background:var(--paper); }
+    table { width:100%; min-width:720px; border-collapse:collapse; font-size:.8rem; }
+    th { padding:10px 11px; background:var(--ink); color:var(--paper); text-align:left; font-weight:800; }
+    td { padding:10px 11px; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.5; }
+    tr:last-child td { border-bottom:0; }
+    tbody tr:nth-child(even) { background:var(--soft-ink); }
+    code { padding:2px 6px; border-radius:5px; background:var(--soft-si); color:var(--ink); font:600 .86em 'JetBrains Mono',monospace; }
+    .code-wrap { margin:16px 0; border:1px solid var(--line); border-radius:11px; overflow:hidden; background:var(--ink); }
+    .code-label { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:7px 12px; background:color-mix(in srgb,var(--ink) 82%,var(--si)); color:var(--paper); font-size:.7rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+    .code-actions { display:flex; gap:6px; flex-shrink:0; }
+    .code-copy, .code-src { padding:3px 9px; border:1px solid color-mix(in srgb,var(--paper) 40%,transparent); border-radius:6px; background:transparent; color:var(--paper); font:700 .68rem 'Manrope',sans-serif; cursor:pointer; text-decoration:none; text-transform:none; letter-spacing:0; }
+    .code-block { margin:0; padding:14px 16px; overflow-x:auto; max-height:460px; color:var(--paper); }
+    .code-block code { padding:0; background:none; color:inherit; font-size:.78rem; line-height:1.6; }
+    .hl-kw { color:color-mix(in srgb,var(--si) 85%,var(--paper)); font-weight:700; }
+    .hl-fn { color:color-mix(in srgb,var(--coral) 55%,var(--paper)); }
+    .hl-str { color:color-mix(in srgb,var(--si) 45%,var(--paper)); }
+    .hl-num { color:color-mix(in srgb,var(--coral) 35%,var(--paper)); }
+    .hl-cmt { color:var(--inteli-dark-gray); font-style:italic; }
+    .uml-pair { margin:20px 0 26px; }
+    .uml-pair .code-wrap { margin-bottom:0; border-radius:11px 11px 0 0; }
+    .uml-fig { margin:0; padding:18px; border:1px solid var(--line); border-top:0; border-radius:0 0 11px 11px; background:var(--paper); text-align:center; }
+    .uml-fig img { display:block; max-width:100%; height:auto; margin:0 auto; }
+    .uml-fig figcaption { margin-top:12px; font-size:.76rem; color:color-mix(in srgb,var(--ink) 62%,var(--paper)); }
+    .vp-map { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; margin:20px 0 8px; }
+    .vp-map article { padding:14px 12px; border-radius:12px; background:var(--paper); border:1px solid var(--line); border-top:5px solid var(--ink); box-shadow:0 4px 14px color-mix(in srgb,var(--ink) 6%,transparent); }
+    .vp-map article:nth-child(2) { border-top-color:var(--si-deep); }
+    .vp-map article:nth-child(3) { border-top-color:color-mix(in srgb,var(--coral) 72%,var(--ink)); }
+    .vp-map article:nth-child(4) { border-top-color:color-mix(in srgb,var(--inteli-dark-gray) 40%,var(--ink)); }
+    .vp-map article:nth-child(5) { border-top-color:var(--inteli-dark-gray); }
+    .vp-map strong { display:block; margin-bottom:3px; font-size:.86rem; }
+    .vp-map em { display:block; margin-bottom:6px; font-size:.72rem; font-style:normal; font-weight:800; color:var(--si-deep); }
+    .vp-map p { margin:0!important; font-size:.78rem!important; line-height:1.45!important; text-align:left!important; }
+    .vp-axis { margin:0 0 18px; padding:9px 12px; border-radius:10px; background:var(--paper); border:1px dashed color-mix(in srgb,var(--ink) 30%,var(--paper)); text-align:center; font-size:.78rem; font-weight:700; }
+    .layers { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:12px; margin:20px 0 10px; }
+    .layer { position:relative; padding:14px 12px; border-radius:12px; color:var(--paper); }
+    .layer b { display:block; font-size:.95rem; margin-bottom:4px; }
+    .layer span { display:block; font-size:.76rem; line-height:1.4; opacity:.92; }
+    .layer:not(:last-child)::after { content:''; position:absolute; right:-12px; top:50%; width:12px; height:2px; background:var(--ink); }
+    .l-src { background:color-mix(in srgb,var(--inteli-dark-gray) 40%,var(--ink)); }
+    .l-b { background:color-mix(in srgb,var(--coral) 55%,var(--ink)); }
+    .l-s { background:var(--si-deep); }
+    .l-g { background:var(--ink); }
+    .l-c { background:var(--paper); color:var(--ink); box-shadow:inset 0 0 0 2px var(--ink); }
+    .undercurrent { margin:0 0 20px; padding:10px 14px; border-radius:10px; background:var(--paper); border:1px dashed var(--si-deep); font-size:.78rem; line-height:1.5; }
+    .undercurrent b { color:var(--si-deep); }
+    .v-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; margin:18px 0; }
+    .v-grid article { padding:14px 12px; border-radius:12px; background:var(--paper); border:1px solid var(--line); border-top:5px solid var(--si-deep); }
+    .v-grid article:nth-child(2) { border-top-color:var(--coral); }
+    .v-grid article:nth-child(3) { border-top-color:var(--ink); }
+    .v-grid article:nth-child(4) { border-top-color:color-mix(in srgb,var(--coral) 60%,var(--ink)); }
+    .v-grid article:nth-child(5) { border-top-color:var(--si); }
+    .v-grid strong { display:block; font-size:1rem; }
+    .v-grid em { display:block; margin:2px 0 6px; font-size:.72rem; font-style:normal; font-weight:800; color:var(--si-deep); }
+    .v-grid p { margin:0!important; font-size:.78rem!important; line-height:1.45!important; text-align:left!important; }
+    .scenario { margin:16px 0; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--paper); }
+    .scenario-head { padding:9px 14px; background:var(--soft-si); font-size:.78rem; font-weight:800; }
+    .scenario dl { display:grid; grid-template-columns:170px 1fr; margin:0; }
+    .scenario dt, .scenario dd { margin:0; padding:8px 14px; border-top:1px solid var(--line); font-size:.82rem; line-height:1.5; }
+    .scenario dt { font-weight:800; background:var(--soft-ink); }
+    .glossary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:16px 0; }
+    .glossary div { padding:12px 14px; border:1px solid var(--line); border-radius:10px; background:var(--paper); }
+    .glossary dt { font-weight:800; font-size:.9rem; margin-bottom:3px; }
+    .glossary dd { margin:0; font-size:.84rem!important; line-height:1.55!important; }
+    .sr { opacity:0; transform:translateY(20px); transition:opacity .6s, transform .6s; }
+    .sr.vis { opacity:1; transform:none; }
+    .check-list { list-style:none; padding:0!important; display:grid; gap:7px; }
+    .check-list li { position:relative; margin:0!important; padding:9px 10px 9px 36px; border:1px solid var(--line); border-radius:9px; background:var(--paper); cursor:pointer; user-select:none; }
+    .check-list li::before { content:''; position:absolute; left:11px; top:11px; width:15px; height:15px; border:2px solid var(--si-deep); border-radius:4px; }
+    .check-list li.done { color:color-mix(in srgb,var(--ink) 55%,var(--paper)); text-decoration:line-through; background:var(--soft-si); }
+    .check-list li.done::before { background:var(--si-deep); }
+    .refs li { font-size:.86rem!important; }
+    #float-nav { position:fixed; right:24px; bottom:25px; z-index:9998; display:flex; flex-direction:column; gap:7px; opacity:0; transform:translateY(12px); pointer-events:none; transition:.25s ease; }
+    #float-nav.visible { opacity:1; transform:none; pointer-events:auto; }
+    .fn-btn { padding:9px 13px; border-radius:999px; text-decoration:none; box-shadow:0 4px 16px color-mix(in srgb,var(--ink) 20%,transparent); font-size:.74rem; font-weight:800; text-align:center; }
+    .fn-btn-slides { background:var(--paper); color:var(--ink); border:2px solid var(--si-deep); }
+    .fn-btn-alt { background:var(--paper); color:var(--ink); border:2px solid var(--ink); }
+    .fn-btn-back { background:var(--ink); color:var(--paper); }
+    .inteli-footer { padding:26px 20px; border-top:1px solid var(--line); background:var(--paper); text-align:center; font-size:.8rem; }
+    .inteli-footer img { height:40px; margin-bottom:8px; }
+    @media(max-width:1100px) { .v-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @media(max-width:960px) { .mat-layout { grid-template-columns:1fr; } .mat-sidebar { display:none; } .head-inner { display:block; } .head-actions { margin-top:20px; justify-content:flex-start; } .vp-map { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @media(max-width:700px) { .layers { grid-template-columns:1fr; } .layer::after { display:none; } .g2,.g3,.vp-map,.v-grid,.glossary { grid-template-columns:1fr; } .mat-header h1 { font-size:1.9rem; } .scenario dl { grid-template-columns:1fr; } }
+    @media print { .sr { opacity:1!important; transform:none!important; } .code-block { max-height:none; } }
+  </style>
+
+<!-- semana:css:start -->
+<link rel="stylesheet" href="../../../css/semana-ano.css">
+<!-- semana:css:end -->
+
+<!-- encontro:css:start -->
+<link rel="stylesheet" href="../../../css/encontro.css">
+<!-- encontro:css:end -->
+</head>
+<body>
+  <div id="progress-bar" aria-hidden="true"></div>
+  <nav id="float-nav" aria-label="Quick navigation">
+    <a class="fn-btn fn-btn-slides" href="../slides/slide-lesson-4.html">▶ Slides</a>
+    <a class="fn-btn fn-btn-alt" href="https://github.com/afonsolelis/aulas/tree/main/pages/module-8-sistemas-informacao/lab/lesson-4" target="_blank" rel="noopener noreferrer">🧪 Lab</a>
+    <a class="fn-btn fn-btn-back" href="../../home-module-8-sistemas-informacao.html">← Module</a>
+  </nav>
+
+  <header class="mat-header">
+    <div class="head-inner">
+      <div class="head-copy">
+        <span class="badge">Module 8 · Information Systems · Lesson 4 · Week 3</span>
+        <h1>ETL: Object Storage to Data Warehouse</h1>
+        <p>Reference material for the session in which a coding agent builds, in four rounds, the pipeline that takes the Bronze layer of the pharmacy chain from a local MinIO to the Silver layer of a DuckDB warehouse. It explains ETL and ELT, how a query engine reads Object Storage, the transformation techniques and the quarantine, the warehouse and the load strategies, and it brings the measurements of reference, the four prompts in full and the lab script.</p>
+      </div>
+      <div class="head-actions">
+        <a class="primary" href="../slides/slide-lesson-4.html">▶ Slides</a>
+        <a href="https://github.com/afonsolelis/aulas/tree/main/pages/module-8-sistemas-informacao/lab/lesson-4" target="_blank" rel="noopener noreferrer">🧪 Lab files</a>
+        <a href="../../home-module-8-sistemas-informacao.html">← Back to module</a>
+      </div>
+    </div>
+  </header>
+
+<!-- encontro:meta:start -->
+<div class="container" style="max-width:1100px;margin:24px auto 0;padding:0 16px;"><section class="encontro-meta" data-encontro-ficha><h2>About this session</h2><p class="encontro-ref">ETL: Object Storage to Data Warehouse · 29/10/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Learning objective</h3><p>By the end of the session, students should be able to build with a coding agent an ETL pipeline that extracts JSON, Parquet and CSV files from a local MinIO, cleans, formats, converts and enriches them with every rejected row in quarantine, and loads the Silver layer of a DuckDB warehouse in full and incremental modes, justifying each choice with measurements.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Session strategy</h3><p>Practice and theory interleaved. The groups send four prompts to a coding agent (specification, extraction, transformation and load), and while the agent writes each step the professor explains its mechanism with animations and measured examples. Each round ends with a review against the expected counts, and the session closes with the verification of accounting, idempotency and privacy.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Session structure</h3><ol><li>Daily — 15 min</li><li>Running case, target architecture and local MinIO with the Bronze layer — 10 min</li><li>Round 1: prompt for spec, plan and tasks; ETL and ELT and the Bronze to Silver contract — 15 min</li><li>Round 2: prompt for the extraction; Object Storage, file formats and partitions — 17 min</li><li>Round 3: prompt for the transformation; cleaning, formatting, type conversion, enrichment and quarantine — 18 min</li><li>Round 4: prompt for the load; Data Warehouse and Data Lake, full and incremental loads — 20 min</li><li>Verification: accounting, idempotency, privacy and lineage — 12 min</li><li>Quality attribute scenarios, closing and self-study — 13 min</li></ol></div></section></div>
+<!-- encontro:meta:end -->
+<div class="mat-layout">
+    <aside class="mat-sidebar">
+      <nav class="mat-toc" aria-label="Table of contents">
+        <h2>In this material</h2>
+        <div class="toc-part">Part I · Foundations</div>
+        <a href="#reading">1. How to read this material</a>
+        <a href="#case">2. The case and the target architecture</a>
+        <a href="#etl-elt">3. ETL and ELT</a>
+        <a href="#contract">4. The Bronze to Silver contract</a>
+        <div class="toc-part">Part II · Extraction</div>
+        <a href="#object-storage">5. Object Storage</a>
+        <a href="#formats">6. File formats and how they are read</a>
+        <a href="#partitions">7. Partitions and incremental extraction</a>
+        <a href="#volume">8. Large volumes</a>
+        <div class="toc-part">Part III · Transformation</div>
+        <a href="#techniques">9. Transformation techniques</a>
+        <a href="#quarantine">10. Quarantine and the accounting of rows</a>
+        <div class="toc-part">Part IV · Load</div>
+        <a href="#dw-dl">11. Data Warehouse and Data Lake</a>
+        <a href="#loads">12. Full and incremental loads</a>
+        <a href="#design">13. Designing Silver and checking integrity</a>
+        <div class="toc-part">Part V · Lab</div>
+        <a href="#lab">14. Preparing the environment</a>
+        <a href="#prompts">15. The four prompts</a>
+        <a href="#verification">16. Verification</a>
+        <a href="#mistakes">17. Recurring mistakes of agents</a>
+        <a href="#scenarios">18. Quality scenarios and deliverable</a>
+        <a href="#glossary">19. Glossary</a>
+        <a href="#checklist">20. Checklist</a>
+        <a href="#references">21. References</a>
+        <div class="toc-total" id="toc-total"></div>
+      </nav>
+    </aside>
+
+    <article class="mat-article">
+
+      <div class="part-title"><small>Part I</small><strong>Foundations</strong></div>
+
+      <section class="mat-section" id="reading">
+        <h2>1. How to read this material</h2>
+        <p class="lead">This material accompanies Lesson 4, in which practice and theory are interleaved. Each round of the session starts with a prompt to a coding agent, and while the agent writes the files the slides explain the mechanism that those files implement. The same order is kept here, so that a group that missed part of the session can rebuild it alone.</p>
+        <p>Parts I to IV correspond to the four explanation blocks of the session. Part I places the pipeline between the layers of the medallion architecture defined in Lesson 3 and compares ETL and ELT. Part II explains how a query engine reads files from Object Storage and why the format and the layout of the keys decide the cost of the extraction. Part III covers the four transformation techniques named in the description of the session and the quarantine, and Part IV covers the warehouse, the load strategies and the design of the Silver tables. Part V is the lab, with the setup, the four prompts in full, the verification and the mistakes that coding agents usually make in this kind of pipeline.</p>
+        <p>Every number in this material was measured on 26/10/2026 on the professor's machine, with DuckDB 2.0.0 and a local MinIO, using the generator of the lab. The numbers are therefore reproducible, but they describe one machine and a local object store. On Amazon S3 each request adds tens of milliseconds of latency and a price, so the differences in requests and bytes shown here become larger differences in time and cost.</p>
+      </section>
+
+      <section class="mat-section" id="case">
+        <h2>2. The case and the target architecture</h2>
+        <p>The pharmacy chain of the module has six stores (CMP-01 Campinas, STS-02 Santos, SOR-03 Sorocaba, JUN-04 Jundiaí, BAU-05 Bauru and FRA-06 Franca) and forty products, part of them continuous-use medicines. Lesson 3 defined the contracts of the Bronze, Silver and Gold layers for the weekly stock-out indicator of the purchasing team. This lesson builds the step between Bronze and Silver, which turns what the sources sent into conformed entities with a declared grain.</p>
+        <p>Three sources deliver files to Bronze every day, each with a different format and different defects. The POS terminals send the sale lines of the day as newline-delimited JSON. The ERP sends a Parquet extract with the stock position of each store and product. The supplier ACME Distribuição Farmacêutica sends a CSV of deliveries separated by semicolons, encoded in Latin-1, with Portuguese headers, decimal commas and dates in the <code>dd/mm/yyyy</code> format. The store and product master files are CSV files of the ERP.</p>
+        <div class="code-wrap"><div class="code-label"><span>Bronze layout in the bucket pharmacy-lake</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>bronze/source=pos/entity=sale_line/ingestion_date=YYYY-MM-DD/batch_2300.json
+bronze/source=pos/entity=sale_line/ingestion_date=2026-10-18/batch_0815_resend.json
+bronze/source=erp/entity=stock_position/ingestion_date=YYYY-MM-DD/extract.parquet
+bronze/source=supplier/entity=delivery/ingestion_date=YYYY-MM-DD/acme_0930.csv
+bronze/source=erp/entity=store/ingestion_date=2026-10-12/store.csv
+bronze/source=erp/entity=product/ingestion_date=2026-10-12/product.csv</code></pre></div>
+        <p>The generator of the lab, <code>generate_bronze.py</code>, writes fourteen days of this layout, from 12/10 to 25/10/2026, and plants defects with a fixed seed. Store BAU-05 sends <code>sold_at</code> as <code>dd/mm/yyyy HH:MM:SS</code> in local time, while the other stores send ISO 8601 with the offset <code>-03:00</code>. Store SOR-03 sends <code>unit_price</code> as text with a decimal comma. About one line in ten has a store code in lower case, in title case or surrounded by spaces. One per cent of the lines of each batch is posted twice. On 17/10 the terminal of JUN-04 lost its connection after sending part of the day and resent the whole day in a second file the next morning. In the ERP, audits correct the stock count of two days earlier, and the correction arrives in a later extract, while JUN-04 often closes the day without a count.</p>
+        <p>The target is a DuckDB database file, <code>warehouse/pharmacy.duckdb</code>, used as a test Data Warehouse. Its schema <code>silver</code> holds the tables <code>store</code>, <code>product</code>, <code>sale_line</code>, <code>stock_position</code> and <code>delivery</code>, plus <code>quarantine</code>, which keeps the rejected rows with their reason, and <code>load_log</code>, which records every run. DuckDB plays two roles in the pipeline: it is the engine that reads the bucket and transforms the rows, and it is the warehouse that stores the result. In a production platform the second role would belong to a warehouse such as ClickHouse or Redshift, discussed in section 11, while the code of the extraction and of the transformation would stay the same.</p>
+        <div class="layers sr">
+          <div class="layer l-src"><b>Sources</b><span>POS JSON, ERP Parquet, supplier CSV</span></div>
+          <div class="layer l-b"><b>Bronze</b><span>MinIO, read-only, partitioned by ingestion date</span></div>
+          <div class="layer l-s"><b>Extract and transform</b><span>DuckDB with httpfs, SQL rules, quarantine</span></div>
+          <div class="layer l-g"><b>Silver</b><span>DuckDB warehouse, MERGE by key, load log</span></div>
+          <div class="layer l-c"><b>Gold</b><span>Lessons 5 and 6: modelling and cubes</span></div>
+        </div>
+      </section>
+
+      <section class="mat-section" id="etl-elt">
+        <h2>3. ETL and ELT</h2>
+        <p>Every data pipeline extracts data from a source, transforms it and loads it into a target. ETL and ELT name the two orders in which the last two steps can happen. In ETL, the transformation runs in an engine outside the warehouse, and the warehouse receives only conformed data. In ELT, the raw data is loaded into the warehouse first and transformed there, usually in SQL, by the computation of the warehouse itself. The difference seems a matter of order, but the place where the transformation runs determines who pays for the computation, what the warehouse stores and how a wrong rule is corrected.</p>
+        <p>ETL was the dominant pattern while warehouses were expensive appliances whose capacity was sized in advance, and it remains the right choice when the warehouse charges by byte stored or scanned, when sensitive fields must be removed before the data lands, or when the logic needs code that SQL does not express well. ELT became common with cloud warehouses that separate storage from computation and scale both on demand, such as BigQuery, Snowflake and Redshift, and with tools such as dbt, which let analysts own the transformation as versioned SQL. Its main advantage is that the raw tables stay in the warehouse, so a rule can be corrected and rerun without a new extraction.</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Aspect</th><th>ETL · transform, then load</th><th>ELT · load, then transform</th></tr></thead>
+          <tbody>
+            <tr><td>Computation</td><td>an engine outside the warehouse (Python, Spark, Dask, DuckDB)</td><td>the warehouse itself, in SQL</td></tr>
+            <tr><td>What the warehouse stores</td><td>only conformed data</td><td>raw and conformed data, including the sensitive fields of the raw</td></tr>
+            <tr><td>Correcting a rule</td><td>rerun the engine from the raw copy, which must still exist somewhere</td><td>rerun the SQL over the raw tables</td></tr>
+            <tr><td>Fits when</td><td>the warehouse is expensive, data must be masked before landing, or the logic needs general code</td><td>the warehouse scales cheaply, analysts own the SQL, and the raw data may be kept under the same governance</td></tr>
+            <tr><td>Main risk</td><td>the engine becomes a second platform to operate</td><td>the warehouse fills with raw tables that nobody conforms</td></tr>
+          </tbody>
+        </table></div>
+        <p>The medallion architecture combines the two. The raw data is kept, as ELT requires, but in Bronze, in Object Storage, outside the warehouse. The pipeline then transforms with an engine before writing Silver, which is ETL from the point of view of the warehouse. This explains why Lesson 3 described the medallion as a form of ELT: from the point of view of the lake, the data is loaded first and transformed later. Both descriptions are correct, and what matters for the design is which system holds the raw data and under which access rules.</p>
+        <h3>A measured comparison</h3>
+        <p>The cost of each order was measured with the generator at 73,500 sales per day, which produced 1,120,749 POS lines in fifteen days. The ETL path of this lesson extracted, transformed and loaded them in about 6 seconds and wrote 1,096,943 conformed sale lines, none with a CPF. The ELT path loaded the same files into a raw schema of text columns in 2.9 seconds and 33 MiB. The ELT landing is faster because it does nothing to the data, and the time of the transformation simply moves to the next step. What does not move is the consequence for governance: from the first second, the warehouse held the CPF of the customer in all 1,120,749 rows, and the treatment that Silver promised under the LGPD now depends on the access rules of a second system.</p>
+        <div class="callout callout-tip"><div class="callout-label">Decision for the group</div><p>The partner data of the project may contain personal data. Before choosing an order for the pipeline of the project, the group must know which fields are personal, who may read the raw data and where it is allowed to be stored. The data viewpoint of Lesson 3 is the place to record that decision.</p></div>
+      </section>
+
+      <section class="mat-section" id="contract">
+        <h2>4. The Bronze to Silver contract</h2>
+        <p>A layer of the medallion architecture is defined by the guarantee it gives to the next layer, and not by the place where its files are kept. Bronze guarantees only that what arrived was kept, exactly as it arrived, with the moment of ingestion. Silver guarantees that each entity has one row per declared grain, that each column has a declared type, that rows breaking a rule are kept apart with a reason, that sensitive fields have been removed and that each row can be traced to the file that produced it. The transformation of this lesson is the code that fulfils these guarantees.</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Property</th><th>Bronze · raw</th><th>Silver · working</th><th>Gold · curated</th></tr></thead>
+          <tbody>
+            <tr><td>Content</td><td>each delivery as it arrived, resends included</td><td>one row per declared grain</td><td>facts and dimensions of an indicator</td></tr>
+            <tr><td>Types</td><td>text, except what the format carries</td><td>declared types, enforced</td><td>business types and units</td></tr>
+            <tr><td>Invalid rows</td><td>kept</td><td>in quarantine, with a reason</td><td>absent</td></tr>
+            <tr><td>Sensitive fields</td><td>present, access restricted</td><td>removed or pseudonymised</td><td>absent</td></tr>
+            <tr><td>Lineage</td><td>key of the object and partition</td><td><code>source_file</code>, <code>ingestion_date</code>, <code>run_id</code>, <code>loaded_at</code></td><td>reference to the Silver rows</td></tr>
+            <tr><td>Can be rebuilt from</td><td>the sources only</td><td>Bronze</td><td>Silver</td></tr>
+          </tbody>
+        </table></div>
+        <p>The last row of the table is the reason why Bronze is read-only. Silver can be rebuilt from Bronze whenever a rule changes, and that is possible only while Bronze still holds what the sources sent. A pipeline that cleaned Bronze in place, or deleted the night batch of JUN-04 after the resend, would make any error of the transformation permanent.</p>
+        <p>The grain of each Silver table follows from the sources. A sale line is identified by <code>sale_id</code>. A stock position is identified by the store, the product and the date of the count, so that an audit correction of the same key replaces the older count instead of adding a row. A delivery is identified by <code>id_entrega</code>. The Silver of this lesson is conformed and stays close to the shape of the sources. Lesson 5 will model it in Third Normal Form or Data Vault, and Lesson 6 will build the cubes of Gold on top of it, so a star schema here would anticipate decisions that belong to those lessons.</p>
+        <h3>The accounting of rows</h3>
+        <p>A consequence of the contract is that every row read from Bronze must have a destination. After the removal of copies, each row is either in a Silver table or in the quarantine, and the pipeline must be able to prove it with counts. For the fourteen days of the lab, the 21,353 POS lines read become 21,000 unique sales, of which 20,891 go to Silver and 109 to the quarantine. A pipeline that loads 20,891 sale lines but cannot say where the other 462 rows went has lost data, even if every query over Silver returns plausible results.</p>
+      </section>
+
+      <div class="part-title"><small>Part II</small><strong>Extraction</strong></div>
+
+      <section class="mat-section" id="object-storage">
+        <h2>5. Object Storage</h2>
+        <p>Object Storage is the storage of the Data Lake. Amazon S3 defined the interface that most services and products now follow, including MinIO, which the lab runs locally in a container. Data is kept as objects inside buckets, each object identified by a key and accessed through HTTP requests: <code>PUT</code> writes an object, <code>GET</code> reads it, <code>HEAD</code> returns its metadata and a <code>GET</code> on the bucket with the parameter <code>list-type=2</code> lists the keys that start with a prefix.</p>
+        <p>Three properties of this kind of storage shape the way a pipeline reads it. The first is that the namespace is flat. The key <code>bronze/source=pos/entity=sale_line/ingestion_date=2026-10-17/batch_2300.json</code> is one string, and the slashes only look like folders. The segments in the form <code>name=value</code> follow the convention of Hive, which query engines read as partition columns, so the layout of the keys works as the index of the lake. The second property is that objects are written whole and never edited. An object can be replaced, but not changed in the middle, while a read can ask for a byte range with the <code>Range</code> header. This is what allows an engine to read the footer and a few columns of a Parquet file without downloading the rest. The third property is that requests are billed and slow compared with a local disk. On S3 each <code>LIST</code>, <code>HEAD</code> and <code>GET</code> has a price and a latency of tens of milliseconds, so thousands of small files cost more to list and open than a few large files with the same bytes.</p>
+        <p>These properties explain why Object Storage became the foundation of the lake. Storage is separated from computation, so DuckDB on a laptop, Spark on a cluster and Redshift Spectrum read the same objects without copying them. Capacity grows without a schema, which is what allows Bronze to keep every delivery as it arrived. Durability is a property of the service, and the price per gigabyte is lower than that of the disks of a database, which makes it cheap to keep the whole history.</p>
+        <h3>Reading the bucket from DuckDB</h3>
+        <p>DuckDB reads Object Storage through the extension <code>httpfs</code>. The credentials are declared once in a secret, and every function that reads files accepts <code>s3://</code> paths and glob patterns. With MinIO, the secret needs the endpoint, path-style URLs and SSL disabled, because the local service answers on <code>localhost:9000</code> without a certificate.</p>
+        <div class="code-wrap"><div class="code-label"><span>Python · connection to the MinIO</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>import os, duckdb
+from dotenv import load_dotenv
+
+load_dotenv()
+con = duckdb.connect(os.environ["WAREHOUSE_PATH"])
+con.execute("INSTALL httpfs; LOAD httpfs;")
+con.execute("""
+  CREATE OR REPLACE SECRET lake (
+    TYPE s3, KEY_ID ?, SECRET ?, REGION ?,
+    ENDPOINT ?, URL_STYLE 'path', USE_SSL ?)""",
+  [os.environ["S3_ACCESS_KEY"], os.environ["S3_SECRET_KEY"], os.environ["S3_REGION"],
+   os.environ["S3_ENDPOINT"], os.environ["S3_USE_SSL"].lower() == "true"])
+print(con.sql("SELECT count(*) FROM glob('s3://pharmacy-lake/bronze/**')"))</code></pre></div>
+        <div class="callout callout-warn"><div class="callout-label">Secrets</div><p>The credentials come from <code>.env</code>, which is in <code>.gitignore</code> and never committed. If the secret is written with an f-string, the password ends up in the logs of the agent and in any traceback, which is why the example passes it as a parameter. Check with <code>git check-ignore .env</code> before the first commit.</p></div>
+      </section>
+
+      <section class="mat-section" id="formats">
+        <h2>6. File formats and how they are read</h2>
+        <p>Each format of the case tells the engine a different amount about itself, and the options of the reader exist to supply what the file does not say. A CSV file is text organised by rows, and it carries no types, no encoding and no schema beyond the header line. The reader must therefore be told the separator, whether there is a header, the encoding and, if types are to be inferred, the formats of decimals and dates. A newline-delimited JSON file carries field names and a few types, such as number and string, but each line may differ from the others, so the reader infers a schema from a sample. A Parquet file carries its schema, the type of each column, the division of the rows into row groups, the position of each column chunk inside the file and the minimum and maximum values of each chunk, all in a footer at the end of the file.</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Format</th><th>What the file carries</th><th>What the reader must be told</th><th>Reader in the case</th></tr></thead>
+          <tbody>
+            <tr><td>CSV</td><td>rows of text and a header</td><td>separator, header, encoding; text columns to avoid wrong inference</td><td><code>read_csv(files, delim=';', header=true, encoding='latin-1', all_varchar=true)</code></td></tr>
+            <tr><td>JSON Lines</td><td>one object per line, field names, a few types</td><td>that it is newline-delimited, and the columns, because inference fails when one terminal sends a price as text</td><td><code>read_json(files, format='newline_delimited', columns={...})</code></td></tr>
+            <tr><td>Parquet</td><td>schema, types, row groups, column chunks, statistics, compression</td><td>only the files and the partitioning</td><td><code>read_parquet(files, hive_partitioning=true)</code></td></tr>
+          </tbody>
+        </table></div>
+        <p>The extraction reads CSV and JSON as text, with every column declared as <code>VARCHAR</code>, and leaves every conversion to the transformation. The reason is practical. If the reader inferred the type of <code>unit_price</code> as a decimal from the first lines, the first price of SOR-03 written as <code>"12,90"</code> would abort the run. Read as text, the same value reaches the transformation, where a failed conversion becomes a quarantine reason. Two more options of the reader belong to every extraction. The option <code>filename='source_file'</code> adds the key of the object to each row, the first link of the lineage of Silver, and <code>hive_partitioning=true</code> turns <code>ingestion_date=2026-10-17</code> in the key into a column of the row.</p>
+        <h3>The same query in three formats</h3>
+        <p>To measure what each format costs, the typed POS lines of fourteen days at 73,500 sales per day, 1,046,514 rows ordered by <code>sale_id</code>, were written to the bucket as CSV, JSON Lines and Parquet. DuckDB ran two queries over each file with its HTTP caches disabled, and the HTTP log of DuckDB gave the requests and the bytes received.</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Format</th><th>Size</th><th>count(*): read, GETs, time</th><th>sum(quantity) of CMP-01: read, GETs, time</th></tr></thead>
+          <tbody>
+            <tr><td>CSV</td><td>90 MiB</td><td>118.37 MiB · 62 · 0.225 s</td><td>120.22 MiB · 63 · 0.219 s</td></tr>
+            <tr><td>JSON Lines</td><td>200 MiB</td><td>232.44 MiB · 117 · 0.384 s</td><td>232.44 MiB · 117 · 0.359 s</td></tr>
+            <tr><td>Parquet</td><td>25 MiB</td><td>0.03 MiB · 1 · 0.006 s</td><td>0.12 MiB · 7 · 0.011 s</td></tr>
+          </tbody>
+        </table></div>
+        <p>The count over Parquet reads only the footer, which already stores the number of rows of each row group. The sum of one store reads the footer, uses the minimum and maximum of <code>store_code</code> in each row group to skip the groups that cannot contain CMP-01, and downloads only the chunks of the two columns the query needs, <code>store_code</code> and <code>quantity</code>, in the groups that remain. The skipping works well here because the rows are ordered by <code>sale_id</code>, which begins with the store code, so the lines of each store are concentrated in a few row groups. CSV and JSON have neither a footer nor statistics, so both queries download the whole file, and slightly more than its size because the reader fetches overlapping blocks to find the line boundaries. On a laptop with a local MinIO the difference is a fraction of a second. On S3, with a latency and a price for each request and a price for each byte scanned in services such as Athena, the same ratio is the cost of the pipeline.</p>
+        <div class="callout"><div class="callout-label">Why Bronze is not all Parquet</div><p>Bronze keeps what the source sent, in the format in which it was sent, because converting it at the entrance would already be a transformation that could fail or lose information. The ERP already exports Parquet, while the POS terminals and the supplier do not. A common design is to keep the original files in Bronze and write the conformed Silver in a columnar format, which in this lesson is the storage of the DuckDB warehouse itself.</p></div>
+      </section>
+
+      <section class="mat-section" id="partitions">
+        <h2>7. Partitions and incremental extraction</h2>
+        <p>A partition is a subset of the files of an entity that shares the value of a column written in the key, here the ingestion date. The full load reads every partition, and the incremental load must read only the partitions that arrived after the last run. There are three ways of asking DuckDB for one new day, and they do not cost the same.</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>How the extraction asks for the day 26/10</th><th>LIST</th><th>HEAD</th><th>GET</th><th>Read</th><th>Time</th></tr></thead>
+          <tbody>
+            <tr><td>glob of all days, no filter (full load, 15 days)</td><td>1</td><td>16</td><td>48</td><td>14.15 MiB</td><td>0.228 s</td></tr>
+            <tr><td>glob of all days with <code>WHERE ingestion_date = '2026-10-26'</code></td><td>1</td><td>16</td><td>18</td><td>5.35 MiB</td><td>0.16 s</td></tr>
+            <tr><td>explicit list of the files of the new partition</td><td>1</td><td>1</td><td>2</td><td>0.63 MiB</td><td>0.044 s</td></tr>
+            <tr><td>Parquet of the ERP, glob with the same <code>WHERE</code></td><td>1</td><td>0</td><td>2</td><td>0.01 MiB</td><td>&lt; 0.01 s</td></tr>
+          </tbody>
+        </table></div>
+        <p>With Parquet, the filter on the partition column is applied to the list of files before any of them is opened, a technique called partition pruning, and only the file of the new day is read. With JSON, in DuckDB 2.0.0, the same filter still opened the sixteen files of the glob and read part of seventeen of them before discarding their rows, so it read eight times more than necessary. The behaviour depends on the engine, on its version and on the reader of each format, and a pipeline that relies on it can become slow after an upgrade without any change in its code. The rule written in the AGENTS.md of the lab follows from this measurement: the incremental extraction computes the list of new files from the keys and reads only that list, which costs the same in any engine and any format.</p>
+        <div class="code-wrap"><div class="code-label"><span>Python · list the files of the new partitions</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>import re
+
+BRONZE = "s3://pharmacy-lake/bronze"
+
+def list_partitions(con, entity_path, after=None):
+    """Keys of the files of entity_path whose ingestion_date is greater than after."""
+    keys = [r[0] for r in con.execute(
+        "SELECT file FROM glob(?) ORDER BY file", [f"{BRONZE}/{entity_path}/*/*"]).fetchall()]
+    def day(key):
+        return re.search(r"ingestion_date=(\d{4}-\d{2}-\d{2})", key).group(1)
+    return [k for k in keys if after is None or day(k) > str(after)]
+
+files = list_partitions(con, "source=pos/entity=sale_line", after="2026-10-25")
+# ['s3://pharmacy-lake/bronze/source=pos/entity=sale_line/ingestion_date=2026-10-26/batch_2300.json']</code></pre></div>
+        <h3>The watermark and late files</h3>
+        <p>The value <code>after</code> is the watermark, the highest ingestion date already loaded, which the pipeline reads from its load log. A watermark by partition assumes that a file is always written in the partition of the day on which it arrived. If a source writes a late file in the partition of an earlier day, the incremental load will not see it, because that partition is already behind the watermark. Two answers are common. The first is to keep, in the load log, the list of files already read and to compare it with the listing, which detects any new key regardless of its partition. The second is to make the ingestion layer always write in the partition of the arrival date, which is what the convention <code>ingestion_date</code> of Lesson 3 assumes. The lab uses the second, and the pause of block 2 asks the group to think about the first.</p>
+        <h3>Many small files</h3>
+        <p>The number of files matters as much as their size. Each file of the glob costs at least one <code>HEAD</code> and one <code>GET</code>, and listings return at most one thousand keys per page. A supplier that writes one CSV per delivery, around three hundred files of four hundred bytes each day, would produce more than one hundred thousand objects in a year, and a full load would spend more time in requests than in reading data. The usual remedy is compaction: a job concatenates the small files of each partition into one larger file. Compaction can be done outside Bronze, in a staging area, so that Bronze still keeps what the source sent.</p>
+      </section>
+
+      <section class="mat-section" id="volume">
+        <h2>8. Large volumes</h2>
+        <p>The description of the session on Adalove mentions Spark and Dask as tools for extraction at scale. Each answers the same question, what to do when the data does not fit in the memory or the time budget of one process, in a different way, and the choice depends on the volume, on the existing code of the team and on who will operate the platform.</p>
+        <div class="g3 sr">
+          <div class="card"><h4>DuckDB</h4><p>An embedded analytical database that executes queries in vectors of rows, in parallel threads, and spills intermediate results to disk when an operator exceeds the memory limit. It processes the 1.1 million lines of the benchmark in seconds and fits most Silver loads up to hundreds of gigabytes on one machine.</p></div>
+          <div class="card dark"><h4>Apache Spark</h4><p>A distributed engine that divides the files into partitions processed by executors on several machines. Its original abstraction, the RDD of the self-study, is an immutable collection divided in partitions, built by lazy transformations and recomputed from its lineage after a failure. Spark SQL and DataFrames are built on it.</p></div>
+          <div class="card coral"><h4>Dask</h4><p>A Python library that divides a dataframe into many pandas dataframes and schedules the operations on threads, processes or a cluster. It fits teams whose code is already written in pandas and who want to scale it without learning a new API.</p></div>
+        </div>
+        <p>Scale changes the number of machines, the size of the partitions and the cost of moving data between machines, called shuffle, which happens in every deduplication and every join by key. It does not change the contract of Silver, the rules of the transformation, the accounting of rows or the idempotency of the load. For this reason the specification of the first round of the lab is written without naming the engine, and the same requirements would be valid if the extraction were rewritten in Spark.</p>
+        <p>Pandas is not on this list for a reason worth stating. A loop in pandas over the rows of a dataframe, or a dataframe loaded entirely in memory from all the files of the lake, works with the fourteen days of the lab and fails with the history of the partner. The prompts of the lab ask for rules written in SQL over the whole table precisely so that the code of the group grows with the data.</p>
+      </section>
+
+      <div class="part-title"><small>Part III</small><strong>Transformation</strong></div>
+
+      <section class="mat-section" id="techniques">
+        <h2>9. Transformation techniques</h2>
+        <p>The description of the session names four techniques: cleaning, formatting, type conversion and enrichment. In the case, each technique answers a defect that the generator planted, and each defect has a count that a test can check. Writing the rules in this way, tied to a defect and to a number, is what turns a transformation into something that can be verified.</p>
+        <h3>Cleaning</h3>
+        <p>Cleaning removes duplicates, separates invalid values and decides what to do with missing values. Duplicates are removed by the key of the grain, with an explicit rule for which copy wins. For sale lines, the copy with the latest <code>ingestion_date</code> and, within it, the latest source file wins, which keeps one row for each of the 209 lines posted twice and keeps the resend of JUN-04 instead of the incomplete night batch. For stock positions, the latest extract of each key wins, which lets the 60 audit corrections replace the older counts. Invalid values, such as a product that does not exist, a quantity of zero or a negative stock, go to the quarantine. A missing value is handled according to what it means. The 130 stock positions of JUN-04 without <code>on_hand</code> mean that the store did not count, and imputing zero would create 130 stock-outs that did not happen, so they are kept as NULL and counted by a check.</p>
+        <h3>Formatting</h3>
+        <p>Formatting gives each concept one representation. Store codes are written in upper case without spaces, timestamps are converted to one type in local time, and prices use a decimal point. Formatting comes before any comparison and any join, because the key and the rules compare formatted values. A lookup of the store that ran before <code>upper(trim(store_code))</code> would fail for 2,070 valid lines and send them to the quarantine as unknown stores.</p>
+        <h3>Type conversion</h3>
+        <p>Type conversion turns the text of the extraction into the declared types of Silver. In DuckDB, <code>try_cast</code> and <code>try_strptime</code> return NULL when the conversion fails, while <code>CAST</code> and <code>strptime</code> raise an error that aborts the query. The first pair turns a bad value into a reason for the quarantine, and the second turns it into a failed run in the middle of the night. The two date formats of the case are combined with <code>coalesce</code>: the ISO timestamp with its offset is read as a <code>TIMESTAMPTZ</code> and converted to the local time of <code>America/Sao_Paulo</code>, and the format of BAU-05 is read as a local timestamp, so that both arrive as the same type and the same clock.</p>
+        <h3>Enrichment</h3>
+        <p>Enrichment adds to each row what every consumer would otherwise compute. The <code>store_id</code> is found from the formatted store code in the master table, <code>line_amount</code> is the quantity times the unit price, <code>sold_date</code> is the date of the sale, and <code>is_stockout</code> marks the stock positions equal to zero. The lineage columns are also an enrichment: <code>source_file</code> and <code>ingestion_date</code> come from the extraction, and <code>run_id</code> and <code>loaded_at</code> come from the load. The field <code>customer_cpf</code> is removed in this step and never selected again.</p>
+        <div class="code-wrap"><div class="code-label"><span>DuckDB SQL · sale lines from staging to the conformed table</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>CREATE OR REPLACE TEMP TABLE t_sale AS
+WITH typed AS (
+  SELECT r.sale_id, s.store_id, r.terminal_id,
+         try_cast(r.product_id AS INTEGER)                          AS product_id,
+         try_cast(r.quantity AS INTEGER)                            AS quantity,
+         try_cast(replace(r.unit_price, ',', '.') AS DECIMAL(10,2)) AS unit_price,
+         coalesce(
+           try_strptime(r.sold_at, '%Y-%m-%dT%H:%M:%S%z')::TIMESTAMPTZ AT TIME ZONE 'America/Sao_Paulo',
+           try_strptime(r.sold_at, '%d/%m/%Y %H:%M:%S'))            AS sold_at,
+         r.source_file, r.ingestion_date::DATE                      AS ingestion_date,
+         row_number() OVER (PARTITION BY r.sale_id
+                            ORDER BY r.ingestion_date DESC, r.source_file DESC) AS rn
+  FROM raw_sale r
+  LEFT JOIN silver.store s ON s.store_code = upper(trim(r.store_code))
+)
+SELECT * EXCLUDE (rn),
+       quantity * unit_price AS line_amount,
+       CAST(sold_at AS DATE) AS sold_date,
+       CASE
+         WHEN store_id IS NULL THEN 'unknown_store'
+         WHEN product_id IS NULL
+              OR product_id NOT IN (SELECT product_id FROM silver.product) THEN 'orphan_product'
+         WHEN quantity IS NULL OR quantity &lt;= 0 THEN 'invalid_quantity'
+         WHEN unit_price IS NULL THEN 'invalid_price'
+         WHEN sold_at IS NULL THEN 'invalid_timestamp'
+       END AS reason
+FROM typed
+WHERE rn = 1;   -- customer_cpf is never selected</code></pre></div>
+        <p>The query runs over the whole staging table, with no loop in Python. On the 1.1 million lines of the benchmark, the transformation of the three entities took about one second. The order of the rules in the <code>CASE</code> is a decision that must be documented, because a row that breaks two rules receives only the first reason, and a change of order changes the counts by reason without changing the total.</p>
+      </section>
+
+      <section class="mat-section" id="quarantine">
+        <h2>10. Quarantine and the accounting of rows</h2>
+        <p>The quarantine is the table that receives the rows that break a rule of Silver, with the reason, the source file, the ingestion date and the run that rejected them. It exists so that a rejected row remains visible and countable instead of disappearing, and so that the team can decide later whether to correct the source, change the rule or accept the loss. Because each conformed table carries a column <code>reason</code>, the split between Silver and quarantine is a filter: rows with <code>reason IS NULL</code> are loaded, and the others are copied to the quarantine with their entity, a key that identifies the record and a JSON copy of the conformed row.</p>
+        <p>The quarantine also obeys the rules of privacy. A quarantined sale line keeps the columns of the conformed table, and the conformed table no longer has <code>customer_cpf</code>, so the CPF does not reach the quarantine either. A design that stored the raw row from staging in the quarantine would bring the CPF into the warehouse through the back door.</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Entity</th><th>Read from Bronze</th><th>After deduplication</th><th>Silver</th><th>Quarantine</th><th>Reasons</th></tr></thead>
+          <tbody>
+            <tr><td>sale_line</td><td>21,353</td><td>21,000</td><td>20,891</td><td>109</td><td>68 orphan_product, 41 invalid_quantity</td></tr>
+            <tr><td>stock_position</td><td>3,420</td><td>3,360</td><td>3,346</td><td>14</td><td>14 negative_on_hand</td></tr>
+            <tr><td>delivery</td><td>271</td><td>271</td><td>258</td><td>13</td><td>13 missing_quantity</td></tr>
+          </tbody>
+        </table></div>
+        <p>The table above is the result of the reference pipeline for the fourteen days of the lab, and it is the result that the tests of the group should reproduce. Of the 353 POS copies removed, 209 are lines posted twice and 144 are lines of JUN-04 sent on the night of 17/10 and then resent the next morning. The 241 lines of JUN-04 for that day are in Silver once each, all with <code>ingestion_date = 2026-10-18</code>. The 3,580 prices of SOR-03 and the 3,447 timestamps of BAU-05 were converted, and none of them reached the quarantine.</p>
+        <h3>Late master data</h3>
+        <p>A quarantine reason may depend on the moment of the check. The 68 lines with products 41 and 42 are orphans because those products are not in the master file. If the ERP adds the two products next week, the sales become valid, and the quarantine records a decision that is no longer true. The pipeline must then choose between three behaviours: leaving the quarantine as a record of the past, reprocessing the affected days with a full load, or retrying the quarantined rows at each run. The third is convenient and dangerous, because a row that is retried forever hides a source that never corrects itself. Whatever the choice, it belongs in the specification, with the requirement that states it.</p>
+      </section>
+
+      <div class="part-title"><small>Part IV</small><strong>Load</strong></div>
+
+      <section class="mat-section" id="dw-dl">
+        <h2>11. Data Warehouse and Data Lake</h2>
+        <p>The pipeline reads from a lake and writes to a warehouse, and the two systems are complementary. A Data Lake keeps files in Object Storage, with the schema decided by whoever reads them, which is called schema on read. It accepts any format, grows cheaply and keeps the history. A Data Warehouse keeps tables with declared types and constraints, with the schema checked when the data is written, which is called schema on write. It supports transactions, updates by key and many concurrent queries from analysts and BI tools. The lakehouse, discussed in Lesson 3, brings transactions and tables to the files of the lake through table formats such as Delta Lake and Apache Iceberg, which the module does not use but which follow the same contracts.</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Aspect</th><th>Data Lake (MinIO, S3)</th><th>Data Warehouse (DuckDB here; ClickHouse, Redshift)</th></tr></thead>
+          <tbody>
+            <tr><td>Schema</td><td>on read: the reader decides the types</td><td>on write: the load rejects what does not fit</td></tr>
+            <tr><td>Unit of storage</td><td>files and objects</td><td>tables, columns, constraints</td></tr>
+            <tr><td>Updates</td><td>replace whole objects</td><td>INSERT, UPDATE, MERGE in transactions</td></tr>
+            <tr><td>Who reads</td><td>pipelines, data scientists, engines</td><td>analysts, BI tools and applications, through SQL</td></tr>
+            <tr><td>Cost driver</td><td>bytes stored and requests</td><td>computation of queries and loads</td></tr>
+          </tbody>
+        </table></div>
+        <h3>ClickHouse</h3>
+        <p>ClickHouse is an open-source columnar database designed for analytical queries over large tables. Its main family of table engines, MergeTree, writes each insert as an immutable part sorted by the <code>ORDER BY</code> key of the table and merges the parts in the background. The key orders the data and builds a sparse index over it, but it does not enforce uniqueness: two rows with the same key can coexist until a merge, and even after it. Deduplication is therefore done in the ETL, or delegated to the engine <code>ReplacingMergeTree</code>, which keeps the latest version of each key when it merges parts, without guaranteeing when that happens. ClickHouse reads S3 directly with the table function <code>s3()</code>, which allows an ELT variant of this pipeline. A load into ClickHouse usually inserts in large batches, because each insert creates a part and many small inserts overload the merges.</p>
+        <h3>Amazon Redshift</h3>
+        <p>Redshift is a managed columnar warehouse of AWS that distributes the rows of each table among the slices of a cluster by a distribution key and orders them on disk by sort keys. Loads from S3 use the command <code>COPY</code>, which reads many files in parallel and is much faster than inserts row by row. Primary keys and foreign keys can be declared but are informational: the planner uses them, and the database does not enforce them. Redshift supports <code>MERGE</code>, which performs the upsert of an incremental load from a staging table. Redshift Spectrum queries the files of S3 as external tables without loading them.</p>
+        <div class="callout"><div class="callout-label">What the two have in common</div><p>Neither ClickHouse nor Redshift enforces the uniqueness of the grain. In both, the pipeline owns the deduplication and must check it after each load, which is exactly what the reference pipeline does with its integrity queries in section 13. DuckDB enforces primary keys, which makes it a strict test warehouse, and section 12 shows the cost of that enforcement.</p></div>
+      </section>
+
+      <section class="mat-section" id="loads">
+        <h2>12. Full and incremental loads</h2>
+        <p>A full load rebuilds Silver from all the partitions of Bronze. An incremental load reads only the partitions after the watermark and merges their rows into the existing tables. The two must arrive at the same Silver, and comparing them is the most effective test of the pipeline: when the counts of a full load differ from those of the incremental loads that preceded it, one of the two modes has a bug.</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Strategy</th><th>What it does</th><th>Fits when</th><th>Risk</th></tr></thead>
+          <tbody>
+            <tr><td>Full rebuild</td><td>creates the tables again from all of Bronze</td><td>first load, small volumes, a rule that changed</td><td>cost grows with the history; readers must never see an empty table</td></tr>
+            <tr><td>Append</td><td>inserts the new rows</td><td>immutable events that never arrive twice</td><td>a resend duplicates rows: the 241 lines of JUN-04 would appear twice</td></tr>
+            <tr><td>Incremental merge (upsert)</td><td><code>MERGE</code> by key on the new partitions</td><td>sources that resend and correct, as in the case</td><td>depends on a correct key and on a watermark that sees late files</td></tr>
+            <tr><td>Partition overwrite</td><td>replaces the Silver rows of each reprocessed day</td><td>data partitioned by the same date it arrives</td><td>corrections of other days, such as the audits of day minus two, are lost</td></tr>
+          </tbody>
+        </table></div>
+        <p>Three properties make a load safe to operate. Idempotency means that running the same input twice produces the same Silver, which allows a failed job to be restarted without thinking. <code>MERGE</code> by the key of the grain provides it, and append does not. Atomicity means that the run either changes all the tables or none of them, which in DuckDB comes from executing the whole load in one transaction. Traceability means that each run leaves a record of what it read, what it loaded and what it rejected, which in the lab is the table <code>load_log</code>, with <code>run_id</code>, entity, mode, the dates covered, the counts and the start and end times.</p>
+        <div class="code-wrap"><div class="code-label"><span>DuckDB SQL · incremental merge of the stock positions</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>BEGIN TRANSACTION;
+
+MERGE INTO silver.stock_position AS t
+USING (SELECT * EXCLUDE (reason) FROM t_stock WHERE reason IS NULL) AS s
+   ON t.store_id = s.store_id AND t.product_id = s.product_id AND t.date = s.date
+WHEN MATCHED THEN UPDATE SET
+     on_hand = s.on_hand, is_stockout = s.is_stockout,
+     source_file = s.source_file, ingestion_date = s.ingestion_date,
+     run_id = s.run_id, loaded_at = s.loaded_at      -- audit correction
+WHEN NOT MATCHED THEN INSERT BY NAME;                -- new day
+
+DELETE FROM silver.quarantine
+ WHERE entity = 'stock_position' AND ingestion_date IN (SELECT DISTINCT ingestion_date FROM t_stock);
+INSERT INTO silver.quarantine
+SELECT 'stock_position', concat_ws('|', store_id, product_id, date), reason,
+       source_file, ingestion_date, run_id, record
+  FROM t_stock WHERE reason IS NOT NULL;      -- record: the conformed row as JSON, without CPF
+
+INSERT INTO silver.load_log VALUES (?, 'stock_position', 'incremental', ?, ?, ?, ?, ?, ?, now());
+COMMIT;</code></pre></div>
+        <h3>What each mode cost</h3>
+        <p>The reference pipeline was run over the benchmark bucket, with 73,500 sales per day, to measure the cost of each mode on the same machine.</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Run</th><th>POS rows read</th><th>Extract</th><th>Transform</th><th>Load</th></tr></thead>
+          <tbody>
+            <tr><td>Full, 14 days, empty warehouse</td><td>1,046,514</td><td>1.11 s</td><td>1.02 s</td><td>3.23 s</td></tr>
+            <tr><td>Incremental, day 26/10</td><td>74,235</td><td>0.19 s</td><td>0.16 s</td><td>0.32 s</td></tr>
+            <tr><td>Full, 15 days, drop and rebuild</td><td>1,120,749</td><td>1.2 s</td><td>1.0 s</td><td>3.4 s</td></tr>
+            <tr><td>Full, 15 days, DELETE then MERGE into the existing tables</td><td>1,120,749</td><td>1.2 s</td><td>1.0 s</td><td>32.37 s</td></tr>
+          </tbody>
+        </table></div>
+        <p>The incremental run costs the size of one day, and the full run the size of the history, which is the expected behaviour and the reason why the incremental mode exists. The last line is less obvious. Deleting every row and merging them again took ten times longer than dropping the tables and rebuilding them, because every deletion and every merge into a table with a primary key updates the index of that key. The same index explains why <code>silver.sale_line</code> occupied 142 MiB with its primary key and 23 MiB without it, and why the copy without the key took 0.32 seconds. Columnar warehouses such as ClickHouse and Redshift do not enforce keys for this reason, and leave uniqueness to the ETL. The prompt of the fourth round therefore asks for the full mode as a rebuild, and the ADR of the group should record whether the primary keys stay in the test warehouse, with the measurements of the group.</p>
+        <h3>Reprocessing</h3>
+        <p>A watermark protects the pipeline from reading the same data twice, and for the same reason it prevents the correction of data already loaded. If the rule for BAU-05 had read <code>dd/mm/yyyy</code> as <code>mm/dd/yyyy</code> for ten days, the next incremental run would not touch those days, because they are behind the watermark. The team can run a full load, move the watermark back or add a backfill mode that reprocesses a window without moving the watermark. Because <code>MERGE</code> updates the rows of the keys it finds, an incremental run over the corrected days rewrites <code>sold_at</code> of the existing sale lines, while the load log records the backfill as a run of its own. Whatever the mechanism, the indicators of Gold computed from those days must be recomputed and the consumers told.</p>
+      </section>
+
+      <section class="mat-section" id="design">
+        <h2>13. Designing Silver and checking integrity</h2>
+        <p>The design of the Silver tables in this lesson follows the grain of the sources and avoids redundancy where redundancy would be expensive to keep. <code>sale_line</code> keeps <code>store_id</code> and <code>product_id</code> and leaves the names, cities and categories in <code>store</code> and <code>product</code>, so that a change in the name of a store is one update instead of thousands. At the same time it keeps <code>line_amount</code> and <code>sold_date</code>, a small denormalisation of derived values that every query of Gold would otherwise repeat. Normalisation avoids anomalies when data changes, and denormalisation avoids repeated computation and joins when data is read. Lesson 5 discusses the choice systematically with Third Normal Form and Data Vault, and Lesson 6 denormalises deliberately into the dimensions of a cube.</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Table</th><th>Grain and primary key</th><th>Main columns</th></tr></thead>
+          <tbody>
+            <tr><td><code>silver.store</code></td><td><code>store_id</code></td><td>store_code, city, region</td></tr>
+            <tr><td><code>silver.product</code></td><td><code>product_id</code></td><td>name, continuous_use, list_price</td></tr>
+            <tr><td><code>silver.sale_line</code></td><td><code>sale_id</code></td><td>store_id, terminal_id, product_id, quantity, unit_price, line_amount, sold_at, sold_date</td></tr>
+            <tr><td><code>silver.stock_position</code></td><td><code>(store_id, product_id, date)</code></td><td>on_hand, is_stockout</td></tr>
+            <tr><td><code>silver.delivery</code></td><td><code>delivery_id</code></td><td>supplier, store_id, product_id, quantity, unit_cost, delivered_on</td></tr>
+            <tr><td><code>silver.quarantine</code></td><td>none; one row per rejection</td><td>entity, record_key, reason, source_file, ingestion_date, run_id, record as JSON</td></tr>
+            <tr><td><code>silver.load_log</code></td><td>one row per run and entity</td><td>mode, from_date, to_date, rows_read, rows_loaded, rows_quarantined, started_at, finished_at</td></tr>
+          </tbody>
+        </table></div>
+        <p>Every Silver table also carries the four lineage columns. The supplier file has Portuguese headers, and the conformed table translates them, so that <code>id_entrega</code> becomes <code>delivery_id</code> and <code>data_entrega</code> becomes <code>delivered_on</code>. The translation is a formatting rule and belongs in the plan, because a consumer who reads the CSV and the table side by side needs to know it.</p>
+        <h3>Integrity checks</h3>
+        <p>Integrity is checked after each run with queries that must return no rows. The checks below are the minimum, and in a warehouse that does not enforce keys they are the only protection of the grain.</p>
+        <div class="code-wrap"><div class="code-label"><span>DuckDB SQL · checks that must return zero rows</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>-- grain of stock_position
+SELECT store_id, product_id, date, count(*) FROM silver.stock_position
+GROUP BY ALL HAVING count(*) &gt; 1;
+
+-- referential integrity of sale_line
+SELECT l.sale_id FROM silver.sale_line l ANTI JOIN silver.product p USING (product_id);
+
+-- standardised store codes
+SELECT store_code FROM silver.store WHERE store_code &lt;&gt; upper(trim(store_code));
+
+-- no personal data anywhere in the warehouse
+SELECT table_name, column_name FROM information_schema.columns
+ WHERE column_name ILIKE '%cpf%';
+
+-- accounting of the last run
+SELECT entity FROM silver.load_log
+ WHERE run_id = ? AND rows_loaded + rows_quarantined &gt; rows_read;
+-- the exact check, rows after deduplication = loaded + quarantined, is a test of the transformation</code></pre></div>
+        <p>Consistency for the reader is the last concern. An analyst who queries the warehouse during a run must never see the sale lines of that run without its stock positions. Loading all the tables in one transaction gives that guarantee in DuckDB. In a warehouse without transactions across tables, the same guarantee comes from loading into staging tables and exchanging them for the live tables in one operation, such as <code>EXCHANGE TABLES</code> in ClickHouse or <code>ALTER TABLE ... APPEND</code> in Redshift.</p>
+      </section>
+
+      <div class="part-title"><small>Part V</small><strong>Lab</strong></div>
+
+      <section class="mat-section" id="lab">
+        <h2>14. Preparing the environment</h2>
+        <p>The support files are in the folder <code>lab/lesson-4/</code> of the module, linked at the top of this page: <code>docker-compose.yml</code> with the MinIO, <code>.env.example</code>, <code>requirements.txt</code>, <code>AGENTS.md</code> with the rules for the agent, and <code>generate_bronze.py</code>. The code of the pipeline is not there. It is written during the session, through the prompts of section 15, in the folder <code>lesson_04_etl/</code> of the group repository, which Lessons 5 and 6 will extend.</p>
+        <div class="code-wrap"><div class="code-label"><span>Terminal · at the root of the group repository</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>mkdir -p lesson_04_etl/{specs,src,tests/fixtures,docs/adr,warehouse}
+# copy the five support files and .env.example into lesson_04_etl/
+cd lesson_04_etl
+printf '.env\n.venv/\n__pycache__/\nwarehouse/\n' &gt;&gt; .gitignore
+cp .env.example .env
+git check-ignore .env            # must print: .env
+openssl rand -base64 24          # use it as MINIO_ROOT_PASSWORD and S3_SECRET_KEY in .env
+
+docker compose up -d --wait
+docker compose ps                # STATUS must show (healthy)
+python3 -m venv .venv &amp;&amp; source .venv/bin/activate     # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+python generate_bronze.py        # 14 days, 2026-10-12 to 2026-10-25, 45 objects, 4.4 MiB
+
+echo "@AGENTS.md" &gt; CLAUDE.md     # Claude Code imports the rules; other agents read AGENTS.md
+claude</code></pre></div>
+        <p>The generator prints the number of defects it planted, and that output is the expected result of the pipeline. The group should keep it in the folder, for example in <code>docs/bronze-defects.txt</code>, because the tests and the ADR will refer to it.</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Counter printed by the generator</th><th>Value</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td>sale_lines_sent</td><td>21,112</td><td>lines in the 14 files batch_2300.json</td></tr>
+            <tr><td>double_posted</td><td>209</td><td>lines posted twice in the same file</td></tr>
+            <tr><td>resent_lines</td><td>241</td><td>lines of JUN-04 resent on 2026-10-18</td></tr>
+            <tr><td>orphan_product</td><td>68</td><td>product_id 41 or 42</td></tr>
+            <tr><td>invalid_quantity</td><td>41</td><td>quantity 0 or -1</td></tr>
+            <tr><td>br_date_format</td><td>3,447</td><td>sold_at as dd/mm/yyyy HH:MM:SS (BAU-05)</td></tr>
+            <tr><td>comma_decimal</td><td>3,580</td><td>unit_price as text with comma (SOR-03)</td></tr>
+            <tr><td>dirty_store_code</td><td>2,070</td><td>store code in lower case, title case or with spaces</td></tr>
+            <tr><td>stock_rows</td><td>3,420</td><td>rows in the 14 files extract.parquet</td></tr>
+            <tr><td>null_on_hand</td><td>130</td><td>JUN-04 without a count</td></tr>
+            <tr><td>negative_on_hand</td><td>14</td><td>invariant violations</td></tr>
+            <tr><td>audit_correction</td><td>60</td><td>corrections of the stock two days earlier</td></tr>
+            <tr><td>deliveries</td><td>271</td><td>rows in the 14 files acme_0930.csv</td></tr>
+            <tr><td>missing_delivery_qty</td><td>13</td><td>empty quantidade</td></tr>
+          </tbody>
+        </table></div>
+        <p>The console of the MinIO is at <code>http://localhost:9001</code>, and in a Codespace it is reached through the forwarded port. Any coding agent can be used. The AGENTS.md is the same for all of them, and the review boxes of each prompt are what keeps the result under the control of the group.</p>
+      </section>
+
+      <section class="mat-section" id="prompts">
+        <h2>15. The four prompts</h2>
+        <p>The prompts follow the CREATE structure used in the module: character, request, example, adjustments, type of output and extras. Each one is sent alone, the agent shows its plan before editing and stops at the end, and the group answers the questions of the review box before sending the next prompt. The prompts bring facts measured in the Bronze of the lab, so that the requirements and the tests are written against data that exists, and they ask the agent to confirm those facts before using them. When the group adapts the prompts to the partner data, the facts must be measured again.</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Prompt</th><th>Files</th><th>While the agent works, the session explains</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td><code>specs/spec.md</code>, <code>specs/plan.md</code>, <code>specs/tasks.md</code></td><td>ETL and ELT, the Bronze to Silver contract (sections 3 and 4)</td></tr>
+            <tr><td>2</td><td><code>src/config.py</code>, <code>src/extract.py</code>, <code>tests/test_extract.py</code></td><td>Object Storage, formats, partitions, volume (sections 5 to 8)</td></tr>
+            <tr><td>3</td><td><code>src/transform.py</code>, <code>tests/test_transform.py</code></td><td>techniques and quarantine (sections 9 and 10)</td></tr>
+            <tr><td>4</td><td><code>src/load.py</code>, <code>src/pipeline.py</code>, <code>tests/test_load.py</code>, <code>docs/adr/ADR-001-full-and-incremental-load.md</code></td><td>warehouse, loads, design (sections 11 to 13)</td></tr>
+          </tbody>
+        </table></div>
+
+        <h3>Prompt 1 · Specification, plan and tasks</h3>
+        <div class="code-wrap"><div class="code-label"><span>Prompt 1 · CREATE</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>[C] Character
+You are a senior data engineer in charge of the specification of an ETL
+pipeline. You work in the folder lesson_04_etl/ of the group repository,
+which follows Spec-Driven Development. In this step you write documents
+only; you do not write code.
+
+[R] Request
+Write three files:
+1. specs/spec.md with functional requirements (RF-01...) and non-functional
+   requirements (RNF-01...) of an ETL that reads the Bronze layer of the
+   pharmacy chain from the local MinIO (bucket pharmacy-lake, prefix
+   bronze/) and loads the Silver layer into a test Data Warehouse, a DuckDB
+   file at WAREHOUSE_PATH. Each requirement has a description, an origin and
+   at least one acceptance criterion written as Given / When / Then.
+2. specs/plan.md with the components (extract, transform, load, pipeline),
+   the Silver tables with their grain and primary key, the order of the
+   steps, the two load modes and the technical choices, each pointing to a
+   requirement.
+3. specs/tasks.md with small tasks (T-01...), each with files, the test
+   that proves it and the verification command.
+The specification must cover, at least:
+- extraction of three sources and three formats: POS sale lines in
+  newline-delimited JSON, ERP stock positions in Parquet, supplier
+  deliveries in CSV separated by ';' and encoded in Latin-1, plus the store
+  and product master files in CSV;
+- Bronze read as text, except Parquet, with the source file and the
+  ingestion_date partition of each row;
+- standardisation of store codes, dates in two formats, prices with a
+  decimal comma, and the Portuguese column names of the supplier file;
+- deduplication of POS lines posted twice and of the whole day that the
+  terminal of JUN-04 resends the next morning;
+- stock corrections of two days earlier, which arrive in a later extract
+  and must replace the older value;
+- quarantine with a reason for orphan products, invalid quantities,
+  negative stock and deliveries without quantity;
+- removal of customer_cpf before the warehouse;
+- lineage columns in every Silver table;
+- full load and incremental load by watermark, with a load log;
+- rerun without new data producing no change, and a full load and an
+  incremental load arriving at the same Silver.
+
+Facts measured on 26/10/2026 with generate_bronze.py (confirm before use):
+- Layout: bronze/source=&lt;source&gt;/entity=&lt;entity&gt;/ingestion_date=YYYY-MM-DD/
+  &lt;file&gt;; pos/sale_line/batch_2300.json, erp/stock_position/extract.parquet,
+  supplier/delivery/acme_0930.csv, erp/store/store.csv and
+  erp/product/product.csv (masters only in the first partition).
+- 14 days (2026-10-12 to 2026-10-25): 21,353 POS lines read, of which
+  21,000 are unique sale_id values; 209 lines posted twice; 241 lines resent
+  on 2026-10-18 in batch_0815_resend.json; 68 orphan products (ids 41 and
+  42); 41 quantities equal to 0 or -1.
+- Store BAU-05 sends sold_at as 'dd/mm/yyyy HH:MM:SS' in local time; the
+  others send ISO 8601 with offset -03:00. Store SOR-03 sends unit_price as
+  text with a decimal comma.
+- Stock: 240 keys per day, 3,420 rows read, 3,360 unique keys
+  (store_id, product_id, date); 60 audit corrections; 14 negative values;
+  130 null on_hand values, all in JUN-04.
+- Deliveries: 271 rows, 13 without quantity; header id_entrega;
+  fornecedor; loja; produto; quantidade; custo_unitario; data_entrega.
+
+[E] Example
+### RF-04 · Deduplicate resent POS lines
+Origin: Bronze contract of Lesson 3 (one Silver row per sale line).
+Description: when the same sale_id arrives more than once, Silver keeps
+the delivery with the latest ingestion_date and, within it, the latest
+source file.
+Acceptance criterion:
+- Given that the terminal of JUN-04 sent part of 2026-10-17 in
+  batch_2300.json and resent the whole day on 2026-10-18,
+  when the full load processes both partitions,
+  then silver.sale_line has one row per sale_id of JUN-04 on that day,
+  all with ingestion_date = 2026-10-18.
+
+[A] Adjustments
+- Requirements must be verifiable: no "fast", "reliable" or "robust"
+  without a measure. Values without a source are marked "hypothesis —
+  validation pending".
+- Do not hard-code the measured counts in the requirements: the criterion
+  compares the pipeline with what the generator printed.
+- Every row read must end in a Silver table or in the quarantine; write a
+  requirement that states this accounting.
+- Silver of this lesson is conformed, not modelled: no star schema, no
+  Data Vault (Lessons 5 and 6).
+- Do not write code.
+
+[T] Type of output
+Three Markdown files: spec.md (context in five lines, RF list, RNF list,
+traceability table requirement | origin, section "Facts, gaps and
+assumptions"), plan.md (up to 80 lines, with a Mermaid flowchart of the
+pipeline) and tasks.md (one task per extract, transform rule group, load
+mode and pipeline entry point).
+
+[E] Extras
+Read AGENTS.md and the docstring of generate_bronze.py before starting.
+Show the index of the requirements before writing the files. Ask if the
+documents conflict. Stop at the end.</code></pre></div>
+        <div class="callout callout-warn"><div class="callout-label">Review before moving on</div><p>Does every RF have a Given / When / Then criterion that can become a test? Is there a requirement for the 241 resent lines and another for the audit corrections? Is the accounting requirement there (read = Silver + quarantine)? Does any requirement keep customer_cpf in the warehouse? Did the plan choose a primary key for each Silver table and say how the incremental load knows where it stopped?</p></div>
+
+        <h3>Prompt 2 · Extraction from Object Storage</h3>
+        <div class="code-wrap"><div class="code-label"><span>Prompt 2 · CREATE</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>[C] Character
+You are the data engineer who implements the extraction. You follow
+specs/spec.md, specs/plan.md and specs/tasks.md, and you only touch the
+files of the extraction tasks.
+
+[R] Request
+Implement src/config.py and src/extract.py with tests in
+tests/test_extract.py:
+- config.py loads .env and opens a DuckDB connection with the httpfs
+  extension and an S3 secret pointing to the MinIO (endpoint, path-style
+  URLs, SSL from S3_USE_SSL);
+- extract.py exposes list_partitions(con, entity_path, after=None), which
+  lists the files of the partitions with glob and keeps only those whose
+  ingestion_date is greater than after, and extract(con, after=None),
+  which creates three staging tables raw_sale, raw_stock and raw_delivery
+  plus the masters, each with source_file and ingestion_date;
+- POS JSON read with format='newline_delimited' and explicit columns, all
+  VARCHAR; Parquet read with its own types; CSV read with delim=';',
+  encoding='latin-1' and all_varchar=true.
+
+[E] Example
+raw_sale for the 14 days has 21,353 rows and 15 distinct source files
+(14 batch_2300.json and one batch_0815_resend.json); after=2026-10-25
+returns only the files of 2026-10-26.
+
+[A] Adjustments
+- Bronze is read-only.
+- The incremental extraction reads the list of files returned by
+  list_partitions; it does not read the glob of all days with a WHERE on
+  ingestion_date (measured on 26/10/2026: with JSON, the WHERE still read
+  18 files and 5.35 MiB to return one day; the explicit list read 0.63 MiB).
+- No type conversion in this step, except what Parquet already carries.
+- Unit tests use fixtures in tests/fixtures/ and a local path instead of
+  the MinIO; one integration test reads the MinIO.
+
+[T] Type of output
+The two modules, the tests, the fixtures and the task marked as done in
+specs/tasks.md with the command used to verify it.
+
+[E] Extras
+Read AGENTS.md and the three spec files. Show the plan before editing.
+Run pytest and show the counts of each staging table. Stop at the end.</code></pre></div>
+        <div class="callout callout-warn"><div class="callout-label">Review before moving on</div><p>Do the counts of raw_sale, raw_stock and raw_delivery match the generator output? Does every staging row have source_file and ingestion_date? Did the agent read the CSV with the right encoding (look for "Distribuição")? Does the incremental path use the list of files?</p></div>
+
+        <h3>Prompt 3 · Transformation from Bronze to Silver</h3>
+        <div class="code-wrap"><div class="code-label"><span>Prompt 3 · CREATE</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>[C] Character
+You are the data engineer who implements the Silver rules. You write SQL
+in DuckDB, executed from Python, and you keep every rule traceable to a
+requirement.
+
+[R] Request
+Implement src/transform.py with tests in tests/test_transform.py. The
+module creates three conformed tables, t_sale, t_stock and t_delivery,
+each with a column reason that is NULL for valid rows and holds the
+quarantine reason otherwise. Rules:
+- cleaning: deduplicate sale_id keeping the latest ingestion_date and
+  source_file; deduplicate (store_id, product_id, date) keeping the latest
+  ingestion_date and extracted_at; send orphan products, quantity &lt;= 0,
+  negative on_hand and deliveries without quantity to quarantine; keep a
+  null on_hand as NULL (a missing count is not imputed);
+- formatting: upper(trim()) of store codes; sold_at from ISO with offset
+  or from 'dd/mm/yyyy HH:MM:SS', both as local time of America/Sao_Paulo;
+  unit_price and unit_cost with the decimal comma replaced;
+- type conversion with try_cast and try_strptime;
+- enrichment: store_id by lookup of the store code, line_amount =
+  quantity * unit_price, sold_date, is_stockout = (on_hand = 0), and the
+  lineage columns;
+- customer_cpf dropped.
+
+[E] Example
+For the 14 days: t_sale has 21,000 rows, 20,891 with reason NULL, 68
+orphan_product and 41 invalid_quantity; t_stock has 3,360 rows and 14
+negative_on_hand; t_delivery has 271 rows and 13 missing_quantity.
+
+[A] Adjustments
+- No row disappears: for each entity, rows after deduplication = valid +
+  quarantined. Write this as a test.
+- The first failing rule gives the reason (one reason per row).
+- No Python loop over rows: the rules are SQL over the whole table.
+- No cast that aborts the run.
+
+[T] Type of output
+The module, the tests, and a short table in specs/plan.md mapping each
+rule to its requirement.
+
+[E] Extras
+Read AGENTS.md, the spec files and src/extract.py. Show the plan before
+editing. Run pytest and print the counts by entity and reason. Stop at
+the end.</code></pre></div>
+        <div class="callout callout-warn"><div class="callout-label">Review before moving on</div><p>Do the counts match the generator? Does any valid row still have a store code with spaces or lower case? Is sold_at of BAU-05 at the same local time as the text it came from? Is there any column with CPF in t_sale? Is the rule order documented?</p></div>
+
+        <h3>Prompt 4 · Load into the Data Warehouse</h3>
+        <div class="code-wrap"><div class="code-label"><span>Prompt 4 · CREATE</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>[C] Character
+You are the data engineer who loads the warehouse. You care about
+idempotency, integrity and the cost of each load mode.
+
+[R] Request
+Implement src/load.py and src/pipeline.py with tests in tests/test_load.py:
+- load.py creates the schema silver and the tables store, product,
+  sale_line, stock_position, delivery, quarantine and load_log, with a
+  primary key on the grain of each Silver table;
+- full mode rebuilds the Silver tables from all partitions (drop and
+  create, then insert);
+- incremental mode reads the watermark max(to_date) from silver.load_log,
+  extracts only newer partitions and applies MERGE INTO by key, so that a
+  resend or an audit correction updates the existing row;
+- the whole load of a run is one transaction, and the load log records
+  run_id, entity, mode, from_date, to_date, rows_read, rows_loaded,
+  rows_quarantined, started_at and finished_at;
+- pipeline.py runs: python -m src.pipeline full | incremental.
+
+[E] Example
+Measured on 26/10/2026: full load of 14 days gives sale_line 20,891,
+stock_position 3,346, delivery 258 and quarantine 136; after
+generate_bronze.py --day 2026-10-26, the incremental load reads 1,515 POS
+lines and leaves sale_line with 22,380 rows, the same number that a new
+full load produces; a second incremental run finds nothing after the
+watermark and changes nothing.
+
+[A] Adjustments
+- Full mode does not delete row by row from tables with a primary key
+  (measured: DELETE plus MERGE over 1.1 million rows took 32 s, against
+  3.4 s to rebuild).
+- Quarantine of a reprocessed ingestion_date is replaced, not appended.
+- A failed run leaves the warehouse as it was before the run.
+- Tests use a temporary warehouse file.
+
+[T] Type of output
+The modules, the tests, the commands of the verification in a section of
+specs/tasks.md and an ADR in docs/adr/ADR-001-full-and-incremental-load.md
+comparing the two modes with the measurements of the group.
+
+[E] Extras
+Read AGENTS.md, the spec files and the previous modules. Show the plan
+before editing. Run full, generate one more day, run incremental twice,
+run full again and show the counts after each run. Stop at the end.</code></pre></div>
+        <div class="callout callout-warn"><div class="callout-label">Review before moving on</div><p>Do full and incremental arrive at the same counts? Does the second incremental run change nothing? Does the grain query return no rows? Does the load log explain each run? Does the ADR use the numbers of the group instead of the ones in this prompt?</p></div>
+      </section>
+
+      <section class="mat-section" id="verification">
+        <h2>16. Verification</h2>
+        <p>The verification proves three things: that the pipeline closes the accounting of rows, that it is idempotent, and that it keeps privacy and lineage. The sequence below runs the full load, generates one more day, runs the incremental load twice and the full load again, and then inspects the warehouse.</p>
+        <div class="code-wrap"><div class="code-label"><span>Terminal · lesson_04_etl/</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>pytest -q
+python -m src.pipeline full
+python generate_bronze.py --day 2026-10-26
+python -m src.pipeline incremental
+python -m src.pipeline incremental          # must find nothing after the watermark
+python -m src.pipeline full                 # must arrive at the same counts
+python - &lt;&lt;'EOF'
+import duckdb
+con = duckdb.connect("warehouse/pharmacy.duckdb", read_only=True)
+for t in ["sale_line", "stock_position", "delivery", "quarantine"]:
+    print(t, con.sql(f"SELECT count(*) FROM silver.{t}").fetchone()[0])
+print(con.sql("SELECT entity, reason, count(*) FROM silver.quarantine GROUP BY ALL ORDER BY ALL"))
+print(con.sql("""SELECT store_id, product_id, date, count(*) FROM silver.stock_position
+                 GROUP BY ALL HAVING count(*) &gt; 1"""))       # must return no rows
+print(con.sql("SELECT * FROM silver.load_log ORDER BY started_at"))
+EOF</code></pre></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Table</th><th>After the full load of 14 days</th><th>After the incremental load of 2026-10-26</th></tr></thead>
+          <tbody>
+            <tr><td><code>silver.sale_line</code></td><td>20,891</td><td>22,380</td></tr>
+            <tr><td><code>silver.stock_position</code></td><td>3,346</td><td>3,585</td></tr>
+            <tr><td><code>silver.delivery</code></td><td>258</td><td>281</td></tr>
+            <tr><td><code>silver.quarantine</code></td><td>136</td><td>150</td></tr>
+          </tbody>
+        </table></div>
+        <p>The day 26/10 generated by the option <code>--day</code> carries 1,515 POS lines, 15 of them posted twice, 9 orphan products and 2 invalid quantities, 245 stock rows with 5 audit corrections of 24/10, and 25 deliveries, 2 of them without quantity. The incremental run read the 1,515 lines, loaded 1,489 and quarantined 11, and read 245 stock rows, of which 244 were loaded and 1 quarantined. The totals of the warehouse after it are identical to those of a new full load of the fifteen days, and a second incremental run reports that there is nothing after the watermark.</p>
+      </section>
+
+      <section class="mat-section" id="mistakes">
+        <h2>17. Recurring mistakes of agents</h2>
+        <p>The reference pipeline was built with the same prompts, and the mistakes below appeared in that work or are typical of agents in pipelines of this kind. Each one passes a superficial test and is caught by a count.</p>
+        <p>The most frequent mistake is to let the reader infer types. An agent writes <code>read_json_auto</code> or <code>read_csv</code> without options, the inference works on the sample of the first files, and the run fails on the first price of SOR-03 or, worse, reads the date of BAU-05 as month first without any error. Reading as text and converting with <code>try_cast</code> removes both failures.</p>
+        <p>The second mistake concerns the supplier file. Read with the default encoding, the name of the supplier appears as <code>DistribuiÃ§Ã£o</code>, and nothing fails. The review of prompt 2 asks the group to look for the cedilla precisely because the error is silent.</p>
+        <p>The third mistake is to filter the incremental extraction with a <code>WHERE</code> on the partition column and to assume that only the new files are read. Section 7 shows that, with JSON, the engine still opened every file. The test that catches it reads the HTTP log of DuckDB or simply counts the files passed to the reader.</p>
+        <p>The fourth mistake is to deduplicate after the validation, or to deduplicate by the whole row instead of by the key. Deduplicating by the whole row keeps the incomplete night batch of JUN-04 and the resend as different rows whenever any field differs, and deduplicating after the validation can send to the quarantine a copy whose newer version was valid.</p>
+        <p>The fifth mistake is to impute missing values. Agents tend to fill <code>on_hand</code> with zero or with the previous count, which makes the tests pass and changes the indicator of stock-outs that Gold will compute.</p>
+        <p>The sixth mistake is to keep the CPF in the quarantine by storing the staging row there, and the seventh is to implement the full mode as a deletion followed by a merge, which works but costs ten times more on the benchmark, as section 12 measured. The eighth, finally, is to write the measured counts of the prompts into the assertions of the tests. A test with the number 20,891 written in it passes on the lab data and has no meaning for the partner data. The tests should compare the pipeline with the counts that the generator prints or with invariants such as the accounting of rows.</p>
+      </section>
+
+      <section class="mat-section" id="scenarios">
+        <h2>18. Quality scenarios and deliverable</h2>
+        <p>The quality of the pipeline is expressed, as in the ATAM of Lesson 3, through scenarios with a stimulus and a measurable response. The group records them in <code>docs/</code> with the evidence produced by its own run.</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Stimulus</th><th>Expected response</th><th>Evidence</th></tr></thead>
+          <tbody>
+            <tr><td>a terminal resends a whole day</td><td>one row per sale_id, latest delivery kept</td><td>241 rows of JUN-04 on 17/10, all ingested on 18/10</td></tr>
+            <tr><td>an audit corrects the stock of day minus two</td><td>the older count is replaced and no row is added</td><td>the grain query returns no rows</td></tr>
+            <tr><td>a price arrives as text with a comma</td><td>converted, never an aborted run</td><td>3,580 lines of SOR-03 in Silver</td></tr>
+            <tr><td>the incremental load runs twice</td><td>the second run changes nothing</td><td>load log with nothing after the watermark</td></tr>
+            <tr><td>the run fails in the third table</td><td>the warehouse stays as before the run</td><td>a test that raises inside the transaction</td></tr>
+            <tr><td>a new day of 74,000 lines arrives</td><td>loaded in a time proportional to one day</td><td>incremental time against full time, measured by the group</td></tr>
+          </tbody>
+        </table></div>
+        <p>By the end of the session, each group should have the MinIO running with the Bronze of fourteen days, the reviewed specification in <code>specs/</code>, the extraction and the transformation with tests passing, and a first full load with the counts of section 16. During the week, before Lesson 5 on 05/11, the group completes the incremental mode and the comparison between the two modes, writes the ADR with its own measurements, records the six scenarios and points the same pipeline at a sample of the partner data.</p>
+        <p>The deliverable is the folder <code>lesson_04_etl/</code> in the group repository, with <code>AGENTS.md</code>, <code>specs/</code> (spec, plan and tasks), <code>src/</code> (config, extract, transform, load and pipeline), <code>tests/</code> passing and <code>docs/adr/ADR-001-full-and-incremental-load.md</code>. The warehouse file and <code>.env</code> are not committed, and anyone can rebuild the warehouse with the generator and a full load.</p>
+      </section>
+
+      <section class="mat-section" id="glossary">
+        <h2>19. Glossary</h2>
+        <dl class="glossary">
+          <div><dt>Accounting of rows</dt><dd>The invariant that every row read, after the removal of copies, ends in Silver or in the quarantine.</dd></div>
+          <div><dt>Backfill</dt><dd>A run that reprocesses a window of past partitions, usually after a rule was corrected, without moving the watermark.</dd></div>
+          <div><dt>ELT</dt><dd>Extract, load and transform: raw data is loaded into the warehouse and transformed there.</dd></div>
+          <div><dt>ETL</dt><dd>Extract, transform and load: data is transformed in an engine outside the warehouse, which receives only conformed data.</dd></div>
+          <div><dt>Grain</dt><dd>What one row of a table represents, identified by the key of the table.</dd></div>
+          <div><dt>Hive partitioning</dt><dd>The convention of writing <code>name=value</code> segments in the keys of objects, read by engines as columns.</dd></div>
+          <div><dt>Idempotency</dt><dd>The property of a run that produces the same result when it is executed twice with the same input.</dd></div>
+          <div><dt>Lineage</dt><dd>The record of where each row came from: source file, partition, run and time of load.</dd></div>
+          <div><dt>MERGE</dt><dd>SQL statement that updates the rows whose key already exists and inserts the others, also called upsert.</dd></div>
+          <div><dt>Partition pruning</dt><dd>Skipping files or row groups that cannot contain rows of a filter, using the keys or the statistics.</dd></div>
+          <div><dt>Quarantine</dt><dd>The table that keeps the rows that broke a rule of Silver, with the reason and the lineage.</dd></div>
+          <div><dt>Row group</dt><dd>A horizontal division of a Parquet file, with one chunk per column and the minimum and maximum of each chunk in the footer.</dd></div>
+          <div><dt>Schema on read</dt><dd>Types decided by whoever reads the files, as in a lake.</dd></div>
+          <div><dt>Schema on write</dt><dd>Types checked when the data is written, as in a warehouse.</dd></div>
+          <div><dt>Staging table</dt><dd>A temporary table that holds the rows of the extraction before the transformation.</dd></div>
+          <div><dt>Watermark</dt><dd>The highest ingestion date already loaded, from which the next incremental run starts.</dd></div>
+        </dl>
+      </section>
+
+      <section class="mat-section" id="checklist">
+        <h2>20. Checklist</h2>
+        <ul class="check-list" id="lesson-checklist">
+          <li><code>.env</code> and <code>warehouse/</code> are ignored by Git, checked with <code>git status --short</code>.</li>
+          <li>The output of the generator is kept in the folder and referenced by the tests.</li>
+          <li>The spec has a requirement for the accounting of rows, one for the resend of JUN-04 and one for the audit corrections.</li>
+          <li>Every staging row has <code>source_file</code> and <code>ingestion_date</code>.</li>
+          <li>The supplier name reads Distribuição, with the cedilla.</li>
+          <li>The incremental extraction reads an explicit list of files.</li>
+          <li>For each entity, rows after deduplication equal rows in Silver plus rows in quarantine.</li>
+          <li>No store code with spaces or lower case in Silver.</li>
+          <li><code>sold_at</code> of BAU-05 is at the same local time as the text it came from.</li>
+          <li>No column with CPF in any table of the warehouse, quarantine included.</li>
+          <li>The second incremental run changes nothing, and the full and incremental loads arrive at the same counts.</li>
+          <li>The ADR compares the two modes with the measurements of the group.</li>
+        </ul>
+      </section>
+
+      <section class="mat-section" id="references">
+        <h2>21. References</h2>
+        <ul class="refs">
+          <li>APACHE SOFTWARE FOUNDATION. <em>Apache Parquet: File Format</em>. Available at: parquet.apache.org/docs/file-format.</li>
+          <li>APACHE SOFTWARE FOUNDATION. <em>RDD Programming Guide</em>. Apache Spark documentation. Available at: spark.apache.org/docs/latest/rdd-programming-guide.html.</li>
+          <li>AMAZON WEB SERVICES. <em>Amazon Redshift Database Developer Guide</em>: COPY, MERGE and defining table constraints. Available at: docs.aws.amazon.com/redshift.</li>
+          <li>AMAZON WEB SERVICES. <em>Amazon S3 User Guide</em>: organizing objects using prefixes. Available at: docs.aws.amazon.com/AmazonS3.</li>
+          <li>ARMBRUST, M.; GHODSI, A.; XIN, R.; ZAHARIA, M. Lakehouse: a new generation of open platforms that unify data warehousing and advanced analytics. In: <em>Conference on Innovative Data Systems Research (CIDR)</em>, 2021.</li>
+          <li>CLICKHOUSE. <em>MergeTree table engine</em> and <em>ReplacingMergeTree</em>. ClickHouse documentation. Available at: clickhouse.com/docs.</li>
+          <li>DUCKDB FOUNDATION. <em>DuckDB documentation</em>: S3 API support, reading multiple files, Hive partitioning, MERGE statement. Available at: duckdb.org/docs.</li>
+          <li>INMON, W. H. <em>Building the Data Warehouse</em>. 4th ed. Indianapolis: Wiley, 2005.</li>
+          <li>KIMBALL, R.; CASERTA, J. <em>The Data Warehouse ETL Toolkit</em>. Indianapolis: Wiley, 2004.</li>
+          <li>KLEPPMANN, M. <em>Designing Data-Intensive Applications</em>. Sebastopol: O'Reilly, 2017.</li>
+          <li>MICROSOFT. <em>Extract, transform, load (ETL)</em>. Azure Architecture Center. Available at: learn.microsoft.com/en-us/azure/architecture/data-guide/relational-data/etl.</li>
+          <li>MINIO. <em>MinIO Object Storage documentation</em>. Available at: min.io/docs.</li>
+          <li>RAASVELDT, M.; MÜHLEISEN, H. DuckDB: an embeddable analytical database. In: <em>ACM SIGMOD International Conference on Management of Data</em>, 2019.</li>
+          <li>REIS, J.; HOUSLEY, M. <em>Fundamentals of Data Engineering</em>. Sebastopol: O'Reilly, 2022.</li>
+          <li>ROCKLIN, M. Dask: parallel computation with blocked algorithms and task scheduling. In: <em>Python in Science Conference (SciPy)</em>, 2015.</li>
+          <li>ZAHARIA, M. et al. Resilient distributed datasets: a fault-tolerant abstraction for in-memory cluster computing. In: <em>USENIX Symposium on Networked Systems Design and Implementation (NSDI)</em>, 2012.</li>
+        </ul>
+      </section>
+
+    </article>
+  </div>
+
+  <footer class="inteli-footer">
+    <img src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli logo">
+    <p>Material created by Professor <strong>Afonso Brandão</strong> for <strong>Inteli</strong>.</p>
+    <small>🔓 Open reading licence</small>
+  </footer>
+
+  <script>
+    const progress = document.getElementById('progress-bar');
+    const floatNav = document.getElementById('float-nav');
+    const header = document.querySelector('.mat-header');
+    const tocLinks = Array.from(document.querySelectorAll('.mat-toc a'));
+    const sections = tocLinks.map((link) => document.querySelector(link.getAttribute('href'))).filter(Boolean);
+
+    // Reading time per section, estimated at 200 words per minute over the rendered text.
+    let totalMinutes = 0;
+    tocLinks.forEach((link) => {
+      const section = document.querySelector(link.getAttribute('href'));
+      if (!section) return;
+      const words = section.innerText.trim().split(/\s+/).length;
+      const minutes = Math.max(1, Math.round(words / 200));
+      totalMinutes += minutes;
+      const tag = document.createElement('span');
+      tag.textContent = `${minutes} min`;
+      link.appendChild(tag);
+    });
+    document.getElementById('toc-total').textContent = `Estimated reading time: ${totalMinutes} minutes.`;
+
+    function updateReadingState() {
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+      progress.style.width = `${scrollable > 0 ? (window.scrollY / scrollable) * 100 : 0}%`;
+      floatNav.classList.toggle('visible', header.getBoundingClientRect().bottom < 0);
+      let activeId = sections[0] ? sections[0].id : '';
+      sections.forEach((section) => { if (section.getBoundingClientRect().top <= 150) activeId = section.id; });
+      tocLinks.forEach((link) => link.classList.toggle('active', link.getAttribute('href') === `#${activeId}`));
+    }
+    document.addEventListener('scroll', updateReadingState, { passive:true });
+    updateReadingState();
+
+    const srObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) { entry.target.classList.add('vis'); srObserver.unobserve(entry.target); }
+      });
+    }, { threshold: 0.05 });
+    document.querySelectorAll('.sr').forEach((el) => srObserver.observe(el));
+
+    document.querySelectorAll('.code-copy').forEach((button) => {
+      button.addEventListener('click', () => {
+        const code = button.closest('.code-wrap').querySelector('code').innerText;
+        navigator.clipboard.writeText(code).then(() => {
+          button.textContent = 'Copied';
+          setTimeout(() => { button.textContent = 'Copy'; }, 1500);
+        });
+      });
+    });
+
+    document.querySelectorAll('#lesson-checklist li').forEach((item) => {
+      item.addEventListener('click', () => item.classList.toggle('done'));
+    });
+  </script>
+<!-- semana:js:start -->
+<script src="../../../js/semana-ano.js" defer></script>
+<!-- semana:js:end -->
+<!-- encontro:pdf:start -->
+<button type="button" class="pdf-export-btn" data-encontro-data="2026-10-29" data-encontro-docente="Afonso" data-encontro-seq="02" title="Export this page as a PDF with the standard file name">📄 Export PDF</button>
+<script src="../../../js/encontro-pdf.js" defer></script>
+<!-- encontro:pdf:end -->
+</body>
+</html>
