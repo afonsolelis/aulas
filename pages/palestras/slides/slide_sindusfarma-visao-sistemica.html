@@ -1796,7 +1796,9 @@
         }
       }
 
-      const soma = (o) => Object.values(o || {}).reduce((a, b) => a + b, 0);
+      const soma = (o) => Object.values(o || {}).reduce((a, b) => a + (Number(b) || 0), 0);
+      // Valores vindos do servidor passam por aqui antes de entrar no HTML (o servidor já valida; isto é a segunda trava).
+      const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
       function moda(o) {
         let m = null; Object.entries(o || {}).forEach(([k, v]) => { if (!m || v > m[1]) m = [k, v]; }); return m;
       }
@@ -1812,12 +1814,12 @@
             const campo = td.dataset.campo, votos = (dados[ini] || {})[campo] || {}, tot = soma(votos);
             if (!tot) { td.innerHTML = '<span class="enquete-vazio">sem votos</span>'; return; }
             const segs = OPCOES[campo].map(([v], i) => {
-              const q = votos[v] || 0; if (!q) return '';
+              const q = Number(votos[v]) || 0; if (!q) return '';
               const pct = Math.round(100 * q / tot);
               return '<span class="s' + i + '" style="width:' + (100 * q / tot) + '%" title="' + v + ': ' + q + ' votos">' + (pct >= 12 ? v + ' · ' + pct + '%' : '') + '</span>';
             }).join('');
             const m = moda(votos), rot = OPCOES[campo].find(([v]) => v === m[0]);
-            td.innerHTML = '<div class="enquete-barra">' + segs + '</div><div class="enquete-moda">Mais votado: <b>' + m[0] + ' · ' + rot[1] + '</b> (' + Math.round(100 * m[1] / tot) + '%, ' + tot + ' votos)</div>';
+            td.innerHTML = '<div class="enquete-barra">' + segs + '</div><div class="enquete-moda">Mais votado: <b>' + esc(m[0]) + ' · ' + esc(rot ? rot[1] : '') + '</b> (' + Math.round(100 * m[1] / tot) + '%, ' + tot + ' votos)</div>';
           });
         });
         let acertos = 0, dimensoes = 0;
@@ -1897,11 +1899,11 @@
         linhas.forEach((l) => { if (l.situacao === 0) n = l.votos; else (d[l.situacao] = d[l.situacao] || {})[l.cor] = l.votos; });
         setTotal(n ? n + (n === 1 ? ' participante respondeu.' : ' participantes responderam.') : 'Nenhuma resposta ainda.');
         document.querySelectorAll('[data-sem-linha]').forEach((tr) => {
-          const v = d[tr.dataset.semLinha] || {}, tot = (v.V || 0) + (v.A || 0) + (v.R || 0);
+          const v = d[tr.dataset.semLinha] || {}, tot = (Number(v.V) || 0) + (Number(v.A) || 0) + (Number(v.R) || 0);
           const td = tr.querySelector('[data-sem-barra]');
           if (!tot) { td.innerHTML = '<span class="enquete-vazio">sem votos</span>'; return; }
           const segs = ['V', 'A', 'R'].map((c) => {
-            const q = v[c] || 0; if (!q) return '';
+            const q = Number(v[c]) || 0; if (!q) return '';
             const pct = Math.round(100 * q / tot);
             return '<span class="s' + c + '" style="width:' + (100 * q / tot) + '%" title="' + NOMES[c] + ': ' + q + ' votos">' + (pct >= 10 ? c + ' · ' + pct + '%' : '') + '</span>';
           }).join('');
