@@ -264,18 +264,18 @@
     <p class="creditos">Inteli — Instituto de Tecnologia e Liderança · Módulo 7 de Sistemas de Informação · Prof. Afonso Brandão</p>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.114.0/dist/umd/supabase.js"></script>
+  <script src="/static/js/aulas.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
   <script>
-  const SUPABASE_URL = 'https://lcyxqwdgsrbcpecqyqje.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_x68LvlGFJns-zsrYTERvqw_-x5GWA8p';
   const SLUG = 'm7-si-a09-plano-ti-2026-2a';
   const GUARDA_TOKEN = 'tbl-host:' + SLUG;
   const GUARDA_TURMA = 'tbl-host-turma:' + SLUG;
   const URL_PUBLICA = 'https://afonsolelis.github.io/aulas/pages/module-7-sistemas-informacao/tbl/lesson-9-tbl.html';
   const LETRAS = ['A', 'B', 'C', 'D'];
 
-  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } });
+  // Professor: o token vai no cabeçalho Authorization, nunca na URL. Com a
+  // sessão do /admin (página servida pelo app), o token é dispensado.
+  const api = () => Aulas('inteli', { token });
   const $ = s => document.querySelector(s);
   const esc = s => String(s ?? '').replace(/[&<>"']/g,
     c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
@@ -324,6 +324,7 @@
   };
 
   let token = guarda.ler(GUARDA_TOKEN) || '';
+  let porSessao = false;   // aberta pela sessão do /admin, sem token
   let s = null, chaveRender = '', prazo = 0;
 
   /* Fora do lobby o topo encolhe para que o enunciado e as alternativas caibam
@@ -347,10 +348,7 @@
   };
 
   async function chamar(acao) {
-    const { data, error } = await db.rpc('tbl_host', { p_slug: SLUG, p_token: token, p_acao: acao });
-    if (error) throw new Error(error.message);
-    if (data && data.ok === false) throw new Error(data.erro);
-    return data;
+    return api().post('tbl', SLUG, 'host', { acao });
   }
 
   function htmlBarras(dados, titulo, antes) {
@@ -547,7 +545,7 @@
   }
 
   async function atualizar() {
-    if (!token) return;
+    if (!token && !porSessao) return;
     try {
       s = await chamar('ver');
       prazo = s.restante === null ? 0 : Date.now() + s.restante * 1000;
@@ -556,13 +554,13 @@
       desenhar();
       atualizarRelogio();
     } catch (e) {
-      if (e.message.includes('Token')) {
-        token = ''; guarda.gravar(GUARDA_TOKEN, null);
+      if (e.codigo === 'nao_autenticado') {
+        token = ''; porSessao = false; guarda.gravar(GUARDA_TOKEN, null);
         $('#painel').hidden = true; $('#tela-token').hidden = false;
         $('#recado-token').textContent = e.message;
         $('#recado-token').classList.add('erro');
       } else {
-        $('#recado').textContent = 'Sem conexão com o Supabase. Nova tentativa em instantes.';
+        $('#recado').textContent = 'Sem conexão com a sala. Nova tentativa em instantes.';
       }
     }
   }
@@ -638,6 +636,8 @@
   });
 
   if (token) { $('#token').value = token; atualizar(); }
+  // Servida pelo app com a sessão do /admin, o painel abre sem token.
+  else chamar('ver').then(() => { porSessao = true; atualizar(); }, () => {});
   setInterval(atualizar, 3000);
   setInterval(atualizarRelogio, 250);
   </script>

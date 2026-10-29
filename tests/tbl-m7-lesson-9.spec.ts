@@ -1,19 +1,33 @@
 import { test, expect, type BrowserContext, type Page } from '@playwright/test';
+import { existsSync, readFileSync } from 'fs';
 import path from 'path';
 
 /**
  * TBL da Aula 9 do Módulo 7 — sequência de questões sobre o plano de tecnologia.
  *
- * O Supabase é simulado por interceptação de `/rest/v1/rpc/*`: as funções
- * respondem com o mesmo contrato de `supabase/tbl-funcoes.sql`, o que
- * permite exercitar a página do aluno e o painel do professor sem tocar
- * no banco. O corte de informação por fase é reproduzido aqui justamente
- * para que o teste falhe caso a página passe a exibir o que a fase não
- * libera: as questões seguintes e o dado novo antes da discussão.
+ * O app é simulado por interceptação das rotas do contrato próprio
+ * (`/api/v1/inteli/tbl/{sala}/{acao}`, ADR-18 do aulas-projeto): as rotas
+ * respondem com as mesmas chaves e os mesmos erros do app, o que permite
+ * exercitar a página do aluno e o painel do professor sem subir o servidor.
+ * O corte de informação por fase é reproduzido aqui justamente para que o
+ * teste falhe caso a página passe a exibir o que a fase não libera: as
+ * questões seguintes e o dado novo antes da discussão.
+ *
+ * As páginas são servidas de uma origem fictícia (http://aulas.teste), a
+ * partir dos arquivos do repositório; o cliente `/static/js/aulas.js` vem do
+ * aulas-projeto (AULAS_JS, ou ../aulas-projeto ao lado deste repositório).
+ * Sem ele o teste é pulado: a página não funciona sem o cliente do app.
  */
 
-const ALUNO = 'file://' + path.resolve(__dirname, '../pages/module-7-sistemas-informacao/tbl/lesson-9-tbl.html');
-const PAINEL = 'file://' + path.resolve(__dirname, '../pages/module-7-sistemas-informacao/tbl/lesson-9-painel.html');
+const RAIZ = path.resolve(__dirname, '..');
+const ORIGEM = 'http://aulas.teste';
+const ALUNO = ORIGEM + '/pages/module-7-sistemas-informacao/tbl/lesson-9-tbl.html';
+const PAINEL = ORIGEM + '/pages/module-7-sistemas-informacao/tbl/lesson-9-painel.html';
+const AULAS_JS = process.env.AULAS_JS || path.resolve(RAIZ, '../aulas-projeto/app/static/js/aulas.js');
+const TIPOS: Record<string, string> = {
+  '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml',
+  '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.ico': 'image/x-icon', '.json': 'application/json',
+};
 const TOKEN = 'token-de-teste';
 const TOTAL_QUESTOES = 3;
 
@@ -83,7 +97,7 @@ function salaFalsa() {
       meus[String(v.rodada)] = { escolha: v.escolha, justificativa: v.justificativa };
     }
     const base: Record<string, unknown> = {
-      ok: true, slug: 'teste', titulo: 'TBL de teste', fase: sala.fase,
+      slug: 'teste', titulo: 'TBL de teste', fase: sala.fase,
       questao: sala.questao, total_questoes: TOTAL_QUESTOES,
       restante: sala.termina === null ? null : Math.max(0, Math.round((sala.termina - Date.now()) / 1000)),
       votacao_aberta: rodadaCorrente !== null,
@@ -111,32 +125,38 @@ function salaFalsa() {
     return base;
   };
 
-  const rpc: Record<string, (args: any) => unknown> = {
-    tbl_entrar: ({ p_nome, p_id }) => {
-      const nome = String(p_nome || '').trim();
-      if (nome.length < 2) return { ok: false, erro: 'O nome deve ter entre 2 e 24 caracteres.' };
-      const existente = p_id ? sala.pessoas.find(p => p.id === p_id) : null;
-      if (existente) { existente.nome = nome; return { ok: true, participante_id: existente.id, nome }; }
+  // Erro no formato do app: status HTTP e {erro: {codigo, mensagem}}.
+  class Recusa {
+    constructor(public status: number, public codigo: string, public mensagem: string) {}
+  }
+
+  type Pedido = { corpo: any; busca: URLSearchParams; token: string | null };
+  const rotas: Record<string, (p: Pedido) => unknown> = {
+    entrar: ({ corpo: { nome: bruto, participante } }) => {
+      const nome = String(bruto || '').trim();
+      if (nome.length < 2) throw new Recusa(400, 'entrada_invalida', 'O nome deve ter entre 2 e 60 caracteres.');
+      const existente = participante ? sala.pessoas.find(p => p.id === participante) : null;
+      if (existente) { existente.nome = nome; return { participante: existente.id, nome }; }
       if (sala.pessoas.some(p => p.nome.toLowerCase() === nome.toLowerCase())) {
-        return { ok: false, erro: 'Esse nome já está em uso nesta sala. Escolha outro.' };
+        throw new Recusa(409, 'nome_em_uso', 'Esse nome já está em uso nesta sala. Escolha outro.');
       }
       const id = 'id-' + (sala.pessoas.length + 1);
       sala.pessoas.push({ id, nome });
-      return { ok: true, participante_id: id, nome };
+      return { participante: id, nome };
     },
-    tbl_votar: ({ p_participante, p_rodada, p_escolha, p_justificativa }) => {
-      if (sala.fase !== 'voto' + p_rodada) return { ok: false, erro: 'Esta rodada não está aberta.' };
-      const just = String(p_justificativa || '').trim();
-      if (just.length < 10) return { ok: false, erro: 'Registre a justificativa com pelo menos 10 caracteres.' };
-      const anterior = sala.votos.find(v => v.id === p_participante
-        && v.questao === sala.questao && v.rodada === p_rodada);
-      if (anterior) { anterior.escolha = p_escolha; anterior.justificativa = just; }
-      else sala.votos.push({ id: p_participante, questao: sala.questao, rodada: p_rodada, escolha: p_escolha, justificativa: just });
-      return { ok: true };
+    votar: ({ corpo: { participante, rodada, escolha, justificativa } }) => {
+      if (sala.fase !== 'voto' + rodada) throw new Recusa(409, 'rodada_fechada', 'Esta rodada não está aberta.');
+      const just = String(justificativa || '').trim();
+      if (just.length < 10) throw new Recusa(400, 'justificativa_curta', 'Registre a justificativa com pelo menos 10 caracteres.');
+      const anterior = sala.votos.find(v => v.id === participante
+        && v.questao === sala.questao && v.rodada === rodada);
+      if (anterior) { anterior.escolha = escolha; anterior.justificativa = just; }
+      else sala.votos.push({ id: participante, questao: sala.questao, rodada, escolha, justificativa: just });
+      return { questao: sala.questao, rodada, escolha };
     },
-    tbl_estado: ({ p_participante }) => estado(p_participante ?? null),
-    tbl_host: ({ p_token, p_acao }) => {
-      if (p_token !== TOKEN) return { ok: false, erro: 'Token do professor inválido.' };
+    estado: ({ busca }) => estado(busca.get('participante')),
+    host: ({ corpo: { acao: p_acao }, token }) => {
+      if (token !== TOKEN) throw new Recusa(401, 'nao_autenticado', 'Token do professor inválido.');
       const proximaQuestao = () => {
         if (sala.questao >= TOTAL_QUESTOES) { sala.fase = 'revelacao'; sala.termina = null; }
         else { sala.questao += 1; sala.fase = 'voto1'; sala.termina = Date.now() + duracao.voto1 * 1000; }
@@ -150,7 +170,7 @@ function salaFalsa() {
       } else if (p_acao === 'proxima') {
         proximaQuestao();
       } else if (p_acao === 'anterior') {
-        if (sala.questao <= 1) return { ok: false, erro: 'Esta é a primeira questão.' };
+        if (sala.questao <= 1) throw new Recusa(409, 'fora_de_hora', 'Esta é a primeira questão.');
         sala.questao -= 1; sala.fase = 'sintese'; sala.termina = null;
       } else if (p_acao === 'iniciar') {
         sala.votos = []; sala.questao = 1; sala.fase = 'voto1'; sala.termina = Date.now() + duracao.voto1 * 1000;
@@ -180,16 +200,41 @@ function salaFalsa() {
   };
 
   const ligar = async (context: BrowserContext) => {
-    await context.route('**/rest/v1/rpc/*', async route => {
-      const fn = new URL(route.request().url()).pathname.split('/').pop() as string;
-      const corpo = route.request().postDataJSON();
-      await route.fulfill({
-        status: 200, contentType: 'application/json',
-        body: JSON.stringify(rpc[fn] ? rpc[fn](corpo) : { ok: false, erro: 'função inexistente' })
+    await context.route(ORIGEM + '/**', async route => {
+      const pedido = route.request();
+      const url = new URL(pedido.url());
+      // O tempo real (SSE) não é exercitado aqui; a consulta periódica cobre a virada de fase.
+      if (url.pathname.startsWith('/api/v1/inteli/eventos')) return route.abort();
+      const api = url.pathname.match(/^\/api\/v1\/inteli\/tbl\/[^/]+\/([a-z-]+)$/);
+      if (api) {
+        const rota = rotas[api[1]];
+        const cab = pedido.headers()['authorization'] || '';
+        try {
+          if (!rota) throw new Recusa(404, 'acao_inexistente', 'Esta ação não existe.');
+          const corpo = rota({
+            corpo: pedido.method() === 'POST' ? pedido.postDataJSON() : {},
+            busca: url.searchParams,
+            token: cab.startsWith('Bearer ') ? cab.slice(7) : null,
+          });
+          return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(corpo) });
+        } catch (e) {
+          if (!(e instanceof Recusa)) throw e;
+          return route.fulfill({
+            status: e.status, contentType: 'application/json',
+            body: JSON.stringify({ erro: { codigo: e.codigo, mensagem: e.mensagem } })
+          });
+        }
+      }
+      // Arquivos estáticos: o cliente do app e o próprio repositório.
+      const arquivo = url.pathname === '/static/js/aulas.js'
+        ? AULAS_JS : path.join(RAIZ, decodeURIComponent(url.pathname));
+      if (!arquivo.startsWith(RAIZ) && arquivo !== AULAS_JS) return route.fulfill({ status: 403 });
+      if (!existsSync(arquivo)) return route.fulfill({ status: 404 });
+      return route.fulfill({
+        status: 200, body: readFileSync(arquivo),
+        contentType: TIPOS[path.extname(arquivo)] || 'application/octet-stream'
       });
     });
-    // O canal de Realtime não é exercitado aqui; a consulta periódica cobre a virada de fase.
-    await context.route('**/realtime/**', route => route.abort());
   };
 
   return { sala, ligar };
@@ -254,6 +299,8 @@ async function percorrerQuestao(professor: Page, alunos: Page[], escolhas: [numb
 }
 
 test.describe('TBL · Aula 9 do Módulo 7 · plano de tecnologia orientado a metas', () => {
+  test.skip(!existsSync(AULAS_JS), `cliente do app ausente (${AULAS_JS}); defina AULAS_JS`);
+
   test('sequência de questões, com discussão e segunda decisão em cada uma', async ({ browser }) => {
     const sala = salaFalsa();
 
@@ -315,6 +362,9 @@ test.describe('TBL · Aula 9 do Módulo 7 · plano de tecnologia orientado a met
     await expect(ana.locator('#registrar')).toBeDisabled();
     await ana.fill('#justificativa', 'curto');
     await expect(ana.locator('#registrar')).toBeDisabled();
+    // O botão reage à digitação, sem esperar a próxima consulta ao servidor (4 s).
+    await ana.fill('#justificativa', 'Justificativa com mais de dez caracteres.');
+    await expect(ana.locator('#registrar')).toBeEnabled({ timeout: 500 });
 
     await votar(ana, 0, 'Negar por omissão evita executar o caso não analisado.');
     await votar(bruno, 3, 'A tabela de decisão expõe a lacuna antes da implantação.');

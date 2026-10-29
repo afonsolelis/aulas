@@ -197,7 +197,7 @@
       background: color-mix(in srgb, var(--paper) 8%, transparent); color: var(--paper);
     }
     input:focus { outline: none; border-color: var(--si); }
-    /* Tempo por pergunta (supabase/quiz-tempo.sql) */
+    /* Tempo por pergunta */
     form.tempo { display: flex; gap: 8px; align-items: center; margin: 0; }
     form.tempo label, form.tempo .unidade { font-size: .78rem; font-weight: 700; color: var(--muted); }
     form.tempo input { width: 5.4em; padding: 10px; font-size: .95rem; text-align: right; }
@@ -302,15 +302,15 @@
     </div>
   </footer>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.114.0/dist/umd/supabase.js"></script>
+  <script src="/static/js/aulas.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script>
-  const SUPABASE_URL = 'https://lcyxqwdgsrbcpecqyqje.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_x68LvlGFJns-zsrYTERvqw_-x5GWA8p';
   const SLUG = new URLSearchParams(location.search).get('sala') || 'governanca-m7-a7';
   const CHAVE_TOKEN = 'quiz-host:' + SLUG;
 
-  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } });
+  // Professor: o token vai no cabeçalho Authorization, nunca na URL. Com a
+  // sessão do /admin (página servida pelo app), o token é dispensado.
+  const api = () => Aulas('inteli', { token });
   const el = (id) => document.getElementById(id);
   const LETRAS = ['A', 'B', 'C', 'D', 'E'];
 
@@ -322,13 +322,10 @@
   /* Tempo por pergunta: o professor calibra entre perguntas e o valor vale
      para todas as questões da sala, também nas turmas seguintes. Quem conta
      o tempo (fechamento, pontuação, aparelho e este painel) lê o mesmo campo
-     no servidor. Ver supabase/quiz-tempo.sql. */
+     no servidor. */
   async function tempo(segundos) {
-    const args = { p_slug: SLUG, p_token: token };
-    if (segundos != null) args.p_segundos = segundos;
-    const { data, error } = await db.rpc('quiz_tempo', args);
-    if (error) throw error;
-    return data;
+    const cliente = api();
+    return cliente.tentar(cliente.post('quiz', SLUG, 'tempo', segundos != null ? { segundos } : {}));
   }
 
   function mostrarTempo(segundos) {
@@ -368,7 +365,7 @@
       const d = await tempo();
       if (d.ok) mostrarTempo(d.segundos);
     } catch (e) {
-      avisoTempo('Tempo fixo: falta aplicar supabase/quiz-tempo.sql.');
+      avisoTempo('Tempo fixo: não foi possível ler o tempo da sala.');
       console.warn(e);
     }
   }
@@ -403,9 +400,8 @@
   }
 
   async function chamar(acao) {
-    const { data, error } = await db.rpc('quiz_host', { p_slug: SLUG, p_token: token, p_acao: acao });
-    if (error) throw error;
-    return data;
+    const cliente = api();
+    return cliente.tentar(cliente.post('quiz', SLUG, 'host', { acao }));
   }
 
   async function autenticar() {
@@ -638,7 +634,20 @@
     if (confirm('Isso apaga todos os jogadores e respostas desta sala. Confirmar?')) agir('reiniciar');
   });
 
+  // Servida pelo app com a sessão do /admin, a página abre sem token. Sem
+  // sessão a chamada é recusada e o formulário do token continua na tela.
+  async function entrarPelaSessao() {
+    try {
+      const d = await chamar('ver');
+      if (!d.ok) return;
+      aplicar(d);
+      carregarTempo();
+      if (!laco) laco = setInterval(atualizar, 2000);
+    } catch (e) { /* sem conexão: o professor tenta pelo token */ }
+  }
+
   if (token) { el('token').value = token; autenticar(); }
+  else entrarPelaSessao();
   </script>
 <!-- semana:js:start -->
 <script src="../../../js/semana-ano.js" defer></script>

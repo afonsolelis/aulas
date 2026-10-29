@@ -265,21 +265,16 @@
     <p class="estado-conexao" id="conexao"></p>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.114.0/dist/umd/supabase.js"></script>
+  <script src="/static/js/aulas.js"></script>
   <script>
   /* ------------------------------------------------------------------
-     Configuração. A chave publicável é pública por desenho: o que ela
-     alcança é definido pelas policies de RLS, não pelo sigilo dela.
-     Ver supabase/quiz-schema.sql.
+     Configuração. A página fala com o app pelo contrato próprio
+     (/api/v1), pelo cliente /static/js/aulas.js.
   ------------------------------------------------------------------ */
-  const SUPABASE_URL = 'https://lcyxqwdgsrbcpecqyqje.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_x68LvlGFJns-zsrYTERvqw_-x5GWA8p';
   const SLUG = new URLSearchParams(location.search).get('sala') || 'stakeholders-m7-a6';
   const CHAVE_LOCAL = 'quiz:' + SLUG;
 
-  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-    auth: { persistSession: false },
-  });
+  const api = Aulas('inteli');
 
   const el = (id) => document.getElementById(id);
   const LETRAS = ['A', 'B', 'C', 'D', 'E'];
@@ -309,10 +304,9 @@
     el('aviso-entrada').textContent = '';
     el('btn-entrar').disabled = true;
     try {
-      const { data, error } = await db.rpc('quiz_entrar', { p_slug: SLUG, p_nome: nome });
-      if (error) throw error;
+      const data = await api.tentar(api.post('quiz', SLUG, 'entrar', { nome }));
       if (!data.ok) { el('aviso-entrada').textContent = data.erro; return; }
-      jogador = { id: data.player_id, nome: data.nome };
+      jogador = { id: data.jogador, nome: data.nome };
       localStorage.setItem(CHAVE_LOCAL, JSON.stringify(jogador));
       el('quem').textContent = jogador.nome;
       await sincronizar();
@@ -334,9 +328,8 @@
       b.disabled = true;
     });
     try {
-      const { data, error } = await db.rpc('quiz_responder',
-        { p_player: jogador.id, p_escolha: indice });
-      if (error) throw error;
+      const data = await api.tentar(api.post('quiz', SLUG, 'responder',
+        { jogador: jogador.id, escolha: indice }));
       if (!data.ok) {
         el('aviso-pergunta').textContent = data.erro;
         escolhaPendente = null;
@@ -524,9 +517,8 @@
 
   async function sincronizar() {
     try {
-      const { data, error } = await db.rpc('quiz_estado',
-        { p_slug: SLUG, p_player: jogador ? jogador.id : null });
-      if (error) throw error;
+      const data = await api.tentar(api.get('quiz', SLUG, 'estado',
+        { jogador: jogador ? jogador.id : null }));
       if (!data.ok) { falhar(data.erro); return; }
 
       offsetRelogio = new Date(data.servidor_agora).getTime() - Date.now();
@@ -607,19 +599,17 @@
     mostrar('erro');
   }
 
-  /* ---------- Realtime, com consulta periódica de reserva ---------- */
+  /* ---------- Tempo real (SSE), com consulta periódica de reserva ---------- */
 
-  db.channel('sala-' + SLUG)
-    .on('postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'quiz_sessions', filter: 'slug=eq.' + SLUG },
-        () => sincronizar())
-    .subscribe((status) => {
-      assinaturaOk = status === 'SUBSCRIBED';
-      if (estadoAtual) marcarConexao(assinaturaOk ? 'Conectado em tempo real.' : 'Conectado por consulta periódica.');
-    });
+  // O servidor avisa quando a sala muda; a página consulta o estado de novo.
+  // A reserva é o setInterval abaixo, por isso 0 aqui.
+  api.ouvir('quiz', SLUG, () => sincronizar(), 0, (conectado) => {
+    assinaturaOk = conectado;
+    if (estadoAtual) marcarConexao(assinaturaOk ? 'Conectado em tempo real.' : 'Conectado por consulta periódica.');
+  });
 
   // Rede de sala de aula oscila; a consulta periódica garante que ninguém
-  // fique preso numa tela antiga caso o websocket caia.
+  // fique preso numa tela antiga caso o canal de tempo real caia.
   setInterval(sincronizar, 3000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) sincronizar(); });
 

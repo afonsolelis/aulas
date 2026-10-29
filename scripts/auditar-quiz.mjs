@@ -11,13 +11,15 @@
  * Uso:
  *   QUIZ_TOKEN=... node scripts/auditar-quiz.mjs [slug]
  *
- * Lê do banco, que é a fonte de verdade — o seed pode divergir do aplicado.
+ * Lê do banco, que é a fonte de verdade — o seed pode divergir do aplicado —,
+ * pelo relatório do professor no app (contrato próprio, ADR-18 do
+ * aulas-projeto): GET /api/v1/inteli/quiz/{slug}/relatorio, com o token no
+ * cabeçalho Authorization. AULAS_URL aponta o app (padrão http://127.0.0.1:3000).
  */
 
 import { paraLog, slugDeSala } from './lib/entrada.mjs';
 
-const URL_BASE = process.env.SUPABASE_URL || 'https://lcyxqwdgsrbcpecqyqje.supabase.co';
-const CHAVE = process.env.SUPABASE_KEY || 'sb_publishable_x68LvlGFJns-zsrYTERvqw_-x5GWA8p';
+const URL_BASE = (process.env.AULAS_URL || 'http://127.0.0.1:3000').replace(/\/$/, '');
 const SLUG = slugDeSala(process.argv[2] || 'gmud-m7-a5');
 const TOKEN = process.env.QUIZ_TOKEN;
 
@@ -28,14 +30,12 @@ if (!TOKEN) {
 
 const LETRAS = ['A', 'B', 'C', 'D', 'E'];
 
-const resposta = await fetch(`${URL_BASE}/rest/v1/rpc/quiz_relatorio`, {
-  method: 'POST',
-  headers: { apikey: CHAVE, Authorization: `Bearer ${CHAVE}`, 'Content-Type': 'application/json' },
-  body: JSON.stringify({ p_slug: SLUG, p_token: TOKEN }),
+const resposta = await fetch(`${URL_BASE}/api/v1/inteli/quiz/${SLUG}/relatorio`, {
+  headers: { Accept: 'application/json', Authorization: `Bearer ${TOKEN}` },
 });
-const dados = await resposta.json();
-if (!dados.ok) {
-  console.error('Falha:', paraLog(dados.erro || dados));
+const dados = await resposta.json().catch(() => ({}));
+if (!resposta.ok) {
+  console.error('Falha:', paraLog((dados.erro && dados.erro.mensagem) || `HTTP ${resposta.status}`));
   process.exit(2);
 }
 

@@ -1752,13 +1752,13 @@
   </script>
 <script src="../../../js/semana-ano.js" defer></script>
 <!-- semana:js:end -->
+  <script src="/static/js/aulas.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
   <script>
     /* Enquete da Prática 1: QR code, resultado ao vivo e comparação com a classificação esperada. */
     (function () {
       const SALA = 'sindusfarma-2026-10-20';
-      const SUPABASE_URL = 'https://lcyxqwdgsrbcpecqyqje.supabase.co';
-      const SUPABASE_KEY = 'sb_publishable_x68LvlGFJns-zsrYTERvqw_-x5GWA8p';
+      const api = Aulas('inteli');
       const OPCOES = {
         tipo: [['P', 'Preditiva'], ['G', 'Generativa'], ['C', 'Combinação']],
         maturidade: [['1', 'Consolidado'], ['2', 'Piloto'], ['3', 'Promessa']],
@@ -1779,12 +1779,7 @@
       let dados = null;
       async function carregar() {
         try {
-          const r = await fetch(SUPABASE_URL + '/rest/v1/rpc/enquete_resultado', {
-            method: 'POST', headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ p_sala: SALA }),
-          });
-          if (!r.ok) throw new Error('HTTP ' + r.status);
-          const linhas = await r.json();
+          const linhas = await api.get('enquete', SALA, 'resultado');
           const d = { total: 0 };
           linhas.forEach((l) => {
             if (l.campo === 'participantes') { d.total = l.votos; return; }
@@ -1842,7 +1837,8 @@
       }
 
       document.querySelectorAll('[data-enquete-atualizar]').forEach((b) => b.addEventListener('click', carregar));
-      // Zerar exige o token do professor, guardado neste navegador depois do primeiro uso.
+      // Zerar exige o token do professor, guardado neste navegador depois do primeiro uso e enviado no
+      // cabeçalho Authorization.
       const CHAVE_TOKEN = 'enquete-host:' + SALA;
       document.querySelectorAll('[data-enquete-zerar]').forEach((b) => b.addEventListener('click', async () => {
         let token = '';
@@ -1851,12 +1847,7 @@
         if (!token) return;
         if (!confirm('Apagar todos os votos da enquete?')) return;
         try {
-          const r = await fetch(SUPABASE_URL + '/rest/v1/rpc/enquete_zerar', {
-            method: 'POST', headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ p_sala: SALA, p_token: token }),
-          });
-          const corpo = await r.json().catch(() => null);
-          if (!r.ok) throw new Error((corpo && corpo.message) || ('HTTP ' + r.status));
+          await Aulas('inteli', { token }).post('enquete', SALA, 'zerar');
           try { localStorage.setItem(CHAVE_TOKEN, token); } catch (e) { /* sem armazenamento local */ }
           await carregar();
         } catch (e) {
@@ -1876,22 +1867,13 @@
     /* Enquete da Prática 3: resultado do semáforo ao vivo e comparação com a classificação esperada. */
     (function () {
       const SALA = 'sindusfarma-semaforo-2026-10-20';
-      const SUPABASE_URL = 'https://lcyxqwdgsrbcpecqyqje.supabase.co';
-      const SUPABASE_KEY = 'sb_publishable_x68LvlGFJns-zsrYTERvqw_-x5GWA8p';
+      const api = Aulas('inteli');
       const NOMES = { V: 'Verde', A: 'Amarelo', R: 'Vermelho' };
-      const rpc = async (fn, args) => {
-        const r = await fetch(SUPABASE_URL + '/rest/v1/rpc/' + fn, {
-          method: 'POST', headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(args),
-        });
-        const corpo = await r.json().catch(() => null);
-        if (!r.ok) throw new Error((corpo && corpo.message) || ('HTTP ' + r.status));
-        return corpo;
-      };
       const setTotal = (t) => document.querySelectorAll('[data-sem-total]').forEach((el) => { el.textContent = t; });
 
       async function carregar() {
         let linhas;
-        try { linhas = await rpc('semaforo_resultado', { p_sala: SALA }); }
+        try { linhas = await api.get('semaforo', SALA, 'resultado'); }
         catch (e) { setTotal('Não foi possível ler a enquete agora (' + e.message + ').'); return; }
         const d = {}; let n = 0;
         linhas.forEach((l) => { if (l.situacao === 0) n = l.votos; else (d[l.situacao] = d[l.situacao] || {})[l.cor] = l.votos; });
@@ -1933,7 +1915,7 @@
         if (!token) return;
         if (!confirm('Apagar todos os votos do semáforo?')) return;
         try {
-          await rpc('semaforo_zerar', { p_sala: SALA, p_token: token });
+          await Aulas('inteli', { token }).post('semaforo', SALA, 'zerar');
           try { localStorage.setItem(CHAVE_TOKEN, token); } catch (e) { /* sem armazenamento local */ }
           await carregar();
         } catch (e) {

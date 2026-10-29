@@ -203,21 +203,17 @@
     <p class="creditos">Inteli — Instituto de Tecnologia e Liderança · Module 8, Information Systems · Prof. Afonso Brandão</p>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.114.0/dist/umd/supabase.js"></script>
+  <script src="/static/js/aulas.js"></script>
   <script>
   /* ------------------------------------------------------------------
-     Chave publicável: a proteção não está no sigilo dela, e sim na RLS
-     e nas funções SECURITY DEFINER. Ver supabase/tbl-schema.sql.
+     A página fala com o app pelo contrato próprio (/api/v1), pelo
+     cliente /static/js/aulas.js.
      ------------------------------------------------------------------ */
-  const SUPABASE_URL = 'https://lcyxqwdgsrbcpecqyqje.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_x68LvlGFJns-zsrYTERvqw_-x5GWA8p';
   const SLUG = 'm8-si-a03-medallion-2026-2b';
   const GUARDA = 'tbl:' + SLUG;
   const LETRAS = ['A', 'B', 'C', 'D'];
 
-  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-    auth: { persistSession: false }
-  });
+  const api = Aulas('inteli');
 
   const $ = s => document.querySelector(s);
   const esc = s => String(s ?? '').replace(/[&<>"']/g,
@@ -278,11 +274,10 @@
   ];
   const emIngles = m => { const t = String(m || ''); const hit = ERROS_EN.find(([re]) => re.test(t)); return hit ? hit[1] : t; };
 
-  async function rpc(fn, args) {
-    const { data, error } = await db.rpc(fn, args);
-    if (error) throw new Error(emIngles(error.message));
-    if (data && data.ok === false) throw new Error(emIngles(data.erro));
-    return data;
+  // Erro de regra (nome em uso, rodada fechada…) ou de rede chega como
+  // exceção com a mensagem a mostrar.
+  async function chamar(promessa) {
+    try { return await promessa; } catch (e) { throw new Error(emIngles(e.message)); }
   }
 
   /* --------------------------- desenho --------------------------- */
@@ -536,7 +531,7 @@
     if (rodada) {
       const ta = $('#justificativa');
       if (ta) {
-        ta.addEventListener('input', () => { rascunho = ta.value; atualizarContagem(); });
+        ta.addEventListener('input', () => { rascunho = ta.value; atualizarContagem(); atualizarBotao(); });
         atualizarContagem();
       }
       atualizarBotao();
@@ -569,6 +564,7 @@
     if (s) {
       $('#presenca').textContent = s.participantes + ' in the room · ' +
         (['voto1','voto2'].includes(s.fase) ? s.votos_rodada + ' have decided' : 'waiting for the professor');
+      atualizarBotao();
     }
   }
 
@@ -577,7 +573,7 @@
   async function atualizar() {
     if (!eu) return;
     try {
-      const novo = await rpc('tbl_estado', { p_slug: SLUG, p_participante: eu.id });
+      const novo = await chamar(api.get('tbl', SLUG, 'estado', { participante: eu.id }));
       if (!novo.inscrito) {   // a sala foi reiniciada para outra turma
         eu = null; guardar(null);
         $('#tela-sala').hidden = true; $('#tela-entrada').hidden = false;
@@ -603,10 +599,10 @@
     if (!rodada || escolhaAtual === null) return;
     enviando = true; atualizarBotao(); recado('');
     try {
-      await rpc('tbl_votar', {
-        p_participante: eu.id, p_rodada: rodada,
-        p_escolha: escolhaAtual, p_justificativa: rascunho
-      });
+      await chamar(api.post('tbl', SLUG, 'votar', {
+        participante: eu.id, rodada,
+        escolha: escolhaAtual, justificativa: rascunho
+      }));
       recado('Decision recorded. You can change it while the round is open.');
       chaveRender = '';
       await atualizar();
@@ -622,8 +618,8 @@
     const nome = $('#nome').value.trim();
     $('#erro-entrada').hidden = true;
     try {
-      const r = await rpc('tbl_entrar', { p_slug: SLUG, p_nome: nome, p_id: eu ? eu.id : null });
-      eu = { id: r.participante_id, nome: r.nome };
+      const r = await chamar(api.post('tbl', SLUG, 'entrar', { nome, participante: eu ? eu.id : null }));
+      eu = { id: r.participante, nome: r.nome };
       guardar(eu);
       chaveRender = '';
       await atualizar();
@@ -647,13 +643,9 @@
     if (e.target.closest('#registrar')) registrar();
   });
 
-  // A virada de fase chega pelo Realtime; a consulta periódica cobre
-  // contagem de presentes, votos e eventual perda do canal.
-  db.channel('tbl-' + SLUG)
-    .on('postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'tbl_sessions', filter: 'slug=eq.' + SLUG },
-        () => { chaveRender = ''; atualizar(); })
-    .subscribe();
+  // A virada de fase chega por eventos do servidor (SSE); a consulta periódica
+  // cobre contagem de presentes, votos e eventual perda do canal (por isso 0).
+  api.ouvir('tbl', SLUG, () => { chaveRender = ''; atualizar(); }, 0);
 
   if (eu && eu.id) { $('#nome').value = eu.nome; atualizar(); }
   setInterval(atualizar, 4000);
