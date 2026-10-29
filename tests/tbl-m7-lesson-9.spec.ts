@@ -1,19 +1,41 @@
 import { test, expect, type BrowserContext, type Page } from '@playwright/test';
+import fs from 'fs';
 import path from 'path';
 
 /**
  * TBL da Aula 9 do Módulo 7 — sequência de questões sobre o plano de tecnologia.
  *
- * O Supabase é simulado por interceptação de `/rest/v1/rpc/*`: as funções
- * respondem com o mesmo contrato de `supabase/tbl-funcoes.sql`, o que
- * permite exercitar a página do aluno e o painel do professor sem tocar
- * no banco. O corte de informação por fase é reproduzido aqui justamente
- * para que o teste falhe caso a página passe a exibir o que a fase não
- * libera: as questões seguintes e o dado novo antes da discussão.
+ * As páginas seguem o contrato próprio da plataforma (ADR-18 do aulas-projeto):
+ * carregam `/_app/aulas.js` e chamam `POST /inteli/api/{fn}`. Como isso não
+ * funciona por `file://`, o teste abre as páginas numa origem falsa
+ * (`http://aulas.test/inteli/...`) e uma única rota atende tudo dela:
+ *
+ * - `/inteli/api/{fn}` responde com uma sala em memória que segue o contrato
+ *   das funções de TBL; quando a sala recusa, a resposta é HTTP 400 com
+ *   `{erro, codigo: 'regra', message}`, como faz a plataforma;
+ * - `/_app/aulas.js` é o arquivo do repositório irmão
+ *   `../aulas-projeto/app/static/aulas.js` (sem ele, o teste é pulado);
+ * - o resto de `/inteli/` são os arquivos deste repositório;
+ * - o WebSocket de eventos (`/inteli/api/eventos`) é fechado logo ao abrir.
+ *
+ * Outras origens (CDNs) seguem normalmente. O corte de informação por fase é
+ * reproduzido aqui justamente para que o teste falhe caso a página passe a
+ * exibir o que a fase não libera: as questões seguintes e o dado novo antes
+ * da discussão.
  */
 
-const ALUNO = 'file://' + path.resolve(__dirname, '../pages/module-7-sistemas-informacao/tbl/lesson-9-tbl.html');
-const PAINEL = 'file://' + path.resolve(__dirname, '../pages/module-7-sistemas-informacao/tbl/lesson-9-painel.html');
+const RAIZ = path.resolve(__dirname, '..');
+const ORIGEM = 'http://aulas.test';
+const AULAS_JS = path.resolve(RAIZ, '../aulas-projeto/app/static/aulas.js');
+const ALUNO = ORIGEM + '/inteli/pages/module-7-sistemas-informacao/tbl/lesson-9-tbl.html';
+const PAINEL = ORIGEM + '/inteli/pages/module-7-sistemas-informacao/tbl/lesson-9-painel.html';
+const TIPOS: Record<string, string> = {
+  '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png',
+  '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp',
+  '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.woff': 'font/woff', '.pdf': 'application/pdf'
+};
 const TOKEN = 'token-de-teste';
 const TOTAL_QUESTOES = 3;
 
@@ -180,16 +202,33 @@ function salaFalsa() {
   };
 
   const ligar = async (context: BrowserContext) => {
-    await context.route('**/rest/v1/rpc/*', async route => {
-      const fn = new URL(route.request().url()).pathname.split('/').pop() as string;
-      const corpo = route.request().postDataJSON();
-      await route.fulfill({
-        status: 200, contentType: 'application/json',
-        body: JSON.stringify(rpc[fn] ? rpc[fn](corpo) : { ok: false, erro: 'função inexistente' })
-      });
+    // O canal de eventos não é exercitado aqui; a consulta periódica cobre a virada de fase.
+    await context.routeWebSocket(ORIGEM.replace('http', 'ws') + '/inteli/api/eventos', ws => ws.close());
+    await context.route(ORIGEM + '/**', async route => {
+      const url = new URL(route.request().url());
+      if (url.pathname === '/inteli/api/eventos') return route.abort();
+      if (url.pathname.startsWith('/inteli/api/')) {
+        const fn = decodeURIComponent(url.pathname.slice('/inteli/api/'.length));
+        const corpo = route.request().postDataJSON() ?? {};
+        const r = (rpc[fn] ? rpc[fn](corpo) : { ok: false, erro: 'função inexistente' }) as Record<string, unknown>;
+        if (r && r.ok === false) {
+          return route.fulfill({
+            status: 400, contentType: 'application/json',
+            body: JSON.stringify({ erro: r.erro, codigo: 'regra', message: r.erro })
+          });
+        }
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(r) });
+      }
+      if (url.pathname === '/_app/aulas.js') return route.fulfill({ path: AULAS_JS, contentType: TIPOS['.js'] });
+      if (url.pathname.startsWith('/inteli/')) {
+        const arquivo = path.resolve(RAIZ, decodeURIComponent(url.pathname.slice('/inteli/'.length)));
+        if (arquivo.startsWith(RAIZ + path.sep) && fs.existsSync(arquivo) && fs.statSync(arquivo).isFile()) {
+          const tipo = TIPOS[path.extname(arquivo).toLowerCase()] ?? 'application/octet-stream';
+          return route.fulfill({ path: arquivo, contentType: tipo });
+        }
+      }
+      return route.fulfill({ status: 404, contentType: 'text/plain', body: 'não encontrado' });
     });
-    // O canal de Realtime não é exercitado aqui; a consulta periódica cobre a virada de fase.
-    await context.route('**/realtime/**', route => route.abort());
   };
 
   return { sala, ligar };
@@ -214,7 +253,7 @@ async function abrirPainel(context: BrowserContext): Promise<Page> {
   return page;
 }
 
-// Em sala, a virada de fase chega ao aparelho pelo canal de Realtime. O teste
+// Em sala, a virada de fase chega ao aparelho pelo canal de eventos (WebSocket). O teste
 // mantém esse canal desligado e o Chromium reduz a frequência dos
 // temporizadores das abas ocultas, de modo que a consulta periódica não é
 // previsível aqui: a atualização é solicitada explicitamente após cada avanço.
@@ -254,6 +293,9 @@ async function percorrerQuestao(professor: Page, alunos: Page[], escolhas: [numb
 }
 
 test.describe('TBL · Aula 9 do Módulo 7 · plano de tecnologia orientado a metas', () => {
+  test.skip(!fs.existsSync(AULAS_JS),
+    `Falta ${AULAS_JS}: o teste usa o cliente das páginas do repositório irmão aulas-projeto, clonado ao lado deste.`);
+
   test('sequência de questões, com discussão e segunda decisão em cada uma', async ({ browser }) => {
     const sala = salaFalsa();
 
