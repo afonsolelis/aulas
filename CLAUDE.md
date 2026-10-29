@@ -182,13 +182,28 @@ border: 1px solid rgba(255,255,255,0.18);
 
 ### Playwright Tests
 
-Tests run against local `file://` URLs (no server needed). They validate:
+Tests run against local files (`fs` or `file://`, no server needed). They validate:
 - `tests/index.spec.ts` — index card links point to `pages/home-*.html` and files exist on disk; course card header colors match the design system
 - `tests/specs-compliance.spec.ts` — validates all specs in `specs/` including home pages, routes naming, slides, and lesson cards
 - `tests/calendar-consistency.spec.ts` — validates that `config/calendar.json` dates match the `📅 dd/mm/yyyy` shown in each lesson card of the active modules' homes
 - `tests/index-json-coverage.spec.ts` — validates that every `.html` in `pages/` (plus `index.html`) has exactly one entry in `index.json` (Key Rule 7)
 
 When adding a new module/lesson, ensure the corresponding file exists on disk before committing or tests will fail.
+
+`tests/tbl-m7-lesson-9.spec.ts` é a exceção: abre o TBL da Aula 9 do Módulo 7 numa origem falsa (`http://aulas.test/inteli/...`), responde `/inteli/api/*` com uma sala em memória e serve `/_app/aulas.js` a partir do repositório irmão `../aulas-projeto`. Sem esse clone ao lado, o teste é pulado. A cobertura ponta a ponta das páginas contra a plataforma real fica em `aulas-projeto/e2e/`.
+
+### Páginas interativas (quiz, TBL, enquetes, painéis)
+
+O banco não é mais o Supabase. As páginas deste repositório são servidas pela plataforma `aulas-projeto` (FastAPI + MongoDB) em `/inteli/<caminho>`, e é o banco dela que guarda salas, respostas e relatórios. O contrato está no ADR-18 de lá (`prd/adr/ADR-18-contrato-proprio-das-paginas.md`):
+
+- a página carrega `<script src="/_app/aulas.js"></script>` e cria o cliente com `const db = aulas.cliente();`, sem URL nem chave de Supabase;
+- `db.rpc(fn, args)` faz `POST /inteli/api/{fn}` e devolve `{ data, error }`; recusa vem como HTTP 4xx/5xx com `{erro, codigo, message}`, e `error.message` traz o texto;
+- `db.channel(...).on('postgres_changes', { table, filter: 'slug=eq.<slug>' }, cb).subscribe()` recebe as mudanças pelo WebSocket `/inteli/api/eventos`; sem o filtro `slug=eq.`, o canal não recebe nada;
+- `db.storage.from(bucket).upload(...)` e `getPublicUrl(...)` guardam e servem arquivos pela plataforma.
+
+Por isso essas páginas não funcionam por `file://` nem por um `http.server` local: o teste manual é feito na plataforma rodando (ver o README do `aulas-projeto`).
+
+**Sala nova.** As salas (quiz, TBL, enquete) são criadas no banco do `aulas-projeto`. Ainda não há comando para carregar sala nova (README de lá, "Ainda falta: criar sala nova"). O conteúdo das questões continua neste repositório, como hoje; os dados da sala (slug, título, questões) precisam ser entregues ao mantenedor da plataforma para carga. Os arquivos `supabase/*.sql` são histórico somente leitura (ver `supabase/README.md`) e não são mais aplicados em lugar nenhum.
 
 ### `specs/` — Normative Rules
 
@@ -233,7 +248,7 @@ Dates are stored as `dd/mm/yyyy` strings to match exactly what is rendered in th
 
 9. **Toda aula com avaliação ponderada em sala tem flag no card da home.** Marque `"ponderada": true` na aula em `config/calendar.json` e inclua `<span class="ponderada-badge">⚖️ Ponderada em sala</span>` no card correspondente em `pages/home-module-*.html`. Ao mover a ponderada de aula, mova as duas coisas juntas. O spec `tests/calendar-consistency.spec.ts` falha se uma existir sem a outra. Detalhes em `specs/lesson-cards.md`.
 
-10. **Conteúdo de avaliação nunca entra no repositório.** O repositório é público (`github.com/afonsolelis/aulas`), de modo que enunciado de prova, alternativa correta e gabarito versionados ficam legíveis pela turma dias antes da aula. Enunciado de prova mora em `prova_provas`/`prova_partes` no Supabase — tabelas com RLS sem policy e `revoke all`, acessíveis apenas pela função `prova_abrir(slug, token)`, que confere o hash SHA-256 do token do professor (`supabase/prova-schema.sql`). O SQL que popula essas tabelas fica em `supabase/private/`, ignorado pelo git; o formato está em `supabase/prova-seed.example.sql`. O deck busca o texto no momento da projeção e não contém uma linha do enunciado.
+10. **Conteúdo de avaliação nunca entra no repositório.** O repositório é público (`github.com/afonsolelis/aulas`), de modo que enunciado de prova, alternativa correta e gabarito versionados ficam legíveis pela turma dias antes da aula. Enunciado de prova mora em `prova_provas`/`prova_partes` no banco da plataforma `aulas-projeto`, acessível apenas pela função `prova_abrir(slug, token)`, que confere o token do professor. O enunciado de prova nova vai direto ao mantenedor da plataforma, nunca a um arquivo versionado aqui; `supabase/prova-schema.sql` e `supabase/prova-seed.example.sql` ficam só como histórico do formato. O deck busca o texto no momento da projeção e não contém uma linha do enunciado.
    > **Pendência conhecida:** os seeds de quiz e de TBL (`supabase/quiz-seed-*.sql`, `supabase/tbl-seed-*.sql`) ainda trazem enunciado, alternativa correta e explicação em texto claro no repositório público.
 
 ## Nested Projects
