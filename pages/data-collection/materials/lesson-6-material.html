@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗄️</text></svg>">
+  <title>Material Aula 06 — Streaming com RabbitMQ e ClickHouse</title>
+  <link rel="stylesheet" href="../css/dc-styles.css">
+
+<!-- encontro:css:start -->
+<link rel="stylesheet" href="../../../css/encontro.css">
+<!-- encontro:css:end -->
+
+<!-- semana:css:start -->
+<link rel="stylesheet" href="../../../css/semana-ano.css">
+<!-- semana:css:end -->
+</head>
+<body>
+  <main class="page">
+    <div class="material-nav">
+      <a href="../../../index.html">&larr; Início</a>
+      <a href="../../home-data-collection.html">&larr; Data Collection &amp; Storage</a>
+      <a href="../laboratorio/lesson-6/README.md">Roteiro do laboratório</a>
+      <a href="../slides/slide-lesson-6.html">Ver Slide &rarr;</a>
+    </div>
+
+    <header class="hero">
+      <img class="logo-full" src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli">
+      <span class="kicker">Data Collection and Storage &middot; Inteli</span>
+      <h1>Aula 06 — Streaming com RabbitMQ e ClickHouse</h1>
+      <p class="meta">Aula 06 &middot; 14/11/2026 &middot; Sábado &middot; 8h30 &ndash; 12h10</p>
+      <p class="summary">As duas primeiras horas, em cinco blocos, comparam batch, micro-batch e streaming, abrem o RabbitMQ por dentro (exchanges, filas, confirmação, prefetch, dead letter), discutem garantias de entrega, ordem e backpressure, e explicam o ClickHouse (MergeTree, lotes, deduplicação, compressão, TTL), com números medidos na preparação da aula. O restante da aula constrói ao vivo, em Spec-Driven Development, um mini projeto IoT: sensores simulados publicam leituras no RabbitMQ, um transformador em Python valida e normaliza, um armazenador grava em lote no ClickHouse. O pipeline roda primeiro no Codespace, com docker compose, e depois no Railway.</p>
+    </header>
+<!-- encontro:meta:start -->
+<div class="container" style="max-width:1100px;margin:24px auto 0;padding:0 16px;"><section class="encontro-meta" data-encontro-ficha><h2>Sobre este encontro</h2><p class="encontro-ref">Data Collection and Storage · Aula 06 · 14/11/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>Ao final do encontro, o estudante deve ser capaz de montar um pipeline de streaming com RabbitMQ, transformador em Python e ClickHouse, tratando idempotência, backpressure e retenção.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>Demonstração prática completa: a teoria ocupa a primeira parte do encontro e, em seguida, o professor constrói o projeto ao vivo enquanto cada aluno reproduz o mesmo caminho no próprio repositório, com o agente de código guiado pelo AGENTS.md e prompts no formato CREATE.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol><li>Onde a Aula 01 nos deixou</li><li>Bloco 1: o problema e os modos de processamento</li><li>Bloco 2: brokers e RabbitMQ por dentro</li><li>Bloco 3: confirmação, garantias de entrega e ordem</li><li>Bloco 4: backpressure</li><li>Bloco 5: ClickHouse, lote, deduplicação, compressão e TTL</li><li>O mini projeto IoT: arquitetura, mensagem e topologia</li><li>Preparação do ambiente local</li><li>O projeto da aula em SDD</li><li>Os sete prompts CREATE</li><li>Execução e verificação local</li><li>Falhas provocadas: os cenários ATAM na prática</li></ol></div></section></div>
+<!-- encontro:meta:end -->
+
+
+    <article class="material">
+
+      <section class="content-block" id="sumario">
+        <h2>Sumário</h2>
+        <ol>
+          <li><a href="#s1">Onde a Aula 01 nos deixou</a></li>
+          <li><a href="#s2">Bloco 1: o problema e os modos de processamento</a></li>
+          <li><a href="#s3">Bloco 2: brokers e RabbitMQ por dentro</a></li>
+          <li><a href="#s4">Bloco 3: confirmação, garantias de entrega e ordem</a></li>
+          <li><a href="#s5">Bloco 4: backpressure</a></li>
+          <li><a href="#s6">Bloco 5: ClickHouse, lote, deduplicação, compressão e TTL</a></li>
+          <li><a href="#s7">O mini projeto IoT: arquitetura, mensagem e topologia</a></li>
+          <li><a href="#s8">Preparação do ambiente local</a></li>
+          <li><a href="#s9">O projeto da aula em SDD</a></li>
+          <li><a href="#s10">Os sete prompts CREATE</a></li>
+          <li><a href="#s11">Execução e verificação local</a></li>
+          <li><a href="#s12">Falhas provocadas: os cenários ATAM na prática</a></li>
+          <li><a href="#s13">Publicação no Railway</a></li>
+          <li><a href="#s14">Exemplo resolvido: o 502 do proxy, ADR e rastreabilidade</a></li>
+          <li><a href="#s15">Erros comuns</a></li>
+          <li><a href="#s16">Atividade em sala e entregável</a></li>
+        </ol>
+      </section>
+
+      <!-- 1 -->
+      <section class="content-block" id="s1">
+        <h2>1. Onde a Aula 01 nos deixou</h2>
+        <p>A Aula 01 definiu o método que esta aula usa sem repetir. Antes de qualquer código, o grupo escreve persona, objetivos de negócio, especificação, plano e tarefas; só então implementa, uma tarefa por vez e com testes, e fecha com uma validação ATAM que confronta a arquitetura com cenários de qualidade. Todo pedido ao agente segue o formato CREATE, com as seções <code>[C] Personagem</code>, <code>[R] Pedido</code>, <code>[E] Exemplos</code>, <code>[A] Ajustes</code>, <code>[T] Tipo de saída</code> e <code>[E] Extras</code>.</p>
+        <p>O ambiente também já existe: um Codespace aberto no repositório do grupo, um agente de código de sua preferência lendo o <code>AGENTS.md</code> e a CLI do Railway autenticada. O MinIO das aulas anteriores não participa deste projeto. Se algum item faltar, volte ao <a href="../materials/lesson-1-material.html">material da Aula 01</a> antes de continuar.</p>
+        <p>Até aqui, a disciplina coletou dados por pull: um processo acorda, chama uma API ou uma página, grava o resultado e dorme até a próxima execução. Nesta aula a direção se inverte. Os dados chegam por push, continuamente, e o pipeline precisa absorvê-los no ritmo em que são produzidos, sem saber quando virá o próximo.</p>
+        <div class="note">
+          <strong>Resultado esperado ao fim da aula</strong>
+          <p>Uma pasta <code>aula_06_streaming_iot/</code> no repositório do grupo com o esqueleto SDD preenchido; três processos Python (simulador, transformador, armazenador) com testes passando; o pipeline rodando no Codespace e no Railway; consultas analíticas respondidas pelo ClickHouse; e um <code>docs/atam.md</code> com cenários, falhas provocadas e evidências.</p>
+        </div>
+        <h3>1.1 Agenda</h3>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Horário</th><th>Bloco</th><th>Conteúdo</th></tr></thead>
+          <tbody>
+            <tr><td>8h30 &ndash; 8h50</td><td>Teoria 1</td><td>O problema das estufas; batch, micro-batch e streaming; latência e custo (seção 2).</td></tr>
+            <tr><td>8h50 &ndash; 9h15</td><td>Teoria 2</td><td>Fila e log; RabbitMQ por dentro; vazão medida com e sem confirmação (seção 3).</td></tr>
+            <tr><td>9h15 &ndash; 9h45</td><td>Teoria 3</td><td>Ack, prefetch, durabilidade, DLX, garantias de entrega e ordem (seção 4).</td></tr>
+            <tr><td>9h45 &ndash; 10h00</td><td>Teoria 4</td><td>Backpressure e tempo de drenagem (seção 5).</td></tr>
+            <tr><td>10h00 &ndash; 10h30</td><td>Teoria 5</td><td>ClickHouse: MergeTree, lote, deduplicação, compressão e TTL (seção 6).</td></tr>
+            <tr><td>10h30 &ndash; 11h30</td><td>Prática em SDD</td><td>Ambiente, prompts 1 a 5 revisados e início do prompt 6, acompanhando a demonstração (seções 7 a 11).</td></tr>
+            <tr><td>11h30 &ndash; 12h00</td><td>Discussão em sala</td><td>Três decisões sobre o pipeline de streaming montado na demonstração (seção 16.1).</td></tr>
+            <tr><td>12h00 &ndash; 12h10</td><td>Fechamento</td><td>Conferência do que existe às 12h10 e do que fica para a semana (seção 16).</td></tr>
+          </tbody>
+        </table></div>
+        <p>A teoria ocupa duas horas porque as decisões desta aula (onde confirmar, quanto agrupar, onde eliminar a duplicata, por quanto tempo guardar) só ficam defensáveis quando o grupo sabe o que cada uma custa. Cada bloco termina com um exemplo numérico medido na preparação da aula, uma pausa para reflexão e os pontos-chave. A prática fica com uma hora em sala e termina com os prompts 1 a 5 revisados e as primeiras funções puras implementadas; o pipeline completo, as falhas provocadas, o Railway e o ATAM seguem durante a semana, como a seção 16 detalha.</p>
+      </section>
+
+      <!-- 2 -->
+      <section class="content-block" id="s2">
+        <h2>2. Bloco 1 &middot; O problema e os modos de processamento</h2>
+        <p>Este bloco apresenta o problema que leva a coleta de pull para push e a primeira decisão que ele força: o modo de processamento de cada etapa do pipeline e o preço de baixar a latência.</p>
+        <h3>2.1 O cenário condutor da aula</h3>
+        <p>O cenário da aula é fictício. Uma cooperativa de produtores de mudas opera três estufas e uma sala de germinação. Cada ambiente tem sensores de temperatura e umidade. Hoje uma técnica agrícola confere os termo-higrômetros duas vezes por dia, de manhã e no fim da tarde. Quando a ventilação de uma estufa para numa tarde quente, ninguém percebe até a próxima ronda, e um lote de mudas pode se perder. A cooperativa quer receber as leituras continuamente para, primeiro, saber o último valor de cada sensor e a média recente de cada ambiente e, depois, construir alertas sobre esses dados.</p>
+        <p>Três características do problema orientam a arquitetura. A primeira é o tempo: o dado só ajuda se chegar enquanto ainda há o que fazer. A segunda é a sujeira: sensores reais mandam leituras impossíveis (umidade de 140%), repetem a mesma leitura quando a rede oscila e, nos modelos antigos da cooperativa, reportam a temperatura em Fahrenheit. A terceira é o volume acumulado: uma leitura por segundo de doze sensores parece pouco, mas soma mais de um milhão de linhas em um dia (12 &times; 86.400 = 1.036.800), e as consultas analíticas precisam continuar rápidas depois de meses.</p>
+        <p>A aula não usa sensores físicos. Um simulador em Python produz as leituras, inclusive as inválidas, as duplicadas e as em Fahrenheit, numa proporção configurável. Isso permite provocar cada falha de propósito e medir a resposta, que é exatamente o que a validação ATAM pede.</p>
+        <p>Três números deste cenário voltam em todos os exemplos numéricos da aula. O primeiro é o tamanho de uma leitura: a mensagem bruta da seção 7.1, serializada como JSON compacto com <code>json.dumps</code>, tem 187 bytes (201 com indentação), dos quais 36 são o UUID do <code>event_id</code>. O segundo é a taxa: doze sensores, uma leitura por segundo cada, doze mensagens por segundo. O terceiro é o total diário que essa taxa produz, 1.036.800 leituras.</p>
+        <h3>2.2 Batch, micro-batch e streaming</h3>
+        <p>Os três modos se distinguem pela unidade de trabalho e, como consequência, pela latência entre o fato acontecer e o dado estar disponível para consulta.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Modo</th><th>Unidade de trabalho</th><th>Latência típica</th><th>Exemplo na disciplina</th></tr></thead>
+          <tbody>
+            <tr><td>Batch</td><td>tudo o que chegou no período</td><td>horas</td><td>job do lakehouse da Aula 04, disparado por cron</td></tr>
+            <tr><td>Micro-batch</td><td>pequenos lotes em intervalos curtos</td><td>segundos a minutos</td><td>armazenador desta aula, que grava a cada N linhas ou T segundos</td></tr>
+            <tr><td>Streaming</td><td>cada evento, assim que chega</td><td>sub-segundo a segundos</td><td>transformador desta aula, que valida mensagem a mensagem</td></tr>
+          </tbody>
+        </table></div>
+        <p>No batch, o processamento enxerga um conjunto fechado: sabe quantas linhas há, pode ordenar tudo e refazer o trabalho inteiro se algo der errado. Essa visão completa simplifica muita coisa, mas obriga a esperar o período fechar. No streaming, o processamento enxerga um evento por vez e nunca sabe se o conjunto está completo. Uma leitura atrasada pode chegar depois de outra mais recente; um evento pode chegar duas vezes. O micro-batch fica no meio: acumula eventos por pouco tempo, processa o grupo e repete.</p>
+        <p>O pipeline desta aula combina os dois últimos modos por razão técnica. A validação e a normalização de uma leitura não dependem das outras, então o transformador trata cada mensagem assim que ela chega. A gravação no ClickHouse, ao contrário, fica muito mais barata em grupos, pelo mecanismo descrito na <a href="#s6">seção 6</a>, então o armazenador acumula leituras e grava em lote. A escolha do modo, portanto, é feita por etapa do pipeline, conforme o custo de cada operação.</p>
+        <h3>2.3 Latência e custo</h3>
+        <p>Reduzir a latência tem preço, e ele aparece em três lugares. O primeiro é o custo de infraestrutura: um job batch roda alguns minutos por hora, enquanto um consumidor de streaming fica ligado 24 horas e ocupa memória e CPU mesmo quando nada chega. No Railway, isso se traduz em serviços permanentes consumindo o crédito do trial. O segundo é o custo operacional: há um broker a mais para monitorar, filas que podem crescer, mensagens que podem ficar presas. O terceiro é o custo de correção: duplicatas, ordem trocada e falhas parciais, que no batch se resolvem reprocessando o período, no streaming exigem desenho explícito.</p>
+        <p>Por isso a latência é um requisito de negócio, e a pergunta certa vai para a persona: em quanto tempo a decisão precisa do dado? O que acontece se o dado atrasar cinco minutos? E uma hora? Se a resposta for "a técnica decide na ronda da manhã", streaming é desperdício. Se for "a ventilação precisa ser religada em até dez minutos", o streaming se justifica. Nesta aula a cooperativa ainda não respondeu com números, e o prompt de objetivos registra a latência como "hipótese, validação pendente". O ATAM depois mede a latência que o pipeline de fato entrega, com a consulta de <code>dateDiff</code> entre <code>medido_em</code> e <code>ingerido_em</code>.</p>
+        <h3>2.4 Exemplo numérico: quanto o pipeline recebe</h3>
+        <div class="note">
+          <strong>Exemplo numérico 1. Volume do pipeline das estufas</strong>
+          <p>Com 187 bytes por leitura e 12 leituras por segundo, o broker recebe 2.244 bytes por segundo. Em uma hora são 43.200 leituras e 8,1 MB de JSON; em um dia, 1.036.800 leituras e 193,9 MB; nos 90 dias do TTL da aula, 93.312.000 leituras e 17,4 GB. A vazão é pequena para qualquer broker; o volume acumulado é o que pesa.</p>
+          <p>O exemplo numérico 6, no bloco 5, mede quanto esse mesmo dia ocupa no ClickHouse: 50,4 MB em disco. Projetado para 90 dias, o detalhe ocuparia cerca de 4,5 GB, contra 17,4 GB do JSON bruto. A projeção supõe dados com a mesma distribuição do teste e deve ser conferida no ambiente do grupo.</p>
+          <p>A comparação com o batch mostra o que a latência compra. Um job por hora receberia as 43.200 leituras de uma vez, e a primeira delas esperaria até 60 minutos para virar consulta. O streaming entrega cada leitura em segundos, e o preço é manter três processos e um broker ligados 24 horas, com tratamento explícito de duplicata, ordem e falha parcial.</p>
+        </div>
+        <div class="note">
+          <strong>Pausa para reflexão</strong>
+          <p>A cooperativa tem quatro necessidades: saber de uma ventilação parada antes que a estufa aqueça; ver o último valor e a média de 5 minutos por ambiente várias vezes ao dia; receber, toda segunda-feira, as horas fora da faixa por estufa; e comparar este verão com o próximo para planejar o sombreamento. Para cada uma, escolha batch, micro-batch ou streaming e diga o que acontece se o dado atrasar 5 minutos e se atrasar 1 hora. A resposta vira RNF de latência, marcado como hipótese até a persona confirmar.</p>
+        </div>
+        <div class="note">
+          <strong>Pontos-chave do bloco 1</strong>
+          <ul>
+            <li>O modo de processamento se escolhe por etapa: o transformador trata evento a evento, o armazenador grava em lote.</li>
+            <li>Latência baixa custa processos ligados 24 horas, um broker a mais e desenho explícito para duplicata, ordem e falha parcial.</li>
+            <li>Doze sensores a 187 bytes somam 194 MB de JSON por dia: o volume acumulado pressiona mais que a vazão.</li>
+            <li>Latência e retenção são requisitos da persona; sem resposta, entram na spec como hipótese.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 3 -->
+      <section class="content-block" id="s3">
+        <h2>3. Bloco 2 &middot; Brokers e RabbitMQ por dentro</h2>
+        <p>Um broker existe para guardar a leitura enquanto quem vai processá-la está ocupado, desligado ou mais lento. Este bloco compara as duas famílias de broker, abre o caminho de uma mensagem dentro do RabbitMQ e mede o que custa ter certeza de que o broker recebeu a mensagem.</p>
+        <h3>3.1 Mensageria e log distribuído: RabbitMQ e Kafka</h3>
+        <p>Um broker desacopla quem produz o dado de quem o consome. O simulador não precisa saber se o transformador está ligado; ele publica, e o broker guarda. Há duas famílias principais de broker, com modelos mentais diferentes.</p>
+        <p>Na mensageria, representada aqui pelo RabbitMQ, o broker funciona como uma central de correio. Ele recebe mensagens, decide em quais filas colocá-las e entrega cada mensagem a um consumidor. Quando o consumidor confirma o processamento, a mensagem sai da fila. O broker conhece o estado de cada entrega e concentra a inteligência de roteamento.</p>
+        <p>No log distribuído, representado pelo Kafka, o broker funciona como um arquivo de registro que só cresce. Cada evento é anexado ao fim de uma partição de um tópico e fica lá até a política de retenção apagá-lo, consumido ou não. Cada consumidor guarda a própria posição (o offset) e pode voltar no tempo para reler. O broker é mais simples na entrega; o consumidor carrega mais responsabilidade.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Critério</th><th>RabbitMQ (filas)</th><th>Kafka (log)</th></tr></thead>
+          <tbody>
+            <tr><td>O que acontece após o consumo</td><td>mensagem confirmada sai da fila</td><td>evento continua no log até a retenção vencer</td></tr>
+            <tr><td>Roteamento</td><td>exchanges e bindings decididos no broker</td><td>tópicos e partições; filtragem no consumidor</td></tr>
+            <tr><td>Controle de progresso</td><td>confirmação (ack) por mensagem</td><td>offset por partição e por grupo de consumo</td></tr>
+            <tr><td>Reprocessar o passado</td><td>só se alguém guardou uma cópia</td><td>reler a partir de um offset anterior</td></tr>
+            <tr><td>Ordem</td><td>por fila, com um único consumidor</td><td>por partição</td></tr>
+            <tr><td>Bom encaixe</td><td>distribuição de trabalho, roteamento por conteúdo, filas de tarefa</td><td>histórico de eventos, vários consumidores independentes lendo o mesmo fluxo, reprocessamento</td></tr>
+          </tbody>
+        </table></div>
+        <p>A comparação é qualitativa de propósito. Afirmações sobre vazão ("Kafka aguenta X mensagens por segundo") dependem de hardware, configuração, tamanho de mensagem e garantia exigida, e não cabem num material sem medição própria. Vale registrar também que a fronteira entre as famílias ficou menos nítida: o RabbitMQ oferece streams, um tipo de fila com semântica de log anexável e releitura por offset. Nesta aula usamos filas de mensageria, porque o problema é distribuir trabalho de validação e gravação, e o histórico fica no ClickHouse.</p>
+        <p>Referência: <a href="https://www.rabbitmq.com/docs" target="_blank" rel="noopener noreferrer">documentação oficial do RabbitMQ</a>.</p>
+        <h3>3.2 Do producer ao consumer</h3>
+        <p>O RabbitMQ implementa o protocolo AMQP 0-9-1, usado pela biblioteca Python <code>pika</code>. O caminho de uma mensagem passa por cinco elementos.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Elemento</th><th>Papel</th><th>No projeto</th></tr></thead>
+          <tbody>
+            <tr><td>Producer</td><td>publica uma mensagem numa exchange, com uma routing key</td><td>simulador; transformador ao republicar válidas</td></tr>
+            <tr><td>Exchange</td><td>recebe a mensagem e decide para quais filas copiá-la</td><td><code>iot.leituras</code> (topic) e <code>iot.dlx</code> (fanout)</td></tr>
+            <tr><td>Binding</td><td>regra que liga uma exchange a uma fila, com uma binding key</td><td><code>leitura.bruta.#</code>, <code>leitura.valida.#</code></td></tr>
+            <tr><td>Queue</td><td>guarda as mensagens até um consumidor confirmá-las</td><td><code>leituras.brutas</code>, <code>leituras.validas</code>, <code>leituras.dlq</code></td></tr>
+            <tr><td>Consumer</td><td>recebe, processa e responde com ack ou nack</td><td>transformador, armazenador</td></tr>
+          </tbody>
+        </table></div>
+        <p>O ponto que mais confunde quem chega ao RabbitMQ é que o producer não escreve numa fila. Ele entrega à exchange, e a exchange aplica os bindings. Se nenhum binding casar com a routing key, a mensagem é descartada em silêncio (há como pedir a devolução com a flag <code>mandatory</code>, mas o padrão é descartar). Por isso a topologia precisa existir antes de o simulador começar a publicar, e cada processo declara de forma idempotente as exchanges e filas que usa.</p>
+        <h3>3.3 Tipos de exchange</h3>
+        <ul>
+          <li>Direct: entrega às filas cuja binding key é igual à routing key. Útil quando cada destino tem um nome fixo.</li>
+          <li>Topic: a routing key é uma sequência de palavras separadas por ponto, e a binding key pode usar <code>*</code> (exatamente uma palavra) e <code>#</code> (zero ou mais palavras). No projeto, o simulador publica com <code>leitura.bruta.&lt;tipo_local&gt;.&lt;device_id&gt;</code>, por exemplo <code>leitura.bruta.estufa.estufa-a-03</code>. A fila <code>leituras.brutas</code> liga com <code>leitura.bruta.#</code> e recebe tudo. Se amanhã alguém quiser uma fila só da sala de germinação, basta ligá-la com <code>leitura.*.sala.#</code>, sem tocar no simulador.</li>
+          <li>Fanout: copia para todas as filas ligadas e ignora a routing key. É a escolha natural para a dead letter exchange <code>iot.dlx</code>, porque tudo que for rejeitado deve chegar à mesma DLQ.</li>
+          <li>Headers: roteia por cabeçalhos da mensagem em vez da routing key. Não é usado nesta aula.</li>
+        </ul>
+        <p>Existe ainda a exchange padrão, sem nome (<code>exchange=''</code>), que entrega direto à fila cujo nome é igual à routing key. Os tutoriais iniciais do RabbitMQ a usam; o projeto da aula usa exchanges nomeadas porque o roteamento por tópico é parte do desenho.</p>
+        <h3>3.4 Exemplo numérico: vazão com e sem confirmação</h3>
+        <div class="note">
+          <strong>Exemplo numérico 2. Publicar com e sem publisher confirms</strong>
+          <p>As medições desta aula foram feitas em 16/10/2026, num notebook de 12 núcleos compartilhado com outros processos, com RabbitMQ <code>4.3.6-management</code> e ClickHouse <code>26.8.15.10</code> em Docker, as mesmas imagens do <code>docker-compose.yml</code> do laboratório, e com <code>pika</code> 1.4.4 e <code>clickhouse-connect</code> 1.9.0. Não há rede entre cliente e servidor. Os números servem para comparar configurações entre si, e não como previsão do que o Railway entrega.</p>
+          <p>Um produtor publicou 10.000 mensagens persistentes de 187 bytes numa fila quorum, de duas formas: sem confirmação e com <code>channel.confirm_delivery()</code>, em que cada <code>basic_publish</code> espera a resposta do broker (seção 4.5). Mediana de cinco rodadas, depois de uma rodada de aquecimento:</p>
+          <p>          <div class="table-scroll"><table>
+            <thead><tr><th>Modo</th><th>Mensagens por segundo</th><th>Faixa nas 5 rodadas</th><th>Folga para 12 sensores</th><th>Folga para 200 sensores</th></tr></thead>
+            <tbody>
+              <tr><td>Sem confirmação</td><td>21.973</td><td>15.143 a 28.237</td><td>1.831 vezes</td><td>110 vezes</td></tr>
+              <tr><td>Confirmação a cada mensagem</td><td>277</td><td>255 a 341</td><td>23 vezes</td><td>1,4 vez</td></tr>
+            </tbody>
+          </table></div></p>
+          <p>A confirmação reduziu a vazão cerca de 80 vezes. O mecanismo é a espera: para uma mensagem persistente, o broker só confirma depois de gravá-la, e o produtor síncrono fica parado durante essa ida e volta. Com 12 sensores, a folga continua grande. Com <code>SENSORES=200</code>, o cenário de pico do ATAM, um produtor que confirma mensagem a mensagem trabalha a 72% da capacidade medida, e qualquer latência de rede a mais o leva ao limite. Confirmações em lote ou assíncronas recuperam vazão, mas complicam o código; o projeto aceita a confirmação síncrona porque a taxa da cooperativa é baixa, e o grupo registra essa decisão.</p>
+        </div>
+        <div class="note">
+          <strong>Pausa para reflexão</strong>
+          <p>A técnica quer um consumidor que veja apenas as leituras brutas da sala de germinação. Sem mexer no simulador: qual binding key liga a nova fila a <code>iot.leituras</code>? A fila <code>leituras.brutas</code> deixa de receber essas leituras? O que acontece com uma mensagem publicada com <code>leitura.bruta.galpao.g-01</code> se nenhum binding casar? Em que situação valeria trocar a fila por um stream, com releitura por offset?</p>
+        </div>
+        <div class="note">
+          <strong>Pontos-chave do bloco 2</strong>
+          <ul>
+            <li>Fila entrega e descarta depois do ack; log guarda até a retenção vencer e permite reler.</li>
+            <li>O producer publica numa exchange; os bindings decidem as filas, e mensagem sem binding é descartada.</li>
+            <li>Topic com <code>leitura.bruta.&lt;tipo_local&gt;.&lt;device_id&gt;</code> permite filas novas sem tocar no producer.</li>
+            <li>Medido localmente, confirmar cada publicação reduziu a vazão de cerca de 22 mil para cerca de 280 mensagens por segundo.</li>
+          </ul>
+        </div>
+        <h3>3.5 Para saber mais</h3>
+        <ul>
+          <li>Kleppmann, M. <em>Designing Data-Intensive Applications</em>. O'Reilly, 2017, capítulo 11 (Stream Processing): mensageria contra log, garantias e ordem.</li>
+          <li>Kreps, J. <em>I Heart Logs: Event Data, Stream Processing, and Data Integration</em>. O'Reilly, 2014: o log como abstração central dos sistemas de dados.</li>
+          <li><a href="https://www.rabbitmq.com/docs/confirms" target="_blank" rel="noopener noreferrer">RabbitMQ: consumer acknowledgements e publisher confirms</a>, fonte do exemplo 2 e da seção 4.</li>
+          <li><a href="https://www.rabbitmq.com/docs/streams" target="_blank" rel="noopener noreferrer">RabbitMQ: streams</a>, o tipo de fila com semântica de log.</li>
+        </ul>
+      </section>
+
+      <!-- 4 -->
+      <section class="content-block" id="s4">
+        <h2>4. Bloco 3 &middot; Confirmação, garantias de entrega e ordem</h2>
+        <p>Guardar a mensagem não basta: o broker precisa saber quando pode descartá-la. Este bloco trata do momento da confirmação, de quantas mensagens o consumidor segura, do que sobrevive a um reinício e do que acontece quando algo falha entre gravar e confirmar.</p>
+        <h3>4.1 Ack automático e ack manual</h3>
+        <p>Com ack automático, o RabbitMQ considera a mensagem entregue no instante em que a envia ao consumidor. Se o processo cair durante o processamento, a mensagem está perdida. Com ack manual, o consumidor chama <code>basic_ack(delivery_tag=...)</code> só depois de terminar o trabalho. A documentação oficial descreve o comportamento que torna o ack manual seguro: toda entrega sem confirmação volta automaticamente para a fila quando o canal ou a conexão em que ela foi entregue se fecha, e a reentrega chega marcada com <code>redelivered=True</code>.</p>
+        <p>Há duas formas de recusar. <code>basic_nack(delivery_tag=..., requeue=True)</code> devolve a mensagem à fila, o que serve para falhas transitórias. <code>basic_nack(..., requeue=False)</code> (ou <code>basic_reject</code>) recusa sem devolver: se a fila tiver uma dead letter exchange configurada, a mensagem vai para ela; se não tiver, é descartada.</p>
+        <h3>4.2 Prefetch</h3>
+        <p><code>basic_qos(prefetch_count=N)</code> limita quantas entregas sem ack o canal pode ter ao mesmo tempo. Com <code>N=1</code>, o consumidor recebe uma mensagem, processa, confirma e só então recebe a próxima. É o mais seguro e o mais lento. Valores maiores aumentam a vazão porque escondem a latência de rede entre broker e consumidor; a documentação cita a faixa de 100 a 300 como ponto de partida comum. O armazenador tem uma restrição adicional: ele segura as mensagens sem ack enquanto monta o lote, então o prefetch precisa ser maior ou igual ao tamanho máximo do lote. Com prefetch 200 e lote de 1.000, o lote nunca enche, e o armazenador só grava quando o tempo máximo vence.</p>
+        <h3>4.3 Fila durável e mensagem persistente</h3>
+        <p>São duas propriedades independentes, e as duas são necessárias para que uma leitura sobreviva ao reinício do broker. A fila durável (<code>durable=True</code>) tem sua definição restaurada no reinício. A mensagem persistente (<code>properties=pika.BasicProperties(delivery_mode=pika.DeliveryMode.Persistent)</code>) é gravada em disco. Uma fila durável com mensagens transitórias volta vazia.</p>
+        <p>O projeto usa filas do tipo quorum (<code>arguments={"x-queue-type": "quorum"}</code>), como o próprio tutorial atual do RabbitMQ. Filas quorum são sempre duráveis e não aceitam ser exclusivas ou temporárias. Desde o RabbitMQ 4.0, elas têm um limite de entregas padrão de 20: uma mensagem reentregue mais vezes que isso é descartada ou, se houver DLX, enviada para ela. Esse limite protege contra a mensagem venenosa que derruba o consumidor, volta para a fila e o derruba de novo indefinidamente.</p>
+        <h3>4.4 Dead letter exchange</h3>
+        <p>Uma mensagem vira "dead letter" quando é recusada com <code>requeue=False</code>, quando expira por TTL, quando a fila estoura o limite de tamanho ou quando passa do limite de entregas de uma fila quorum. Nesses casos, se a fila tiver o argumento <code>x-dead-letter-exchange</code> (ou a política equivalente <code>dead-letter-exchange</code>), o RabbitMQ republica a mensagem nessa exchange e acrescenta o cabeçalho <code>x-death</code>, com a fila de origem, o motivo (<code>rejected</code>, <code>expired</code>, <code>maxlen</code>, <code>delivery_limit</code>), a contagem e o horário.</p>
+        <p>O transformador tem duas formas de mandar uma leitura inválida para a DLQ, e a escolha entra na spec. Na primeira, ele chama <code>basic_nack(requeue=False)</code> e deixa o RabbitMQ encaminhar; é simples, mas o <code>x-death</code> só diz <code>rejected</code>, sem a regra violada. Na segunda, ele publica a mensagem original diretamente em <code>iot.dlx</code> com um cabeçalho próprio de motivo (por exemplo <code>x-motivo: umidade_fora_da_faixa</code>), espera a confirmação do broker e só então dá ack na original. O projeto usa a segunda para inválidos conhecidos, porque a técnica agrícola e o mantenedor precisam saber por que a leitura foi descartada, e reserva o <code>nack(requeue=False)</code> para exceções inesperadas.</p>
+        <p>A documentação recomenda configurar a DLX por política, porque argumentos fixos na declaração da fila não podem ser alterados sem recriá-la. Para uma aula com um único ambiente, os argumentos na declaração são aceitáveis e mais visíveis; registre a decisão num ADR. Referências: <a href="https://www.rabbitmq.com/docs/confirms" target="_blank" rel="noopener noreferrer">confirmações e publisher confirms</a>, <a href="https://www.rabbitmq.com/docs/dlx" target="_blank" rel="noopener noreferrer">dead letter exchanges</a>, <a href="https://www.rabbitmq.com/docs/quorum-queues" target="_blank" rel="noopener noreferrer">filas quorum</a>.</p>
+        <h3>4.5 Publisher confirms</h3>
+        <p>O ack do consumidor protege a saída da fila. A entrada também precisa de proteção: o producer só sabe que o broker aceitou a mensagem se pedir confirmação. Em <code>pika</code>, com <code>BlockingConnection</code>, basta chamar <code>channel.confirm_delivery()</code> uma vez; a partir daí, <code>basic_publish</code> espera a confirmação e lança exceção se a mensagem for recusada ou não puder ser roteada com <code>mandatory=True</code>. Para mensagens persistentes, a confirmação significa que a mensagem foi gravada em disco. O transformador usa confirms ao republicar as válidas e ao mandar inválidas para a DLX, e só dá ack na mensagem original depois da confirmação.</p>
+        <h3>4.6 Exemplo numérico: prefetch e reentrega</h3>
+        <div class="note">
+          <strong>Exemplo numérico 3. O efeito do prefetch e uma reentrega observada</strong>
+          <p>No mesmo ambiente do exemplo 2, um consumidor leu 10.000 mensagens persistentes da fila quorum com ack manual a cada mensagem, variando apenas o <code>prefetch_count</code>. Mediana de cinco rodadas:</p>
+          <p>          <div class="table-scroll"><table>
+            <thead><tr><th><code>prefetch_count</code></th><th>Mensagens por segundo</th><th>Faixa nas 5 rodadas</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>274</td><td>267 a 284</td></tr>
+              <tr><td>100</td><td>12.131</td><td>11.207 a 12.522</td></tr>
+              <tr><td>1.000</td><td>25.738</td><td>24.153 a 27.807</td></tr>
+            </tbody>
+          </table></div></p>
+          <p>Com prefetch 1, cada mensagem paga uma ida e volta inteira ao broker antes da próxima, e a vazão fica no mesmo patamar da publicação com confirmação. Com 100, o broker mantém mensagens a caminho enquanto o consumidor processa as anteriores, e a vazão sobe 44 vezes. De 100 para 1.000 ela ainda dobra. No armazenador, o prefetch tem um piso que não depende de vazão: precisa ser maior ou igual ao lote, como a seção 4.2 explica.</p>
+          <p>A reentrega também foi observada. Um consumidor com prefetch 1.000 recebeu 60 mensagens, o tamanho de um lote fechado por tempo com 12 sensores, e fechou a conexão sem ack. Durante o consumo, a fila mostrava 0 mensagens prontas; logo depois do fechamento, 60. Um segundo consumidor recebeu as 60, todas com <code>redelivered=True</code> e cabeçalho <code>x-delivery-count</code> igual a 1, a contagem que a fila quorum usa para aplicar o limite de 20 entregas.</p>
+        </div>
+        <h3>4.7 Garantias de entrega e idempotência</h3>
+        <p>A garantia de entrega descreve o que acontece com uma mensagem quando algo falha no meio do caminho. Ela depende do ponto em que o consumidor confirma.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Garantia</th><th>Como se obtém</th><th>Falha típica</th></tr></thead>
+          <tbody>
+            <tr><td>At-most-once (no máximo uma vez)</td><td>ack antes de processar, ou ack automático</td><td>o consumidor cai depois do ack e antes de gravar: a leitura se perde</td></tr>
+            <tr><td>At-least-once (pelo menos uma vez)</td><td>ack só depois de gravar no destino</td><td>o consumidor cai depois de gravar e antes do ack: a mensagem volta e é gravada de novo</td></tr>
+            <tr><td>Exactly-once (efeito de uma vez)</td><td>at-least-once mais escrita idempotente no destino</td><td>depende de uma chave de deduplicação estável</td></tr>
+          </tbody>
+        </table></div>
+        <p>O intervalo entre "gravei" e "confirmei" nunca chega a zero. Por mais rápido que seja, o processo pode morrer ali. Por isso um broker sozinho não entrega exactly-once de ponta a ponta para um destino externo: o RabbitMQ não sabe se o ClickHouse gravou, e o ClickHouse não sabe se o RabbitMQ recebeu o ack. A documentação do RabbitMQ diz isso de forma direta: consumidores devem estar preparados para reentregas e ser implementados com idempotência em mente.</p>
+        <p>Idempotência significa que aplicar a mesma operação duas vezes produz o mesmo estado que aplicá-la uma vez. No pipeline, a gravação de uma leitura precisa ser idempotente: gravar duas vezes a leitura do sensor <code>estufa-a-03</code> medida em <code>2026-11-14T12:41:03.120Z</code> deve resultar numa única leitura nas consultas. O projeto adota at-least-once no RabbitMQ e duas camadas de idempotência no ClickHouse, descritas na <a href="#s6">seção 6</a>: um token por lote no INSERT e um motor de tabela que colapsa linhas com a mesma chave.</p>
+        <h3>4.8 Ordem de chegada e ordem de medição</h3>
+        <p>A mesma lógica vale para a ordem. Uma fila entrega em ordem quando há um único consumidor e nenhuma reentrega. Basta uma mensagem voltar para a fila, ou dois consumidores dividirem a carga, para a ordem de chegada deixar de ser a ordem de medição. O desenho evita depender dela: cada leitura carrega o próprio <code>medido_em</code>, e as consultas usam esse campo, nunca a ordem de chegada.</p>
+        <p>Três situações quebram a ordem no pipeline da aula. A primeira é a reentrega: uma mensagem que volta para a fila entra atrás das que chegaram depois dela. A segunda é ter dois consumidores na mesma fila, o que a seção 5 discute como resposta ao backpressure. A terceira vem da origem: um sensor que perde a rede pode reenviar leituras antigas quando ela volta. Por isso as consultas da seção 11 usam <code>argMax(temperatura_c, medido_em)</code> para o último valor e <code>toStartOfInterval(medido_em, ...)</code> para as janelas, e nunca <code>ingerido_em</code> ou a ordem de inserção. O cenário 7 do ATAM provoca exatamente esse caso.</p>
+        <div class="note">
+          <strong>Pausa para reflexão</strong>
+          <p>O armazenador cai em quatro momentos do mesmo lote: antes do INSERT, com o lote só em memória; entre o INSERT e o ack, com o ClickHouse já gravado; depois do ack; e numa versão com ack automático, em que a mensagem contou como entregue ao sair do broker. Para cada momento, diga se a leitura se perde, duplica ou chega uma vez, e qual mecanismo desta seção ou da seção 6 garante o resultado.</p>
+        </div>
+        <div class="note">
+          <strong>Pontos-chave do bloco 3</strong>
+          <ul>
+            <li>Ack manual depois do trabalho; sem ack, a mensagem volta com <code>redelivered=True</code>.</li>
+            <li>Fila durável e mensagem persistente valem juntas; a fila quorum limita a 20 entregas e manda o excesso para a DLX.</li>
+            <li>Prefetch medido: de 274 para 25.738 mensagens por segundo entre 1 e 1.000; no armazenador, prefetch maior ou igual ao lote.</li>
+            <li>At-least-once com escrita idempotente dá efeito de uma vez; o intervalo entre gravar e confirmar nunca chega a zero.</li>
+            <li>Consultas usam <code>medido_em</code>, nunca a ordem de chegada.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 5 -->
+      <section class="content-block" id="s5">
+        <h2>5. Bloco 4 &middot; Backpressure</h2>
+        <p>Com as garantias definidas, falta saber o que acontece quando um estágio fica mais lento que o anterior por minutos ou horas. Este bloco nomeia o fenômeno, mostra os sinais e mede quanto tempo o pipeline leva para se recuperar de um pico.</p>
+        <p>Backpressure é o que acontece quando um estágio do pipeline produz mais rápido do que o seguinte consegue consumir. O broker absorve a diferença enquanto puder; a fila cresce. Esse é o primeiro benefício de ter um broker: um ClickHouse lento por alguns minutos não derruba o simulador. Mas a absorção tem limite. O RabbitMQ monitora memória e disco e, quando um alarme dispara, bloqueia as conexões que publicam até a pressão diminuir. Do ponto de vista do simulador, o <code>basic_publish</code> simplesmente para de retornar.</p>
+        <p>Os sinais observáveis são o crescimento contínuo de <code>messages_ready</code> numa fila, visível em <code>rabbitmqctl list_queues</code> e no console, e o aumento do atraso entre <code>medido_em</code> e <code>ingerido_em</code> no ClickHouse. As respostas possíveis têm custos diferentes: aumentar o prefetch e o lote (mais vazão, mais latência e mais memória no consumidor), colocar mais consumidores na mesma fila (mais vazão, ordem menos previsível e mais um serviço no Railway), ou limitar o tamanho da fila com <code>x-max-length</code> e uma política de overflow explícita (memória protegida, mas mensagens descartadas ou publicadores recusados). Qual resposta é aceitável depende do que a persona tolera perder, e isso é um cenário ATAM.</p>
+        <h3>5.1 Exemplo numérico: quanto tempo um pico leva para drenar</h3>
+        <div class="note">
+          <strong>Exemplo numérico 4. Drenagem do cenário de pico</strong>
+          <p>O cenário 2 do ATAM para o transformador e roda o simulador com <code>SENSORES=200</code> por um minuto: 200 &times; 60 = 12.000 mensagens acumuladas em <code>leituras.brutas</code>. Para estimar a drenagem, mediu-se um consumidor que faz o trabalho do transformador sem a validação completa: lê com prefetch 100, converte o JSON, republica em outra fila quorum com confirmação e dá ack. Foram quatro rodadas de 12.000 mensagens em duas execuções.</p>
+          <p>Nas rodadas seguidas, a vazão ficou entre 150 e 169 mensagens por segundo, mediana de 160. A primeira rodada de cada execução chegou a 665 e 745. Com a mediana, e descontando as 12 mensagens por segundo que continuam chegando depois do pico, a fila drena em 12.000 &divide; (160 &minus; 12) &asymp; 81 segundos; com a vazão da primeira rodada, em cerca de 18 segundos.</p>
+          <p>Duas conclusões a evidência autoriza. O gargalo do transformador é a confirmação de cada publicação, já medida no exemplo 2, e não a conversão do JSON. E a vazão variou até cinco vezes entre rodadas na mesma máquina, sem mudança de código; a causa provável é o estado interno da fila quorum e a carga da máquina, uma hipótese que esta medição não isola. Por isso o ATAM pede o tempo de drenagem medido no ambiente do grupo, e não calculado.</p>
+          <p>O mesmo raciocínio vale para o ClickHouse parado. Se ele ficar 20 minutos sem responder, a fila de válidas acumula 12 &times; 1.200 = 14.400 mensagens, e cada uma delas chega à consulta com pelo menos 20 minutos de atraso. Esse número é hipótese, coerente com a taxa da aula, e é o ponto de partida da questão 2 da discussão da seção 16.1.</p>
+        </div>
+        <div class="note">
+          <strong>Pausa para reflexão</strong>
+          <p>O ClickHouse do Railway tem 1 GB de RAM e vCPU compartilhada, e a fila de válidas cresce há 10 minutos. Para cada resposta da lista acima, responda: quanto a latência sobe com um lote maior e quantos INSERTs por minuto deixam de existir? Há vaga entre os cinco serviços para mais um armazenador, e o gargalo é o cliente ou o servidor? Que leitura a cooperativa aceita perder com um limite de fila, e quem fica sabendo? Que medida decide entre elas?</p>
+        </div>
+        <div class="note">
+          <strong>Pontos-chave do bloco 4</strong>
+          <ul>
+            <li>O broker absorve a diferença entre produção e consumo até o alarme de memória ou disco bloquear os publicadores.</li>
+            <li>Sinais: <code>messages_ready</code> cresce sem parar e o atraso entre <code>medido_em</code> e <code>ingerido_em</code> aumenta.</li>
+            <li>Cada resposta tem custo: lote maior aumenta a latência, mais consumidores desordenam e ocupam vaga, limite de fila descarta.</li>
+            <li>Tempo de drenagem se mede no ambiente; a vazão local variou até cinco vezes entre rodadas.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 6 -->
+      <section class="content-block" id="s6">
+        <h2>6. Bloco 5 &middot; ClickHouse: lote, deduplicação, compressão e TTL</h2>
+        <p>O último bloco teórico trata do destino. O ClickHouse guarda as leituras para as consultas da técnica, e a forma de inserir, deduplicar e expirar os dados decide se elas continuam rápidas depois de meses.</p>
+        <h3>6.1 Colunas, MergeTree, ORDER BY e PARTITION BY</h3>
+        <p>O ClickHouse é um banco analítico colunar. Cada coluna de uma tabela fica em arquivos próprios, comprimidos. Uma consulta como <code>SELECT avg(temperatura_c) FROM iot.leituras WHERE device_id = 'estufa-a-03'</code> lê apenas as colunas <code>temperatura_c</code> e <code>device_id</code>, e não as outras sete. Em tabelas com milhões de linhas e consultas que agregam poucas colunas, essa é a diferença central em relação a um banco orientado a linhas como o Postgres da Aula 05, que lê a linha inteira mesmo quando a consulta precisa de uma coluna só.</p>
+        <p>A família de motores MergeTree organiza os dados em partes. Cada INSERT gera uma ou mais partes novas, imutáveis, com as linhas ordenadas pela chave declarada em <code>ORDER BY</code>. Em segundo plano, o servidor junta partes pequenas em partes maiores (os merges). Três cláusulas do <code>CREATE TABLE</code> definem como isso acontece:</p>
+        <ul>
+          <li><code>ORDER BY (device_id, medido_em)</code> ordena as linhas dentro de cada parte e forma o índice primário esparso. O ClickHouse guarda uma marca a cada bloco de linhas (8.192 por padrão) e, numa consulta filtrada por <code>device_id</code> e intervalo de tempo, pula os blocos que não podem conter o resultado. A ordem das colunas importa: filtros pela primeira coluna da chave aproveitam o índice melhor do que filtros só pela segunda.</li>
+          <li><code>PARTITION BY toYYYYMM(medido_em)</code> separa as partes por mês. A partição serve para gerenciar dados (apagar um mês inteiro, aplicar TTL, mover para outro disco), e não como ferramenta geral de desempenho. Partições demais, como uma por dia por sensor, multiplicam as partes e prejudicam o servidor.</li>
+          <li><code>ENGINE</code> escolhe o motor. O <code>MergeTree</code> simples guarda tudo o que recebe. Variantes como <code>ReplacingMergeTree</code> fazem algo a mais durante o merge, como descrito na seção 6.5.</li>
+        </ul>
+        <p>Referência: <a href="https://clickhouse.com/docs" target="_blank" rel="noopener noreferrer">documentação oficial do ClickHouse</a>.</p>
+        <h3>6.2 Por que inserir linha a linha é ruim</h3>
+        <p>Se cada INSERT cria uma parte, um armazenador que grava uma leitura por vez cria uma parte por leitura. Com doze sensores a uma leitura por segundo, são doze partes por segundo. Os merges não acompanham, o número de partes ativas cresce, as consultas precisam abrir cada vez mais arquivos e, a partir de um limite, o servidor passa a recusar inserções com o erro "too many parts". A documentação do ClickHouse recomenda lotes de pelo menos 1.000 linhas e, idealmente, entre 10.000 e 100.000 linhas.</p>
+        <p>Essa recomendação entra em tensão com a latência. Doze sensores levam cerca de 83 segundos para produzir 1.000 leituras. O armazenador resolve com duas condições de fechamento de lote, a que vier primeiro: tamanho máximo (<code>LOTE_MAX_LINHAS</code>) ou tempo máximo (<code>LOTE_MAX_SEGUNDOS</code>). Com os valores iniciais do <code>.env.example</code> (1.000 linhas ou 5 segundos), o lote fecha por tempo, com cerca de 60 linhas, e o ClickHouse recebe 12 inserções por minuto. É uma escolha consciente de latência sobre tamanho de lote, que o grupo deve registrar e medir pela consulta de partes ativas em <code>system.parts</code>.</p>
+        <p>Há uma alternativa no próprio servidor: com <code>async_insert=1</code>, o ClickHouse acumula pequenos INSERTs num buffer e grava quando atinge um limite de tamanho, tempo ou quantidade. A documentação recomenda usar <code>async_insert=1</code> junto com <code>wait_for_async_insert=1</code>, para que o cliente só receba sucesso depois que os dados estiverem em disco. O projeto mantém o lote no cliente, porque ele deixa visível no código o momento em que o ack pode ser dado.</p>
+        <h3>6.3 Exemplo numérico: o tamanho do lote, medido</h3>
+        <div class="note">
+          <strong>Exemplo numérico 5. Uma, 60 e 1.000 linhas por INSERT</strong>
+          <p>No ambiente descrito no exemplo 2, as mesmas 12.000 leituras sintéticas foram inseridas na tabela da aula, criada três vezes, com <code>clickhouse-connect</code> e três tamanhos de lote. As partes ativas foram contadas em <code>system.parts</code> ao fim da carga e de novo 10 segundos depois, sem mudança.</p>
+          <p>          <div class="table-scroll"><table>
+            <thead><tr><th>Linhas por INSERT</th><th>INSERTs</th><th>Tempo total</th><th>Linhas por segundo</th><th>Partes ativas ao fim</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>12.000</td><td>729 s</td><td>16</td><td>5, depois de 12.000 partes criadas e juntadas</td></tr>
+              <tr><td>60 (lote por tempo da aula)</td><td>200</td><td>12,1 s</td><td>990</td><td>5</td></tr>
+              <tr><td>1.000</td><td>12</td><td>0,7 s</td><td>16.506</td><td>2</td></tr>
+            </tbody>
+          </table></div></p>
+          <p>Linha a linha, o servidor aceitou 16 linhas por segundo. Os 12 sensores da cooperativa ocupariam 75% dessa capacidade, sem folga para um pico ou para as consultas da técnica. O lote de 60 linhas, que o armazenador fecha a cada 5 segundos, multiplica a vazão por 62 e deixa 82 vezes de folga; o lote de 1.000, mais de mil vezes. O mecanismo está na seção 6.1: cada INSERT cria uma parte, e o servidor gastou o tempo criando 12.000 partes e juntando-as em 5.</p>
+          <p>A máquina era compartilhada com outros processos, e o tempo por INSERT isolado (cerca de 60 ms) inclui essa disputa. A ordem de grandeza entre as três linhas da tabela é o que a evidência sustenta, e não o valor exato de cada uma.</p>
+        </div>
+        <h3>6.4 Deduplicação de inserções reenviadas</h3>
+        <p>O ClickHouse pode reconhecer um INSERT repetido e ignorá-lo, devolvendo sucesso ao cliente. Ele calcula um identificador para cada bloco inserido e guarda os identificadores recentes num log de deduplicação. Duas condições, verificadas na <a href="https://clickhouse.com/docs/guides/developer/deduplicating-inserts-on-retries" target="_blank" rel="noopener noreferrer">documentação de deduplicação de inserções em retries</a>, são essenciais para este projeto:</p>
+        <ul>
+          <li>Em tabelas MergeTree não replicadas, como a desta aula, a janela de deduplicação <code>non_replicated_deduplication_window</code> vale 0 por padrão, e nada é deduplicado. A DDL da aula define <code>SETTINGS non_replicated_deduplication_window = 1000</code>, que mantém os identificadores dos últimos mil blocos.</li>
+          <li>Com a configuração <code>insert_deduplication_token</code>, o identificador passa a ser o token informado pelo cliente, em vez do hash dos dados. O retry precisa reenviar o mesmo lote com o mesmo token.</li>
+        </ul>
+        <p>No preparo da aula, o comportamento foi conferido no contêiner: o mesmo lote de três linhas inserido duas vezes com o token <code>lote-1</code> resultou em três linhas; o mesmo conteúdo inserido uma terceira vez, sem token, foi gravado de novo (seis linhas). A lição prática é que o token pertence ao lote e precisa ser gerado uma única vez, antes da primeira tentativa, e reaproveitado em todas as tentativas seguintes.</p>
+        <pre><code>import clickhouse_connect
+
+client = clickhouse_connect.get_client(host=HOST, port=PORT, secure=SECURE,
+                                       username=USUARIO, password=SENHA)
+token = f"lote-{lote_id}"     # gerado uma vez por lote
+client.insert("iot.leituras", linhas, column_names=COLUNAS,
+              settings={"insert_deduplication_token": token})</code></pre>
+        <h3>6.5 ReplacingMergeTree</h3>
+        <p>O token protege contra o reenvio do mesmo lote. Ele não protege contra uma leitura duplicada que chega em lotes diferentes, o que acontece quando o sensor repete a mensagem ou quando o armazenador cai antes do ack e as mensagens voltam para a fila e são agrupadas de outro jeito. Para esse caso, a tabela usa <code>ENGINE = ReplacingMergeTree(ingerido_em)</code>: durante os merges, linhas com a mesma chave <code>ORDER BY</code> (aqui, <code>device_id</code> e <code>medido_em</code>) colapsam numa só, e fica a de maior <code>ingerido_em</code>.</p>
+        <p>A documentação é explícita sobre o limite: a deduplicação ocorre só durante o merge, e os merges acontecem em segundo plano, em momento imprevisível. Até lá, as duplicatas existem fisicamente. Consultas que precisam de exatidão usam o modificador <code>FINAL</code> (<code>SELECT ... FROM iot.leituras FINAL</code>), que aplica a deduplicação no momento da leitura, com custo maior. Consultas de último valor por sensor com <code>argMax(temperatura_c, medido_em)</code> já são imunes à duplicata, porque duas cópias da mesma leitura têm o mesmo valor.</p>
+        <h3>6.6 TTL</h3>
+        <p>A cláusula <code>TTL toDateTime(medido_em) + INTERVAL 90 DAY</code> manda o servidor apagar as linhas com mais de 90 dias durante os merges. O prazo de 90 dias é uma hipótese didática, marcada como tal na DDL, até a persona dizer por quanto tempo o dado detalhado tem valor. Com partição mensal, partes inteiras expiram juntas, o que torna a remoção barata.</p>
+        <h3>6.7 A DDL da aula</h3>
+        <p>O arquivo <a href="../laboratorio/lesson-6/sql/001_criar_tabelas.sql"><code>laboratorio/sql/001_criar_tabelas.sql</code></a> foi aplicado num ClickHouse <code>26.8.15.10</code> no preparo da aula:</p>
+        <pre><code>CREATE DATABASE IF NOT EXISTS iot;
+
+CREATE TABLE IF NOT EXISTS iot.leituras
+(
+    event_id      String,
+    device_id     LowCardinality(String),
+    local         LowCardinality(String),
+    tipo_local    LowCardinality(String),
+    medido_em     DateTime64(3, 'UTC'),
+    temperatura_c Float32,
+    umidade_pct   Float32,
+    lote_id       String,
+    ingerido_em   DateTime64(3, 'UTC') DEFAULT now64(3)
+)
+ENGINE = ReplacingMergeTree(ingerido_em)
+PARTITION BY toYYYYMM(medido_em)
+ORDER BY (device_id, medido_em)
+TTL toDateTime(medido_em) + INTERVAL 90 DAY
+SETTINGS non_replicated_deduplication_window = 1000;</code></pre>
+        <p><code>LowCardinality(String)</code> codifica colunas com poucos valores distintos (doze sensores, quatro ambientes) como dicionário, o que reduz espaço e acelera filtros. O arquivo cria também <code>iot.leituras_rejeitadas</code>, uma tabela opcional de auditoria com o payload bruto e o motivo da rejeição.</p>
+        <h3>6.8 Exemplo numérico: um dia de leituras no ClickHouse</h3>
+        <div class="note">
+          <strong>Exemplo numérico 6. Compressão, duplicatas e o custo do FINAL</strong>
+          <p>Para medir o que o exemplo 1 projetou, gerou-se um dia sintético da cooperativa: 1.036.800 leituras de 12 sensores, uma por segundo, com temperatura e umidade sorteadas em torno de 22 &deg;C e 60%. As linhas foram inseridas em lotes na tabela da aula e compactadas com <code>OPTIMIZE TABLE ... FINAL</code>. Depois, 30.951 delas (3%, a taxa de duplicatas do simulador) foram reinseridas em lotes de 60, sem token.</p>
+          <p>          <div class="table-scroll"><table>
+            <thead><tr><th>Medida</th><th>Valor</th></tr></thead>
+            <tbody>
+              <tr><td>JSON bruto equivalente</td><td>193,9 MB (187 B &times; 1.036.800)</td></tr>
+              <tr><td>ClickHouse, dados sem compressão</td><td>91,6 MB</td></tr>
+              <tr><td>ClickHouse, em disco</td><td>50,4 MB</td></tr>
+              <tr><td>Coluna <code>event_id</code> (UUID aleatório)</td><td>37,3 MB comprimidos, 74% do disco</td></tr>
+              <tr><td><code>temperatura_c</code> e <code>umidade_pct</code> (Float32)</td><td>2,9 MB cada</td></tr>
+              <tr><td><code>device_id</code>, <code>local</code>, <code>tipo_local</code> (LowCardinality)</td><td>cerca de 5 KB cada</td></tr>
+              <tr><td><code>count()</code> após as duplicatas</td><td>1.067.751, em 1,7 ms (mediana de 5)</td></tr>
+              <tr><td><code>count() FINAL</code></td><td>1.036.800, em 26,6 ms</td></tr>
+              <tr><td>Média de 5 minutos por ambiente, sem e com <code>FINAL</code></td><td>25,8 ms e 37,8 ms</td></tr>
+            </tbody>
+          </table></div></p>
+          <p>O dia ocupou 50,4 MB, um quarto do JSON equivalente. A compressão não é uniforme: as colunas de baixa cardinalidade praticamente desaparecem, enquanto o <code>event_id</code>, um UUID aleatório, quase não comprime e responde por três quartos do disco. Se o espaço apertar no trial, a primeira decisão a revisar é o tipo dessa coluna, e não a retenção.</p>
+          <p>As duplicatas aparecem na contagem física até o merge, e o <code>FINAL</code> as remove na leitura, a um custo medido: a média por janela ficou 46% mais lenta, e a contagem, 16 vezes mais lenta, embora ainda em milissegundos. O token também foi conferido: o mesmo lote de 3 linhas enviado duas vezes com o token <code>lote-1</code> resultou em 3 linhas; enviado uma terceira vez sem token, em 6; e <code>count() FINAL</code> devolveu 3.</p>
+        </div>
+        <div class="note">
+          <strong>Pausa para reflexão</strong>
+          <p>Hoje o TTL apaga o detalhe em 90 dias, e a fila não guarda nada depois do ack. Se a cooperativa pedir um ano de detalhe: com os 50,4 MB por dia do exemplo 6, quanto ocupa um ano no volume do Railway? O que muda na DDL: o TTL, a partição mensal ou o tipo do <code>event_id</code>? A janela de 1.000 blocos cobre cerca de 83 minutos com 12 INSERTs por minuto; ela basta para um ClickHouse fora do ar por duas horas? Qual dessas decisões precisa de um ADR novo?</p>
+        </div>
+        <div class="note">
+          <strong>Pontos-chave do bloco 5</strong>
+          <ul>
+            <li>Colunar lê só as colunas da consulta; <code>ORDER BY</code> forma o índice esparso, <code>PARTITION BY</code> serve para gerenciar dados.</li>
+            <li>Cada INSERT cria uma parte: medido, linha a linha deu 16 linhas por segundo, e o lote de 1.000 deu 16.506.</li>
+            <li>O token descarta o reenvio do mesmo lote; o ReplacingMergeTree colapsa no merge; o <code>FINAL</code> garante exatidão na leitura, a um custo medido.</li>
+            <li>Um dia ocupou 50,4 MB contra 193,9 MB de JSON; o identificador aleatório é a coluna mais cara.</li>
+            <li>O TTL por partição mensal torna a remoção barata; os 90 dias são hipótese.</li>
+          </ul>
+        </div>
+        <h3>6.9 Para saber mais</h3>
+        <ul>
+          <li><a href="https://clickhouse.com/docs/engines/table-engines/mergetree-family/mergetree" target="_blank" rel="noopener noreferrer">ClickHouse: MergeTree</a>, com partes, índice esparso, partições e TTL.</li>
+          <li><a href="https://clickhouse.com/docs/optimize/bulk-inserts" target="_blank" rel="noopener noreferrer">ClickHouse: inserções em lote</a> e <a href="https://clickhouse.com/docs/optimize/asynchronous-inserts" target="_blank" rel="noopener noreferrer">inserções assíncronas</a>, as duas formas de evitar a parte por linha do exemplo 5.</li>
+          <li><a href="https://clickhouse.com/docs/guides/developer/deduplicating-inserts-on-retries" target="_blank" rel="noopener noreferrer">ClickHouse: deduplicação de inserções em retries</a> e <a href="https://clickhouse.com/docs/engines/table-engines/mergetree-family/replacingmergetree" target="_blank" rel="noopener noreferrer">ReplacingMergeTree</a>, as duas camadas de idempotência do projeto.</li>
+          <li><a href="https://clickhouse.com/docs/sql-reference/data-types/lowcardinality" target="_blank" rel="noopener noreferrer">ClickHouse: LowCardinality</a>, o motivo de <code>device_id</code> ocupar 5 KB no exemplo 6.</li>
+          <li>Akidau, T.; Chernyak, S.; Lax, R. <em>Streaming Systems</em>. O'Reilly, 2018: tempo de evento contra tempo de processamento, a distinção entre <code>medido_em</code> e <code>ingerido_em</code>.</li>
+        </ul>
+      </section>
+
+      <!-- 7 -->
+      <section class="content-block" id="s7">
+        <h2>7. O mini projeto IoT: arquitetura, mensagem e topologia</h2>
+        <div class="method-flow">
+          <div class="method-step"><strong>Simulador</strong><span>Publica leituras de 12 sensores, com inválidas, duplicadas e em &deg;F.</span></div>
+          <div class="method-step"><strong>RabbitMQ</strong><span>Exchange topic <code>iot.leituras</code> e DLX fanout <code>iot.dlx</code>.</span></div>
+          <div class="method-step is-current"><strong>Transformador</strong><span>Valida, normaliza, enriquece, separa inválidos.</span></div>
+          <div class="method-step"><strong>Armazenador</strong><span>Agrupa em lote, insere com token, confirma.</span></div>
+          <div class="method-step"><strong>ClickHouse</strong><span><code>iot.leituras</code> e consultas analíticas.</span></div>
+        </div>
+        <h3>7.1 Contrato da mensagem bruta</h3>
+        <p>O simulador publica JSON em UTF-8, com <code>content_type="application/json"</code> e entrega persistente. Este é o formato sugerido; a spec do grupo pode refiná-lo, mas precisa fixá-lo antes da implementação.</p>
+        <pre><code>{
+  "event_id": "6f1c2a9e-5b7d-4c55-9a51-0e3c1d2b7f40",
+  "device_id": "estufa-a-03",
+  "medido_em": "2026-11-14T12:41:03.120Z",
+  "temperatura": 24.6,
+  "unidade_temperatura": "C",
+  "umidade": 61.2
+}</code></pre>
+        <p>Routing key: <code>leitura.bruta.&lt;tipo_local&gt;.&lt;device_id&gt;</code>. Dos doze sensores sugeridos, nove ficam nas estufas A, B e C (três por estufa) e três na sala de germinação. Dois deles, à escolha do grupo, simulam o modelo antigo que reporta em Fahrenheit.</p>
+        <h3>7.2 O que o transformador faz</h3>
+        <ol class="steps">
+          <li>Valida: JSON legível; campos obrigatórios presentes; tipos corretos; <code>unidade_temperatura</code> em <code>C</code> ou <code>F</code>; umidade entre 0 e 100; temperatura dentro de uma faixa física definida na spec (hipótese, validação pendente); <code>medido_em</code> em ISO 8601 com fuso, sem estar no futuro além de uma tolerância definida na spec.</li>
+          <li>Normaliza: converte Fahrenheit para Celsius (<code>(F - 32) &times; 5 / 9</code>), arredonda conforme a spec e converte <code>medido_em</code> para UTC.</li>
+          <li>Enriquece: consulta um cadastro estático de sensores (arquivo versionado) para acrescentar <code>local</code> e <code>tipo_local</code>; sensor fora do cadastro é inválido.</li>
+          <li>Encaminha: válidas são publicadas em <code>iot.leituras</code> com routing key <code>leitura.valida.&lt;tipo_local&gt;.&lt;device_id&gt;</code>; inválidas vão para <code>iot.dlx</code> com o cabeçalho de motivo. Em ambos os casos, o ack da mensagem original só acontece depois da confirmação do broker.</li>
+        </ol>
+        <h3>7.3 O que o armazenador faz</h3>
+        <ol class="steps">
+          <li>Consome <code>leituras.validas</code> com ack manual e prefetch maior ou igual ao tamanho máximo do lote.</li>
+          <li>Acumula leituras até <code>LOTE_MAX_LINHAS</code> ou <code>LOTE_MAX_SEGUNDOS</code>. Com <code>BlockingConnection</code>, o fechamento por tempo pode usar <code>channel.consume(fila, inactivity_timeout=1)</code>, que devolve <code>(None, None, None)</code> quando nada chega em um segundo.</li>
+          <li>Gera <code>lote_id</code> e o token uma única vez, e insere o lote no ClickHouse com <code>insert_deduplication_token</code>.</li>
+          <li>Em falha de rede ou resposta 5xx, tenta de novo com espera crescente (por exemplo 1, 2, 4, 8 segundos, com teto), sempre com o mesmo token. Enquanto isso, não dá ack.</li>
+          <li>Depois do sucesso, confirma todas as mensagens do lote com <code>basic_ack(delivery_tag=ultima_tag, multiple=True)</code>.</li>
+        </ol>
+        <h3>7.4 Topologia</h3>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Fila (quorum)</th><th>Ligada a</th><th>Binding key</th><th>Argumentos</th><th>Consumidor</th></tr></thead>
+          <tbody>
+            <tr><td><code>leituras.brutas</code></td><td><code>iot.leituras</code> (topic)</td><td><code>leitura.bruta.#</code></td><td><code>x-dead-letter-exchange=iot.dlx</code></td><td>transformador</td></tr>
+            <tr><td><code>leituras.validas</code></td><td><code>iot.leituras</code> (topic)</td><td><code>leitura.valida.#</code></td><td><code>x-dead-letter-exchange=iot.dlx</code></td><td>armazenador</td></tr>
+            <tr><td><code>leituras.dlq</code></td><td><code>iot.dlx</code> (fanout)</td><td>nenhuma</td><td>nenhum</td><td>inspeção humana</td></tr>
+          </tbody>
+        </table></div>
+        <p>O caminho da fila de brutas até a DLQ foi declarado e exercitado com <code>pika</code> no preparo da aula: uma mensagem malformada publicada com <code>leitura.bruta.estufa</code> e recusada com <code>basic_nack(requeue=False)</code> chegou a <code>leituras.dlq</code> com <code>x-death</code> indicando <code>reason: rejected</code>, <code>queue: leituras.brutas</code> e a routing key original.</p>
+      </section>
+
+      <!-- 8 -->
+      <section class="content-block" id="s8">
+        <h2>8. Preparação do ambiente local</h2>
+        <p>Os arquivos de apoio estão em <a href="../laboratorio/lesson-6/README.md"><code>laboratorio/</code></a>. O <code>docker-compose.yml</code> sobe <code>rabbitmq:4.3.6-management</code> e <code>clickhouse/clickhouse-server:26.8.15.10</code>, ambos com tag fixa, healthcheck e volume. A DDL é montada em <code>/docker-entrypoint-initdb.d</code> e roda sozinha na primeira subida do ClickHouse.</p>
+        <h3>8.1 Criar a pasta e baixar os arquivos</h3>
+        <pre><code>cd /workspaces/&lt;repositorio-do-grupo&gt;
+mkdir -p aula_06_streaming_iot/{docs/adr,specs,src,tests,sql,scripts}
+cd aula_06_streaming_iot
+
+BASE=https://raw.githubusercontent.com/afonsolelis/aulas/main/pages/data-collection/laboratorio/lesson-6
+for f in docker-compose.yml .env.example requirements.txt AGENTS.md .gitignore Dockerfile \
+         consultas_analiticas.sql sql/001_criar_tabelas.sql scripts/aplicar_ddl.py; do
+  curl -fsSL "$BASE/$f" -o "$f"
+done
+touch src/__init__.py
+find . -type f | sort</code></pre>
+        <h3>8.2 Senhas e subida dos serviços</h3>
+        <p>As senhas são geradas em hexadecimal. Senhas em base64 podem conter <code>+</code> e <code>/</code>, que quebram a URL AMQP usada pelo <code>pika</code>.</p>
+        <pre><code>cp .env.example .env
+RABBIT=$(openssl rand -hex 16)
+CH=$(openssl rand -hex 16)
+sed -i "s|^RABBITMQ_PASSWORD=.*|RABBITMQ_PASSWORD=$RABBIT|; \
+        s|^AMQP_URL=.*|AMQP_URL=amqp://iot:$RABBIT@localhost:5672/%2F|; \
+        s|^CLICKHOUSE_PASSWORD=.*|CLICKHOUSE_PASSWORD=$CH|" .env
+unset RABBIT CH
+
+docker compose config -q &amp;&amp; echo "compose ok"
+docker compose up -d --wait
+docker compose ps</code></pre>
+        <h3>8.3 Gates do ambiente</h3>
+        <pre><code>docker compose exec rabbitmq rabbitmq-diagnostics -q ping     # Ping succeeded
+curl -s http://localhost:8123/ping                             # Ok.
+set -a; source .env; set +a
+docker compose exec clickhouse clickhouse-client --user iot --password "$CLICKHOUSE_PASSWORD" -q "SHOW TABLES FROM iot"
+git status --short                                             # .env não aparece</code></pre>
+        <p>O console do RabbitMQ fica na porta 15672; no Codespace, abra pela aba PORTS e entre com o usuário <code>iot</code> e a senha do <code>.env</code>. A porta nativa 9000 do ClickHouse não é publicada no host, porque o MinIO das Aulas 02 a 04 usa a mesma porta; o <code>clickhouse-client</code> roda dentro do contêiner.</p>
+        <h3>8.4 Ambiente Python</h3>
+        <pre><code>python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python -c "import pika, clickhouse_connect; print(pika.__version__, clickhouse_connect.__version__)"</code></pre>
+        <p>O <code>requirements.txt</code> fixa <code>pika==1.4.4</code>, <code>clickhouse-connect==1.9.0</code>, <code>python-dotenv==1.2.4</code> e <code>pytest==9.1.1</code>. O <code>clickhouse-connect</code> usa a interface HTTP do ClickHouse (porta 8123 sem TLS, 8443 com TLS por padrão; no Railway, 443).</p>
+      </section>
+
+      <!-- 9 -->
+      <section class="content-block" id="s9">
+        <h2>9. O projeto da aula em SDD</h2>
+        <p>A estrutura da pasta segue a convenção da Aula 01:</p>
+        <pre><code>aula_06_streaming_iot/
+├── AGENTS.md
+├── docs/
+│   ├── 00_persona.md
+│   ├── 01_objetivos_negocio.md
+│   ├── atam.md
+│   └── adr/ADR-001-*.md
+├── specs/
+│   ├── spec.md
+│   ├── plan.md
+│   └── tasks.md
+├── src/   (simulador.py, transformador.py, armazenador.py e módulos de apoio)
+├── tests/
+├── sql/001_criar_tabelas.sql
+├── scripts/aplicar_ddl.py
+├── consultas_analiticas.sql
+├── docker-compose.yml  Dockerfile  requirements.txt  .env.example  .gitignore</code></pre>
+        <div class="method-flow">
+          <div class="method-step"><strong>Persona e objetivos</strong><span>Prompts 1 e 2: quem decide, em quanto tempo, com que dado.</span></div>
+          <div class="method-step"><strong>Especificação</strong><span>Prompt 3: regras de validação, garantias, RNF de latência.</span></div>
+          <div class="method-step"><strong>Plano e tarefas</strong><span>Prompts 4 e 5: C4, topologia, tarefas com teste.</span></div>
+          <div class="method-step"><strong>Implementação</strong><span>Prompt 6: uma tarefa por vez, funções puras primeiro.</span></div>
+          <div class="method-step"><strong>ATAM</strong><span>Prompt 7: falhas provocadas, ADRs, evidências.</span></div>
+        </div>
+        <p>Todos os prompts carregam as mesmas regras: não inventar números nem SLAs (marcar "hipótese, validação pendente"), separar fato, lacuna e suposição, preservar os IDs, não pôr segredos em arquivo versionado, mostrar o plano antes de editar e parar ao fim da etapa. Copie cada prompt por inteiro e rode um por vez, revisando o resultado antes do próximo.</p>
+        <p>Neste projeto, a ordem das tarefas tem uma razão técnica. Validação, normalização, enriquecimento e montagem de lote são funções puras: recebem dados e devolvem dados, sem RabbitMQ nem ClickHouse. Elas são testadas primeiro, com <code>pytest</code>, e só depois ligadas ao broker e ao banco. Assim, quando o pipeline integrado falhar, o grupo já sabe que a regra de negócio está certa e procura o erro na integração.</p>
+      </section>
+
+      <!-- 10 -->
+      <section class="content-block" id="s10">
+        <h2>10. Os sete prompts CREATE</h2>
+
+        <h3>Prompt 1. Persona</h3>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é um analista de requisitos de dados que entrevista usuários de operação antes de qualquer decisão técnica. Você escreve em português, de forma objetiva, e separa o que foi informado do que está sendo suposto.
+
+[R] Pedido
+Crie o arquivo docs/00_persona.md descrevendo as personas que vão usar os dados do pipeline de sensores desta pasta (aula_06_streaming_iot). Contexto fornecido pelo professor (cenário fictício): uma cooperativa de produtores de mudas opera três estufas (A, B e C) e uma sala de germinação. Cada ambiente tem sensores de temperatura e umidade; alguns sensores antigos reportam a temperatura em Fahrenheit. Hoje uma técnica agrícola confere os termo-higrômetros duas vezes por dia. Quando a ventilação de uma estufa para numa tarde quente, ninguém percebe até a próxima ronda, e um lote de mudas pode se perder. A cooperativa quer receber as leituras continuamente para saber o último valor de cada sensor e a média recente de cada ambiente. Nesta etapa não há alertas, painel nem controle de equipamentos: só a coleta contínua, a limpeza e o armazenamento analítico. As leituras serão simuladas.
+
+[E] Exemplos
+Formato esperado de uma persona:
+## P-01 Técnica agrícola responsável pelas estufas
+- Quem é: técnica da cooperativa, acompanha as estufas no dia a dia, usa celular e planilha.
+- Decisão que toma: abrir ventilação, acionar nebulização ou remanejar bandejas quando a temperatura ou a umidade sai da faixa.
+- Dor atual: só descobre o problema na ronda seguinte; não sabe há quanto tempo a estufa está fora da faixa.
+- Frequência de uso: várias vezes ao dia (hipótese, validação pendente).
+- O que precisa do dado: último valor por sensor e média por ambiente nos últimos minutos, com o horário da medição.
+- Fato / suposição: separar em lista.
+
+[A] Ajustes
+- Crie no máximo duas personas: a usuária do dado (operação) e a mantenedora do pipeline (engenharia de dados).
+- A persona de engenharia precisa dizer o que ela observa para saber se o pipeline está saudável (fila crescendo, leituras rejeitadas, atraso).
+- Não invente números (faixas de temperatura, tolerância a atraso, retenção). Quando precisar de um valor, escreva "hipótese, validação pendente".
+- Não proponha tecnologia, arquitetura nem código nesta etapa.
+- Termine com uma seção "Fatos, lacunas e suposições" e uma seção "Perguntas para o cliente".
+
+[T] Tipo de saída
+Um único arquivo Markdown, docs/00_persona.md, com até 60 linhas. Mostre o conteúdo proposto antes de gravar.
+
+[E] Extras
+Leia AGENTS.md antes de começar e siga as regras dele. Se faltar informação essencial, pergunte antes de escrever. Pare ao final desta etapa e aguarde revisão; não avance para objetivos de negócio.</code></pre>
+        <div class="note">
+          <strong>Revise antes de seguir</strong>
+          <p>A persona de operação diz qual decisão toma e o que perde quando o dado atrasa? Alguma faixa de temperatura ou tolerância de atraso apareceu sem a marca de hipótese? A persona de engenharia descreve sinais observáveis de saúde do pipeline? As perguntas ao cliente incluem "em quanto tempo a leitura precisa estar disponível" e "por quanto tempo a leitura detalhada deve ser guardada"?</p>
+        </div>
+
+        <h3>Prompt 2. Objetivos de negócio</h3>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é um gerente de produto de dados que transforma a dor de uma persona em objetivos mensuráveis, sem prometer o que não pode medir.
+
+[R] Pedido
+Leia docs/00_persona.md e crie docs/01_objetivos_negocio.md com os objetivos de negócio do pipeline de sensores da cooperativa, as métricas de sucesso, os drivers de negócio e as restrições.
+
+[E] Exemplos
+## OBJ-01 Leitura recente disponível para decisão
+- Descrição: cada leitura válida de cada sensor fica consultável pouco tempo depois de medida.
+- Métrica de sucesso: atraso entre o instante da medição e o instante da gravação (p50 e p95).
+- Meta: hipótese, validação pendente (perguntar à P-01 qual atraso ainda permite agir).
+- Persona atendida: P-01.
+
+[A] Ajustes
+- Inclua estas restrições, com origem "restrição fornecida pelo professor": (1) broker RabbitMQ, armazenamento analítico ClickHouse, três processos em Python (simulador, transformador, armazenador); (2) execução local com docker compose no Codespace e publicação no Railway; (3) plano de teste do Railway: crédito único de US$ 5 por até 30 dias, 1 GB de RAM, vCPU compartilhada e até 5 serviços por projeto; (4) no Railway, o ClickHouse publicado responde só por HTTPS na porta 443, e o proxy devolve erro 502 esporádico; (5) leituras simuladas, sem sensores físicos; (6) nenhum segredo em arquivo versionado.
+- Inclua objetivos para: leitura recente disponível, leituras inválidas separadas com motivo, nenhuma leitura válida perdida ou contada duas vezes, consultas analíticas rápidas sobre o histórico.
+- Liste drivers de negócio que ajudem a priorizar atributos de qualidade (por exemplo: tempo para agir, confiança no número, custo previsível).
+- Não invente metas numéricas: toda meta sem fonte fica como "hipótese, validação pendente".
+- Não escreva requisitos técnicos nem arquitetura ainda.
+
+[T] Tipo de saída
+Arquivo Markdown docs/01_objetivos_negocio.md, com seções: Objetivos (OBJ-xx), Métricas de sucesso, Drivers de negócio, Restrições (com origem), Fora de escopo, Fatos/lacunas/suposições. Até 80 linhas.
+
+[E] Extras
+Preserve os IDs de persona (P-xx). Mostre o plano do arquivo antes de gravar. Pergunte se faltar informação. Pare ao final desta etapa.</code></pre>
+        <div class="note">
+          <strong>Revise antes de seguir</strong>
+          <p>Cada objetivo aponta para uma persona? As seis restrições aparecem com origem, inclusive o limite de 5 serviços e o 502 do proxy? A latência e a retenção aparecem como métrica com meta em hipótese, e não como número inventado? A seção "Fora de escopo" exclui alertas, painel e controle de equipamentos?</p>
+        </div>
+
+        <h3>Prompt 3. Especificação</h3>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é um engenheiro de dados sênior especializado em pipelines de eventos. Você escreve especificações verificáveis: todo requisito seu tem critério de aceite que um teste automatizado ou um comando consegue confirmar.
+
+[R] Pedido
+Leia docs/00_persona.md, docs/01_objetivos_negocio.md, sql/001_criar_tabelas.sql e .env.example, e crie specs/spec.md com os requisitos funcionais (RF-xx) e não funcionais (RNF-xx) do pipeline. Cubra no mínimo:
+- contrato da mensagem bruta (event_id, device_id, medido_em em ISO 8601 com fuso, temperatura, unidade_temperatura C ou F, umidade) e routing key leitura.bruta.&lt;tipo_local&gt;.&lt;device_id&gt;;
+- simulador: N sensores configuráveis, intervalo configurável, proporção configurável de leituras inválidas, duplicadas (mesmo event_id reenviado) e em Fahrenheit;
+- topologia: exchange topic iot.leituras, exchange fanout iot.dlx, filas quorum leituras.brutas, leituras.validas e leituras.dlq, declaradas de forma idempotente por cada processo;
+- regras de validação do transformador, cada uma com um código de motivo (ex.: json_invalido, campo_ausente, unidade_desconhecida, umidade_fora_da_faixa, temperatura_fora_da_faixa, sensor_desconhecido, medido_em_no_futuro);
+- normalização (Fahrenheit para Celsius, medido_em em UTC) e enriquecimento (local e tipo_local a partir de um cadastro de sensores versionado);
+- encaminhamento: válidas republicadas com leitura.valida.&lt;tipo_local&gt;.&lt;device_id&gt;; inválidas publicadas em iot.dlx com cabeçalho x-motivo; ack da original só após confirmação do broker;
+- armazenador: lote fechado por LOTE_MAX_LINHAS ou LOTE_MAX_SEGUNDOS, insert em lote em iot.leituras com insert_deduplication_token gerado uma vez por lote, retry com espera crescente em falha de rede ou 5xx, ack múltiplo só depois do insert;
+- consultas: último valor por sensor e média por janela de 5 minutos por local.
+RNF obrigatórios: garantia de entrega (at-least-once no broker, efeito exactly-once por deduplicação no ClickHouse), latência ponta a ponta (meta em hipótese), tolerância a ClickHouse indisponível, observabilidade (logs com contagens de recebidas, válidas, rejeitadas por motivo, lotes gravados), segurança de segredos, custo (no máximo 5 serviços no Railway).
+
+[E] Exemplos
+### RF-06 Leitura com umidade fora da faixa vai para a DLQ com motivo
+Dado uma mensagem em leituras.brutas com "umidade": 140.0
+Quando o transformador a processa
+Então uma mensagem com o mesmo corpo é publicada em iot.dlx com o cabeçalho x-motivo = umidade_fora_da_faixa
+E nenhuma mensagem é publicada com routing key leitura.valida.*
+E a mensagem original recebe ack somente após a confirmação do broker
+Verificação: teste unitário da função de validação + teste de integração com RabbitMQ local.
+
+[A] Ajustes
+- Faixas de temperatura, tolerância de medido_em no futuro, latência e retenção: escreva "hipótese, validação pendente" em vez de inventar o valor; deixe o valor como parâmetro.
+- Cada requisito aponta para pelo menos um OBJ-xx.
+- Use Dado/Quando/Então em todos os critérios de aceite e diga como cada um será verificado (teste, comando ou consulta).
+- Não escolha bibliotecas nem escreva código nesta etapa (o plano faz isso).
+
+[T] Tipo de saída
+Arquivo Markdown specs/spec.md com: Glossário (leitura, lote, DLQ, token, ack), Contrato da mensagem, RF-xx, RNF-xx, Matriz OBJ → RF/RNF, Fatos/lacunas/suposições. Até 220 linhas.
+
+[E] Extras
+Preserve P-xx e OBJ-xx. Mostre o sumário dos requisitos antes de gravar. Pergunte se faltar informação. Pare ao final desta etapa.</code></pre>
+        <div class="note">
+          <strong>Revise antes de seguir</strong>
+          <p>Cada regra de validação tem código de motivo e um critério Dado/Quando/Então? O requisito do armazenador diz que o token é gerado uma vez por lote e reaproveitado no retry? O ack aparece sempre depois da gravação ou da confirmação, nunca antes? Alguma faixa física virou número sem marca de hipótese? Há um RNF que torna mensurável o atraso entre medido_em e ingerido_em?</p>
+        </div>
+
+        <h3>Prompt 4. Plano e arquitetura</h3>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é um arquiteto de software de dados que justifica cada escolha técnica pelo requisito que ela atende e registra o trade-off quando há alternativa.
+
+[R] Pedido
+Leia specs/spec.md e crie specs/plan.md com a arquitetura do pipeline. Inclua:
+1. Diagrama C4 de contexto e de contêineres em Mermaid (simulador, RabbitMQ, transformador, armazenador, ClickHouse, técnica agrícola, mantenedora).
+2. Tabela da topologia RabbitMQ: exchanges, tipos, filas, argumentos (x-queue-type=quorum, x-dead-letter-exchange), bindings e routing keys.
+3. Módulos em src/: config (lê variáveis de ambiente), topologia (declaração idempotente), contrato (validação, normalização e enriquecimento como funções puras), simulador, transformador, lote (montagem de lote e geração de token como funções puras), armazenador; e o cadastro de sensores em arquivo versionado.
+4. Bibliotecas: pika com BlockingConnection, basic_qos, ack manual e confirm_delivery; clickhouse-connect com client.insert(..., settings={"insert_deduplication_token": token}); python-dotenv; pytest.
+5. Implantação: local com docker compose; Railway com rabbitmq, clickhouse, simulador, transformador e armazenador (5 serviços), processos falando pela rede privada (rabbitmq.railway.internal:5672, clickhouse.railway.internal:8123) e ClickHouse publicado só por HTTPS na 443 para consultas do Codespace.
+6. Seção "Alternativa: transformador e armazenador num só serviço", com vantagens, desvantagens e quando escolher.
+7. Tabela de rastreabilidade: decisão técnica → RF/RNF atendido.
+8. Lista de ADRs a escrever (ao menos: garantia de entrega e deduplicação; separação ou junção de transformador e armazenador; DLX por argumento ou por política).
+
+[E] Exemplos
+| Decisão | Requisito | Alternativa descartada | Motivo |
+|---|---|---|---|
+| ack do armazenador só após insert com sucesso | RNF-01 | ack ao receber | ack antecipado perde leituras se o processo cair (at-most-once) |
+
+[A] Ajustes
+- Toda decisão aponta para um RF ou RNF existente; não crie requisitos novos aqui.
+- Não invente números de vazão, latência ou memória; use "hipótese, validação pendente".
+- Não use auto_ack em nenhuma fila de leituras.
+- Mantenha o prefetch do armazenador maior ou igual a LOTE_MAX_LINHAS e explique por quê.
+- Não escreva código nesta etapa.
+
+[T] Tipo de saída
+Arquivo Markdown specs/plan.md com Mermaid válido, até 200 linhas.
+
+[E] Extras
+Leia AGENTS.md, docker-compose.yml e Dockerfile. Mostre o esboço antes de gravar. Pergunte se faltar informação. Pare ao final desta etapa.</code></pre>
+        <div class="note">
+          <strong>Revise antes de seguir</strong>
+          <p>O diagrama de contêineres mostra a DLQ e quem a lê? A tabela de topologia bate com a seção 7.4 deste material? O plano conta exatamente cinco serviços no Railway e discute o que muda com quatro? As funções puras estão separadas dos módulos que falam com RabbitMQ e ClickHouse? Alguma decisão ficou sem requisito associado?</p>
+        </div>
+
+        <h3>Prompt 5. Tarefas</h3>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é um tech lead que quebra um plano em tarefas pequenas, cada uma entregável em menos de 30 minutos e verificável por um teste.
+
+[R] Pedido
+Leia specs/spec.md e specs/plan.md e crie specs/tasks.md com as tarefas T-xx em ordem de execução. Comece pelas funções puras e só depois integre com RabbitMQ e ClickHouse. Sequência sugerida: config e cadastro de sensores; validação com códigos de motivo; normalização e enriquecimento; montagem de lote e geração de token; topologia RabbitMQ idempotente; simulador; transformador; armazenador com retry e ack múltiplo; consultas analíticas; empacotamento para o Railway.
+
+[E] Exemplos
+### T-04 Montagem de lote com fechamento por tamanho ou tempo
+- Requisitos: RF-08, RNF-01
+- Arquivos: src/lote.py, tests/test_lote.py
+- Teste: dado LOTE_MAX_LINHAS=3, adicionar 3 leituras fecha o lote; dado LOTE_MAX_SEGUNDOS=5 e relógio simulado, 1 leitura e 5 s fecham o lote; o token do lote não muda entre chamadas.
+- Pronto quando: python -m pytest -q tests/test_lote.py passa.
+
+[A] Ajustes
+- Cada tarefa referencia pelo menos um RF ou RNF e tem um teste nomeado.
+- Testes das funções puras não podem depender de RabbitMQ nem de ClickHouse.
+- Testes de integração usam o docker compose local e ficam marcados (ex.: @pytest.mark.integracao) para poderem ser pulados.
+- Inclua uma tarefa final de verificação que roda o pipeline por 2 minutos e confere contagens no RabbitMQ e no ClickHouse.
+- Não escreva código nesta etapa.
+
+[T] Tipo de saída
+Arquivo Markdown specs/tasks.md com 8 a 12 tarefas e uma tabela final T-xx → RF/RNF → teste. Até 160 linhas.
+
+[E] Extras
+Preserve todos os IDs. Mostre a lista de títulos antes de gravar. Pare ao final desta etapa.</code></pre>
+        <div class="note">
+          <strong>Revise antes de seguir</strong>
+          <p>As primeiras tarefas rodam sem nenhum contêiner? Há uma tarefa cujo teste prova que o token do lote não muda entre tentativas? A tarefa do armazenador tem um teste de que o ack não acontece quando o insert falha? Todo RF e RNF aparece em pelo menos uma tarefa?</p>
+        </div>
+
+        <h3>Prompt 6. Implementação (repetir para cada tarefa)</h3>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é um engenheiro de dados Python que trabalha em ciclos curtos de teste e implementação e não toca em nada fora da tarefa pedida.
+
+[R] Pedido
+Implemente a tarefa &lt;T-xx&gt; de specs/tasks.md. Escreva primeiro o teste descrito na tarefa, rode e mostre que ele falha; depois implemente o mínimo para ele passar; rode python -m pytest -q e mostre a saída.
+
+[E] Exemplos
+Padrão esperado no armazenador (ilustrativo, adapte aos nomes do plano):
+    lote = montar_lote(mensagens)           # função pura, token gerado aqui uma vez
+    gravar_com_retry(cliente, lote)         # mesmo lote.token em todas as tentativas
+    canal.basic_ack(delivery_tag=lote.ultima_tag, multiple=True)  # só depois do sucesso
+Padrão esperado no consumo com pika:
+    canal.basic_qos(prefetch_count=PREFETCH)
+    for metodo, props, corpo in canal.consume(FILA, inactivity_timeout=1):
+        if metodo is None: ...  # nenhuma mensagem em 1 s: verificar fechamento do lote por tempo
+
+[A] Ajustes
+- Trabalhe só nos arquivos listados na tarefa. Se precisar mudar outro, pare e pergunte.
+- Nunca use auto_ack=True. Nunca dê ack antes da gravação ou da confirmação do broker.
+- Publicações usam delivery_mode=pika.DeliveryMode.Persistent e content_type="application/json", com channel.confirm_delivery() ativo.
+- Configuração só por variáveis de ambiente (os nomes de .env.example); nenhuma senha em código, teste ou log.
+- Logs em uma linha por evento relevante, com contagens (recebidas, válidas, rejeitadas por motivo, linhas por lote, tentativas).
+- Se o teste exigir RabbitMQ ou ClickHouse, use os serviços do docker compose local e marque o teste como integração.
+- Não altere sql/001_criar_tabelas.sql; se achar necessário, proponha um ADR.
+
+[T] Tipo de saída
+Diff dos arquivos da tarefa, saída do pytest e um resumo de três linhas: o que mudou, como foi testado, o que ficou pendente.
+
+[E] Extras
+Leia AGENTS.md, specs/plan.md e a tarefa inteira antes de editar. Mostre o plano de alteração e espere aprovação. Pare ao final desta tarefa; não comece a próxima.</code></pre>
+        <div class="note">
+          <strong>Revise antes de seguir</strong>
+          <p>O teste falhou antes da implementação e passou depois? O diff tocou só os arquivos da tarefa? Procure no diff por <code>auto_ack</code>, senhas, URLs com credenciais e números fixos sem origem. No armazenador, o <code>basic_ack</code> aparece depois do <code>insert</code> e dentro do caminho de sucesso? O token é calculado fora do laço de retry?</p>
+        </div>
+
+        <h3>Prompt 7. Validação ATAM</h3>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é um avaliador de arquitetura que aplica o ATAM: parte dos objetivos de negócio, constrói a utility tree, escreve cenários de qualidade em seis partes e confronta cada cenário com as decisões e com evidências medidas.
+
+[R] Pedido
+Leia docs/, specs/, src/, os logs e as saídas de comandos registradas pelo grupo, e crie docs/atam.md e os ADRs em docs/adr/. Cubra obrigatoriamente estes sete cenários:
+1. O armazenador cai com mensagens sem ack no meio de um lote.
+2. Pico de sensores: SENSORES=200 com o transformador parado por um minuto.
+3. Mensagem malformada (JSON inválido ou tipo errado) publicada na exchange.
+4. Reprocessamento: o mesmo lote é reenviado, ou mensagens já gravadas são republicadas.
+5. ClickHouse indisponível por alguns minutos.
+6. Resposta 502 do proxy do Railway num INSERT pelo HTTPS, com o dado possivelmente gravado.
+7. Ordem trocada: uma leitura antiga de um sensor chega depois de uma mais recente.
+Para cada cenário, registre a evidência real (comando, saída, horário). Se o cenário não foi executado, escreva "não executado" e não invente o resultado.
+
+[E] Exemplos
+Cenário Q-06 (seis partes):
+- Fonte: proxy público do Railway.
+- Estímulo: resposta 502 a um INSERT de lote no ClickHouse.
+- Artefato: armazenador e tabela iot.leituras.
+- Ambiente: operação normal, ClickHouse acessado por HTTPS na porta 443.
+- Resposta: o armazenador repete o INSERT com o mesmo insert_deduplication_token, com espera crescente, e só dá ack após sucesso.
+- Medida da resposta: SELECT count() FROM iot.leituras antes e depois do reenvio difere exatamente pelo tamanho do lote; nenhuma mensagem fica sem ack após a recuperação.
+
+[A] Ajustes
+- Utility tree com atributos de qualidade ligados aos OBJ-xx (ex.: confiabilidade, latência, custo, observabilidade).
+- Para cada cenário: decisões envolvidas, pontos de sensibilidade, trade-offs, riscos e não riscos.
+- ADR no formato Contexto, Decisão, Alternativas, Consequências, com ao menos: ADR-001 garantia de entrega e deduplicação; ADR-002 cinco ou quatro serviços no Railway; ADR-003 DLX por argumento ou por política.
+- Matriz final: requisito → decisão → componente → evidência.
+- Nada de número sem medição; meta sem fonte fica "hipótese, validação pendente".
+
+[T] Tipo de saída
+docs/atam.md (até 250 linhas) e os arquivos docs/adr/ADR-00x-*.md (até 40 linhas cada).
+
+[E] Extras
+Pergunte ao grupo pelas evidências que faltarem antes de escrever. Mostre o esqueleto antes de gravar. Pare ao final.</code></pre>
+        <div class="note">
+          <strong>Revise antes de seguir</strong>
+          <p>Os sete cenários têm as seis partes? Cada medida de resposta é algo que um comando confirma? Os cenários executados têm evidência colada, e os não executados estão marcados como tal? A matriz final liga todo RNF a uma evidência ou a uma lacuna declarada? O ADR-002 registra o limite de 5 serviços como restrição de origem?</p>
+        </div>
+      </section>
+
+      <!-- 11 -->
+      <section class="content-block" id="s11">
+        <h2>11. Execução e verificação local</h2>
+        <p>Com as tarefas implementadas, o pipeline roda em três terminais, um por processo. Suba primeiro os consumidores, para que a topologia já exista quando o simulador começar.</p>
+        <pre><code># terminal A
+source .venv/bin/activate &amp;&amp; python -m src.armazenador
+# terminal B
+source .venv/bin/activate &amp;&amp; python -m src.transformador
+# terminal C
+source .venv/bin/activate &amp;&amp; python -m src.simulador</code></pre>
+        <p>Em um quarto terminal, verifique a topologia e o estado das filas:</p>
+        <pre><code>docker compose exec rabbitmq rabbitmqctl list_exchanges name type
+docker compose exec rabbitmq rabbitmqctl list_bindings source_name destination_name routing_key
+docker compose exec rabbitmq rabbitmqctl list_queues name type messages_ready messages_unacknowledged consumers</code></pre>
+        <p>E o resultado no ClickHouse:</p>
+        <pre><code>set -a; source .env; set +a
+docker compose exec clickhouse clickhouse-client --user iot --password "$CLICKHOUSE_PASSWORD" \
+  -q "SELECT count(), uniqExact(device_id), max(medido_em) FROM iot.leituras"
+docker compose exec -T clickhouse clickhouse-client --user iot --password "$CLICKHOUSE_PASSWORD" \
+  --multiquery &lt; consultas_analiticas.sql</code></pre>
+        <p>O arquivo <a href="../laboratorio/lesson-6/consultas_analiticas.sql"><code>consultas_analiticas.sql</code></a> traz oito consultas, todas executadas no preparo da aula. As duas centrais para a persona são a média por janela e o último valor por sensor:</p>
+        <pre><code>SELECT toStartOfInterval(medido_em, INTERVAL 5 MINUTE) AS janela, local,
+       round(avg(temperatura_c), 2) AS temp_media_c,
+       round(avg(umidade_pct), 1)   AS umid_media_pct,
+       count() AS leituras
+FROM iot.leituras FINAL
+WHERE medido_em &gt;= now64(3) - INTERVAL 1 HOUR
+GROUP BY janela, local
+ORDER BY janela, local;
+
+SELECT device_id, any(local) AS local, max(medido_em) AS ultima_medicao,
+       argMax(temperatura_c, medido_em) AS temperatura_c,
+       argMax(umidade_pct, medido_em)   AS umidade_pct
+FROM iot.leituras
+GROUP BY device_id
+ORDER BY device_id;</code></pre>
+        <p><code>toStartOfInterval</code> agrupa em janelas fixas (tumbling) de cinco minutos. <code>argMax(x, medido_em)</code> devolve o valor de <code>x</code> na linha de maior <code>medido_em</code>, independentemente da ordem de chegada. As demais consultas comparam linhas físicas e lógicas (<code>count()</code> com e sem <code>FINAL</code>), listam sensores silenciosos, medem a latência ponta a ponta em p50 e p95 e mostram as partes ativas por partição.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Gate</th><th>Como verificar</th></tr></thead>
+          <tbody>
+            <tr><td>Fila de válidas estável</td><td><code>messages_ready</code> de <code>leituras.validas</code> oscila, mas não cresce sem parar</td></tr>
+            <tr><td>DLQ com motivo</td><td>no console, Get messages em <code>leituras.dlq</code> mostra o cabeçalho de motivo</td></tr>
+            <tr><td>Todos os sensores</td><td><code>uniqExact(device_id)</code> igual a <code>SENSORES</code></td></tr>
+            <tr><td>Fahrenheit convertido</td><td>nenhum <code>temperatura_c</code> acima da faixa física por causa de leitura em &deg;F</td></tr>
+            <tr><td>Partes sob controle</td><td>consulta 8: partes ativas não crescem linearmente com o tempo</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <!-- 12 -->
+      <section class="content-block" id="s12">
+        <h2>12. Falhas provocadas: os cenários ATAM na prática</h2>
+        <p>Antes do prompt 7, o grupo provoca cada falha no ambiente local, observa a resposta e guarda a evidência (comando, saída e horário) para colar em <code>docs/atam.md</code>.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Cenário</th><th>Como provocar</th><th>Resposta esperada</th><th>Evidência</th></tr></thead>
+          <tbody>
+            <tr><td>1. Consumidor cai com mensagens sem ack</td><td>Ctrl+C no armazenador antes de o lote fechar</td><td>mensagens voltam para <code>leituras.validas</code>; ao religar, são gravadas</td><td><code>list_queues</code> antes e depois; <code>count()</code> por sensor sem lacuna</td></tr>
+            <tr><td>2. Pico de sensores</td><td>parar o transformador; rodar o simulador com <code>SENSORES=200</code> por um minuto; religar</td><td>a fila absorve o pico e drena</td><td>tempo de drenagem medido; latência p95 durante o pico</td></tr>
+            <tr><td>3. Mensagem malformada</td><td>console do RabbitMQ: publicar em <code>iot.leituras</code> com key <code>leitura.bruta.estufa.sensor-x</code> o corpo <code>{"device_id": 1, "temperatura": "quente"}</code></td><td>vai para <code>leituras.dlq</code> com motivo; o transformador continua</td><td>mensagem na DLQ; log do transformador</td></tr>
+            <tr><td>4. Reprocessamento</td><td>teste que reenvia o mesmo lote com o mesmo token; republicar mensagens já gravadas</td><td>contagem lógica (<code>FINAL</code>) não muda</td><td><code>count()</code> e <code>count() FINAL</code> antes e depois</td></tr>
+            <tr><td>5. ClickHouse indisponível</td><td><code>docker compose stop clickhouse</code> por dois minutos; <code>docker compose start clickhouse</code></td><td>retry com espera crescente; fila acumula; nada é confirmado; depois drena</td><td>log de tentativas; <code>messages_unacknowledged</code></td></tr>
+            <tr><td>6. 502 do proxy</td><td>no Railway, durante a carga; ou simular no teste uma exceção depois de o insert ter sido aplicado</td><td>retry com o mesmo token; sem duplicata</td><td>log do retry; contagem antes e depois</td></tr>
+            <tr><td>7. Ordem trocada</td><td>simulador publica uma leitura com <code>medido_em</code> 30 s no passado depois de uma atual</td><td>último valor continua sendo o de maior <code>medido_em</code></td><td>consulta 3 antes e depois</td></tr>
+          </tbody>
+        </table></div>
+        <p>O cenário 1 merece atenção ao resultado. Se o armazenador caiu depois de o ClickHouse gravar e antes do ack, as mensagens voltam e serão gravadas de novo, possivelmente agrupadas de outro jeito e, portanto, com outro token. Nesse caso a contagem física (<code>count()</code>) sobe, e quem garante o resultado correto é o ReplacingMergeTree, visível na contagem lógica com <code>FINAL</code>. Esse é o comportamento at-least-once com deduplicação no destino descrito na seção 4.7, observado no próprio pipeline.</p>
+      </section>
+
+      <!-- 13 -->
+      <section class="content-block" id="s13">
+        <h2>13. Publicação no Railway</h2>
+        <h3>13.1 Cinco serviços no limite do trial</h3>
+        <p>O plano de teste do Railway permite até 5 serviços por projeto, com 1 GB de RAM e vCPU compartilhada. A arquitetura completa usa exatamente cinco: <code>rabbitmq</code>, <code>clickhouse</code>, <code>simulador</code>, <code>transformador</code> e <code>armazenador</code>. Volumes não contam como serviço. Por isso o projeto da aula é criado separado do projeto do MinIO das aulas anteriores. O limite de memória do trial pesa sobretudo sobre o ClickHouse: acompanhe o uso de memória dos serviços no painel durante a carga e registre o que observar no ATAM.</p>
+        <p>O Railway oferece templates prontos para os dois servidores. O template de ClickHouse provisiona um serviço com volume em <code>/var/lib/clickhouse</code>, domínio HTTPS para a interface HTTP da porta 8123 e proxy TCP para a porta nativa. O template de RabbitMQ, porém, cria também um serviço de proxy para o console de gerenciamento, o que consumiria uma das cinco vagas. A aula cria os dois servidores pela CLI, com as mesmas imagens e tags do docker compose, para manter paridade com o ambiente local e controlar o número de serviços.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Critério</th><th>Separados (5 serviços)</th><th>Transformador e armazenador juntos (4 serviços)</th></tr></thead>
+          <tbody>
+            <tr><td>Falha isolada</td><td>ClickHouse lento afeta só o armazenador; a validação continua e a fila de válidas absorve</td><td>ClickHouse lento segura também a validação; a fila de brutas absorve</td></tr>
+            <tr><td>Escala</td><td>cada etapa ganha consumidores sem mexer na outra</td><td>escala junto</td></tr>
+            <tr><td>Garantia de entrega</td><td>dois pontos de ack (bruta e válida)</td><td>um ponto de ack: a bruta só é confirmada depois do INSERT</td></tr>
+            <tr><td>Saltos e latência</td><td>uma publicação e um consumo a mais</td><td>menos um salto</td></tr>
+            <tr><td>Vaga no Railway</td><td>nenhuma livre</td><td>uma livre (ex.: interface de consulta)</td></tr>
+          </tbody>
+        </table></div>
+        <p>Nenhuma das duas é universalmente melhor. Se o grupo juntar, o código continua separado em módulos, e o processo único chama a validação e o lote em sequência; a variável <code>PROCESSO=transformador_armazenador</code> já está prevista no <code>Dockerfile</code>. A decisão vai para o ADR-002.</p>
+
+        <h3>13.2 RabbitMQ</h3>
+        <pre><code>railway init            # projeto novo, nome sugerido: aula06-streaming-iot
+
+railway add --service rabbitmq --image rabbitmq:4.3.6-management \
+  --variables "RABBITMQ_DEFAULT_USER=iot" \
+  --variables "RABBITMQ_NODENAME=rabbit@localhost"
+SENHA_RABBIT="$(openssl rand -hex 24)"
+printf '%s' "$SENHA_RABBIT" | railway variable set RABBITMQ_DEFAULT_PASS --stdin --service rabbitmq --skip-deploys
+railway volume add --service rabbitmq --mount-path /var/lib/rabbitmq
+railway domain --service rabbitmq --port 15672
+railway redeploy --service rabbitmq --yes</code></pre>
+        <p>O RabbitMQ grava os dados numa pasta com o nome do nó (no teste local com <code>RABBITMQ_NODENAME=rabbit@localhost</code>, a pasta criada foi <code>/var/lib/rabbitmq/mnesia/rabbit@localhost</code>). Sem fixar o nome, ele deriva do hostname do contêiner, e uma troca de hostname entre deploys pode fazer o nó ignorar o que está no volume. A porta AMQP 5672 não recebe domínio público: os processos usam a rede privada. O domínio da 15672 serve só para o console.</p>
+
+        <h3>13.3 ClickHouse</h3>
+        <pre><code>railway add --service clickhouse --image clickhouse/clickhouse-server:26.8.15.10 \
+  --variables "CLICKHOUSE_DB=iot" \
+  --variables "CLICKHOUSE_USER=iot" \
+  --variables "CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1"
+SENHA_CH="$(openssl rand -hex 24)"
+printf '%s' "$SENHA_CH" | railway variable set CLICKHOUSE_PASSWORD --stdin --service clickhouse --skip-deploys
+railway volume add --service clickhouse --mount-path /var/lib/clickhouse
+railway domain --service clickhouse --port 8123
+railway redeploy --service clickhouse --yes</code></pre>
+        <p>O domínio gerado atende em HTTPS na porta 443 e encaminha para a 8123 do contêiner. A 8123 não fica exposta para fora. No Codespace, o cliente usa <code>port=443</code> e <code>secure=True</code>. A DDL é aplicada pelo script de apoio, que divide o arquivo em instruções, porque a interface HTTP do ClickHouse aceita uma instrução por requisição:</p>
+        <pre><code>export CLICKHOUSE_HOST=&lt;dominio-do-clickhouse&gt;.up.railway.app CLICKHOUSE_PORT=443 \
+       CLICKHOUSE_SECURE=true CLICKHOUSE_USER=iot CLICKHOUSE_PASSWORD="$SENHA_CH"
+curl -s "https://$CLICKHOUSE_HOST/ping"
+python scripts/aplicar_ddl.py</code></pre>
+
+        <h3>13.4 Os três processos</h3>
+        <p>Os três usam a mesma imagem, construída pelo <code>Dockerfile</code> da pasta, e escolhem o processo pela variável <code>PROCESSO</code>. As referências <code>${{servico.VARIAVEL}}</code> são resolvidas pelo Railway; por isso ficam entre aspas simples no shell.</p>
+        <pre><code>for p in simulador transformador armazenador; do
+  railway add --service "$p" --variables "PROCESSO=$p"
+  railway variable set --service "$p" --skip-deploys \
+    'AMQP_URL=amqp://iot:${{rabbitmq.RABBITMQ_DEFAULT_PASS}}@rabbitmq.railway.internal:5672/%2F' \
+    'CLICKHOUSE_HOST=clickhouse.railway.internal' 'CLICKHOUSE_PORT=8123' 'CLICKHOUSE_SECURE=false' \
+    'CLICKHOUSE_USER=iot' 'CLICKHOUSE_PASSWORD=${{clickhouse.CLICKHOUSE_PASSWORD}}' 'CLICKHOUSE_DB=iot'
+  railway up . --path-as-root --service "$p" --detach
+done
+unset SENHA_RABBIT SENHA_CH
+railway logs --service transformador</code></pre>
+        <p>Copie também para cada serviço as variáveis de topologia, lote e simulador que a spec definir. Se a conexão pela rede privada falhar, confira no painel o nome exato do serviço (o host interno é <code>&lt;nome-do-serviço&gt;.railway.internal</code>) e registre o problema e a solução num ADR.</p>
+
+        <h3>13.5 HTTPS na 443 e o 502 do proxy</h3>
+        <p>O professor publicou um ClickHouse no Railway num projeto anterior e registrou dois fatos. O primeiro: o serviço fica exposto só por HTTPS na porta 443, e a 8123 não é publicada; um cliente configurado para <code>8123</code> no domínio público não conecta. O segundo: o proxy do Railway devolve erro 502 de forma esporádica. O 502 é a resposta do proxy, e não do ClickHouse. O INSERT pode ter chegado ao servidor e sido gravado, com a resposta perdida no caminho de volta. Um armazenador que reenvia às cegas grava o lote duas vezes.</p>
+        <p>O tratamento combina as duas camadas da seção 6: retry com espera crescente e o mesmo <code>insert_deduplication_token</code>, que faz o ClickHouse ignorar o reenvio se o primeiro INSERT tiver sido gravado, e o ReplacingMergeTree como segunda linha de defesa. Uma terceira verificação, útil no ATAM, é comparar a contagem de linhas do lote (<code>SELECT count() FROM iot.leituras WHERE lote_id = ...</code>) antes de reenviar.</p>
+        <p>No desenho da aula, os processos rodam dentro do Railway e falam com o ClickHouse pela rede privada, sem passar pelo proxy público. O caminho HTTPS é usado pelas consultas feitas do Codespace e por qualquer carga feita de fora (um backfill, por exemplo). Mesmo assim, o retry idempotente fica no armazenador, porque falhas de rede também acontecem na rede privada, e um reinício do ClickHouse produz o mesmo efeito de resposta perdida.</p>
+
+        <h3>13.6 Gates no Railway</h3>
+        <pre><code>railway service status
+railway logs --service armazenador --lines 50
+python - &lt;&lt;'EOF'
+import os, clickhouse_connect
+c = clickhouse_connect.get_client(host=os.environ["CLICKHOUSE_HOST"], port=443, secure=True,
+                                  username="iot", password=os.environ["CLICKHOUSE_PASSWORD"])
+print(c.query("SELECT count(), uniqExact(device_id), max(medido_em) FROM iot.leituras").result_rows)
+EOF</code></pre>
+        <ul>
+          <li>Os cinco serviços (ou quatro, com ADR) aparecem ativos.</li>
+          <li><code>count()</code> cresce entre duas execuções da consulta.</li>
+          <li>O console do RabbitMQ mostra as três filas e os consumidores.</li>
+          <li>Depois de <code>railway redeploy --service rabbitmq --yes</code>, as filas continuam existindo.</li>
+        </ul>
+        <p>Os volumes de contas trial são apagados 30 dias após o fim dos créditos. Para guardar o histórico, exporte pelo HTTPS, por exemplo com <code>FORMAT Parquet</code>, como no fim do roteiro do laboratório.</p>
+      </section>
+
+      <!-- 14 -->
+      <section class="content-block" id="s14">
+        <h2>14. Exemplo resolvido: o 502 do proxy, ADR e rastreabilidade</h2>
+        <h3>14.1 Cenário em seis partes</h3>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Parte</th><th>Conteúdo</th></tr></thead>
+          <tbody>
+            <tr><td>Fonte</td><td>proxy público do Railway</td></tr>
+            <tr><td>Estímulo</td><td>resposta 502 a um INSERT de lote no ClickHouse, com o lote gravado no servidor</td></tr>
+            <tr><td>Artefato</td><td>armazenador e tabela <code>iot.leituras</code></td></tr>
+            <tr><td>Ambiente</td><td>operação normal; carga feita do Codespace por HTTPS na porta 443</td></tr>
+            <tr><td>Resposta</td><td>o armazenador repete o INSERT com o mesmo token, com espera crescente, e só confirma as mensagens após sucesso</td></tr>
+            <tr><td>Medida da resposta</td><td><code>count()</code> aumenta exatamente pelo tamanho do lote; <code>count()</code> e <code>count() FINAL</code> coincidem após o merge; nenhuma mensagem sem ack depois da recuperação</td></tr>
+          </tbody>
+        </table></div>
+        <p>Como o 502 real é esporádico, a evidência reproduzível vem de um teste: a função de gravação recebe um cliente falso que aplica o INSERT no ClickHouse local e depois lança uma exceção de rede na primeira chamada. O teste verifica que a segunda chamada usou o mesmo token e que a contagem final é igual ao tamanho do lote.</p>
+        <h3>14.2 ADR</h3>
+        <pre class="is-wrap"><code># ADR-001 Garantia de entrega at-least-once com deduplicação no ClickHouse
+
+## Contexto
+O RabbitMQ entrega pelo menos uma vez quando o ack é manual. O proxy do Railway devolve 502 esporádico e um INSERT pode ser gravado com a resposta perdida (restrição de origem: professor). Leituras duplicadas distorcem médias (OBJ-03).
+
+## Decisão
+Ack manual depois do INSERT bem-sucedido. Cada lote recebe um insert_deduplication_token gerado uma vez e reaproveitado nos retries. A tabela usa ReplacingMergeTree(ingerido_em) com ORDER BY (device_id, medido_em) e non_replicated_deduplication_window = 1000. Consultas exatas usam FINAL.
+
+## Alternativas
+- Ack ao receber: descartada, perde leituras se o processo cair (at-most-once).
+- Só ReplacingMergeTree: descartada, duplicatas físicas até o merge e mais custo de FINAL.
+- Só token: descartada, não cobre reentrega com lote recomposto.
+
+## Consequências
+Contagem física pode exceder a lógica até o merge. Consultas de média usam FINAL. A janela de 1000 blocos é hipótese, validação pendente com o volume real.</code></pre>
+        <h3>14.3 Linha da matriz de rastreabilidade</h3>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Requisito</th><th>Decisão</th><th>Componente</th><th>Evidência</th></tr></thead>
+          <tbody>
+            <tr><td>RNF-01 nenhuma leitura válida perdida ou contada duas vezes</td><td>ADR-001</td><td><code>src/armazenador.py</code>, <code>src/lote.py</code>, <code>sql/001_criar_tabelas.sql</code></td><td>teste do retry com mesmo token; cenários 1, 4 e 6 em <code>docs/atam.md</code> com contagens antes e depois</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <!-- 15 -->
+      <section class="content-block" id="s15">
+        <h2>15. Erros comuns</h2>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Sintoma</th><th>Causa provável</th><th>Correção</th></tr></thead>
+          <tbody>
+            <tr><td>Leituras somem quando o consumidor reinicia</td><td><code>auto_ack=True</code>, ou ack antes do INSERT</td><td>ack manual depois da gravação</td></tr>
+            <tr><td>Fila volta vazia depois de reiniciar o broker</td><td>mensagens publicadas sem <code>delivery_mode</code> persistente</td><td><code>pika.BasicProperties(delivery_mode=pika.DeliveryMode.Persistent)</code></td></tr>
+            <tr><td>Armazenador só grava a cada <code>LOTE_MAX_SEGUNDOS</code>, mesmo com muita carga</td><td>prefetch menor que <code>LOTE_MAX_LINHAS</code></td><td>prefetch maior ou igual ao lote</td></tr>
+            <tr><td><code>PRECONDITION_FAILED</code> ao declarar fila</td><td>fila já existe com argumentos diferentes (tipo, DLX)</td><td>alinhar a declaração em todos os processos; em ambiente local, apagar e recriar</td></tr>
+            <tr><td><code>pika</code> não conecta com senha gerada</td><td>senha base64 com <code>/</code> ou <code>+</code> na URL AMQP</td><td>senha hexadecimal, ou codificar a senha na URL</td></tr>
+            <tr><td>Conexão AMQP cai durante espera longa</td><td><code>time.sleep</code> bloqueia os heartbeats da <code>BlockingConnection</code></td><td><code>connection.sleep()</code> ou <code>consume(..., inactivity_timeout=...)</code></td></tr>
+            <tr><td>Erro "too many parts" ou consultas lentas</td><td>INSERT linha a linha</td><td>lote por tamanho ou tempo; conferir <code>system.parts</code></td></tr>
+            <tr><td>Médias com duplicatas</td><td>consulta sem <code>FINAL</code> antes do merge</td><td><code>FROM iot.leituras FINAL</code> nas consultas exatas</td></tr>
+            <tr><td>Reenvio do lote duplica mesmo com token</td><td>token gerado dentro do laço de retry, ou janela de deduplicação 0</td><td>token antes da primeira tentativa; <code>non_replicated_deduplication_window</code> na DDL</td></tr>
+            <tr><td><code>Bind for 0.0.0.0:9000 failed</code></td><td>MinIO ou outro serviço já usa a porta 9000</td><td>o compose da aula não publica a 9000; use <code>clickhouse-client</code> dentro do contêiner</td></tr>
+            <tr><td>Cliente não conecta no ClickHouse do Railway</td><td>porta 8123 no domínio público</td><td><code>port=443</code>, <code>secure=True</code></td></tr>
+            <tr><td><code>railway up</code> envia o repositório inteiro</td><td>comando rodado sem caminho</td><td><code>railway up . --path-as-root --service &lt;nome&gt;</code> dentro de <code>aula_06_streaming_iot/</code></td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <!-- 16 -->
+      <section class="content-block" id="s16">
+        <h2>16. Atividade em sala e entregável</h2>
+        <p>A atividade acontece no Codespace do repositório do grupo, com o agente de código e o Railway, no ritmo da demonstração do professor. O grupo reproduz cada etapa logo depois de vê-la projetada. Depois das duas horas de teoria, a prática vai das 10h30 às 12h10: uma hora de demonstração, 30 minutos de discussão de decisões sobre o pipeline que a demonstração montou (seção 16.1) e dez minutos para conferir o que existe e o que fica para a semana.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Horário</th><th>Etapa</th><th>Gate</th></tr></thead>
+          <tbody>
+            <tr><td>8h30 &ndash; 10h30</td><td>teoria em cinco blocos: modos de processamento, RabbitMQ, garantias, backpressure, ClickHouse</td><td>grupo explica por que o ack vem depois do INSERT</td></tr>
+            <tr><td>10h30 &ndash; 10h45</td><td>pasta, arquivos de apoio, docker compose, ambiente Python</td><td>dois serviços <code>healthy</code>; tabelas no ClickHouse</td></tr>
+            <tr><td>10h45 &ndash; 11h20</td><td>prompts 1 a 5</td><td>persona, objetivos, spec, plano e tarefas revisados</td></tr>
+            <tr><td>11h20 &ndash; 11h30</td><td>prompt 6, primeiras funções puras</td><td>primeiro <code>pytest</code> passando</td></tr>
+            <tr><td>11h30 &ndash; 12h00</td><td>Discussão sobre o pipeline de streaming</td><td>três decisões anotadas para os ADRs</td></tr>
+            <tr><td>12h00 &ndash; 12h10</td><td>fechamento</td><td>commit do que existe; lista do que fica para a semana</td></tr>
+          </tbody>
+        </table></div>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Em sala, até 12h10</th><th>Na semana, até a Aula 07 (28/11)</th></tr></thead>
+          <tbody>
+            <tr><td>Pasta <code>aula_06_streaming_iot/</code>, RabbitMQ e ClickHouse <code>healthy</code>, ambiente Python.</td><td>Prompt 6 completo: simulador, transformador e armazenador com testes, pipeline local gravando (seções 10 e 11).</td></tr>
+            <tr><td>Prompts 1 a 5 executados, revisados e commitados; prompt 6 iniciado pelas funções puras.</td><td>Falhas provocadas (seção 12) e publicação no Railway (seção 13).</td></tr>
+            <tr><td>As três decisões da discussão anotadas, com a justificativa do grupo, para virar ADR.</td><td>Prompt 7 (ATAM) com as evidências coladas, e os ADRs que registram as decisões da discussão.</td></tr>
+          </tbody>
+        </table></div>
+        <p>O que não terminar em sala é concluído pelo grupo, com o mesmo roteiro, antes da Aula 07. A Aula 07 escreve contratos Pydantic e testes integrados com Testcontainers para este pipeline, então o código precisa estar no repositório.</p>
+        <div class="note">
+          <strong>Entregável: pasta <code>aula_06_streaming_iot/</code> no repositório do grupo</strong>
+          <ul>
+            <li>Esqueleto SDD completo: <code>AGENTS.md</code>, <code>docs/00_persona.md</code>, <code>docs/01_objetivos_negocio.md</code>, <code>specs/spec.md</code>, <code>specs/plan.md</code>, <code>specs/tasks.md</code> e os ADRs.</li>
+            <li>Simulador, transformador e armazenador em <code>src/</code>, com <code>python -m pytest -q</code> passando.</li>
+            <li>Pipeline rodando localmente com o <code>docker-compose.yml</code> da aula e no Railway, com cinco serviços (ou quatro, justificado no ADR-002).</li>
+            <li>Resultado das consultas de <code>consultas_analiticas.sql</code> contra o ClickHouse do Railway, colado em <code>docs/atam.md</code> ou num arquivo de evidências.</li>
+            <li><code>docs/atam.md</code> com utility tree, os sete cenários em seis partes, evidências, riscos, trade-offs e a matriz requisito, decisão, componente e evidência.</li>
+            <li>Nenhum <code>.env</code> nem senha no histórico do Git.</li>
+          </ul>
+        </div>
+        <p>Antes de encerrar, peça ao agente: <code>Revise specs/spec.md contra src/ e tests/. Liste requisitos sem teste e testes sem requisito, sem editar nada.</code> Corrija o que aparecer, rode os testes de novo e faça o commit da pasta.</p>
+        <h3>16.1 Discussão: três decisões sobre o pipeline de streaming</h3>
+        <p>Às 11h30, depois da demonstração, a turma revisa o pipeline montado pela manhã numa discussão de decisões. O caso é o próprio projeto: doze sensores simulados, RabbitMQ com exchange topic, filas quorum e DLX, transformador, armazenador com lote por tempo, ClickHouse com token de deduplicação, ReplacingMergeTree e TTL, e cinco serviços no trial do Railway. São três questões, cada uma com quatro táticas de ganho e custo declarados, e nenhuma delas é a correta.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Questão</th><th>O que se decide</th><th>Blocos que ela retoma</th></tr></thead>
+          <tbody>
+            <tr><td>1. Idempotência no consumidor</td><td>Onde a duplicata é eliminada: token e ReplacingMergeTree, estado no armazenador, regra na consulta ou ack antes de gravar.</td><td>Blocos 3 e 5: ack, garantias de entrega, token, <code>FINAL</code>.</td></tr>
+            <tr><td>2. Backpressure</td><td>Lote maior, limite de fila, segundo armazenador ou inserção assíncrona, quando o ClickHouse fica para trás no trial. Traz um dado novo na discussão.</td><td>Blocos 2, 4 e 5: vazão medida, drenagem, lote e partes.</td></tr>
+            <tr><td>3. Retenção</td><td>O que precisa existir depois que o TTL apaga o detalhe e a fila não guarda o passado.</td><td>Blocos 2 e 5: fila contra log, TTL por partição, compressão.</td></tr>
+          </tbody>
+        </table></div>
+        <ol class="steps">
+          <li>Em cada questão, decida sozinho em três minutos e escreva o que precisa ser verdade para a sua tática funcionar.</li>
+          <li>Na discussão, defenda primeiro o custo da sua escolha.</li>
+          <li>Decida outra vez. Manter a escolha também é uma decisão e precisa de justificativa.</li>
+          <li>Depois da aula, registre as três decisões do grupo como ADRs em <code>docs/adr/</code> e leve a questão 2 para o cenário 2 do <code>docs/atam.md</code>.</li>
+        </ol>
+      </section>
+
+    </article>
+  </main>
+<!-- encontro:pdf:start -->
+<button type="button" class="pdf-export-btn" data-encontro-data="2026-11-14" data-encontro-docente="Afonso" data-encontro-seq="02" title="Exportar esta página em PDF com o nome padronizado">📄 Exportar PDF</button>
+<script src="../../../js/encontro-pdf.js" defer></script>
+<!-- encontro:pdf:end -->
+<!-- semana:js:start -->
+<script src="../../../js/semana-ano.js" defer></script>
+<!-- semana:js:end -->
+</body>
+</html>

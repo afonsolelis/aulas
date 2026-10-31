@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗄️</text></svg>">
+  <title>Aula 06 — Streaming com RabbitMQ e ClickHouse</title>
+  <link href="../css/dc-slides.css" rel="stylesheet">
+
+<!-- encontro:css:start -->
+<link rel="stylesheet" href="../../../css/encontro.css">
+<!-- encontro:css:end -->
+
+<!-- semana:css:start -->
+<link rel="stylesheet" href="../../../css/semana-ano.css">
+<!-- semana:css:end -->
+</head>
+<body>
+  <div class="slide-container">
+
+    <!-- 1. Capa -->
+    <div class="slide">
+      <div class="deck-shell" data-aula-number="06" data-year="2026">
+        <div>
+          <img class="deck-logo-full" src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli">
+          <span class="deck-kicker">Data Collection and Storage &middot; Inteli</span>
+          <h1 class="deck-title">Streaming com RabbitMQ e ClickHouse</h1>
+          <p class="deck-meta">Aula 06 &nbsp;&bull;&nbsp; 14/11/2026 &nbsp;&bull;&nbsp; 8h30 &ndash; 12h10</p>
+          <p class="deck-year">2026</p>
+          <p class="deck-subtitle">Duas horas de teoria com medições feitas no RabbitMQ e no ClickHouse. Depois, sensores simulados publicam no RabbitMQ, um transformador valida e um armazenador grava em lote no ClickHouse, em SDD, local e no Railway.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Agenda -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Agenda</span>
+          <h2 class="deck-title">Teoria até 10h30, prática até 12h10</h2>
+          <p class="deck-summary">Cinco blocos teóricos, cada um fechado com um exemplo numérico medido e uma pausa. Depois o professor constrói ao vivo e cada grupo reproduz no próprio Codespace.</p>
+        </div>
+        <div class="deck-grid">
+          <article class="deck-card">
+            <h3>8h30 &ndash; 10h30 &middot; Teoria</h3>
+            <ul>
+              <li>Bloco 1: o problema; batch, micro-batch e streaming</li>
+              <li>Bloco 2: fila e log, RabbitMQ por dentro, vazão medida</li>
+              <li>Bloco 3: ack, prefetch, garantias de entrega e ordem</li>
+              <li>Bloco 4: backpressure e tempo de drenagem</li>
+              <li>Bloco 5: ClickHouse, lote, deduplicação e TTL</li>
+            </ul>
+          </article>
+          <article class="deck-card">
+            <h3>10h30 &ndash; 12h10 &middot; Prática e discussão</h3>
+            <ul>
+              <li>RabbitMQ e ClickHouse locais com docker compose</li>
+              <li>Prompts 1 a 5 e início do prompt 6, com revisão</li>
+              <li>11h30: discussão de três decisões sobre o pipeline de streaming</li>
+              <li>Na semana: pipeline completo, Railway e ATAM</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Bloco 1: problema -->
+    <div class="slide">
+      <div class="deck-shell">
+        <div>
+          <span class="deck-kicker">Bloco 1 &middot; Problema</span>
+          <h2 class="deck-title">Estufas conferidas só duas vezes por dia</h2>
+          <p class="deck-summary">Uma cooperativa de mudas mede temperatura e umidade em estufas e numa sala de germinação. Hoje uma técnica agrícola confere os termômetros duas vezes por dia. Uma tarde quente com a ventilação parada pode perder um lote inteiro de mudas.</p>
+        </div>
+        <div class="deck-callout">
+          <strong>Resultado observável ao fim da aula</strong>
+          <p style="margin:8px 0 0;">Leituras chegando no ClickHouse poucos segundos depois de medidas, inválidas separadas numa DLQ com motivo, consultas de média por janela e último valor por sensor, e um <code>docs/atam.md</code> com falhas provocadas e medidas.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Bloco 1: cenário condutor -->
+    <div class="slide">
+      <div class="deck-shell">
+        <div>
+          <span class="deck-kicker">Bloco 1 &middot; Cenário condutor</span>
+          <h2 class="deck-title">Três números que voltam nos exemplos</h2>
+          <p class="deck-summary">Cooperativa de mudas com três estufas e uma sala de germinação. Doze sensores de temperatura e umidade publicam continuamente.</p>
+        </div>
+        <div class="deck-columns">
+          <div class="deck-panel">
+            <strong>187 bytes por leitura</strong>
+            <ul>
+              <li>JSON compacto da mensagem bruta da seção 12.1 do material, medido com <code>json.dumps</code></li>
+              <li>201 bytes com indentação</li>
+              <li>Seis campos, um deles o UUID de 36 caracteres</li>
+            </ul>
+          </div>
+          <div class="deck-panel">
+            <strong>12 leituras por segundo</strong>
+            <ul>
+              <li>12 sensores, uma leitura por segundo cada</li>
+              <li>1.036.800 leituras por dia</li>
+              <li>5% inválidas e 3% duplicadas no simulador</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Bloco 1: modos -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Bloco 1 &middot; Modos de processamento</span>
+          <h2 class="deck-title">Batch, micro-batch e streaming</h2>
+        </div>
+        <table class="deck-table">
+          <thead><tr><th>Modo</th><th>Unidade de trabalho</th><th>Latência típica</th><th>Exemplo na disciplina</th></tr></thead>
+          <tbody>
+            <tr><td>Batch</td><td>tudo o que chegou no período</td><td>horas</td><td>job do lakehouse da Aula 04 com cron</td></tr>
+            <tr><td>Micro-batch</td><td>pequenos lotes em intervalos curtos</td><td>segundos a minutos</td><td>armazenador que grava a cada N linhas ou T segundos</td></tr>
+            <tr><td>Streaming</td><td>cada evento, assim que chega</td><td>sub-segundo a segundos</td><td>transformador que valida mensagem a mensagem</td></tr>
+          </tbody>
+        </table>
+        <div class="deck-note">O pipeline da aula mistura os dois últimos: o transformador trata evento a evento e o armazenador agrupa em lote porque o ClickHouse pede lotes.</div>
+      </div>
+    </div>
+
+    <!-- 6. Bloco 1: latência e custo -->
+    <div class="slide">
+      <div class="deck-shell">
+        <div>
+          <span class="deck-kicker">Bloco 1 &middot; Latência e custo</span>
+          <h2 class="deck-title">Latência e custo do pipeline contínuo</h2>
+        </div>
+        <div class="deck-columns">
+          <div class="deck-panel">
+            <strong>O que a latência baixa exige</strong>
+            <ul>
+              <li>processos sempre ligados (custo de serviço 24 h)</li>
+              <li>broker, filas e monitoramento de atraso</li>
+              <li>tratamento de duplicata, ordem e falha parcial</li>
+            </ul>
+          </div>
+          <div class="deck-panel">
+            <strong>Pergunta para a persona</strong>
+            <ul>
+              <li>em quanto tempo a decisão precisa do dado?</li>
+              <li>o que acontece se o dado atrasar 5 minutos? e 1 hora?</li>
+              <li>a resposta vira RNF, marcada como hipótese até ser validada</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. Bloco 1: exemplo numérico 1 -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Bloco 1 &middot; Exemplo numérico 1</span>
+          <h2 class="deck-title">Quanto o pipeline recebe em um dia</h2>
+        </div>
+        <table class="deck-table">
+          <thead><tr><th>Período</th><th>Leituras</th><th>JSON (187 B cada)</th><th>ClickHouse (medido no bloco 5)</th></tr></thead>
+          <tbody>
+            <tr><td>1 segundo</td><td>12</td><td>2.244 B</td><td>&ndash;</td></tr>
+            <tr><td>1 hora</td><td>43.200</td><td>8,1 MB</td><td>&ndash;</td></tr>
+            <tr><td>1 dia</td><td>1.036.800</td><td>193,9 MB</td><td>50,4 MB</td></tr>
+            <tr><td>90 dias (TTL da aula)</td><td>93.312.000</td><td>17,4 GB</td><td>cerca de 4,5 GB, projetado</td></tr>
+          </tbody>
+        </table>
+        <div class="deck-callout">
+          <strong>Batch horário contra streaming</strong>
+          <p style="margin:8px 0 0;">Um job por hora receberia 43.200 leituras de uma vez, e a primeira delas esperaria até 60 minutos. O streaming entrega as mesmas leituras uma a uma, em segundos; o preço é manter três processos e um broker ligados 24 horas. A vazão é pequena; o volume acumulado é o que pesa no armazenamento.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 8. Bloco 1: pausa -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Bloco 1 &middot; Pausa para reflexão</span>
+          <h2 class="deck-title">Que atraso cada pergunta da cooperativa tolera?</h2>
+          <p class="deck-summary">Para cada necessidade, escolha batch, micro-batch ou streaming e diga o que acontece se o dado atrasar 5 minutos e se atrasar 1 hora.</p>
+        </div>
+        <div class="deck-grid">
+          <article class="deck-card"><h3>Ventilação parada</h3><p style="margin:0;">A técnica precisa religar antes que a estufa aqueça numa tarde de sol.</p></article>
+          <article class="deck-card"><h3>Média recente</h3><p style="margin:0;">Último valor e média de 5 minutos por ambiente, consultados várias vezes ao dia.</p></article>
+          <article class="deck-card"><h3>Relatório semanal</h3><p style="margin:0;">Horas fora da faixa por estufa, enviadas à diretoria toda segunda-feira.</p></article>
+          <article class="deck-card"><h3>Comparação entre verões</h3><p style="margin:0;">Este verão contra o próximo, para planejar sombreamento.</p></article>
+        </div>
+      </div>
+    </div>
+
+    <!-- 9. Bloco 1: pontos-chave -->
+    <div class="slide">
+      <div class="deck-shell">
+        <div>
+          <span class="deck-kicker">Bloco 1 &middot; Síntese</span>
+          <h2 class="deck-title">Pontos-chave do bloco 1</h2>
+        </div>
+        <ol class="deck-steps">
+          <li>O modo de processamento se escolhe por etapa: o transformador trata evento a evento, o armazenador grava em lote.</li>
+          <li>Latência baixa custa processos ligados 24 horas, um broker a mais e desenho explícito para duplicata, ordem e falha parcial.</li>
+          <li>Doze sensores a 187 B somam 194 MB de JSON por dia: o volume acumulado pressiona mais que a vazão.</li>
+          <li>Latência e retenção são requisitos da persona; sem resposta, entram na spec como hipótese.</li>
+        </ol>
+        <p class="deck-note">Pergunta de passagem: quem guarda a leitura enquanto o consumidor está ocupado? O bloco 2 responde.</p>
+      </div>
+    </div>
+
+    <!-- 10. Bloco 2: fila e log -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Bloco 2 &middot; Fila e log</span>
+          <h2 class="deck-title">RabbitMQ e Kafka: fila e log</h2>
+        </div>
+        <table class="deck-table">
+          <thead><tr><th>Critério</th><th>RabbitMQ (filas)</th><th>Kafka (log)</th></tr></thead>
+          <tbody>
+            <tr><td>Após o consumo</td><td>mensagem confirmada sai da fila</td><td>evento fica no log até a retenção vencer</td></tr>
+            <tr><td>Roteamento</td><td>exchanges e bindings no broker</td><td>tópicos e partições; filtro no consumidor</td></tr>
+            <tr><td>Controle de progresso</td><td>ack por mensagem</td><td>offset por partição e grupo de consumo</td></tr>
+            <tr><td>Reprocessar o passado</td><td>só se alguém guardou</td><td>reler a partir de um offset</td></tr>
+            <tr><td>Ordem</td><td>por fila, com um consumidor</td><td>por partição</td></tr>
+          </tbody>
+        </table>
+        <div class="deck-note">O RabbitMQ também oferece streams, com semântica de log. Nesta aula usamos filas clássicas de mensageria.</div>
+      </div>
+    </div>
+
+    <!-- 11. Bloco 2: caminho da mensagem -->
+    <div class="slide">
+      <div class="deck-shell">
+        <div>
+          <span class="deck-kicker">Bloco 2 &middot; RabbitMQ por dentro</span>
+          <h2 class="deck-title">O caminho de uma mensagem no RabbitMQ</h2>
+        </div>
+        <div class="method-flow">
+          <div class="method-step"><strong>Producer</strong><span>publica com uma routing key.</span></div>
+          <div class="method-step is-current"><strong>Exchange</strong><span>decide para quais filas copiar.</span></div>
+          <div class="method-step"><strong>Binding</strong><span>regra que liga exchange e fila.</span></div>
+          <div class="method-step"><strong>Queue</strong><span>guarda até alguém confirmar.</span></div>
+          <div class="method-step"><strong>Consumer</strong><span>processa e responde ack ou nack.</span></div>
+        </div>
+        <div class="deck-note">O producer nunca escreve direto numa fila; ele entrega à exchange. Uma mensagem sem binding correspondente é descartada.</div>
+      </div>
+    </div>
+
+    <!-- 12. Bloco 2: exchanges -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Bloco 2 &middot; Exchanges</span>
+          <h2 class="deck-title">Direct, topic e fanout no projeto IoT</h2>
+        </div>
+        <table class="deck-table">
+          <thead><tr><th>Tipo</th><th>Regra de roteamento</th><th>Uso nesta aula</th></tr></thead>
+          <tbody>
+            <tr><td>direct</td><td>routing key igual à binding key</td><td>alternativa simples para uma fila por destino</td></tr>
+            <tr><td>topic</td><td>padrão com <code>*</code> (uma palavra) e <code>#</code> (zero ou mais)</td><td><code>iot.leituras</code>: <code>leitura.bruta.#</code> e <code>leitura.valida.#</code></td></tr>
+            <tr><td>fanout</td><td>copia para todas as filas ligadas, ignora a key</td><td><code>iot.dlx</code>: tudo que for rejeitado vai para <code>leituras.dlq</code></td></tr>
+          </tbody>
+        </table>
+        <pre><code>routing key publicada: leitura.bruta.estufa.estufa-a-03
+binding da fila leituras.brutas: leitura.bruta.#   (casa)</code></pre>
+      </div>
+    </div>
+
+    <!-- 13. Bloco 2: exemplo numérico 2 -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Bloco 2 &middot; Exemplo numérico 2</span>
+          <h2 class="deck-title">Vazão medida: publicar com e sem confirmação</h2>
+          <p class="deck-summary">RabbitMQ 4.3.6 local, fila quorum, mensagens persistentes de 187 B, <code>pika</code> 1.4.4. Mediana de 5 rodadas de 10.000 mensagens.</p>
+        </div>
+        <table class="deck-table">
+          <thead><tr><th>Modo de publicação</th><th>Mensagens por segundo</th><th>Folga para 12 sensores</th><th>Folga para 200 sensores</th></tr></thead>
+          <tbody>
+            <tr><td>Sem publisher confirms</td><td>21.973 (de 15.143 a 28.237)</td><td>1.831 vezes</td><td>110 vezes</td></tr>
+            <tr><td>Confirmação a cada mensagem</td><td>277 (de 255 a 341)</td><td>23 vezes</td><td>1,4 vez</td></tr>
+          </tbody>
+        </table>
+        <div class="deck-callout">
+          <strong>O que a medição mostra</strong>
+          <p style="margin:8px 0 0;">Confirmar cada publicação custou cerca de 80 vezes a vazão: cada <code>basic_publish</code> espera o broker gravar e responder. Com <code>SENSORES=200</code>, o produtor que confirma trabalha a 72% da capacidade medida. Sem rede; no Railway, o grupo mede de novo.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 14. Bloco 2: pausa -->
+    <div class="slide">
+      <div class="deck-shell">
+        <div>
+          <span class="deck-kicker">Bloco 2 &middot; Pausa para reflexão</span>
+          <h2 class="deck-title">Uma fila só para a sala de germinação</h2>
+          <p class="deck-summary">A técnica quer um consumidor que veja apenas as leituras brutas da sala. Responda sem mexer no simulador.</p>
+        </div>
+        <ol class="deck-steps">
+          <li>Qual binding key liga a nova fila à exchange <code>iot.leituras</code>?</li>
+          <li>A fila <code>leituras.brutas</code> deixa de receber essas leituras?</li>
+          <li>O que acontece com uma mensagem publicada com <code>leitura.bruta.galpao.g-01</code> se nenhum binding casar?</li>
+          <li>Em que situação valeria trocar a fila por um stream, com releitura por offset?</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- 15. Bloco 2: pontos-chave -->
+    <div class="slide">
+      <div class="deck-shell">
+        <div>
+          <span class="deck-kicker">Bloco 2 &middot; Síntese</span>
+          <h2 class="deck-title">Pontos-chave do bloco 2</h2>
+        </div>
+        <ol class="deck-steps">
+          <li>Fila entrega e descarta depois do ack; log guarda até a retenção vencer e permite reler.</li>
+          <li>O producer publica numa exchange; os bindings decidem as filas, e mensagem sem binding é descartada.</li>
+          <li>Topic com <code>leitura.bruta.&lt;tipo_local&gt;.&lt;device_id&gt;</code> permite filas novas sem tocar no producer.</li>
+          <li>Medido localmente, confirmar cada publicação reduziu a vazão de cerca de 22 mil para cerca de 280 mensagens por segundo.</li>
+        </ol>
+        <p class="deck-note">Pergunta de passagem: quando a mensagem pode sair da fila sem risco de perda? O bloco 3 responde.</p>
+      </div>
+    </div>
+
+    <!-- 16. Bloco 3: ack e prefetch -->
+    <div class="slide">
+      <div class="deck-shell">
+        <div>
+          <span class="deck-kicker">Bloco 3 &middot; Consumo</span>
+          <h2 class="deck-title">Ack manual, nack e prefetch</h2>
+        </div>
+        <ol class="deck-steps">
+          <li>Com ack automático, a mensagem conta como entregue assim que sai do broker. Se o processo cair, ela se perde.</li>
+          <li>Com ack manual, o consumidor chama <code>basic_ack</code> só depois de terminar o trabalho.</li>
+          <li>Mensagem sem ack volta para a fila quando o canal ou a conexão fecha, com <code>redelivered=True</code>.</li>
+          <li><code>basic_nack(requeue=False)</code> rejeita sem devolver; se a fila tem DLX, a mensagem vai para lá.</li>
+          <li><code>basic_qos(prefetch_count=N)</code> limita quantas mensagens sem ack o consumidor segura. No armazenador, N precisa ser maior ou igual ao tamanho do lote.</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- 17. Bloco 3: durabilidade e DLX -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Bloco 3 &middot; Persistência</span>
+          <h2 class="deck-title">Fila durável, mensagem persistente e DLX</h2>
+        </div>
+        <div class="deck-grid">
+          <article class="deck-card"><h3>Fila durável</h3><p>Sobrevive ao reinício do broker. Filas quorum são sempre duráveis.</p></article>
+          <article class="deck-card"><h3>Mensagem persistente</h3><p><code>delivery_mode=Persistent</code>: gravada em disco. Sem isso, a fila volta vazia.</p></article>
+          <article class="deck-card"><h3>Dead letter exchange</h3><p>Recebe o que foi rejeitado sem requeue, expirou por TTL ou estourou o limite da fila.</p></article>
+          <article class="deck-card"><h3>Limite de entregas</h3><p>Desde o RabbitMQ 4.0, fila quorum tem limite padrão de 20 entregas; depois disso a mensagem vai para a DLX ou é descartada.</p></article>
+        </div>
+      </div>
+    </div>
+
+    <!-- 18. Bloco 3: exemplo numérico 3 -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Bloco 3 &middot; Exemplo numérico 3</span>
+          <h2 class="deck-title">Prefetch e reentrega, medidos</h2>
+          <p class="deck-summary">Mesmo broker, 10.000 mensagens persistentes, ack manual a cada mensagem. Mediana de 5 rodadas.</p>
+        </div>
+        <table class="deck-table">
+          <thead><tr><th><code>prefetch_count</code></th><th>Mensagens por segundo</th><th>Leitura</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>274</td><td>uma ida e volta ao broker por mensagem</td></tr>
+            <tr><td>100</td><td>12.131</td><td>44 vezes o prefetch 1</td></tr>
+            <tr><td>1.000</td><td>25.738</td><td>o dobro; no armazenador, N &ge; lote</td></tr>
+          </tbody>
+        </table>
+        <div class="deck-callout">
+          <strong>Reentrega medida</strong>
+          <p style="margin:8px 0 0;">Um consumidor recebeu 60 mensagens, o tamanho do lote por tempo, e fechou a conexão sem ack. A fila passou de 0 para 60 prontas, e as 60 voltaram com <code>redelivered=True</code> e <code>x-delivery-count</code> 1.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 19. Bloco 3: garantias -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Bloco 3 &middot; Garantias de entrega</span>
+          <h2 class="deck-title">Garantias de entrega e idempotência</h2>
+        </div>
+        <table class="deck-table">
+          <thead><tr><th>Garantia</th><th>Como se obtém</th><th>Falha típica</th></tr></thead>
+          <tbody>
+            <tr><td>at-most-once</td><td>ack antes de processar (ou automático)</td><td>perda se o consumidor cair</td></tr>
+            <tr><td>at-least-once</td><td>ack depois de gravar no destino</td><td>duplicata se cair entre gravar e confirmar</td></tr>
+            <tr><td>exactly-once (efeito)</td><td>at-least-once + escrita idempotente no destino</td><td>depende de uma chave de deduplicação bem escolhida</td></tr>
+          </tbody>
+        </table>
+        <div class="deck-callout"><strong>Decisão do projeto</strong><p style="margin:8px 0 0;">Entrega at-least-once no RabbitMQ e deduplicação no ClickHouse: token por lote no INSERT e ReplacingMergeTree pela chave (device_id, medido_em).</p></div>
+      </div>
+    </div>
+
+    <!-- 20. Bloco 3: ordem -->
+    <div class="slide">
+      <div class="deck-shell">
+        <div>
+          <span class="deck-kicker">Bloco 3 &middot; Ordem</span>
+          <h2 class="deck-title">Ordem de chegada não é ordem de medição</h2>
+        </div>
+        <div class="deck-columns">
+          <div class="deck-panel">
+            <strong>O que quebra a ordem</strong>
+            <ul>
+              <li>Reentrega: a mensagem volta para a fila atrás das mais novas</li>
+              <li>Dois consumidores dividindo a mesma fila</li>
+              <li>Sensor que reenvia leitura atrasada quando a rede volta</li>
+            </ul>
+          </div>
+          <div class="deck-panel">
+            <strong>Como o projeto evita depender dela</strong>
+            <ul>
+              <li>Cada leitura carrega o próprio <code>medido_em</code></li>
+              <li>Último valor por <code>argMax(temperatura_c, medido_em)</code></li>
+              <li>Janelas por <code>toStartOfInterval(medido_em)</code>, nunca por <code>ingerido_em</code></li>
+            </ul>
+          </div>
+        </div>
+        <p class="deck-note">Uma fila só entrega em ordem com um único consumidor e nenhuma reentrega. O desenho não conta com isso.</p>
+      </div>
+    </div>
+
+    <!-- 21. Bloco 3: pausa -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Bloco 3 &middot; Pausa para reflexão</span>
+          <h2 class="deck-title">Onde a leitura some ou duplica?</h2>
+          <p class="deck-summary">O armazenador cai em quatro momentos. Para cada um, diga se a leitura se perde, duplica ou chega uma vez, e qual mecanismo garante isso.</p>
+        </div>
+        <div class="deck-grid">
+          <article class="deck-card"><h3>Antes do INSERT</h3><p style="margin:0;">Lote montado em memória, nada gravado, nenhum ack enviado.</p></article>
+          <article class="deck-card"><h3>Entre o INSERT e o ack</h3><p style="margin:0;">O ClickHouse gravou, a resposta chegou, o processo morreu.</p></article>
+          <article class="deck-card"><h3>Depois do ack</h3><p style="margin:0;">Lote gravado e confirmado; o processo cai em seguida.</p></article>
+          <article class="deck-card"><h3>Com ack automático</h3><p style="margin:0;">A mensagem contou como entregue ao sair do broker.</p></article>
+        </div>
+      </div>
+    </div>
+
+    <!-- 22. Bloco 3: pontos-chave -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Bloco 3 &middot; Síntese</span>
+          <h2 class="deck-title">Pontos-chave do bloco 3</h2>
+        </div>
+        <ol class="deck-steps">
+          <li>Ack manual depois do trabalho; sem ack, a mensagem volta com <code>redelivered=True</code>.</li>
+          <li>Fila durável e mensagem persistente valem juntas; fila quorum limita a 20 entregas e manda o excesso para a DLX.</li>
+          <li>Prefetch medido: de 274 para 25.738 mensagens por segundo entre 1 e 1.000; no armazenador, prefetch maior ou igual ao lote.</li>
+          <li>At-least-once com escrita idempotente dá efeito de uma vez; o intervalo entre gravar e confirmar nunca chega a zero.</li>
+          <li>Consultas usam <code>medido_em</code>, nunca a ordem de chegada.</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- 23. Bloco 4: backpressure -->
+    <div class="slide">
+      <div class="deck-shell">
+        <div>
+          <span class="deck-kicker">Bloco 4 &middot; Backpressure</span>
+          <h2 class="deck-title">Backpressure: consumidor mais lento</h2>
+        </div>
+        <div class="deck-columns">
+          <div class="deck-panel">
+            <strong>Sinais</strong>
+            <ul>
+              <li><code>messages_ready</code> cresce sem parar</li>
+              <li>atraso entre <code>medido_em</code> e <code>ingerido_em</code> aumenta</li>
+              <li>alarme de memória ou disco bloqueia publicadores</li>
+            </ul>
+          </div>
+          <div class="deck-panel">
+            <strong>Respostas</strong>
+            <ul>
+              <li>prefetch limita o que cada consumidor segura</li>
+              <li>mais consumidores na mesma fila</li>
+              <li>limite de tamanho da fila com política explícita</li>
+              <li>lote maior no ClickHouse, com latência maior</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 24. Bloco 4: exemplo numérico 4 -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Bloco 4 &middot; Exemplo numérico 4</span>
+          <h2 class="deck-title">Quanto tempo um pico leva para drenar</h2>
+          <p class="deck-summary">Cenário 2 do ATAM: transformador parado e <code>SENSORES=200</code> por um minuto.</p>
+        </div>
+        <table class="deck-table">
+          <thead><tr><th>Grandeza</th><th>Valor</th><th>Origem</th></tr></thead>
+          <tbody>
+            <tr><td>Mensagens acumuladas</td><td>12.000</td><td>200 sensores &times; 60 s</td></tr>
+            <tr><td>Vazão do transformador</td><td>150 a 169 msg/s; 665 a 745 na 1ª rodada</td><td>medida: lê, converte, republica com confirmação</td></tr>
+            <tr><td>Tempo para drenar</td><td>12.000 &divide; (160 &minus; 12) &asymp; 81 s</td><td>mediana, menos as 12/s que seguem chegando</td></tr>
+            <tr><td>ClickHouse parado 20 min</td><td>14.400 mensagens</td><td>hipótese: 12/s &times; 1.200 s</td></tr>
+          </tbody>
+        </table>
+        <div class="deck-callout">
+          <strong>O que a medição mostra</strong>
+          <p style="margin:8px 0 0;">O gargalo é a confirmação de cada publicação (exemplo 2), e a vazão variou até cinco vezes entre rodadas na mesma máquina. O ATAM pede o tempo de drenagem medido no ambiente do grupo.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 25. Bloco 4: pausa -->
+    <div class="slide">
+      <div class="deck-shell">
+        <div>
+          <span class="deck-kicker">Bloco 4 &middot; Pausa para reflexão</span>
+          <h2 class="deck-title">Qual resposta o trial do Railway aguenta?</h2>
+          <p class="deck-summary">O ClickHouse do Railway tem 1 GB de RAM e vCPU compartilhada. A fila de válidas cresce há 10 minutos.</p>
+        </div>
+        <ol class="deck-steps">
+          <li>Lote maior: quanto a latência sobe e quantos INSERTs por minuto deixam de existir?</li>
+          <li>Mais um armazenador: há vaga entre os cinco serviços, e o gargalo é o cliente ou o servidor?</li>
+          <li>Limite de fila: que leitura a cooperativa aceita perder, e quem fica sabendo?</li>
+          <li>Que medida (<code>list_queues</code>, latência p95, <code>system.parts</code>) decide entre elas?</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- 26. Bloco 4: pontos-chave -->
+    <div class="slide">
+      <div class="deck-shell">
+        <div>
+          <span class="deck-kicker">Bloco 4 &middot; Síntese</span>
+          <h2 class="deck-title">Pontos-chave do bloco 4</h2>
+        </div>
+        <ol class="deck-steps">
+          <li>O broker absorve a diferença entre produção e consumo até o alarme de memória ou disco bloquear os publicadores.</li>
+          <li>Sinais: <code>messages_ready</code> cresce sem parar e o atraso entre <code>medido_em</code> e <code>ingerido_em</code> aumenta.</li>
+          <li>Cada resposta tem custo: lote maior aumenta a latência, mais consumidores desordenam e ocupam vaga, limite de fila descarta.</li>
+          <li>Tempo de drenagem se mede no ambiente; a vazão local variou até cinco vezes entre rodadas.</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- 27. Bloco 5: ClickHouse -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Bloco 5 &middot; ClickHouse por dentro</span>
+          <h2 class="deck-title">Banco colunar analítico com MergeTree</h2>
+        </div>
+        <div class="deck-grid">
+          <article class="deck-card"><h3>Colunar</h3><p>Cada coluna em arquivo próprio e comprimido. <code>avg(temperatura_c)</code> lê só essa coluna.</p></article>
+          <article class="deck-card"><h3>ORDER BY</h3><p>Ordena os dados no disco e forma o índice esparso. Filtros por <code>device_id</code> e tempo pulam blocos.</p></article>
+          <article class="deck-card"><h3>PARTITION BY</h3><p>Separa por mês. Serve para gerenciar dados (TTL, remoção), não para acelerar toda consulta.</p></article>
+          <article class="deck-card"><h3>Partes e merges</h3><p>Cada INSERT cria uma parte; o servidor junta partes em segundo plano.</p></article>
+        </div>
+      </div>
+    </div>
+
+    <!-- 28. Bloco 5: lote -->
+    <div class="slide">
+      <div class="deck-shell">
+        <div>
+          <span class="deck-kicker">Bloco 5 &middot; Inserção</span>
+          <h2 class="deck-title">Por que inserir linha a linha é ruim</h2>
+          <p class="deck-summary">Uma leitura por INSERT gera uma parte por leitura. Os merges não acompanham, as consultas pioram e o servidor recusa com o erro "too many parts".</p>
+        </div>
+        <div class="deck-callout">
+          <strong>Recomendação da documentação do ClickHouse</strong>
+          <p style="margin:8px 0 0;">Lotes de pelo menos 1.000 linhas, idealmente entre 10.000 e 100.000. Com poucos sensores isso conflita com a latência: o armazenador fecha o lote por tamanho ou por tempo, o que vier primeiro. A alternativa é <code>async_insert=1</code> com <code>wait_for_async_insert=1</code>.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 29. Bloco 5: exemplo numérico 5 -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Bloco 5 &middot; Exemplo numérico 5</span>
+          <h2 class="deck-title">Lote medido: 1, 60 e 1.000 linhas por INSERT</h2>
+          <p class="deck-summary">ClickHouse 26.8.15.10 local, tabela da aula, 12.000 leituras com <code>clickhouse-connect</code> 1.9.0.</p>
+        </div>
+        <table class="deck-table">
+          <thead><tr><th>Linhas por INSERT</th><th>INSERTs</th><th>Tempo total</th><th>Linhas por segundo</th><th>Partes ativas ao fim</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>12.000</td><td>729 s</td><td>16</td><td>5 (12.000 criadas)</td></tr>
+            <tr><td>60 (lote da aula)</td><td>200</td><td>12,1 s</td><td>990</td><td>5</td></tr>
+            <tr><td>1.000</td><td>12</td><td>0,7 s</td><td>16.506</td><td>2</td></tr>
+          </tbody>
+        </table>
+        <div class="deck-callout">
+          <strong>O que a medição mostra</strong>
+          <p style="margin:8px 0 0;">Linha a linha, 16 linhas por segundo: os 12 sensores ocupariam 75% da capacidade. O lote de 60 dá 82 vezes de folga; o de 1.000, mais de mil. Máquina compartilhada: vale a ordem de grandeza.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 30. Bloco 5: DDL -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Bloco 5 &middot; DDL da aula</span>
+          <h2 class="deck-title">DDL com ReplacingMergeTree e TTL</h2>
+        </div>
+        <pre class="is-compact" style="flex-shrink:0"><code>CREATE TABLE IF NOT EXISTS iot.leituras (
+    event_id String, device_id LowCardinality(String),
+    local LowCardinality(String), tipo_local LowCardinality(String),
+    medido_em DateTime64(3, 'UTC'), temperatura_c Float32, umidade_pct Float32,
+    lote_id String, ingerido_em DateTime64(3, 'UTC') DEFAULT now64(3))
+ENGINE = ReplacingMergeTree(ingerido_em)
+PARTITION BY toYYYYMM(medido_em)
+ORDER BY (device_id, medido_em)
+TTL toDateTime(medido_em) + INTERVAL 90 DAY
+SETTINGS non_replicated_deduplication_window = 1000;</code></pre>
+        <div class="deck-note">ReplacingMergeTree colapsa duplicatas só no merge, em momento imprevisível: consultas exatas usam <code>FINAL</code>. A janela de deduplicação vale 0 por padrão em MergeTree não replicado.</div>
+      </div>
+    </div>
+
+    <!-- 31. Bloco 5: exemplo numérico 6 -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Bloco 5 &middot; Exemplo numérico 6</span>
+          <h2 class="deck-title">Um dia de leituras, comprimido e deduplicado</h2>
+          <p class="deck-summary">1.036.800 leituras sintéticas compactadas; depois, 3% reinseridas sem token.</p>
+        </div>
+        <table class="deck-table">
+          <thead><tr><th>Medida</th><th>Valor</th></tr></thead>
+          <tbody>
+            <tr><td>JSON bruto equivalente</td><td>193,9 MB (187 B &times; 1.036.800)</td></tr>
+            <tr><td>ClickHouse sem compressão / em disco</td><td>91,6 MB / 50,4 MB</td></tr>
+            <tr><td>Coluna <code>event_id</code> (UUID aleatório)</td><td>37,3 MB, 74% do disco; <code>device_id</code>: 5 KB</td></tr>
+            <tr><td><code>count()</code> / <code>FINAL</code>, 30.951 duplicatas</td><td>1.067.751 em 1,7 ms / 1.036.800 em 26,6 ms</td></tr>
+            <tr><td>Média de 5 min por ambiente / com <code>FINAL</code></td><td>25,8 ms / 37,8 ms</td></tr>
+          </tbody>
+        </table>
+        <p class="deck-note">Token: o lote de 3 linhas enviado duas vezes com <code>lote-1</code> deu 3; de novo sem token, 6; com <code>FINAL</code>, 3.</p>
+      </div>
+    </div>
+
+    <!-- 32. Bloco 5: pausa e passagem -->
+    <div class="slide">
+      <div class="deck-shell">
+        <div>
+          <span class="deck-kicker">Bloco 5 &middot; Pausa e passagem para a prática</span>
+          <h2 class="deck-title">E se a cooperativa pedir um ano de detalhe?</h2>
+          <p class="deck-summary">Hoje o TTL apaga o detalhe em 90 dias, e a fila não guarda nada depois do ack.</p>
+        </div>
+        <ol class="deck-steps">
+          <li>Com os 50,4 MB por dia do exemplo 6, quanto ocupa um ano no volume do Railway?</li>
+          <li>O que muda na DDL: o TTL, a partição mensal ou o tipo do <code>event_id</code>?</li>
+          <li>A janela de 1.000 blocos cobre cerca de 83 minutos com 12 INSERTs por minuto. Basta?</li>
+          <li>Qual dessas decisões precisa de ADR novo?</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- 33. Bloco 5: pontos-chave -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Bloco 5 &middot; Síntese</span>
+          <h2 class="deck-title">Pontos-chave do bloco 5</h2>
+        </div>
+        <ol class="deck-steps">
+          <li>Colunar lê só as colunas da consulta; <code>ORDER BY</code> forma o índice esparso, <code>PARTITION BY</code> serve para gerenciar dados.</li>
+          <li>Cada INSERT cria uma parte: linha a linha deu 16 linhas por segundo, lote de 1.000 deu 16.506.</li>
+          <li>Token descarta o reenvio do lote; ReplacingMergeTree colapsa no merge; <code>FINAL</code> garante exatidão na leitura, a um custo medido.</li>
+          <li>Um dia ocupou 50,4 MB contra 193,9 MB de JSON; o identificador aleatório é a coluna mais cara.</li>
+          <li>TTL por partição mensal torna a remoção barata; os 90 dias são hipótese.</li>
+        </ol>
+        <p class="deck-note">Daqui em diante, cada decisão vira requisito, tarefa, teste e cenário ATAM no projeto do grupo.</p>
+      </div>
+    </div>
+
+    <!-- 34. Demonstração: retomada da Aula 01 -->
+    <div class="slide">
+      <div class="deck-shell">
+        <div>
+          <span class="deck-kicker">Demonstração em SDD &middot; Retomada da Aula 01</span>
+          <h2 class="deck-title">Mesmo método, mesmo formato de prompt</h2>
+        </div>
+        <div class="method-flow">
+          <div class="method-step"><strong>Persona e objetivos</strong><span>Prompts 1 e 2.</span></div>
+          <div class="method-step"><strong>Spec</strong><span>Prompt 3: RF e RNF com Dado/Quando/Então.</span></div>
+          <div class="method-step"><strong>Plano e tarefas</strong><span>Prompts 4 e 5: C4 e T-xx com teste.</span></div>
+          <div class="method-step"><strong>Implementação</strong><span>Prompt 6, uma tarefa por vez.</span></div>
+          <div class="method-step"><strong>ATAM</strong><span>Prompt 7: cenários, ADRs, evidência.</span></div>
+        </div>
+        <div class="deck-note">Todo prompt em CREATE: [C] Personagem, [R] Pedido, [E] Exemplos, [A] Ajustes, [T] Tipo de saída, [E] Extras. Revisão: <a href="../materials/lesson-1-material.html">material da Aula 01</a>.</div>
+      </div>
+    </div>
+
+    <!-- 35. Arquitetura -->
+    <div class="slide">
+      <div class="deck-shell">
+        <div>
+          <span class="deck-kicker">Mini projeto IoT</span>
+          <h2 class="deck-title">Cinco componentes, três processos Python</h2>
+        </div>
+        <div class="method-flow">
+          <div class="method-step"><strong>Simulador</strong><span>12 sensores; às vezes inválidos, duplicados ou em °F.</span></div>
+          <div class="method-step"><strong>RabbitMQ</strong><span>exchange topic <code>iot.leituras</code>, DLX <code>iot.dlx</code>.</span></div>
+          <div class="method-step is-current"><strong>Transformador</strong><span>valida, converte °F, enriquece, separa inválidos.</span></div>
+          <div class="method-step"><strong>Armazenador</strong><span>agrupa em lote, insere com token, depois dá ack.</span></div>
+          <div class="method-step"><strong>ClickHouse</strong><span><code>iot.leituras</code> e consultas analíticas.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 36. Topologia -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Mini projeto IoT &middot; Topologia</span>
+          <h2 class="deck-title">Exchanges, filas e routing keys</h2>
+        </div>
+        <table class="deck-table">
+          <thead><tr><th>Fila</th><th>Ligada a</th><th>Binding key</th><th>Consumidor</th></tr></thead>
+          <tbody>
+            <tr><td><code>leituras.brutas</code></td><td><code>iot.leituras</code> (topic)</td><td><code>leitura.bruta.#</code></td><td>transformador</td></tr>
+            <tr><td><code>leituras.validas</code></td><td><code>iot.leituras</code> (topic)</td><td><code>leitura.valida.#</code></td><td>armazenador</td></tr>
+            <tr><td><code>leituras.dlq</code></td><td><code>iot.dlx</code> (fanout)</td><td>nenhuma</td><td>inspeção humana</td></tr>
+          </tbody>
+        </table>
+        <div class="deck-note">As três filas são quorum, com <code>x-dead-letter-exchange=iot.dlx</code> nas duas primeiras. O transformador publica inválidos na DLX com o cabeçalho de motivo e dá ack na original.</div>
+      </div>
+    </div>
+
+    <!-- 37. Setup local -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Prática &middot; Etapas 1 a 3</span>
+          <h2 class="deck-title">Subir RabbitMQ e ClickHouse no Codespace</h2>
+        </div>
+        <pre style="flex-shrink:0"><code>mkdir -p aula_06_streaming_iot/{docs/adr,specs,src,tests,sql,scripts} && cd aula_06_streaming_iot
+# baixar os arquivos de apoio (README do laboratório, Etapa 1)
+cp .env.example .env   # senhas com: openssl rand -hex 16
+docker compose up -d --wait
+docker compose exec rabbitmq rabbitmq-diagnostics -q ping   # Ping succeeded
+curl -s http://localhost:8123/ping                           # Ok.
+python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt</code></pre>
+        <div class="deck-note">Console do RabbitMQ na porta 15672 (aba PORTS). A porta 9000 do ClickHouse fica fechada porque o MinIO já a usa.</div>
+      </div>
+    </div>
+
+    <!-- 38. Prompts -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Prática &middot; Sete prompts CREATE</span>
+          <h2 class="deck-title">O que cada prompt produz nesta aula</h2>
+        </div>
+        <table class="deck-table">
+          <thead><tr><th>Prompt</th><th>Artefato</th><th>Ponto de revisão</th></tr></thead>
+          <tbody>
+            <tr><td>1 &middot; Persona</td><td><code>docs/00_persona.md</code></td><td>técnico da estufa e mantenedor do pipeline</td></tr>
+            <tr><td>2 &middot; Objetivos</td><td><code>docs/01_objetivos_negocio.md</code></td><td>latência e retenção como hipótese</td></tr>
+            <tr><td>3 &middot; Spec</td><td><code>specs/spec.md</code></td><td>regras de validação e garantia de entrega</td></tr>
+            <tr><td>4 &middot; Plano</td><td><code>specs/plan.md</code></td><td>C4, topologia, 5 serviços no Railway</td></tr>
+            <tr><td>5 &middot; Tarefas</td><td><code>specs/tasks.md</code></td><td>funções puras testadas antes do broker</td></tr>
+            <tr><td>6 &middot; Implementação</td><td><code>src/</code>, <code>tests/</code></td><td>ack depois do INSERT; token por lote</td></tr>
+            <tr><td>7 &middot; ATAM</td><td><code>docs/atam.md</code>, ADRs</td><td>falhas provocadas com evidência</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 39. Gates locais -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Prática &middot; Pipeline local</span>
+          <h2 class="deck-title">Gates do pipeline rodando no Codespace</h2>
+        </div>
+        <pre class="is-compact" style="flex-shrink:0"><code>python -m src.armazenador   # terminal A
+python -m src.transformador # terminal B
+python -m src.simulador     # terminal C
+
+docker compose exec rabbitmq rabbitmqctl list_queues name messages_ready messages_unacknowledged consumers
+docker compose exec clickhouse clickhouse-client --user iot --password "$CLICKHOUSE_PASSWORD" \
+  -q "SELECT count(), uniqExact(device_id), max(medido_em) FROM iot.leituras"</code></pre>
+        <div class="quality-gates">
+          <div class="quality-gate"><strong>Fila estável</strong><span><code>leituras.validas</code> não cresce sem parar.</span></div>
+          <div class="quality-gate"><strong>DLQ com motivo</strong><span>cada rejeitada diz por quê.</span></div>
+          <div class="quality-gate"><strong>Sensores</strong><span><code>uniqExact(device_id)</code> igual a <code>SENSORES</code>.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 40. ATAM -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Prompt 7 &middot; Cenários ATAM</span>
+          <h2 class="deck-title">Sete falhas para provocar e medir</h2>
+        </div>
+        <table class="deck-table">
+          <thead><tr><th>Cenário</th><th>Como provocar</th><th>Resposta esperada</th></tr></thead>
+          <tbody>
+            <tr><td>Consumidor cai sem ack</td><td>Ctrl+C no armazenador no meio do lote</td><td>mensagens voltam; nada se perde</td></tr>
+            <tr><td>Pico de sensores</td><td><code>SENSORES=200</code> com transformador parado</td><td>fila absorve e drena</td></tr>
+            <tr><td>Mensagem malformada</td><td>publicar JSON quebrado pelo console</td><td>DLQ; consumo continua</td></tr>
+            <tr><td>Reprocessamento</td><td>reenviar lote ou republicar mensagens</td><td>contagem lógica não muda</td></tr>
+            <tr><td>ClickHouse fora</td><td><code>docker compose stop clickhouse</code></td><td>retry com espera; sem ack</td></tr>
+            <tr><td>502 do proxy</td><td>INSERT pelo HTTPS do Railway</td><td>retry com o mesmo token</td></tr>
+            <tr><td>Ordem trocada</td><td>leitura atrasada de um sensor</td><td>último valor por <code>medido_em</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 41. Railway limite -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Railway &middot; Limite do trial</span>
+          <h2 class="deck-title">Limite de cinco serviços no Railway</h2>
+        </div>
+        <div class="deck-columns">
+          <div class="deck-panel">
+            <strong>Separados (5 serviços)</strong>
+            <ul>
+              <li>transformador e armazenador escalam e falham de forma independente</li>
+              <li>fila <code>leituras.validas</code> amortece o ClickHouse lento</li>
+              <li>não sobra vaga para mais nada no projeto</li>
+            </ul>
+          </div>
+          <div class="deck-panel">
+            <strong>Juntos (4 serviços)</strong>
+            <ul>
+              <li>ack da bruta só depois do INSERT, um salto a menos</li>
+              <li>libera uma vaga (ex.: interface de consulta)</li>
+              <li>um ClickHouse lento segura também a validação</li>
+            </ul>
+          </div>
+        </div>
+        <div class="deck-note">A escolha vira ADR. O template de RabbitMQ do Railway traz um serviço extra de proxy para o console; por isso a aula cria o RabbitMQ pela CLI.</div>
+      </div>
+    </div>
+
+    <!-- 42. 443 e 502 -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Railway &middot; Lição do professor</span>
+          <h2 class="deck-title">HTTPS na porta 443 e o erro 502</h2>
+          <p class="deck-summary">O ClickHouse publicado responde só por HTTPS na 443. O proxy devolve 502 de vez em quando, e o INSERT pode ter sido gravado mesmo com a resposta perdida. Reenviar às cegas duplica.</p>
+        </div>
+        <pre style="flex-shrink:0"><code>client = clickhouse_connect.get_client(host=HOST, port=443, secure=True,
+                                       username="iot", password=SENHA)
+token = f"lote-{lote_id}"          # mesmo token em todas as tentativas
+client.insert("iot.leituras", linhas, column_names=COLUNAS,
+              settings={"insert_deduplication_token": token})</code></pre>
+        <div class="deck-note">Dentro do Railway, os processos usam a rede privada (<code>clickhouse.railway.internal:8123</code>) e não passam pelo proxy público. O retry idempotente continua necessário para qualquer falha de rede.</div>
+      </div>
+    </div>
+
+    <!-- 43. TBL: o caso -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Discussão em sala &middot; 11h30</span>
+          <h2 class="deck-title">Três decisões sobre o pipeline de streaming</h2>
+          <p class="deck-summary">A turma revisa o pipeline da demonstração antes que ele acumule semanas de leituras. Cada alternativa é uma tática com ganho e custo declarados.</p>
+        </div>
+        <div class="deck-grid">
+          <article class="deck-card"><h3>Questão 1 &middot; Idempotência</h3><p style="margin:0;">O armazenador cai entre o INSERT e o ack, e o simulador repete 3%. Onde a duplicata morre?</p></article>
+          <article class="deck-card"><h3>Questão 2 &middot; Backpressure</h3><p style="margin:0;">O ClickHouse fica para trás no trial. Traz um dado novo: uma semana do pipeline no Railway.</p></article>
+          <article class="deck-card"><h3>Questão 3 &middot; Retenção</h3><p style="margin:0;">O TTL apaga o detalhe em 90 dias e a fila não guarda nada. O que precisa existir?</p></article>
+        </div>
+      </div>
+    </div>
+
+    <!-- 45. Até 12h10 -->
+    <div class="slide">
+      <div class="deck-shell">
+        <div>
+          <span class="deck-kicker">Fechamento</span>
+          <h2 class="deck-title">O que precisa existir às 12h10</h2>
+          <p class="deck-summary">A prática tem 1h, seguida de 30 minutos de discussão das três decisões. O que não couber segue durante a semana, com o material e o roteiro do laboratório.</p>
+        </div>
+        <div class="deck-columns">
+          <div class="deck-panel">
+            <strong>Em sala, até 12h10</strong>
+            <ul>
+              <li>Pasta <code>aula_06_streaming_iot/</code>, RabbitMQ e ClickHouse <code>healthy</code>, ambiente Python</li>
+              <li>Prompts 1 a 5 revisados e commitados; prompt 6 iniciado pelas funções puras</li>
+              <li>Três decisões anotadas para os ADRs do grupo</li>
+            </ul>
+          </div>
+          <div class="deck-panel">
+            <strong>Na semana, até a Aula 07 (28/11)</strong>
+            <ul>
+              <li>Prompt 6 completo, pipeline local gravando</li>
+              <li>Falhas provocadas e publicação no Railway</li>
+              <li>Prompt 7, ATAM com evidência e ADRs</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 46. Entrega -->
+    <div class="slide">
+      <div class="deck-shell">
+        <div>
+          <span class="deck-kicker">Atividade em sala e entregável</span>
+          <h2 class="deck-title">Entregável: aula_06_streaming_iot</h2>
+        </div>
+        <div class="deck-grid">
+          <article class="deck-card"><h3>Esqueleto SDD</h3><p>AGENTS.md, persona, objetivos, spec, plan, tasks e ADRs.</p></article>
+          <article class="deck-card"><h3>Pipeline local</h3><p>Três processos com testes passando e docker compose.</p></article>
+          <article class="deck-card"><h3>Pipeline no Railway</h3><p>Cinco serviços (ou quatro, com ADR) gravando no ClickHouse.</p></article>
+          <article class="deck-card"><h3>Evidência</h3><p>Consultas analíticas e <code>docs/atam.md</code> com as falhas provocadas.</p></article>
+        </div>
+      </div>
+    </div>
+
+  
+<!-- encontro:meta:start -->
+<div class="slide encontro-slide"><div class="sc"><section class="encontro-meta" data-encontro-ficha><h2>Sobre este encontro</h2><p class="encontro-ref">Data Collection and Storage · Aula 06 · 14/11/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>Ao final do encontro, o estudante deve ser capaz de montar um pipeline de streaming com RabbitMQ, transformador em Python e ClickHouse, tratando idempotência, backpressure e retenção.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>Demonstração prática completa: a teoria ocupa a primeira parte do encontro e, em seguida, o professor constrói o projeto ao vivo enquanto cada aluno reproduz o mesmo caminho no próprio repositório, com o agente de código guiado pelo AGENTS.md e prompts no formato CREATE.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol><li>Onde a Aula 01 nos deixou</li><li>Bloco 1: o problema e os modos de processamento</li><li>Bloco 2: brokers e RabbitMQ por dentro</li><li>Bloco 3: confirmação, garantias de entrega e ordem</li><li>Bloco 4: backpressure</li><li>Bloco 5: ClickHouse, lote, deduplicação, compressão e TTL</li><li>O mini projeto IoT: arquitetura, mensagem e topologia</li><li>Preparação do ambiente local</li><li>O projeto da aula em SDD</li><li>Os sete prompts CREATE</li><li>Execução e verificação local</li><li>Falhas provocadas: os cenários ATAM na prática</li></ol></div></section></div></div>
+<!-- encontro:meta:end -->
+</div>
+
+  <img class="slide-logo-mini" src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli">
+
+  <div class="slide-footer">
+    <div class="footer-links">
+      <a href="../../../index.html" class="back-home">Início</a>
+      <a href="../../home-data-collection.html" class="back-home">Data Collection</a>
+      <a href="../materials/lesson-6-material.html" class="material-link">Material</a>
+    </div>
+    <div class="nav-wrapper">
+      <div class="nav-buttons"><button id="prev-btn" onclick="previousSlide()">&#8592; Anterior</button></div>
+      <div class="slide-counter"><span id="current-slide">1</span> / <span id="total-slides">1</span></div>
+      <div class="nav-buttons"><button id="next-btn" onclick="nextSlide()">Próximo &#8594;</button></div>
+    </div>
+    <button class="fullscreen-btn" onclick="toggleFullScreen()" title="Tela cheia">&#9974;</button>
+  </div>
+
+  <script>
+    let currentSlide = 0;
+    const slides = document.querySelectorAll(".slide");
+    const totalSlides = slides.length;
+    document.getElementById("total-slides").textContent = totalSlides;
+
+    function showSlide(index) {
+      slides.forEach(slide => slide.classList.remove("active"));
+      slides[index].classList.add("active");
+      currentSlide = index;
+      document.getElementById("current-slide").textContent = currentSlide + 1;
+      document.getElementById("prev-btn").disabled = currentSlide === 0;
+      document.getElementById("next-btn").disabled = currentSlide === totalSlides - 1;
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides - 1) showSlide(currentSlide + 1);
+    }
+
+    function previousSlide() {
+      if (currentSlide > 0) showSlide(currentSlide - 1);
+    }
+
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+
+    document.addEventListener("keydown", event => {
+      if (event.key === "ArrowRight" || event.key === " ") {
+        event.preventDefault();
+        nextSlide();
+      }
+      if (event.key === "ArrowLeft") previousSlide();
+      if (event.key.toLowerCase() === "f") toggleFullScreen();
+    });
+
+    showSlide(0);
+  </script>
+<!-- semana:js:start -->
+<script src="../../../js/semana-ano.js" defer></script>
+<!-- semana:js:end -->
+</body>
+</html>

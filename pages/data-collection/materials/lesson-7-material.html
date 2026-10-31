@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗄️</text></svg>">
+  <title>Material Aula 07 &middot; Validação com Pydantic e Testes Integrados</title>
+  <link rel="stylesheet" href="../css/dc-styles.css" />
+
+<!-- encontro:css:start -->
+<link rel="stylesheet" href="../../../css/encontro.css">
+<!-- encontro:css:end -->
+
+<!-- semana:css:start -->
+<link rel="stylesheet" href="../../../css/semana-ano.css">
+<!-- semana:css:end -->
+</head>
+<body>
+  <main class="page">
+    <div class="material-nav">
+      <a href="../../../index.html">&larr; Início</a>
+      <a href="../../home-data-collection.html">&larr; Data Collection &amp; Storage</a>
+      <a href="../laboratorio/lesson-7/README.md">Roteiro do laboratório</a>
+      <a href="../slides/slide-lesson-7.html">Ver Slide &rarr;</a>
+    </div>
+
+    <header class="hero">
+      <img class="logo-full" src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli" />
+      <span class="kicker">Data Collection and Storage &middot; Inteli</span>
+      <h1>Aula 07 &middot; Validação com Pydantic e Testes Integrados</h1>
+      <p class="meta">Aula 07 &middot; 28/11/2026 &middot; Sábado &middot; 8h30 &ndash; 12h10</p>
+      <p>Os pipelines das Aulas 03 e 06 coletam e gravam dados, mas aceitam qualquer coisa que chegue. Nesta aula, cada grupo escreve contratos Pydantic para o livro extraído do HTML, para a cotação PTAX e para a leitura de sensor IoT, desvia os registros inválidos para quarentena no MinIO e para uma DLQ no RabbitMQ e protege tudo com uma suíte de testes em três camadas: unidade, contrato com respostas HTTP gravadas (VCR) e integração com serviços reais em contêiner (Testcontainers). O trabalho segue a mesma sequência SDD da Aula 01, agora com uma especificação de qualidade. As duas primeiras horas são de teoria, em cinco blocos que usam a estufa da Aula 06 como cenário condutor e medem o que cada decisão custa: o desvio que um sensor rotulado errado provoca na média, a taxa de rejeição de um lote com defeitos conhecidos, o tempo de validar uma leitura, o custo de cada camada da pirâmide de testes e o efeito do escopo das fixtures. Depois vêm uma hora de prática em SDD e uma revisão das Aulas 06 e 07.</p>
+    </header>
+<!-- encontro:meta:start -->
+<div class="container" style="max-width:1100px;margin:24px auto 0;padding:0 16px;"><section class="encontro-meta" data-encontro-ficha><h2>Sobre este encontro</h2><p class="encontro-ref">Data Collection and Storage · Aula 07 · 28/11/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>Ao final do encontro, o estudante deve ser capaz de escrever contratos de dados com Pydantic e testar os pipelines em camadas, com respostas HTTP gravadas e serviços reais em contêiner.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>Demonstração prática completa: a teoria ocupa a primeira parte do encontro e, em seguida, o professor constrói o projeto ao vivo enquanto cada aluno reproduz o mesmo caminho no próprio repositório, com o agente de código guiado pelo AGENTS.md e prompts no formato CREATE.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol><li>Onde estamos e o problema concreto</li><li>Onde a validação entra no pipeline</li><li>Contrato de dados</li><li>Quarentena, DLQ ou falhar o lote</li><li>Métricas de qualidade</li><li>Pydantic v2 aplicado aos contratos</li><li>Pirâmide de testes em pipelines de dados</li><li>VCR: respostas HTTP gravadas em cassetes</li><li>Testcontainers: serviços reais dentro do teste</li><li>Extensão: a suíte no GitHub Actions</li><li>Preparação do ambiente</li><li>Prática em SDD: os sete prompts CREATE</li></ol></div></section></div>
+<!-- encontro:meta:end -->
+
+
+    <article class="material">
+
+      <section class="content-block" id="sumario">
+        <h2>Sumário</h2>
+        <ol>
+          <li><a href="#s1">Onde estamos e o problema concreto</a></li>
+          <li><a href="#s2">Onde a validação entra no pipeline</a></li>
+          <li><a href="#s3">Contrato de dados</a></li>
+          <li><a href="#s4">Quarentena, DLQ ou falhar o lote</a></li>
+          <li><a href="#s5">Métricas de qualidade</a></li>
+          <li><a href="#s6">Pydantic v2 aplicado aos contratos</a></li>
+          <li><a href="#s7">Pirâmide de testes em pipelines de dados</a></li>
+          <li><a href="#s8">VCR: respostas HTTP gravadas em cassetes</a></li>
+          <li><a href="#s9">Testcontainers: serviços reais dentro do teste</a></li>
+          <li><a href="#s10">Extensão: a suíte no GitHub Actions</a></li>
+          <li><a href="#s11">Preparação do ambiente</a></li>
+          <li><a href="#s12">Prática em SDD: os sete prompts CREATE</a></li>
+          <li><a href="#s13">Exemplo de referência mínimo</a></li>
+          <li><a href="#s14">Cenários ATAM da aula</a></li>
+          <li><a href="#s15">Atividade em sala e entregável</a></li>
+        </ol>
+        <p>Referências entre aulas: <a href="../materials/lesson-1-material.html">Aula 01</a> (SDD, formato CREATE, Codespace e agente de código), <a href="../materials/lesson-3-material.html">Aula 03</a> (scraping de books.toscrape.com e PTAX gravados no MinIO) e <a href="../materials/lesson-6-material.html">Aula 06</a> (sensores, RabbitMQ, transformador Python e ClickHouse).</p>
+      </section>
+
+      <!-- 1 -->
+      <section class="content-block" id="s1">
+        <h2>1. Onde estamos e o problema concreto</h2>
+        <p>Até aqui, o critério de sucesso de cada pipeline foi a gravação: o JSON apareceu no bucket, a mensagem atravessou a fila, a linha entrou no ClickHouse. Esse critério diz que o transporte funciona e não diz nada sobre o conteúdo. Um pipeline que grava com fidelidade um dado errado entrega o erro a quem consulta, com a aparência de um dado confiável.</p>
+        <p>Três casos concretos, observados nas fontes usadas pela disciplina, mostram o tipo de falha que esta aula trata.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Fonte</th><th>Entrada observada</th><th>Mecanismo</th><th>Efeito sem validação</th></tr></thead>
+          <tbody>
+            <tr><td>books.toscrape.com (Aula 03)</td><td>preço <code>Â£51.77</code></td><td>o servidor responde <code>Content-Type: text/html</code> sem charset; a biblioteca <code>requests</code> assume ISO-8859-1 e decodifica errado os bytes UTF-8 do símbolo <code>£</code></td><td>a conversão para número falha mais adiante, ou o preço vira nulo, e o livro some do relatório sem aviso</td></tr>
+            <tr><td>API PTAX do BCB (Aula 03)</td><td><code>"dataHoraCotacao": "2026-10-02 13:03:16.256632"</code></td><td>a API devolve data e hora sem fuso horário</td><td>a cotação é gravada com horário ambíguo; comparada com dados em UTC, aparece deslocada em três horas</td></tr>
+            <tr><td>Sensores IoT (Aula 06)</td><td><code>"temperatura": 76.28, "unidade_temperatura": "C"</code></td><td>um dos sensores antigos mede em Fahrenheit, mas o firmware passou a rotular a leitura como <code>C</code>; o transformador não converte</td><td><code>temperatura_c</code> grava 76,28 em vez de 24,6 e a média da estufa no ClickHouse sobe sem que nenhuma consulta falhe</td></tr>
+          </tbody>
+        </table></div>
+        <p>O primeiro caso foi reproduzido em 03/10/2026: com <code>requests.get(...)</code> e sem definir <code>response.encoding = "utf-8"</code>, o texto do primeiro preço da página 1 sai como <code>'Â£51.77'</code>; com a codificação correta, sai <code>'£51.77'</code>. A falha não depende de erro do grupo na Aula 03; depende de um detalhe do servidor que pode mudar a qualquer momento. Por isso a correção do coletor não basta, e o pipeline precisa de um ponto que recuse o dado quando o formato fugir do esperado.</p>
+        <div class="note">
+          <strong>Resultado esperado da aula</strong>
+          <p>Ao final, a pasta <code>aula_07_validacao_testes/</code> do repositório do grupo contém o esqueleto SDD, três contratos Pydantic com JSON Schema publicado, quarentena no MinIO, DLQ no RabbitMQ, uma suíte de testes verde em três camadas, um relatório de rejeições e um <code>docs/atam.md</code> com os seis cenários da seção 14.</p>
+        </div>
+        <h3>1.1 Agenda</h3>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Horário</th><th>Bloco</th><th>Conteúdo</th></tr></thead>
+          <tbody>
+            <tr><td>8h30 &ndash; 8h50</td><td>Teoria 1</td><td>O problema, o cenário da estufa e os três pontos de validação; quanto um sensor rotulado errado desloca a média (seções 1 e 2).</td></tr>
+            <tr><td>8h50 &ndash; 9h15</td><td>Teoria 2</td><td>Contrato de dados, quarentena, DLQ ou falha do lote, métricas de qualidade; um lote com defeitos conhecidos (seções 3 a 5).</td></tr>
+            <tr><td>9h15 &ndash; 9h45</td><td>Teoria 3</td><td>Pydantic v2 aplicado aos contratos; quanto custa validar uma leitura (seção 6).</td></tr>
+            <tr><td>9h45 &ndash; 10h10</td><td>Teoria 4</td><td>Pirâmide de testes e respostas HTTP gravadas em cassetes; quanto custa um teste em cada camada (seções 7 e 8).</td></tr>
+            <tr><td>10h10 &ndash; 10h30</td><td>Teoria 5</td><td>Testcontainers, custo de subida, Docker indisponível e CI; escopo da fixture e tempo da suíte (seções 9 e 10).</td></tr>
+            <tr><td>10h30 &ndash; 11h30</td><td>Prática em SDD</td><td>Preparação, exemplo de referência e prompts 1 a 5 revisados, acompanhando a demonstração (seções 11 a 13).</td></tr>
+            <tr><td>11h30 &ndash; 12h00</td><td>Revisão</td><td>Pontos-chave das Aulas 06 e 07.</td></tr>
+            <tr><td>12h00 &ndash; 12h10</td><td>Fechamento</td><td>Conferência do que existe às 12h10 e do que fica para a semana (seção 15).</td></tr>
+          </tbody>
+        </table></div>
+        <p>A teoria ocupa duas horas porque as decisões desta aula (onde validar, o que fazer com o inválido, quão estrito ser com cada produtor, em que camada testar) são as que o projeto final herda na Aula 08. A prática fica com uma hora em sala e termina com os prompts 1 a 5 revisados; o prompt 6, com contratos, quarentena, DLQ e testes, e o prompt 7, com a validação ATAM, seguem durante a semana com este material e o roteiro do laboratório.</p>
+      </section>
+
+      <!-- 2 -->
+      <section class="content-block" id="s2">
+        <h2>2. Onde a validação entra no pipeline</h2>
+        <p>Validar em um único ponto parece suficiente até a primeira transformação introduzir um erro novo. Um pipeline de dados tem pelo menos três posições em que um contrato evita que o problema avance, e cada uma responde a uma pergunta diferente.</p>
+        <div class="method-flow">
+          <div class="method-step is-current"><strong>Borda de entrada</strong><span>O que chegou corresponde ao que a fonte prometeu?</span></div>
+          <div class="method-step"><strong>Entre camadas</strong><span>A transformação preservou tipos, unidades e regras?</span></div>
+          <div class="method-step"><strong>Antes da escrita</strong><span>O destino vai receber só o que pode guardar?</span></div>
+          <div class="method-step"><strong>Quarentena</strong><span>O inválido ficou guardado com o motivo?</span></div>
+          <div class="method-step"><strong>Relatório</strong><span>Quantos, de qual fonte, por qual regra?</span></div>
+        </div>
+        <h3>2.1 Borda de entrada</h3>
+        <p>É o ponto em que um texto (HTML, JSON da API, corpo da mensagem AMQP) vira objeto tipado. No scraping da Aula 03, a borda fica na extração que lê o HTML bruto de <code>raw/books_toscrape/</code> e escreve <code>bronze/books_toscrape/data=AAAA-MM-DD/livros.jsonl</code>; na PTAX, na extração que escreve <code>bronze/ptax/moeda=GBP/data=AAAA-MM-DD/cotacoes.jsonl</code>; no streaming da Aula 06, no início do callback do transformador, antes de qualquer cálculo. Validar aqui separa o problema da fonte do problema do nosso código: se o registro foi recusado na borda, o defeito veio de fora.</p>
+        <h3>2.2 Entre camadas</h3>
+        <p>Na passagem de bronze para silver (Aula 04), o dado muda de forma: o preço vira <code>Decimal</code>, o horário da PTAX ganha fuso, a temperatura em Fahrenheit vira <code>temperatura_c</code>. Cada conversão é uma regra que pode quebrar. Um contrato na saída da transformação verifica que a regra produziu o que prometia e evita que um erro de código se espalhe pelas camadas seguintes.</p>
+        <h3>2.3 Antes da escrita</h3>
+        <p>É o último gate antes do MinIO ou do ClickHouse. Ele importa porque a escrita é o ponto mais caro de desfazer: depois que uma leitura em Fahrenheit rotulada como Celsius entrou em <code>iot.leituras</code> e foi agregada, corrigir exige localizar, apagar e recalcular. No streaming da Aula 06, a borda é o transformador (valida <code>LeituraBruta</code> e produz <code>LeituraNormalizada</code>) e o gate antes da escrita é o armazenador, que monta o lote para <code>iot.leituras</code>. No pipeline de livros, a borda é a extração para <code>bronze/</code>, e a conversão de GBP para BRL acontece depois, na Aula 04.</p>
+        <div class="note">
+          <strong>Regra da aula</strong>
+          <p>Nenhum registro chega à camada de escrita sem passar por um contrato, e nenhuma rejeição desaparece sem registro. Essas duas frases viram, na especificação, os requisitos RNF-01 (validade) e RNF-02 (rastreabilidade).</p>
+        </div>
+        <h3>2.4 O cenário condutor da aula</h3>
+        <p>Os exemplos dos cinco blocos usam o mesmo caso: a cooperativa de mudas da Aula 06, que mede temperatura e umidade em três estufas e numa sala de germinação. São doze sensores publicando uma leitura por segundo, o que soma 12 &times; 86.400 = 1.036.800 mensagens por dia. Dois sensores antigos medem em Fahrenheit, e o transformador da Aula 06 converte com (F &minus; 32) &times; 5 / 9 quando a mensagem traz <code>unidade_temperatura: "F"</code>. A técnica agrícola decide ventilação e rega olhando a média de cada estufa no ClickHouse. Os livros e a cotação PTAX da Aula 03 aparecem como segunda e terceira fontes, porque o método (contrato, quarentena, teste) é o mesmo para as três.</p>
+        <h3>2.5 Exemplo numérico: um sensor rotulado errado</h3>
+        <div class="note">
+          <strong>Exemplo numérico 1. A média da estufa com um rótulo trocado</strong>
+          <p>Hipótese do exemplo: os três sensores da estufa A estão em 24,6 °C. O <code>estufa-a-03</code> é um dos antigos, mede em Fahrenheit e, depois de uma atualização de firmware, passou a rotular a leitura como <code>C</code>. Ele publica 76,28 (o valor em F de 24,6 °C) com <code>unidade_temperatura: "C"</code>, e o transformador grava 76,28 em <code>temperatura_c</code>.</p>
+          <p>A média da estufa passa de (24,6 + 24,6 + 24,6) / 3 = 24,6 °C para (24,6 + 24,6 + 76,28) / 3 = 125,48 / 3 = 41,83 °C, um desvio de 17,23 °C. Em um dia, o sensor grava 86.400 linhas erradas, 8,3 % das 1.036.800 da cooperativa. Nenhuma consulta falha, porque 76,28 é um <code>Float32</code> válido.</p>
+          <p>A faixa física de &minus;10 a 60 °C (hipótese da seção 3) recusa 76,28. Ela não recusa todo rótulo trocado: um valor em F só cai dentro da faixa se for no máximo 60, o que corresponde a uma temperatura real de até 15,6 °C. Com o exemplo de referência da seção 13, executado em 16/10/2026, a mensagem com 59 rotulada como <code>C</code> foi aceita como 59,0 °C. Numa estufa aquecida a faixa pega o defeito; numa madrugada fria, não. A evidência autoriza concluir que a faixa reduz o risco e que só o cadastro com a unidade esperada de cada <code>device_id</code> o elimina.</p>
+        </div>
+        <div class="note">
+          <strong>Pausa para reflexão</strong>
+          <p>Para cada defeito, indique em qual dos três pontos ele deveria ser barrado: (a) o preço <code>Â£51.77</code> extraído do HTML; (b) a <code>dataHoraCotacao</code> da PTAX sem fuso; (c) uma conversão de Fahrenheit para Celsius que troca 5/9 por 9/5 no transformador; (d) a mesma leitura gravada duas vezes porque o armazenador caiu entre o INSERT e o ack. Um deles não é defeito de contrato. Qual, e que mecanismo da Aula 06 o trata?</p>
+        </div>
+        <div class="note">
+          <strong>Pontos-chave do bloco 1</strong>
+          <ul>
+            <li>Gravar com fidelidade um dado errado entrega o erro a quem consulta, com aparência de dado confiável.</li>
+            <li>Um sensor em doze com a unidade trocada desloca a média da estufa em 17 °C sem que nenhuma consulta falhe.</li>
+            <li>O tipo sozinho não detecta unidade errada; a faixa física e o cadastro do sensor detectam casos diferentes.</li>
+            <li>Borda de entrada, passagem entre camadas e gate antes da escrita respondem a perguntas diferentes; validar na borda separa o defeito da fonte do defeito do nosso código.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 3 -->
+      <section class="content-block" id="s3">
+        <h2>3. Contrato de dados</h2>
+        <p>Um contrato de dados é a descrição verificável do que o produtor entrega e do que o consumidor pode supor. Na prática da disciplina, o produtor é a fonte externa (o site, a API do BCB) ou um componente do próprio grupo (o simulador de sensores da Aula 06), e o consumidor é a camada seguinte do pipeline. Sem contrato, cada consumidor descobre o formato lendo exemplos, e o formato real passa a ser "o que funcionou da última vez".</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Dimensão</th><th>O que o contrato fixa</th><th>Exemplo no domínio da aula</th></tr></thead>
+          <tbody>
+            <tr><td>Estrutura</td><td>campos, tipos, obrigatoriedade, tratamento de campo desconhecido</td><td><code>preco_gbp</code> é decimal com duas casas e obrigatório</td></tr>
+            <tr><td>Semântica</td><td>unidade, faixa válida, fuso horário, moeda, relação entre campos</td><td><code>unidade_temperatura</code> em <code>C</code> ou <code>F</code>; umidade entre 0 e 100; cotação de venda maior ou igual à de compra</td></tr>
+            <tr><td>Versão</td><td>número, data da mudança e consumidores afetados</td><td><code>leitura_bruta v1.1.0</code> passa a aceitar um campo <code>bateria</code></td></tr>
+            <tr><td>Publicação</td><td>documento legível por máquina, versionado no repositório</td><td>JSON Schema gerado por <code>model_json_schema()</code> em <code>docs/contratos/</code></td></tr>
+          </tbody>
+        </table></div>
+        <p>A diferença entre contrato com e sem a dimensão semântica aparece no caso do sensor. O campo <code>temperatura</code> é um <code>float</code> válido tanto em Celsius quanto em Fahrenheit, e a Aula 06 aceita as duas unidades porque dois sensores antigos reportam em F e o transformador converte com (F &minus; 32) &times; 5 / 9. O tipo sozinho não detecta nada. Uma regra que relacione <code>unidade_temperatura</code> com a faixa física, aplicada depois da conversão para Celsius, detecta o valor implausível; um cadastro de sensores que registre a unidade esperada de cada <code>device_id</code> detecta até o rótulo trocado dentro da faixa. Por isso os contratos desta aula têm validadores de modelo, e não apenas tipos.</p>
+        <p>As faixas usadas no exemplo (&minus;10 a 60 °C e tolerância de 5 minutos para <code>medido_em</code> no futuro) são hipóteses didáticas; só a faixa de umidade de 0 a 100 vem da regra da Aula 06. No projeto, cada valor precisa de origem: a spec da Aula 06, um requisito do grupo ou uma medição. Sem origem, ele entra na spec marcada como "hipótese, validação pendente".</p>
+      </section>
+
+      <!-- 4 -->
+      <section class="content-block" id="s4">
+        <h2>4. Quarentena, DLQ ou falhar o lote</h2>
+        <p>Detectar o registro inválido resolve metade do problema. A outra metade é decidir o que fazer com ele, e a decisão depende do custo de parar o pipeline comparado ao custo de seguir com parte dos dados.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Estratégia</th><th>Mecanismo</th><th>Quando usar</th><th>Custo</th></tr></thead>
+          <tbody>
+            <tr><td>Quarentena no MinIO</td><td>registro inválido gravado em JSON Lines sob o prefixo <code>quarantine/</code>, com a entrada original e os erros</td><td>lote de scraping ou de API em que poucos registros falham</td><td>alguém precisa ler, corrigir e reprocessar; sem rotina, a quarentena vira depósito</td></tr>
+            <tr><td>DLQ no RabbitMQ</td><td>o transformador publica a leitura inválida na exchange <code>iot.dlx</code> com o cabeçalho <code>x-motivo</code>, ou a recusa com <code>basic_nack(requeue=False)</code> e o broker a encaminha pela <code>x-dead-letter-exchange</code>; nos dois casos ela chega em <code>leituras.dlq</code>; a cópia de auditoria vai para <code>iot.leituras_rejeitadas</code> no ClickHouse</td><td>mensagem de streaming que não passa no contrato</td><td>a DLQ cresce se ninguém a consome; mensagens reenviadas sem correção voltam para lá</td></tr>
+            <tr><td>Falhar o lote</td><td>a execução termina com erro e nada é gravado</td><td>taxa de rejeição acima do limite, contrato quebrado por inteiro, fonte trocou de formato</td><td>atraso nos dados até a correção; protege o destino de um lote inteiro errado</td></tr>
+          </tbody>
+        </table></div>
+        <p>As estratégias se combinam. A combinação usada na prática é: quarentena ou DLQ por registro, e falha do lote quando a taxa de rejeição de uma execução passa de um limite definido na spec. O limite protege contra o caso em que a fonte mudou de formato e todos os registros caem em quarentena: gravar 0 livros válidos e 1.000 rejeitados como se fosse uma execução normal esconde o incidente.</p>
+        <h3>4.1 Formato do registro de rejeição</h3>
+        <p>Para que a rejeição seja rastreável (RNF-02), cada linha da quarentena carrega o suficiente para responder de onde veio, qual regra falhou e como reprocessar.</p>
+        <pre><code>{"fonte": "books_toscrape",
+ "contrato": "livro", "versao_contrato": "1.0.0",
+ "execucao_id": "2026-11-28T09:40:12Z-7f3a",
+ "posicao": 17,
+ "recebido_em": "2026-11-28T09:40:13Z",
+ "entrada": {"titulo": "Soumission", "preco_gbp": "Â£50.10", "...": "..."},
+ "erros": [{"loc": ["preco_gbp"], "type": "value_error",
+            "msg": "Value error, preço com codificação errada (Â£): decodifique o HTML como UTF-8"}]}</code></pre>
+        <p>Chave sugerida no bucket <code>raw</code>: <code>quarantine/books_toscrape/data=2026-11-28/&lt;execucao_id&gt;.jsonl</code>, ao lado de <code>raw/books_toscrape/</code> e fora de <code>bronze/</code>, que só recebe linhas válidas. O particionamento por data segue a convenção da Aula 02 e permite que a Aula 04 leia a quarentena com DuckDB, se o grupo quiser medir rejeições ao longo do tempo.</p>
+        <h3>4.2 DLQ no RabbitMQ e auditoria no ClickHouse</h3>
+        <p>A topologia é a da Aula 06: exchange topic <code>iot.leituras</code>, exchange fanout <code>iot.dlx</code> e filas quorum <code>leituras.brutas</code>, <code>leituras.validas</code> e <code>leituras.dlq</code>. O trecho abaixo foi executado pelo professor em 03/10/2026 com <code>rabbitmq:4.3.6-management</code>, a mesma imagem do <code>docker-compose.yml</code> da Aula 06:</p>
+        <pre><code>ch.exchange_declare("iot.dlx", "fanout", durable=True)
+ch.queue_declare("leituras.dlq", durable=True, arguments={"x-queue-type": "quorum"})
+ch.queue_bind("leituras.dlq", "iot.dlx")
+ch.exchange_declare("iot.leituras", "topic", durable=True)
+ch.queue_declare("leituras.brutas", durable=True,
+                 arguments={"x-queue-type": "quorum", "x-dead-letter-exchange": "iot.dlx"})
+ch.queue_bind("leituras.brutas", "iot.leituras", "leitura.bruta.#")
+
+# opção 1: o transformador publica a inválida com o motivo e depois confirma a original
+ch.basic_publish("iot.dlx", "", corpo,
+                 pika.BasicProperties(headers={"x-motivo": "umidade_fora_da_faixa"}, delivery_mode=2))
+# opção 2: recusa e deixa o broker encaminhar
+ch.basic_nack(delivery_tag=metodo.delivery_tag, requeue=False)</code></pre>
+        <p>As duas mensagens chegaram em <code>leituras.dlq</code>. A primeira trazia <code>{'x-motivo': 'umidade_fora_da_faixa'}</code>; a segunda trazia só o cabeçalho <code>x-death</code>, com <code>reason: rejected</code>, fila e routing key de origem, sem dizer qual regra falhou. Para cumprir RNF-02, a opção 1 é a que preserva o motivo, e o código de motivo sai do erro do Pydantic (seção 6.5). A escolha entre as opções é uma decisão de arquitetura da Aula 06 e é retomada aqui como ADR.</p>
+        <p>A Aula 06 também cria a tabela <code>iot.leituras_rejeitadas</code> (<code>recebido_em</code>, <code>device_id</code>, <code>motivo</code>, <code>payload</code>) para auditoria. No mesmo teste de 03/10/2026, com <code>clickhouse/clickhouse-server:26.8.15.10</code> e o arquivo <code>001_criar_tabelas.sql</code> da Aula 06 aplicado, uma leitura em Fahrenheit (76,28 F) foi gravada em <code>iot.leituras</code> com <code>temperatura_c = 24.6</code>, e um corpo que não era JSON foi gravado em <code>iot.leituras_rejeitadas</code> com <code>motivo = json_invalido</code>. A DLQ serve à reação imediata e ao reprocessamento; a tabela serve à contagem por motivo no relatório de rejeições.</p>
+        <p>Dois detalhes vieram da execução real. Filas quorum são sempre duráveis; e o RabbitMQ 4 recusa fila clássica transitória não exclusiva (erro <code>transient_nonexcl_queues is deprecated</code>), então qualquer fila de teste também precisa de <code>durable=True</code>. Se uma fila já existir com argumentos diferentes, a nova declaração falha com <code>PRECONDITION_FAILED</code>, porque argumentos de fila não mudam depois de criada; em desenvolvimento, apague a fila e declare de novo; em produção, a alternativa é uma policy do RabbitMQ.</p>
+      </section>
+
+      <!-- 5 -->
+      <section class="content-block" id="s5">
+        <h2>5. Métricas de qualidade</h2>
+        <p>Um contrato decide registro por registro. A métrica de qualidade resume a execução e permite comparar dias, fontes e versões do pipeline. As quatro métricas abaixo cobrem as falhas mais comuns em coleta e cabem num relatório gerado pelo próprio pipeline.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Métrica</th><th>Fórmula</th><th>Onde medir</th><th>Pergunta que responde</th></tr></thead>
+          <tbody>
+            <tr><td>Completude</td><td>registros com todos os campos obrigatórios preenchidos / registros recebidos</td><td>borda de entrada</td><td>a fonte entregou tudo que deveria?</td></tr>
+            <tr><td>Validade</td><td>registros aceitos pelo contrato / registros recebidos</td><td>borda e antes da escrita</td><td>quanto do que chegou é utilizável?</td></tr>
+            <tr><td>Unicidade</td><td>chaves distintas / registros aceitos</td><td>antes da escrita</td><td>estamos gravando duplicatas? (um reenvio depois de erro 502 do proxy do Railway pode duplicar a escrita)</td></tr>
+            <tr><td>Atualidade</td><td>instante da execução menos o carimbo de tempo do registro mais recente</td><td>depois da escrita</td><td>o dado no destino ainda descreve o presente?</td></tr>
+          </tbody>
+        </table></div>
+        <p>Cada métrica precisa de numerador e denominador explícitos. "Validade de 98 %" sem o denominador não permite saber se foram 49 de 50 livros ou 98.000 de 100.000 leituras, e as duas situações pedem respostas diferentes. A chave de unicidade também precisa de definição: para livros, o <code>upc</code> (chave natural definida na Aula 03); para PTAX, a combinação de moeda, data e <code>tipoBoletim</code> (a API devolve um boletim de abertura, intermediários e o de fechamento no mesmo dia); para sensores, <code>event_id</code> na mensagem e <code>device_id</code> mais <code>medido_em</code> na tabela, que é a chave de ordenação do <code>ReplacingMergeTree</code> da Aula 06.</p>
+        <p>Metas numéricas (por exemplo, validade mínima de 99 %) não entram na spec como fato. O grupo mede uma linha de base nesta aula, registra no relatório de rejeições e só então propõe a meta, marcada como hipótese até ser confirmada com a persona.</p>
+        <h3>5.1 Exemplo numérico: um lote com defeitos conhecidos</h3>
+        <div class="note">
+          <strong>Exemplo numérico 2. Validade, rejeição e unicidade medidas</strong>
+          <p>Para ver as métricas com números, montou-se um lote de 1.005 mensagens com defeitos plantados e passou-se o lote pela função <code>validar_lote</code> do exemplo de referência (seção 13), em 16/10/2026, com Pydantic 2.13.5. O lote tinha 970 leituras válidas de doze sensores, 30 defeitos conhecidos (10 leituras de 76,28 rotuladas como <code>C</code>, 5 com umidade 104, 5 com o campo <code>bateria</code>, 5 de um sensor fora do cadastro, 3 corpos que não são JSON e 2 com <code>medido_em</code> sem fuso) e 5 reentregas, cópias exatas de leituras válidas, como as que o RabbitMQ devolve quando o consumidor cai antes do ack.</p>
+          <p>Resultado: 975 aceitas e 30 rejeitadas, com os motivos <code>temperatura_fora_da_faixa</code> (10), <code>umidade_fora_da_faixa</code> (5), <code>campo_desconhecido</code> (5), <code>sensor_desconhecido</code> (5), <code>json_invalido</code> (3) e <code>tipo_invalido</code> (2). Cada defeito caiu no motivo esperado, e cada rejeição levou posição e payload. A validade é 975 / 1.005 = 97,0 %, e a taxa de rejeição, 30 / 1.005 = 3,0 %. Entre as 975 aceitas há 970 <code>event_id</code> distintos, então a unicidade é 970 / 975 = 99,5 %.</p>
+          <p>Duas leituras saem da conta. Com um limite de rejeição de 5 % (hipótese a validar na spec), o lote segue, e as 30 rejeitadas vão para a DLQ; se o simulador mudar de formato e todas as mensagens falharem, a taxa vai a 100 % e o lote falha em vez de gravar zero linhas como se fosse uma execução normal. E as cinco reentregas passaram no contrato, porque uma duplicata é um registro válido repetido: quem a trata é a chave de deduplicação da Aula 06 (token por lote e ReplacingMergeTree por <code>device_id</code> e <code>medido_em</code>), e a métrica que a revela é a unicidade.</p>
+        </div>
+        <div class="note">
+          <strong>Pausa para reflexão</strong>
+          <p>Escolha entre quarentena, DLQ e falhar o lote, e diga o que precisa ser verdade para a escolha funcionar: (a) 3 de 1.000 livros com <code>Â£</code> no preço numa coleta noturna; (b) 1.000 de 1.000 cotações sem <code>cotacaoVenda</code>; (c) uma leitura com <code>unidade_temperatura: "K"</code> no meio do fluxo; (d) o simulador passou a enviar o campo <code>bateria</code> em todas as mensagens.</p>
+        </div>
+        <div class="note">
+          <strong>Pontos-chave do bloco 2</strong>
+          <ul>
+            <li>O contrato fixa estrutura, semântica, versão e publicação; o tipo de dado cobre só a estrutura.</li>
+            <li>Quarentena e DLQ preservam os registros válidos; o limite de taxa de rejeição impede que uma quebra total passe por execução normal.</li>
+            <li>Só a publicação em <code>iot.dlx</code> com <code>x-motivo</code> diz qual regra falhou; o <code>nack</code> deixa apenas <code>reason: rejected</code>.</li>
+            <li>Toda métrica tem numerador e denominador: 97,0 % de validade são 975 de 1.005 mensagens.</li>
+            <li>Duplicata é um registro válido repetido; a unicidade mede o que a deduplicação da Aula 06 precisa resolver.</li>
+          </ul>
+        </div>
+        <h3>5.2 Para saber mais</h3>
+        <ul>
+          <li>Wang, R. Y.; Strong, D. M. Beyond Accuracy: What Data Quality Means to Data Consumers. <em>Journal of Management Information Systems</em>, v. 12, n. 4, p. 5&ndash;33, 1996: as dimensões de qualidade vistas pelo consumidor do dado, origem de métricas como completude e atualidade.</li>
+          <li>Jones, A. <em>Driving Data Quality with Data Contracts</em>. Packt, 2023: o contrato de dados como acordo entre produtor e consumidor, com versão e responsável.</li>
+          <li>RabbitMQ. <a href="https://www.rabbitmq.com/docs/dlx" target="_blank" rel="noopener noreferrer">Dead Letter Exchanges</a>: quando uma mensagem é encaminhada para a DLX e o que o cabeçalho <code>x-death</code> registra.</li>
+        </ul>
+      </section>
+
+      <!-- 6 -->
+      <section class="content-block" id="s6">
+        <h2>6. Pydantic v2 aplicado aos contratos</h2>
+        <p>O Pydantic é a biblioteca de validação mais usada em Python: um modelo declara campos com tipos e restrições, e a validação converte a entrada em objeto ou levanta um erro com a lista completa de problemas. A versão 2 tem o núcleo escrito em Rust (<code>pydantic-core</code>) e mudou nomes da API em relação à versão 1. Todo código desta aula usa a API v2; a versão testada foi a 2.13.5. Documentação oficial: <a href="https://docs.pydantic.dev/latest/" target="_blank" rel="noopener noreferrer">docs.pydantic.dev</a> (o endereço redireciona para pydantic.dev/docs/validation/latest).</p>
+
+        <h3>6.1 BaseModel, Field e Annotated</h3>
+        <p>O contrato do livro mostra as peças principais. <code>Annotated[tipo, Field(...)]</code> junta o tipo e as restrições num alias reutilizável; <code>Field</code> aceita restrições numéricas (<code>gt</code>, <code>ge</code>, <code>le</code>), de texto (<code>min_length</code>, <code>max_length</code>, <code>pattern</code>) e de decimal (<code>max_digits</code>, <code>decimal_places</code>). Tipos prontos como <code>HttpUrl</code> e <code>AwareDatetime</code> carregam regras que o grupo não precisa reescrever.</p>
+        <pre><code>from decimal import Decimal
+from typing import Annotated
+
+from pydantic import (AwareDatetime, BaseModel, ConfigDict, Field, HttpUrl,
+                      field_validator, model_validator)
+
+ESTRELAS = {"One": 1, "Two": 2, "Three": 3, "Four": 4, "Five": 5}
+
+
+class Livro(BaseModel):
+    """Uma linha de bronze/books_toscrape/data=AAAA-MM-DD/livros.jsonl (Aula 03)."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    upc: Annotated[str, Field(pattern=r"^[0-9a-f]{16}$")]
+    url: HttpUrl
+    titulo: Annotated[str, Field(min_length=1, max_length=500)]
+    categoria: Annotated[str, Field(min_length=1)]
+    avaliacao: Annotated[int, Field(ge=1, le=5)]
+    preco_gbp: Annotated[Decimal, Field(gt=0, max_digits=8, decimal_places=2)]
+    em_estoque: bool
+    qtd_estoque: Annotated[int, Field(ge=0)]
+    coletado_em: AwareDatetime
+
+    @field_validator("preco_gbp", mode="before")
+    @classmethod
+    def limpar_preco(cls, v: object) -&gt; object:
+        if isinstance(v, str):
+            if "Â" in v:
+                raise ValueError("preço com codificação errada (Â£): decodifique o HTML como UTF-8")
+            v = v.strip().removeprefix("£")
+        return v
+
+    @field_validator("avaliacao", mode="before")
+    @classmethod
+    def estrelas_por_extenso(cls, v: object) -&gt; object:
+        return ESTRELAS.get(v, v) if isinstance(v, str) else v
+
+    @model_validator(mode="after")
+    def estoque_coerente(self) -&gt; "Livro":
+        if self.em_estoque != (self.qtd_estoque &gt; 0):
+            raise ValueError("em_estoque e qtd_estoque se contradizem")
+        return self</code></pre>
+        <p>Os campos são os de cada linha de <code>livros.jsonl</code> combinados na Aula 03: <code>upc</code>, <code>url</code>, <code>titulo</code>, <code>categoria</code>, <code>avaliacao</code> (inteiro de 1 a 5), <code>preco_gbp</code> (número), <code>em_estoque</code> (booleano), <code>qtd_estoque</code> (inteiro) e <code>coletado_em</code> (ISO 8601). O padrão de 16 caracteres hexadecimais do <code>upc</code> foi tirado do exemplo da Aula 03 (<code>e00eb4fd7b871a48</code>) e precisa ser confirmado no catálogo inteiro. O mesmo contrato serve à extração e à leitura do bronze: os validadores <code>mode="before"</code> aceitam o texto do HTML (<code>"£47.82"</code>, <code>"Four"</code>, a classe CSS <code>star-rating Four</code> reduzida à palavra) e o número já convertido, e o <code>Field</code> confere o resultado. Essa divisão mantém a regra de negócio (avaliação entre 1 e 5) separada do detalhe da fonte (avaliação por extenso). O validador de modelo <code>estoque_coerente</code> é uma regra proposta para esta aula, e não da Aula 03: ele parte da suposição de que "In stock (20 available)" sempre traz quantidade positiva.</p>
+
+        <h3>6.2 Coerção: modo lax e modo strict</h3>
+        <p>Por padrão, o Pydantic trabalha em modo lax: converte entradas compatíveis com o tipo declarado. A string <code>"23.5"</code> vira <code>23.5</code> num campo <code>float</code>, e <code>"yes"</code> vira <code>True</code> num campo <code>bool</code>. No modo strict, a conversão é recusada e o tipo da entrada precisa coincidir. A tabela abaixo foi produzida executando o contrato <code>Livro</code> desta seção e o contrato de leitura da seção 13.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Entrada</th><th>Lax (padrão)</th><th>Strict</th></tr></thead>
+          <tbody>
+            <tr><td><code>"23.5"</code> em <code>float</code></td><td>aceita: <code>23.5</code></td><td>recusa</td></tr>
+            <tr><td><code>"yes"</code> em <code>bool</code></td><td>aceita: <code>True</code></td><td>recusa, <code>bool_type</code></td></tr>
+            <tr><td><code>"sim"</code> em <code>bool</code></td><td>recusa, <code>bool_parsing</code></td><td>recusa</td></tr>
+            <tr><td><code>"47.82"</code> em <code>Decimal</code></td><td>aceita</td><td>recusa, <code>is_instance_of</code></td></tr>
+            <tr><td><code>"2026-10-24T09:00:00"</code> em <code>AwareDatetime</code></td><td>recusa, <code>timezone_aware</code></td><td>recusa</td></tr>
+            <tr><td>preço com três casas em <code>decimal_places=2</code></td><td>recusa, <code>decimal_max_places</code></td><td>recusa</td></tr>
+          </tbody>
+        </table></div>
+        <p>Há quatro formas de ativar o strict: no modelo inteiro (<code>model_config = ConfigDict(strict=True)</code>), num campo (<code>Field(strict=True)</code>), com tipos estritos (<code>StrictInt</code>, <code>StrictStr</code>, <code>StrictBool</code> ou <code>Annotated[int, Strict()]</code>) e numa chamada (<code>Livro.model_validate(dados, strict=True)</code>). A escolha depende de quem produz o dado. HTML extraído é sempre texto, então exigir strict na borda do scraping recusaria tudo; ali o lax com validadores explícitos é o caminho. Já a mensagem do simulador de sensores da Aula 06 é produzida pelo próprio grupo em JSON tipado, e o strict detecta cedo um simulador que passou a mandar <code>"temperatura": "24.6"</code> como texto. Na leitura de JSON (<code>model_validate_json</code>), o strict ainda aceita datas em texto ISO 8601, já que JSON não tem tipo de data.</p>
+
+        <h3>6.3 ConfigDict(extra=...): o que fazer com campo desconhecido</h3>
+        <p><code>extra="forbid"</code> recusa qualquer campo que o modelo não declara (erro <code>extra_forbidden</code>); <code>extra="ignore"</code>, o padrão, descarta o campo em silêncio; <code>extra="allow"</code> guarda o campo no objeto. A escolha é uma das decisões centrais da aula e aparece no cenário ATAM "campo novo na API".</p>
+        <ul>
+          <li>Para a leitura IoT, cujo produtor é o simulador do próprio grupo, <code>forbid</code> faz sentido: um campo novo (por exemplo, <code>bateria</code>) indica que o simulador mudou sem atualizar o contrato, e a mensagem vai para a DLQ com o motivo <code>campo_desconhecido</code>.</li>
+          <li>Para a PTAX, cujo produtor é o BCB, <code>forbid</code> faria a coleta inteira parar no dia em que a API acrescentasse um campo inofensivo. O contrato usa <code>ignore</code>, o que também descarta <code>paridadeCompra</code> e <code>paridadeVenda</code>, que vêm na resposta e não entram no <code>cotacoes.jsonl</code>; um teste de contrato separado compara as chaves recebidas com os campos conhecidos e alerta sobre as que forem novas.</li>
+        </ul>
+
+        <h3>6.4 field_validator e model_validator</h3>
+        <p><code>@field_validator("campo")</code> valida ou transforma um campo isolado; com <code>mode="before"</code>, roda antes da conversão de tipo e recebe a entrada bruta; com <code>mode="after"</code> (padrão), recebe o valor já convertido. <code>@model_validator(mode="after")</code> roda depois que todos os campos passaram e serve para regras que relacionam campos. O contrato da PTAX usa os dois:</p>
+        <pre><code>from datetime import datetime
+from zoneinfo import ZoneInfo
+
+from pydantic import TypeAdapter, model_validator
+
+
+class CotacaoPtax(BaseModel):
+    model_config = ConfigDict(extra="ignore", validate_by_name=True)
+
+    """Uma linha de bronze/ptax/moeda=GBP/data=AAAA-MM-DD/cotacoes.jsonl (Aula 03)."""
+
+    moeda: Annotated[str, Field(pattern=r"^[A-Z]{3}$")]
+    data_hora_cotacao: Annotated[datetime, Field(alias="dataHoraCotacao")]
+    tipo_boletim: Annotated[str, Field(alias="tipoBoletim", min_length=1)]
+    cotacao_compra: Annotated[Decimal, Field(alias="cotacaoCompra", gt=0)]
+    cotacao_venda: Annotated[Decimal, Field(alias="cotacaoVenda", gt=0)]
+
+    @field_validator("data_hora_cotacao", mode="after")
+    @classmethod
+    def fixar_fuso(cls, v: datetime) -&gt; datetime:
+        # A API devolve horário sem fuso; o BCB publica no horário de Brasília.
+        return v if v.tzinfo else v.replace(tzinfo=ZoneInfo("America/Sao_Paulo"))
+
+    @model_validator(mode="after")
+    def venda_maior_ou_igual_compra(self) -&gt; "CotacaoPtax":
+        if self.cotacao_venda &lt; self.cotacao_compra:
+            raise ValueError("cotação de venda menor que a de compra")
+        return self
+
+
+ListaPtax = TypeAdapter(list[CotacaoPtax])</code></pre>
+        <p>A linha do <code>cotacoes.jsonl</code> mantém os nomes da própria API (<code>dataHoraCotacao</code>, <code>tipoBoletim</code>, <code>cotacaoCompra</code>, <code>cotacaoVenda</code>) mais o campo <code>moeda</code>, que o extrator da Aula 03 acrescenta porque a resposta não o repete. O <code>alias</code> liga o nome da API (<code>cotacaoVenda</code>) ao nome usado no código Python (<code>cotacao_venda</code>), e <code>validate_by_name=True</code> permite validar por qualquer um dos dois (opção disponível a partir da 2.11; em versões anteriores, o equivalente era <code>populate_by_name=True</code>). Contra a resposta real de 02/10/2026 para GBP, com <code>moeda</code> acrescentado como faz o extrator, o modelo validou cinco boletins (<code>Abertura</code>, três <code>Intermediário</code> e <code>Fechamento PTAX</code>), e o último ficou com <code>data_hora_cotacao = 2026-10-02T13:03:16.256632-03:00</code> e <code>cotacao_venda = 6.9121</code>. O fuso <code>America/Sao_Paulo</code> é uma suposição sobre a fonte; o grupo deve registrá-la como tal na spec e confirmar na documentação do serviço PTAX.</p>
+
+        <h3>6.5 ValidationError e o registro de erros por registro</h3>
+        <p>Quando a validação falha, o Pydantic levanta <code>ValidationError</code> com todos os erros do registro, não só o primeiro. O método <code>errors()</code> devolve uma lista de dicionários com <code>loc</code> (caminho do campo), <code>type</code> (código estável da regra), <code>msg</code> (texto) e <code>input</code> (valor recebido). Um livro com sete problemas produziu, numa única chamada:</p>
+        <pre><code>('upc',)         string_pattern_mismatch
+('url',)         url_parsing
+('avaliacao',)   less_than_equal
+('preco_gbp',)   decimal_max_places
+('em_estoque',)  bool_parsing
+('coletado_em',) timezone_aware
+('isbn',)        extra_forbidden</code></pre>
+        <p>O <code>type</code> é a chave de contagem do relatório de rejeições: "37 rejeições por <code>timezone_aware</code> em <code>coletado_em</code>" aponta direto para o coletor que perdeu o fuso. Erros levantados com <code>ValueError</code> dentro de validadores aparecem com <code>type = "value_error"</code> e com o texto da exceção em <code>msg</code>, por isso as mensagens precisam ser específicas. Quando a regra precisa de um código próprio, como os motivos da Aula 06 (<code>temperatura_fora_da_faixa</code>, <code>medido_em_no_futuro</code>), o validador levanta <code>PydanticCustomError("temperatura_fora_da_faixa", "mensagem")</code>, de <code>pydantic_core</code>, e o código aparece direto em <code>type</code>. Ao gravar o erro em JSON, use <code>errors(include_url=False, include_context=False)</code>: o contexto pode conter o objeto da exceção, que não é serializável.</p>
+        <p>A função que valida um lote não pode parar no primeiro erro. No transformador da Aula 06, o lote é uma sequência de corpos de mensagem em bytes; <code>model_validate_json</code> lê e valida numa etapa só, e um corpo que nem é JSON vira o erro <code>json_invalid</code>. Cada rejeição guarda a posição, o código de motivo da Aula 06, o corpo original e os erros, que são exatamente os campos de <code>iot.leituras_rejeitadas</code> mais o necessário para rastrear:</p>
+        <pre><code>def validar_lote(corpos, cadastro, agora=None):
+    validas, rejeitadas = [], []
+    for posicao, corpo in enumerate(corpos):
+        try:
+            bruta = LeituraBruta.model_validate_json(corpo, context={"agora": agora})
+        except ValidationError as erro:
+            erros = erro.errors(include_url=False, include_context=False)
+            rejeitadas.append(_rejeicao(posicao, corpo, motivo(erros), erros))
+            continue
+        if bruta.device_id not in cadastro:
+            rejeitadas.append(_rejeicao(posicao, corpo, "sensor_desconhecido", []))
+            continue
+        validas.append(bruta.normalizar(cadastro))
+    return validas, rejeitadas</code></pre>
+        <p>A função <code>motivo</code> traduz o primeiro erro para o vocabulário da Aula 06: <code>missing</code> vira <code>campo_ausente</code>, erro em <code>unidade_temperatura</code> vira <code>unidade_desconhecida</code>, limite violado em <code>umidade</code> vira <code>umidade_fora_da_faixa</code>, e assim por diante. O parâmetro <code>agora</code> passa pelo contexto de validação (<code>info.context</code> no <code>model_validator</code>) para que a regra de <code>medido_em</code> no futuro não dependa do relógio da máquina: o teste fixa o instante e roda igual em qualquer data. Esse detalhe apareceu na execução do exemplo em 03/10/2026, quando a leitura de exemplo da Aula 06, datada de 14/11/2026, foi recusada como futura pelo relógio real.</p>
+
+        <h3>6.6 TypeAdapter para listas e tipos que não são modelos</h3>
+        <p><code>TypeAdapter</code> aplica a validação do Pydantic a qualquer tipo, inclusive <code>list[CotacaoPtax]</code>. <code>ListaPtax.validate_python(resposta["value"])</code> valida a lista inteira de uma vez, e o erro indica a posição (<code>loc = (3, "cotacaoVenda")</code>). Ele é útil no teste de contrato, em que a pergunta é "a resposta inteira cabe no modelo?". No pipeline, quando um item ruim não pode derrubar os outros, o laço de <code>validar_lote</code> continua sendo o padrão.</p>
+
+        <h3>6.7 model_json_schema para publicar o contrato</h3>
+        <p><code>Livro.model_json_schema()</code> gera um JSON Schema do modelo, com tipos, restrições e campos obrigatórios. Para modelos com alias, <code>CotacaoPtax.model_json_schema(by_alias=True)</code> publica os nomes da API, que é o que um consumidor externo vê. O grupo grava os esquemas em <code>docs/contratos/livro.v1.json</code> e equivalentes, e um teste compara o esquema gerado com o publicado: se alguém mudar o modelo sem atualizar a versão do contrato, o teste falha.</p>
+        <p>O esquema tem limites. Regras escritas em validadores Python (temperatura convertida dentro da faixa, venda maior que compra, estoque coerente) não aparecem no JSON Schema; elas vivem no código e precisam estar descritas em texto na spec.</p>
+
+        <h3>6.8 Erros comuns de quem vem da versão 1</h3>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Versão 1</th><th>Versão 2</th></tr></thead>
+          <tbody>
+            <tr><td><code>@validator</code>, <code>@root_validator</code></td><td><code>@field_validator</code>, <code>@model_validator</code></td></tr>
+            <tr><td><code>Modelo.parse_obj(d)</code>, <code>parse_raw(s)</code></td><td><code>Modelo.model_validate(d)</code>, <code>model_validate_json(s)</code></td></tr>
+            <tr><td><code>obj.dict()</code>, <code>obj.json()</code></td><td><code>obj.model_dump()</code>, <code>obj.model_dump_json()</code></td></tr>
+            <tr><td><code>class Config: extra = "forbid"</code></td><td><code>model_config = ConfigDict(extra="forbid")</code></td></tr>
+            <tr><td><code>Modelo.schema()</code></td><td><code>Modelo.model_json_schema()</code></td></tr>
+          </tbody>
+        </table></div>
+        <p>Modelos de linguagem gratuitos misturam as duas versões com frequência, porque a v1 domina o código público antigo. O <code>AGENTS.md</code> da aula proíbe a API v1, e a revisão do diff deve procurar esses nomes.</p>
+        <h3>6.9 Exemplo numérico: quanto custa validar</h3>
+        <div class="note">
+          <strong>Exemplo numérico 3. Tempo de validação por leitura</strong>
+          <p>Uma objeção comum ao contrato na borda do streaming é o custo: validar cada mensagem atrasaria o transformador. Para medir, geraram-se 100.000 mensagens válidas no formato da Aula 06 e mediu-se cada operação cinco vezes, tomando a mediana, em duas rodadas, num notebook com Intel i5-1345U, Python 3.12.3 e Pydantic 2.13.5, em 16/10/2026.</p>
+          <div class="table-scroll"><table>
+            <thead><tr><th>Operação por mensagem</th><th>Mediana medida (duas rodadas)</th></tr></thead>
+            <tbody>
+              <tr><td><code>json.loads</code>, sem validação</td><td>10 a 17 µs</td></tr>
+              <tr><td><code>LeituraBruta.model_validate_json</code>, leitura e validação</td><td>15 a 19 µs</td></tr>
+              <tr><td><code>validar_lote</code>, com cadastro e <code>normalizar()</code></td><td>49 a 59 µs</td></tr>
+            </tbody>
+          </table></div>
+          <p>Com doze sensores a uma leitura por segundo, a função completa consome 12 &times; 60 µs = 0,72 ms de CPU por segundo, menos de 0,1 % de um núcleo. No dia inteiro, 1.036.800 &times; 60 µs dão cerca de 62 s de CPU. No pico do cenário ATAM da Aula 06, com <code>SENSORES=200</code>, seriam 12 ms por segundo. A comparação com <code>json.loads</code> mostra que ler e validar com o Pydantic custa a mesma ordem de grandeza que só ler o JSON, já que o núcleo em Rust faz as duas coisas numa passagem.</p>
+          <p>O que a medição autoriza: nesta carga, o INSERT em lote no ClickHouse e o ack no RabbitMQ pesam mais que o contrato. A variação entre rodadas (15 e 19 µs) vem de um notebook com outras tarefas abertas, e os números não se transferem para o contêiner do Railway, que tem outra CPU; o grupo que quiser usar o valor no ATAM deve medir no próprio ambiente.</p>
+        </div>
+        <div class="note">
+          <strong>Pausa para reflexão</strong>
+          <p>Escolha modo (lax ou strict) e tratamento de campo desconhecido (<code>forbid</code> ou <code>ignore</code>) para cada contrato e diga o que acontece no dia em que o produtor mudar: (a) o livro extraído do HTML, em que todo valor chega como texto; (b) a cotação PTAX, cujo produtor é o BCB; (c) a leitura do simulador, produzida pelo grupo em JSON tipado; (d) a <code>LeituraNormalizada</code>, montada pelo próprio código antes do INSERT.</p>
+        </div>
+        <div class="note">
+          <strong>Pontos-chave do bloco 3</strong>
+          <ul>
+            <li><code>Annotated</code> e <code>Field</code> declaram as restrições; validadores <code>mode="before"</code> absorvem o formato da fonte, e o <code>Field</code> confere o resultado.</li>
+            <li>Lax onde a fonte só entrega texto; strict onde o grupo controla o produtor.</li>
+            <li><code>extra="forbid"</code> para produtor do grupo; <code>extra="ignore"</code> com teste de contrato separado para produtor externo.</li>
+            <li><code>ValidationError</code> traz todos os erros do registro; o <code>type</code> é a chave de contagem do relatório.</li>
+            <li>Validar custou de 15 a 19 µs por leitura neste notebook, a mesma ordem de ler o JSON. A API v1 fica fora do código da aula.</li>
+          </ul>
+        </div>
+        <h3>6.10 Para saber mais</h3>
+        <ul>
+          <li>Pydantic. <a href="https://docs.pydantic.dev/latest/concepts/strict_mode/" target="_blank" rel="noopener noreferrer">Strict Mode</a>: as regras de conversão do modo lax e do modo strict, por tipo.</li>
+          <li>Pydantic. <a href="https://docs.pydantic.dev/latest/concepts/validators/" target="_blank" rel="noopener noreferrer">Validators</a>: validadores de campo e de modelo, modos <code>before</code>, <code>after</code> e <code>wrap</code> e contexto de validação.</li>
+          <li>Pydantic. <a href="https://docs.pydantic.dev/latest/migration/" target="_blank" rel="noopener noreferrer">Migration Guide</a>: a correspondência entre os nomes da versão 1 e da versão 2.</li>
+        </ul>
+      </section>
+
+      <!-- 7 -->
+      <section class="content-block" id="s7">
+        <h2>7. Pirâmide de testes em pipelines de dados</h2>
+        <p>A pirâmide de testes organiza a suíte pelo custo e pela precisão de cada camada. Testes baratos e rápidos ficam na base e são numerosos; testes caros, que exercitam várias peças juntas, ficam no topo e são poucos. Em pipelines de dados, a pirâmide ganha uma camada própria, o teste de contrato, porque boa parte das falhas vem de fontes que o grupo não controla.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Camada</th><th>O que prova</th><th>Ferramenta nesta aula</th><th>Dependências</th><th>Tempo típico</th></tr></thead>
+          <tbody>
+            <tr><td>Unidade</td><td>transformações puras e validadores fazem o que a spec diz</td><td>pytest</td><td>nenhuma: sem rede, sem Docker</td><td>milissegundos por teste</td></tr>
+            <tr><td>Contrato</td><td>a resposta real da fonte cabe no modelo</td><td>pytest + vcrpy/pytest-recording</td><td>cassete gravado</td><td>milissegundos ao reproduzir</td></tr>
+            <tr><td>Integração</td><td>o código grava, lê e consome do serviço real</td><td>testcontainers-python</td><td>Docker</td><td>segundos (subida do contêiner)</td></tr>
+            <tr><td>Ponta a ponta</td><td>coleta, fila, transformação e escrita funcionam juntas</td><td>Testcontainers com vários serviços</td><td>Docker, vários contêineres</td><td>dezenas de segundos</td></tr>
+          </tbody>
+        </table></div>
+        <p>A base aponta o lugar do defeito: se <code>test_preco_com_mojibake_e_rejeitado</code> falha, o problema está no validador de preço. O topo encontra o que a base não vê: a fila declarada sem <code>x-dead-letter-exchange</code>, o nome de coluna diferente no ClickHouse, a credencial errada. Uma suíte só de integração demora e, quando falha, não diz onde; uma suíte só de unidade passa com o pipeline quebrado.</p>
+        <p>Na estrutura de pastas, cada camada tem diretório próprio (<code>tests/unit</code>, <code>tests/contract</code>, <code>tests/integration</code>), e os testes que precisam de Docker recebem o marcador <code>@pytest.mark.integracao</code>. Assim, <code>pytest -m "not integracao"</code> roda a base em segundos, e a suíte inteira roda antes do commit e no CI.</p>
+        <p>Na Aula 06, o grupo testou o fluxo subindo o <code>docker compose</code> e olhando o resultado. A diferença do Testcontainers é que o próprio teste cria o ambiente, verifica o resultado com <code>assert</code> e destrói tudo no fim: o teste pode rodar no CI e em qualquer máquina com Docker, sem passo manual.</p>
+      </section>
+
+      <!-- 8 -->
+      <section class="content-block" id="s8">
+        <h2>8. VCR: respostas HTTP gravadas em cassetes</h2>
+        <p>Testar o coletor da PTAX contra a API real tem três problemas: o teste depende da rede, a resposta muda todo dia e uma suíte executada muitas vezes pode esbarrar em limites da fonte. Simular a resposta com um <code>dict</code> escrito à mão resolve os três e cria um quarto: o teste passa a validar o que o grupo imagina que a API devolve. O VCR fica no meio: grava uma vez a resposta real e reproduz a gravação nas execuções seguintes.</p>
+        <h3>8.1 vcrpy e pytest-recording</h3>
+        <p>O <a href="https://vcrpy.readthedocs.io/" target="_blank" rel="noopener noreferrer">vcrpy</a> intercepta as chamadas de bibliotecas HTTP como <code>requests</code> e grava pedido e resposta num arquivo YAML, o cassete. O <a href="https://github.com/kiwicom/pytest-recording" target="_blank" rel="noopener noreferrer">pytest-recording</a> integra o vcrpy ao pytest: basta marcar o teste com <code>@pytest.mark.vcr</code>, e o cassete é salvo em <code>cassettes/&lt;nome_do_modulo&gt;/&lt;nome_do_teste&gt;.yaml</code>, ao lado do arquivo de teste.</p>
+        <pre><code># tests/contract/test_ptax_contrato.py
+from datetime import date
+
+import pytest
+
+from src.contratos.cotacao_ptax import CotacaoPtax, ListaPtax
+from src.pipelines.ptax import buscar_ptax   # função do coletor da Aula 03 (nome ilustrativo)
+
+
+@pytest.fixture(scope="module")
+def vcr_config():
+    return {
+        "filter_headers": ["authorization", "cookie", "set-cookie"],
+        "decode_compressed_response": True,
+    }
+
+
+@pytest.mark.vcr
+def test_resposta_da_ptax_cabe_no_contrato():
+    resposta = buscar_ptax("GBP", date(2026, 10, 2))
+    # o extrator da Aula 03 acrescenta moeda, que a resposta não repete
+    linhas = [{**v, "moeda": "GBP"} for v in resposta["value"]]
+    cotacoes = ListaPtax.validate_python(linhas)
+    assert cotacoes[-1].tipo_boletim == "Fechamento PTAX"
+
+
+@pytest.mark.vcr
+def test_ptax_nao_trouxe_campo_novo():
+    resposta = buscar_ptax("GBP", date(2026, 10, 2))
+    usados = {f.alias for f in CotacaoPtax.model_fields.values() if f.alias}
+    descartados = {"paridadeCompra", "paridadeVenda"}   # vêm na resposta, não vão ao bronze
+    novos = set(resposta["value"][0]) - usados - descartados
+    assert not novos, f"campos novos na PTAX: {novos}"</code></pre>
+        <h3>8.2 Modos de gravação</h3>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Modo</th><th>Comportamento</th><th>Uso na aula</th></tr></thead>
+          <tbody>
+            <tr><td><code>none</code></td><td>só reproduz; qualquer requisição sem gravação levanta <code>CannotOverwriteExistingCassetteException</code></td><td>padrão do pytest-recording; execução normal e CI</td></tr>
+            <tr><td><code>once</code></td><td>grava se o cassete não existe; se existe, reproduz e recusa requisições novas</td><td>primeira gravação: <code>pytest --record-mode=once</code></td></tr>
+            <tr><td><code>new_episodes</code></td><td>reproduz o que existe e acrescenta requisições novas ao cassete</td><td>evitar: mistura respostas de dias diferentes</td></tr>
+            <tr><td><code>all</code></td><td>nunca reproduz; sempre grava</td><td>diagnóstico</td></tr>
+            <tr><td><code>rewrite</code></td><td>apaga o cassete e grava de novo (opção do pytest-recording)</td><td>regravação deliberada</td></tr>
+          </tbody>
+        </table></div>
+        <p>O padrão <code>none</code> do pytest-recording foi escolhido pelos autores para impedir chamada de rede acidental. Na execução de 03/10/2026, o teste sem cassete falhou com <code>CannotOverwriteExistingCassetteException</code>; com <code>--record-mode=once</code>, gravou <code>tests/cassettes/test_ptax/test_ptax.yaml</code> em 0,36 s; e a reprodução com <code>--block-network</code> passou em 0,09 s, sem tocar a rede. A opção <code>--block-network</code> faz qualquer acesso de rede fora do cassete levantar erro, o que transforma RNF-04 (testes de unidade sem rede) num comando verificável.</p>
+        <h3>8.3 Segredos nos cassetes</h3>
+        <p>O cassete grava cabeçalhos, parâmetros de URL e corpo. A PTAX e o books.toscrape.com não usam credenciais, mas o hábito precisa existir antes do primeiro serviço que use. <code>filter_headers</code> remove cabeçalhos (aceita também pares como <code>("authorization", "REMOVIDO")</code> para substituir o valor), <code>filter_query_parameters</code> faz o mesmo com parâmetros da URL, e <code>before_record_response</code> permite alterar ou descartar a resposta antes de gravar. <code>decode_compressed_response=True</code> grava o corpo descomprimido, o que deixa o YAML legível na revisão do PR.</p>
+        <h3>8.4 Quando regravar e o risco do cassete desatualizado</h3>
+        <p>O cassete congela a resposta do dia da gravação. Se o BCB renomear <code>cotacaoVenda</code> amanhã, o teste de contrato continua verde, porque reproduz a resposta antiga, e a produção começa a rejeitar todas as cotações. O teste mede a compatibilidade do código com a fonte numa data passada, e essa data precisa estar visível.</p>
+        <ul>
+          <li>Regrave quando o contrato mudar, quando a fonte anunciar versão nova, quando a produção registrar um tipo de rejeição que nunca apareceu ou quando o cassete passar da idade máxima definida na spec (hipótese a validar: 30 dias).</li>
+          <li>Mantenha um teste de contrato "ao vivo", marcado com <code>@pytest.mark.ao_vivo</code> e executado com <code>--record-mode=all</code> num job agendado, separado da suíte do PR. Ele falha quando a fonte muda, sem bloquear o trabalho diário.</li>
+          <li>Revise o diff do YAML na regravação: a mudança de formato aparece ali antes de aparecer na produção.</li>
+        </ul>
+        <h3>8.5 Exemplo numérico: quanto custa um teste em cada camada</h3>
+        <div class="note">
+          <strong>Exemplo numérico 4. Tempo por camada da pirâmide</strong>
+          <p>Os tempos vêm do exemplo de referência e do teste da PTAX, medidos pelo professor em 03/10/2026 (seções 8.2 e 13); a parte de unidade foi executada de novo em 16/10/2026. Os nove testes de unidade do exemplo (três funções, com os casos parametrizados contados à parte) rodaram em 0,11 s em 03/10 e em 0,15 s em 16/10, este último incluindo a coleta dos testes: cerca de 12 ms por teste. O teste de contrato da PTAX levou 0,36 s gravando o cassete pela rede e 0,09 s reproduzindo com <code>--block-network</code>, quatro vezes menos. O teste de integração com o MinIO pagou 1,59 s só de setup do contêiner, e a suíte inteira, com unidade e integração, fechou em 1,86 s.</p>
+          <p>A conta que orienta a suíte: 1,59 s / 12 ms &asymp; 130. Uma única subida de contêiner custa o mesmo que cerca de 130 testes de unidade. Por isso cada regra do contrato, com seu caso válido e seu caso inválido, fica na base, e a integração prova só o que a base não alcança: que o bucket existe, que a fila foi declarada com a DLX, que a DDL tem as colunas que o código usa e que a credencial funciona. A medição é de uma máquina com as imagens já baixadas; no Codespace, o primeiro <code>docker pull</code> não entra na conta e pode levar mais que a suíte.</p>
+        </div>
+        <div class="note">
+          <strong>Pausa para reflexão</strong>
+          <p>Em qual camada da pirâmide fica cada teste, e por quê: (a) o validador de preço recusa <code>Â£50.10</code> e explica a causa; (b) os cinco boletins da PTAX de 02/10/2026 cabem em <code>CotacaoPtax</code>; (c) <code>leituras.brutas</code> foi declarada com <code>x-dead-letter-exchange</code>; (d) uma leitura em Fahrenheit publicada pelo simulador chega a <code>iot.leituras</code> em Celsius.</p>
+        </div>
+        <div class="note">
+          <strong>Pontos-chave do bloco 4</strong>
+          <ul>
+            <li>Em pipelines de dados, a pirâmide ganha uma camada própria: o teste de contrato contra a fonte que o grupo não controla.</li>
+            <li>O cassete grava a resposta real uma vez e reproduz sem rede; o modo <code>none</code> impede chamada acidental.</li>
+            <li>O cassete congela a fonte no dia da gravação: teste ao vivo agendado, idade máxima e revisão do diff do YAML compensam.</li>
+            <li>Uma subida de contêiner custa cerca de 130 testes de unidade; a base da pirâmide fica larga e o topo, estreito.</li>
+          </ul>
+        </div>
+        <h3>8.6 Para saber mais</h3>
+        <ul>
+          <li>Fowler, M. <a href="https://martinfowler.com/bliki/TestPyramid.html" target="_blank" rel="noopener noreferrer">TestPyramid</a>, 2012: a origem da metáfora e o argumento de custo.</li>
+          <li>Vocke, H. <a href="https://martinfowler.com/articles/practical-test-pyramid.html" target="_blank" rel="noopener noreferrer">The Practical Test Pyramid</a>, 2018: testes de unidade, de integração e de contrato com exemplos de código.</li>
+          <li><a href="https://vcrpy.readthedocs.io/" target="_blank" rel="noopener noreferrer">Documentação do vcrpy</a> e <a href="https://github.com/kiwicom/pytest-recording" target="_blank" rel="noopener noreferrer">pytest-recording</a>: modos de gravação, filtros de cabeçalho e <code>--block-network</code>.</li>
+        </ul>
+      </section>
+
+      <!-- 9 -->
+      <section class="content-block" id="s9">
+        <h2>9. Testcontainers: serviços reais dentro do teste</h2>
+        <p>Um teste que simula o MinIO com um objeto falso prova que o código chama <code>put_object</code>; não prova que o bucket existe, que a chave tem o formato aceito pelo servidor ou que a credencial funciona. O <a href="https://testcontainers-python.readthedocs.io/" target="_blank" rel="noopener noreferrer">testcontainers-python</a> sobe o serviço real num contêiner Docker durante o teste, espera ele ficar pronto, entrega endereço e porta e remove o contêiner no fim.</p>
+        <h3>9.1 Módulos usados na aula</h3>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Serviço</th><th>Classe (testcontainers 4.15.0)</th><th>Cliente</th><th>Espera de prontidão do módulo</th></tr></thead>
+          <tbody>
+            <tr><td>MinIO</td><td><code>testcontainers.community.minio.MinioContainer</code></td><td><code>get_client()</code> devolve cliente do SDK <code>minio</code></td><td>HTTP em <code>/minio/health/live</code></td></tr>
+            <tr><td>RabbitMQ</td><td><code>testcontainers.community.rabbitmq.RabbitMqContainer</code></td><td><code>get_connection_params()</code> para <code>pika</code></td><td>abre conexão AMQP até conseguir</td></tr>
+            <tr><td>ClickHouse</td><td><code>testcontainers.community.clickhouse.ClickHouseContainer</code></td><td>host e porta 8123 para <code>clickhouse-connect</code></td><td>HTTP na porta 8123 responde "Ok"</td></tr>
+            <tr><td>Postgres</td><td><code>testcontainers.community.postgres.PostgresContainer</code></td><td><code>get_connection_url()</code> (driver padrão <code>psycopg2</code>; <code>driver=None</code> para URL sem driver)</td><td>executa <code>select version()</code> com <code>psql</code> dentro do contêiner</td></tr>
+          </tbody>
+        </table></div>
+        <p>Na versão 4.15.0, os módulos estão em <code>testcontainers.community.&lt;modulo&gt;</code>. O caminho antigo (<code>from testcontainers.minio import MinioContainer</code>), ainda mostrado em parte da documentação e em exemplos públicos, continua funcionando e emite <code>DeprecationWarning</code>. Isso foi verificado no pacote instalado; por isso o <code>requirements-dev.txt</code> fixa a versão, e o <code>AGENTS.md</code> indica o caminho novo.</p>
+        <p>Todos os construtores aceitam o parâmetro <code>image</code>. Os padrões dos módulos são imagens sem tag fixa (<code>rabbitmq:latest</code>, <code>clickhouse/clickhouse-server:latest</code>, <code>postgres:latest</code>) ou antigas (<code>minio/minio:RELEASE.2022-12-02T19-19-22Z</code>). Nesta disciplina, toda imagem é passada explicitamente com tag fixa, a mesma usada no <code>docker-compose.yml</code> da aula correspondente.</p>
+        <h3>9.2 MinIO com a imagem da coolLabs</h3>
+        <p>A MinIO deixou de publicar imagens Docker oficiais, e a disciplina usa <code>coollabsio/minio:RELEASE.2025-10-15T17-29-55Z</code> desde a Aula 01. O <code>MinioContainer</code> aceita essa imagem e funcionou no teste de 03/10/2026. O módulo define as variáveis antigas <code>MINIO_ACCESS_KEY</code> e <code>MINIO_SECRET_KEY</code> e o comando <code>server /data --address :9000</code>; para deixar a credencial explícita na versão atual do servidor, a fixture acrescenta <code>MINIO_ROOT_USER</code> e <code>MINIO_ROOT_PASSWORD</code> com os mesmos valores. O código do pipeline continua lendo a conexão das variáveis das Aulas 02 a 04 (<code>S3_ENDPOINT_URL</code>, <code>S3_ACCESS_KEY</code>, <code>S3_SECRET_KEY</code>, <code>S3_REGION=us-east-1</code>); no teste, uma fixture preenche essas variáveis com <code>monkeypatch.setenv</code> a partir de <code>container.get_config()</code>, de modo que o mesmo código grava no contêiner e no MinIO do Railway.</p>
+        <pre><code>import pytest
+from testcontainers.community.minio import MinioContainer
+
+IMAGEM_MINIO = "coollabsio/minio:RELEASE.2025-10-15T17-29-55Z"
+
+
+@pytest.fixture(scope="session")
+def minio():
+    container = MinioContainer(image=IMAGEM_MINIO)
+    container.with_env("MINIO_ROOT_USER", container.access_key)
+    container.with_env("MINIO_ROOT_PASSWORD", container.secret_key)
+    with container:
+        yield container</code></pre>
+        <h3>9.3 Fixtures de escopo session</h3>
+        <p>O escopo da fixture define quantas vezes o contêiner sobe. Com <code>scope="function"</code> (padrão do pytest), cada teste paga a subida; com <code>scope="session"</code>, o contêiner sobe uma vez por execução e é compartilhado. O preço do compartilhamento é o estado: um teste que cria o bucket <code>raw</code> afeta o próximo. Duas práticas evitam interferência: cada teste usa nomes próprios (bucket ou prefixo com o nome do teste, fila com sufixo aleatório) e a limpeza fica numa fixture de escopo <code>function</code> que depende da fixture de sessão. As fixtures de sessão ficam em <code>tests/integration/conftest.py</code>.</p>
+        <h3>9.4 Prontidão e custo de tempo</h3>
+        <p>Um contêiner iniciado ainda não está pronto para receber conexões. Cada módulo implementa uma espera (tabela da seção 9.1), e o teste só começa depois dela. Quando o grupo usa <code>DockerContainer</code> genérico, a espera precisa ser escrita, por exemplo com <code>HttpWaitStrategy</code> de <code>testcontainers.core.wait_strategies</code>. Sem ela, o teste falha de forma intermitente: passa na máquina rápida e quebra no CI.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Contêiner</th><th>Imagem</th><th>Tempo medido (subida e teste)</th></tr></thead>
+          <tbody>
+            <tr><td>MinIO</td><td><code>coollabsio/minio:RELEASE.2025-10-15T17-29-55Z</code></td><td>1,6 s de setup; suíte do exemplo em 1,86 s</td></tr>
+            <tr><td>RabbitMQ</td><td><code>rabbitmq:4.3.6-management</code></td><td>4,8 s, incluindo a topologia da Aula 06 (filas quorum e <code>iot.dlx</code>), uma publicação com <code>x-motivo</code> e um <code>nack</code></td></tr>
+            <tr><td>ClickHouse</td><td><code>clickhouse/clickhouse-server:26.8.15.10</code></td><td>5,9 s, incluindo a DDL <code>001_criar_tabelas.sql</code> da Aula 06 e inserções em <code>iot.leituras</code> e <code>iot.leituras_rejeitadas</code></td></tr>
+          </tbody>
+        </table></div>
+        <p>Os tempos foram medidos pelo professor em 03/10/2026, numa máquina com Docker 29 e as imagens já baixadas. Eles indicam ordem de grandeza e não valem como meta: no Codespace, o primeiro <code>docker pull</code> pode levar mais que todos os testes juntos, e a máquina tem menos CPU. As tags de RabbitMQ e ClickHouse são as mesmas do <code>docker-compose.yml</code> da Aula 06; se o grupo mudar uma tag lá, muda aqui também. Use <code>pytest --durations=10</code> para medir no ambiente do grupo e registrar a linha de base no relatório.</p>
+        <h3>9.5 Docker indisponível</h3>
+        <p>Testes de integração falham com mensagens difíceis de ler quando o Docker não responde. A suíte precisa distinguir "o código está errado" de "o ambiente não tem Docker". O exemplo da seção 13 consulta o daemon (não apenas o binário) e pula os testes com motivo explícito:</p>
+        <pre><code>def docker_disponivel() -&gt; bool:
+    try:
+        import docker
+        docker.from_env().ping()
+        return True
+    except Exception:
+        return False
+
+pytestmark = [
+    pytest.mark.integracao,
+    pytest.mark.skipif(not docker_disponivel(), reason="Docker indisponível neste ambiente"),
+]</code></pre>
+        <p>Com <code>DOCKER_HOST</code> apontando para um socket inexistente, a execução de 03/10/2026 terminou com 9 testes aprovados e 1 pulado, com o motivo exibido por <code>pytest -rs</code>. Pular protege o desenvolvimento local; no CI, um teste pulado não pode passar despercebido, e o job de integração deve falhar se nenhum teste de integração rodou. No Codespace, a imagem universal traz Docker; se <code>docker run --rm hello-world</code> falhar, reconstrua o contêiner (Command Palette, "Codespaces: Rebuild Container"). Em ambientes que não permitem o contêiner auxiliar de limpeza do Testcontainers (Ryuk), a variável <code>TESTCONTAINERS_RYUK_DISABLED=true</code> o desativa; nesse caso, contêineres de execuções interrompidas precisam ser removidos à mão com <code>docker ps</code> e <code>docker rm -f</code>.</p>
+        <h3>9.6 Exemplo numérico: escopo da fixture e tempo da suíte</h3>
+        <div class="note">
+          <strong>Exemplo numérico 5. Quantas vezes o contêiner sobe</strong>
+          <p>Hipótese do exemplo: o grupo escreveu dez testes de integração que usam o ClickHouse. Com as subidas medidas na seção 9.4, a fixture de escopo <code>function</code> sobe o contêiner dez vezes, 10 &times; 5,9 s = 59 s antes de qualquer teste executar; a de escopo <code>session</code> sobe uma vez, 5,9 s. Com MinIO, RabbitMQ e ClickHouse em escopo <code>session</code>, a execução paga 1,6 + 4,8 + 5,9 = 12,3 s de subida, independentemente do número de testes. O tempo dos próprios testes fica fora da conta.</p>
+          <p>A economia tem preço. Com o contêiner compartilhado, um teste que cria o bucket <code>raw</code> ou consome uma fila altera o estado que o próximo encontra, e a falha passa a depender da ordem de execução. Nomes próprios por teste (prefixo com o nome do teste, fila com sufixo aleatório) e uma fixture de limpeza de escopo <code>function</code> devolvem o isolamento sem pagar a subida de novo.</p>
+        </div>
+      </section>
+
+      <!-- 10 -->
+      <section class="content-block" id="s10">
+        <h2>10. Extensão: a suíte no GitHub Actions</h2>
+        <p>Os runners <code>ubuntu-latest</code> do GitHub Actions têm Docker instalado, então o Testcontainers funciona no CI sem configuração extra. O workflow abaixo separa dois passos: unidade e contrato com rede bloqueada, rápidos e sem Docker, e integração com contêineres. Se o primeiro passo falhar, o segundo nem começa, o que economiza minutos de CI.</p>
+        <pre><code># .github/workflows/aula_07_testes.yml
+name: aula-07-testes
+on:
+  push:
+    paths: ["aula_07_validacao_testes/**"]
+  pull_request:
+    paths: ["aula_07_validacao_testes/**"]
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: aula_07_validacao_testes
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Unidade e contrato (sem rede, sem Docker)
+        run: pytest tests/unit tests/contract -q --block-network
+      - name: Integração (Testcontainers)
+        run: pytest tests/integration -m integracao -q --durations=10</code></pre>
+        <p>O workflow é extensão da aula e não faz parte do entregável mínimo. Ele foi escrito a partir da documentação das actions citadas e não foi executado no repositório de um grupo; o primeiro grupo que ativá-lo deve registrar o tempo do job no <code>docs/atam.md</code>, como evidência do cenário "suíte lenta demais para o CI".</p>
+        <div class="note">
+          <strong>Pausa para reflexão</strong>
+          <p>O grupo chegou a 30 testes de integração, todos com fixture de escopo <code>function</code>, e o job do CI passou de dez minutos. Quais fixtures podem subir para <code>session</code>, e o que cada teste precisa nomear para não interferir no seguinte? Quais desses 30 testes provam algo que um teste de unidade não prova? Que número entra no cenário ATAM "suíte lenta demais para o CI", e como ele é medido?</p>
+        </div>
+        <div class="note">
+          <strong>Pontos-chave do bloco 5</strong>
+          <ul>
+            <li>O Testcontainers sobe o serviço real, espera a prontidão e remove tudo no fim, no notebook e no CI.</li>
+            <li>Toda imagem tem tag fixa, a mesma do <code>docker-compose.yml</code> da aula correspondente.</li>
+            <li>O escopo <code>session</code> reduz 59 s para 5,9 s no exemplo; o isolamento passa a depender de nomes próprios e limpeza.</li>
+            <li>Docker ausente pula a integração com motivo; no CI, integração não executada é falha.</li>
+          </ul>
+        </div>
+        <h3>10.1 Para saber mais</h3>
+        <ul>
+          <li><a href="https://testcontainers-python.readthedocs.io/" target="_blank" rel="noopener noreferrer">Documentação do testcontainers-python</a>: módulos, estratégias de espera e o contêiner de limpeza Ryuk.</li>
+          <li>pytest. <a href="https://docs.pytest.org/en/stable/how-to/fixtures.html" target="_blank" rel="noopener noreferrer">How to use fixtures</a>: escopos, ordem de criação e finalização das fixtures.</li>
+          <li>Reis, J.; Housley, M. <em>Fundamentals of Data Engineering</em>. O'Reilly, 2022: testes e qualidade de dados como parte do ciclo de vida da engenharia de dados.</li>
+        </ul>
+      </section>
+
+      <!-- 11 -->
+      <section class="content-block" id="s11">
+        <h2>11. Preparação do ambiente</h2>
+        <p>O ambiente é o mesmo da Aula 01: Codespace aberto no repositório do grupo, agente de código de sua preferência, Docker disponível. Se algo disso não estiver funcionando, volte à seção de setup do <a href="../materials/lesson-1-material.html">material da Aula 01</a> antes de seguir.</p>
+        <ol class="steps">
+          <li>No terminal do Codespace, confirme o Docker: <code>docker version --format '{{.Server.Version}}'</code> e <code>docker run --rm hello-world</code>.</li>
+          <li>Na raiz do repositório do grupo, crie a pasta da aula com o esqueleto SDD:
+            <pre><code>mkdir -p aula_07_validacao_testes/{docs/adr,docs/contratos,specs,src,tests/unit,tests/contract,tests/integration}</code></pre></li>
+          <li>Copie os arquivos de apoio do <a href="../laboratorio/lesson-7/README.md">laboratório</a>: <code>requirements-dev.txt</code> e <code>AGENTS.md</code>. Ajuste no <code>AGENTS.md</code> o nome da pasta da Aula 06, se for diferente de <code>aula_06_streaming_iot/</code>.</li>
+          <li>Crie o ambiente virtual e instale as dependências:
+            <pre><code>cd aula_07_validacao_testes
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements-dev.txt
+python -c "import pydantic; print(pydantic.VERSION)"</code></pre></li>
+          <li>Confirme que <code>.venv/</code>, <code>.env</code>, <code>.pytest_cache/</code> e <code>__pycache__/</code> estão no <code>.gitignore</code> da raiz.</li>
+          <li>Abra o agente de código de sua preferência na pasta da aula (por exemplo, <code>claude</code>). No Claude Code, crie antes um <code>CLAUDE.md</code> que importe as regras: <code>echo "@AGENTS.md" &gt; CLAUDE.md</code>. Outros agentes leem o <code>AGENTS.md</code> diretamente ou aceitam o arquivo colado no contexto. Faça o teste inicial: <code>Leia AGENTS.md e resuma as regras de escopo, segredos e gates. Não edite nada.</code></li>
+        </ol>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Pacote (versão testada)</th><th>Papel</th></tr></thead>
+          <tbody>
+            <tr><td><code>pydantic==2.13.5</code></td><td>contratos</td></tr>
+            <tr><td><code>pytest==9.1.1</code></td><td>execução dos testes</td></tr>
+            <tr><td><code>requests==2.34.2</code>, <code>vcrpy==8.3.0</code>, <code>pytest-recording==0.14.0</code></td><td>HTTP e cassetes</td></tr>
+            <tr><td><code>testcontainers[minio,rabbitmq,clickhouse,postgres]==4.15.0</code></td><td>contêineres no teste; os extras instalam os clientes que cada módulo usa</td></tr>
+            <tr><td><code>boto3==1.43.108</code>, <code>minio==7.2.20</code>, <code>pika==1.4.4</code>, <code>clickhouse-connect==1.9.0</code></td><td>clientes do pipeline</td></tr>
+          </tbody>
+        </table></div>
+        <div class="note">
+          <strong>Um prompt por vez</strong>
+          <p>A etapa de implementação é a que mais exige do agente. Trabalhe um prompt por vez e revise antes de seguir. Nenhuma chave de API do agente entra em arquivo versionado.</p>
+        </div>
+      </section>
+
+      <!-- 12 -->
+      <section class="content-block" id="s12">
+        <h2>12. Prática em SDD: os sete prompts CREATE</h2>
+        <p>Os prompts seguem a sequência SDD e o formato CREATE apresentados na Aula 01: <code>[C] Personagem</code>, <code>[R] Pedido</code>, <code>[E] Exemplos</code>, <code>[A] Ajustes</code>, <code>[T] Tipo de saída</code> e <code>[E] Extras</code>. Cada prompt é independente e deve ser copiado por inteiro. A diferença desta aula está no objeto da especificação: em vez de um coletor novo, a spec descreve a qualidade exigida dos coletores existentes e a suíte que prova essa qualidade.</p>
+        <p>Os prompts citam <code>aula_03_api_scraping/</code> e <code>aula_06_streaming_iot/</code>. Se o grupo usou outros nomes de pasta, substitua antes de colar. Depois de cada prompt, faça a revisão do quadro "Revise antes de seguir": o aprendizado está na revisão, e um artefato aceito sem leitura contamina todos os seguintes.</p>
+
+        <h3>Prompt 1 &middot; Persona</h3>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é analista de requisitos de dados num time que mantém dois pipelines:
+(1) monitor de preços de livros, com scraping de books.toscrape.com e cotação
+GBP/BRL da API PTAX do Banco Central, gravados no MinIO em raw/ e bronze/
+(Aula 03); e (2) monitoramento de estufas e da sala de germinação de uma
+cooperativa de mudas, com simulador de sensores, RabbitMQ, transformador
+Python e ClickHouse (Aula 06).
+
+[R] Pedido
+Crie aula_07_validacao_testes/docs/00_persona.md com as personas prejudicadas
+por dado inválido nesses dois pipelines. Para cada persona registre: quem é,
+que decisão toma com o dado, com que frequência, quais campos usa, qual dado
+inválido a prejudica e como ela percebe o erro hoje (ou por que não percebe).
+Inclua obrigatoriamente a persona de quem mantém os pipelines e responde
+pelos incidentes de qualidade.
+
+[E] Exemplos
+"Analista de precificação. Decide o preço de revenda em reais (frequência:
+hipótese, validação pendente). Usa preco_gbp de bronze/books_toscrape/ e
+cotacaoVenda do boletim de fechamento em bronze/ptax/. Um preço lido como 'Â£51.77' vira nulo na
+camada seguinte e o livro some do relatório sem aviso. Hoje percebe só quando
+alguém pergunta pelo livro. Origem: aula_03_api_scraping/docs/00_persona.md."
+
+[A] Ajustes
+- Reaproveite as personas das Aulas 03 e 06; não crie persona sem ligação com
+  esses artefatos ou com o mantenedor.
+- Separe fato (está nos arquivos, cite o caminho), lacuna e suposição.
+- Não invente frequências, volumes, SLAs ou nomes de campo; quando faltar,
+  escreva "hipótese, validação pendente".
+- No máximo quatro personas. Não edite código nem outros arquivos.
+- Mostre o plano (arquivos que vai ler e estrutura do documento) antes de criar.
+
+[T] Tipo de saída
+Um arquivo Markdown: uma seção por persona; ao final, tabela
+persona | campo crítico | falha de qualidade | decisão afetada | origem;
+e uma lista de perguntas abertas. Até duas páginas.
+
+[E] Extras
+Fontes de verdade: AGENTS.md desta pasta; aula_03_api_scraping/docs/ e src/;
+aula_06_streaming_iot/docs/ e src/. Se alguma pasta não existir ou tiver outro
+nome, pergunte antes de seguir. Pare ao final desta etapa e aguarde revisão.</code></pre>
+        <div class="note">
+          <strong>Revise antes de seguir</strong>
+          <p>Cada persona aponta um campo concreto e a decisão que fica errada? Toda frequência tem origem ou está marcada como hipótese? O mantenedor do pipeline aparece como persona? A lista de perguntas abertas tem pelo menos um item (se estiver vazia, desconfie)?</p>
+        </div>
+
+        <h3>Prompt 2 &middot; Objetivos de negócio</h3>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é analista de negócio com experiência em qualidade de dados. Traduz a
+dor das personas em objetivos mensuráveis, sem inventar metas.
+
+[R] Pedido
+Crie aula_07_validacao_testes/docs/01_objetivos_negocio.md com: objetivos
+desta etapa (confiar nos preços em reais e nas médias dos sensores); drivers
+de negócio; métricas de sucesso; restrições; fora de escopo. As métricas
+devem cobrir, por fonte (books_toscrape, ptax, iot): completude,
+validade, unicidade e atualidade; taxa de rejeição por execução; tempo para
+detectar mudança de formato da fonte; tempo de execução da suíte de testes.
+
+[E] Exemplos
+| ID | Objetivo | Métrica | Fórmula | Linha de base | Meta | Origem |
+| O-02 | Nenhuma leitura com temperatura implausível entra na média da estufa | Validade das leituras | aceitas / recebidas, por janela do transformador | a medir na Aula 07 | hipótese: >= 99%, validação pendente | persona "Técnica agrícola" em docs/00_persona.md |
+
+[A] Ajustes
+- Toda métrica tem numerador e denominador explícitos e fonte definida.
+- Linha de base sem medição registrada é "a medir"; meta sem origem é
+  "hipótese, validação pendente".
+- Defina a chave de unicidade de cada fonte a partir do código das Aulas 03
+  e 06 (cite arquivo e linha); se não encontrar, registre como lacuna.
+- Separe métricas de qualidade do dado de métricas da suíte de testes.
+- Restrições obrigatórias: Codespace com Docker; MinIO na imagem
+  coollabsio/minio:RELEASE.2025-10-15T17-29-55Z; nenhum serviço pago novo; nenhuma credencial em
+  arquivo versionado.
+
+[T] Tipo de saída
+Markdown com tabela de objetivos e métricas, lista de restrições, lista de
+fora de escopo e perguntas abertas. Até duas páginas.
+
+[E] Extras
+Leia docs/00_persona.md e AGENTS.md. Cada objetivo cita a persona que o
+motiva. Pergunte antes se faltar informação. Pare ao final desta etapa.</code></pre>
+        <div class="note">
+          <strong>Revise antes de seguir</strong>
+          <p>Alguma meta numérica apareceu sem a marca de hipótese? Cada métrica tem fórmula com denominador? A chave de unicidade da PTAX considera os vários boletins do mesmo dia? Há pelo menos uma métrica sobre a própria suíte de testes (tempo ou cobertura de regras)?</p>
+        </div>
+
+        <h3>Prompt 3 &middot; Especificação de qualidade</h3>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é engenheiro de requisitos de dados. Escreve requisitos verificáveis,
+cada um com critério de aceite no formato Dado / Quando / Então.
+
+[R] Pedido
+Crie aula_07_validacao_testes/specs/spec.md com os requisitos da camada de
+validação e da suíte de testes. Cubra no mínimo:
+RF-01 contrato Livro: linha de bronze/books_toscrape/data=AAAA-MM-DD/livros.jsonl
+      (upc, url, titulo, categoria, avaliacao, preco_gbp, em_estoque,
+      qtd_estoque, coletado_em);
+RF-02 contrato CotacaoPtax: linha de bronze/ptax/moeda=GBP/data=AAAA-MM-DD/cotacoes.jsonl
+      (moeda, dataHoraCotacao, tipoBoletim, cotacaoCompra, cotacaoVenda);
+RF-03 contratos LeituraBruta e LeituraNormalizada: mensagem da Aula 06
+      (event_id, device_id, medido_em, temperatura, unidade_temperatura,
+      umidade) e linha de iot.leituras (temperatura_c, umidade_pct, local,
+      tipo_local);
+RF-04 quarentena no MinIO para a Aula 03: bucket raw, prefixo
+      quarantine/&lt;fonte&gt;/data=AAAA-MM-DD/; bronze/ só recebe linhas válidas;
+RF-05 leituras recusadas publicadas em iot.dlx com cabeçalho x-motivo
+      (chegam em leituras.dlq) e registradas em iot.leituras_rejeitadas;
+RF-06 falha da execução quando a taxa de rejeição passar de um limite;
+RF-07 publicação do JSON Schema de cada contrato em docs/contratos/;
+RF-08 relatório de rejeições por fonte, campo e tipo de erro;
+RNF-01 validade: nenhum registro chega à escrita sem passar no contrato;
+RNF-02 rastreabilidade: toda rejeição guarda fonte, contrato, versão do
+contrato, id da execução, posição, entrada original e lista de erros;
+RNF-03 cobertura: cada regra de cada contrato tem ao menos um caso válido e
+um inválido testados;
+RNF-04 isolamento: testes de unidade e de contrato rodam sem rede e sem Docker;
+RNF-05 reprodutibilidade: cassetes versionados e imagens com tag fixa;
+RNF-06 segredos: nenhuma credencial em cassete, log ou arquivo versionado;
+RNF-07 tempo da suíte (meta como hipótese).
+
+[E] Exemplos
+RF-03 · Contratos LeituraBruta e LeituraNormalizada
+Origem: persona "Técnica agrícola"; objetivo O-02; aula_06_streaming_iot/specs/spec.md.
+Regras: event_id UUID; device_id presente no cadastro versionado de sensores;
+unidade_temperatura em {C, F}; umidade entre 0 e 100; temperatura convertida
+para Celsius dentro da faixa física (faixa: hipótese, validação pendente);
+medido_em ISO 8601 com fuso, no máximo uma tolerância no futuro (tolerância:
+hipótese, validação pendente); campo desconhecido recusado.
+Critérios de aceite:
+  Dado uma leitura de estufa-a-03 com temperatura 76.28 e unidade "F"
+  Quando o transformador a valida e normaliza
+  Então iot.leituras recebe temperatura_c 24.6 e umidade_pct igual à umidade.
+
+  Dado uma leitura com umidade 104
+  Quando o transformador a valida
+  Então ela é publicada em iot.dlx com x-motivo = umidade_fora_da_faixa,
+  aparece em iot.leituras_rejeitadas e não é gravada em iot.leituras.
+
+RNF-02 · Rastreabilidade das rejeições
+  Dado um lote do scraping com um preço "Â£50.10"
+  Quando o lote é processado
+  Então existe uma linha em quarantine/books_toscrape/data=.../&lt;execucao&gt;.jsonl
+  com fonte, contrato, versao_contrato, execucao_id, posicao, entrada e erros,
+  e o relatório de rejeições conta 1 erro value_error em preco_gbp.
+
+[A] Ajustes
+- Confira os campos acima no código e na spec das Aulas 03 e 06 e cite arquivo
+  e linha; se o grupo tiver refinado algum nome, use o do grupo e registre a
+  diferença. Os códigos de motivo são os da spec da Aula 06 (json_invalido,
+  campo_ausente, unidade_desconhecida, umidade_fora_da_faixa,
+  temperatura_fora_da_faixa, sensor_desconhecido, medido_em_no_futuro).
+- Para cada contrato, decida e justifique o tratamento de campo desconhecido
+  (forbid para produtor do grupo; ignore com alerta para fonte externa) e
+  marque a decisão como candidata a ADR.
+- Limites (taxa de rejeição, faixas, tempo da suíte, idade máxima do
+  cassete) entram como "hipótese, validação pendente".
+- Ferramentas já decididas: Pydantic v2, pytest, vcrpy com pytest-recording,
+  testcontainers-python. Não acrescente outras.
+- Preserve os IDs listados; novos requisitos continuam a numeração.
+
+[T] Tipo de saída
+Markdown: tabela-índice (ID, título, origem, prioridade); uma seção por
+requisito com regras e critérios Dado/Quando/Então; seção "Fora de escopo";
+seção "Fatos, lacunas e suposições".
+
+[E] Extras
+Leia docs/00_persona.md, docs/01_objetivos_negocio.md, AGENTS.md e o código
+das Aulas 03 e 06. Pergunte se o nome de um campo for ambíguo. Não escreva
+código. Pare ao final desta etapa.</code></pre>
+        <div class="note">
+          <strong>Revise antes de seguir</strong>
+          <p>Todo RF e RNF tem critério Dado/Quando/Então que um teste consegue verificar? Os campos dos contratos têm arquivo e linha de origem? RNF-02 lista todos os itens do registro de rejeição? A decisão sobre campo desconhecido está justificada para cada fonte? Algum limite numérico ficou sem a marca de hipótese?</p>
+        </div>
+
+        <h3>Prompt 4 &middot; Plano e arquitetura</h3>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é arquiteto de software de dados. Toda escolha técnica sua aponta para
+um requisito da spec.
+
+[R] Pedido
+Crie aula_07_validacao_testes/specs/plan.md com:
+1. Diagrama C4 de contexto e de contêineres em Mermaid, mostrando fontes,
+   coletores, extração para bronze/, simulador, RabbitMQ (iot.leituras,
+   iot.dlx, leituras.brutas, leituras.validas, leituras.dlq), transformador,
+   armazenador, MinIO, ClickHouse e onde cada contrato é aplicado (borda de
+   entrada, entre camadas, antes da escrita).
+2. Diagrama de sequência Mermaid de uma leitura recusada: consumo de
+   leituras.brutas, validação, publicação em iot.dlx com x-motivo, gravação em
+   iot.leituras_rejeitadas, ack da original.
+3. Componentes: src/contratos/ (livro.py, cotacao_ptax.py, leitura_iot.py),
+   src/qualidade/ (quarentena.py, dlq.py, metricas.py, relatorio.py),
+   src/pipelines/ (código das Aulas 03 e 06 adaptado para chamar os contratos).
+4. Estratégia de testes em pirâmide: tests/unit, tests/contract (cassetes em
+   tests/contract/cassettes), tests/integration (Testcontainers com fixtures de
+   escopo session em conftest.py), marcador "integracao", comandos de cada camada.
+5. Tabela de decisões: ID, decisão, requisitos atendidos, alternativa
+   descartada e motivo.
+
+[E] Exemplos
+| D-03 | Quarentena como JSON Lines no bucket raw, prefixo quarantine/ | RF-04, RNF-02 | tabela de rejeições no ClickHouse: mistura dado inválido com a camada de consulta |
+| D-05 | Imagens com tag fixa: coollabsio/minio:RELEASE.2025-10-15T17-29-55Z, rabbitmq:4.3.6-management e clickhouse/clickhouse-server:26.8.15.10 (as do docker-compose da Aula 06) | RNF-05 | latest: o teste muda de comportamento sem mudança de código |
+
+[A] Ajustes
+- Decida, com alternativa e motivo, se o código das Aulas 03 e 06 é copiado
+  para src/pipelines/ ou importado da pasta original; a decisão vira ADR.
+- Mantenha a decisão da Aula 06 sobre a DLQ (publicar em iot.dlx com x-motivo
+  ou basic_nack) e explique como o código de motivo sai do erro do Pydantic,
+  já que o cabeçalho x-death não traz a regra violada.
+- Filas quorum (x-queue-type=quorum), como na Aula 06; filas de teste também
+  com durable=True (o RabbitMQ 4 recusa fila transitória não exclusiva).
+- Conexão com o MinIO pelas variáveis S3_ENDPOINT_URL, S3_ACCESS_KEY,
+  S3_SECRET_KEY e S3_REGION=us-east-1 (padrão das Aulas 02 a 04).
+- Testcontainers 4.15.0 importado de testcontainers.community.&lt;modulo&gt;.
+- Nenhum serviço, biblioteca ou ferramenta sem requisito correspondente.
+- Os nomes nos diagramas são os mesmos do texto.
+
+[T] Tipo de saída
+Markdown com três diagramas Mermaid, lista de componentes com responsabilidade
+e requisito atendido, seção de testes e tabela de decisões.
+
+[E] Extras
+Leia specs/spec.md, docs/ e AGENTS.md. Mostre o plano do documento antes de
+escrever. Não escreva código. Pare ao final desta etapa.</code></pre>
+        <div class="note">
+          <strong>Revise antes de seguir</strong>
+          <p>Os três pontos de validação aparecem no diagrama de contêineres? Cada componente aponta para pelo menos um requisito? Alguma tecnologia entrou sem requisito? A decisão "copiar ou importar" tem alternativa e motivo? O registro dos erros da DLQ ficou resolvido ou marcado como pendente?</p>
+        </div>
+
+        <h3>Prompt 5 &middot; Tarefas</h3>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é tech lead. Quebra o plano em tarefas pequenas, cada uma provada por
+um teste.
+
+[R] Pedido
+Crie aula_07_validacao_testes/specs/tasks.md com tarefas T-01, T-02, ... na
+ordem de execução: contratos e seus testes de unidade; validação de lote e
+registro de erros; quarentena e relatório com testes de unidade (cliente
+falso); testes de contrato com VCR para PTAX e books.toscrape.com; teste de
+integração da quarentena no MinIO; teste de integração da DLQ no RabbitMQ
+(iot.dlx, leituras.dlq, x-motivo); teste de integração no ClickHouse com a
+DDL da Aula 06 (válidas em iot.leituras, recusadas em iot.leituras_rejeitadas);
+JSON Schema publicado e teste de compatibilidade; relatório de rejeições; workflow
+de CI (opcional, última tarefa).
+
+[E] Exemplos
+- [ ] T-04 · Validar lote de leituras sem interromper no primeiro erro
+  Requisitos: RF-03, RNF-02
+  Teste: tests/unit/test_leitura_iot.py::test_lote_separa_validas_de_rejeitadas
+  Comando: pytest tests/unit/test_leitura_iot.py -q --block-network
+  Pronto quando: num lote com 1 válida em C, 1 válida em F, 1 corpo que não é
+  JSON e 1 sensor fora do cadastro, saem 2 normalizadas e 2 rejeitadas com
+  motivos json_invalido e sensor_desconhecido, posição e payload original.
+  Depende de: T-03
+
+[A] Ajustes
+- Cada tarefa cabe em cerca de 30 minutos e tem exatamente um teste que a prova.
+- Nenhuma tarefa sem requisito; nenhum requisito sem tarefa (liste os
+  descobertos no fim).
+- Tarefas de integração só depois das de unidade correspondentes.
+- Tarefas de cassete incluem a verificação de filter_headers e a busca por
+  segredos no YAML.
+- Não estime horas nem invente prazos. Não implemente nada.
+
+[T] Tipo de saída
+Markdown com checklist de tarefas no formato do exemplo e, ao final, tabela
+requisito | tarefas | teste.
+
+[E] Extras
+Leia specs/spec.md e specs/plan.md. Pare ao final desta etapa.</code></pre>
+        <div class="note">
+          <strong>Revise antes de seguir</strong>
+          <p>Todo RF e RNF aparece na tabela final? Cada tarefa tem comando de teste executável? As tarefas de integração vêm depois das de unidade? Alguma tarefa grande demais junta contrato, quarentena e integração de uma vez?</p>
+        </div>
+
+        <h3>Prompt 6 &middot; Implementação, uma tarefa por vez</h3>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é desenvolvedor Python sênior, pratica TDD e conhece Pydantic v2,
+pytest, vcrpy com pytest-recording e testcontainers-python.
+
+[R] Pedido
+Implemente somente a tarefa T-XX de specs/tasks.md (troque XX pelo número):
+1. Escreva primeiro o teste indicado na tarefa e execute-o para mostrar que
+   falha pelo motivo esperado.
+2. Implemente o mínimo de código para o teste passar.
+3. Execute o teste da tarefa e a camada inteira (pytest tests/unit -q
+   --block-network, ou a camada da tarefa).
+4. Marque a tarefa em specs/tasks.md com o comando executado e o resultado.
+
+[E] Exemplos
+Saída esperada no fim da tarefa:
+  Antes:  pytest tests/unit/test_livro.py -q  -> 1 failed (preço "Â£51.77" aceito)
+  Depois: pytest tests/unit/test_livro.py -q  -> 4 passed
+  Arquivos alterados: src/contratos/livro.py, tests/unit/test_livro.py,
+  specs/tasks.md
+
+[A] Ajustes
+- Somente API v2 do Pydantic: BaseModel, Field, Annotated, field_validator,
+  model_validator, ConfigDict, TypeAdapter, model_json_schema, model_dump.
+  Proibido: validator, root_validator, parse_obj, .dict(), class Config.
+- Erros de lote registrados com errors(include_url=False, include_context=False)
+  e traduzidos para os códigos de motivo da Aula 06.
+- Regras que dependem do relógio (medido_em no futuro) recebem o instante pelo
+  contexto de validação; o teste fixa o instante.
+- Testcontainers: from testcontainers.community.&lt;modulo&gt; import ...; imagem
+  sempre explícita com tag fixa; MinIO em
+  coollabsio/minio:RELEASE.2025-10-15T17-29-55Z com MINIO_ROOT_USER e
+  MINIO_ROOT_PASSWORD; RabbitMQ rabbitmq:4.3.6-management; ClickHouse
+  clickhouse/clickhouse-server:26.8.15.10 com a DDL 001_criar_tabelas.sql da
+  Aula 06; código lê S3_ENDPOINT_URL, S3_ACCESS_KEY, S3_SECRET_KEY e
+  S3_REGION; fixtures de escopo session em
+  tests/integration/conftest.py; testes marcados com @pytest.mark.integracao e
+  pulados com motivo quando o Docker não responder.
+- RabbitMQ: topologia da Aula 06 (iot.leituras topic, iot.dlx fanout, filas
+  quorum leituras.brutas, leituras.validas e leituras.dlq); leitura recusada
+  publicada em iot.dlx com cabeçalho x-motivo.
+- VCR: @pytest.mark.vcr; vcr_config com filter_headers authorization, cookie
+  e set-cookie; nunca gravar cassete sem avisar e pedir confirmação.
+- Testes de unidade nunca acessam rede nem Docker.
+- Credenciais só por variável de ambiente. Nada fora de
+  aula_07_validacao_testes/. Mostre o diff antes de aplicar.
+
+[T] Tipo de saída
+Código e teste da tarefa, specs/tasks.md atualizado e um resumo final com os
+comandos executados e a saída resumida do pytest.
+
+[E] Extras
+Leia AGENTS.md, specs/spec.md, specs/plan.md e specs/tasks.md antes de
+começar. Se a tarefa depender de campo ou nome que não está na spec, pergunte.
+Pare ao final da tarefa e aguarde revisão antes da próxima.</code></pre>
+        <div class="note">
+          <strong>Revise antes de seguir (a cada tarefa)</strong>
+          <p>O teste falhou antes e passa depois, na sua execução e não só na do agente? O diff tem algum nome da API v1 do Pydantic? Alguma imagem sem tag ou com <code>latest</code>? O cassete novo passou na busca por segredos? O teste de integração usa nomes próprios de bucket ou fila, para não interferir nos outros?</p>
+        </div>
+
+        <h3>Prompt 7 &middot; Validação ATAM</h3>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é uma equipe avaliadora ATAM independente, formada por engenheiro de
+dados, especialista em testes e operador de plantão. Não defende a solução;
+procura onde ela falha.
+
+[R] Pedido
+Crie ou atualize aula_07_validacao_testes/docs/atam.md e os ADRs em
+docs/adr/. O atam.md contém: drivers de negócio; utility tree
+(atributo, refinamento, cenário, importância, dificuldade); os seis cenários
+obrigatórios abaixo, cada um em seis partes (fonte do estímulo, estímulo,
+ambiente, artefato, resposta, medida de resposta); pontos de sensibilidade,
+trade-offs, riscos e não riscos; matriz requisito, decisão, componente,
+evidência.
+Cenários obrigatórios:
+1. A API PTAX passa a devolver um campo novo.
+2. O preço do livro chega com formato inesperado (ex.: "Â£51.77" ou "51,77").
+3. Um sensor publica temperatura com unidade errada (unidade fora de C/F, ou
+   leitura em Fahrenheit rotulada como "C").
+4. Um cassete desatualizado mascara uma mudança real da fonte.
+5. A suíte fica lenta demais para o CI.
+6. O Docker está indisponível no ambiente de teste.
+
+[E] Exemplos
+Cenário 4 · Cassete desatualizado
+Fonte: Banco Central (produtor externo). Estímulo: renomeia cotacaoVenda.
+Ambiente: produção; suíte do PR reproduzindo cassete de 02/10/2026.
+Artefato: contrato CotacaoPtax e teste de contrato.
+Resposta: o job agendado com --record-mode=all falha e abre alerta antes da
+próxima coleta; a suíte do PR continua verde e isso fica registrado como risco.
+Medida: tempo entre a mudança e o alerta (hipótese: até 24 h, validação pendente).
+Decisão relacionada: ADR-003 (cassete no PR, teste ao vivo agendado).
+
+[A] Ajustes
+- Execute a suíte (pytest -q --durations=10) e cite a saída real como
+  evidência; não invente tempos nem contagens.
+- Cada evidência é um arquivo de teste, um comando com resultado ou um objeto
+  em quarantine/. Sem evidência, escreva "evidência pendente".
+- Diferencie risco confirmado de dúvida não investigada.
+- ADRs obrigatórios: tratamento de campo desconhecido (forbid x ignore);
+  quarentena por registro x falha do lote; cassete x API real; contêiner real
+  x dublê de teste; copiar x importar o código das Aulas 03 e 06.
+  Cada ADR com status, contexto, alternativas, decisão, consequências e
+  condição de revisão.
+- Gere também docs/relatorio_rejeicoes.md a partir da quarentena e da DLQ de
+  uma execução real, com contagem por fonte, campo e tipo de erro, e as quatro
+  métricas de qualidade com numerador e denominador.
+
+[T] Tipo de saída
+docs/atam.md, docs/adr/ADR-00x-*.md e docs/relatorio_rejeicoes.md, em
+Markdown com tabelas.
+
+[E] Extras
+Leia todos os artefatos de docs/ e specs/, os testes e a saída do pytest.
+Não altere a spec para fazer a avaliação passar. Pare ao final e aguarde revisão.</code></pre>
+        <div class="note">
+          <strong>Revise para fechar</strong>
+          <p>Os seis cenários têm as seis partes e uma medida? Existe ao menos um trade-off nomeado, como "forbid detecta cedo e para a coleta; ignore mantém a coleta e atrasa a detecção"? Cada linha da matriz aponta um teste ou um objeto real como evidência? Os tempos citados vieram da execução do grupo? O relatório de rejeições tem denominadores?</p>
+        </div>
+      </section>
+
+      <!-- 13 -->
+      <section class="content-block" id="s13">
+        <h2>13. Exemplo de referência mínimo</h2>
+        <p>A pasta <code>laboratorio/exemplo/</code> deste repositório traz o menor conjunto que mostra o mecanismo inteiro: o contrato da leitura IoT da Aula 06, testes de unidade e um teste de integração com o MinIO em contêiner. Ele serve de régua para conferir o que o agente produz e não substitui os contratos do grupo, que nascem do código das Aulas 03 e 06.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Arquivo</th><th>Conteúdo</th></tr></thead>
+          <tbody>
+            <tr><td><code>leitura_sensor.py</code></td><td><code>LeituraBruta</code> (mensagem da Aula 06, <code>extra="forbid"</code>, <code>event_id</code> UUID, <code>device_id</code> no padrão <code>estufa-a-03</code> ou <code>germinacao-01</code>, <code>unidade_temperatura</code> em C ou F, umidade de 0 a 100, <code>medido_em</code> com fuso, faixa de temperatura e tolerância de futuro como hipóteses); <code>LeituraNormalizada</code> com os nomes da DDL (<code>temperatura_c</code>, <code>umidade_pct</code>, <code>local</code>, <code>tipo_local</code>); função <code>motivo</code> com os códigos da Aula 06; função <code>validar_lote</code> que recebe corpos em bytes e um cadastro</td></tr>
+            <tr><td><code>tests/test_leitura_sensor.py</code></td><td>três testes de unidade: leitura em Fahrenheit convertida e enriquecida; sete casos inválidos parametrizados com o motivo esperado (unidade, umidade, temperatura, futuro, fuso ausente, <code>event_id</code>, campo extra); lote que separa válidas de rejeitadas (JSON inválido, campo ausente, sensor fora do cadastro)</td></tr>
+            <tr><td><code>tests/test_minio_testcontainers.py</code></td><td>sobe o MinIO na imagem da coolLabs, grava uma cópia de auditoria do lote em <code>quarantine/iot/data=2026-11-14/lote-0001.jsonl</code> e lê de volta; no projeto, a leitura IoT recusada vai para <code>leituras.dlq</code> e <code>iot.leituras_rejeitadas</code>, e o MinIO aparece aqui só para demonstrar o mecanismo</td></tr>
+            <tr><td><code>pytest.ini</code></td><td><code>pythonpath</code>, pasta de testes e marcador <code>integracao</code></td></tr>
+          </tbody>
+        </table></div>
+        <ol class="steps">
+          <li>Com o ambiente da seção 11 ativo, copie o exemplo para uma pasta temporária: <code>cp -r &lt;aulas&gt;/pages/data-collection/laboratorio/lesson-7/exemplo /tmp/exemplo_aula07</code>.</li>
+          <li>Entre na pasta e rode só a unidade: <code>pytest -m "not integracao" -q</code>. Esperado: 9 testes aprovados (os casos parametrizados contam separadamente).</li>
+          <li>Rode tudo com tempos: <code>pytest -q --durations=5</code>. Esperado: 10 aprovados.</li>
+          <li>Simule a falta de Docker: <code>DOCKER_HOST=unix:///tmp/nao_existe.sock pytest -q -rs</code>. Esperado: 9 aprovados e 1 pulado com o motivo.</li>
+        </ol>
+        <p>Resultado registrado em 03/10/2026, num ambiente virtual novo com o <code>requirements-dev.txt</code> da aula (Python 3.12, Docker 29, imagem já baixada): 10 testes aprovados em 1,86 s; o setup do MinIO levou 1,59 s; a parte de unidade levou 0,11 s. Sem Docker: 9 aprovados e 1 pulado em 0,10 s. A primeira versão do teste falhou por um motivo instrutivo: a mensagem de exemplo da Aula 06 tem <code>medido_em</code> em 14/11/2026, e a regra de futuro, usando o relógio real de 03/10/2026, a recusou. A correção foi passar o instante pelo contexto de validação.</p>
+      </section>
+
+      <!-- 14 -->
+      <section class="content-block" id="s14">
+        <h2>14. Cenários ATAM da aula</h2>
+        <p>Os seis cenários abaixo são o mínimo do <code>docs/atam.md</code>. Eles foram escolhidos porque cada um pressiona uma decisão diferente da aula. As medidas estão marcadas como hipótese: o grupo substitui pelos valores que medir ou combinar com a persona.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Cenário</th><th>Fonte e estímulo</th><th>Ambiente e artefato</th><th>Resposta</th><th>Medida (hipótese)</th></tr></thead>
+          <tbody>
+            <tr><td>1. Campo novo na API</td><td>BCB acrescenta um campo à resposta da PTAX</td><td>produção; <code>CotacaoPtax</code> com <code>extra="ignore"</code></td><td>coleta segue; teste de contrato ao vivo lista o campo novo e alerta</td><td>zero execuções interrompidas; alerta até a próxima execução agendada</td></tr>
+            <tr><td>2. Preço com formato inesperado</td><td>books.toscrape.com devolve <code>Â£51.77</code> ou <code>51,77</code></td><td>coleta agendada; contrato <code>Livro</code></td><td>registro em quarentena com texto original; lote falha se a taxa passar do limite</td><td>100 % das rejeições com entrada e erro; limite de rejeição definido na spec</td></tr>
+            <tr><td>3. Sensor com unidade errada</td><td>sensor publica <code>unidade_temperatura: "K"</code>, ou um sensor antigo manda 76,28 rotulado como <code>C</code></td><td>streaming em operação; transformador e <code>LeituraBruta</code></td><td>unidade desconhecida vai para <code>leituras.dlq</code> com <code>x-motivo = unidade_desconhecida</code>; o rótulo trocado só é pego pela faixa física ou por uma unidade esperada no cadastro do sensor</td><td>zero leituras fora da faixa em <code>iot.leituras</code>; rejeições por motivo no relatório; casos dentro da faixa registrados como risco</td></tr>
+            <tr><td>4. Cassete desatualizado</td><td>fonte muda o formato depois da gravação</td><td>suíte do PR reproduzindo cassete antigo</td><td>PR continua verde (risco aceito); job agendado contra a API real falha</td><td>tempo entre mudança e alerta; idade máxima do cassete</td></tr>
+            <tr><td>5. Suíte lenta para o CI</td><td>grupo acrescenta testes de integração com três contêineres</td><td>GitHub Actions <code>ubuntu-latest</code></td><td>marcadores separam camadas; fixtures de sessão; <code>--durations</code> aponta o mais lento</td><td>tempo do job medido; unidade abaixo de um limite em segundos</td></tr>
+            <tr><td>6. Docker indisponível</td><td>Codespace sem daemon ou máquina sem Docker</td><td>execução local da suíte</td><td>integração pulada com motivo; unidade e contrato continuam rodando; CI falha se nada de integração rodou</td><td>mensagem de motivo presente; zero falhas falsas atribuídas ao código</td></tr>
+          </tbody>
+        </table></div>
+        <h3>14.1 Trade-offs que o grupo deve nomear</h3>
+        <ul>
+          <li>A faixa física de temperatura pega o Fahrenheit rotulado como Celsius quando o valor sai da faixa, e deixa passar quando não sai (50 F rotulado como C vira 50 °C, ainda dentro da faixa de hipótese). Acrescentar a unidade esperada ao cadastro de sensores fecha a lacuna e cria a dependência de manter o cadastro em dia.</li>
+          <li><code>extra="forbid"</code> detecta mudança de formato na primeira mensagem e interrompe a coleta; <code>extra="ignore"</code> mantém a coleta e depende de outro mecanismo para detectar a mudança. A decisão muda conforme o produtor seja do grupo ou externo.</li>
+          <li>Quarentena por registro preserva os válidos e pode esconder uma quebra total; falhar o lote expõe a quebra e atrasa os dados. O limite de taxa de rejeição é o ponto de sensibilidade entre as duas.</li>
+          <li>Cassete torna o teste rápido e determinístico e congela a fonte no passado; teste contra a API real acompanha a fonte e é lento e instável. A combinação (cassete no PR, teste ao vivo agendado) troca detecção imediata por estabilidade.</li>
+          <li>Contêiner real encontra erros de integração que um dublê de teste não encontra e custa segundos por serviço e a dependência do Docker.</li>
+        </ul>
+      </section>
+
+      <!-- 15 -->
+      <section class="content-block" id="s15">
+        <h2>15. Atividade em sala e entregável</h2>
+        <p>Depois das duas horas de teoria, a prática vai das 10h30 às 11h30, no Codespace do repositório do grupo, acompanhando a construção ao vivo feita pelo professor. O grupo reproduz cada etapa com os prompts da seção 12, revisa o artefato antes de seguir e executa os testes no próprio terminal: a resposta do agente dizendo que o teste passou não conta como evidência. Das 11h30 às 12h00, a turma revisa os pontos-chave das Aulas 06 e 07, e os últimos dez minutos conferem o que existe e o que fica para a semana.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Horário</th><th>Etapa</th><th>Saída</th></tr></thead>
+          <tbody>
+            <tr><td>10h30 &ndash; 10h45</td><td>Preparação (seção 11) e exemplo de referência (seção 13)</td><td>Docker respondendo, dependências instaladas, exemplo verde</td></tr>
+            <tr><td>10h45 &ndash; 11h30</td><td>Prompts 1 a 5, com a demonstração</td><td>persona, objetivos, spec, plan e tasks revisados e commitados</td></tr>
+            <tr><td>11h30 &ndash; 12h00</td><td>Revisão</td><td>temas a retomar anotados</td></tr>
+            <tr><td>12h00 &ndash; 12h10</td><td>Fechamento</td><td>lista do que existe e do que fica para a semana</td></tr>
+            <tr><td>Na semana, até a Aula 08 (05/12/2026)</td><td>Prompt 6, uma tarefa por vez, e prompt 7</td><td>contratos, quarentena, DLQ, testes nas três camadas, <code>atam.md</code>, ADRs e relatório de rejeições</td></tr>
+          </tbody>
+        </table></div>
+        <h3>15.2 Entregável</h3>
+        <p>Pasta <code>aula_07_validacao_testes/</code> no repositório do grupo, até a Aula 08 (05/12/2026), com:</p>
+        <ol class="steps">
+          <li>Esqueleto SDD completo: <code>AGENTS.md</code>, <code>docs/00_persona.md</code>, <code>docs/01_objetivos_negocio.md</code>, <code>specs/spec.md</code>, <code>specs/plan.md</code>, <code>specs/tasks.md</code>.</li>
+          <li>Contratos Pydantic de livro, cotação PTAX e leitura de sensor em <code>src/contratos/</code>, com o JSON Schema de cada um em <code>docs/contratos/</code>.</li>
+          <li>Quarentena no MinIO (prefixo <code>quarantine/</code>) e DLQ no RabbitMQ implementadas e testadas.</li>
+          <li>Suíte verde: <code>pytest tests/unit tests/contract -q --block-network</code> e <code>pytest tests/integration -m integracao -q</code>, com cassetes sem segredos.</li>
+          <li><code>docs/relatorio_rejeicoes.md</code> gerado de uma execução real, com contagens por fonte, campo e tipo de erro e as quatro métricas com numerador e denominador.</li>
+          <li><code>docs/atam.md</code> com os seis cenários da seção 14 e os ADRs em <code>docs/adr/</code>.</li>
+        </ol>
+        <h3>15.3 Conferência antes do commit</h3>
+        <pre><code>cd aula_07_validacao_testes
+pytest tests/unit tests/contract -q --block-network
+pytest tests/integration -m integracao -q --durations=10
+grep -RniE "authorization|password|secret|token|api[_-]?key" tests/ || echo "nenhum segredo aparente"
+git status --short</code></pre>
+        <p>Se algum teste de integração aparecer como pulado, o Docker não respondeu e a evidência de integração não foi produzida; resolva antes de registrar o resultado no <code>docs/atam.md</code>. O código desta aula alimenta o projeto final: na <a href="../materials/lesson-8-material.html">Aula 08</a>, os contratos e a suíte entram como parte da evidência de qualidade do pipeline integrado.</p>
+      </section>
+
+    </article>
+  </main>
+<!-- encontro:pdf:start -->
+<button type="button" class="pdf-export-btn" data-encontro-data="2026-11-28" data-encontro-docente="Afonso" data-encontro-seq="02" title="Exportar esta página em PDF com o nome padronizado">📄 Exportar PDF</button>
+<script src="../../../js/encontro-pdf.js" defer></script>
+<!-- encontro:pdf:end -->
+<!-- semana:js:start -->
+<script src="../../../js/semana-ano.js" defer></script>
+<!-- semana:js:end -->
+</body>
+</html>

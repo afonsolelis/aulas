@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗄️</text></svg>">
+  <title>Aula 01 — Arquitetura de Software de Dados e Spec-Driven Development</title>
+  <link href="../css/dc-slides.css" rel="stylesheet">
+
+<!-- encontro:css:start -->
+<link rel="stylesheet" href="../../../css/encontro.css">
+<!-- encontro:css:end -->
+
+<!-- semana:css:start -->
+<link rel="stylesheet" href="../../../css/semana-ano.css">
+<!-- semana:css:end -->
+</head>
+<body>
+  <div class="slide-container">
+
+    <!-- 1. CAPA -->
+    <div class="slide">
+      <div class="deck-shell" data-aula-number="01" data-year="2026">
+        <div>
+          <img class="deck-logo-full" src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli">
+          <span class="deck-kicker">Data Collection and Storage &middot; Inteli</span>
+          <h1 class="deck-title">Arquitetura de Software de Dados e Spec-Driven Development</h1>
+          <p class="deck-meta">Aula 01 &nbsp;&bull;&nbsp; 10/10/2026 &nbsp;&bull;&nbsp; 8h30 &ndash; 12h10</p>
+          <p class="deck-year">2026</p>
+          <p class="deck-subtitle">O método da disciplina aplicado a um projeto pequeno: um MinIO do grupo, publicado no Railway.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. AGENDA -->
+    <div class="slide">
+      <div class="deck-shell">
+        <div>
+          <span class="deck-kicker">Agenda</span>
+          <h2 class="deck-title">Uma hora de método, o resto no terminal</h2>
+        </div>
+        <div class="deck-grid">
+          <article class="deck-card">
+            <h3>8h30 &ndash; 9h30 &middot; Conceitos</h3>
+            <ul>
+              <li>Arquitetura de dados e atributos de qualidade</li>
+              <li>C4, ADR e ATAM</li>
+              <li>Spec-Driven Development e formato CREATE</li>
+            </ul>
+          </article>
+          <article class="deck-card">
+            <h3>9h30 &ndash; 12h10 &middot; Prática guiada</h3>
+            <ul>
+              <li>Codespace, agente de código, Railway</li>
+              <li>Oito prompts SDD do projeto MinIO</li>
+              <li>Deploy, buckets, ATAM e entregável</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. PROBLEMA -->
+    <div class="slide">
+      <div class="deck-shell">
+        <div>
+          <span class="deck-kicker">Problema concreto</span>
+          <h2 class="deck-title">O grupo precisa de um storage para o semestre</h2>
+          <p class="deck-summary">As Aulas 02, 03 e 04 gravam JSON, HTML e Parquet. Hoje cada integrante guarda arquivos no próprio Codespace, que pode ser apagado.</p>
+        </div>
+        <div class="deck-grid">
+          <article class="deck-card"><h3>Compartilhado</h3><p>Acessível de qualquer Codespace pela API S3.</p></article>
+          <article class="deck-card"><h3>Protegido</h3><p>Repositório público: nenhuma senha no Git.</p></article>
+          <article class="deck-card"><h3>Barato</h3><p>Crédito único de US$ 5 no trial do Railway.</p></article>
+          <article class="deck-card"><h3>Reprodutível</h3><p>Recriável do zero por comandos documentados.</p></article>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. SISTEMA DE DADOS -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Arquitetura de dados</span>
+          <h2 class="deck-title">Um sistema de dados em cinco responsabilidades</h2>
+        </div>
+        <div class="method-flow">
+          <div class="method-step"><strong>Fontes</strong><span>APIs, páginas, bancos, sensores.</span></div>
+          <div class="method-step"><strong>Coleta</strong><span>Lote ou fluxo.</span></div>
+          <div class="method-step is-current"><strong>Armazenamento</strong><span>Hoje: object storage.</span></div>
+          <div class="method-step"><strong>Processamento</strong><span>Tipar, limpar, juntar.</span></div>
+          <div class="method-step"><strong>Consumo</strong><span>Consultas, painéis, modelos.</span></div>
+        </div>
+        <div class="deck-callout">
+          <strong>Buckets da arquitetura medalhão</strong>
+          <p style="margin:8px 0 0;"><code>raw</code> como chegou &middot; <code>bronze</code> bruto organizado &middot; <code>silver</code> limpo e tipado &middot; <code>gold</code> pronto para a pergunta</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. ATRIBUTOS -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Requisitos</span>
+          <h2 class="deck-title">Atributos de qualidade decidem a arquitetura</h2>
+        </div>
+        <table class="deck-table">
+          <thead><tr><th>Atributo</th><th>No projeto MinIO</th></tr></thead>
+          <tbody>
+            <tr><td>Disponibilidade</td><td>proxy do Railway devolve 502 esporádico</td></tr>
+            <tr><td>Latência</td><td>sem meta definida: hipótese, validação pendente</td></tr>
+            <tr><td>Custo</td><td>US$ 5 únicos; volume apagado 30 dias após o fim do crédito</td></tr>
+            <tr><td>Idempotência</td><td><code>mc mb --ignore-existing</code>; mesma chave não duplica</td></tr>
+            <tr><td>Rastreabilidade</td><td>requisito &rarr; decisão &rarr; componente &rarr; evidência</td></tr>
+            <tr><td>Segurança / LGPD</td><td>repositório público; segredo só em <code>.env</code> e no Railway</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 6. TRADE-OFFS -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Decisões</span>
+          <h2 class="deck-title">Toda decisão compra um atributo com outro</h2>
+        </div>
+        <table class="deck-table">
+          <thead><tr><th>Decisão</th><th>Ganha</th><th>Paga</th></tr></thead>
+          <tbody>
+            <tr><td>Tag fixada da imagem</td><td>reprodutibilidade</td><td>atualização manual</td></tr>
+            <tr><td>Domínio só na porta 9000</td><td>segurança</td><td>sem console remoto</td></tr>
+            <tr><td>Um serviço, um volume</td><td>custo e simplicidade</td><td>sem réplica dos dados</td></tr>
+          </tbody>
+        </table>
+        <p class="deck-note">Se nenhuma decisão tem custo registrado, a análise está incompleta.</p>
+      </div>
+    </div>
+
+    <!-- 7. C4 -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">C4 em Mermaid</span>
+          <h2 class="deck-title">Três níveis de zoom, três perguntas</h2>
+        </div>
+        <table class="deck-table">
+          <thead><tr><th>Nível</th><th>Pergunta</th><th>No projeto MinIO</th></tr></thead>
+          <tbody>
+            <tr><td>1. Contexto</td><td>quem usa, com quem conversa?</td><td>grupo, pipelines das Aulas 02&ndash;04, Railway, GitHub</td></tr>
+            <tr><td>2. Contêineres</td><td>o que executa e onde fica o dado?</td><td>MinIO local, MinIO no Railway, volumes, domínio, <code>mc</code></td></tr>
+            <tr><td>3. Componentes</td><td>quais partes de um contêiner têm lógica própria?</td><td>etapas do script de verificação</td></tr>
+          </tbody>
+        </table>
+        <p class="deck-note">Diagrama em <code>specs/plan.md</code>; o GitHub renderiza Mermaid no Markdown.</p>
+      </div>
+    </div>
+
+    <!-- 8. CONTEINERES -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">C4 &middot; Nível 2</span>
+          <h2 class="deck-title">Contêineres do projeto MinIO</h2>
+        </div>
+        <div class="deck-columns">
+          <article class="deck-panel"><strong>Codespace do integrante</strong><ol><li>cliente <code>mc</code> e scripts</li><li>MinIO local (docker compose)</li><li>volume <code>minio_data</code></li><li>console na porta 9001</li></ol></article>
+          <article class="deck-panel"><strong>Railway</strong><ol><li>domínio público HTTPS</li><li>serviço <code>minio</code>, imagem coolLabs fixada</li><li>porta 9000 (API S3)</li><li>volume em <code>/data</code></li></ol></article>
+        </div>
+      </div>
+    </div>
+
+    <!-- 9. ADR -->
+    <div class="slide">
+      <div class="deck-shell">
+        <div>
+          <span class="deck-kicker">ADR</span>
+          <h2 class="deck-title">Uma decisão registrada com o seu preço</h2>
+        </div>
+        <ol class="deck-steps">
+          <li>Contexto e forças que exigem a decisão</li>
+          <li>Requisitos e cenários relacionados</li>
+          <li>Alternativas descartadas, com motivo</li>
+          <li>Decisão e tática aplicada</li>
+          <li>Consequências positivas e negativas, evidência e condição de revisão</li>
+        </ol>
+        <p class="deck-note"><code>docs/adr/ADR-001-imagem-coollabs-tag-fixada.md</code> &middot; ADR não se apaga: é substituído.</p>
+      </div>
+    </div>
+
+    <!-- 10. ATAM -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">ATAM</span>
+          <h2 class="deck-title">Pressionar a arquitetura com cenários</h2>
+        </div>
+        <div class="deck-columns">
+          <article class="deck-panel"><strong>Entra</strong><ol><li>drivers de negócio</li><li>decisões arquiteturais</li><li>utility tree: atributo, refinamento, cenário</li><li>prioridade (importância &times; dificuldade)</li></ol></article>
+          <article class="deck-panel"><strong>Sai</strong><ol><li>pontos de sensibilidade e de trade-off</li><li>riscos e não-riscos</li><li>temas de risco</li><li>ADRs e matriz de rastreabilidade</li></ol></article>
+        </div>
+        <p class="deck-note">O ATAM não dá nota nem selo de arquitetura correta.</p>
+      </div>
+    </div>
+
+    <!-- 11. CENARIO -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">ATAM &middot; Cenário</span>
+          <h2 class="deck-title">O cenário de qualidade tem seis partes</h2>
+        </div>
+        <table class="deck-table">
+          <thead><tr><th>Parte</th><th>CEN-01: redeploy não perde dados</th></tr></thead>
+          <tbody>
+            <tr><td>Fonte</td><td>integrante do grupo</td></tr>
+            <tr><td>Estímulo</td><td><code>railway redeploy</code></td></tr>
+            <tr><td>Ambiente</td><td>operação normal, objetos em <code>raw</code></td></tr>
+            <tr><td>Artefato</td><td>serviço <code>minio</code> e volume em <code>/data</code></td></tr>
+            <tr><td>Resposta</td><td>contêiner novo monta o mesmo volume</td></tr>
+            <tr><td>Métrica</td><td>contagem antes = depois; zero objetos perdidos</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 12. DESCOBERTAS -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">ATAM &middot; Descobertas</span>
+          <h2 class="deck-title">O vocabulário das descobertas</h2>
+        </div>
+        <table class="deck-table">
+          <thead><tr><th>Termo</th><th>Exemplo no MinIO</th></tr></thead>
+          <tbody>
+            <tr><td>Sensibilidade</td><td>volume fora de <code>/data</code>: todo redeploy apaga os dados</td></tr>
+            <tr><td>Trade-off</td><td>só a 9000 pública: mais segurança, menos usabilidade</td></tr>
+            <tr><td>Risco</td><td>todos usam a credencial root</td></tr>
+            <tr><td>Não-risco</td><td>GET anônimo recebe 403</td></tr>
+            <tr><td>Tema de risco</td><td>um único volume e uma única credencial</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 13. TATICAS -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Len Bass</span>
+          <h2 class="deck-title">Táticas nomeiam a intenção da decisão</h2>
+        </div>
+        <table class="deck-table">
+          <thead><tr><th>Atributo</th><th>Tática</th><th>Aplicação</th></tr></thead>
+          <tbody>
+            <tr><td>Disponibilidade</td><td>detectar falhas</td><td>healthcheck com <code>mc ready local</code></td></tr>
+            <tr><td>Disponibilidade</td><td>retry</td><td>repetir após 502, com espera crescente</td></tr>
+            <tr><td>Segurança</td><td>autenticar atores</td><td>toda requisição S3 assinada</td></tr>
+            <tr><td>Segurança</td><td>limitar exposição</td><td>domínio só para a porta 9000</td></tr>
+            <tr><td>Modificabilidade</td><td>adiar vínculo</td><td>credenciais e endpoint por variável</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 14. POR QUE SDD -->
+    <div class="slide">
+      <div class="deck-shell">
+        <div>
+          <span class="deck-kicker">Spec-Driven Development</span>
+          <h2 class="deck-title">Especificar antes de pedir código ao agente</h2>
+          <p class="deck-summary">Pedido vago, o agente preenche as lacunas sozinho: imagem, porta, onde guardar a senha, console público ou não.</p>
+        </div>
+        <div class="deck-callout">
+          <strong>Com SDD</strong>
+          <p style="margin:8px 0 0;">Persona, objetivos, requisitos e plano ficam em arquivos. Cada prompt lê esses arquivos, e cada artefato é revisado e versionado antes da etapa seguinte.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 15. CICLO SDD -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">SDD &middot; Ciclo</span>
+          <h2 class="deck-title">Sete etapas, um prompt CREATE por etapa</h2>
+        </div>
+        <div class="method-flow">
+          <div class="method-step"><strong>Persona</strong><span><code>docs/00</code></span></div>
+          <div class="method-step"><strong>Objetivos</strong><span><code>docs/01</code></span></div>
+          <div class="method-step"><strong>Spec</strong><span><code>specs/spec.md</code></span></div>
+          <div class="method-step"><strong>Plano</strong><span><code>specs/plan.md</code></span></div>
+          <div class="method-step"><strong>Tarefas</strong><span><code>specs/tasks.md</code></span></div>
+          <div class="method-step"><strong>Implementação</strong><span>uma tarefa por vez</span></div>
+          <div class="method-step is-current"><strong>ATAM</strong><span><code>docs/atam.md</code></span></div>
+        </div>
+        <p class="deck-note">Depois de cada prompt: "Revise antes de seguir", registro em <code>docs/prompts.md</code> e commit.</p>
+      </div>
+    </div>
+
+    <!-- 16. PASTAS -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">SDD &middot; Convenção</span>
+          <h2 class="deck-title">A mesma estrutura em todas as aulas</h2>
+        </div>
+        <pre><code>aula_01_minio/            # depois: aula_02_coleta_json/ ... projeto_final/
+├── AGENTS.md             # regras do agente
+├── docs/  00_persona.md  01_objetivos_negocio.md  atam.md  adr/
+│          rastreabilidade.md  prompts.md  evidencias/
+├── specs/ spec.md  plan.md  tasks.md
+└── src/  tests/  scripts/</code></pre>
+        <p class="deck-note">Commit: <code>tipo(T-xx): descrição [RF-yy]</code></p>
+      </div>
+    </div>
+
+    <!-- 17. RASTREABILIDADE -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">SDD &middot; Rastreabilidade</span>
+          <h2 class="deck-title">Do requisito à evidência, sem fio solto</h2>
+        </div>
+        <table class="deck-table">
+          <thead><tr><th>Requisito</th><th>Tarefa</th><th>Verificação</th><th>Evidência</th><th>Estado</th></tr></thead>
+          <tbody>
+            <tr><td>RF-02 buckets</td><td>T-03</td><td>script executado duas vezes</td><td><code>T-03_buckets.txt</code></td><td>atendido</td></tr>
+            <tr><td>RNF-02 acesso</td><td>T-04</td><td>GET anônimo</td><td>403 registrado</td><td>parcial</td></tr>
+          </tbody>
+        </table>
+        <p class="deck-note">Estados em <code>docs/rastreabilidade.md</code>: atendido, parcial ou não atendido. Sem evidência, nunca atendido.</p>
+      </div>
+    </div>
+
+    <!-- 18. O QUE A IA ERRA -->
+    <div class="slide">
+      <div class="deck-shell">
+        <div>
+          <span class="deck-kicker">Revisão humana</span>
+          <h2 class="deck-title">O que a IA costuma errar</h2>
+        </div>
+        <ol class="deck-steps">
+          <li>Inventa números: "99,9%", "200 ms" sem origem</li>
+          <li>Escolhe tecnologia por moda: Kubernetes, Terraform, proxy</li>
+          <li>Concorda consigo mesma ao avaliar o próprio plano</li>
+          <li>Transforma hipótese em fato entre uma etapa e outra</li>
+          <li>Declara sucesso sem mostrar a saída do comando</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- 19. CREATE -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Formato CREATE &middot; Dave Birss</span>
+          <h2 class="deck-title">Seis partes que fecham as lacunas do pedido</h2>
+        </div>
+        <table class="deck-table">
+          <thead><tr><th>Rótulo</th><th>Responde</th></tr></thead>
+          <tbody>
+            <tr><td><code>[C] Personagem</code></td><td>quem o agente é nesta etapa, e o que não faz</td></tr>
+            <tr><td><code>[R] Pedido</code></td><td>o que fazer, em qual arquivo</td></tr>
+            <tr><td><code>[E] Exemplos</code></td><td>uma amostra curta do formato esperado</td></tr>
+            <tr><td><code>[A] Ajustes</code></td><td>restrições, proibições, critérios de qualidade</td></tr>
+            <tr><td><code>[T] Tipo de saída</code></td><td>arquivos, formato, tamanho</td></tr>
+            <tr><td><code>[E] Extras</code></td><td>fontes a ler, quando perguntar, quando parar</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 20. BOAS PRATICAS -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Prompts para agentes</span>
+          <h2 class="deck-title">Sete práticas para trabalhar com o agente</h2>
+        </div>
+        <ol class="deck-steps">
+          <li>Um prompt por etapa</li>
+          <li>Contexto por arquivo, não por memória da conversa</li>
+          <li>Plano antes de editar, com confirmação</li>
+          <li>Critério de parada explícito</li>
+          <li>Gates verificáveis por comando</li>
+          <li>Revisão do diff antes do commit</li>
+          <li>Segredos fora do prompt e fora do que o agente lê</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- 21. SETUP 1 -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Setup 1 &middot; Repositório e Codespace</span>
+          <h2 class="deck-title">Repositório público do grupo e modelo SDD</h2>
+        </div>
+        <pre><code>docker --version &amp;&amp; python3 --version &amp;&amp; node --version
+git clone --depth 1 https://github.com/afonsolelis/aulas.git /tmp/aulas
+A=/tmp/aulas/pages/data-collection/laboratorio
+LAB=$A/lesson-1
+cp -rn "$LAB/modelo_repositorio/." .
+cp aula_01_minio/.env.example aula_01_minio/.env
+git status --short        # .env não pode aparecer</code></pre>
+      </div>
+    </div>
+
+    <!-- 22. SETUP 2 -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Setup 2 &middot; Agente de código</span>
+          <h2 class="deck-title">Agente de sua preferência no terminal</h2>
+        </div>
+        <pre><code>cd aula_01_minio
+echo "@AGENTS.md" &gt; CLAUDE.md   # só no Claude Code
+claude            # ou o agente que você usa</code></pre>
+        <div class="deck-callout">
+          <strong>Qualquer agente serve</strong>
+          <p style="margin:8px 0 0;">Claude Code, Codex CLI, Gemini CLI, OpenCode, Cursor ou Copilot. O agente precisa ler o AGENTS.md; nenhuma chave de API entra no Git. Revezem o piloto.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 23. SETUP 3 -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Setup 3 &middot; Railway</span>
+          <h2 class="deck-title">Conta trial verificada pelo GitHub</h2>
+        </div>
+        <pre><code>npm i -g @railway/cli
+railway login --browserless
+railway whoami</code></pre>
+        <table class="deck-table">
+          <tbody>
+            <tr><td>Trial</td><td>US$ 5 únicos, até 30 dias; depois Free com US$ 1/mês</td></tr>
+            <tr><td>Recursos</td><td>1 GB de RAM, vCPU compartilhada, até 5 serviços por projeto</td></tr>
+            <tr><td>Volumes</td><td>apagados 30 dias após o fim dos créditos: faça backup</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 24. COOLLABS -->
+    <div class="slide">
+      <div class="deck-shell">
+        <div>
+          <span class="deck-kicker">MinIO</span>
+          <h2 class="deck-title">Imagem da coolLabs com tag fixada</h2>
+          <p class="deck-summary">O MinIO comunitário entrou em manutenção em dez/2025, foi arquivado em abr/2026 e não publica mais imagens oficiais. <code>dl.min.io</code> responde 410.</p>
+        </div>
+        <div class="deck-callout">
+          <strong>Imagem usada em toda a disciplina</strong>
+          <p style="margin:8px 0 0;"><code>ghcr.io/coollabsio/minio:RELEASE.2025-10-15T17-29-55Z</code> &middot; a mesma do template do Railway &middot; traz <code>mc</code>, não traz <code>curl</code> &middot; 9000 = API S3, 9001 = console</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 25. OITO PROMPTS -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Demonstração SDD</span>
+          <h2 class="deck-title">Oito prompts do projeto MinIO</h2>
+        </div>
+        <table class="deck-table">
+          <thead><tr><th>Prompt</th><th>Arquivo</th></tr></thead>
+          <tbody>
+            <tr><td>1 Persona &middot; 2 Objetivos</td><td><code>docs/00_persona.md</code>, <code>docs/01_objetivos_negocio.md</code></td></tr>
+            <tr><td>3 Spec</td><td><code>specs/spec.md</code></td></tr>
+            <tr><td>4 Plano</td><td><code>specs/plan.md</code> com C4</td></tr>
+            <tr><td>5 Tarefas</td><td><code>specs/tasks.md</code> (T-01 a T-07)</td></tr>
+            <tr><td>6 Implementação</td><td>compose, Dockerfile, scripts, evidências</td></tr>
+            <tr><td>8 Deploy no Railway</td><td>T-06 e T-07, evidências</td></tr>
+            <tr><td>7 ATAM</td><td><code>docs/atam.md</code>, ADR-001, ADR-002, <code>docs/rastreabilidade.md</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 26. MINIO LOCAL -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Conferência &middot; T-01</span>
+          <h2 class="deck-title">MinIO local com docker compose</h2>
+        </div>
+        <pre><code>sed -i "s|^MINIO_ROOT_PASSWORD=.*|MINIO_ROOT_PASSWORD=$(openssl rand -hex 24)|" .env
+docker compose config --quiet &amp;&amp; echo "compose ok"
+docker compose up -d --wait
+docker compose ps                     # healthy
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:9000/minio/health/live   # 200</code></pre>
+        <p class="deck-note"><code>docker compose down</code> preserva o volume; <code>down -v</code> apaga.</p>
+      </div>
+    </div>
+
+    <!-- 27. DEPLOY -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Conferência &middot; T-06</span>
+          <h2 class="deck-title">Deploy no Railway pelo terminal</h2>
+        </div>
+        <pre><code>cd aula_01_minio/minio_railway
+railway init --name minio-grupo-xx
+railway add --service minio
+railway service link minio
+railway volume add --mount-path /data
+# GRUPO, outro terminal: usuário e senha (--stdin) no Railway e no .env
+railway up --detach
+railway domain --port 9000 --service minio</code></pre>
+      </div>
+    </div>
+
+    <!-- 28. BUCKETS -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Conferência &middot; T-04 e T-07</span>
+          <h2 class="deck-title">Buckets, acesso negado e persistência</h2>
+        </div>
+        <pre><code>set -a; . ./.env; set +a
+mc alias set railway "$MINIO_RAILWAY_ENDPOINT" "$MINIO_RAILWAY_USER" "$MINIO_RAILWAY_PASSWORD"
+for b in raw bronze silver gold; do mc mb --ignore-existing "railway/$b"; done
+curl -s -o /dev/null -w "%{http_code}\n" "$MINIO_RAILWAY_ENDPOINT/raw"   # 403
+mc cp /tmp/teste.json railway/raw/_verificacao/teste.json
+railway redeploy --service minio --yes
+mc ls railway/raw/_verificacao/       # o objeto continua lá</code></pre>
+      </div>
+    </div>
+
+    <!-- 29. GATES -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Gates</span>
+          <h2 class="deck-title">Critérios para encerrar cada etapa</h2>
+        </div>
+        <div class="quality-gates">
+          <article class="quality-gate"><strong>Documentos</strong><span>números com origem ou marcados como hipótese.</span></article>
+          <article class="quality-gate"><strong>Spec</strong><span>todo RF e RNF com Dado/Quando/Então.</span></article>
+          <article class="quality-gate"><strong>Implementação</strong><span>saída real do comando salva em <code>docs/evidencias/</code>.</span></article>
+          <article class="quality-gate"><strong>Segredos</strong><span><code>git ls-files | grep '\.env$'</code> vazio.</span></article>
+        </div>
+      </div>
+    </div>
+
+    <!-- 30. ENTREGAVEL -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Entregável da aula</span>
+          <h2 class="deck-title">O que precisa existir às 12h10</h2>
+        </div>
+        <ol class="deck-steps">
+          <li><code>aula_01_minio/</code> com <code>AGENTS.md</code>, <code>docs/</code> e <code>specs/</code> preenchidos</li>
+          <li>MinIO no Railway com <code>raw</code>, <code>bronze</code>, <code>silver</code>, <code>gold</code></li>
+          <li><code>docs/atam.md</code>, ADR-001, ADR-002 e <code>docs/rastreabilidade.md</code></li>
+          <li><code>docs/prompts.md</code> e <code>docs/evidencias/</code> sem segredos</li>
+        </ol>
+        <div class="deck-callout">
+          <strong>Registro</strong>
+          <p style="margin:8px 0 0;">Formulário de grupo da disciplina &middot; <a href="../laboratorio/lesson-1/README.md">Roteiro do laboratório</a> &middot; <a href="../materials/lesson-1-material.html">Material completo</a></p>
+        </div>
+      </div>
+    </div>
+
+  
+<!-- encontro:meta:start -->
+<div class="slide encontro-slide"><div class="sc"><section class="encontro-meta" data-encontro-ficha><h2>Sobre este encontro</h2><p class="encontro-ref">Data Collection and Storage · Aula 01 · 10/10/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>Ao final do encontro, o estudante deve ser capaz de descrever a arquitetura de software de um projeto de dados em Spec-Driven Development, da persona e dos objetivos de negócio à especificação, ao plano, às tarefas e à validação ATAM, e publicar um MinIO próprio no Railway pelo terminal.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>Demonstração prática completa: a teoria ocupa a primeira parte do encontro e, em seguida, o professor constrói o projeto ao vivo enquanto cada aluno reproduz o mesmo caminho no próprio repositório, com o agente de código guiado pelo AGENTS.md e prompts no formato CREATE.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol><li>O problema concreto e o resultado da aula</li><li>Como a manhã está organizada</li><li>Arquitetura de software aplicada a dados</li><li>ATAM: avaliar a arquitetura antes de confiar nela</li><li>Spec-Driven Development</li><li>O formato CREATE</li><li>Boas práticas de prompt para agentes</li><li>Setup 1: repositório do grupo e Codespace</li><li>Setup 2: agente de código</li><li>Setup 3: conta e CLI do Railway</li><li>Por que MinIO e por que a imagem da coolLabs</li><li>Demonstração SDD: os oito prompts do projeto MinIO</li></ol></div></section></div></div>
+<!-- encontro:meta:end -->
+</div>
+
+  <img class="slide-logo-mini" src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli">
+
+  <div class="slide-footer">
+    <div class="footer-links">
+      <a href="../../../index.html" class="back-home">Início</a>
+      <a href="../../home-data-collection.html" class="back-home">Data Collection</a>
+      <a href="../materials/lesson-1-material.html" class="material-link">Material</a>
+    </div>
+    <div class="nav-wrapper">
+      <div class="nav-buttons"><button id="prev-btn" onclick="previousSlide()">&#8592; Anterior</button></div>
+      <div class="slide-counter"><span id="current-slide">1</span> / <span id="total-slides">1</span></div>
+      <div class="nav-buttons"><button id="next-btn" onclick="nextSlide()">Próximo &#8594;</button></div>
+    </div>
+    <button class="fullscreen-btn" onclick="toggleFullScreen()" title="Tela cheia">&#9974;</button>
+  </div>
+
+  <script>
+    let currentSlide = 0;
+    const slides = document.querySelectorAll(".slide");
+    const totalSlides = slides.length;
+    document.getElementById("total-slides").textContent = totalSlides;
+    function showSlide(i) { slides.forEach(s => s.classList.remove("active")); slides[i].classList.add("active"); currentSlide = i; document.getElementById("current-slide").textContent = i + 1; document.getElementById("prev-btn").disabled = i === 0; document.getElementById("next-btn").disabled = i === totalSlides - 1; }
+    function nextSlide() { if (currentSlide < totalSlides - 1) showSlide(currentSlide + 1); }
+    function previousSlide() { if (currentSlide > 0) showSlide(currentSlide - 1); }
+    function toggleFullScreen() { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
+    document.addEventListener("keydown", e => { if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); nextSlide(); } else if (e.key === "ArrowLeft") { e.preventDefault(); previousSlide(); } else if (e.key.toLowerCase() === "f") toggleFullScreen(); });
+    showSlide(0);
+  </script>
+<!-- semana:js:start -->
+<script src="../../../js/semana-ano.js" defer></script>
+<!-- semana:js:end -->
+</body>
+</html>

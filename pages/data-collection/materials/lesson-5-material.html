@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗄️</text></svg>">
+  <title>Material Aula 05 &middot; Modelagem Dimensional, Views e Observabilidade no ClickHouse</title>
+  <link rel="stylesheet" href="../css/dc-styles.css">
+
+<!-- encontro:css:start -->
+<link rel="stylesheet" href="../../../css/encontro.css">
+<!-- encontro:css:end -->
+
+<!-- semana:css:start -->
+<link rel="stylesheet" href="../../../css/semana-ano.css">
+<!-- semana:css:end -->
+</head>
+<body>
+  <main class="page">
+    <div class="material-nav">
+      <a href="../../../index.html">&larr; Início</a>
+      <a href="../../home-data-collection.html">&larr; Data Collection &amp; Storage</a>
+      <a href="../laboratorio/lesson-5/README.md">Roteiro do laboratório</a>
+      <a href="../slides/slide-lesson-5.html">Ver Slide &rarr;</a>
+    </div>
+
+    <header class="hero">
+      <img class="logo-full" src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli">
+      <span class="kicker">Data Collection and Storage &middot; Inteli</span>
+      <h1>Aula 05 &middot; Modelagem Dimensional, Views e Observabilidade no ClickHouse</h1>
+      <p class="meta">Aula 05 &middot; 07/11/2026 &middot; Sábado &middot; 8h30 &ndash; 12h10</p>
+      <p class="summary">A Aula 04 terminou com tudo o que chegou pelo servidor de ingestão numa tabela de três colunas, <code>ingestao.db_ingestion</code> (<code>timestamp</code> em unix milissegundos, <code>data_json</code> no tipo JSON e <code>data_tag</code>), e com um manifesto por lote no RustFS. A aula abre com a discussão de decisões da Aula 04, que não coube no sábado anterior: três decisões sobre o contrato, a ordem dos destinos e a forma da tabela, registradas depois como ADRs. Em seguida, sem sair do ClickHouse, o grupo monta o modelo dimensional sobre essa tabela. Primeiro declara o grão de cada fato; depois cria as dimensões e os fatos de livros, PTAX e telemetria, alimentados por views materializadas incrementais; publica relatórios fechados com views materializadas refreshable; e observa a própria ingestão com contadores por minuto, views comuns em janela de tempo e um fato de lote lido dos manifestos. A Etapa 03 é o centro teórico da aula: o que uma view guarda, quando o SELECT dela roda e sobre que dados, nos três objetos que o ClickHouse chama de view. O formato é o da Aula 04: cada etapa começa com um prompt CREATE para o agente de código e, enquanto ele trabalha, o material explica o que o prompt pediu. Os números foram medidos na preparação, em 31/10/2026, com a carga completa do <code>dados_aula_04.zip</code> pelo servidor da Aula 04 e o ClickHouse 26.8.15.10.</p>
+    </header>
+<!-- encontro:meta:start -->
+<div class="container" style="max-width:1100px;margin:24px auto 0;padding:0 16px;"><section class="encontro-meta" data-encontro-ficha><h2>Sobre este encontro</h2><p class="encontro-ref">Data Collection and Storage · Aula 05 · 07/11/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>Ao final do encontro, o estudante deve ser capaz de declarar o grão de cada fato, construir dimensões e fatos no ClickHouse com views materializadas incrementais e refreshable e montar a observabilidade da ingestão com views em janela.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>Demonstração prática completa: a teoria ocupa a primeira parte do encontro e, em seguida, o professor constrói o projeto ao vivo enquanto cada aluno reproduz o mesmo caminho no próprio repositório, com o agente de código guiado pelo AGENTS.md e prompts no formato CREATE.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol><li>Retomada da Aula 04 e o problema de hoje</li><li>Três decisões da Aula 04</li><li>Etapa 00 · Subir a pilha com a coleção lake</li><li>Etapa 01 · O grão de cada fato</li><li>Etapa 02 · Dimensões, fatos e views materializadas incrementais</li><li>Etapa 03 · O que é uma view e como ela funciona no ClickHouse</li><li>Etapa 04 · Relatórios fechados com view materializada refreshable</li><li>Etapa 05 · Observabilidade corrente com views em janela</li><li>Etapa 06 · Observabilidade do processo, do manifesto ao descarte</li><li>Erros comuns</li><li>Fechamento, atividade em sala e entregável</li><li>Referências</li></ol></div></section></div>
+<!-- encontro:meta:end -->
+
+
+    <article class="material">
+
+      <section class="content-block" id="sumario">
+        <h2>Sumário</h2>
+        <ol>
+          <li><a href="#s1">Retomada da Aula 04 e o problema de hoje</a> (agenda, o que vem da Aula 04, o mapa do banco <code>dw</code>)</li>
+          <li><a href="#s2">Três decisões da Aula 04</a> (três questões, participação e ADRs)</li>
+          <li><a href="#s3">Etapa 00 &middot; Subir a pilha com a coleção <code>lake</code></a></li>
+          <li><a href="#s4">Etapa 01 &middot; O grão de cada fato</a> (Kimball, grão, aditividade, teste do grão)</li>
+          <li><a href="#s5">Etapa 02 &middot; Dimensões, fatos e views materializadas incrementais</a> (<code>ReplacingMergeTree</code>, <code>FINAL</code>, carga do histórico)</li>
+          <li><a href="#s6">Etapa 03 &middot; O que é uma view e como ela funciona no ClickHouse</a> (VIEW, MV incremental, MV refreshable)</li>
+          <li><a href="#s7">Etapa 04 &middot; Relatórios fechados com view materializada refreshable</a> (<code>ASOF JOIN</code>, o caso do CAM-4120)</li>
+          <li><a href="#s8">Etapa 05 &middot; Observabilidade corrente com views em janela</a> (contadores por minuto, sinais)</li>
+          <li><a href="#s9">Etapa 06 &middot; Observabilidade do processo, do manifesto ao descarte</a> (fato de lote, os lotes com erro)</li>
+          <li><a href="#s10">Erros comuns</a></li>
+          <li><a href="#s11">Fechamento, atividade em sala e entregável</a></li>
+          <li><a href="#s12">Referências</a></li>
+        </ol>
+      </section>
+
+      <section class="content-block" id="s1">
+        <h2>1. Retomada da Aula 04 e o problema de hoje</h2>
+        <p>Ao fim da Aula 04, o grupo tem um servidor de ingestão que recebe dados por HTTP e pela fila do RabbitMQ e, a cada micro-lote, grava em quatro lugares, sempre na mesma ordem: os envelopes como chegaram no <code>raw</code> do RustFS, uma linha por objeto no <code>bronze</code>, as mesmas linhas na tabela <code>ingestao.db_ingestion</code> do ClickHouse e o manifesto do lote em <code>raw/_manifestos/ingestao/</code>. Só depois disso o consumidor confirma as mensagens na fila (ack). O manifesto é o recibo do lote: com <code>"status": "ok"</code>, o lote está completo nos três destinos; com <code>"status": "erro_clickhouse"</code>, o <code>INSERT</code> falhou, não houve ack e as mensagens voltaram pela fila.</p>
+        <p>A tabela de pouso tem três colunas e serve a qualquer domínio: <code>timestamp</code> (UInt64, unix em milissegundos, a hora da ingestão), <code>data_json</code> (o objeto recebido, no tipo JSON) e <code>data_tag</code> (<code>livros</code>, <code>ptax</code> ou <code>telemetria</code>). Essa forma resolveu o problema da Aula 04, que era receber fontes novas sem <code>CREATE TABLE</code>, e criou o problema desta aula. Para saber o preço médio por categoria, o analista escreve <code>data_json.preco_gbp::Decimal(10,2)</code>; para saber a velocidade de um caminhão, extrai números de uma linha de texto que chega em dois formatos; e nada impede que a mesma linha apareça duas vezes, porque a entrega é pelo menos uma vez. Do que ficou para a semana na Aula 04, só a carga é pré-requisito: esta aula parte de <code>db_ingestion</code> carregada e dos manifestos no RustFS. A silver de livros e PTAX, o ATAM e o Railway não são usados aqui.</p>
+        <p>O problema de hoje tem duas faces. A primeira é a de quem consulta: transformar a tabela de pouso num modelo em que cada linha tem um significado declarado, as medidas têm tipo e as consultas não precisam repetir o parse. A segunda é a de quem opera: saber, a qualquer momento, se o dado está chegando, quanto está sendo descartado e quais lotes falharam. As duas são resolvidas no próprio ClickHouse, no banco <code>dw</code>, com tabelas e três tipos de view. Nenhum código Python novo é escrito.</p>
+
+        <h3>1.1 Agenda</h3>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Horário</th><th>Parte</th><th>Teoria explicada enquanto o agente trabalha</th></tr></thead>
+          <tbody>
+            <tr><td>8h30 &ndash; 8h40</td><td>Retomada da Aula 04 e Etapa 00</td><td>A tabela de pouso de três colunas, o manifesto por lote, o ack no fim e o que ficou para a semana; a pilha com a coleção <code>lake</code> (seções 1 e 3).</td></tr>
+            <tr><td>8h40 &ndash; 9h20</td><td>Decisões da Aula 04</td><td>Três questões: contrato e mudança de payload; ordem dos destinos e falha do ClickHouse; forma da tabela para consulta (seção 2).</td></tr>
+            <tr><td>9h20 &ndash; 9h40</td><td>Café</td><td></td></tr>
+            <tr><td>9h40 &ndash; 10h00</td><td>Etapa 01</td><td>Os quatro passos de Kimball, o grão em uma frase, aditividade e o teste do grão (seção 4).</td></tr>
+            <tr><td>10h00 &ndash; 10h30</td><td>Etapa 02</td><td><code>ReplacingMergeTree</code> e <code>FINAL</code>, parse da telemetria, <code>OrZero</code> e <code>OrNull</code>, carga do histórico (seção 5).</td></tr>
+            <tr><td>10h30 &ndash; 10h50</td><td>Etapa 03</td><td>VIEW comum, view materializada incremental e view materializada refreshable (seção 6).</td></tr>
+            <tr><td>10h50 &ndash; 11h15</td><td>Etapa 04</td><td>Relatório fechado, <code>ASOF JOIN</code>, <code>SYSTEM REFRESH VIEW</code> e o caso do relatório atualizado cedo (seção 7).</td></tr>
+            <tr><td>11h15 &ndash; 11h35</td><td>Etapa 05</td><td>Contadores por minuto em <code>SummingMergeTree</code> e views em janela; os sinais de observabilidade (seção 8).</td></tr>
+            <tr><td>11h35 &ndash; 12h00</td><td>Etapa 06</td><td>O fato de lote a partir dos manifestos, os dois lotes com erro e a reconciliação da telemetria (seção 9).</td></tr>
+            <tr><td>12h00 &ndash; 12h10</td><td>Fechamento</td><td>O que existe às 12h10 e o que fica para a semana (seção 11).</td></tr>
+          </tbody>
+        </table></div>
+        <p>Como na Aula 04, a teoria entra dentro das etapas. O prompt vai para o agente, e o tempo em que ele lê, planeja e escreve é usado para explicar o que o prompt pediu. Cada seção de etapa segue a mesma ordem: objetivo e artefatos, prompt completo, teoria, passos para rodar e o bloco "Revise antes de seguir", com o gate quando houver. Quem perdeu a aula lê as seções na ordem e executa os prompts no próprio Codespace.</p>
+
+        <h3>1.2 O que vem da Aula 04</h3>
+        <p>Seis ideias da Aula 04 são usadas sem nova explicação. A coluna do meio indica onde estão no <a href="../materials/lesson-4-material.html">material da Aula 04</a>.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Ideia</th><th>Onde apareceu</th><th>Como entra hoje</th></tr></thead>
+          <tbody>
+            <tr><td>Tabela de pouso de três colunas, <code>ORDER BY (data_tag, timestamp)</code></td><td>Aula 04, seção 7</td><td>É a origem de todas as views materializadas incrementais do banco <code>dw</code>.</td></tr>
+            <tr><td><code>data_json.caminho::Tipo</code></td><td>Aula 04, seção 13</td><td>É como cada view lê os campos de livros, PTAX e telemetria.</td></tr>
+            <tr><td>Entrega pelo menos uma vez</td><td>Aula 04, seções 6 e 12</td><td>A reentrega gera cópia na tabela de pouso; os fatos usam <code>ReplacingMergeTree</code> para juntá-las.</td></tr>
+            <tr><td>Manifesto por lote, com <code>status</code>, tempos e erro</td><td>Aula 04, seções 7.5 e 16.4</td><td>Vira o fato de lote da Etapa 06, lido do RustFS com <code>s3(lake)</code>.</td></tr>
+            <tr><td>Datas como texto no JSON, com o fuso preservado</td><td>Aula 04, seção 13.3</td><td>As views convertem com <code>parseDateTimeBestEffort</code> e o fuso <code>America/Sao_Paulo</code>.</td></tr>
+            <tr><td>Os dois formatos de linha da telemetria e o ruído</td><td>Aulas 02 e 04</td><td>A view do fato de leitura reconhece o formato barra e o formato espaço; <code>ERR SAT</code> e <code>#RADIO</code> são descarte, e <code>TAC;</code> é alerta.</td></tr>
+          </tbody>
+        </table></div>
+
+        <h3>1.3 O mapa do que se constrói hoje</h3>
+        <p>A figura mostra o banco <code>dw</code> ao fim da aula. À esquerda estão as duas origens: a tabela de pouso, dentro do ClickHouse, e os manifestos, fora dele. Cada caixa do meio é uma tabela comum; as setas são as views que as alimentam, e o tipo de cada view decide quando o dado anda.</p>
+        <div class="diagram">
+          <svg viewBox="0 0 960 420" role="img" aria-labelledby="dw-titulo dw-desc" xmlns="http://www.w3.org/2000/svg" font-family="Inter, Helvetica, Arial, sans-serif" font-size="13" fill="#0f0f0f">
+            <title id="dw-titulo">O banco dw e as views que o alimentam</title>
+            <desc id="dw-desc">A tabela ingestao.db_ingestion alimenta, por cinco views materializadas incrementais, os quatro fatos de negócio e a dim_livro; o fato de leitura alimenta a dim_caminhao em cascata. Duas outras views incrementais alimentam os contadores por minuto. Os manifestos no RustFS são lidos por uma view refreshable a cada minuto e formam o fato de lote. Duas refreshable diárias leem os fatos e publicam os relatórios fechados. Três views comuns em janela leem os contadores e o fato de lote.</desc>
+            <defs>
+              <marker id="seta-dw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 z" fill="#0f0f0f"/>
+              </marker>
+            </defs>
+
+            <rect x="20" y="120" width="180" height="70" fill="#f2f2ee" stroke="#0f0f0f" rx="4"/>
+            <text x="110" y="150" text-anchor="middle" font-weight="700">ingestao.db_ingestion</text>
+            <text x="110" y="170" text-anchor="middle" fill="#5c5c5c" font-size="12">tabela de pouso (Aula 04)</text>
+
+            <rect x="20" y="320" width="180" height="70" fill="#f2f2ee" stroke="#0f0f0f" rx="4"/>
+            <text x="110" y="350" text-anchor="middle" font-weight="700">Manifestos no RustFS</text>
+            <text x="110" y="370" text-anchor="middle" fill="#5c5c5c" font-size="12">lidos com s3(lake)</text>
+
+            <rect x="250" y="30" width="200" height="70" fill="#ffffff" stroke="#0f0f0f" rx="4"/>
+            <text x="350" y="58" text-anchor="middle" font-weight="700">5 MVs incrementais</text>
+            <text x="350" y="78" text-anchor="middle" fill="#5c5c5c" font-size="12">a cada INSERT, sobre o bloco</text>
+
+            <rect x="250" y="200" width="200" height="70" fill="#ffffff" stroke="#0f0f0f" rx="4"/>
+            <text x="350" y="228" text-anchor="middle" font-weight="700">2 MVs incrementais</text>
+            <text x="350" y="248" text-anchor="middle" fill="#5c5c5c" font-size="12">contagem por minuto</text>
+
+            <rect x="250" y="320" width="200" height="70" fill="#ffffff" stroke="#0f0f0f" rx="4"/>
+            <text x="350" y="348" text-anchor="middle" font-weight="700">MV refreshable</text>
+            <text x="350" y="368" text-anchor="middle" fill="#5c5c5c" font-size="12">REFRESH EVERY 1 MINUTE</text>
+
+            <rect x="500" y="30" width="200" height="70" fill="#ffffff" stroke="#0f0f0f" rx="4"/>
+            <text x="600" y="58" text-anchor="middle" font-weight="700">4 fatos e dim_livro</text>
+            <text x="600" y="78" text-anchor="middle" fill="#5c5c5c" font-size="12">ReplacingMergeTree</text>
+
+            <rect x="500" y="118" width="200" height="60" fill="#ffffff" stroke="#0f0f0f" rx="4"/>
+            <text x="600" y="143" text-anchor="middle" font-weight="700">dim_caminhao</text>
+            <text x="600" y="162" text-anchor="middle" fill="#5c5c5c" font-size="12">MV em cascata sobre o fato</text>
+
+            <rect x="500" y="200" width="200" height="70" fill="#ffffff" stroke="#0f0f0f" rx="4"/>
+            <text x="600" y="228" text-anchor="middle" font-weight="700">Contadores por minuto</text>
+            <text x="600" y="248" text-anchor="middle" fill="#5c5c5c" font-size="12">SummingMergeTree</text>
+
+            <rect x="500" y="320" width="200" height="70" fill="#ffffff" stroke="#0f0f0f" rx="4"/>
+            <text x="600" y="348" text-anchor="middle" font-weight="700">fato_lote_ingestao</text>
+            <text x="600" y="368" text-anchor="middle" fill="#5c5c5c" font-size="12">um lote por linha</text>
+
+            <rect x="750" y="30" width="190" height="90" fill="#f2f2ee" stroke="#0f0f0f" rx="4"/>
+            <text x="845" y="58" text-anchor="middle" font-weight="700">2 MVs refreshable</text>
+            <text x="845" y="78" text-anchor="middle" fill="#5c5c5c" font-size="12">todo dia à 01h00</text>
+            <text x="845" y="96" text-anchor="middle" fill="#5c5c5c" font-size="12">relatórios fechados</text>
+
+            <rect x="750" y="220" width="190" height="90" fill="#f2f2ee" stroke="#0f0f0f" rx="4"/>
+            <text x="845" y="248" text-anchor="middle" font-weight="700">3 views comuns</text>
+            <text x="845" y="268" text-anchor="middle" fill="#5c5c5c" font-size="12">janela now() - INTERVAL</text>
+            <text x="845" y="286" text-anchor="middle" fill="#5c5c5c" font-size="12">observabilidade corrente</text>
+
+            <line x1="200" y1="140" x2="248" y2="72" stroke="#0f0f0f" stroke-width="1.5" marker-end="url(#seta-dw)"/>
+            <line x1="200" y1="172" x2="248" y2="230" stroke="#0f0f0f" stroke-width="1.5" marker-end="url(#seta-dw)"/>
+            <line x1="200" y1="355" x2="248" y2="355" stroke="#0f0f0f" stroke-width="1.5" marker-end="url(#seta-dw)"/>
+            <line x1="450" y1="65" x2="498" y2="65" stroke="#0f0f0f" stroke-width="1.5" marker-end="url(#seta-dw)"/>
+            <line x1="600" y1="100" x2="600" y2="116" stroke="#0f0f0f" stroke-width="1.5" marker-end="url(#seta-dw)"/>
+            <line x1="450" y1="235" x2="498" y2="235" stroke="#0f0f0f" stroke-width="1.5" marker-end="url(#seta-dw)"/>
+            <line x1="450" y1="355" x2="498" y2="355" stroke="#0f0f0f" stroke-width="1.5" marker-end="url(#seta-dw)"/>
+            <line x1="700" y1="65" x2="748" y2="70" stroke="#0f0f0f" stroke-width="1.5" marker-end="url(#seta-dw)"/>
+            <line x1="700" y1="235" x2="748" y2="255" stroke="#0f0f0f" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#seta-dw)"/>
+            <line x1="700" y1="350" x2="748" y2="290" stroke="#0f0f0f" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#seta-dw)"/>
+            <text x="724" y="330" font-size="11" fill="#5c5c5c">leitura</text>
+          </svg>
+        </div>
+        <p>As setas cheias levam dado de uma tabela para outra; as tracejadas são leituras de views comuns, que não gravam nada. A <code>dim_data</code>, gerada uma vez com 731 dias desde 01/01/2026, fica fora da figura porque não depende de nenhuma origem. Ao fim da aula, o banco <code>dw</code> tem quatro fatos de negócio, um fato de processo, três dimensões, dois relatórios, dois contadores e 14 views (seção 6.6).</p>
+      </section>
+
+      <section class="content-block" id="s2">
+        <h2>2. Três decisões da Aula 04</h2>
+        <p>A Aula 04 foi uma construção longa, e a discussão das decisões dela não coube no horário. Ela abre esta aula, com as mesmas três questões, porque as três decisões continuam abertas e duas delas voltam nas etapas de hoje. Cada questão traz um cenário do servidor que a turma montou e quatro táticas, cada uma com ganho e custo declarados. Nenhuma alternativa é a correta. O que se registra é a decisão individual, a discussão e a decisão depois dela, e a justificativa de cada uma.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Questão</th><th>O que está em jogo</th><th>O que retoma da Aula 04</th></tr></thead>
+          <tbody>
+            <tr><td>1. Contrato e mudança de payload</td><td>O time da telemetria troca o campo <code>linha</code> por <code>texto</code> e acrescenta <code>firmware</code>. O envelope continua válido, as linhas entram nos três destinos e a consulta que extrai o caminhão recebe texto vazio, sem erro. Que tática o servidor adota para mudança de payload?</td><td>Etapa 02, contrato do envelope (<a href="../materials/lesson-4-material.html#s5">seção 5</a>), e Etapa 04, modelo de dados (<a href="../materials/lesson-4-material.html#s7">seção 7</a>): envelope fechado e payload aberto, schema on read, rejeitados pela fila.</td></tr>
+            <tr><td>2. Ordem dos destinos e falha do ClickHouse</td><td>O ClickHouse cai com a fila cheia. Hoje o flush grava raw, bronze, ClickHouse e manifesto e só então dá o ack. Que ordem de gravação e que regra de ack o servidor adota? Esta questão tem um dado novo, liberado na discussão: um ensaio de queda de 20 minutos.</td><td>Etapa 05, arquitetura e ADRs (<a href="../materials/lesson-4-material.html#s8">seção 8</a>), Etapa 08, consumidor (<a href="../materials/lesson-4-material.html#s11">seção 11</a>), e Etapa 09, teste de queda (<a href="../materials/lesson-4-material.html#s12">seção 12</a>): manifesto como recibo, ack por último, pelo menos uma vez, reentrega.</td></tr>
+            <tr><td>3. Forma da tabela para consulta</td><td>Os analistas escrevem <code>data_json.caminho::Tipo</code> em toda consulta. Até onde tipar a tabela de pouso: uma view por domínio, tipos declarados nos caminhos do JSON, uma view materializada por domínio ou uma tabela por domínio?</td><td>Etapa 04, modelo de dados (<a href="../materials/lesson-4-material.html#s7">seção 7</a>), e Etapa 10, JSON cast (<a href="../materials/lesson-4-material.html#s13">seção 13</a>): tabela de três colunas, tipos inferidos no INSERT, custo medido da leitura do JSON.</td></tr>
+          </tbody>
+        </table></div>
+        <p>Duas questões voltam ao longo da manhã. A questão 3 lista, entre as táticas, uma view materializada por domínio que grava numa tabela tipada. A Etapa 02 constrói algo parecido no banco <code>dw</code>, e os custos que a tática declara (DDL a cada mudança de payload, nenhuma carga do histórico, um erro de conversão que derruba o lote inteiro) aparecem ali como mecanismo, com o tratamento que o laboratório escolheu. A questão 2 volta na Etapa 06, quando o fato de lote mostra dois lotes reais com <code>erro_clickhouse</code> da preparação. A discussão acontece antes dessas etapas, e o que a turma decidir vale como hipótese a conferir nelas.</p>
+
+        <h3>2.1 Como a discussão funciona</h3>
+        <ol class="steps">
+          <li>Leia o caso comum, que descreve o servidor da Aula 04 e os números medidos na preparação dela. O professor abre uma questão por vez.</li>
+          <li>Primeira decisão, individual: escolha uma tática e escreva a justificativa em uma ou duas frases, dizendo que custo você aceita. Sem conversar com o grupo nesta rodada.</li>
+          <li>Discussão: o grupo compara as escolhas, ouve quem escolheu outra tática e, na questão 2, lê o dado novo quando o professor o apresenta.</li>
+          <li>Segunda decisão: decida de novo, podendo manter ou mudar, e diga na justificativa se a escolha anterior sobreviveu à discussão e por quê.</li>
+          <li>Síntese: o professor retoma o que mudou entre a primeira e a segunda decisão e passa para a questão seguinte.</li>
+        </ol>
+        <div class="note">
+          <strong>Registro das decisões como ADRs</strong>
+          <p>Cada grupo registra as três decisões no próprio repositório, em <code>aula_05_dimensional/docs/adr/</code>, continuando a numeração da Aula 04, que parou na ADR-005: ADR-006 para a questão 1, ADR-007 para a questão 2 e ADR-008 para a questão 3. Cada ADR traz o contexto em duas ou três frases, a tática escolhida pelo grupo, as táticas descartadas com o motivo, o custo aceito e, na ADR-007, se o dado novo mudou a decisão. Os números citados vêm do caso ou das medições do grupo; o que não tiver origem fica marcado como hipótese. As ADRs podem ser escritas na semana, mas a decisão e a justificativa são as da sala.</p>
+        </div>
+      </section>
+
+      <section class="content-block" id="s3">
+        <h2>3. Etapa 00 &middot; Subir a pilha com a coleção <code>lake</code></h2>
+        <p>Objetivo: subir a pilha da Aula 04 com duas mudanças no ClickHouse e conferir que a tabela de pouso e os manifestos estão visíveis. Artefatos: <code>docker-compose.yml</code>, <code>clickhouse/lake.xml</code>, <code>clickhouse/lake_acesso.xml</code> e <code>docs/prompts.md</code> na pasta <code>aula_05_dimensional/</code>. Esta etapa é feita com comandos, sem prompt. O roteiro de referência é o <a href="../laboratorio/lesson-5/README.md"><code>laboratorio/README.md</code></a>; se algum comando abaixo divergir dele, vale o roteiro.</p>
+        <p>O compose da Aula 05 é o da Aula 04 com duas mudanças. A primeira monta no ClickHouse a coleção nomeada <code>lake</code>, que guarda a URL dos manifestos no RustFS e diz de onde vêm as chaves. A segunda entrega ao contêiner do ClickHouse as variáveis <code>S3_ACCESS_KEY</code> e <code>S3_SECRET_KEY</code>, que a coleção lê. O nome do projeto continua <code>aula04_ingestao</code>. Por isso o <code>docker compose up -d</code> recria os contêineres da Aula 04 com as mudanças e mantém os volumes: o que a Aula 04 ingeriu continua em <code>ingestao.db_ingestion</code>.</p>
+        <ol class="steps">
+          <li>Abra o Codespace do repositório do grupo e, na raiz, crie a pasta da aula com as subpastas.</li>
+          <li>Copie do laboratório o <code>docker-compose.yml</code>, o <code>.env.example</code>, o <code>AGENTS.md</code>, a pasta <code>clickhouse/</code> e o <code>sql/000_db_ingestion.sql</code>. Os arquivos <code>sql/001</code> a <code>005</code> do laboratório são a referência do professor; o grupo os escreve com o agente, etapa por etapa.</li>
+          <li>Proteja o <code>.env</code> antes de criá-lo e copie o da Aula 04, que já tem as senhas do grupo.</li>
+          <li>Suba os serviços e espere os três de longa duração ficarem saudáveis.</li>
+          <li>Carregue o <code>.env</code> no terminal, defina o atalho <code>CH</code> para o cliente do ClickHouse e confira a tabela de pouso e os manifestos.</li>
+          <li>Abra o registro de prompts e o agente de código de sua preferência na pasta da aula. No Claude Code, o <code>CLAUDE.md</code> importa o <code>AGENTS.md</code>; Codex CLI, Gemini CLI, Cursor e Copilot leem o <code>AGENTS.md</code> diretamente ou aceitam o arquivo colado no contexto.</li>
+        </ol>
+        <pre><code>mkdir -p aula_05_dimensional/{clickhouse,docs/adr,specs,sql}
+git clone --depth 1 https://github.com/afonsolelis/aulas /tmp/aulas
+LAB=/tmp/aulas/pages/data-collection/laboratorio/lesson-5
+cp "$LAB"/{docker-compose.yml,.env.example,AGENTS.md} aula_05_dimensional/
+cp "$LAB"/clickhouse/*.xml aula_05_dimensional/clickhouse/
+cp "$LAB"/sql/000_db_ingestion.sql aula_05_dimensional/sql/
+cd aula_05_dimensional
+printf '.env\n.env.*\n!.env.example\n' &gt;&gt; .gitignore
+cp ../aula_04_ingestao/.env .env      # ou: cp .env.example .env
+git check-ignore .env                 # deve imprimir: .env
+printf '# Registro de prompts\n' &gt; docs/prompts.md
+
+docker compose up -d
+docker compose up -d --wait rustfs rabbitmq clickhouse
+set -a; . ./.env; set +a
+CH="docker compose exec -T clickhouse clickhouse-client --user $CLICKHOUSE_USER --password $CLICKHOUSE_PASSWORD --multiquery"
+$CH -q "SELECT data_tag, count() FROM ingestao.db_ingestion GROUP BY data_tag"
+$CH -q "SELECT count() FROM s3(lake)"     # manifestos que o ClickHouse enxerga no RustFS
+
+echo "@AGENTS.md" &gt; CLAUDE.md          # só no Claude Code</code></pre>
+        <div class="note">
+          <strong>Gate da Etapa 00</strong>
+          <p><code>docker compose ps</code> mostra <code>rustfs</code>, <code>rabbitmq</code> e <code>clickhouse</code> como <code>(healthy)</code>. A contagem por <code>data_tag</code> mostra os três domínios; com a carga completa do zip e sem duplicatas, como na preparação, são <code>livros 1000</code>, <code>ptax 40</code> e <code>telemetria 31265</code> (32.305 linhas). Se o grupo fez o teste de queda da Aula 04, a tabela pode ter linhas a mais, e isso é esperado: a Etapa 02 mostra como o modelo absorve as cópias. O <code>SELECT count() FROM s3(lake)</code> devolve o número de manifestos, um por lote; o do grupo depende de quantas cargas ele fez. Se <code>db_ingestion</code> estiver vazia, suba o servidor de ingestão da Aula 04 e rode <code>python enviar_entrada.py</code> lá: as views das etapas seguintes recebem as linhas enquanto elas chegam.</p>
+        </div>
+
+        <h3>3.1 Enquanto os serviços sobem: a coleção nomeada</h3>
+        <p>A Etapa 06 precisa ler os manifestos, que estão no RustFS, de dentro do ClickHouse. A função de tabela <code>s3</code> faz isso: recebe uma URL, credenciais e um formato e devolve o conteúdo dos objetos como linhas. Escrita à mão, a chamada levaria a chave e o segredo dentro do SQL, e o SQL vai para o Git. A coleção nomeada resolve esse problema. Ela é um bloco de configuração do servidor, com nome, que guarda os parâmetros da conexão; a consulta escreve só <code>s3(lake)</code>.</p>
+        <pre><code>&lt;clickhouse&gt;
+    &lt;named_collections&gt;
+        &lt;lake&gt;
+            &lt;url&gt;http://rustfs:9000/raw/_manifestos/ingestao/*/*.json&lt;/url&gt;
+            &lt;access_key_id from_env="S3_ACCESS_KEY"/&gt;
+            &lt;secret_access_key from_env="S3_SECRET_KEY"/&gt;
+            &lt;format&gt;JSONAsString&lt;/format&gt;
+        &lt;/lake&gt;
+    &lt;/named_collections&gt;
+&lt;/clickhouse&gt;</code></pre>
+        <p>Três detalhes do arquivo <code>clickhouse/lake.xml</code> importam. A URL usa o nome do serviço no compose (<code>rustfs</code>), porque o ClickHouse fala com o RustFS pela rede interna do Docker, e um curinga (<code>*/*.json</code>) que pega os manifestos de todas as pastas <code>data=AAAA-MM-DD</code>. As chaves usam <code>from_env</code>: o servidor lê o valor da variável de ambiente do contêiner na hora de carregar a configuração, e por isso o compose passa <code>S3_ACCESS_KEY</code> e <code>S3_SECRET_KEY</code> ao ClickHouse. O formato <code>JSONAsString</code> devolve cada manifesto inteiro numa coluna de texto chamada <code>json</code>, que a Etapa 06 lê com <code>JSONExtract</code>. O segundo arquivo, <code>clickhouse/lake_acesso.xml</code>, dá ao usuário <code>ingestao</code> a permissão <code>named_collection_control</code>, sem a qual ele não pode usar coleções nomeadas. Os dois arquivos são montados em <code>config.d/</code> e <code>users.d/</code>, as pastas que o ClickHouse lê ao iniciar.</p>
+
+        <div class="note">
+          <strong>Segredos</strong>
+          <p>As credenciais ficam só no <code>.env</code>, que não é versionado, e chegam ao ClickHouse pelo ambiente do contêiner. Nenhuma chave aparece em SQL, em prompt, em <code>docs/prompts.md</code> ou em captura de tela. O <code>AGENTS.md</code> proíbe o agente de ler ou imprimir o <code>.env</code>; ele usa os nomes das variáveis.</p>
+        </div>
+
+        <h3>3.2 Pontos-chave</h3>
+        <ul>
+          <li>O compose da Aula 05 usa o nome de projeto da Aula 04, e os volumes, com a tabela de pouso, são os mesmos.</li>
+          <li>A coleção nomeada <code>lake</code> guarda URL, formato e a origem das chaves; a consulta escreve <code>s3(lake)</code> e as chaves vêm do ambiente.</li>
+          <li>Linhas a mais na tabela de pouso, vindas de reentregas da Aula 04, não são erro de carga: o modelo precisa saber lidar com elas.</li>
+        </ul>
+      </section>
+
+      <section class="content-block" id="s4">
+        <h2>4. Etapa 01 &middot; O grão de cada fato</h2>
+        <p>Objetivo: declarar, antes de qualquer DDL, o processo de negócio, o grão, as dimensões e as medidas de cada fato, e dizer como cada medida pode ser agregada. Artefato: <code>specs/04_modelo_dimensional.md</code>. O <code>AGENTS.md</code> proíbe DDL antes de esse arquivo existir com o grão de cada fato em uma frase.</p>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é engenheiro de dados que modela no estilo de Kimball. Declara o
+grão antes de qualquer coluna e não escreve DDL nesta etapa.
+
+[R] Pedido
+Crie specs/04_modelo_dimensional.md a partir de ingestao.db_ingestion
+(livros, ptax e telemetria) e dos manifestos de lote da Aula 04:
+1. Para cada processo de negócio: o fato, o grão em uma frase
+   ("uma linha é ..."), a chave do grão, as dimensões e as medidas.
+2. Para cada medida: aditiva, semiaditiva ou não aditiva, e a
+   agregação que vale (soma, média, mínimo, máximo ou último valor).
+3. As dimensões dim_data (gerada, chave AAAAMMDD), dim_livro e
+   dim_caminhao, com o grão e o tipo de SCD de cada uma.
+4. O teste do grão de cada fato: com FINAL, count() igual a
+   uniqExact(chave do grão).
+5. Um diagrama Mermaid da estrela.
+
+[E] Exemplos
+| fato | grão: uma linha é... | chave | medidas |
+| fato_preco_livro | um livro num dia de coleta | data_key, upc |
+  preco_gbp (não aditiva), qtd_estoque (semiaditiva) |
+A linha TAC;CAM-3126;20261029T180000;DIRECAO CONTINUA 05:35;ALERTA é
+um alerta de direção contínua, um evento diferente da leitura de posição.
+
+[A] Ajustes
+- Cinco fatos: preço de livro, cotação PTAX, leitura de telemetria,
+  alerta de direção e lote de ingestão (um manifesto).
+- tipo_boletim da PTAX é dimensão degenerada: fica no fato.
+- Leitura de posição e alerta do tacógrafo vêm do mesmo arquivo, mas
+  ficam em fatos separados.
+- Linhas ERR SAT e #RADIO não viram fato: são descarte.
+- Nada de DDL. Número sem consulta que o gere: "hipótese".
+
+[T] Tipo de saída
+Markdown com até 120 linhas: tabela dos fatos, tabela das medidas com
+a aditividade, dimensões, teste do grão e o diagrama.
+
+[E] Extras
+Leia AGENTS.md. Consulte db_ingestion só com SELECT. Mostre o plano,
+espere meu ok, escreva, registre o prompt em docs/prompts.md e pare.</code></pre>
+
+        <h3>4.1 Enquanto o agente trabalha: os quatro passos e o lugar do grão</h3>
+        <p>A modelagem dimensional, na forma que Ralph Kimball e Margy Ross sistematizaram, organiza o dado analítico em fatos e dimensões. O fato registra um evento ou uma medição do negócio e guarda as medidas numéricas; a dimensão guarda o contexto pelo qual o fato é filtrado e agrupado (quando, o quê, quem, onde). O desenho segue quatro passos, nesta ordem: escolher o processo de negócio, declarar o grão, identificar as dimensões e identificar os fatos, isto é, as medidas. A ordem importa porque cada passo restringe o seguinte. O processo diz de que evento se fala; o grão diz o que uma linha representa; só então faz sentido perguntar que contexto descreve essa linha e que números ela carrega.</p>
+        <p>O grão é a frase que completa "uma linha é...". Para o preço dos livros, uma linha é um livro num dia de coleta. Para a PTAX, uma linha é um boletim, identificado pela moeda, pelo instante e pelo tipo de boletim. Para a telemetria, uma linha é uma leitura de posição de um caminhão num instante. A frase parece óbvia, e é por isso que costuma ser pulada. Sem ela, o agente escolhe colunas pelo que existe no JSON, e o significado da linha passa a depender da carga: se o mesmo livro for coletado duas vezes no mesmo dia, a tabela terá uma linha ou duas? A resposta está no grão declarado, e a chave do grão (<code>data_key</code> e <code>upc</code>) é a forma verificável dessa frase. Uma coleta repetida no mesmo dia fica com a versão mais recente, porque o grão admite uma linha por livro e dia.</p>
+        <p>A telemetria mostra o erro clássico de misturar grãos. O arquivo de cada caminhão traz, misturadas, leituras de posição (<code>CAM-0451|29/10/26 06:00:55|...</code> ou <code>CAM-0451 29-10-2026 06:05:55 GPS ...</code>), alertas do tacógrafo (<code>TAC;CAM-3126;20261029T180000;DIRECAO CONTINUA 05:35;ALERTA</code>) e ruído (<code>ERR SAT</code>, <code>#RADIO</code>). Leitura e alerta vêm da mesma fonte, mas são eventos diferentes: a leitura mede posição e velocidade num instante; o alerta mede quanto tempo o motorista está ao volante sem pausa. Uma tabela única teria colunas vazias em metade das linhas e médias erradas na outra metade. Por isso o modelo tem dois fatos, <code>fato_leitura_telemetria</code> e <code>fato_alerta_direcao</code>, que compartilham a dimensão de caminhão e a de data. O alerta <code>DIRECAO CONTINUA 05:35</code> vira <code>direcao_continua_min</code> = 5 &times; 60 + 35 = 335 minutos.</p>
+
+        <h3>4.2 Os cinco fatos do laboratório</h3>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Fato</th><th>Processo</th><th>Grão: uma linha é...</th><th>Chave do grão</th><th>Medidas</th></tr></thead>
+          <tbody>
+            <tr><td><code>fato_preco_livro</code></td><td>coleta de preço</td><td>um livro num dia de coleta</td><td><code>data_key</code>, <code>upc</code></td><td><code>preco_gbp</code> (não aditiva), <code>qtd_estoque</code> (semiaditiva), <code>em_estoque</code></td></tr>
+            <tr><td><code>fato_cotacao_ptax</code></td><td>boletim do BCB</td><td>um boletim PTAX</td><td><code>moeda</code>, <code>data_hora</code>, <code>tipo_boletim</code></td><td><code>cotacao_compra</code>, <code>cotacao_venda</code> (não aditivas)</td></tr>
+            <tr><td><code>fato_leitura_telemetria</code></td><td>posição do caminhão</td><td>uma leitura de um caminhão num instante</td><td><code>caminhao</code>, <code>instante</code></td><td><code>latitude</code>, <code>longitude</code>, <code>velocidade_kmh</code> (não aditiva), <code>formato</code> (barra ou espaço), contagem de leituras</td></tr>
+            <tr><td><code>fato_alerta_direcao</code></td><td>alerta do tacógrafo</td><td>um alerta de direção contínua de um caminhão num instante</td><td><code>caminhao</code>, <code>instante</code></td><td><code>direcao_continua_min</code> (não aditiva)</td></tr>
+            <tr><td><code>fato_lote_ingestao</code></td><td>flush do servidor</td><td>um lote gravado pelo servidor (um manifesto)</td><td><code>lote</code></td><td><code>status</code>, <code>mensagens</code>, <code>linhas</code>, <code>espera_ms</code>, <code>flush_ms</code>, <code>raw_ms</code>, <code>bronze_ms</code>, <code>clickhouse_ms</code>, <code>erro</code></td></tr>
+          </tbody>
+        </table></div>
+        <p>O <code>tipo_boletim</code> da PTAX (Abertura, Intermediário, Fechamento) é uma dimensão degenerada: ele qualifica o fato e entra na chave do grão, mas não tem atributos próprios que justifiquem uma tabela. Fica no fato, como coluna.</p>
+
+        <h3>4.3 Aditividade: o que pode ser somado</h3>
+        <p>A segunda pergunta sobre cada medida é como ela se agrega. Uma medida aditiva soma em qualquer dimensão: a contagem de leituras soma entre caminhões e entre dias. Uma medida semiaditiva soma em algumas dimensões e não em outras. O estoque é o exemplo do laboratório: somar <code>qtd_estoque</code> entre livros num dia dá o estoque total daquele dia, mas somar o mesmo livro em dois dias conta os mesmos exemplares duas vezes. Entre dias, o estoque pede o último valor ou a média. Uma medida não aditiva nunca soma: preço, cotação e velocidade só fazem sentido como média, mínimo, máximo ou último valor. O <code>AGENTS.md</code> traz essa regra porque o erro é silencioso: <code>sum(preco_gbp)</code> roda sem erro e devolve um número que não significa nada.</p>
+        <p>A classificação também diz o que o relatório pode pré-calcular. Uma média por categoria e dia, como a da Etapa 04, não se obtém somando médias de pedaços do dia; ela precisa de todas as linhas do dia de uma vez, ou da soma e da contagem guardadas separadamente. Essa propriedade decide, na Etapa 03, por que o relatório usa uma view refreshable e o contador de linhas usa uma incremental.</p>
+
+        <h3>4.4 As dimensões</h3>
+        <p>Três dimensões servem aos fatos. A <code>dim_data</code> é gerada, não vem da fonte: 731 dias a partir de 01/01/2026, com chave <code>AAAAMMDD</code> (<code>20261030</code>), nome do dia e indicação de fim de semana. Gerar a dimensão garante que um dia sem coleta exista na tabela, o que permite mostrar a ausência. A <code>dim_livro</code> tem grão de um livro (<code>upc</code>) e é SCD tipo 1: quando título, categoria ou avaliação mudam, fica a versão mais recente e o histórico se perde, o que basta para esta aula. A <code>dim_caminhao</code> tem grão de um caminhão e guarda só a chave, a primeira e a última leitura. Ela não vem de um cadastro; é derivada do próprio fato de leitura, por uma view em cascata (seção 5.4).</p>
+
+        <h3>4.5 O teste do grão</h3>
+        <p>Um grão declarado é uma afirmação que se pode testar: se uma linha é um livro num dia, o número de linhas tem de ser igual ao número de pares distintos (<code>data_key</code>, <code>upc</code>). Se for maior, a tabela tem duas linhas para o mesmo fato, e o grão declarado está errado ou a carga duplicou. O teste é a consulta 1 do <code>sql/005_consultas.sql</code>, que compara <code>count()</code> com e sem <code>FINAL</code> com <code>uniqExact</code> da chave. A tabela mostra o resultado da preparação, depois da carga completa.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Fato</th><th>Linhas com <code>FINAL</code></th><th>Chaves do grão</th></tr></thead>
+          <tbody>
+            <tr><td><code>fato_preco_livro</code></td><td>1.000</td><td>1.000</td></tr>
+            <tr><td><code>fato_cotacao_ptax</code></td><td>40</td><td>40</td></tr>
+            <tr><td><code>fato_leitura_telemetria</code></td><td>28.800</td><td>28.800</td></tr>
+            <tr><td><code>fato_alerta_direcao</code></td><td>69</td><td>69</td></tr>
+          </tbody>
+        </table></div>
+        <p>Medido na preparação, 31/10/2026. As 28.800 leituras são de 20 caminhões num dia (29/10/2026), em média 1.440 por caminhão, uma por minuto em 24 horas; o CAM-0451, conferido no relatório da Etapa 04, tem exatamente 1.440.</p>
+        <p>Um exemplo mostra o custo de misturar grãos. Suponha que os alertas entrassem na tabela de leituras, com velocidade 0 porque a linha <code>TAC;</code> não traz velocidade. Um caminhão com 1.440 leituras e média de 72,2 km/h (os números do CAM-0451) que tivesse 12 alertas (o número do CAM-5707) passaria a ter média de 72,2 &times; 1.440 / 1.452 = 71,6 km/h. A conta combina números de dois caminhões e é hipotética, mas o mecanismo é o real: linhas de outro evento entram no denominador e deslocam a medida sem nenhum erro aparente.</p>
+
+        <h3>4.6 Pausa para reflexão</h3>
+        <p>O fato de lote tem grão de um lote, e um lote pode misturar livros, PTAX e telemetria. Se a pergunta for "quantas linhas de telemetria entraram por minuto", o fato de lote responde? O que o grão dele permite e o que ele impede, e por que a Etapa 05 cria um contador separado por minuto e <code>data_tag</code>?</p>
+
+        <h3>4.7 Pontos-chave</h3>
+        <ul>
+          <li>Os quatro passos: processo de negócio, grão, dimensões, medidas. O grão vem antes de qualquer coluna.</li>
+          <li>O grão é uma frase ("uma linha é...") e uma chave; o teste do grão compara <code>count()</code> com <code>FINAL</code> e <code>uniqExact</code> da chave.</li>
+          <li>Eventos diferentes vindos da mesma fonte ficam em fatos diferentes: leitura de posição e alerta de direção.</li>
+          <li>Aditiva soma sempre; semiaditiva soma em algumas dimensões (estoque entre livros); não aditiva nunca soma (preço, cotação, velocidade).</li>
+        </ul>
+
+        <h3>4.8 Para saber mais</h3>
+        <ul>
+          <li>Kimball, R.; Ross, M. The Data Warehouse Toolkit: The Definitive Guide to Dimensional Modeling. 3. ed. Wiley, 2013, capítulos 1 a 3 (os quatro passos, o grão, fatos aditivos, semiaditivos e não aditivos).</li>
+          <li>Kimball Group. <a href="https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/" target="_blank" rel="noopener noreferrer">Dimensional Modeling Techniques</a>: verbetes curtos sobre grão, dimensão degenerada e SCD.</li>
+        </ul>
+        <div class="note">
+          <strong>Revise antes de seguir</strong>
+          <p>Cada um dos cinco fatos tem o grão em uma frase e a chave do grão? A leitura de posição e o alerta estão em fatos separados? Cada medida diz se é aditiva, semiaditiva ou não aditiva, e o preço não aparece com soma? O <code>tipo_boletim</code> está no fato? O teste do grão está escrito para cada fato? Algum número aparece sem a consulta que o gerou?</p>
+        </div>
+      </section>
+
+      <section class="content-block" id="s5">
+        <h2>5. Etapa 02 &middot; Dimensões, fatos e views materializadas incrementais</h2>
+        <p>Objetivo: criar o banco <code>dw</code> com as três dimensões, os quatro fatos de negócio e as views materializadas que os alimentam a cada <code>INSERT</code> na tabela de pouso, e carregar o que já estava nela. Artefatos: <code>sql/001_dimensoes_e_fatos.sql</code>, <code>sql/002_carga_historico.sql</code> e as consultas 1 e 2 de <code>sql/005_consultas.sql</code>, que o grupo completa na Etapa 06.</p>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é engenheiro de dados que escreve DDL para ClickHouse 26.8. Segue
+specs/04_modelo_dimensional.md sem mudar grão nem chave.
+
+[R] Pedido
+1. sql/001_dimensoes_e_fatos.sql: banco dw; dim_data gerada (731 dias
+   desde 2026-01-01, roda uma vez só); dim_livro; dim_caminhao;
+   fato_preco_livro, fato_cotacao_ptax, fato_leitura_telemetria e
+   fato_alerta_direcao; uma view materializada incremental
+   dw.mv_* ... TO dw.tabela para dim_livro e para cada fato, lendo
+   ingestao.db_ingestion; e mv_dim_caminhao, em cascata, lendo
+   dw.fato_leitura_telemetria.
+2. sql/002_carga_historico.sql: INSERT ... SELECT com o mesmo SELECT
+   de cada view, para as linhas que já estavam em db_ingestion.
+3. sql/005_consultas.sql com duas consultas: 1, o teste do grão (sem
+   FINAL, com FINAL e uniqExact da chave, por fato); 2, para onde foi
+   cada linha de telemetria (leitura barra, leitura espaço, alerta,
+   descarte por motivo).
+
+[E] Exemplos
+Formato barra:  CAM-0451|29/10/26 06:00:55|-23.6965,-46.7802|VEL 083|...
+Formato espaço: CAM-0451 29-10-2026 06:05:55 GPS -23.6527 -46.7452 v=86
+Alerta:         TAC;CAM-3126;20261029T180000;DIRECAO CONTINUA 05:35;ALERTA
+                (05:35 vira 335 minutos)
+
+[A] Ajustes
+- Fatos e dim_livro em ReplacingMergeTree(versao_ms), com
+  versao_ms = timestamp da tabela de pouso; ORDER BY = chave do grão.
+- dim_caminhao em AggregatingMergeTree, com
+  SimpleAggregateFunction(min/max) para a primeira e a última leitura.
+- Campos lidos com data_json.caminho::Tipo; conversões dentro das views
+  com OrZero ou OrNull; datas em America/Sao_Paulo.
+- ERR SAT e #RADIO não entram em nenhum fato.
+- Crie as views antes de rodar a carga do histórico. O 002 precisa
+  poder rodar duas vezes sem mudar o resultado lido com FINAL.
+- Nenhum comando sobre db_ingestion que não seja SELECT.
+
+[T] Tipo de saída
+Três arquivos SQL comentados, com IF NOT EXISTS, e a saída das
+consultas 1 e 2.
+
+[E] Extras
+Leia AGENTS.md e specs/04_modelo_dimensional.md. Mostre o plano, espere
+meu ok, escreva, rode, registre o prompt e pare.</code></pre>
+
+        <h3>5.1 Enquanto o agente trabalha: por que <code>ReplacingMergeTree</code> e por que <code>FINAL</code></h3>
+        <p>A Aula 04 escolheu entregar pelo menos uma vez: a mensagem só sai da fila depois do ack, e uma queda entre a gravação e o ack faz o lote ser gravado de novo. Na tabela de pouso, a cópia é uma linha nova, com outro <code>timestamp</code>. Se o fato fosse um <code>MergeTree</code> comum, a cópia viraria uma segunda linha para o mesmo livro no mesmo dia, e o teste do grão falharia. O <code>ReplacingMergeTree(versao_ms)</code> resolve isso dentro do ClickHouse. Ele é um <code>MergeTree</code> que, ao juntar partes no disco (o merge), mantém uma só linha para cada valor da chave de ordenação, a de maior <code>versao_ms</code>. Por isso o <code>ORDER BY</code> de cada fato é a chave do grão, e <code>versao_ms</code> recebe o <code>timestamp</code> da tabela de pouso: entre duas cópias do mesmo fato, vence a que chegou por último.</p>
+        <pre><code>CREATE TABLE IF NOT EXISTS dw.fato_preco_livro
+(
+    data_key     UInt32,
+    upc          String,
+    preco_gbp    Decimal(10, 2),
+    qtd_estoque  UInt32,
+    em_estoque   Bool,
+    coletado_em  DateTime('America/Sao_Paulo'),
+    versao_ms    UInt64
+)
+ENGINE = ReplacingMergeTree(versao_ms)    -- reentrega e nova coleta no mesmo dia: fica a mais recente
+ORDER BY (data_key, upc);</code></pre>
+        <p>O merge acontece em segundo plano, quando o ClickHouse decide, e não há garantia de quando termina. Entre a chegada da cópia e o merge, as duas linhas existem. A leitura que precisa do resultado deduplicado usa <code>FINAL</code>, que faz o ClickHouse aplicar a regra de substituição na hora da consulta, ao custo de mais trabalho na leitura. O <code>AGENTS.md</code> manda ler fatos e dimensões com <code>FINAL</code>. A preparação mediu o efeito rodando a carga do histórico duas vezes: o <code>fato_preco_livro</code> ficou com 2.000 linhas sem <code>FINAL</code> e 1.000 com <code>FINAL</code>, e o <code>fato_cotacao_ptax</code> com 80 e 40 (medido na preparação, 31/10/2026). As 1.000 cópias são as linhas que o merge ainda não tinha juntado; o <code>FINAL</code> devolve o número da chave do grão.</p>
+
+        <h3>5.2 A view materializada incremental e o parse da telemetria</h3>
+        <p>Cada fato tem uma view materializada <code>dw.mv_*</code> que lê <code>ingestao.db_ingestion</code> e grava no fato (<code>TO dw.fato_...</code>). A seção 6.2 explica o mecanismo em detalhe; aqui basta saber que, a cada bloco inserido na tabela de pouso, o ClickHouse roda o SELECT da view sobre esse bloco e insere o resultado no destino. A view do preço de livro é direta, porque o JSON do livro já tem um campo por medida:</p>
+        <pre><code>CREATE MATERIALIZED VIEW IF NOT EXISTS dw.mv_fato_preco_livro TO dw.fato_preco_livro AS
+SELECT toYYYYMMDD(coletado_em)                                  AS data_key,
+       data_json.upc::String                                    AS upc,
+       toDecimal64OrZero(data_json.preco_gbp::String, 2)        AS preco_gbp,
+       toUInt32OrZero(data_json.qtd_estoque::String)            AS qtd_estoque,
+       data_json.em_estoque::String = 'true'                    AS em_estoque,
+       parseDateTimeBestEffort(data_json.coletado_em::String, 'America/Sao_Paulo') AS coletado_em,
+       timestamp                                                AS versao_ms
+FROM ingestao.db_ingestion
+WHERE data_tag = 'livros' AND data_json.upc::String != '';</code></pre>
+        <p>A telemetria pede mais trabalho, porque a medida está dentro de uma linha de texto que chega em dois formatos. A view reconhece o formato com <code>match</code>, extrai instante, coordenadas e velocidade com <code>extract</code> e uma expressão regular por formato, e descarta o que não é leitura no <code>WHERE</code>:</p>
+        <pre><code>CREATE MATERIALIZED VIEW IF NOT EXISTS dw.mv_fato_leitura_telemetria TO dw.fato_leitura_telemetria AS
+WITH data_json.linha::String AS linha,
+     match(linha, '^CAM-[0-9]{4}\\|')                AS barra,
+     match(linha, '^CAM-[0-9]{4} [0-9]{2}-[0-9]{2}-') AS espaco,
+     if(barra,
+        parseDateTimeOrNull(extract(linha, '\\|([0-9/]+ [0-9:]+)\\|'), '%d/%m/%y %H:%i:%s', 'America/Sao_Paulo'),
+        parseDateTimeOrNull(extract(linha, ' ([0-9-]+ [0-9:]+) GPS'), '%d-%m-%Y %H:%i:%s', 'America/Sao_Paulo')) AS inst
+SELECT toYYYYMMDD(assumeNotNull(inst))                         AS data_key,
+       substring(linha, 1, 8)                                   AS caminhao,
+       assumeNotNull(inst)                                      AS instante,
+       toFloat64OrZero(if(barra, extract(linha, '\\|(-?[0-9.]+),'), extract(linha, 'GPS (-?[0-9.]+) '))) AS latitude,
+       toFloat64OrZero(if(barra, extract(linha, ',(-?[0-9.]+)\\|'), extract(linha, 'GPS -?[0-9.]+ (-?[0-9.]+)'))) AS longitude,
+       toUInt16OrZero(if(barra, extract(linha, 'VEL ([0-9]+)'), extract(linha, 'v=([0-9]+)'))) AS velocidade_kmh,
+       if(barra, 'barra', 'espaco')                             AS formato,
+       data_json.arquivo::String                                AS arquivo,
+       toUInt32OrZero(data_json.numero_linha::String)           AS numero_linha,
+       timestamp                                                AS versao_ms
+FROM ingestao.db_ingestion
+WHERE data_tag = 'telemetria' AND (barra OR espaco) AND inst IS NOT NULL;</code></pre>
+        <p>As funções com sufixo <code>OrZero</code> e <code>OrNull</code> estão ali por um motivo operacional. Dentro de uma view materializada, um erro de conversão não fica na view: o <code>INSERT</code> na tabela de pouso falha inteiro, com todas as linhas do bloco, inclusive as de livros e PTAX que vieram no mesmo lote. Na Aula 04, um <code>INSERT</code> que falha leva o consumidor a gravar o manifesto com <code>erro_clickhouse</code>, não dar ack e receber o lote de novo; se a linha ruim continua no lote, o ciclo se repete a cada tentativa, como no dado novo da questão 2 da discussão. Com <code>toUInt16OrZero</code>, uma velocidade ilegível vira 0 e o lote passa; com <code>parseDateTimeOrNull</code>, um instante ilegível vira <code>NULL</code> e a linha é filtrada pelo <code>inst IS NOT NULL</code>. O preço dessa escolha é que o dado ruim passa calado, e por isso a Etapa 05 conta os descartes. Cada linha do fato guarda também <code>arquivo</code> e <code>numero_linha</code>, o que permite voltar da leitura ao TXT de origem.</p>
+
+        <h3>5.3 A view não vê o histórico: a carga do <code>002</code></h3>
+        <p>A view materializada incremental só vê os blocos inseridos depois de existir. As 32.305 linhas que a Aula 04 deixou em <code>db_ingestion</code> nunca passaram por ela. O <code>sql/002_carga_historico.sql</code> resolve isso com um <code>INSERT ... SELECT</code> por destino, usando o mesmo SELECT da view, copiado sem mudança:</p>
+        <pre><code>-- mesmo SELECT de dw.mv_fato_cotacao_ptax
+INSERT INTO dw.fato_cotacao_ptax
+SELECT toYYYYMMDD(data_hora)                                    AS data_key,
+       data_json.moeda::String                                  AS moeda,
+       parseDateTime64BestEffort(data_json.dataHoraCotacao::String, 3, 'America/Sao_Paulo') AS data_hora,
+       data_json.tipoBoletim::String                            AS tipo_boletim,
+       toDecimal64OrZero(data_json.cotacaoCompra::String, 5)    AS cotacao_compra,
+       toDecimal64OrZero(data_json.cotacaoVenda::String, 5)     AS cotacao_venda,
+       timestamp                                                AS versao_ms
+FROM ingestao.db_ingestion
+WHERE data_tag = 'ptax';</code></pre>
+        <p>A ordem entre criar a view e carregar o histórico tem consequência. Se a carga viesse antes, as linhas que chegassem entre a carga e a criação da view não entrariam em lugar nenhum. Com a view criada primeiro, essas linhas entram duas vezes, pela view e pela carga, e o <code>ReplacingMergeTree</code> junta as cópias pela chave do grão. Pelo mesmo motivo, o <code>002</code> pode rodar mais de uma vez sem mudar o resultado lido com <code>FINAL</code>, como mostrou a medição de 2.000 e 1.000 linhas. A carga idempotente depende de dois fatos: o destino deduplica pela chave do grão, e o SELECT é determinístico sobre a mesma origem.</p>
+
+        <h3>5.4 A dimensão de caminhão em cascata</h3>
+        <p>Não existe cadastro de caminhões. A <code>dim_caminhao</code> sai do fato de leitura, por uma view materializada cuja origem é o próprio fato:</p>
+        <pre><code>CREATE MATERIALIZED VIEW IF NOT EXISTS dw.mv_dim_caminhao TO dw.dim_caminhao AS
+SELECT caminhao, min(instante) AS primeira_leitura, max(instante) AS ultima_leitura
+FROM dw.fato_leitura_telemetria
+GROUP BY caminhao;</code></pre>
+        <p>Isso funciona porque o <code>INSERT</code> que a view do fato faz em <code>fato_leitura_telemetria</code> é, ele mesmo, um <code>INSERT</code>, e dispara as views que leem o fato. Um bloco que chega na tabela de pouso percorre a cadeia inteira: vira leituras no fato e, em seguida, mínimo e máximo por caminhão na dimensão. O <code>min</code> e o <code>max</code> são calculados sobre o bloco, e não sobre o histórico, e por isso a dimensão é um <code>AggregatingMergeTree</code> com <code>SimpleAggregateFunction(min, ...)</code> e <code>SimpleAggregateFunction(max, ...)</code>: o merge combina os mínimos e máximos parciais de cada bloco no mínimo e no máximo de todos. Antes do merge, a dimensão pode ter várias linhas por caminhão; a leitura usa <code>FINAL</code> ou agrega de novo. Na preparação, a <code>dim_caminhao</code> terminou com 20 caminhões, a <code>dim_livro</code> com 1.000 livros e a <code>dim_data</code> com 731 dias (medido na preparação, 31/10/2026).</p>
+
+        <h3>5.5 Exemplo numérico: para onde foi cada linha da telemetria</h3>
+        <p>A consulta 2 do <code>005</code> classifica cada linha de telemetria da tabela de pouso pelo destino que ela teve no modelo. É a reconciliação da entrada: tudo o que entrou tem de aparecer num fato ou num motivo de descarte.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Destino</th><th>Linhas</th></tr></thead>
+          <tbody>
+            <tr><td>leitura, formato barra</td><td>22.432</td></tr>
+            <tr><td>leitura, formato espaço</td><td>6.368</td></tr>
+            <tr><td>descarte <code>#RADIO</code></td><td>1.464</td></tr>
+            <tr><td>descarte <code>ERR SAT</code></td><td>932</td></tr>
+            <tr><td>alerta de direção</td><td>69</td></tr>
+            <tr><td>total</td><td>31.265</td></tr>
+          </tbody>
+        </table></div>
+        <p>Medido na preparação, 31/10/2026, com a carga completa. A conta fecha: 22.432 + 6.368 = 28.800 leituras, o mesmo número do teste do grão do fato de leitura; os 69 alertas são os 69 do fato de alerta; e 1.464 + 932 = 2.396 linhas foram descartadas, as mesmas "linhas sem caminhão" do caso da discussão. As leituras no formato espaço são 6.368 / 28.800 = 22,1% do total. Se a soma dos destinos não desse 31.265, alguma linha teria sido classificada em dois destinos, ou em nenhum, e o parse precisaria de revisão antes de qualquer relatório.</p>
+
+        <h3>5.6 Passos para rodar</h3>
+        <ol class="steps">
+          <li>Com o plano aprovado e os arquivos escritos, rode o DDL e a carga do histórico, nesta ordem.</li>
+          <li>Rode as consultas de conferência e compare com as tabelas das seções 4.5 e 5.5.</li>
+          <li>Rode a carga do histórico uma segunda vez, de propósito, e rode as consultas de novo: as colunas sem <code>FINAL</code> crescem até o merge acontecer; as colunas com <code>FINAL</code> e as chaves do grão não mudam.</li>
+          <li>Registre a saída e o comando no <code>docs/prompts.md</code>, junto com o prompt, e faça o commit da etapa.</li>
+        </ol>
+        <pre><code>$CH &lt; sql/001_dimensoes_e_fatos.sql
+$CH &lt; sql/002_carga_historico.sql
+$CH &lt; sql/005_consultas.sql           # nesta etapa, consultas 1 e 2
+
+$CH &lt; sql/002_carga_historico.sql     # segunda vez, de propósito
+$CH &lt; sql/005_consultas.sql</code></pre>
+
+        <h3>5.7 Pausa para reflexão</h3>
+        <p>O <code>OrZero</code> evita que uma velocidade ilegível derrube o lote, mas grava 0 km/h no fato. Para a média de velocidade, isso equivale ao problema da seção 4.5. Que alternativa preserva o lote e não contamina a média? Pense em <code>OrNull</code> com uma coluna <code>Nullable</code>, num filtro no <code>WHERE</code> e num contador de descarte, e no que cada uma muda para quem lê.</p>
+
+        <h3>5.8 Pontos-chave</h3>
+        <ul>
+          <li><code>ReplacingMergeTree(versao_ms)</code> com <code>ORDER BY</code> igual à chave do grão absorve as cópias da entrega pelo menos uma vez; a deduplicação acontece no merge, e a leitura usa <code>FINAL</code>.</li>
+          <li>Um erro de conversão numa view materializada derruba o <code>INSERT</code> do lote inteiro na origem; dentro da view, use <code>OrZero</code> e <code>OrNull</code>.</li>
+          <li>A view não vê o histórico: a carga usa o mesmo SELECT, depois de criar a view, e pode ser repetida.</li>
+          <li>A reconciliação da telemetria fecha: 28.800 leituras, 69 alertas e 2.396 descartes somam as 31.265 linhas de entrada.</li>
+        </ul>
+
+        <h3>5.9 Para saber mais</h3>
+        <ul>
+          <li>ClickHouse. <a href="https://clickhouse.com/docs/engines/table-engines/mergetree-family/replacingmergetree" target="_blank" rel="noopener noreferrer">ReplacingMergeTree</a>: a coluna de versão, o momento do merge e o <code>FINAL</code>.</li>
+          <li>ClickHouse. <a href="https://clickhouse.com/docs/engines/table-engines/mergetree-family/aggregatingmergetree" target="_blank" rel="noopener noreferrer">AggregatingMergeTree</a> e <a href="https://clickhouse.com/docs/sql-reference/data-types/simpleaggregatefunction" target="_blank" rel="noopener noreferrer">SimpleAggregateFunction</a>.</li>
+          <li>ClickHouse. <a href="https://clickhouse.com/docs/sql-reference/functions/type-conversion-functions" target="_blank" rel="noopener noreferrer">Funções de conversão de tipo</a>: as variantes <code>OrZero</code>, <code>OrNull</code> e <code>OrDefault</code>.</li>
+        </ul>
+        <div class="note">
+          <strong>Revise antes de seguir</strong>
+          <p>O <code>ORDER BY</code> de cada fato é a chave do grão declarada na Etapa 01? Toda conversão dentro de view usa <code>OrZero</code> ou <code>OrNull</code>? As views foram criadas antes da carga do histórico? O <code>002</code> usa exatamente o mesmo SELECT de cada view? Gate: na consulta 1, as linhas com <code>FINAL</code> são iguais às chaves do grão nos quatro fatos (1.000, 40, 28.800 e 69 com a carga completa); na consulta 2, a soma dos destinos é igual ao total de telemetria da tabela de pouso; depois da segunda carga, as colunas com <code>FINAL</code> não mudam.</p>
+        </div>
+      </section>
+
+      <section class="content-block" id="s6">
+        <h2>6. Etapa 03 &middot; O que é uma view e como ela funciona no ClickHouse</h2>
+        <p>Objetivo: entender os três objetos que o ClickHouse chama de view, o que cada um guarda, quando o SELECT dele roda e sobre que dados, e registrar isso no repositório. Artefato: <code>docs/views.md</code>. Esta etapa não cria objeto no banco; ela explica os que a Etapa 02 criou e os que as Etapas 04 a 06 vão criar.</p>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é engenheiro de dados que documenta para o time como cada objeto
+do banco dw funciona. Explica mecanismo e consequência.
+
+[R] Pedido
+Crie docs/views.md com:
+1. Os três objetos do ClickHouse usados no projeto: VIEW, MATERIALIZED
+   VIEW ... TO (incremental) e MATERIALIZED VIEW ... REFRESH
+   (refreshable). Para cada um: o que guarda, quando o SELECT roda,
+   sobre que dados, quão atual é o resultado e quando se paga o custo.
+2. Um quadro comparativo com essas cinco perguntas nas colunas.
+3. As consequências da incremental: não vê o histórico; não vê UPDATE,
+   DELETE nem merges da origem; agrega por bloco; num JOIN, só a tabela
+   da esquerda dispara; um erro nela derruba o INSERT na origem;
+   funciona em cascata.
+4. As views que já existem em dw, pela consulta a system.tables, com o
+   tipo de cada uma.
+5. A regra do projeto: incremental para fatos e dimensões, refreshable
+   para relatórios fechados, view comum com janela para observabilidade
+   corrente.
+
+[E] Exemplos
+Bloco de 500 linhas inserido em db_ingestion: mv_fato_leitura_telemetria
+roda o SELECT sobre essas 500 linhas, e só sobre elas.
+"View em janela": VIEW comum com WHERE minuto >= now() - INTERVAL 15 MINUTE.
+
+[A] Ajustes
+- WINDOW VIEW (experimental) e LIVE VIEW (obsoleta) aparecem só como
+  fora de escopo, com o motivo.
+- A seção "EXPLAIN de uma view comum" fica marcada como pendente: ela é
+  completada na Etapa 05, quando v_saude_ingestao_15min existir.
+- Nenhum DDL nesta etapa. Toda afirmação sobre o banco do grupo vem de
+  uma consulta registrada com o comando.
+
+[T] Tipo de saída
+Markdown com até 140 linhas, com o quadro comparativo em tabela.
+
+[E] Extras
+Leia AGENTS.md, specs/04_modelo_dimensional.md e os arquivos sql/.
+Mostre o plano, espere meu ok, escreva, registre o prompt e pare.</code></pre>
+        <p>Nos bancos relacionais, view quer dizer uma consulta com nome, e view materializada quer dizer o resultado dessa consulta guardado numa tabela, recalculado quando alguém pede. O ClickHouse usa os mesmos nomes para três objetos de comportamento diferente, e a confusão entre eles é a origem da maior parte dos erros desta aula. As três subseções seguintes respondem às mesmas cinco perguntas para cada objeto: o que ele guarda, quando o SELECT roda, sobre que dados, quão atual é o resultado e quando se paga o custo.</p>
+
+        <h3>6.1 A VIEW comum: uma consulta guardada</h3>
+        <p>Uma <code>VIEW</code> comum guarda só o texto do SELECT. Ela não tem dados, não ocupa disco além da definição e não faz nada enquanto ninguém a consulta. Quando alguém escreve <code>SELECT * FROM dw.v_saude_ingestao_15min</code>, o ClickHouse substitui o nome da view pelo SELECT dela, como se a consulta tivesse sido escrita por extenso, e executa o resultado inteiro sobre as tabelas de origem, no estado em que estão naquele momento. A view da Etapa 05 é esta:</p>
+        <pre><code>CREATE OR REPLACE VIEW dw.v_saude_ingestao_15min AS
+SELECT data_tag,
+       sum(linhas)                                AS linhas_15min,
+       max(minuto)                                AS ultimo_minuto_com_dado,
+       dateDiff('second', max(minuto), now())     AS segundos_desde_ultimo_minuto
+FROM dw.obs_ingestao_minuto
+WHERE minuto &gt;= now() - INTERVAL 15 MINUTE
+GROUP BY data_tag;</code></pre>
+        <p>O <code>EXPLAIN</code> mostra a substituição. A consulta 6 do <code>005</code> pede o plano de uma leitura da view:</p>
+        <pre><code>-- 6. Uma view comum é só o SELECT dela: o plano mostra a leitura de obs_ingestao_minuto.
+EXPLAIN SELECT * FROM dw.v_saude_ingestao_15min;</code></pre>
+        <p>O plano da preparação lê direto a tabela de origem: mostra um passo <code>ReadFromMergeTree (dw.obs_ingestao_minuto)</code>, a leitura da tabela de contadores, com o filtro <code>minuto &gt;= now() - INTERVAL 15 MINUTE</code> levado para o <code>PREWHERE</code>, a etapa em que o ClickHouse descarta grânulos antes de ler as outras colunas, seguido da agregação por <code>data_tag</code>. Ou seja, a view é o SELECT dela, otimizado junto com a consulta de quem a lê.</p>
+        <p>Três consequências decorrem desse mecanismo. O resultado está sempre atualizado, porque é calculado na hora sobre as tabelas como estão. O custo é pago a cada leitura: dez pessoas abrindo o mesmo painel fazem dez vezes a mesma agregação. E o <code>now()</code> dentro da view é avaliado a cada consulta, o que faz a janela andar com o relógio sem que nada seja gravado. É essa propriedade que torna a view comum o objeto certo para a observabilidade corrente, desde que a tabela lida seja pequena: aqui ela lê contadores por minuto, e não a tabela de pouso.</p>
+
+        <h3>6.2 A view materializada incremental: um gatilho de INSERT</h3>
+        <p>A view materializada incremental, escrita como <code>CREATE MATERIALIZED VIEW ... TO destino AS SELECT ... FROM origem</code>, também guarda um SELECT, mas o usa de outro jeito. Ela funciona como um gatilho de <code>INSERT</code>. Cada vez que um bloco de linhas é inserido na tabela de origem, o ClickHouse roda o SELECT da view sobre aquele bloco, e só sobre ele, e insere o resultado na tabela de destino. O dado mora no destino, uma tabela comum, com engine, <code>ORDER BY</code> e partição próprios, que se consulta como qualquer outra. A view não é lida por ninguém; ela só escreve.</p>
+        <p>No laboratório, o bloco é o <code>INSERT</code> de um micro-lote do consumidor da Aula 04. Quando o consumidor insere um lote de 500 linhas em <code>db_ingestion</code>, as cinco views que leem a tabela de pouso rodam sobre aquelas 500 linhas: a do preço de livro filtra as de <code>livros</code>, a da leitura de telemetria filtra as de telemetria que casam com um dos dois formatos, e assim por diante. Cada uma insere no seu fato o que sobrou do filtro. O <code>INSERT</code> do consumidor só retorna quando todas terminaram. Seis consequências saem desse mecanismo, e cada uma aparece em algum ponto do laboratório.</p>
+        <ol>
+          <li>Ela não vê o histórico. As linhas que já estavam na origem quando a view foi criada nunca passam por ela. O histórico entra por <code>INSERT ... SELECT</code> com o mesmo SELECT, como no <code>002</code> (seção 5.3).</li>
+          <li>Ela não vê <code>UPDATE</code>, <code>DELETE</code> nem merges da origem. A view reage a inserções. Se uma linha da tabela de pouso for apagada ou alterada por mutação, o destino continua com o que foi gravado; se a origem for um <code>ReplacingMergeTree</code> e o merge juntar duas cópias, o destino continua com as duas. A deduplicação, quando é necessária, acontece no destino, como nos fatos.</li>
+          <li>A agregação é por bloco. Um <code>GROUP BY</code> dentro da view agrupa as linhas do bloco, e não as da tabela. O contador <code>mv_obs_ingestao_minuto</code> da Etapa 05 conta linhas por minuto e <code>data_tag</code>; se um minuto recebe vários lotes, cada lote produz uma linha parcial para aquele minuto. Na preparação, 670 lotes chegaram em cerca de 24 minutos, em média cerca de 28 por minuto (670 / 24), e cada minuto de telemetria podia ter dezenas de linhas parciais antes do merge. Por isso o destino de um contador é um <code>SummingMergeTree</code>, que soma as linhas de mesma chave no merge, e a leitura soma de novo, com <code>sum(linhas) ... GROUP BY</code>, porque o merge pode não ter acontecido. Uma média, que não se obtém somando médias parciais, exigiria um <code>AggregatingMergeTree</code> com estados de agregação, ou outro tipo de view.</li>
+          <li>Num <code>JOIN</code>, só a tabela da esquerda dispara. Se o SELECT da view juntasse o fato de preço com a <code>dim_livro</code>, um bloco novo no fato rodaria o <code>JOIN</code> contra a dimensão inteira; um livro novo na dimensão não dispararia nada, e os preços já gravados ficariam com a categoria antiga ou sem categoria. Esse é um dos motivos para os relatórios da Etapa 04 não serem incrementais.</li>
+          <li>Um erro nela derruba o <code>INSERT</code> na origem. A view roda dentro do <code>INSERT</code>. Se o SELECT dela falha, por um tipo que não converte ou uma tabela de destino ausente, o <code>INSERT</code> na tabela de pouso falha inteiro. No servidor da Aula 04, pelo código do consumidor de referência, qualquer falha do <code>INSERT</code> leva ao manifesto com <code>erro_clickhouse</code>, sem ack, e à reentrega do lote (seção 5.2). Um erro numa view do banco <code>dw</code> pode, assim, parar a ingestão de todos os domínios.</li>
+          <li>Ela funciona em cascata. O <code>INSERT</code> que uma view faz no destino é um <code>INSERT</code> como outro qualquer e dispara as views que leem o destino. É assim que <code>mv_dim_caminhao</code> recebe as leituras recém-gravadas no fato (seção 5.4).</li>
+        </ol>
+        <p>O laboratório usa sempre a forma com <code>TO</code>, que aponta um destino criado antes, explicitamente. Sem <code>TO</code>, o ClickHouse cria uma tabela interna, com nome iniciado por <code>.inner</code>, que pertence à view: o engine e o <code>ORDER BY</code> ficam escondidos na definição da view, e um <code>DROP</code> da view apaga o dado junto. Com <code>TO</code>, a tabela e a view são objetos separados; a view pode ser recriada, por exemplo para corrigir o parse, sem tocar no que já foi gravado.</p>
+        <p>Quanto às cinco perguntas: a incremental guarda dado, na tabela de destino; o SELECT roda a cada <code>INSERT</code> na origem; roda só sobre o bloco recém-inserido; o resultado está atualizado assim que o <code>INSERT</code> termina; e o custo é pago na escrita, dentro do <code>INSERT</code>, o que deixa a leitura barata. Na preparação, o tempo de ClickHouse no flush dos lotes <code>ok</code> teve média de 103 ms (medido na preparação, 31/10/2026). Esse tempo inclui as oito views incrementais que rodam dentro do <code>INSERT</code>. A preparação não mediu o mesmo flush sem as views, e por isso a parte delas nos 103 ms é uma lacuna, a medir pelo grupo se a latência importar.</p>
+
+        <h3>6.3 A view materializada refreshable: recalcular tudo no horário</h3>
+        <p>A view materializada refreshable, escrita como <code>CREATE MATERIALIZED VIEW ... REFRESH EVERY ... TO destino AS SELECT ...</code>, é a mais próxima da view materializada dos bancos relacionais. Ela não reage a inserções. No horário definido pela cláusula <code>REFRESH</code>, o ClickHouse roda o SELECT inteiro, sobre as tabelas inteiras, e troca o conteúdo da tabela de destino pelo resultado, de uma vez. Quem lê o destino durante o refresh continua vendo o conteúdo anterior até a troca, e nunca vê um destino pela metade. No ClickHouse 26.8 usado no laboratório, ela está disponível como recurso estável.</p>
+        <pre><code>CREATE MATERIALIZED VIEW IF NOT EXISTS dw.rmv_telemetria_caminhao_dia
+REFRESH EVERY 1 DAY OFFSET 1 HOUR
+TO dw.rel_telemetria_caminhao_dia AS
+SELECT data_key,
+       caminhao,
+       toUInt32(count())                                   AS leituras,
+       round(avg(velocidade_kmh), 1)                       AS velocidade_media,
+       max(velocidade_kmh)                                 AS velocidade_maxima,
+       min(instante)                                       AS primeira_leitura,
+       max(instante)                                       AS ultima_leitura,
+       round(100 * countIf(formato = 'espaco') / count(), 1) AS leituras_espaco_pct
+FROM dw.fato_leitura_telemetria FINAL
+WHERE data_key &lt; toYYYYMMDD(today())
+GROUP BY data_key, caminhao;</code></pre>
+        <p>Como o SELECT vê as tabelas inteiras, as restrições da incremental não se aplicam. A média por caminhão e dia é calculada sobre todas as leituras do dia, de uma vez; o <code>JOIN</code> pode ter qualquer tabela de qualquer lado, como o <code>ASOF JOIN</code> com a PTAX da Etapa 04; o <code>FINAL</code> deduplica a origem antes da agregação. O preço é a atualidade: o resultado tem a idade do último refresh. Com <code>REFRESH EVERY 1 DAY OFFSET 1 HOUR</code>, o relatório é recalculado todo dia à 01h00 do servidor e, entre um refresh e outro, não muda, mesmo que chegue dado novo.</p>
+        <p>Três comandos controlam a refreshable. <code>SYSTEM REFRESH VIEW dw.rmv_...</code> antecipa o horário e dispara o refresh agora, o que se usa depois de uma carga atrasada. <code>SYSTEM WAIT VIEW dw.rmv_...</code> espera o refresh em andamento terminar, o que torna o comando seguro em scripts. E a tabela <code>system.view_refreshes</code> mostra o estado de cada refreshable, com o último sucesso, o próximo horário e a exceção, se houver. A consulta 7 do <code>005</code> lê essa tabela:</p>
+        <pre><code>-- 7. Estado das refreshable: último sucesso e próximo horário.
+SELECT view, status, last_success_time, next_refresh_time, exception
+FROM system.view_refreshes
+WHERE database = 'dw'
+FORMAT PrettyCompactNoEscapes;</code></pre>
+        <p>A refreshable também resolve o caso em que não há <code>INSERT</code> para disparar nada. Os manifestos da Etapa 06 estão no RustFS, fora do ClickHouse; nenhuma inserção acontece quando um manifesto novo é gravado. A <code>rmv_fato_lote_ingestao</code> relê todos os manifestos a cada minuto (<code>REFRESH EVERY 1 MINUTE</code>) e troca o fato de lote inteiro. Quanto às cinco perguntas: guarda dado, na tabela de destino; o SELECT roda no horário; sobre as tabelas inteiras; o resultado tem a idade desde o último refresh; e o custo é pago no horário, de uma vez, com leitura barata entre um refresh e outro.</p>
+
+        <h3>6.4 Quadro comparativo e a regra da aula</h3>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Objeto</th><th>Guarda dado?</th><th>Quando o SELECT roda</th><th>Sobre o quê</th><th>Atualidade</th><th>Custo</th><th>Uso nesta aula</th></tr></thead>
+          <tbody>
+            <tr><td><code>VIEW</code></td><td>não, guarda a consulta</td><td>a cada leitura da view</td><td>as tabelas inteiras, no estado do momento</td><td>sempre atual</td><td>pago a cada leitura</td><td>observabilidade corrente</td></tr>
+            <tr><td><code>MATERIALIZED VIEW ... TO</code></td><td>sim, na tabela de destino</td><td>a cada <code>INSERT</code> na tabela de origem</td><td>só o bloco recém-inserido</td><td>atual ao fim do <code>INSERT</code>; não vê o histórico</td><td>pago na escrita, dentro do <code>INSERT</code></td><td>dimensões, fatos e contadores</td></tr>
+            <tr><td><code>MATERIALIZED VIEW ... REFRESH</code></td><td>sim, na tabela de destino</td><td>no horário do <code>REFRESH</code></td><td>as tabelas inteiras; troca o conteúdo de uma vez</td><td>a idade do último refresh</td><td>pago no horário, de uma vez</td><td>relatórios fechados e fato de lote</td></tr>
+          </tbody>
+        </table></div>
+        <p>A regra da aula sai do quadro. Fatos e dimensões usam a incremental, porque cada linha nova da tabela de pouso vira uma linha de fato sem depender das outras, e o custo fica na escrita. Relatórios fechados usam a refreshable, porque a média de um dia precisa do dia inteiro e o <code>JOIN</code> com a PTAX não é disparável por bloco. A observabilidade corrente usa a view comum com janela, porque a pergunta "o que aconteceu nos últimos 15 minutos" muda a cada minuto, e só um SELECT que roda na hora da leitura acompanha o relógio. As duas formas de view materializada gravam numa tabela comum; a diferença entre elas é o que dispara o SELECT e sobre que dados ele roda.</p>
+
+        <h3>6.5 <code>WINDOW VIEW</code> e <code>LIVE VIEW</code>, e o que esta aula chama de view em janela</h3>
+        <p>O ClickHouse tem dois outros objetos com nome de view que esta aula deixa de fora. A <code>WINDOW VIEW</code> agrega por janelas de tempo dentro do próprio motor, com funções de janela deslizante ou fixa, e emite o resultado quando a janela fecha. Ela é experimental e só existe com <code>allow_experimental_window_view</code> ligado, o que a torna inadequada para um modelo que o grupo vai publicar. A <code>LIVE VIEW</code>, que mantinha o resultado de uma consulta atualizado e avisava os clientes das mudanças, está obsoleta. O <code>AGENTS.md</code> proíbe as duas, e se o agente propuser alguma delas, o motivo para recusar é esse.</p>
+        <p>"View em janela", nesta aula, é uma <code>VIEW</code> comum com um filtro relativo ao relógio, como <code>WHERE minuto &gt;= now() - INTERVAL 15 MINUTE</code>. A janela anda porque a view roda de novo a cada leitura e o <code>now()</code> é avaliado a cada vez. Nada é gravado, nada é emitido; quem consulta às 12h10 vê de 11h55 em diante, e quem consulta às 12h11 vê de 11h56 em diante.</p>
+
+        <h3>6.6 As 14 views do banco <code>dw</code></h3>
+        <p>A consulta 5 do <code>005</code> lista as views do banco e classifica cada uma pelo engine e pela presença da cláusula <code>REFRESH</code> na definição:</p>
+        <pre><code>-- 5. As views do banco dw: tipo de cada uma e de onde vem o dado.
+SELECT name, engine,
+       multiIf(engine = 'View', 'consulta guardada, roda a cada leitura',
+               engine = 'MaterializedView' AND create_table_query LIKE '%REFRESH%', 'refreshable: recalcula no horário',
+               engine = 'MaterializedView', 'incremental: roda a cada INSERT na origem',
+               'tabela') AS como_funciona
+FROM system.tables
+WHERE database = 'dw' AND engine LIKE '%View%'
+ORDER BY engine, name
+FORMAT PrettyCompactNoEscapes;</code></pre>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Tipo</th><th>Quantas</th><th>Quais</th><th>Etapa</th></tr></thead>
+          <tbody>
+            <tr><td>incremental</td><td>8</td><td><code>mv_dim_livro</code>, <code>mv_fato_preco_livro</code>, <code>mv_fato_cotacao_ptax</code>, <code>mv_fato_leitura_telemetria</code>, <code>mv_fato_alerta_direcao</code>, <code>mv_dim_caminhao</code>, <code>mv_obs_ingestao_minuto</code>, <code>mv_obs_telemetria_descartes_minuto</code></td><td>02 e 05</td></tr>
+            <tr><td>refreshable</td><td>3</td><td><code>rmv_preco_categoria_dia</code>, <code>rmv_telemetria_caminhao_dia</code>, <code>rmv_fato_lote_ingestao</code></td><td>04 e 06</td></tr>
+            <tr><td>comum</td><td>3</td><td><code>v_saude_ingestao_15min</code>, <code>v_lotes_ultima_hora</code>, <code>v_descartes_telemetria_1h</code></td><td>05 e 06</td></tr>
+          </tbody>
+        </table></div>
+        <p>Medido na preparação, 31/10/2026: 14 views, 8 incrementais, 3 refreshable e 3 comuns. Na Etapa 03, o banco do grupo tem só as seis incrementais da Etapa 02; o <code>docs/views.md</code> registra o que existe agora, e a lista completa aparece ao fim da Etapa 06.</p>
+
+        <h3>6.7 Pausa para reflexão</h3>
+        <p>A questão 3 da discussão trazia, entre as táticas, uma view materializada por domínio. Agora que o mecanismo está claro: se o time da telemetria trocar <code>linha</code> por <code>texto</code> (questão 1), o que acontece com <code>mv_fato_leitura_telemetria</code>? O <code>INSERT</code> falha, a view grava linhas vazias ou ela simplesmente não grava nada? Leia o <code>WHERE</code> da view antes de responder, e pense em qual contador da Etapa 05 mostraria a mudança.</p>
+
+        <h3>6.8 Pontos-chave</h3>
+        <ul>
+          <li>A <code>VIEW</code> comum guarda a consulta; cada leitura é reescrita como o SELECT dela e roda inteira, sempre atual, com custo a cada leitura.</li>
+          <li>A view materializada incremental é um gatilho de <code>INSERT</code>: roda sobre o bloco, grava no destino, não vê o histórico, agrega por bloco e, se falhar, derruba o <code>INSERT</code> na origem.</li>
+          <li>A view materializada refreshable recalcula tudo no horário e troca o destino de uma vez; o resultado tem a idade do último refresh, controlado por <code>SYSTEM REFRESH VIEW</code>, <code>SYSTEM WAIT VIEW</code> e <code>system.view_refreshes</code>.</li>
+          <li>Regra da aula: incremental para fatos e dimensões, refreshable para relatórios fechados, view comum com janela para observabilidade corrente.</li>
+          <li><code>WINDOW VIEW</code> é experimental e <code>LIVE VIEW</code> está obsoleta; ficam fora.</li>
+        </ul>
+
+        <h3>6.9 Para saber mais</h3>
+        <ul>
+          <li>ClickHouse. <a href="https://clickhouse.com/docs/sql-reference/statements/create/view" target="_blank" rel="noopener noreferrer">CREATE VIEW</a>: a sintaxe dos três objetos, com <code>TO</code>, <code>REFRESH</code> e as views experimentais.</li>
+          <li>ClickHouse. <a href="https://clickhouse.com/docs/materialized-view/incremental-materialized-view" target="_blank" rel="noopener noreferrer">Incremental materialized view</a>: o gatilho de <code>INSERT</code>, a agregação por bloco e os <code>JOIN</code>s.</li>
+          <li>ClickHouse. <a href="https://clickhouse.com/docs/materialized-view/refreshable-materialized-view" target="_blank" rel="noopener noreferrer">Refreshable materialized view</a>: horário, troca do destino e dependências.</li>
+          <li>ClickHouse. <a href="https://clickhouse.com/docs/sql-reference/statements/explain" target="_blank" rel="noopener noreferrer">EXPLAIN</a>: como ler o plano de uma consulta.</li>
+          <li>ClickHouse. <a href="https://clickhouse.com/docs/engines/table-engines/mergetree-family/summingmergetree" target="_blank" rel="noopener noreferrer">SummingMergeTree</a>: a soma no merge e a soma de novo na leitura.</li>
+        </ul>
+        <div class="note">
+          <strong>Revise antes de seguir</strong>
+          <p>O <code>docs/views.md</code> responde às cinco perguntas para os três objetos? O quadro comparativo bate com a seção 6.4? As seis consequências da incremental estão lá, cada uma com um exemplo do projeto? A lista de views veio de <code>system.tables</code>, com o comando registrado? <code>WINDOW VIEW</code> e <code>LIVE VIEW</code> aparecem só como fora de escopo? A seção do <code>EXPLAIN</code> está marcada como pendente para a Etapa 05?</p>
+        </div>
+      </section>
+
+      <section class="content-block" id="s7">
+        <h2>7. Etapa 04 &middot; Relatórios fechados com view materializada refreshable</h2>
+        <p>Objetivo: publicar dois relatórios de dias fechados, recalculados uma vez por dia, e saber conferir quando o último cálculo aconteceu. Artefato: <code>sql/003_relatorios_fechados.sql</code>.</p>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é engenheiro de dados que publica relatórios fechados para a área
+de compras e para a logística. Um dia publicado não muda depois.
+
+[R] Pedido
+Crie sql/003_relatorios_fechados.sql com duas tabelas MergeTree e duas
+views materializadas refreshable (REFRESH EVERY 1 DAY OFFSET 1 HOUR
+TO dw.rel_...):
+1. rel_preco_categoria_dia, grão categoria x dia: livros, preço médio
+   em GBP, PTAX de venda do último Fechamento até o dia, a data dessa
+   PTAX e o preço médio em BRL.
+2. rel_telemetria_caminhao_dia, grão caminhão x dia: leituras,
+   velocidade média e máxima, primeira e última leitura e a parte das
+   leituras no formato espaço, em %.
+Depois rode SYSTEM REFRESH VIEW e SYSTEM WAIT VIEW das duas, mostre
+system.view_refreshes e as cinco maiores categorias por livros.
+
+[E] Exemplos
+30/10/2026, Default: 152 livros, 34,39 GBP, PTAX de venda 7,1899
+(de 29/10), 247,28 BRL.
+29/10/2026, CAM-0451: 1.440 leituras, média 72,2 km/h, máxima 96.
+
+[A] Ajustes
+- Só dias anteriores a hoje: data_key &lt; toYYYYMMDD(today()).
+- Fatos e dim_livro lidos com FINAL.
+- PTAX por ASOF LEFT JOIN, com uma coluna de igualdade (moeda) e
+  tipo_boletim em ('Fechamento', 'Fechamento PTAX').
+- Preço e velocidade não são somados: média, mínimo e máximo.
+
+[T] Tipo de saída
+Um arquivo SQL comentado, com IF NOT EXISTS, e a saída das consultas
+de conferência.
+
+[E] Extras
+Leia AGENTS.md, specs/04_modelo_dimensional.md e docs/views.md. Mostre
+o plano, espere meu ok, escreva, rode, registre o prompt e pare.</code></pre>
+
+        <h3>7.1 Enquanto o agente trabalha: o que é um relatório fechado</h3>
+        <p>Um relatório fechado é o de um período que já terminou e cujo número, depois de publicado, não muda. O preço médio de Poesia em 30/10 é uma informação que a área de compras usa para comparar com 31/10; se o número de 30/10 mudasse cada vez que alguém abre o relatório, a comparação deixaria de valer. Os dois relatórios do laboratório só incluem dias anteriores a hoje (<code>data_key &lt; toYYYYMMDD(today())</code>) e são recalculados uma vez por dia, à 01h00 do servidor, quando o dia anterior já terminou.</p>
+        <p>A escolha da refreshable vem de duas propriedades do relatório, ambas discutidas na Etapa 03. A primeira é a agregação: o preço médio por categoria e dia precisa de todos os livros do dia de uma vez, e uma view incremental calcularia uma média por bloco, que não se combina somando. A segunda é o <code>JOIN</code>: o preço em BRL depende da PTAX, e um boletim novo não é um <code>INSERT</code> no fato de preço; numa view incremental, a chegada da PTAX não dispararia nada. A refreshable roda o SELECT inteiro sobre os fatos inteiros, com o <code>FINAL</code> deduplicando antes da média.</p>
+
+        <h3>7.2 O preço em BRL: <code>ASOF JOIN</code></h3>
+        <p>O relatório de preço converte o preço médio em GBP para BRL com a PTAX de venda do último boletim de Fechamento até o dia da coleta. Um <code>JOIN</code> por igualdade de data não serve, porque o dia da coleta pode não ter boletim (fim de semana, feriado ou um dia que ainda não fechou). O <code>ASOF JOIN</code> faz exatamente a busca necessária: para cada linha da esquerda, junta a linha da direita com o maior valor que ainda satisfaz a desigualdade, aqui <code>pr.data &gt;= f.data</code>.</p>
+        <pre><code>CREATE MATERIALIZED VIEW IF NOT EXISTS dw.rmv_preco_categoria_dia
+REFRESH EVERY 1 DAY OFFSET 1 HOUR          -- todo dia à 01h00 do servidor
+TO dw.rel_preco_categoria_dia AS
+WITH fechamento AS
+(
+    SELECT moeda, toDate(data_hora) AS data, argMax(cotacao_venda, data_hora) AS venda
+    FROM dw.fato_cotacao_ptax FINAL
+    WHERE tipo_boletim IN ('Fechamento', 'Fechamento PTAX')
+    GROUP BY moeda, data
+),
+precos AS
+(
+    SELECT p.data_key, toDate(toString(p.data_key)) AS data, 'GBP' AS moeda, l.categoria, p.preco_gbp
+    FROM dw.fato_preco_livro AS p FINAL
+    INNER JOIN dw.dim_livro AS l FINAL ON l.upc = p.upc
+    WHERE p.data_key &lt; toYYYYMMDD(today())
+)
+SELECT pr.data_key                                         AS data_key,
+       pr.categoria                                        AS categoria,
+       toUInt32(count())                                   AS livros,
+       toDecimal64(avg(pr.preco_gbp), 2)                   AS preco_medio_gbp,
+       any(f.venda)                                        AS ptax_venda,
+       any(f.data)                                         AS data_ptax,
+       toDecimal64(avg(pr.preco_gbp) * any(f.venda), 2)    AS preco_medio_brl
+FROM precos AS pr
+ASOF LEFT JOIN fechamento AS f ON pr.moeda = f.moeda AND pr.data &gt;= f.data
+GROUP BY pr.data_key, pr.categoria;</code></pre>
+        <p>Três detalhes do SQL merecem leitura. O <code>ASOF JOIN</code> do ClickHouse exige pelo menos uma coluna de igualdade além da desigualdade; como os livros não têm moeda, o CTE <code>precos</code> cria uma coluna constante <code>'GBP' AS moeda</code> só para cumprir essa exigência, o que também deixa o relatório pronto para uma segunda moeda. O filtro aceita <code>'Fechamento'</code> e <code>'Fechamento PTAX'</code>, porque nos dados da aula o último boletim do dia veio como <code>Fechamento</code>; aceitar também <code>Fechamento PTAX</code> evita um relatório sem PTAX por diferença de rótulo. E o <code>LEFT</code> do <code>ASOF LEFT JOIN</code> mantém a categoria no relatório mesmo que não exista nenhum Fechamento anterior ao dia.</p>
+
+        <h3>7.3 Exemplo numérico: uma linha de cada relatório</h3>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Relatório</th><th>Linhas</th><th>Uma linha</th></tr></thead>
+          <tbody>
+            <tr><td><code>rel_preco_categoria_dia</code></td><td>50</td><td>30/10/2026, Default: 152 livros, 34,39 GBP, PTAX de venda 7,1899 (de 29/10), 247,28 BRL</td></tr>
+            <tr><td><code>rel_telemetria_caminhao_dia</code></td><td>20</td><td>29/10/2026, CAM-0451: 1.440 leituras, velocidade média 72,2 e máxima 96 km/h, 22,6% no formato espaço</td></tr>
+          </tbody>
+        </table></div>
+        <p>Medido na preparação, 31/10/2026. Como os 1.000 livros foram coletados num dia só, as 50 linhas do relatório de preço são as categorias de 30/10; as 20 do relatório de telemetria são os 20 caminhões de 29/10. A PTAX de venda de 30/10 veio de 29/10 porque os boletins da aula vão até 29/10, e o <code>ASOF</code> pegou o último Fechamento anterior. A conta com os números arredondados dá 34,39 &times; 7,1899 = 247,26, e o relatório mostra 247,28. A diferença vem da ordem das operações: o SQL multiplica a média sem arredondar, <code>avg(pr.preco_gbp) * any(f.venda)</code>, e só depois converte para duas casas. Quem refizer a conta a partir das colunas publicadas encontra dois centavos de diferença, e o motivo está no SQL. Os 22,6% de leituras no formato espaço do CAM-0451 ficam perto dos 22,1% da frota inteira (seção 5.5).</p>
+
+        <h3>7.4 O caso do relatório atualizado antes do fim da carga</h3>
+        <p>Na preparação, o relatório de telemetria foi atualizado enquanto a carga da telemetria ainda corria pela fila. O refresh rodou, o SELECT viu o fato de leitura como estava naquele momento, e o CAM-4120, com 1.440 leituras, ainda não tinha chegado: o relatório foi publicado sem a linha dele. O dia 29/10 já estava fechado pelo critério do calendário (<code>data_key &lt; toYYYYMMDD(today())</code>), mas não estava completo pela carga. O critério de fechamento assume que o dado de um dia já chegou quando o refresh roda, e a preparação mostrou que essa suposição pode falhar.</p>
+        <p>O erro só ficou visível numa consulta que juntava o relatório a outro fato. A consulta 4 do <code>005</code> lista os alertas de direção por caminhão com a velocidade média do dia, vinda do relatório, por um <code>LEFT JOIN</code>. O CAM-4120 tinha alertas, mas não tinha linha no relatório, e a consulta mostrou velocidade média 0. O motivo é uma regra do ClickHouse: no <code>LEFT JOIN</code>, a coluna da direita sem correspondência recebe o valor padrão do tipo, que é 0 para números, e não <code>NULL</code>. Um 0 de velocidade parece um caminhão parado o dia inteiro, e não um dado ausente. Com <code>join_use_nulls = 1</code>, a mesma consulta mostra <code>NULL</code>, e a ausência fica visível:</p>
+        <pre><code>-- 4. Alertas de direção contínua por caminhão, com a velocidade média do dia (dois fatos, mesma dimensão).
+SELECT a.caminhao, count() AS alertas, max(a.direcao_continua_min) AS maior_direcao_min,
+       any(r.velocidade_media) AS velocidade_media_dia
+FROM dw.fato_alerta_direcao AS a FINAL
+LEFT JOIN dw.rel_telemetria_caminhao_dia AS r ON r.caminhao = a.caminhao AND r.data_key = a.data_key
+GROUP BY a.caminhao
+ORDER BY alertas DESC
+LIMIT 5
+SETTINGS join_use_nulls = 1          -- caminhão sem linha no relatório aparece como NULL, não como 0
+FORMAT PrettyCompactNoEscapes;</code></pre>
+        <p>A correção foi rodar <code>SYSTEM REFRESH VIEW</code> depois que a carga terminou. O relatório foi recalculado sobre o fato completo, o CAM-4120 apareceu com as 1.440 leituras, e a consulta 4 passou a mostrar a velocidade dele. Com o relatório completo, a consulta mostra o CAM-5707 com 12 alertas, o maior número, e a maior direção contínua registrada é de 360 minutos, do CAM-3126 (medido na preparação, 31/10/2026). O caso deixa três práticas para o grupo: depois de uma carga atrasada, rodar <code>SYSTEM REFRESH VIEW</code> e <code>SYSTEM WAIT VIEW</code>; conferir <code>last_success_time</code> em <code>system.view_refreshes</code> antes de usar um relatório; e ler com <code>join_use_nulls = 1</code> qualquer consulta que junte um relatório a um fato. Uma regra que confira o frescor da origem antes do refresh fica como hipótese para o grupo avaliar.</p>
+
+        <h3>7.5 Passos para rodar</h3>
+        <ol class="steps">
+          <li>Rode o arquivo dos relatórios.</li>
+          <li>Antecipe o refresh das duas views e espere cada uma terminar, em vez de esperar a 01h00.</li>
+          <li>Confira o resultado e o estado das refreshable em <code>system.view_refreshes</code> (consulta 7 do <code>005</code>, quando o grupo a tiver escrito; antes disso, o agente roda a mesma consulta).</li>
+          <li>Registre o prompt, a saída e o comando no <code>docs/prompts.md</code> e faça o commit da etapa.</li>
+        </ol>
+        <pre><code>$CH &lt; sql/003_relatorios_fechados.sql
+$CH -q "SYSTEM REFRESH VIEW dw.rmv_preco_categoria_dia; SYSTEM WAIT VIEW dw.rmv_preco_categoria_dia;
+        SYSTEM REFRESH VIEW dw.rmv_telemetria_caminhao_dia; SYSTEM WAIT VIEW dw.rmv_telemetria_caminhao_dia"
+$CH -q "SELECT * FROM dw.rel_preco_categoria_dia ORDER BY livros DESC LIMIT 5"</code></pre>
+
+        <h3>7.6 Pausa para reflexão</h3>
+        <p>O relatório de 29/10 foi publicado incompleto porque o refresh rodou antes de a carga terminar. Se o refresh diário da 01h00 encontrar a fila da Aula 04 ainda drenando, o mesmo acontece em produção. O que é melhor para a logística: publicar no horário com o que chegou, atrasar a publicação até a carga terminar ou publicar e marcar o dia como provisório? Que sinal da Etapa 05 diria se a carga terminou?</p>
+
+        <h3>7.7 Pontos-chave</h3>
+        <ul>
+          <li>Relatório fechado: período terminado, número que não muda depois de publicado; refreshable diária só com dias anteriores a hoje.</li>
+          <li>Média do dia e <code>JOIN</code> com a PTAX não funcionam por bloco; a refreshable vê as tabelas inteiras.</li>
+          <li><code>ASOF JOIN</code> pega o último boletim até o dia e exige uma coluna de igualdade.</li>
+          <li>No <code>LEFT JOIN</code>, a ausência vira 0 por padrão; <code>join_use_nulls = 1</code> mostra <code>NULL</code>.</li>
+          <li>Depois de carga atrasada: <code>SYSTEM REFRESH VIEW</code>, <code>SYSTEM WAIT VIEW</code> e conferência em <code>system.view_refreshes</code>.</li>
+        </ul>
+
+        <h3>7.8 Para saber mais</h3>
+        <ul>
+          <li>ClickHouse. <a href="https://clickhouse.com/docs/sql-reference/statements/select/join" target="_blank" rel="noopener noreferrer">JOIN</a>: tipos de <code>JOIN</code>, inclusive <code>ASOF</code>, e o valor padrão das colunas sem correspondência.</li>
+          <li>ClickHouse. <a href="https://clickhouse.com/docs/operations/settings/settings#join_use_nulls" target="_blank" rel="noopener noreferrer">join_use_nulls</a>.</li>
+          <li>ClickHouse. <a href="https://clickhouse.com/docs/operations/system-tables/view_refreshes" target="_blank" rel="noopener noreferrer">system.view_refreshes</a> e <a href="https://clickhouse.com/docs/sql-reference/statements/system" target="_blank" rel="noopener noreferrer">SYSTEM REFRESH VIEW e SYSTEM WAIT VIEW</a>.</li>
+        </ul>
+        <div class="note">
+          <strong>Revise antes de seguir</strong>
+          <p>As duas views usam <code>REFRESH EVERY 1 DAY OFFSET 1 HOUR</code> com <code>TO</code>? Só entram dias anteriores a hoje? Os fatos e a <code>dim_livro</code> são lidos com <code>FINAL</code>? O <code>ASOF LEFT JOIN</code> tem a coluna de igualdade e aceita os dois rótulos de Fechamento? Preço e velocidade aparecem só como média, mínimo e máximo? Gate: <code>system.view_refreshes</code> mostra as duas views com <code>last_success_time</code> preenchido e sem exceção; com a carga completa, <code>rel_preco_categoria_dia</code> tem 50 linhas, com Default em 30/10 e 152 livros, e <code>rel_telemetria_caminhao_dia</code> tem 20.</p>
+        </div>
+      </section>
+
+      <section class="content-block" id="s8">
+        <h2>8. Etapa 05 &middot; Observabilidade corrente com views em janela</h2>
+        <p>Objetivo: saber, a qualquer momento e sem abrir log, se a ingestão está chegando, com que volume por domínio e quanto da telemetria está sendo descartado. Artefatos: a primeira parte de <code>sql/004_observabilidade.sql</code> (contadores e duas views em janela) e a seção do <code>EXPLAIN</code> em <code>docs/views.md</code>.</p>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é engenheiro de confiabilidade de dados. Quer saber agora, sem
+abrir log, se a ingestão está chegando, com que volume e o que está
+sendo descartado.
+
+[R] Pedido
+Crie sql/004_observabilidade.sql com:
+1. dw.obs_ingestao_minuto (minuto x data_tag, linhas) em
+   SummingMergeTree e a view materializada incremental que a alimenta
+   a partir de ingestao.db_ingestion.
+2. dw.obs_telemetria_descartes_minuto (minuto x motivo: ERR SAT,
+   #RADIO, outro), do mesmo jeito. Linhas TAC; não são descarte.
+3. Duas views comuns em janela: v_saude_ingestao_15min (linhas por
+   data_tag nos últimos 15 minutos, último minuto com dado e segundos
+   desde então) e v_descartes_telemetria_1h (descartes por motivo e a
+   parte do total de telemetria da última hora, em %).
+Depois complete a seção pendente de docs/views.md com a saída de
+EXPLAIN SELECT * FROM dw.v_saude_ingestao_15min.
+
+[E] Exemplos
+WHERE minuto &gt;= now() - INTERVAL 15 MINUTE
+A leitura do contador soma de novo: sum(linhas) ... GROUP BY data_tag.
+
+[A] Ajustes
+- Sem carga do histórico dos contadores: eles começam quando a view nasce.
+- Minuto em America/Sao_Paulo, a partir do timestamp em unix ms.
+- Nada de WINDOW VIEW nem LIVE VIEW.
+- v_lotes_ultima_hora fica para a Etapa 06, porque lê o fato de lote.
+- Alvo de SLO sem origem: "hipótese do grupo".
+
+[T] Tipo de saída
+SQL comentado e a saída das duas views com dado chegando.
+
+[E] Extras
+Leia AGENTS.md e docs/views.md. Mostre o plano, espere meu ok,
+escreva, rode, registre o prompt e pare.</code></pre>
+
+        <h3>8.1 Enquanto o agente trabalha: contar na escrita, olhar na leitura</h3>
+        <p>A pergunta "chegou alguma coisa de telemetria nos últimos 15 minutos?" poderia ser respondida direto na tabela de pouso, com um <code>count()</code> filtrado por <code>timestamp</code>. Funciona com 32 mil linhas e fica mais caro a cada dia, porque a tabela de pouso só cresce e a consulta seria repetida a cada atualização do painel. O laboratório separa o trabalho em duas partes, cada uma com o objeto da Etapa 03 que lhe serve. Na escrita, uma view materializada incremental conta as linhas de cada bloco por minuto e <code>data_tag</code> e grava a contagem num contador pequeno. Na leitura, uma view comum com janela soma os contadores dos últimos minutos.</p>
+        <pre><code>CREATE TABLE IF NOT EXISTS dw.obs_ingestao_minuto
+(
+    minuto    DateTime('America/Sao_Paulo'),
+    data_tag  LowCardinality(String),
+    linhas    UInt64
+)
+ENGINE = SummingMergeTree
+ORDER BY (data_tag, minuto);
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS dw.mv_obs_ingestao_minuto TO dw.obs_ingestao_minuto AS
+SELECT toStartOfMinute(fromUnixTimestamp64Milli(toInt64(timestamp), 'America/Sao_Paulo')) AS minuto,
+       data_tag,
+       count() AS linhas
+FROM ingestao.db_ingestion
+GROUP BY minuto, data_tag;</code></pre>
+        <p>O contador é a consequência 3 da seção 6.2 em ação. Cada bloco produz uma linha por minuto e <code>data_tag</code> presentes nele; dois blocos no mesmo minuto produzem duas linhas para a mesma chave. O <code>SummingMergeTree</code> soma as linhas de mesma chave quando faz o merge, e a view de leitura soma de novo com <code>sum(linhas)</code>, porque o merge pode não ter acontecido. O contador de descartes segue o mesmo desenho, com o motivo no lugar do <code>data_tag</code>: <code>ERR SAT</code>, <code>#RADIO</code> ou <code>outro</code>. O <code>WHERE</code> dele exclui as leituras dos dois formatos e as linhas <code>TAC;</code>, que não são descarte: viram alerta.</p>
+        <p>Os contadores começam a contar quando a view nasce, e o <code>AGENTS.md</code> proíbe carregar o histórico neles. A razão é a mesma da seção 5.3, com o sinal trocado. Nos fatos, a carga repetida é inofensiva porque o <code>ReplacingMergeTree</code> junta as cópias; no <code>SummingMergeTree</code>, uma carga repetida soma de novo, e o minuto passa a ter o dobro das linhas. Além disso, a observabilidade mede o processo de agora em diante; o histórico da Aula 04 já está descrito nos manifestos, que a Etapa 06 lê.</p>
+
+        <h3>8.2 As views em janela</h3>
+        <p>As três views em janela leem os contadores ou o fato de lote com um filtro relativo a <code>now()</code>. A <code>v_saude_ingestao_15min</code> (seção 6.1) mostra, por <code>data_tag</code>, as linhas dos últimos 15 minutos, o último minuto com dado e há quantos segundos ele começou. A <code>v_descartes_telemetria_1h</code> mostra os descartes da última hora por motivo e a parte que eles representam no total de telemetria da mesma hora:</p>
+        <pre><code>CREATE OR REPLACE VIEW dw.v_descartes_telemetria_1h AS
+SELECT d.motivo,
+       sum(d.linhas)                                                         AS descartadas,
+       (SELECT sum(linhas) FROM dw.obs_ingestao_minuto
+        WHERE data_tag = 'telemetria' AND minuto &gt;= now() - INTERVAL 1 HOUR) AS telemetria_total,
+       round(100 * descartadas / telemetria_total, 2)                        AS pct
+FROM dw.obs_telemetria_descartes_minuto AS d
+WHERE d.minuto &gt;= now() - INTERVAL 1 HOUR
+GROUP BY d.motivo;</code></pre>
+        <p>A terceira, <code>v_lotes_ultima_hora</code>, mostra lotes, lotes com erro, linhas, p50 e p95 do flush e a maior espera da última hora. Ela lê o fato de lote, que só existe na Etapa 06, e por isso o grupo a cria lá.</p>
+        <p>Dois detalhes da <code>v_saude_ingestao_15min</code> mudam a leitura do resultado. O primeiro é a resolução: <code>segundos_desde_ultimo_minuto</code> conta a partir do início do último minuto com dado, e não da última linha, e por isso pode chegar a 59 segundos com o dado chegando normalmente. Um alarme de "parou de chegar" precisa de um limite bem acima de 60 segundos. O segundo é a ausência: um <code>data_tag</code> que não recebe nada por 15 minutos some da view, porque não há linha dele na janela para agrupar. O sinal mais importante, o de que um domínio parou, aparece como uma linha que falta, e quem monitora precisa comparar o resultado com a lista de domínios esperados (<code>DOMINIOS</code> do <code>.env</code> da Aula 04).</p>
+
+        <h3>8.3 Os sinais e os objetivos da Aula 04</h3>
+        <p>As views da Etapa 05 e a da Etapa 06 cobrem cinco sinais do processo de ingestão. Cada um responde a uma pergunta que a P3 da Aula 04, quem opera o servidor, faria ao ser acionada.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Sinal</th><th>Pergunta</th><th>Onde se lê</th><th>Ligação com a Aula 04</th></tr></thead>
+          <tbody>
+            <tr><td>vazão</td><td>quantas linhas chegaram por domínio?</td><td><code>linhas_15min</code> em <code>v_saude_ingestao_15min</code></td><td>o volume que cada fonte empurra</td></tr>
+            <tr><td>frescor</td><td>há quanto tempo não chega nada?</td><td><code>segundos_desde_ultimo_minuto</code>, e o domínio ausente da view</td><td>o objetivo de latência até consultável</td></tr>
+            <tr><td>falha</td><td>quantos lotes falharam?</td><td><code>lotes_com_erro</code> em <code>v_lotes_ultima_hora</code></td><td>o manifesto com <code>erro_clickhouse</code> e a reentrega</td></tr>
+            <tr><td>latência</td><td>quanto o flush está demorando?</td><td><code>flush_p95_ms</code> em <code>v_lotes_ultima_hora</code></td><td>o custo do micro-lote e a ordem dos destinos</td></tr>
+            <tr><td>qualidade</td><td>quanto da telemetria virou descarte?</td><td><code>pct</code> em <code>v_descartes_telemetria_1h</code></td><td>o contrato que não valida o payload</td></tr>
+          </tbody>
+        </table></div>
+        <p>Um sinal só vira objetivo de serviço (SLO) com um alvo, e a preparação não define alvos. Se o grupo quiser escrever um, como "frescor de telemetria abaixo de N segundos em 99% dos minutos", o N é uma hipótese do grupo e fica marcado assim no <code>docs/observabilidade.md</code> até ser medido.</p>
+
+        <h3>8.4 Exemplo numérico: a parte descartada da telemetria</h3>
+        <p>A view de descartes mostra a última hora. Aplicada à carga inteira da preparação, a mesma conta usa os números da seção 5.5: 1.464 linhas <code>#RADIO</code> são 1.464 / 31.265 = 4,68% da telemetria; 932 linhas <code>ERR SAT</code> são 2,98%; juntas, 2.396 linhas, 7,66%. A carga da preparação levou cerca de 24 minutos (de 11h50 a 12h14 de 31/10), e por isso uma consulta à view feita logo depois veria a carga inteira na janela de uma hora. A conta é feita sobre os totais da consulta 2, e não sobre a saída da view, que depende da hora em que se consulta.</p>
+
+        <h3>8.5 Passos para rodar</h3>
+        <ol class="steps">
+          <li>Rode o arquivo de observabilidade, com os contadores e as duas views em janela.</li>
+          <li>Consulte as views. Se nada chegou à tabela de pouso desde que os contadores foram criados, elas voltam vazias, e isso é o comportamento esperado.</li>
+          <li>Para ver as janelas andarem, é preciso dado novo chegando. Com o servidor da Aula 04 no ar (<code>python -m src.servidor</code> na pasta <code>aula_04_ingestao/</code>), reenvie a entrada com <code>python enviar_entrada.py</code> e consulte as views durante o envio. O reenvio põe cópias na tabela de pouso: os fatos lidos com <code>FINAL</code> não mudam, como na seção 5.1, mas a consulta 2, que lê a tabela de pouso direto, passa a contar as cópias. Registre isso no <code>docs/observabilidade.md</code>.</li>
+          <li>Peça ao agente a seção pendente de <code>docs/views.md</code> com o <code>EXPLAIN</code>, registre o prompt e faça o commit da etapa.</li>
+        </ol>
+        <pre><code>$CH &lt; sql/004_observabilidade.sql
+$CH -q "SELECT * FROM dw.v_saude_ingestao_15min"
+$CH -q "SELECT * FROM dw.v_descartes_telemetria_1h FORMAT PrettyCompactNoEscapes"
+$CH -q "EXPLAIN SELECT * FROM dw.v_saude_ingestao_15min"</code></pre>
+
+        <h3>8.6 Pausa para reflexão</h3>
+        <p>A view de saúde roda o SELECT inteiro a cada leitura. Se um painel a consultar a cada 10 segundos, quantas vezes por hora o SELECT roda, e sobre quantas linhas do contador? Compare com a mesma pergunta feita direto na tabela de pouso. Em que volume de ingestão a diferença começa a importar?</p>
+
+        <h3>8.7 Pontos-chave</h3>
+        <ul>
+          <li>Contar na escrita, com view incremental em <code>SummingMergeTree</code>; olhar na leitura, com view comum em janela que soma de novo.</li>
+          <li>Os contadores começam quando a view nasce; carga do histórico num <code>SummingMergeTree</code> soma duas vezes se repetida.</li>
+          <li>O frescor tem resolução de minuto, e um domínio parado some da view: o alarme compara com a lista de domínios esperados.</li>
+          <li>Cinco sinais: vazão, frescor, falha, latência e qualidade. Alvo de SLO sem medição é hipótese.</li>
+        </ul>
+
+        <h3>8.8 Para saber mais</h3>
+        <ul>
+          <li>Beyer, B. et al. <a href="https://sre.google/sre-book/monitoring-distributed-systems/" target="_blank" rel="noopener noreferrer">Site Reliability Engineering, capítulo 6: Monitoring Distributed Systems</a>. O'Reilly, 2016. Os quatro sinais (latência, tráfego, erros e saturação), de onde vêm os desta aula.</li>
+          <li>ClickHouse. <a href="https://clickhouse.com/docs/sql-reference/functions/date-time-functions" target="_blank" rel="noopener noreferrer">Funções de data e hora</a>: <code>toStartOfMinute</code>, <code>fromUnixTimestamp64Milli</code> e <code>dateDiff</code>.</li>
+        </ul>
+        <div class="note">
+          <strong>Revise antes de seguir</strong>
+          <p>Os dois contadores usam <code>SummingMergeTree</code> e são alimentados por views incrementais com <code>TO</code>? A leitura soma de novo com <code>sum()</code>? Ninguém carregou o histórico nos contadores? As linhas <code>TAC;</code> ficaram fora dos descartes? As views em janela usam <code>now() - INTERVAL</code> e nenhuma é <code>WINDOW VIEW</code>? O <code>docs/views.md</code> tem o <code>EXPLAIN</code>? Gate: com dado chegando, <code>v_saude_ingestao_15min</code> mostra os domínios que estão sendo enviados, com <code>segundos_desde_ultimo_minuto</code> abaixo de 60 durante o envio; <code>v_descartes_telemetria_1h</code> mostra <code>#RADIO</code> e <code>ERR SAT</code>.</p>
+        </div>
+      </section>
+
+      <section class="content-block" id="s9">
+        <h2>9. Etapa 06 &middot; Observabilidade do processo, do manifesto ao descarte</h2>
+        <p>Objetivo: transformar o processo de ingestão num fato, com um lote por linha, e responder com ele quantos lotes falharam, quando, por quê e quanto tempo cada destino levou; fechar a reconciliação da telemetria. Artefatos: o fato de lote e <code>v_lotes_ultima_hora</code> em <code>sql/004_observabilidade.sql</code>, o <code>sql/005_consultas.sql</code> completo e <code>docs/observabilidade.md</code>.</p>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é engenheiro de dados que opera o servidor de ingestão da Aula 04
+e precisa responder quantos lotes falharam, quando, por quê e quanto
+tempo cada destino levou.
+
+[R] Pedido
+1. Acrescente a sql/004_observabilidade.sql o fato dw.fato_lote_ingestao
+   (grão: um lote, um manifesto) e a view materializada refreshable
+   dw.rmv_fato_lote_ingestao (REFRESH EVERY 1 MINUTE) que lê os
+   manifestos com s3(lake).
+2. Acrescente a view em janela dw.v_lotes_ultima_hora: lotes, lotes
+   com erro, linhas, p50 e p95 do flush, maior espera e último flush.
+3. Complete sql/005_consultas.sql: estrela (preço médio por categoria e
+   dia da semana), alertas com a velocidade do dia (join_use_nulls = 1),
+   tipo de cada view, EXPLAIN, estado das refreshable, as três views em
+   janela e os lotes com erro.
+4. Escreva docs/observabilidade.md com os números do grupo: lotes ok e
+   com erro, p50 e p95 do flush, médias de raw, bronze e ClickHouse,
+   maior espera e a reconciliação da telemetria (entrada = leituras +
+   alertas + descartes).
+
+[E] Exemplos
+Campos do manifesto: lote, data, status, mensagens, linhas,
+primeiro_recebido_em, flush_inicio, flush_fim,
+tempos_ms.raw, tempos_ms.bronze, tempos_ms.clickhouse, erro.
+espera_ms = de primeiro_recebido_em até flush_inicio
+flush_ms  = de flush_inicio até flush_fim
+
+[A] Ajustes
+- Credenciais do RustFS só na coleção lake (from_env). Nenhuma chave
+  em SQL.
+- O fato de lote é refreshable porque os manifestos estão fora do
+  ClickHouse: nenhum INSERT dispara uma view incremental.
+- Todo número em docs/ vem de uma consulta registrada com o comando.
+  Separe fato, lacuna e suposição.
+- Alvo de SLO sem medição: "hipótese do grupo".
+
+[T] Tipo de saída
+SQL comentado, a saída de sql/005_consultas.sql e docs/observabilidade.md
+com até 100 linhas.
+
+[E] Extras
+Leia AGENTS.md, specs/04_modelo_dimensional.md e docs/views.md. Mostre
+o plano, espere meu ok, escreva, rode, registre o prompt e pare.</code></pre>
+
+        <h3>9.1 Enquanto o agente trabalha: o processo também é um fato</h3>
+        <p>O modelo dimensional serve para descrever o negócio, e serve também para descrever o pipeline que entrega o negócio. Cada flush do servidor da Aula 04 é um evento com grão claro (um lote, um manifesto), medidas (mensagens, linhas, tempos em milissegundos) e atributos (status, erro, data). O manifesto já tem tudo isso, em JSON, no RustFS. O <code>fato_lote_ingestao</code> traz esses manifestos para dentro do ClickHouse, um por linha, e o processo de ingestão passa a ser consultado com o mesmo SQL que os fatos de livros e telemetria.</p>
+        <pre><code>CREATE MATERIALIZED VIEW IF NOT EXISTS dw.rmv_fato_lote_ingestao
+REFRESH EVERY 1 MINUTE
+TO dw.fato_lote_ingestao AS
+WITH parseDateTime64BestEffort(JSONExtractString(json, 'primeiro_recebido_em'), 3, 'America/Sao_Paulo') AS primeiro,
+     parseDateTime64BestEffort(JSONExtractString(json, 'flush_inicio'), 3, 'America/Sao_Paulo') AS inicio,
+     parseDateTime64BestEffort(JSONExtractString(json, 'flush_fim'), 3, 'America/Sao_Paulo') AS fim
+SELECT JSONExtractString(json, 'lote')                              AS lote,
+       toYYYYMMDD(toDate(JSONExtractString(json, 'data')))          AS data_key,
+       JSONExtractString(json, 'status')                            AS status,
+       JSONExtractUInt(json, 'mensagens')                           AS mensagens,
+       JSONExtractUInt(json, 'linhas')                              AS linhas,
+       primeiro                                                     AS primeiro_recebido_em,
+       inicio                                                       AS flush_inicio,
+       fim                                                          AS flush_fim,
+       dateDiff('millisecond', primeiro, inicio)                    AS espera_ms,
+       dateDiff('millisecond', inicio, fim)                         AS flush_ms,
+       JSONExtractFloat(json, 'tempos_ms', 'raw')                   AS raw_ms,
+       JSONExtractFloat(json, 'tempos_ms', 'bronze')                AS bronze_ms,
+       JSONExtractFloat(json, 'tempos_ms', 'clickhouse')            AS clickhouse_ms,
+       ifNull(JSONExtractString(json, 'erro'), '')                  AS erro,
+       _path                                                        AS arquivo_manifesto
+FROM s3(lake);</code></pre>
+        <p>O tipo de view decorre de onde a origem está. Os manifestos são objetos no RustFS, e gravar um objeto novo lá não é um <code>INSERT</code> no ClickHouse; uma view incremental nunca seria disparada. A refreshable relê todos os manifestos a cada minuto, pela coleção <code>lake</code>, e troca o fato inteiro. A coluna virtual <code>_path</code>, que a função <code>s3</code> oferece, guarda a chave do objeto de onde cada linha veio, e cada lote fica ligado ao arquivo do manifesto. Somada ao <code>arquivo</code> e ao <code>numero_linha</code> do fato de leitura, ela dá a rastreabilidade de ponta a ponta: de uma leitura ao TXT de origem, de um lote ao manifesto que o descreve. Reler tudo a cada minuto tem custo que cresce com o número de manifestos. A preparação não mediu a duração desse refresh com os 670 manifestos; o volume em que ele passa a pesar, e a alternativa de restringir o curinga às pastas dos dias recentes, ficam como hipótese para o grupo medir.</p>
+        <pre><code>CREATE OR REPLACE VIEW dw.v_lotes_ultima_hora AS
+SELECT count()                                    AS lotes,
+       countIf(status != 'ok')                    AS lotes_com_erro,
+       sum(linhas)                                AS linhas,
+       round(quantile(0.5)(flush_ms))             AS flush_p50_ms,
+       round(quantile(0.95)(flush_ms))            AS flush_p95_ms,
+       round(max(espera_ms))                      AS espera_max_ms,
+       max(flush_fim)                             AS ultimo_flush
+FROM dw.fato_lote_ingestao
+WHERE flush_inicio &gt;= now() - INTERVAL 1 HOUR;</code></pre>
+
+        <h3>9.2 Exemplo numérico: os lotes da preparação</h3>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Medida</th><th>Valor</th></tr></thead>
+          <tbody>
+            <tr><td>lotes</td><td>670, entre 11h50 e 12h14 de 31/10/2026</td></tr>
+            <tr><td>lotes <code>ok</code></td><td>668, somando 32.305 linhas</td></tr>
+            <tr><td>lotes <code>erro_clickhouse</code></td><td>2, com 48 linhas cada, às 12h03 e às 12h04</td></tr>
+            <tr><td>flush dos lotes <code>ok</code></td><td>p50 139 ms, p95 170 ms</td></tr>
+            <tr><td>médias por destino</td><td>raw 15 ms, bronze 24 ms, ClickHouse 103 ms</td></tr>
+            <tr><td>maior espera de uma mensagem</td><td>2.788 ms</td></tr>
+          </tbody>
+        </table></div>
+        <p>Medido na preparação, 31/10/2026. A soma das médias por destino dá 15 + 24 + 103 = 142 ms, na mesma ordem do p50 de 139 ms; média e mediana não se somam exatamente, e a decomposição fina não foi feita. O ClickHouse responde por 103 / 142 = 73% dessa soma, e a seção 6.2 explicou por que esse número inclui as views incrementais. A maior espera, 2.788 ms, passa dos 2 segundos de <code>FLUSH_SEGUNDOS</code> do <code>.env.example</code> da Aula 04: um lote esperou cerca de 0,8 s a mais que o relógio do micro-lote. A causa não foi investigada; uma hipótese é que o consumidor estava ocupado com o flush anterior ou reconectando depois do reinício do ClickHouse quando o relógio venceu.</p>
+
+        <h3>9.3 O caso dos dois lotes com <code>erro_clickhouse</code></h3>
+        <p>Durante a carga da preparação, o ClickHouse foi reiniciado. Dois lotes, às 12h03 e às 12h04 de 31/10/2026, com 48 linhas cada, gravaram raw e bronze, tentaram o <code>INSERT</code> e falharam. O manifesto de cada um registrou <code>"status": "erro_clickhouse"</code> e o texto do erro, um <code>OperationalError(... Connection aborted ... RemoteDisconnected ...)</code>, a conexão encerrada pelo servidor no meio da requisição. A consulta 9 do <code>005</code> mostra esses lotes:</p>
+        <pre><code>-- 9. Lotes com erro, em todo o histórico dos manifestos.
+SELECT flush_inicio, lote, status, linhas, erro
+FROM dw.fato_lote_ingestao
+WHERE status != 'ok'
+ORDER BY flush_inicio
+FORMAT Vertical;</code></pre>
+        <p>O resto da história está nos números. Sem ack, as 96 mensagens dos dois lotes voltaram pela fila e foram gravadas em lotes seguintes, com <code>status</code> <code>ok</code>. Os 668 lotes <code>ok</code> somam 32.305 linhas, exatamente as 32.305 de <code>db_ingestion</code>, o que indica que os <code>INSERT</code>s dos dois lotes com erro não chegaram a gravar nada antes de a conexão cair. Se tivessem gravado, a tabela de pouso teria 96 linhas a mais, o contador da Etapa 05 contaria essas linhas duas vezes, e os fatos, pelo <code>ReplacingMergeTree</code>, juntariam as cópias pela chave do grão, com a versão de maior <code>timestamp</code>. Em qualquer dos dois casos, o modelo continua certo quando lido com <code>FINAL</code>, e é essa a garantia que a entrega pelo menos uma vez exige do destino.</p>
+        <p>O caso fecha o ciclo com a questão 2 da discussão. A ordem atual (raw, bronze, ClickHouse, manifesto, ack) fez o que prometia: nenhuma linha se perdeu, o manifesto registrou a falha com o motivo, a fila segurou as mensagens e a reentrega as gravou. O custo também apareceu: os dois lotes deixaram no raw e no bronze arquivos que não correspondem a linhas do ClickHouse, e quem contar os arquivos do lake sem olhar o status do manifesto conta 96 linhas a mais. Com o fato de lote, a regra "conte só os lotes <code>ok</code>" vira uma cláusula <code>WHERE</code>.</p>
+
+        <h3>9.4 A reconciliação</h3>
+        <p>Duas igualdades conferem o pipeline de ponta a ponta. A primeira é a do processo: a soma das linhas dos lotes <code>ok</code> é igual ao <code>count()</code> de <code>db_ingestion</code> (32.305 na preparação). A segunda é a do modelo: as linhas de telemetria da tabela de pouso são iguais às leituras, mais os alertas, mais os descartes (31.265 = 28.800 + 69 + 2.396, seção 5.5). Se a primeira falha, o problema está entre o servidor e o ClickHouse: um lote <code>ok</code> que não gravou, ou um <code>INSERT</code> que gravou sem manifesto <code>ok</code>. Se a segunda falha, o problema está no parse das views. O <code>docs/observabilidade.md</code> registra as duas com os números do grupo e o comando que os gerou. Se o grupo reenviou dados na Etapa 05, a primeira igualdade continua valendo, porque os lotes do reenvio também têm manifesto, e a segunda passa a valer sobre a tabela de pouso com as cópias.</p>
+
+        <h3>9.5 Passos para rodar</h3>
+        <ol class="steps">
+          <li>Rode de novo o arquivo de observabilidade, agora com o fato de lote, a refreshable e <code>v_lotes_ultima_hora</code>. As instruções com <code>IF NOT EXISTS</code> e <code>CREATE OR REPLACE</code> não mexem no que já existe.</li>
+          <li>Espere um minuto, ou antecipe o primeiro refresh com <code>SYSTEM REFRESH VIEW dw.rmv_fato_lote_ingestao</code>, e confira em <code>system.view_refreshes</code> que ele terminou sem exceção.</li>
+          <li>Rode o <code>005</code> completo e confira cada consulta com as tabelas deste material.</li>
+          <li>Peça ao agente o <code>docs/observabilidade.md</code> com os números do grupo; confira que cada número tem o comando ao lado. Registre o prompt e faça o commit.</li>
+        </ol>
+        <pre><code>$CH &lt; sql/004_observabilidade.sql
+$CH -q "SYSTEM REFRESH VIEW dw.rmv_fato_lote_ingestao; SYSTEM WAIT VIEW dw.rmv_fato_lote_ingestao"
+$CH &lt; sql/005_consultas.sql</code></pre>
+
+        <h3>9.6 Pausa para reflexão</h3>
+        <p>Na questão 2 da discussão, a tática B gravava só o lake e carregava o ClickHouse a partir dos manifestos, num processo separado. O <code>fato_lote_ingestao</code> já lê os manifestos de dentro do ClickHouse, a cada minuto. O que faltaria para ele virar esse carregador? Pense no que o manifesto diz, no que o bronze guarda e no que aconteceria com o tempo até consultável.</p>
+
+        <h3>9.7 Pontos-chave</h3>
+        <ul>
+          <li>O processo de ingestão é um fato: um lote por linha, lido dos manifestos com <code>s3(lake)</code> por uma refreshable de um minuto.</li>
+          <li>Origem fora do ClickHouse não dispara view incremental; a refreshable relê e troca o fato inteiro.</li>
+          <li>Os dois lotes com <code>erro_clickhouse</code> da preparação voltaram pela fila e entraram em lotes <code>ok</code>; nada se perdeu, e os arquivos dos lotes com erro ficaram no lake.</li>
+          <li>Reconciliação: linhas dos lotes <code>ok</code> = linhas da tabela de pouso; telemetria = leituras + alertas + descartes.</li>
+        </ul>
+
+        <h3>9.8 Para saber mais</h3>
+        <ul>
+          <li>ClickHouse. <a href="https://clickhouse.com/docs/sql-reference/table-functions/s3" target="_blank" rel="noopener noreferrer">Função de tabela s3</a>: curingas, formatos e colunas virtuais como <code>_path</code>.</li>
+          <li>ClickHouse. <a href="https://clickhouse.com/docs/operations/named-collections" target="_blank" rel="noopener noreferrer">Named collections</a>: configuração, <code>from_env</code> e a permissão <code>named_collection_control</code>.</li>
+          <li>ClickHouse. <a href="https://clickhouse.com/docs/sql-reference/functions/json-functions" target="_blank" rel="noopener noreferrer">Funções JSON</a>: <code>JSONExtractString</code>, <code>JSONExtractUInt</code> e <code>JSONExtractFloat</code>.</li>
+        </ul>
+        <div class="note">
+          <strong>Revise antes de seguir</strong>
+          <p>O fato de lote tem grão de um lote e lê os manifestos só por <code>s3(lake)</code>, sem chave no SQL? A refreshable é de um minuto? O <code>docs/observabilidade.md</code> tem cada número com o comando que o gerou, e separa fato, lacuna e suposição? Gate: a consulta 5 lista as 14 views (8 incrementais, 3 refreshable e 3 comuns); a consulta 7 mostra as três refreshable sem exceção; a soma das linhas dos lotes <code>ok</code> é igual ao <code>count()</code> de <code>db_ingestion</code>; a consulta 9 lista os lotes com erro do grupo, ou nenhum, se não houve.</p>
+        </div>
+      </section>
+
+      <section class="content-block" id="s10">
+        <h2>10. Erros comuns</h2>
+        <p>Os erros abaixo apareceram na preparação ou são os mais prováveis de aparecer no agente. Cada um traz o sintoma e a correção.</p>
+        <ol>
+          <li>Ler fato sem <code>FINAL</code>. Depois de uma reentrega ou de uma segunda carga do histórico, as contagens dobram até o merge acontecer: 2.000 linhas para 1.000 livros na preparação. Leia fatos e dimensões com <code>FINAL</code>, ou agregue pela chave do grão.</li>
+          <li>Carregar o histórico antes de criar a view. As linhas que chegam entre a carga e a criação não entram em lugar nenhum. Crie a view primeiro; a sobreposição é absorvida pelo <code>ReplacingMergeTree</code>.</li>
+          <li>Conversão sem <code>OrZero</code> ou <code>OrNull</code> dentro da view. Um valor fora do tipo faz o <code>INSERT</code> do lote inteiro falhar na tabela de pouso, e o consumidor da Aula 04 entra em reentrega, com um manifesto <code>erro_clickhouse</code> a cada tentativa. O sintoma aparece na Etapa 06, como lotes com erro em sequência.</li>
+          <li>Ler um <code>SummingMergeTree</code> sem <code>sum()</code>. Antes do merge, o mesmo minuto tem várias linhas parciais, uma por bloco, e um <code>SELECT linhas</code> mostra só uma delas. A leitura soma de novo, com <code>GROUP BY</code>.</li>
+          <li>Carregar o histórico nos contadores. Uma carga repetida num <code>SummingMergeTree</code> soma duas vezes. Os contadores começam quando a view nasce.</li>
+          <li>Somar medida não aditiva. <code>sum(preco_gbp)</code> ou <code>sum(velocidade_kmh)</code> rodam sem erro e não significam nada. Use média, mínimo, máximo ou último valor; estoque soma entre livros e não entre dias.</li>
+          <li>Ler ausência como zero. No <code>LEFT JOIN</code>, a coluna sem correspondência recebe o valor padrão do tipo: velocidade 0 para um caminhão sem linha no relatório, como o CAM-4120 na preparação. Use <code>SETTINGS join_use_nulls = 1</code>.</li>
+          <li>Usar um relatório refreshable sem conferir o último refresh. Um refresh que roda antes do fim da carga publica o dia incompleto. Confira <code>last_success_time</code> em <code>system.view_refreshes</code> e, depois de uma carga atrasada, rode <code>SYSTEM REFRESH VIEW</code> e <code>SYSTEM WAIT VIEW</code>.</li>
+          <li><code>ASOF JOIN</code> só com a desigualdade. O ClickHouse exige ao menos uma coluna de igualdade; por isso o relatório cria <code>'GBP' AS moeda</code>.</li>
+          <li>Filtrar só <code>'Fechamento PTAX'</code>. Nos dados da aula, o último boletim veio como <code>Fechamento</code>; o relatório sai sem PTAX. Aceite os dois rótulos.</li>
+          <li><code>s3(lake)</code> recusado. Sem o <code>clickhouse/lake_acesso.xml</code> montado em <code>users.d/</code>, o usuário <code>ingestao</code> não tem <code>named_collection_control</code> e não pode usar a coleção. Sem as variáveis <code>S3_ACCESS_KEY</code> e <code>S3_SECRET_KEY</code> no ambiente do ClickHouse, o <code>from_env</code> não tem o que ler. Não resolva escrevendo as chaves no SQL.</li>
+          <li>View em janela vazia. Se nada chegou desde a criação dos contadores, as views não têm o que mostrar. Mande dado novo (seção 8.5). E lembre que um domínio parado some da view, em vez de aparecer com zero.</li>
+          <li>View materializada sem <code>TO</code>. A tabela interna <code>.inner</code> pertence à view, e um <code>DROP</code> da view apaga o dado. Use sempre o destino explícito.</li>
+          <li><code>WINDOW VIEW</code> ou <code>LIVE VIEW</code> propostas pelo agente. A primeira é experimental e a segunda está obsoleta; o <code>AGENTS.md</code> proíbe as duas. Peça uma view comum com <code>now() - INTERVAL</code>.</li>
+          <li>Ler a <code>dim_caminhao</code> sem <code>FINAL</code>. Antes do merge, há várias linhas por caminhão, uma por bloco, com mínimos e máximos parciais.</li>
+          <li><code>clickhouse-client --port 9000</code> no host. A 9000 do host é a API S3 do RustFS; a porta nativa do ClickHouse não é publicada. Use <code>docker compose exec clickhouse clickhouse-client</code>, como no atalho <code>CH</code>.</li>
+        </ol>
+      </section>
+
+      <section class="content-block" id="s11">
+        <h2>11. Fechamento, atividade em sala e entregável</h2>
+        <p>A construção vai das 9h40 às 12h00, no Codespace de cada pessoa, com Docker e o agente de código de sua preferência (Claude Code, Codex CLI, Gemini CLI, Cursor, Copilot ou outro). O professor conduz as etapas pela ordem deste material, e cada pessoa reproduz no repositório do próprio grupo, na pasta <code>aula_05_dimensional/</code>, com o <code>AGENTS.md</code> do laboratório. A teoria de cada etapa é explicada enquanto o agente trabalha. Os dez minutos finais conferem o que existe e o que fica para a semana.</p>
+        <p>Às 12h10, com todas as etapas feitas, o banco <code>dw</code> tem quatro fatos de negócio (<code>fato_preco_livro</code>, <code>fato_cotacao_ptax</code>, <code>fato_leitura_telemetria</code> e <code>fato_alerta_direcao</code>), um fato de processo (<code>fato_lote_ingestao</code>), três dimensões (<code>dim_data</code>, <code>dim_livro</code> e <code>dim_caminhao</code>), dois relatórios fechados, dois contadores por minuto e 14 views.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Em sala, até 12h10</th><th>Na semana, até a Aula 06 (14/11)</th></tr></thead>
+          <tbody>
+            <tr><td>Decisões da Aula 04: as três decisões individuais e as três decisões depois da discussão.</td><td>ADR-006, ADR-007 e ADR-008 em <code>docs/adr/</code>, com as decisões do grupo.</td></tr>
+            <tr><td>Etapa 00: pilha no ar com a coleção <code>lake</code>, tabela de pouso e manifestos visíveis, <code>docs/prompts.md</code> aberto.</td><td>As etapas que não couberam em sala, na ordem, com o registro em <code>docs/prompts.md</code>.</td></tr>
+            <tr><td>Etapas 01 e 02: <code>specs/04_modelo_dimensional.md</code>, <code>sql/001</code> e <code>002</code>, com o gate do teste do grão.</td><td><code>docs/views.md</code> completo, com o <code>EXPLAIN</code> e a lista das 14 views.</td></tr>
+            <tr><td>Etapas 03 e 04: <code>docs/views.md</code> iniciado e os dois relatórios publicados, conferidos em <code>system.view_refreshes</code>.</td><td><code>docs/observabilidade.md</code> com os números do grupo e a reconciliação.</td></tr>
+            <tr><td>Etapas 05 e 06, até onde o tempo permitir: contadores, views em janela e fato de lote.</td><td>A versão do grupo no Railway, se houver serviço livre no projeto.</td></tr>
+          </tbody>
+        </table></div>
+        <ol class="steps">
+          <li>Antes de cada prompt, confira que a etapa anterior passou no "Revise antes de seguir" e, quando houver, no gate.</li>
+          <li>Cole o prompt inteiro no agente, aprove o plano que ele mostrar e acompanhe a teoria enquanto ele escreve.</li>
+          <li>Revise o artefato com as perguntas da seção. Se algo estiver errado, peça a correção ao agente citando a regra do <code>AGENTS.md</code> que foi violada (grão, aditividade, <code>FINAL</code>, tipo de view, segredos).</li>
+          <li>Compare o SQL do agente com o de referência em <code>laboratorio/sql/</code> quando o resultado não bater com os números deste material. A diferença costuma estar no grão, num filtro ou na ordem das operações.</li>
+          <li>Confira que o agente registrou o prompt em <code>docs/prompts.md</code> e faça um commit por etapa, sem o <code>.env</code> (<code>git status --short</code>).</li>
+          <li>Se o grupo atrasar, priorize chegar à Etapa 04 com os relatórios publicados; as Etapas 05 e 06 podem seguir na semana, com o servidor da Aula 04 mandando dado novo.</li>
+        </ol>
+
+        <h3>11.1 A semana: documentação e Railway</h3>
+        <p>O <code>docs/views.md</code> fica completo quando lista as 14 views com o tipo de cada uma e traz o <code>EXPLAIN</code> de uma view comum. O <code>docs/observabilidade.md</code> registra os cinco sinais da seção 8.3 com os números do grupo, as duas igualdades da reconciliação e, se o grupo quiser escrever alvos, os alvos marcados como hipótese. No Railway, a versão do grupo sobe se houver serviço livre no projeto. O plano de teste dá crédito de US$ 5 por até 30 dias; depois, o plano Free custa US$ 1 por mês e permite até cinco serviços. O ClickHouse do grupo no Railway precisa dos dois arquivos XML da coleção e das variáveis <code>S3_ACCESS_KEY</code> e <code>S3_SECRET_KEY</code> do object storage do grupo, que entram como variáveis do serviço, nunca em arquivo versionado. O <code>AGENTS.md</code> pede autorização antes de qualquer comando que aponte para o Railway.</p>
+        <p>A Aula 06, em 14/11, trata de streaming com RabbitMQ e ClickHouse: volta à fila da Aula 04 e ao ClickHouse desta aula.</p>
+        <div class="note">
+          <strong>Entregável</strong>
+          <p>Pasta <code>aula_05_dimensional/</code> no repositório do grupo (o mesmo informado no formulário de grupo), contendo: <code>AGENTS.md</code>, <code>docker-compose.yml</code>, <code>clickhouse/lake.xml</code> e <code>clickhouse/lake_acesso.xml</code>; <code>specs/04_modelo_dimensional.md</code>; <code>sql/001_dimensoes_e_fatos.sql</code> a <code>sql/005_consultas.sql</code>; em <code>docs/</code>, <code>prompts.md</code>, <code>views.md</code> e <code>observabilidade.md</code>; e, da discussão, as ADR-006 a ADR-008 em <code>docs/adr/</code>.</p>
+        </div>
+        <p>Para encerrar o ambiente local sem perder os dados, <code>docker compose down</code>: os contêineres param e os volumes ficam, com a tabela de pouso da Aula 04 e o banco <code>dw</code>. O <code>docker compose down -v</code> apaga também os volumes, inclusive a tabela de pouso, e o agente pede autorização antes de rodá-lo. Como o nome de projeto é o da Aula 04, o mesmo vale para a pasta <code>aula_04_ingestao/</code>: um <code>down -v</code> em qualquer das duas apaga os dados das duas aulas.</p>
+      </section>
+
+      <section class="content-block" id="s12">
+        <h2>12. Referências</h2>
+        <ul>
+          <li><a href="../laboratorio/lesson-5/README.md">Roteiro do laboratório da Aula 05</a>: arquivos de apoio, comandos por etapa e as medições de 31/10/2026.</li>
+          <li><a href="../materials/lesson-4-material.html">Material da Aula 04</a>: o servidor de ingestão, a tabela de pouso e o manifesto.</li>
+          <li>Kimball, R.; Ross, M. The Data Warehouse Toolkit: The Definitive Guide to Dimensional Modeling. 3. ed. Wiley, 2013.</li>
+          <li><a href="https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/" target="_blank" rel="noopener noreferrer">Kimball Group: Dimensional Modeling Techniques</a>.</li>
+          <li><a href="https://clickhouse.com/docs/sql-reference/statements/create/view" target="_blank" rel="noopener noreferrer">ClickHouse: CREATE VIEW</a>, <a href="https://clickhouse.com/docs/materialized-view/incremental-materialized-view" target="_blank" rel="noopener noreferrer">view materializada incremental</a> e <a href="https://clickhouse.com/docs/materialized-view/refreshable-materialized-view" target="_blank" rel="noopener noreferrer">view materializada refreshable</a>.</li>
+          <li><a href="https://clickhouse.com/docs/engines/table-engines/mergetree-family/replacingmergetree" target="_blank" rel="noopener noreferrer">ClickHouse: ReplacingMergeTree</a>, <a href="https://clickhouse.com/docs/engines/table-engines/mergetree-family/summingmergetree" target="_blank" rel="noopener noreferrer">SummingMergeTree</a> e <a href="https://clickhouse.com/docs/engines/table-engines/mergetree-family/aggregatingmergetree" target="_blank" rel="noopener noreferrer">AggregatingMergeTree</a>.</li>
+          <li><a href="https://clickhouse.com/docs/sql-reference/statements/select/join" target="_blank" rel="noopener noreferrer">ClickHouse: JOIN</a> e <a href="https://clickhouse.com/docs/operations/settings/settings#join_use_nulls" target="_blank" rel="noopener noreferrer">join_use_nulls</a>.</li>
+          <li><a href="https://clickhouse.com/docs/operations/system-tables/view_refreshes" target="_blank" rel="noopener noreferrer">ClickHouse: system.view_refreshes</a> e <a href="https://clickhouse.com/docs/sql-reference/statements/system" target="_blank" rel="noopener noreferrer">comandos SYSTEM</a>.</li>
+          <li><a href="https://clickhouse.com/docs/sql-reference/statements/explain" target="_blank" rel="noopener noreferrer">ClickHouse: EXPLAIN</a>.</li>
+          <li><a href="https://clickhouse.com/docs/sql-reference/table-functions/s3" target="_blank" rel="noopener noreferrer">ClickHouse: função de tabela s3</a> e <a href="https://clickhouse.com/docs/operations/named-collections" target="_blank" rel="noopener noreferrer">named collections</a>.</li>
+          <li><a href="https://clickhouse.com/docs/sql-reference/functions/json-functions" target="_blank" rel="noopener noreferrer">ClickHouse: funções JSON</a> e <a href="https://clickhouse.com/docs/sql-reference/functions/type-conversion-functions" target="_blank" rel="noopener noreferrer">funções de conversão de tipo</a>.</li>
+          <li>Beyer, B. et al. <a href="https://sre.google/sre-book/monitoring-distributed-systems/" target="_blank" rel="noopener noreferrer">Site Reliability Engineering, capítulo 6: Monitoring Distributed Systems</a>. O'Reilly, 2016.</li>
+          <li>Nygard, M. <a href="https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions" target="_blank" rel="noopener noreferrer">Documenting Architecture Decisions</a>. Cognitect, 2011.</li>
+        </ul>
+        <p><a href="../slides/slide-lesson-5.html">Ver os slides da Aula 05</a> &middot; <a href="../laboratorio/lesson-5/README.md">Roteiro do laboratório</a> &middot; <a href="../../home-data-collection.html">Data Collection &amp; Storage</a> &middot; <a href="../../../index.html">Voltar ao início</a></p>
+      </section>
+
+    </article>
+  </main>
+<!-- encontro:pdf:start -->
+<button type="button" class="pdf-export-btn" data-encontro-data="2026-11-07" data-encontro-docente="Afonso" data-encontro-seq="02" title="Exportar esta página em PDF com o nome padronizado">📄 Exportar PDF</button>
+<script src="../../../js/encontro-pdf.js" defer></script>
+<!-- encontro:pdf:end -->
+<!-- semana:js:start -->
+<script src="../../../js/semana-ano.js" defer></script>
+<!-- semana:js:end -->
+</body>
+</html>

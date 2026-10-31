@@ -1,0 +1,2199 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗄️</text></svg>">
+  <title>Aula 05 · Modelagem Dimensional, Views e Observabilidade no ClickHouse</title>
+  <link href="../css/dc-slides.css" rel="stylesheet">
+  <style>
+    .agenda-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 12px; }
+    .agenda-3 .deck-card { padding: 16px 18px; font-size: 0.86em; }
+    .agenda-3 .deck-card ul { margin: 8px 0 0; padding-left: 18px; }
+    .entrega-4 { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+    @media (max-width: 900px) { .agenda-3, .entrega-4 { grid-template-columns: 1fr !important; } }
+
+    /* Construção em etapas: trilha, painel lateral e prompt rolável */
+    .etapa-shell { gap: 14px; padding-top: 30px; padding-bottom: 26px; }
+    .etapa-shell .deck-summary { max-width: 96ch; margin: 4px 0 0; }
+    .etapa-trilha { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; margin: 0 0 10px; padding: 0; list-style: none; font-family: var(--font-mono); font-size: 0.56em; font-weight: 700; letter-spacing: 0.04em; }
+    .etapa-trilha li { padding: 3px 0; text-align: center; border: 1px solid var(--deck-line); color: #a3a3a0; background: var(--deck-panel); }
+    .etapa-trilha li.is-done { color: var(--deck-muted); background: var(--deck-surface); }
+    .etapa-trilha li.is-current { color: var(--deck-panel); background: var(--deck-text); border-color: var(--deck-text); }
+    .etapa-grid { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.45fr); gap: 18px; align-items: start; }
+    .etapa-lado { display: flex; flex-direction: column; gap: 10px; font-size: 0.8em; line-height: 1.45; }
+    .etapa-item { padding: 12px 14px; border: 1px solid var(--deck-line); border-radius: 2px; background: var(--deck-panel); }
+    .etapa-item p { margin: 0; }
+    .etapa-item ul, .etapa-item ol { margin: 0; padding-left: 18px; }
+    .etapa-item li { margin-bottom: 4px; }
+    .etapa-gate { border-left: 3px solid var(--deck-text); background: var(--deck-surface); }
+    .etapa-rotulo { display: block; margin-bottom: 6px; font-size: 0.78em; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--deck-muted); }
+    .etapa-prompt { position: relative; min-width: 0; }
+    .etapa-prompt .etapa-rotulo { font-size: 0.62em; }
+    .etapa-copiar { position: absolute; top: 30px; right: 10px; z-index: 2; padding: 6px 10px !important; font-size: 0.55em !important; }
+    .etapa-copiar.is-ok { background: var(--deck-panel); color: var(--deck-text); }
+    .etapa-shell pre.etapa-pre { margin: 0; max-height: clamp(200px, calc(100vh - 420px), 560px); overflow: auto; padding: 26px 16px 14px !important; font-size: clamp(0.5em, 0.82vw, 0.66em) !important; line-height: 1.5 !important; }
+    .etapa-shell pre.etapa-pre-codigo { white-space: pre; font-size: clamp(0.5em, 0.86vw, 0.7em) !important; }
+    .etapa-pre .k { color: #ffffff; font-weight: 700; }
+    .fase { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 14px 14px 12px; border: 1px solid var(--deck-line); border-top: 3px solid var(--deck-text); background: var(--deck-panel); font-size: 0.74em; }
+    .fase h3 { margin: 0; font-size: 1.05em; }
+    .fase p { margin: 0; color: var(--deck-muted); line-height: 1.4; flex: 1; }
+    .fase-num { font-family: var(--font-mono); font-weight: 700; font-size: 0.85em; letter-spacing: 0.06em; color: var(--deck-muted); }
+    .tbl-fases { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+    .tbl-fases .fase { font-size: 0.78em; }
+    @media (max-height: 760px) {
+      .etapa-shell { gap: 10px; padding-top: 22px; padding-bottom: 16px; }
+      .etapa-shell .deck-title { font-size: 1.75em; }
+      .etapa-shell .deck-summary { font-size: 0.86em; }
+      .etapa-trilha { margin-bottom: 4px; }
+      .etapa-lado { font-size: 0.74em; gap: 8px; }
+      .etapa-item { padding: 9px 12px; }
+      .etapa-shell pre.etapa-pre { max-height: clamp(200px, calc(100vh - 392px), 560px); }
+      .etapa-shell pre.etapa-pre-codigo { font-size: 0.56em !important; }
+      .fase { padding: 10px 12px 10px; }
+    }
+    @media (max-width: 900px) {
+      .etapa-grid { grid-template-columns: 1fr; }
+      .tbl-fases { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .etapa-trilha { font-size: 0.45em; }
+    }
+  </style>
+  <style>
+    /* Slides de teoria */
+    .de-shell { gap: 14px; }
+    .de-shell .deck-summary { max-width: 96ch; margin: 6px 0 0; }
+    .de-shell .deck-note { margin: 0; font-size: 0.86em; }
+    .de-shell .deck-callout { padding: 12px 18px; }
+    .de-shell .deck-callout p { margin: 6px 0 0; }
+    .de-dois { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+    .de-dois-esq { grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr); }
+    .de-caixa { padding: 14px 16px; border: 1px solid var(--deck-line); border-radius: 2px; background: var(--deck-panel); font-size: 0.82em; line-height: 1.45; min-width: 0; }
+    .de-caixa.is-cinza { background: var(--deck-surface); }
+    .de-caixa.is-forte { border-left: 3px solid var(--deck-text); background: var(--deck-surface); }
+    .de-caixa p { margin: 0 0 6px; }
+    .de-caixa p:last-child { margin-bottom: 0; }
+    .de-caixa ul, .de-caixa ol { margin: 4px 0 0; padding-left: 18px; }
+    .de-caixa li { margin-bottom: 3px; }
+    .de-rotulo { display: block; margin-bottom: 6px; font-size: 0.78em; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--deck-muted); }
+    .de-shell pre.de-pre { margin: 6px 0 0; padding: 22px 14px 12px !important; font-size: clamp(0.5em, 0.8vw, 0.66em) !important; line-height: 1.5 !important; white-space: pre-wrap; overflow-wrap: anywhere; box-shadow: none; }
+    .de-shell pre.de-pre-largo { white-space: pre; overflow-x: auto; overflow-wrap: normal; }
+    .de-pre .c { color: var(--deck-code-dim); }
+    .de-svg { display: block; width: 100%; flex: 1 1 0; min-height: 150px; }
+    .de-svg.is-alto { min-height: 240px; }
+    .de-tres { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .de-quatro { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .de-tabela td, .de-tabela th { padding: 6px 10px !important; font-size: 0.82em !important; }
+    .de-tabela code { white-space: nowrap; }
+    .de-num td:not(:first-child), .de-num th:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+    .df-termos { display: grid; gap: 12px; }
+    .df-termos.df-c4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .df-termos.df-c3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .df-termo { padding: 14px 16px; border: 1px solid var(--deck-line); border-top: 3px solid var(--deck-text); border-radius: 2px; background: var(--deck-panel); }
+    .df-termo h3 { margin: 0 0 6px; font-size: 0.92em; }
+    .df-termo p { margin: 0 0 6px; font-size: 0.8em; line-height: 1.45; color: var(--deck-text); }
+    .df-termo p:last-child { margin-bottom: 0; }
+    .df-passo { display: block; margin-bottom: 4px; font-family: var(--font-mono); font-size: 0.72em; font-weight: 700; color: var(--deck-muted); }
+    /* rodapé com seis links: cabe numa linha a 1280 px */
+    @media (min-width: 901px) {
+      .slide-footer .footer-links { gap: 6px; }
+      .slide-footer .back-home, .slide-footer .material-link { padding: 7px 10px; }
+    }
+    @media (max-height: 760px) {
+      .de-shell { gap: 9px; padding-top: 24px; padding-bottom: 16px; }
+      .de-shell .deck-title { font-size: 1.8em; }
+      .de-shell .deck-summary { font-size: 0.86em; }
+      .de-caixa { padding: 10px 12px; font-size: 0.76em; }
+      .de-shell .deck-callout { padding: 8px 14px; font-size: 0.86em; }
+      .de-shell .deck-note { font-size: 0.78em; }
+      .de-shell .deck-table td, .de-shell .deck-table th { padding: 4px 8px !important; font-size: 0.76em !important; }
+      .de-shell pre.de-pre { font-size: 0.56em !important; padding: 18px 12px 8px !important; }
+      .de-svg.is-alto { min-height: 190px; }
+      .df-termo { padding: 10px 14px; }
+    }
+    @media (max-width: 900px) {
+      .de-dois, .de-dois-esq, .de-tres, .de-quatro, .df-termos.df-c4, .df-termos.df-c3 { grid-template-columns: 1fr; }
+    }
+
+    /* Café: cronômetro */
+    .cafe { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+    .cafe-relogio { width: 100%; max-width: 760px; padding: 18px 0; border: 2px solid var(--deck-text); border-radius: 2px; background: var(--deck-panel); color: var(--deck-text); font-family: var(--font-mono); font-size: clamp(4.5em, 13vw, 9.5em); font-weight: 700; line-height: 1; text-align: center; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+    .cafe-relogio.is-fim { background: var(--deck-text); color: var(--deck-panel); }
+    .cafe-estado { margin: 0; font-family: var(--font-mono); font-size: 0.9em; color: var(--deck-muted); min-height: 1.4em; }
+    .cafe-relogio.is-fim + .cafe-estado { color: var(--deck-text); font-weight: 700; }
+    .cafe-botoes { display: flex; gap: 12px; justify-content: center; }
+    .cafe-botao { min-width: 150px; padding: 10px 22px; border: 2px solid var(--deck-text); border-radius: 2px; background: var(--deck-text); color: var(--deck-panel); font: 600 0.82em/1 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; }
+    .cafe-botao.is-sec { background: var(--deck-panel); color: var(--deck-text); }
+    .cafe-botao:disabled { opacity: 0.35; cursor: default; }
+  </style>
+
+<!-- encontro:css:start -->
+<link rel="stylesheet" href="../../../css/encontro.css">
+<!-- encontro:css:end -->
+
+<!-- semana:css:start -->
+<link rel="stylesheet" href="../../../css/semana-ano.css">
+<!-- semana:css:end -->
+</head>
+<body>
+  <div class="slide-container">
+
+    <!-- Capa -->
+    <div class="slide">
+      <div class="deck-shell" data-aula-number="05" data-year="2026">
+        <div>
+          <img class="deck-logo-full" src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli">
+          <span class="deck-kicker">Data Collection and Storage &middot; Inteli</span>
+          <h1 class="deck-title">Modelagem Dimensional, Views e Observabilidade no ClickHouse</h1>
+          <p class="deck-meta">Aula 05 &nbsp;&bull;&nbsp; 07/11/2026 &nbsp;&bull;&nbsp; 8h30 &ndash; 12h10</p>
+          <p class="deck-year">2026</p>
+          <p class="deck-subtitle">O modelo dimensional de livros, PTAX e telemetria montado no próprio ClickHouse, sobre a tabela de pouso da Aula 04, com relatórios fechados e a observabilidade do processo de ingestão. Seis etapas.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Agenda -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Agenda</span>
+          <h2 class="deck-title">Decisões da Aula 04 e seis etapas no ClickHouse</h2>
+          <p class="deck-summary">Formato da Aula 04: o prompt vai para o agente de código e, enquanto ele trabalha, os slides seguintes explicam o que o prompt pediu. O professor constrói ao vivo e a turma reproduz na pasta <code>aula_05_dimensional/</code>.</p>
+        </div>
+        <div class="deck-grid agenda-3">
+          <article class="deck-card">
+            <h3>8h30 &ndash; 9h40 &middot; Retomada e decisões</h3>
+            <ul>
+              <li>8h30: retomada da Aula 04, tabela de pouso, manifesto e ack</li>
+              <li>8h40: discussão de três decisões da Aula 04</li>
+              <li>9h20: café</li>
+            </ul>
+          </article>
+          <article class="deck-card">
+            <h3>9h40 &ndash; 10h50 &middot; Modelo e views</h3>
+            <ul>
+              <li>9h40: Etapa 01, o grão de cada fato</li>
+              <li>10h00: Etapa 02, dimensões, fatos e views materializadas incrementais</li>
+              <li>10h30: Etapa 03, o que é uma view no ClickHouse</li>
+            </ul>
+          </article>
+          <article class="deck-card">
+            <h3>10h50 &ndash; 12h10 &middot; Relatórios e observabilidade</h3>
+            <ul>
+              <li>10h50: Etapa 04, relatórios fechados com refreshable</li>
+              <li>11h15: Etapa 05, observabilidade corrente com views em janela</li>
+              <li>11h35: Etapa 06, do manifesto ao descarte</li>
+              <li>12h00: fechamento</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <!-- Retomada: tabela de pouso -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">8h30 &middot; Retomada da Aula 04</span>
+          <h2 class="deck-title">A tabela de pouso de três colunas</h2>
+          <p class="deck-summary">Tudo o que chegou pelo servidor de ingestão está em <code>ingestao.db_ingestion</code>. A tabela não conhece os campos de cada domínio: o dado inteiro mora em <code>data_json</code>, no tipo JSON, e o domínio em <code>data_tag</code>. O modelo de hoje é construído em cima dela, sem mudar uma linha.</p>
+        </div>
+        <div class="de-dois de-dois-esq">
+          <div class="de-caixa">
+            <span class="de-rotulo"><code>sql/000_db_ingestion.sql</code></span>
+            <pre class="de-pre de-pre-largo"><code>CREATE TABLE IF NOT EXISTS ingestao.db_ingestion
+(
+    timestamp UInt64,                  -- unix em milissegundos, hora da ingestão (dada pelo servidor)
+    data_json JSON,                    -- o dado recebido, no tipo JSON: cada caminho vira subcoluna tipada
+    data_tag  LowCardinality(String)   -- o domínio: telemetria, livros, ptax
+)
+ENGINE = MergeTree
+PARTITION BY toYYYYMM(fromUnixTimestamp64Milli(toInt64(timestamp)))
+ORDER BY (data_tag, timestamp);</code></pre>
+          </div>
+          <div class="de-caixa is-cinza">
+            <span class="de-rotulo">Na preparação, 31/10/2026</span>
+            <table class="deck-table de-tabela de-num">
+              <thead><tr><th><code>data_tag</code></th><th>Linhas</th></tr></thead>
+              <tbody>
+                <tr><td>livros</td><td>1.000</td></tr>
+                <tr><td>ptax</td><td>40</td></tr>
+                <tr><td>telemetria</td><td>31.265</td></tr>
+                <tr><td>total</td><td>32.305</td></tr>
+              </tbody>
+            </table>
+            <p style="margin-top:8px;">Carga completa do <code>dados_aula_04.zip</code> pelo servidor da Aula 04: livros por HTTP, PTAX e telemetria pela fila, 1.465 s de envio.</p>
+          </div>
+        </div>
+        <p class="deck-note">Datas e horas ficaram como texto dentro do JSON, porque o consumidor insere com <code>input_format_try_infer_datetimes = 0</code>. Por isso as views de hoje convertem com <code>parseDateTime</code> e o fuso <code>America/Sao_Paulo</code>.</p>
+      </div>
+    </div>
+
+    <!-- Retomada: manifesto e ack -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Retomada da Aula 04 &middot; Flush</span>
+          <h2 class="deck-title">Um manifesto por lote e o ack no fim</h2>
+          <p class="deck-summary">No flush, o consumidor grava raw e bronze no RustFS, insere no ClickHouse, grava o manifesto com o resultado do lote e só então confirma as mensagens na fila. Sem ack, as mensagens voltam a ser entregues: a entrega é pelo menos uma vez.</p>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa">
+            <span class="de-rotulo">Ordem do flush</span>
+            <ol>
+              <li>raw no RustFS, os envelopes como chegaram</li>
+              <li>bronze no RustFS, em Parquet</li>
+              <li>INSERT em <code>ingestao.db_ingestion</code></li>
+              <li>manifesto do lote em <code>raw/_manifestos/ingestao/</code></li>
+              <li>ack das mensagens do lote</li>
+            </ol>
+          </div>
+          <div class="de-caixa">
+            <span class="de-rotulo">Campos do manifesto lidos hoje</span>
+            <p><code>lote</code>, <code>data</code>, <code>status</code>, <code>mensagens</code>, <code>linhas</code>, <code>primeiro_recebido_em</code>, <code>flush_inicio</code>, <code>flush_fim</code>, <code>tempos_ms</code> (<code>raw</code>, <code>bronze</code>, <code>clickhouse</code>) e <code>erro</code>.</p>
+            <p>Ficou para a semana na Aula 04: as Etapas 07 a 10, o <code>docs/atam.md</code> e os serviços no Railway. Para hoje basta a tabela de pouso com dados.</p>
+          </div>
+        </div>
+        <div class="deck-callout"><strong>Duas consequências para hoje</strong><p>A mesma linha pode chegar duas vezes à tabela de pouso, o que pede fatos que juntem cópias (Etapa 02). E cada lote deixa um registro de como foi gravado, que vira o fato de lote da Etapa 06.</p></div>
+      </div>
+    </div>
+
+    <!-- Retomada: o que vem hoje -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Retomada &middot; O que vem hoje</span>
+          <h2 class="deck-title">O modelo sobre a tabela de pouso</h2>
+          <p class="deck-summary">Nada sai do ClickHouse. Views materializadas incrementais alimentam dimensões, fatos e contadores a cada INSERT; refreshable publicam os relatórios fechados e releem os manifestos; views comuns com janela de tempo mostram o estado corrente.</p>
+        </div>
+        <svg class="de-svg is-alto" viewBox="0 0 1000 400" role="img" aria-label="ingestao.db_ingestion alimenta, por views materializadas incrementais, as dimensões e os fatos e os contadores por minuto; os fatos alimentam os relatórios fechados por refreshable diária; os contadores alimentam as views em janela; os manifestos no RustFS alimentam o fato de lote por refreshable a cada minuto, lido pela view de lotes da última hora" font-family="Inter, Helvetica, Arial, sans-serif">
+          <defs><marker id="hoje-s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#0f0f0f"/></marker></defs>
+          <g stroke="#0f0f0f" stroke-width="2">
+            <rect x="10" y="120" width="210" height="90" fill="#0f0f0f"/>
+            <rect x="10" y="300" width="210" height="80" fill="#f2f2ee"/>
+            <rect x="330" y="30" width="270" height="110" fill="#ffffff"/>
+            <rect x="330" y="180" width="270" height="80" fill="#ffffff"/>
+            <rect x="330" y="300" width="270" height="80" fill="#ffffff"/>
+            <rect x="710" y="30" width="280" height="110" fill="#f2f2ee"/>
+            <rect x="710" y="180" width="280" height="200" fill="#f2f2ee"/>
+          </g>
+          <g text-anchor="middle" font-size="16" fill="#0f0f0f">
+            <text x="115" y="158" font-weight="700" fill="#ffffff" font-family="JetBrains Mono, monospace" font-size="15">db_ingestion</text>
+            <text x="115" y="184" font-size="13" fill="#ffffff">tabela de pouso, Aula 04</text>
+            <text x="115" y="334" font-weight="700">manifestos no RustFS</text>
+            <text x="115" y="358" font-size="13" font-family="JetBrains Mono, monospace">raw/_manifestos/</text>
+            <text x="465" y="62" font-weight="700">dimensões e fatos</text>
+            <text x="465" y="88" font-size="13" font-family="JetBrains Mono, monospace">dim_data, dim_livro, dim_caminhao</text>
+            <text x="465" y="110" font-size="13" font-family="JetBrains Mono, monospace">4 fatos de negócio</text>
+            <text x="465" y="212" font-weight="700">contadores por minuto</text>
+            <text x="465" y="238" font-size="13" font-family="JetBrains Mono, monospace">obs_*_minuto</text>
+            <text x="465" y="332" font-weight="700">fato de lote</text>
+            <text x="465" y="358" font-size="13" font-family="JetBrains Mono, monospace">fato_lote_ingestao</text>
+            <text x="850" y="62" font-weight="700">relatórios fechados</text>
+            <text x="850" y="88" font-size="13" font-family="JetBrains Mono, monospace">rel_preco_categoria_dia</text>
+            <text x="850" y="110" font-size="13" font-family="JetBrains Mono, monospace">rel_telemetria_caminhao_dia</text>
+            <text x="850" y="212" font-weight="700">views em janela</text>
+            <text x="850" y="240" font-size="13" font-family="JetBrains Mono, monospace">v_saude_ingestao_15min</text>
+            <text x="850" y="262" font-size="13" font-family="JetBrains Mono, monospace">v_descartes_telemetria_1h</text>
+            <text x="850" y="284" font-size="13" font-family="JetBrains Mono, monospace">v_lotes_ultima_hora</text>
+            <text x="850" y="330" font-size="13" fill="#5c5c5c">rodam o SELECT a cada leitura,</text>
+            <text x="850" y="350" font-size="13" fill="#5c5c5c">com now() - INTERVAL</text>
+          </g>
+          <g stroke="#0f0f0f" stroke-width="2" marker-end="url(#hoje-s)">
+            <line x1="220" y1="150" x2="328" y2="90"/>
+            <line x1="220" y1="180" x2="328" y2="220"/>
+            <line x1="220" y1="340" x2="328" y2="340"/>
+            <line x1="600" y1="85" x2="708" y2="85"/>
+            <line x1="600" y1="220" x2="708" y2="235"/>
+            <line x1="600" y1="340" x2="708" y2="285"/>
+          </g>
+          <g font-size="13" fill="#0f0f0f">
+            <text x="226" y="110">MV incremental</text>
+            <text x="230" y="222">MV incremental</text>
+            <text x="232" y="330">s3(lake), a cada minuto</text>
+            <text x="608" y="76">REFRESH diário</text>
+            <text x="612" y="214">VIEW</text>
+            <text x="612" y="330">VIEW</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Etapa 00 -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell" data-etapa="00">
+        <div>
+          <span class="deck-kicker">8h35 &middot; Etapa 00 &middot; Preparação</span>
+          <h2 class="deck-title">Compose da Aula 05 com a coleção <code>lake</code></h2>
+          <p class="deck-summary">A pilha é a da Aula 04, com duas mudanças no ClickHouse: a coleção nomeada <code>lake</code> e as chaves S3 no ambiente dele. O projeto continua se chamando <code>aula04_ingestao</code>, então os volumes e os dados da Aula 04 são os mesmos.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item"><span class="etapa-rotulo">Artefatos</span><p><code>docker-compose.yml</code> com a coleção <code>lake</code>, <code>clickhouse/lake.xml</code>, <code>clickhouse/lake_acesso.xml</code>, <code>docs/prompts.md</code></p></div>
+            <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Gate</span><ul><li>RustFS, RabbitMQ e ClickHouse <code>(healthy)</code></li><li><code>db_ingestion</code> com linhas nos três domínios; na preparação, 1.000, 40 e 31.265</li><li><code>SELECT count() FROM s3(lake)</code> devolve o número de manifestos, um por lote</li></ul></div>
+            <div class="etapa-item"><span class="etapa-rotulo">Tabela vazia?</span><p>Suba o servidor de ingestão da Aula 04 e rode <code>python enviar_entrada.py</code> lá. As views das etapas seguintes recebem as linhas enquanto elas chegam.</p></div>
+          </div>
+          <div class="etapa-prompt">
+            <span class="etapa-rotulo">Terminal do Codespace</span>
+            <button class="copy-button etapa-copiar" type="button">Copiar</button>
+            <pre class="etapa-pre etapa-pre-codigo"><code>mkdir -p aula_05_dimensional/{clickhouse,docs,specs,sql}
+# copie para aula_05_dimensional/ do laboratório: docker-compose.yml, .env.example,
+# AGENTS.md, clickhouse/lake.xml, clickhouse/lake_acesso.xml e sql/000_db_ingestion.sql
+cd aula_05_dimensional
+cp ../aula_04_ingestao/.env .env          # ou: cp .env.example .env
+printf '.env\n' &gt;&gt; .gitignore
+git check-ignore .env                     # deve imprimir: .env
+printf '# Registro de prompts\n' &gt; docs/prompts.md
+
+docker compose up -d
+docker compose up -d --wait rustfs rabbitmq clickhouse
+set -a; . ./.env; set +a
+CH="docker compose exec -T clickhouse clickhouse-client --user $CLICKHOUSE_USER --password $CLICKHOUSE_PASSWORD --multiquery"
+$CH -q "SELECT data_tag, count() FROM ingestao.db_ingestion GROUP BY data_tag"
+$CH -q "SELECT count() FROM s3(lake)"     # manifestos que o ClickHouse enxerga no RustFS
+echo "@AGENTS.md" &gt; CLAUDE.md             # só no Claude Code</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Coleção nomeada -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 00 &middot; Teoria &middot; Configuração</span>
+          <h2 class="deck-title">A coleção nomeada <code>lake</code></h2>
+          <p class="deck-summary">Uma coleção nomeada guarda URL, chaves e formato de uma fonte externa na configuração do servidor. A consulta escreve só <code>s3(lake)</code>, e as chaves vêm das variáveis do contêiner, nunca de um arquivo versionado nem do texto do SQL.</p>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa">
+            <span class="de-rotulo"><code>clickhouse/lake.xml</code>, em <code>config.d/</code></span>
+            <pre class="de-pre de-pre-largo"><code>&lt;clickhouse&gt;
+    &lt;named_collections&gt;
+        &lt;lake&gt;
+            &lt;url&gt;http://rustfs:9000/raw/_manifestos/ingestao/*/*.json&lt;/url&gt;
+            &lt;access_key_id from_env="S3_ACCESS_KEY"/&gt;
+            &lt;secret_access_key from_env="S3_SECRET_KEY"/&gt;
+            &lt;format&gt;JSONAsString&lt;/format&gt;
+        &lt;/lake&gt;
+    &lt;/named_collections&gt;
+&lt;/clickhouse&gt;</code></pre>
+          </div>
+          <div class="de-caixa">
+            <span class="de-rotulo"><code>clickhouse/lake_acesso.xml</code>, em <code>users.d/</code></span>
+            <pre class="de-pre de-pre-largo"><code>&lt;clickhouse&gt;
+    &lt;users&gt;
+        &lt;ingestao&gt;
+            &lt;named_collection_control&gt;1&lt;/named_collection_control&gt;
+        &lt;/ingestao&gt;
+    &lt;/users&gt;
+&lt;/clickhouse&gt;</code></pre>
+            <p style="margin-top:8px;">Sem essa permissão, o usuário <code>ingestao</code> não usa coleções nomeadas. O nome do usuário é o <code>CLICKHOUSE_USER</code> do <code>.env</code>.</p>
+          </div>
+        </div>
+        <div class="de-tres">
+          <div class="de-caixa"><span class="de-rotulo"><code>url</code> com curinga</span><p>Um manifesto por lote, numa pasta por dia. O <code>*/*.json</code> lê todos de uma vez.</p></div>
+          <div class="de-caixa"><span class="de-rotulo"><code>from_env</code></span><p>O compose passa <code>S3_ACCESS_KEY</code> e <code>S3_SECRET_KEY</code> ao ClickHouse; o XML lê do ambiente.</p></div>
+          <div class="de-caixa"><span class="de-rotulo"><code>JSONAsString</code></span><p>Cada arquivo vira uma linha com uma coluna <code>json</code>, que a Etapa 06 lê com <code>JSONExtract</code>.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TBL caso -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Discussão &middot; Caso</span>
+          <h2 class="deck-title">O caso e as três questões</h2>
+          <p class="deck-summary">O caso é o servidor que a turma montou na Aula 04, com os números medidos na preparação: fila durável, flush por N ou T, raw e bronze antes do ClickHouse, manifesto depois dele, ack no fim e a tabela de três colunas.</p>
+        </div>
+        <div class="de-tres">
+          <div class="de-caixa is-forte"><span class="de-rotulo">Questão 1</span><p>Contrato e mudança de payload.</p></div>
+          <div class="de-caixa is-forte"><span class="de-rotulo">Questão 2</span><p>Ordem dos destinos e falha do ClickHouse.</p></div>
+          <div class="de-caixa is-forte"><span class="de-rotulo">Questão 3</span><p>Forma da tabela para consulta.</p></div>
+        </div>
+        <p class="deck-note">Cada grupo decide sozinho, discute com a turma e registra a decisão como ADR.</p>
+      </div>
+    </div>
+
+    <!-- Café -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">9h20 &middot; Intervalo</span>
+          <h2 class="deck-title">Café, 20 minutos</h2>
+          <p class="deck-summary">Voltamos às 9h40 com a Etapa 01. Deixe o compose no ar: todas as etapas usam o mesmo ClickHouse.</p>
+        </div>
+        <div class="cafe">
+          <div class="cafe-relogio" id="cafe-relogio" role="timer">20:00</div>
+          <p class="cafe-estado" id="cafe-estado" aria-live="polite">Pronto para começar.</p>
+          <div class="cafe-botoes">
+            <button type="button" class="cafe-botao" id="cafe-iniciar" tabindex="-1">Iniciar</button>
+            <button type="button" class="cafe-botao is-sec" id="cafe-reiniciar" tabindex="-1">Reiniciar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Etapa 01 -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell" data-etapa="01">
+        <div>
+          <span class="deck-kicker">9h40 &middot; Etapa 01 &middot; Grão</span>
+          <h2 class="deck-title">O grão de cada fato, antes do DDL</h2>
+          <p class="deck-summary">O primeiro artefato é um documento. Para cada processo de negócio, o grupo escreve o que é uma linha do fato, a chave que garante isso e se cada medida pode ser somada.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item"><span class="etapa-rotulo">Artefato</span><p><code>specs/04_modelo_dimensional.md</code></p></div>
+            <div class="etapa-item"><span class="etapa-rotulo">Teoria desta etapa</span><ol><li>Os quatro passos de Kimball</li><li>Cinco fatos e o grão de cada um</li><li>Aditiva, semiaditiva e não aditiva</li><li>Dois eventos no mesmo arquivo</li><li>Três dimensões</li></ol></div>
+          </div>
+          <div class="etapa-prompt">
+            <span class="etapa-rotulo">Prompt CREATE</span>
+            <button class="copy-button etapa-copiar" type="button">Copiar</button>
+            <pre class="is-wrap etapa-pre"><code><span class="k">[C] Personagem</span>
+Você é modelador dimensional. Lê a tabela de pouso da Aula 04 e
+declara o grão de cada fato antes de qualquer DDL. Não escreve SQL
+de criação nesta etapa.
+
+<span class="k">[R] Pedido</span>
+Crie specs/04_modelo_dimensional.md com uma seção por processo de
+negócio: coleta de preço de livro, boletim PTAX, posição do caminhão,
+alerta do tacógrafo e flush do servidor de ingestão. Em cada uma:
+1. o processo;
+2. o grão em uma frase, começando por "uma linha é";
+3. a chave do grão;
+4. as dimensões;
+5. as medidas, cada uma classificada como aditiva, semiaditiva ou
+   não aditiva, com a agregação permitida.
+Depois, as dimensões dim_data, dim_livro e dim_caminhao, com grão,
+chave e tipo de SCD.
+
+<span class="k">[E] Exemplos</span>
+## fato_preco_livro
+- Processo: coleta de preço.
+- Grão: uma linha é um livro num dia de coleta.
+- Chave do grão: data_key, upc.
+- Medidas: preco_gbp (não aditiva: média, mínimo, máximo);
+  qtd_estoque (semiaditiva: soma entre livros, não entre dias).
+
+Linhas de telemetria como chegam em data_json.linha:
+CAM-0451|29/10/26 06:00:55|-23.6965,-46.7802|VEL 083|...
+CAM-0451 29-10-2026 06:05:55 GPS -23.6527 -46.7452 v=86
+TAC;CAM-3126;20261029T180000;DIRECAO CONTINUA 05:35;ALERTA
+
+<span class="k">[A] Ajustes</span>
+- Antes de escrever, consulte a tabela: contagem por data_tag e uma
+  amostra de data_json de cada domínio.
+- Leitura de posição e alerta do tacógrafo vêm do mesmo arquivo e são
+  fatos separados. Linhas ERR SAT e #RADIO não viram fato.
+- tipo_boletim da PTAX é dimensão degenerada, fica no fato.
+- dim_data é gerada, chave AAAAMMDD; livro e caminhão são SCD tipo 1.
+- Para cada fato, escreva o teste do grão: com FINAL, count() igual a
+  uniqExact(chave do grão).
+- Valor sem origem: "hipótese".
+
+<span class="k">[T] Tipo de saída</span>
+Markdown com até 120 linhas: uma tabela "fato | processo | grão |
+chave do grão | medidas" e uma seção por fato e por dimensão.
+
+<span class="k">[E] Extras</span>
+Leia AGENTS.md. Mostre o plano, espere meu ok, escreva, registre o
+prompt em docs/prompts.md e pare.</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kimball -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 01 &middot; Teoria &middot; Método</span>
+          <h2 class="deck-title">Os quatro passos de Kimball</h2>
+          <p class="deck-summary">O método de Kimball fixa a ordem das decisões. O grão vem antes das dimensões e das medidas, porque é ele que diz quais dimensões cabem numa linha e quais medidas fazem sentido nela.</p>
+        </div>
+        <div class="df-termos df-c4">
+          <article class="df-termo"><span class="df-passo">1</span><h3>Processo de negócio</h3><p>Um evento que a empresa mede: coletar preço, publicar boletim, registrar posição.</p></article>
+          <article class="df-termo"><span class="df-passo">2</span><h3>Grão</h3><p>Uma frase que começa por "uma linha é". Sem ela, ninguém sabe se duas linhas iguais são erro ou dois eventos.</p></article>
+          <article class="df-termo"><span class="df-passo">3</span><h3>Dimensões</h3><p>O contexto de cada linha: quando, qual livro, qual caminhão. Só entra dimensão que tenha um valor por linha do grão.</p></article>
+          <article class="df-termo"><span class="df-passo">4</span><h3>Fatos e medidas</h3><p>Os números do evento: preço, estoque, velocidade, tempos. Cada medida tem uma regra de agregação.</p></article>
+        </div>
+        <div class="deck-callout"><strong>Por que o grão vem antes</strong><p>Com o grão "um livro num dia de coleta", a chave é <code>data_key</code> e <code>upc</code>, e duas linhas com a mesma chave são cópia. A mesma tabela sem grão declarado aceitaria as duas, e a média de preço passaria a contar o livro duas vezes.</p></div>
+      </div>
+    </div>
+
+    <!-- Cinco fatos -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 01 &middot; Teoria &middot; Modelo</span>
+          <h2 class="deck-title">Cinco fatos e o grão de cada um</h2>
+          <p class="deck-summary">Quatro fatos descrevem o negócio e um descreve o próprio pipeline. A chave do grão é também o <code>ORDER BY</code> da tabela na Etapa 02.</p>
+        </div>
+        <table class="deck-table de-tabela">
+          <thead><tr><th>Fato</th><th>Processo</th><th>Grão: uma linha é...</th><th>Chave do grão</th><th>Medidas</th></tr></thead>
+          <tbody>
+            <tr><td><code>fato_preco_livro</code></td><td>coleta de preço</td><td>um livro num dia de coleta</td><td><code>data_key</code>, <code>upc</code></td><td><code>preco_gbp</code>, <code>qtd_estoque</code>, <code>em_estoque</code></td></tr>
+            <tr><td><code>fato_cotacao_ptax</code></td><td>boletim do BCB</td><td>um boletim PTAX</td><td><code>moeda</code>, <code>data_hora</code>, <code>tipo_boletim</code></td><td><code>cotacao_compra</code>, <code>cotacao_venda</code></td></tr>
+            <tr><td><code>fato_leitura_telemetria</code></td><td>posição do caminhão</td><td>uma leitura de um caminhão num instante</td><td><code>caminhao</code>, <code>instante</code></td><td>latitude, longitude, <code>velocidade_kmh</code>, formato</td></tr>
+            <tr><td><code>fato_alerta_direcao</code></td><td>alerta do tacógrafo</td><td>um alerta de direção contínua de um caminhão num instante</td><td><code>caminhao</code>, <code>instante</code></td><td><code>direcao_continua_min</code></td></tr>
+            <tr><td><code>fato_lote_ingestao</code></td><td>flush do servidor</td><td>um lote gravado pelo servidor (um manifesto)</td><td><code>lote</code></td><td>status, mensagens, linhas, espera, flush, raw, bronze, ClickHouse, erro</td></tr>
+          </tbody>
+        </table>
+        <p class="deck-note"><code>tipo_boletim</code> é dimensão degenerada: identifica o boletim, mas não tem atributos que justifiquem uma tabela própria, e fica no fato.</p>
+      </div>
+    </div>
+
+    <!-- Aditividade -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 01 &middot; Teoria &middot; Medidas</span>
+          <h2 class="deck-title">Aditiva, semiaditiva e não aditiva</h2>
+          <p class="deck-summary">A classificação diz em que dimensões a medida pode ser somada. Ela decide a função de agregação de cada relatório da Etapa 04 e de cada contador da Etapa 05.</p>
+        </div>
+        <div class="df-termos df-c3">
+          <article class="df-termo"><h3>Aditiva</h3><p>Soma em qualquer dimensão.</p><p>No laboratório: a contagem de leituras e as <code>linhas</code> dos contadores por minuto e dos lotes. Somar minutos dá a hora; somar domínios dá o total.</p></article>
+          <article class="df-termo"><h3>Semiaditiva</h3><p>Soma em algumas dimensões e não em outras.</p><p><code>qtd_estoque</code> soma entre livros num mesmo dia, o que dá o estoque do dia. Somar o mesmo livro em dois dias conta o mesmo exemplar duas vezes; entre dias, usa-se o último valor ou a média.</p></article>
+          <article class="df-termo"><h3>Não aditiva</h3><p>Nunca soma.</p><p><code>preco_gbp</code>, <code>cotacao_venda</code>, <code>velocidade_kmh</code> e <code>direcao_continua_min</code>. Agregam por média, mínimo, máximo ou último valor, como o <code>avg</code> e o <code>max</code> dos relatórios.</p></article>
+        </div>
+        <div class="deck-callout"><strong>Verificação</strong><p>Para cada medida do spec, a pergunta é: "somar esta coluna entre dias, entre livros ou entre caminhões dá um número que significa alguma coisa?" Se a resposta muda com a dimensão, a medida é semiaditiva.</p></div>
+      </div>
+    </div>
+
+    <!-- Dois eventos no mesmo arquivo -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 01 &middot; Teoria &middot; Erro clássico</span>
+          <h2 class="deck-title">Dois eventos no mesmo arquivo de telemetria</h2>
+          <p class="deck-summary">A posição do caminhão e o alerta do tacógrafo chegam no mesmo arquivo, mas são eventos diferentes. Misturar os dois numa tabela mistura grãos: <code>count()</code> deixa de ser o número de leituras e cada consulta precisa de um filtro por tipo de linha.</p>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa">
+            <span class="de-rotulo">Linhas de <code>data_json.linha</code></span>
+            <pre class="de-pre de-pre-largo"><code>CAM-0451|29/10/26 06:00:55|-23.6965,-46.7802|VEL 083|...
+CAM-0451 29-10-2026 06:05:55 GPS -23.6527 -46.7452 v=86
+TAC;CAM-3126;20261029T180000;DIRECAO CONTINUA 05:35;ALERTA</code></pre>
+            <p style="margin-top:8px;">As duas primeiras são leituras de posição em dois formatos. A terceira é um alerta: não tem posição nem velocidade, e o <code>05:35</code> vira 335 minutos ao volante.</p>
+          </div>
+          <div class="de-caixa is-cinza">
+            <span class="de-rotulo">Destino das 31.265 linhas na preparação</span>
+            <table class="deck-table de-tabela de-num">
+              <thead><tr><th>Linha</th><th>Linhas</th><th>Vai para</th></tr></thead>
+              <tbody>
+                <tr><td>leitura, formato barra</td><td>22.432</td><td style="text-align:left"><code>fato_leitura_telemetria</code></td></tr>
+                <tr><td>leitura, formato espaço</td><td>6.368</td><td style="text-align:left"><code>fato_leitura_telemetria</code></td></tr>
+                <tr><td>alerta <code>TAC;</code></td><td>69</td><td style="text-align:left"><code>fato_alerta_direcao</code></td></tr>
+                <tr><td>descarte <code>#RADIO</code></td><td>1.464</td><td style="text-align:left">contador de descarte</td></tr>
+                <tr><td>descarte <code>ERR SAT</code></td><td>932</td><td style="text-align:left">contador de descarte</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <p class="deck-note">As leituras somam 28.800 linhas no fato. O ruído não vira fato, mas é contado: é a medida de qualidade da Etapa 05.</p>
+      </div>
+    </div>
+
+    <!-- Dimensões -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 01 &middot; Teoria &middot; Dimensões</span>
+          <h2 class="deck-title">Três dimensões e de onde cada uma vem</h2>
+          <p class="deck-summary">Cada dimensão tem o próprio grão e o próprio jeito de ser alimentada. Nenhuma delas tem histórico de mudança: livro e caminhão são SCD tipo 1, e fica a versão mais recente.</p>
+        </div>
+        <div class="df-termos df-c3">
+          <article class="df-termo"><h3><code>dim_data</code> &middot; um dia</h3><p>Gerada, não vem da fonte: 731 dias a partir de 2026-01-01, chave AAAAMMDD (<code>20261030</code>), com <code>nome_dia</code> e <code>fim_semana</code>.</p><p>Na preparação, 731 linhas.</p></article>
+          <article class="df-termo"><h3><code>dim_livro</code> &middot; um livro</h3><p>Chave <code>upc</code>, com título, categoria, URL e avaliação. <code>ReplacingMergeTree(versao_ms)</code>: uma coleta mais nova substitui a anterior.</p><p>Na preparação, 1.000 linhas.</p></article>
+          <article class="df-termo"><h3><code>dim_caminhao</code> &middot; um caminhão</h3><p>Só a chave e a primeira e a última leitura, em <code>AggregatingMergeTree</code> com <code>SimpleAggregateFunction(min)</code> e <code>(max)</code>. Alimentada em cascata pelo fato de leitura.</p><p>Na preparação, 20 linhas.</p></article>
+        </div>
+        <div class="deck-callout"><strong>A chave AAAAMMDD</strong><p>Um inteiro como <code>20261030</code> ordena como a data, é legível na consulta e liga qualquer fato à <code>dim_data</code> sem conversão. O fato guarda <code>data_key</code>; nome do dia e fim de semana vêm do JOIN.</p></div>
+      </div>
+    </div>
+
+    <!-- Revise 01 -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 01 &middot; Revisão</span>
+          <h2 class="deck-title">Revise antes de seguir: Etapa 01</h2>
+          <p class="deck-summary">O spec é a referência de todo DDL das próximas etapas. Um erro de grão aqui aparece depois como linha duplicada no fato.</p>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa">
+            <span class="de-rotulo">Revise antes de seguir</span>
+            <ul>
+              <li>Cada um dos cinco fatos tem o grão numa frase que começa por "uma linha é"?</li>
+              <li>A chave do grão identifica uma linha só, sem depender de coluna de versão?</li>
+              <li>Toda medida tem classificação e a agregação permitida?</li>
+              <li>Leitura e alerta estão em fatos separados, e o ruído fora dos dois?</li>
+              <li><code>tipo_boletim</code> ficou no fato?</li>
+            </ul>
+          </div>
+          <div class="de-caixa is-forte">
+            <span class="de-rotulo">Gate</span>
+            <p><code>specs/04_modelo_dimensional.md</code> existe, com o grão dos cinco fatos e o teste do grão de cada um.</p>
+            <p>O <code>AGENTS.md</code> proíbe DDL antes disso. O prompt da etapa está, literal, em <code>docs/prompts.md</code>.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Etapa 02 -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell" data-etapa="02">
+        <div>
+          <span class="deck-kicker">10h00 &middot; Etapa 02 &middot; DDL</span>
+          <h2 class="deck-title">Dimensões, fatos e views incrementais</h2>
+          <p class="deck-summary">O spec vira DDL no banco <code>dw</code>. Cada fato ganha uma view materializada que lê a tabela de pouso a cada INSERT, e o que já estava na tabela entra por uma carga do histórico.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item"><span class="etapa-rotulo">Artefatos</span><p><code>sql/001_dimensoes_e_fatos.sql</code>, <code>sql/002_carga_historico.sql</code></p></div>
+            <div class="etapa-item"><span class="etapa-rotulo">Teoria desta etapa</span><ol><li><code>ReplacingMergeTree</code> e <code>FINAL</code></li><li>Uma view materializada por fato</li><li>Telemetria em dois formatos</li><li>A carga do histórico</li><li>O teste do grão medido</li></ol></div>
+          </div>
+          <div class="etapa-prompt">
+            <span class="etapa-rotulo">Prompt CREATE</span>
+            <button class="copy-button etapa-copiar" type="button">Copiar</button>
+            <pre class="is-wrap etapa-pre"><code><span class="k">[C] Personagem</span>
+Você é engenheiro de dados e escreve DDL de ClickHouse. Transforma o
+specs/04_modelo_dimensional.md revisado em tabelas e views
+materializadas no banco dw, sem alterar a tabela de pouso.
+
+<span class="k">[R] Pedido</span>
+Crie dois arquivos:
+1. sql/001_dimensoes_e_fatos.sql: banco dw; dim_data gerada (chave
+   AAAAMMDD, 731 dias desde 2026-01-01, com nome_dia e fim_semana, e
+   uma carga que só roda uma vez); dim_livro; dim_caminhao; os quatro
+   fatos de negócio do spec; uma view materializada dw.mv_&lt;destino&gt;
+   TO dw.&lt;destino&gt; para cada fato e para dim_livro, lendo
+   ingestao.db_ingestion; dim_caminhao alimentada em cascata pelo
+   fato de leitura (dw.mv_dim_caminhao).
+2. sql/002_carga_historico.sql: as linhas que já estavam em
+   db_ingestion, com INSERT ... SELECT usando o mesmo SELECT de cada
+   view.
+Rode os dois e mostre o teste do grão e o destino de cada linha de
+telemetria.
+
+<span class="k">[E] Exemplos</span>
+CREATE MATERIALIZED VIEW IF NOT EXISTS dw.mv_fato_cotacao_ptax TO dw.fato_cotacao_ptax AS
+SELECT toYYYYMMDD(data_hora)                                    AS data_key,
+       data_json.moeda::String                                  AS moeda,
+       ...
+       timestamp                                                AS versao_ms
+FROM ingestao.db_ingestion
+WHERE data_tag = 'ptax';
+
+<span class="k">[A] Ajustes</span>
+- Fatos e dim_livro em ReplacingMergeTree(versao_ms), com versao_ms =
+  timestamp da tabela de pouso e ORDER BY igual à chave do grão.
+- dim_caminhao em AggregatingMergeTree, com
+  SimpleAggregateFunction(min) e (max) na primeira e na última leitura.
+- Campos com data_json.caminho::Tipo; conversões com OrZero ou OrNull.
+- Datas e horas em America/Sao_Paulo.
+- Telemetria nos dois formatos de linha do spec; leitura e alerta
+  guardam arquivo e numero_linha da origem; "DIRECAO CONTINUA 05:35"
+  vira 335 minutos; ERR SAT e #RADIO não entram em fato.
+- IF NOT EXISTS em tudo. O 002 pode rodar duas vezes sem mudar o
+  resultado lido com FINAL.
+- Nenhum comando sobre db_ingestion além de SELECT.
+
+<span class="k">[T] Tipo de saída</span>
+Dois arquivos SQL comentados, executáveis com clickhouse-client
+--multiquery, e uma tabela "fato | sem FINAL | com FINAL | chaves do
+grão" no terminal e em docs/prompts.md.
+
+<span class="k">[E] Extras</span>
+Leia AGENTS.md e specs/04_modelo_dimensional.md. Mostre o plano,
+espere meu ok, escreva, rode, registre o prompt e pare.</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ReplacingMergeTree -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 02 &middot; Teoria &middot; Mecanismo</span>
+          <h2 class="deck-title"><code>ReplacingMergeTree</code> e a leitura com <code>FINAL</code></h2>
+          <p class="deck-summary">A Aula 04 entrega pelo menos uma vez: uma reentrega grava a mesma linha de novo, com outro <code>timestamp</code>. No fato, as duas cópias têm a mesma chave de ordenação. O <code>ReplacingMergeTree</code> guarda uma só, a de maior <code>versao_ms</code>, mas faz isso no merge, em segundo plano.</p>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa">
+            <span class="de-rotulo">Trecho de <code>sql/001_dimensoes_e_fatos.sql</code></span>
+            <pre class="de-pre de-pre-largo"><code>CREATE TABLE IF NOT EXISTS dw.fato_preco_livro
+(
+    data_key     UInt32,
+    upc          String,
+    preco_gbp    Decimal(10, 2),
+    qtd_estoque  UInt32,
+    em_estoque   Bool,
+    coletado_em  DateTime('America/Sao_Paulo'),
+    versao_ms    UInt64
+)
+ENGINE = ReplacingMergeTree(versao_ms)    -- reentrega e nova coleta no mesmo dia: fica a mais recente
+ORDER BY (data_key, upc);</code></pre>
+          </div>
+          <div class="de-caixa is-cinza">
+            <span class="de-rotulo">Medido na preparação</span>
+            <p>Depois de rodar a carga do histórico duas vezes:</p>
+            <table class="deck-table de-tabela de-num">
+              <thead><tr><th>Fato</th><th>Sem <code>FINAL</code></th><th>Com <code>FINAL</code></th></tr></thead>
+              <tbody>
+                <tr><td><code>fato_preco_livro</code></td><td>2.000</td><td>1.000</td></tr>
+                <tr><td><code>fato_cotacao_ptax</code></td><td>80</td><td>40</td></tr>
+              </tbody>
+            </table>
+            <p style="margin-top:8px;">Até o merge acontecer, as cópias aparecem. O <code>FINAL</code> faz a junção na hora da leitura, com custo de leitura maior.</p>
+          </div>
+        </div>
+        <div class="deck-callout"><strong>Regra do <code>AGENTS.md</code></strong><p>Leitura de fato e de dimensão usa <code>FINAL</code>. A chave do <code>ORDER BY</code> é a chave do grão: é por ela que o motor reconhece duas linhas como cópias.</p></div>
+      </div>
+    </div>
+
+    <!-- Uma MV por fato -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 02 &middot; Teoria &middot; Código</span>
+          <h2 class="deck-title">Uma view materializada por fato</h2>
+          <p class="deck-summary">A view materializada lê a tabela de pouso, filtra o domínio, tipa os campos do JSON e grava na tabela do fato, nomeada no <code>TO</code>. O SELECT é o mesmo que se escreveria numa consulta comum.</p>
+        </div>
+        <div class="de-dois de-dois-esq">
+          <div class="de-caixa">
+            <span class="de-rotulo">Trecho de <code>sql/001_dimensoes_e_fatos.sql</code></span>
+            <pre class="de-pre de-pre-largo"><code>CREATE MATERIALIZED VIEW IF NOT EXISTS dw.mv_fato_cotacao_ptax TO dw.fato_cotacao_ptax AS
+SELECT toYYYYMMDD(data_hora)                                    AS data_key,
+       data_json.moeda::String                                  AS moeda,
+       parseDateTime64BestEffort(data_json.dataHoraCotacao::String, 3, 'America/Sao_Paulo') AS data_hora,
+       data_json.tipoBoletim::String                            AS tipo_boletim,
+       toDecimal64OrZero(data_json.cotacaoCompra::String, 5)    AS cotacao_compra,
+       toDecimal64OrZero(data_json.cotacaoVenda::String, 5)     AS cotacao_venda,
+       timestamp                                                AS versao_ms
+FROM ingestao.db_ingestion
+WHERE data_tag = 'ptax';</code></pre>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;min-width:0;">
+            <div class="de-caixa"><span class="de-rotulo"><code>data_json.caminho::Tipo</code></span><p>Lê a subcoluna do tipo JSON e converte para o tipo pedido. A data chega como texto e é convertida no fuso de Brasília.</p></div>
+            <div class="de-caixa"><span class="de-rotulo"><code>timestamp AS versao_ms</code></span><p>A hora da ingestão vira a versão: numa reentrega, a cópia mais nova vence o merge.</p></div>
+            <div class="de-caixa"><span class="de-rotulo">Seis views no <code>001</code></span><p><code>mv_dim_livro</code>, quatro <code>mv_fato_*</code> e <code>mv_dim_caminhao</code>, esta lendo o fato de leitura.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Telemetria em dois formatos -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 02 &middot; Teoria &middot; Parse</span>
+          <h2 class="deck-title">Telemetria em dois formatos de linha</h2>
+          <p class="deck-summary">A view de leitura reconhece o formato por expressão regular, extrai instante, posição e velocidade com <code>extract</code> e descarta o que não for leitura. Todas as conversões usam <code>OrZero</code> ou <code>OrNull</code>.</p>
+        </div>
+        <div class="de-caixa">
+          <span class="de-rotulo">Trecho de <code>dw.mv_fato_leitura_telemetria</code></span>
+          <pre class="de-pre de-pre-largo"><code>WITH data_json.linha::String AS linha,
+     match(linha, '^CAM-[0-9]{4}\\|')                AS barra,
+     match(linha, '^CAM-[0-9]{4} [0-9]{2}-[0-9]{2}-') AS espaco,
+     if(barra,
+        parseDateTimeOrNull(extract(linha, '\\|([0-9/]+ [0-9:]+)\\|'), '%d/%m/%y %H:%i:%s', 'America/Sao_Paulo'),
+        parseDateTimeOrNull(extract(linha, ' ([0-9-]+ [0-9:]+) GPS'), '%d-%m-%Y %H:%i:%s', 'America/Sao_Paulo')) AS inst
+SELECT ...
+       toUInt16OrZero(if(barra, extract(linha, 'VEL ([0-9]+)'), extract(linha, 'v=([0-9]+)'))) AS velocidade_kmh,
+       if(barra, 'barra', 'espaco')                             AS formato,
+       data_json.arquivo::String                                AS arquivo,
+       toUInt32OrZero(data_json.numero_linha::String)           AS numero_linha,
+       timestamp                                                AS versao_ms
+FROM ingestao.db_ingestion
+WHERE data_tag = 'telemetria' AND (barra OR espaco) AND inst IS NOT NULL;</code></pre>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa is-forte"><span class="de-rotulo">Por que <code>OrZero</code> e <code>OrNull</code></span><p>Um erro de conversão dentro da view faz falhar o INSERT do lote inteiro na tabela de pouso. O consumidor da Aula 04 não dá ack, o lote volta pela fila e falha de novo na reentrega.</p></div>
+          <div class="de-caixa"><span class="de-rotulo">Rastreabilidade</span><p><code>arquivo</code> e <code>numero_linha</code> levam cada leitura de volta à linha do TXT de origem. O alerta guarda os mesmos dois campos.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Carga do histórico -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 02 &middot; Teoria &middot; Histórico</span>
+          <h2 class="deck-title">A view não vê o que já estava na tabela</h2>
+          <p class="deck-summary">A view materializada só processa blocos inseridos depois que ela existe. As 32.305 linhas da Aula 04 já estavam lá, então o <code>002</code> as carrega com <code>INSERT ... SELECT</code>, usando exatamente o SELECT de cada view.</p>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa">
+            <span class="de-rotulo">Trecho de <code>sql/002_carga_historico.sql</code></span>
+            <pre class="de-pre de-pre-largo"><code>-- mesmo SELECT de dw.mv_fato_cotacao_ptax
+INSERT INTO dw.fato_cotacao_ptax
+SELECT toYYYYMMDD(data_hora)                                    AS data_key,
+       ...
+FROM ingestao.db_ingestion
+WHERE data_tag = 'ptax';
+
+-- dim_caminhao sai do fato já carregado
+INSERT INTO dw.dim_caminhao
+SELECT caminhao, min(instante), max(instante) FROM dw.fato_leitura_telemetria GROUP BY caminhao;</code></pre>
+          </div>
+          <div class="de-caixa">
+            <span class="de-rotulo">Por que a ordem é view primeiro, carga depois</span>
+            <ol>
+              <li>O <code>001</code> cria as views: a partir daí, todo bloco novo passa por elas.</li>
+              <li>O <code>002</code> relê a tabela inteira, inclusive os blocos que já passaram pelas views.</li>
+              <li>Esses blocos ficam duas vezes no fato, com a mesma chave e a mesma versão, e o <code>FINAL</code> mostra uma.</li>
+            </ol>
+            <p style="margin-top:8px;">Na ordem inversa, as linhas que chegassem entre a carga e a criação da view ficariam fora do fato.</p>
+          </div>
+        </div>
+        <p class="deck-note">A carga é idempotente por causa dos destinos: <code>ReplacingMergeTree</code> nos fatos e em <code>dim_livro</code>, e <code>min</code> e <code>max</code> em <code>dim_caminhao</code>, que não mudam com a repetição.</p>
+      </div>
+    </div>
+
+    <!-- Teste do grão medido -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 02 &middot; Teoria &middot; Exemplo numérico</span>
+          <h2 class="deck-title">O teste do grão na preparação</h2>
+          <p class="deck-summary">Com <code>FINAL</code>, o número de linhas de cada fato tem de ser igual ao número de combinações distintas da chave do grão. Se for maior, a tabela tem duas linhas para o mesmo fato e o grão declarado está errado.</p>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa">
+            <span class="de-rotulo">Consulta 1 de <code>sql/005_consultas.sql</code> (trecho)</span>
+            <pre class="de-pre de-pre-largo"><code>SELECT 'fato_preco_livro' AS fato,
+       (SELECT count() FROM dw.fato_preco_livro)                                    AS linhas_sem_final,
+       (SELECT count() FROM dw.fato_preco_livro FINAL)                              AS linhas_final,
+       (SELECT uniqExact(data_key, upc) FROM dw.fato_preco_livro)                   AS chaves_do_grao
+UNION ALL
+...</code></pre>
+          </div>
+          <div class="de-caixa is-cinza">
+            <span class="de-rotulo">Com <code>FINAL</code> = chaves do grão</span>
+            <table class="deck-table de-tabela de-num">
+              <thead><tr><th>Tabela</th><th>Linhas</th></tr></thead>
+              <tbody>
+                <tr><td><code>fato_preco_livro</code></td><td>1.000</td></tr>
+                <tr><td><code>fato_cotacao_ptax</code></td><td>40</td></tr>
+                <tr><td><code>fato_leitura_telemetria</code></td><td>28.800</td></tr>
+                <tr><td><code>fato_alerta_direcao</code></td><td>69</td></tr>
+                <tr><td><code>dim_livro</code></td><td>1.000</td></tr>
+                <tr><td><code>dim_caminhao</code></td><td>20</td></tr>
+                <tr><td><code>dim_data</code></td><td>731</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <p class="deck-note">Os 1.000 livros da tabela de pouso viram 1.000 linhas de preço; as 22.432 leituras no formato barra e as 6.368 no formato espaço somam as 28.800 leituras.</p>
+      </div>
+    </div>
+
+    <!-- Revise 02 -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 02 &middot; Revisão</span>
+          <h2 class="deck-title">Revise antes de seguir: Etapa 02</h2>
+          <p class="deck-summary">As views das próximas etapas leem estes fatos. Uma conversão errada aqui contamina os relatórios e os contadores.</p>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa">
+            <span class="de-rotulo">Revise antes de seguir</span>
+            <ul>
+              <li>O <code>ORDER BY</code> de cada fato é a chave do grão do spec?</li>
+              <li>Toda conversão dentro de view usa <code>OrZero</code> ou <code>OrNull</code>?</li>
+              <li>O <code>002</code> usa o mesmo SELECT de cada view, sem diferença de coluna?</li>
+              <li>Rodar o <code>002</code> de novo muda alguma contagem lida com <code>FINAL</code>?</li>
+              <li><code>db_ingestion</code> só recebeu SELECT?</li>
+            </ul>
+          </div>
+          <div class="de-caixa is-forte">
+            <span class="de-rotulo">Gate</span>
+            <p>Consulta 1 do <code>005</code>: em todos os fatos, linhas com <code>FINAL</code> iguais às chaves do grão.</p>
+            <p>Consulta 2 do <code>005</code>: a soma dos destinos da telemetria é igual às linhas de telemetria da tabela de pouso (31.265 na preparação).</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Etapa 03 -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell" data-etapa="03">
+        <div>
+          <span class="deck-kicker">10h30 &middot; Etapa 03 &middot; Views</span>
+          <h2 class="deck-title">O que é uma view e como ela funciona</h2>
+          <p class="deck-summary">O banco terá três objetos com nome de view e comportamentos diferentes. O grupo documenta cada um com evidência tirada do próprio banco, antes de usar os outros dois nas Etapas 04 e 05.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item"><span class="etapa-rotulo">Artefato</span><p><code>docs/views.md</code></p></div>
+            <div class="etapa-item"><span class="etapa-rotulo">Teoria desta etapa</span><ol><li>Três objetos chamados view</li><li>VIEW comum</li><li>MV incremental: o caminho do INSERT</li><li>MV incremental: consequências</li><li>MV refreshable</li><li>Quadro comparativo</li><li>Janela, WINDOW VIEW e as 14 views</li></ol></div>
+          </div>
+          <div class="etapa-prompt">
+            <span class="etapa-rotulo">Prompt CREATE</span>
+            <button class="copy-button etapa-copiar" type="button">Copiar</button>
+            <pre class="is-wrap etapa-pre"><code><span class="k">[C] Personagem</span>
+Você é engenheiro de dados e explica ao time como o ClickHouse executa
+cada tipo de view. Escreve documentação com evidência tirada do banco,
+sem criar objeto novo.
+
+<span class="k">[R] Pedido</span>
+Crie docs/views.md com uma seção para VIEW, uma para MATERIALIZED
+VIEW ... TO (incremental) e uma para MATERIALIZED VIEW ... REFRESH
+(refreshable). Em cada seção:
+1. o que fica guardado no banco;
+2. quando o SELECT roda e sobre quais linhas;
+3. um exemplo do banco dw ou do laboratório;
+4. duas consequências práticas para o grupo.
+Termine com um quadro comparativo e com a lista das views do banco
+dw lida de system.tables, com o tipo de cada uma.
+
+<span class="k">[E] Exemplos</span>
+SELECT name, engine
+FROM system.tables
+WHERE database = 'dw' AND engine LIKE '%View%'
+ORDER BY engine, name
+
+EXPLAIN SELECT * FROM dw.v_saude_ingestao_15min;
+
+<span class="k">[A] Ajustes</span>
+- Mostre a saída real de cada consulta; nenhuma saída inventada.
+- Nesta etapa só existem as views materializadas incrementais do 001.
+  A seção do EXPLAIN fica marcada como pendente e é preenchida depois
+  da Etapa 05, quando dw.v_saude_ingestao_15min existir.
+- Explique por que a view incremental não vê o histórico, nem UPDATE,
+  DELETE ou merge da origem, e por que agrega por bloco.
+- Cite WINDOW VIEW (experimental, allow_experimental_window_view) e
+  LIVE VIEW (obsoleta) e diga por que ficam fora.
+- Nenhum CREATE, DROP ou INSERT nesta etapa.
+
+<span class="k">[T] Tipo de saída</span>
+Markdown com até 150 linhas, um quadro "objeto | guarda dado? | quando
+roda | sobre o quê | atualidade | custo | uso no grupo" e um diagrama
+Mermaid do INSERT passando pela view incremental.
+
+<span class="k">[E] Extras</span>
+Leia AGENTS.md. Mostre o plano, espere meu ok, escreva, registre o
+prompt em docs/prompts.md e pare.</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Três objetos -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 03 &middot; Teoria &middot; Visão geral</span>
+          <h2 class="deck-title">Três objetos chamados view</h2>
+          <p class="deck-summary">Os três se criam com um SELECT. O que muda é o que o banco guarda, quando o SELECT roda e sobre quais linhas. Essas três respostas decidem a atualidade do resultado e onde o custo é pago.</p>
+        </div>
+        <table class="deck-table de-tabela">
+          <thead><tr><th>Objeto</th><th>Guarda dado?</th><th>Quando o SELECT roda</th><th>Sobre o quê</th><th>Uso nesta aula</th></tr></thead>
+          <tbody>
+            <tr><td><code>VIEW</code></td><td>não, guarda a consulta</td><td>a cada leitura da view</td><td>as tabelas inteiras, no estado do momento</td><td>observabilidade corrente</td></tr>
+            <tr><td><code>MATERIALIZED VIEW ... TO</code></td><td>sim, na tabela de destino</td><td>a cada INSERT na tabela de origem</td><td>só o bloco recém-inserido</td><td>dimensões e fatos</td></tr>
+            <tr><td><code>MATERIALIZED VIEW ... REFRESH</code></td><td>sim, na tabela de destino</td><td>no horário do <code>REFRESH</code></td><td>as tabelas inteiras; troca o conteúdo de uma vez</td><td>relatórios fechados</td></tr>
+          </tbody>
+        </table>
+        <div class="de-tres">
+          <div class="de-caixa"><span class="de-rotulo">VIEW</span><p>Um nome para um SELECT. Ler a view é rodar o SELECT.</p></div>
+          <div class="de-caixa"><span class="de-rotulo">Incremental</span><p>Um gatilho de INSERT. Cada bloco que entra na origem passa pelo SELECT e o resultado vai para o destino.</p></div>
+          <div class="de-caixa"><span class="de-rotulo">Refreshable</span><p>Uma tarefa agendada. No horário, o SELECT roda inteiro e substitui o conteúdo do destino.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW comum -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 03 &middot; Teoria &middot; VIEW</span>
+          <h2 class="deck-title">VIEW comum: o banco guarda a consulta</h2>
+          <p class="deck-summary">O <code>CREATE VIEW</code> grava só o texto do SELECT nos metadados. Quando alguém lê a view, o ClickHouse troca o nome dela pelo SELECT guardado e roda a consulta inteira sobre as tabelas de origem. Nada é gravado em disco.</p>
+        </div>
+        <div class="de-dois de-dois-esq">
+          <div class="de-caixa">
+            <span class="de-rotulo">Exemplo: trecho de <code>sql/004_observabilidade.sql</code></span>
+            <pre class="de-pre de-pre-largo"><code>CREATE OR REPLACE VIEW dw.v_saude_ingestao_15min AS
+SELECT data_tag,
+       sum(linhas)                                AS linhas_15min,
+       max(minuto)                                AS ultimo_minuto_com_dado,
+       dateDiff('second', max(minuto), now())     AS segundos_desde_ultimo_minuto
+FROM dw.obs_ingestao_minuto
+WHERE minuto &gt;= now() - INTERVAL 15 MINUTE
+GROUP BY data_tag;</code></pre>
+            <p style="margin-top:8px;"><code>EXPLAIN SELECT * FROM dw.v_saude_ingestao_15min</code> mostra um <code>ReadFromMergeTree (dw.obs_ingestao_minuto)</code>, com o filtro da janela em <code>PREWHERE</code>. Não existe tabela atrás da view: o plano é o do SELECT dela.</p>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;min-width:0;">
+            <div class="de-caixa"><span class="de-rotulo">Mecanismo</span><ol><li><code>SELECT * FROM dw.v_saude_ingestao_15min</code></li><li>o nome é substituído pelo SELECT guardado</li><li>o motor lê <code>obs_ingestao_minuto</code> agora</li></ol></div>
+            <div class="de-caixa is-forte"><span class="de-rotulo">Consequências</span><ul><li>Resultado sempre atual.</li><li>Custo pago em cada leitura.</li><li><code>now()</code> é avaliado a cada leitura, então a janela anda com o relógio.</li></ul></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MV incremental: mecanismo -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 03 &middot; Teoria &middot; MV incremental</span>
+          <h2 class="deck-title">View incremental: o caminho de um INSERT</h2>
+          <p class="deck-summary">A view materializada incremental funciona como um gatilho de INSERT. A cada bloco inserido na origem, o ClickHouse roda o SELECT da view só sobre aquele bloco e insere o resultado na tabela do <code>TO</code>. O dado mora numa tabela comum, com <code>ORDER BY</code> e engine próprios.</p>
+        </div>
+        <svg class="de-svg is-alto" viewBox="0 0 1200 330" role="img" aria-label="O consumidor da Aula 04 insere um bloco em db_ingestion; a parte nova é gravada; o mesmo bloco passa pelo SELECT de mv_fato_leitura_telemetria e o resultado é inserido em fato_leitura_telemetria; esse INSERT dispara mv_dim_caminhao, que grava em dim_caminhao" font-family="Inter, Helvetica, Arial, sans-serif">
+          <defs><marker id="mv-s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#0f0f0f"/></marker></defs>
+          <g stroke="#0f0f0f" stroke-width="2">
+            <rect x="10" y="120" width="200" height="90" fill="#f2f2ee"/>
+            <rect x="290" y="20" width="270" height="80" fill="#0f0f0f"/>
+            <rect x="290" y="180" width="270" height="100" fill="#ffffff" stroke-dasharray="7 4"/>
+            <rect x="640" y="180" width="270" height="100" fill="#ffffff" stroke-width="3"/>
+            <rect x="980" y="20" width="210" height="80" fill="#ffffff" stroke-dasharray="7 4"/>
+            <rect x="980" y="180" width="210" height="100" fill="#ffffff"/>
+          </g>
+          <g text-anchor="middle" font-size="16" fill="#0f0f0f">
+            <text x="110" y="156" font-weight="700">INSERT de um bloco</text>
+            <text x="110" y="180" font-size="13" fill="#5c5c5c">consumidor da Aula 04</text>
+            <text x="425" y="54" font-weight="700" fill="#ffffff" font-family="JetBrains Mono, monospace" font-size="15">ingestao.db_ingestion</text>
+            <text x="425" y="78" font-size="13" fill="#ffffff">a parte nova é gravada</text>
+            <text x="425" y="212" font-weight="700">SELECT da view</text>
+            <text x="425" y="236" font-size="13" font-family="JetBrains Mono, monospace">mv_fato_leitura_telemetria</text>
+            <text x="425" y="260" font-size="13" fill="#5c5c5c">só sobre o bloco recebido</text>
+            <text x="775" y="212" font-weight="700">INSERT no destino (TO)</text>
+            <text x="775" y="236" font-size="13" font-family="JetBrains Mono, monospace">fato_leitura_telemetria</text>
+            <text x="775" y="260" font-size="13" fill="#5c5c5c">tabela comum, ReplacingMergeTree</text>
+            <text x="1085" y="54" font-weight="700">SELECT da view</text>
+            <text x="1085" y="78" font-size="13" font-family="JetBrains Mono, monospace">mv_dim_caminhao</text>
+            <text x="1085" y="222" font-weight="700">INSERT no destino</text>
+            <text x="1085" y="246" font-size="13" font-family="JetBrains Mono, monospace">dim_caminhao</text>
+          </g>
+          <g stroke="#0f0f0f" stroke-width="2" marker-end="url(#mv-s)">
+            <line x1="210" y1="150" x2="288" y2="70"/>
+            <line x1="210" y1="180" x2="288" y2="225"/>
+            <line x1="560" y1="230" x2="638" y2="230"/>
+            <line x1="910" y1="200" x2="978" y2="90"/>
+            <line x1="1085" y1="100" x2="1085" y2="178"/>
+          </g>
+          <g font-size="13" fill="#0f0f0f">
+            <text x="226" y="98">grava</text>
+            <text x="226" y="226">dispara</text>
+            <text x="572" y="220">resultado</text>
+            <text x="916" y="132">cascata</text>
+          </g>
+          <text x="10" y="318" font-size="14.5" fill="#5c5c5c">Linhas tracejadas: views, que não guardam nada. As linhas que já estavam em db_ingestion antes da view existir não passam por ela.</text>
+        </svg>
+        <div class="de-dois">
+          <div class="de-caixa"><span class="de-rotulo">Use <code>TO</code></span><p>Com <code>TO dw.tabela</code>, o destino é uma tabela criada e nomeada pelo grupo. Sem <code>TO</code>, o ClickHouse cria uma tabela interna <code>.inner</code>, que some se a view for apagada.</p></div>
+          <div class="de-caixa is-forte"><span class="de-rotulo">Erro na view</span><p>Se o SELECT da view falhar no bloco, o INSERT na origem devolve erro ao consumidor. É por isso que a Etapa 02 converte com <code>OrZero</code> e <code>OrNull</code>.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MV incremental: consequências -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 03 &middot; Teoria &middot; MV incremental</span>
+          <h2 class="deck-title">Consequências do gatilho de INSERT</h2>
+          <p class="deck-summary">Como a view só vê o bloco que acabou de entrar, tudo o que não é INSERT na origem fica fora dela. Cada consequência tem uma resposta no laboratório.</p>
+        </div>
+        <table class="deck-table de-tabela">
+          <thead><tr><th>A view incremental...</th><th>Consequência</th><th>No laboratório</th></tr></thead>
+          <tbody>
+            <tr><td>não vê o histórico</td><td>linhas anteriores à view ficam fora do destino</td><td>carga do histórico no <code>002</code>, com o mesmo SELECT</td></tr>
+            <tr><td>não vê UPDATE, DELETE nem merge da origem</td><td>o destino não se corrige sozinho</td><td>fatos em <code>ReplacingMergeTree</code>; correção chega como nova versão</td></tr>
+            <tr><td>agrega por bloco</td><td>dois blocos do mesmo minuto geram duas linhas para o mesmo minuto</td><td>destino em <code>SummingMergeTree</code> e leitura com <code>sum(linhas) ... GROUP BY</code></td></tr>
+            <tr><td>com JOIN, só dispara pela tabela da esquerda</td><td>INSERT na tabela da direita não atualiza o destino</td><td>o JOIN de preço com PTAX vai para a refreshable da Etapa 04</td></tr>
+            <tr><td>roda dentro do INSERT</td><td>erro na view faz falhar o INSERT na origem</td><td><code>OrZero</code> e <code>OrNull</code> nas conversões</td></tr>
+            <tr><td>dispara outras views</td><td>o INSERT no destino é também um INSERT</td><td>cascata fato de leitura, <code>mv_dim_caminhao</code>, <code>dim_caminhao</code></td></tr>
+          </tbody>
+        </table>
+        <p class="deck-note">Com <code>SummingMergeTree</code>, o merge soma as linhas do mesmo minuto em segundo plano. Como o merge pode não ter acontecido no momento da consulta, a leitura soma de novo.</p>
+      </div>
+    </div>
+
+    <!-- MV refreshable -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 03 &middot; Teoria &middot; MV refreshable</span>
+          <h2 class="deck-title">View refreshable: recalcula no horário</h2>
+          <p class="deck-summary">A refreshable roda o SELECT inteiro, sobre as tabelas inteiras, no horário do <code>REFRESH</code>, e troca o conteúdo do destino de uma vez. Pode ter JOIN de qualquer lado e agregação global. O custo é pago no horário, a leitura é barata, e o resultado tem a idade do último refresh.</p>
+        </div>
+        <svg class="de-svg" viewBox="0 0 1200 170" role="img" aria-label="À 01h00, o SELECT de rmv_preco_categoria_dia lê fato_preco_livro, dim_livro e fato_cotacao_ptax inteiros, monta o resultado novo e troca de uma vez o conteúdo de rel_preco_categoria_dia" font-family="Inter, Helvetica, Arial, sans-serif">
+          <defs><marker id="rf-s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#0f0f0f"/></marker></defs>
+          <g stroke="#0f0f0f" stroke-width="2">
+            <rect x="10" y="40" width="170" height="90" fill="#0f0f0f"/>
+            <rect x="260" y="20" width="330" height="130" fill="#ffffff" stroke-dasharray="7 4"/>
+            <rect x="670" y="40" width="220" height="90" fill="#f2f2ee"/>
+            <rect x="970" y="40" width="220" height="90" fill="#ffffff" stroke-width="3"/>
+          </g>
+          <g text-anchor="middle" font-size="16" fill="#0f0f0f">
+            <text x="95" y="80" font-weight="700" fill="#ffffff" font-family="JetBrains Mono, monospace">01h00</text>
+            <text x="95" y="104" font-size="13" fill="#ffffff">EVERY 1 DAY OFFSET 1 HOUR</text>
+            <text x="425" y="50" font-weight="700">SELECT inteiro</text>
+            <text x="425" y="78" font-size="13" font-family="JetBrains Mono, monospace">fato_preco_livro FINAL</text>
+            <text x="425" y="100" font-size="13" font-family="JetBrains Mono, monospace">dim_livro FINAL</text>
+            <text x="425" y="122" font-size="13" font-family="JetBrains Mono, monospace">fato_cotacao_ptax FINAL</text>
+            <text x="780" y="80" font-weight="700">resultado novo</text>
+            <text x="780" y="104" font-size="13" fill="#5c5c5c">todas as linhas do relatório</text>
+            <text x="1080" y="80" font-weight="700">troca de uma vez</text>
+            <text x="1080" y="104" font-size="13" font-family="JetBrains Mono, monospace">rel_preco_categoria_dia</text>
+          </g>
+          <g stroke="#0f0f0f" stroke-width="2" marker-end="url(#rf-s)">
+            <line x1="180" y1="85" x2="258" y2="85"/>
+            <line x1="590" y1="85" x2="668" y2="85"/>
+            <line x1="890" y1="85" x2="968" y2="85"/>
+          </g>
+        </svg>
+        <div class="de-dois">
+          <div class="de-caixa">
+            <span class="de-rotulo">Comandos de operação</span>
+            <pre class="de-pre de-pre-largo"><code>SYSTEM REFRESH VIEW dw.rmv_preco_categoria_dia; SYSTEM WAIT VIEW dw.rmv_preco_categoria_dia;
+
+SELECT view, status, last_success_time, next_refresh_time, exception
+FROM system.view_refreshes
+WHERE database = 'dw'</code></pre>
+          </div>
+          <div class="de-caixa is-forte">
+            <span class="de-rotulo">O que cada um faz</span>
+            <ul>
+              <li><code>SYSTEM REFRESH VIEW</code> antecipa o horário; é o que se usa depois de uma carga atrasada.</li>
+              <li><code>SYSTEM WAIT VIEW</code> espera o refresh terminar.</li>
+              <li><code>system.view_refreshes</code> mostra estado, último sucesso, próximo horário e a exceção, se houver.</li>
+            </ul>
+            <p style="margin-top:6px;">Recurso estável no ClickHouse 26.8, a versão do laboratório.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quadro comparativo -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 03 &middot; Teoria &middot; Comparação</span>
+          <h2 class="deck-title">Quadro comparativo e a regra da aula</h2>
+          <p class="deck-summary">O tipo de view sai de duas perguntas: o resultado precisa estar atualizado a cada segundo, ou pode ter a idade de um horário? O SELECT funciona sobre um bloco isolado, ou precisa da tabela inteira?</p>
+        </div>
+        <table class="deck-table de-tabela">
+          <thead><tr><th></th><th><code>VIEW</code></th><th>MV incremental</th><th>MV refreshable</th></tr></thead>
+          <tbody>
+            <tr><td>Guarda dado?</td><td>não</td><td>sim, no destino</td><td>sim, no destino</td></tr>
+            <tr><td>Quando roda</td><td>a cada leitura</td><td>a cada INSERT na origem</td><td>no horário do <code>REFRESH</code></td></tr>
+            <tr><td>Sobre o quê</td><td>tabelas inteiras</td><td>o bloco inserido</td><td>tabelas inteiras</td></tr>
+            <tr><td>Atualidade</td><td>a do momento da leitura</td><td>a do último INSERT</td><td>a do último refresh</td></tr>
+            <tr><td>Custo</td><td>em cada leitura</td><td>em cada INSERT, pequeno</td><td>no horário, leitura barata</td></tr>
+            <tr><td>JOIN e agregação global</td><td>sim</td><td>JOIN só pela esquerda; agregação por bloco</td><td>sim</td></tr>
+          </tbody>
+        </table>
+        <div class="de-tres">
+          <div class="de-caixa is-forte"><span class="de-rotulo">Fatos e dimensões</span><p>MV incremental: cada linha da tabela de pouso vira linha de fato sozinha, sem precisar das outras.</p></div>
+          <div class="de-caixa is-forte"><span class="de-rotulo">Relatórios fechados</span><p>MV refreshable: média do dia inteiro e JOIN com a PTAX, publicados uma vez por dia.</p></div>
+          <div class="de-caixa is-forte"><span class="de-rotulo">Observabilidade corrente</span><p>VIEW comum com janela sobre contadores pequenos: o estado de agora a cada leitura.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Janela, WINDOW VIEW, 14 views -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 03 &middot; Teoria &middot; Escopo</span>
+          <h2 class="deck-title">View em janela, WINDOW VIEW e as 14 views</h2>
+          <p class="deck-summary">Nesta aula, "view em janela" é uma VIEW comum com <code>WHERE minuto &gt;= now() - INTERVAL 15 MINUTE</code>. A janela anda com o relógio porque a view roda de novo a cada leitura e o <code>now()</code> muda.</p>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa">
+            <span class="de-rotulo">Fora do laboratório</span>
+            <ul>
+              <li><code>WINDOW VIEW</code> agrega por janelas de tempo no próprio motor, mas é experimental e exige <code>allow_experimental_window_view</code>.</li>
+              <li><code>LIVE VIEW</code> está obsoleta.</li>
+            </ul>
+            <p style="margin-top:8px;">O <code>AGENTS.md</code> deixa as duas fora: o grupo usa só recursos estáveis da versão 26.8.</p>
+          </div>
+          <div class="de-caixa is-cinza">
+            <span class="de-rotulo">Consulta 5 do <code>005</code>: as 14 views do <code>dw</code></span>
+            <table class="deck-table de-tabela">
+              <thead><tr><th>Tipo</th><th>Qtd.</th><th>Views</th></tr></thead>
+              <tbody>
+                <tr><td>incremental</td><td>8</td><td><code>mv_dim_livro</code>, <code>mv_dim_caminhao</code>, 4 <code>mv_fato_*</code>, 2 <code>mv_obs_*</code></td></tr>
+                <tr><td>refreshable</td><td>3</td><td><code>rmv_preco_categoria_dia</code>, <code>rmv_telemetria_caminhao_dia</code>, <code>rmv_fato_lote_ingestao</code></td></tr>
+                <tr><td>comum</td><td>3</td><td><code>v_saude_ingestao_15min</code>, <code>v_lotes_ultima_hora</code>, <code>v_descartes_telemetria_1h</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="de-caixa">
+          <span class="de-rotulo">Trecho da consulta 5</span>
+          <pre class="de-pre de-pre-largo"><code>SELECT name, engine,
+       multiIf(engine = 'View', 'consulta guardada, roda a cada leitura',
+               engine = 'MaterializedView' AND create_table_query LIKE '%REFRESH%', 'refreshable: recalcula no horário',
+               engine = 'MaterializedView', 'incremental: roda a cada INSERT na origem',
+               'tabela') AS como_funciona
+FROM system.tables
+WHERE database = 'dw' AND engine LIKE '%View%'</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Revise 03 -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 03 &middot; Revisão</span>
+          <h2 class="deck-title">Revise antes de seguir: Etapa 03</h2>
+          <p class="deck-summary">O <code>docs/views.md</code> é a explicação que o grupo leva para as próximas aulas. Ele precisa descrever o mecanismo, com a evidência do banco ao lado.</p>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa">
+            <span class="de-rotulo">Revise antes de seguir</span>
+            <ul>
+              <li>Cada seção diz o que fica guardado, quando o SELECT roda e sobre quais linhas?</li>
+              <li>A seção da incremental explica histórico, agregação por bloco, JOIN pela esquerda e erro no INSERT?</li>
+              <li>A lista de views veio de <code>system.tables</code>, com a saída real?</li>
+              <li>O diagrama Mermaid mostra o INSERT disparando a view e a cascata?</li>
+              <li>WINDOW VIEW e LIVE VIEW aparecem com o motivo de ficarem fora?</li>
+            </ul>
+          </div>
+          <div class="de-caixa is-forte">
+            <span class="de-rotulo">Pendente para depois da Etapa 05</span>
+            <p>A seção do <code>EXPLAIN SELECT * FROM dw.v_saude_ingestao_15min</code>, com o plano real lendo <code>dw.obs_ingestao_minuto</code>.</p>
+            <p>No fim do dia, a consulta 5 do <code>005</code> lista 14 views: 8 incrementais, 3 refreshable e 3 comuns.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Etapa 04 -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell" data-etapa="04">
+        <div>
+          <span class="deck-kicker">10h50 &middot; Etapa 04 &middot; Relatórios fechados</span>
+          <h2 class="deck-title">Relatórios fechados com refreshable</h2>
+          <p class="deck-summary">Dois relatórios de dias que já terminaram, recalculados todo dia à 01h00 e lidos sem custo de agregação: preço por categoria em GBP e em BRL, e telemetria por caminhão.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item"><span class="etapa-rotulo">Artefato</span><p><code>sql/003_relatorios_fechados.sql</code></p></div>
+            <div class="etapa-item"><span class="etapa-rotulo">Teoria desta etapa</span><ol><li>Por que relatório fechado é refreshable</li><li>Preço por categoria com <code>ASOF JOIN</code></li><li>Telemetria por caminhão e dia</li><li>O relatório atualizado cedo</li></ol></div>
+          </div>
+          <div class="etapa-prompt">
+            <span class="etapa-rotulo">Prompt CREATE</span>
+            <button class="copy-button etapa-copiar" type="button">Copiar</button>
+            <pre class="is-wrap etapa-pre"><code><span class="k">[C] Personagem</span>
+Você é engenheiro de analytics. Publica relatórios de dias fechados,
+que não mudam depois de publicados, a partir da estrela da Etapa 02.
+
+<span class="k">[R] Pedido</span>
+Crie sql/003_relatorios_fechados.sql com duas tabelas e duas views
+materializadas refreshable:
+1. dw.rel_preco_categoria_dia, grão categoria x dia: livros, preço
+   médio em GBP, PTAX de venda do último Fechamento até o dia, a data
+   dessa PTAX e o preço médio em BRL; alimentada por
+   dw.rmv_preco_categoria_dia.
+2. dw.rel_telemetria_caminhao_dia, grão caminhão x dia: leituras,
+   velocidade média e máxima, primeira e última leitura e a parte das
+   leituras no formato espaço; alimentada por
+   dw.rmv_telemetria_caminhao_dia.
+Rode, force o primeiro refresh das duas e mostre as cinco primeiras
+linhas de cada relatório e o estado em system.view_refreshes.
+
+<span class="k">[E] Exemplos</span>
+CREATE MATERIALIZED VIEW IF NOT EXISTS dw.rmv_preco_categoria_dia
+REFRESH EVERY 1 DAY OFFSET 1 HOUR          -- todo dia à 01h00 do servidor
+TO dw.rel_preco_categoria_dia AS
+...
+FROM precos AS pr
+ASOF LEFT JOIN fechamento AS f ON pr.moeda = f.moeda AND pr.data &gt;= f.data
+GROUP BY pr.data_key, pr.categoria;
+
+SYSTEM REFRESH VIEW dw.rmv_preco_categoria_dia; SYSTEM WAIT VIEW dw.rmv_preco_categoria_dia;
+
+<span class="k">[A] Ajustes</span>
+- Só dias anteriores a hoje: data_key &lt; toYYYYMMDD(today()).
+- Fato e dimensão lidos com FINAL.
+- Fechamento: aceite tipo_boletim 'Fechamento' e 'Fechamento PTAX'.
+- Preço e velocidade são não aditivos: média e máximo, nunca soma.
+- Force o refresh só depois de a carga do histórico terminar.
+- Nenhum DROP sem autorização.
+
+<span class="k">[T] Tipo de saída</span>
+Um arquivo SQL comentado; as saídas no terminal e em
+docs/prompts.md.
+
+<span class="k">[E] Extras</span>
+Leia AGENTS.md e specs/04_modelo_dimensional.md. Mostre o plano,
+espere meu ok, escreva, rode, registre o prompt e pare.</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Relatório fechado -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 04 &middot; Teoria &middot; Decisão</span>
+          <h2 class="deck-title">Por que relatório fechado é refreshable</h2>
+          <p class="deck-summary">Um relatório fechado só traz dias que já terminaram (<code>data_key &lt; toYYYYMMDD(today())</code>). Depois de publicado, o número de um dia não muda. Os dois relatórios desta etapa precisam de coisas que a view incremental não faz.</p>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa">
+            <span class="de-rotulo">O que a incremental não faria</span>
+            <ul>
+              <li>A média de preço por categoria precisa do dia inteiro. A incremental calcularia uma média por bloco, e a média de médias de blocos de tamanhos diferentes não é a média do dia.</li>
+              <li>O BRL vem de um JOIN com a PTAX. Na incremental, só o INSERT de livros dispararia a view; uma PTAX que chegasse depois não corrigiria o relatório.</li>
+            </ul>
+          </div>
+          <div class="de-caixa is-forte">
+            <span class="de-rotulo">O que a refreshable entrega</span>
+            <ul>
+              <li><code>REFRESH EVERY 1 DAY OFFSET 1 HOUR</code>: todo dia à 01h00 do servidor, com o dia anterior completo.</li>
+              <li>O SELECT lê os fatos inteiros com <code>FINAL</code>, faz o JOIN e troca o relatório de uma vez.</li>
+              <li>Quem lê o relatório lê uma tabela pequena e pronta: 50 linhas de preço e 20 de telemetria na preparação.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="deck-callout"><strong>Custo e idade</strong><p>O custo de ler os fatos inteiros é pago uma vez por dia. Em troca, o relatório tem a idade do último refresh, e uma carga que termina depois da 01h00 só aparece no refresh seguinte ou num <code>SYSTEM REFRESH VIEW</code>.</p></div>
+      </div>
+    </div>
+
+    <!-- Preço por categoria -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 04 &middot; Teoria &middot; Exemplo numérico</span>
+          <h2 class="deck-title">Preço por categoria em GBP e em BRL</h2>
+          <p class="deck-summary">O BRL usa a PTAX de venda do último Fechamento até o dia da coleta. O <code>ASOF LEFT JOIN</code> faz essa busca: para cada linha da esquerda, pega a linha da direita com a maior data menor ou igual. Ele exige ao menos uma condição de igualdade, aqui a moeda.</p>
+        </div>
+        <div class="de-dois de-dois-esq">
+          <div class="de-caixa">
+            <span class="de-rotulo">Trecho de <code>dw.rmv_preco_categoria_dia</code></span>
+            <pre class="de-pre de-pre-largo"><code>WITH fechamento AS
+(
+    SELECT moeda, toDate(data_hora) AS data, argMax(cotacao_venda, data_hora) AS venda
+    FROM dw.fato_cotacao_ptax FINAL
+    WHERE tipo_boletim IN ('Fechamento', 'Fechamento PTAX')
+    GROUP BY moeda, data
+),
+...
+SELECT pr.data_key                                         AS data_key,
+       pr.categoria                                        AS categoria,
+       toUInt32(count())                                   AS livros,
+       toDecimal64(avg(pr.preco_gbp), 2)                   AS preco_medio_gbp,
+       any(f.venda)                                        AS ptax_venda,
+       any(f.data)                                         AS data_ptax,
+       toDecimal64(avg(pr.preco_gbp) * any(f.venda), 2)    AS preco_medio_brl
+FROM precos AS pr
+ASOF LEFT JOIN fechamento AS f ON pr.moeda = f.moeda AND pr.data &gt;= f.data
+GROUP BY pr.data_key, pr.categoria;</code></pre>
+          </div>
+          <div class="de-caixa is-cinza">
+            <span class="de-rotulo">Na preparação: 50 linhas</span>
+            <table class="deck-table de-tabela">
+              <tbody>
+                <tr><td>dia</td><td>30/10/2026</td></tr>
+                <tr><td>categoria</td><td>Default</td></tr>
+                <tr><td>livros</td><td>152</td></tr>
+                <tr><td>preço médio</td><td>34,39 GBP</td></tr>
+                <tr><td>PTAX de venda</td><td>7,1899, de 29/10</td></tr>
+                <tr><td>preço médio</td><td>247,28 BRL</td></tr>
+              </tbody>
+            </table>
+            <p style="margin-top:8px;">O BRL multiplica a média antes de arredondar, por isso não é exatamente 34,39 vezes 7,1899.</p>
+          </div>
+        </div>
+        <p class="deck-note">O tipo do último boletim veio como <code>Fechamento</code>; o filtro aceita também <code>Fechamento PTAX</code>.</p>
+      </div>
+    </div>
+
+    <!-- Telemetria por caminhão -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 04 &middot; Teoria &middot; Exemplo numérico</span>
+          <h2 class="deck-title">Telemetria por caminhão e dia</h2>
+          <p class="deck-summary">Grão do relatório: caminhão por dia. As medidas são não aditivas e aparecem como contagem, média, máximo, primeira e última leitura, mais a parte das leituras que chegou no formato com espaço.</p>
+        </div>
+        <div class="de-dois de-dois-esq">
+          <div class="de-caixa">
+            <span class="de-rotulo">Trecho de <code>dw.rmv_telemetria_caminhao_dia</code></span>
+            <pre class="de-pre de-pre-largo"><code>CREATE MATERIALIZED VIEW IF NOT EXISTS dw.rmv_telemetria_caminhao_dia
+REFRESH EVERY 1 DAY OFFSET 1 HOUR
+TO dw.rel_telemetria_caminhao_dia AS
+SELECT data_key,
+       caminhao,
+       toUInt32(count())                                   AS leituras,
+       round(avg(velocidade_kmh), 1)                       AS velocidade_media,
+       max(velocidade_kmh)                                 AS velocidade_maxima,
+       min(instante)                                       AS primeira_leitura,
+       max(instante)                                       AS ultima_leitura,
+       round(100 * countIf(formato = 'espaco') / count(), 1) AS leituras_espaco_pct
+FROM dw.fato_leitura_telemetria FINAL
+WHERE data_key &lt; toYYYYMMDD(today())
+GROUP BY data_key, caminhao;</code></pre>
+          </div>
+          <div class="de-caixa is-cinza">
+            <span class="de-rotulo">Na preparação: 20 linhas</span>
+            <table class="deck-table de-tabela">
+              <tbody>
+                <tr><td>dia</td><td>29/10/2026</td></tr>
+                <tr><td>caminhão</td><td>CAM-0451</td></tr>
+                <tr><td>leituras</td><td>1.440</td></tr>
+                <tr><td>velocidade média</td><td>72,2 km/h</td></tr>
+                <tr><td>velocidade máxima</td><td>96 km/h</td></tr>
+                <tr><td>formato espaço</td><td>22,6%</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <p class="deck-note">A coluna <code>leituras_espaco_pct</code> mede a fonte: mostra que parte das leituras de cada caminhão chega no formato com espaço, sem misturar essa informação com a posição.</p>
+      </div>
+    </div>
+
+    <!-- Caso do relatório cedo -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 04 &middot; Teoria &middot; Caso da preparação</span>
+          <h2 class="deck-title">O relatório atualizado antes do fim da carga</h2>
+          <p class="deck-summary">Na preparação, o refresh do relatório de telemetria rodou antes de a carga terminar. O CAM-4120, com 1.440 leituras no fato, ficou sem linha no relatório. O erro só apareceu numa consulta que cruza os alertas com o relatório.</p>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa">
+            <span class="de-rotulo">Consulta 4 do <code>005</code> (trecho)</span>
+            <pre class="de-pre de-pre-largo"><code>SELECT a.caminhao, count() AS alertas, max(a.direcao_continua_min) AS maior_direcao_min,
+       any(r.velocidade_media) AS velocidade_media_dia
+FROM dw.fato_alerta_direcao AS a FINAL
+LEFT JOIN dw.rel_telemetria_caminhao_dia AS r ON r.caminhao = a.caminhao AND r.data_key = a.data_key
+GROUP BY a.caminhao
+ORDER BY alertas DESC
+LIMIT 5
+SETTINGS join_use_nulls = 1          -- caminhão sem linha no relatório aparece como NULL, não como 0</code></pre>
+          </div>
+          <div class="de-caixa">
+            <span class="de-rotulo">Como aconteceu</span>
+            <ol>
+              <li>O refresh leu o fato com a carga ainda em andamento.</li>
+              <li>No <code>LEFT JOIN</code>, o CAM-4120 apareceu com velocidade média 0, o valor padrão do tipo.</li>
+              <li>Com <code>join_use_nulls = 1</code>, apareceu <code>NULL</code>: a falta de linha ficou visível.</li>
+              <li>Depois da carga, um <code>SYSTEM REFRESH VIEW</code> recalculou o relatório.</li>
+            </ol>
+          </div>
+        </div>
+        <div class="deck-callout"><strong>Alertas na preparação</strong><p>CAM-5707 com 12 alertas de direção contínua; a maior direção contínua foi de 360 minutos, no CAM-3126. Uma velocidade 0 ao lado de um alerta parece dado, e por isso o <code>NULL</code> é a escolha mais segura.</p></div>
+      </div>
+    </div>
+
+    <!-- Revise 04 -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 04 &middot; Revisão</span>
+          <h2 class="deck-title">Revise antes de seguir: Etapa 04</h2>
+          <p class="deck-summary">Um relatório fechado só é confiável se o refresh rodou depois da carga do dia. A revisão confere o resultado e o estado das duas refreshable.</p>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa">
+            <span class="de-rotulo">Revise antes de seguir</span>
+            <ul>
+              <li>Os dois relatórios só têm dias anteriores a hoje?</li>
+              <li>O preço é média em todas as colunas, sem nenhuma soma?</li>
+              <li>A PTAX usada em cada dia é de um Fechamento igual ou anterior ao dia?</li>
+              <li>Todos os caminhões do fato de leitura aparecem no relatório?</li>
+              <li>O refresh forçado rodou depois da carga do histórico?</li>
+            </ul>
+          </div>
+          <div class="de-caixa is-forte">
+            <span class="de-rotulo">Gate</span>
+            <p>Consulta 7 do <code>005</code>: as duas refreshable em <code>system.view_refreshes</code> com <code>last_success_time</code> preenchido e <code>exception</code> vazia.</p>
+            <p>Na preparação: 50 linhas em <code>rel_preco_categoria_dia</code> e 20 em <code>rel_telemetria_caminhao_dia</code>.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Etapa 05 -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell" data-etapa="05">
+        <div>
+          <span class="deck-kicker">11h15 &middot; Etapa 05 &middot; Observabilidade corrente</span>
+          <h2 class="deck-title">Contadores por minuto e views em janela</h2>
+          <p class="deck-summary">Duas views incrementais contam o que entra e o que a telemetria descarta, minuto a minuto. Views comuns com janela de tempo leem esses contadores e mostram o estado do pipeline agora.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item"><span class="etapa-rotulo">Artefato</span><p><code>sql/004_observabilidade.sql</code> (contadores e views em janela)</p></div>
+            <div class="etapa-item"><span class="etapa-rotulo">Teoria desta etapa</span><ol><li>Contadores em <code>SummingMergeTree</code></li><li>Três views em janela</li><li>Cinco sinais do pipeline</li></ol></div>
+          </div>
+          <div class="etapa-prompt">
+            <span class="etapa-rotulo">Prompt CREATE</span>
+            <button class="copy-button etapa-copiar" type="button">Copiar</button>
+            <pre class="is-wrap etapa-pre"><code><span class="k">[C] Personagem</span>
+Você é engenheiro de confiabilidade de dados. Quer saber, a qualquer
+momento, se o dado está chegando, em que volume e quanto está sendo
+descartado.
+
+<span class="k">[R] Pedido</span>
+Crie sql/004_observabilidade.sql com:
+1. dw.obs_ingestao_minuto (minuto x data_tag, linhas) e a view
+   materializada incremental que a alimenta a partir de
+   ingestao.db_ingestion;
+2. dw.obs_telemetria_descartes_minuto (minuto x motivo: ERR SAT,
+   #RADIO, outro) e a view que a alimenta; linhas TAC; não são
+   descarte, são alerta;
+3. duas views comuns com janela de tempo: dw.v_saude_ingestao_15min
+   (linhas por data_tag nos últimos 15 minutos, último minuto com dado
+   e segundos desde então) e dw.v_descartes_telemetria_1h (descartes
+   por motivo na última hora e a parte do total de telemetria).
+Rode e consulte as duas views em dois momentos, com o servidor da
+Aula 04 enviando dado.
+
+<span class="k">[E] Exemplos</span>
+CREATE OR REPLACE VIEW dw.v_saude_ingestao_15min AS
+SELECT data_tag,
+       sum(linhas)                                AS linhas_15min,
+       ...
+FROM dw.obs_ingestao_minuto
+WHERE minuto &gt;= now() - INTERVAL 15 MINUTE
+GROUP BY data_tag;
+
+<span class="k">[A] Ajustes</span>
+- Contadores em SummingMergeTree; a leitura soma de novo com
+  sum(linhas).
+- Minuto calculado do timestamp (unix ms) em America/Sao_Paulo.
+- Sem carga do histórico dos contadores.
+- Sem WINDOW VIEW e sem LIVE VIEW.
+- A view de lotes da última hora fica para a Etapa 06, junto com o
+  fato de lote que ela lê.
+
+<span class="k">[T] Tipo de saída</span>
+Arquivo SQL comentado; a saída das duas views em dois momentos, com o
+horário de cada consulta, em docs/prompts.md.
+
+<span class="k">[E] Extras</span>
+Leia AGENTS.md e docs/views.md. Mostre o plano, espere meu ok,
+escreva, rode, registre o prompt e pare.</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contadores -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 05 &middot; Teoria &middot; Contadores</span>
+          <h2 class="deck-title">Contadores por minuto em <code>SummingMergeTree</code></h2>
+          <p class="deck-summary">Cada INSERT na tabela de pouso agrega só o próprio bloco por minuto e domínio. O <code>SummingMergeTree</code> soma no merge as linhas do mesmo minuto, e a leitura soma de novo com <code>sum()</code>, porque o merge pode ainda não ter acontecido.</p>
+        </div>
+        <div class="de-dois de-dois-esq">
+          <div class="de-caixa">
+            <span class="de-rotulo">Trecho de <code>sql/004_observabilidade.sql</code></span>
+            <pre class="de-pre de-pre-largo"><code>CREATE TABLE IF NOT EXISTS dw.obs_ingestao_minuto
+(
+    minuto    DateTime('America/Sao_Paulo'),
+    data_tag  LowCardinality(String),
+    linhas    UInt64
+)
+ENGINE = SummingMergeTree
+ORDER BY (data_tag, minuto);
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS dw.mv_obs_ingestao_minuto TO dw.obs_ingestao_minuto AS
+SELECT toStartOfMinute(fromUnixTimestamp64Milli(toInt64(timestamp), 'America/Sao_Paulo')) AS minuto,
+       data_tag,
+       count() AS linhas
+FROM ingestao.db_ingestion
+GROUP BY minuto, data_tag;</code></pre>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;min-width:0;">
+            <div class="de-caixa"><span class="de-rotulo">Descartes</span><p><code>obs_telemetria_descartes_minuto</code> conta, por minuto e motivo, as linhas de telemetria que não são leitura nem alerta: <code>ERR SAT</code>, <code>#RADIO</code> ou <code>outro</code>.</p></div>
+            <div class="de-caixa is-forte"><span class="de-rotulo">Sem carga do histórico</span><p>Os contadores começam quando a view nasce. Repetir uma carga do histórico em <code>SummingMergeTree</code> somaria as linhas duas vezes; a observabilidade mede o processo de agora em diante.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Views em janela -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 05 &middot; Teoria &middot; Views em janela</span>
+          <h2 class="deck-title">Três views em janela</h2>
+          <p class="deck-summary">As três são views comuns com filtro relativo a <code>now()</code>. Leem tabelas pequenas, os contadores por minuto e o fato de lote, e por isso rodar o SELECT a cada leitura custa pouco.</p>
+        </div>
+        <div class="df-termos df-c3">
+          <article class="df-termo"><h3><code>v_saude_ingestao_15min</code></h3><p>Linhas por <code>data_tag</code> nos últimos 15 minutos, o último minuto com dado e há quantos segundos ele foi.</p><p>Responde: algum domínio parou de chegar?</p></article>
+          <article class="df-termo"><h3><code>v_descartes_telemetria_1h</code></h3><p>Descartes por motivo na última hora e a parte do total de telemetria.</p><p>Responde: a fonte está mandando mais ruído que o normal?</p></article>
+          <article class="df-termo"><h3><code>v_lotes_ultima_hora</code></h3><p>Lotes, lotes com erro, linhas, p50 e p95 do flush e a maior espera. Nasce na Etapa 06, junto com o fato de lote que ela lê.</p><p>Responde: o servidor está gravando, e em quanto tempo?</p></article>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa">
+            <span class="de-rotulo">Trecho de <code>v_descartes_telemetria_1h</code></span>
+            <pre class="de-pre de-pre-largo"><code>SELECT d.motivo,
+       sum(d.linhas)                                                         AS descartadas,
+       (SELECT sum(linhas) FROM dw.obs_ingestao_minuto
+        WHERE data_tag = 'telemetria' AND minuto &gt;= now() - INTERVAL 1 HOUR) AS telemetria_total,
+       round(100 * descartadas / telemetria_total, 2)                        AS pct
+FROM dw.obs_telemetria_descartes_minuto AS d
+WHERE d.minuto &gt;= now() - INTERVAL 1 HOUR
+GROUP BY d.motivo;</code></pre>
+          </div>
+          <div class="de-caixa is-cinza">
+            <span class="de-rotulo">Conta com os números da preparação</span>
+            <p>Das 31.265 linhas de telemetria, 1.464 eram <code>#RADIO</code> (4,68%) e 932 eram <code>ERR SAT</code> (2,98%).</p>
+            <p>A view mostra a mesma conta só para a última hora; os valores do grupo dependem de quando a carga rodou.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cinco sinais -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 05 &middot; Teoria &middot; Sinais</span>
+          <h2 class="deck-title">Cinco sinais do pipeline da Aula 04</h2>
+          <p class="deck-summary">Cada sinal responde uma pergunta sobre o servidor de ingestão e sai de uma coluna das views em janela. O alvo de cada um é decisão do grupo, registrada como hipótese até ser medida.</p>
+        </div>
+        <table class="deck-table de-tabela">
+          <thead><tr><th>Sinal</th><th>Pergunta</th><th>Onde ler</th><th>Na preparação</th></tr></thead>
+          <tbody>
+            <tr><td>Vazão</td><td>quanto chegou, por domínio?</td><td><code>v_saude_ingestao_15min.linhas_15min</code></td><td>32.305 linhas em 1.465 s de envio</td></tr>
+            <tr><td>Frescor</td><td>há quanto tempo não chega nada?</td><td><code>segundos_desde_ultimo_minuto</code></td><td>depende da hora da consulta</td></tr>
+            <tr><td>Falha</td><td>algum lote falhou?</td><td><code>v_lotes_ultima_hora.lotes_com_erro</code></td><td>2 de 670 lotes</td></tr>
+            <tr><td>Latência</td><td>quanto leva o flush?</td><td><code>flush_p50_ms</code>, <code>flush_p95_ms</code>, <code>espera_max_ms</code></td><td>p50 139 ms, p95 170 ms, espera máxima 2.788 ms</td></tr>
+            <tr><td>Qualidade</td><td>quanto da fonte é ruído?</td><td><code>v_descartes_telemetria_1h.pct</code></td><td>2.396 descartes em 31.265 linhas</td></tr>
+          </tbody>
+        </table>
+        <div class="de-dois">
+          <div class="de-caixa"><span class="de-rotulo">Ligação com a Aula 04</span><p>O objetivo "dado consultável em poucos segundos" da Aula 04 se mede aqui pela latência do flush e pela espera. Um alvo como "p95 do flush abaixo de X ms" entra no <code>docs/observabilidade.md</code> como hipótese do grupo.</p></div>
+          <div class="de-caixa"><span class="de-rotulo">Leitura do frescor</span><p>O contador é por minuto, então <code>segundos_desde_ultimo_minuto</code> inclui os segundos já passados do minuto. Um valor abaixo de 60 não indica parada.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Revise 05 -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 05 &middot; Revisão</span>
+          <h2 class="deck-title">Revise antes de seguir: Etapa 05</h2>
+          <p class="deck-summary">A view em janela só tem valor se mudar quando o pipeline muda. A revisão confere isso com duas consultas em momentos diferentes.</p>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa">
+            <span class="de-rotulo">Revise antes de seguir</span>
+            <ul>
+              <li>As duas consultas, em momentos diferentes, deram resultados diferentes enquanto chegava dado?</li>
+              <li>A leitura dos contadores usa <code>sum(linhas)</code>, e não a linha crua?</li>
+              <li>Nenhum contador recebeu carga do histórico?</li>
+              <li>Linhas <code>TAC;</code> ficaram fora dos descartes?</li>
+              <li>Agora o <code>EXPLAIN</code> pendente do <code>docs/views.md</code> pode ser preenchido?</li>
+            </ul>
+          </div>
+          <div class="de-caixa is-forte">
+            <span class="de-rotulo">Gate</span>
+            <p><code>SELECT * FROM dw.v_saude_ingestao_15min</code> devolve uma linha por domínio que recebeu dado nos últimos 15 minutos.</p>
+            <p>Sem envio em andamento, a view fica vazia, o que também é um sinal: nada chegou na janela.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Etapa 06 -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell" data-etapa="06">
+        <div>
+          <span class="deck-kicker">11h35 &middot; Etapa 06 &middot; Observabilidade do processo</span>
+          <h2 class="deck-title">Do manifesto ao descarte</h2>
+          <p class="deck-summary">Cada lote gravado pelo servidor da Aula 04 vira uma linha de fato, lida dos manifestos no RustFS. Com ele e com os contadores, o grupo reconcilia o que entrou com o que virou fato.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item"><span class="etapa-rotulo">Artefatos</span><p>fato de lote em <code>sql/004_observabilidade.sql</code>, <code>sql/005_consultas.sql</code>, <code>docs/observabilidade.md</code></p></div>
+            <div class="etapa-item"><span class="etapa-rotulo">Teoria desta etapa</span><ol><li>O processo de ingestão como fato</li><li>Os 670 lotes da preparação</li><li>Dois lotes com erro</li><li>Para onde foi cada linha</li></ol></div>
+          </div>
+          <div class="etapa-prompt">
+            <span class="etapa-rotulo">Prompt CREATE</span>
+            <button class="copy-button etapa-copiar" type="button">Copiar</button>
+            <pre class="is-wrap etapa-pre"><code><span class="k">[C] Personagem</span>
+Você é engenheiro de dados e trata o próprio pipeline como processo
+de negócio: cada lote gravado pelo servidor da Aula 04 é um fato.
+
+<span class="k">[R] Pedido</span>
+1. Acrescente a sql/004_observabilidade.sql a tabela
+   dw.fato_lote_ingestao (grão: um lote, um manifesto), a refreshable
+   dw.rmv_fato_lote_ingestao, que relê os manifestos com s3(lake) a
+   cada minuto, e a view dw.v_lotes_ultima_hora (lotes, lotes com
+   erro, linhas, p50 e p95 do flush, maior espera).
+2. Crie sql/005_consultas.sql com: teste do grão; destino de cada
+   linha de telemetria; uma consulta na estrela; alertas por caminhão
+   com a velocidade do dia; tipo de cada view do dw; EXPLAIN da view
+   de saúde; estado das refreshable; as três views em janela; lotes
+   com erro.
+3. Crie docs/observabilidade.md com os números do grupo, cada um com
+   a consulta que o gerou.
+
+<span class="k">[E] Exemplos</span>
+Campos do manifesto: lote, data, status, mensagens, linhas,
+primeiro_recebido_em, flush_inicio, flush_fim, tempos_ms.raw,
+tempos_ms.bronze, tempos_ms.clickhouse, erro.
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS dw.rmv_fato_lote_ingestao
+REFRESH EVERY 1 MINUTE
+TO dw.fato_lote_ingestao AS
+...
+FROM s3(lake);
+
+<span class="k">[A] Ajustes</span>
+- Credenciais só na coleção lake (from_env); nenhuma chave em SQL.
+- espera_ms: do primeiro envelope ao início do flush; flush_ms: do
+  início ao fim do flush.
+- Guarde o caminho de cada manifesto (_path).
+- Reconciliação: linhas de telemetria da tabela de pouso = leituras +
+  alertas + descartes.
+- Separe fato, lacuna e suposição; alvo sem medida é hipótese.
+
+<span class="k">[T] Tipo de saída</span>
+SQL comentado e docs/observabilidade.md com as seções Vazão,
+Frescor, Falha, Latência, Qualidade e Rastreabilidade.
+
+<span class="k">[E] Extras</span>
+Leia AGENTS.md, docs/views.md e specs/04_modelo_dimensional.md.
+Mostre o plano, espere meu ok, escreva, rode, registre o prompt e
+pare.</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Processo como fato -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 06 &middot; Teoria &middot; Modelo</span>
+          <h2 class="deck-title">O processo de ingestão como fato</h2>
+          <p class="deck-summary">O modelo dimensional também serve para observar o pipeline. O processo é o flush do servidor, o grão é um lote, e as medidas são linhas, mensagens e tempos. A fonte são os manifestos no RustFS, fora do ClickHouse.</p>
+        </div>
+        <div class="de-dois de-dois-esq">
+          <div class="de-caixa">
+            <span class="de-rotulo">Trecho de <code>dw.rmv_fato_lote_ingestao</code></span>
+            <pre class="de-pre de-pre-largo"><code>CREATE MATERIALIZED VIEW IF NOT EXISTS dw.rmv_fato_lote_ingestao
+REFRESH EVERY 1 MINUTE
+TO dw.fato_lote_ingestao AS
+WITH parseDateTime64BestEffort(JSONExtractString(json, 'primeiro_recebido_em'), 3, 'America/Sao_Paulo') AS primeiro,
+     parseDateTime64BestEffort(JSONExtractString(json, 'flush_inicio'), 3, 'America/Sao_Paulo') AS inicio,
+     parseDateTime64BestEffort(JSONExtractString(json, 'flush_fim'), 3, 'America/Sao_Paulo') AS fim
+SELECT JSONExtractString(json, 'lote')                              AS lote,
+       ...
+       dateDiff('millisecond', primeiro, inicio)                    AS espera_ms,
+       dateDiff('millisecond', inicio, fim)                         AS flush_ms,
+       JSONExtractFloat(json, 'tempos_ms', 'raw')                   AS raw_ms,
+       JSONExtractFloat(json, 'tempos_ms', 'bronze')                AS bronze_ms,
+       JSONExtractFloat(json, 'tempos_ms', 'clickhouse')            AS clickhouse_ms,
+       ifNull(JSONExtractString(json, 'erro'), '')                  AS erro,
+       _path                                                        AS arquivo_manifesto
+FROM s3(lake);</code></pre>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;min-width:0;">
+            <div class="de-caixa is-forte"><span class="de-rotulo">Por que refreshable</span><p>Os manifestos estão no RustFS, e nenhum INSERT no ClickHouse acontece quando um manifesto novo é gravado. Sem INSERT, não há o que dispare uma view incremental. A refreshable relê todos a cada minuto.</p></div>
+            <div class="de-caixa"><span class="de-rotulo">Rastreabilidade</span><p>Cada lote guarda o caminho do manifesto (<code>_path</code>). Cada leitura e cada alerta guardam <code>arquivo</code> e <code>numero_linha</code> da origem.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 670 lotes -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 06 &middot; Teoria &middot; Exemplo numérico</span>
+          <h2 class="deck-title">Os 670 lotes da preparação</h2>
+          <p class="deck-summary">A carga completa do <code>dados_aula_04.zip</code> gerou 670 lotes entre 11h50 e 12h14 de 31/10/2026. O fato de lote mostra, para cada um, quanto tempo cada destino levou.</p>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa is-cinza">
+            <span class="de-rotulo">Lotes por status</span>
+            <table class="deck-table de-tabela de-num">
+              <thead><tr><th>Status</th><th>Lotes</th><th>Linhas</th></tr></thead>
+              <tbody>
+                <tr><td><code>ok</code></td><td>668</td><td>32.305</td></tr>
+                <tr><td><code>erro_clickhouse</code></td><td>2</td><td>48 cada</td></tr>
+              </tbody>
+            </table>
+            <p style="margin-top:8px;">Os 668 lotes <code>ok</code> somam as 32.305 linhas da tabela de pouso.</p>
+          </div>
+          <div class="de-caixa is-cinza">
+            <span class="de-rotulo">Tempos dos lotes <code>ok</code></span>
+            <table class="deck-table de-tabela de-num">
+              <thead><tr><th>Medida</th><th>ms</th></tr></thead>
+              <tbody>
+                <tr><td>flush, p50</td><td>139</td></tr>
+                <tr><td>flush, p95</td><td>170</td></tr>
+                <tr><td>raw, média</td><td>15</td></tr>
+                <tr><td>bronze, média</td><td>24</td></tr>
+                <tr><td>ClickHouse, média</td><td>103</td></tr>
+                <tr><td>maior espera de mensagem</td><td>2.788</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <p class="deck-note">O INSERT no ClickHouse é a maior parte do flush: 103 ms de média, contra 15 ms do raw e 24 ms do bronze. A espera mede o tempo entre o primeiro envelope do lote e o início do flush.</p>
+      </div>
+    </div>
+
+    <!-- Dois lotes com erro -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 06 &middot; Teoria &middot; Caso da preparação</span>
+          <h2 class="deck-title">Dois lotes com <code>erro_clickhouse</code></h2>
+          <p class="deck-summary">Às 12h03 e às 12h04 de 31/10/2026, o ClickHouse foi reiniciado durante a carga. Dois lotes de 48 linhas falharam no INSERT, e o manifesto de cada um registrou o status e o erro. É o cenário da questão 2 da discussão, agora com o dado.</p>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa">
+            <span class="de-rotulo">Consulta 9 do <code>005</code></span>
+            <pre class="de-pre de-pre-largo"><code>SELECT flush_inicio, lote, status, linhas, erro
+FROM dw.fato_lote_ingestao
+WHERE status != 'ok'
+ORDER BY flush_inicio
+FORMAT Vertical;</code></pre>
+            <p style="margin-top:8px;">Erro registrado: <code>OperationalError(... Connection aborted ... RemoteDisconnected ...)</code>.</p>
+          </div>
+          <div class="de-caixa">
+            <span class="de-rotulo">O que aconteceu, na ordem do flush</span>
+            <ol>
+              <li>Raw e bronze do lote gravados no RustFS.</li>
+              <li>INSERT no ClickHouse falhou com a conexão abortada.</li>
+              <li>Manifesto gravado com <code>status = erro_clickhouse</code> e o erro.</li>
+              <li>Sem ack, as 96 linhas voltaram pela fila e entraram depois em lotes <code>ok</code>.</li>
+            </ol>
+          </div>
+        </div>
+        <div class="deck-callout"><strong>Pelo menos uma vez</strong><p>Nesta carga, a soma dos lotes <code>ok</code> bate com as 32.305 linhas da tabela. Numa reentrega em que a linha chega duas vezes, o <code>ReplacingMergeTree</code> dos fatos junta as cópias na leitura com <code>FINAL</code>.</p></div>
+      </div>
+    </div>
+
+    <!-- Reconciliação -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 06 &middot; Teoria &middot; Reconciliação</span>
+          <h2 class="deck-title">Para onde foi cada linha de telemetria</h2>
+          <p class="deck-summary">A reconciliação fecha a conta: as linhas de telemetria que entraram na tabela de pouso são iguais às leituras, mais os alertas, mais os descartes. Uma diferença indica linha perdida na view ou um formato que nenhuma regra reconhece.</p>
+        </div>
+        <div class="de-dois de-dois-esq">
+          <div class="de-caixa">
+            <span class="de-rotulo">Consulta 2 do <code>005</code></span>
+            <pre class="de-pre de-pre-largo"><code>SELECT multiIf(match(l, '^CAM-[0-9]{4}\\|'), 'leitura, formato barra',
+               match(l, '^CAM-[0-9]{4} [0-9]{2}-[0-9]{2}-'), 'leitura, formato espaço',
+               startsWith(l, 'TAC;'), 'alerta de direção',
+               startsWith(l, 'ERR SAT'), 'descarte: ERR SAT',
+               startsWith(l, '#RADIO'), 'descarte: #RADIO',
+               'descarte: outro') AS destino,
+       count() AS linhas
+FROM (SELECT data_json.linha::String AS l FROM ingestao.db_ingestion WHERE data_tag = 'telemetria')
+GROUP BY destino
+ORDER BY linhas DESC</code></pre>
+          </div>
+          <div class="de-caixa is-cinza">
+            <span class="de-rotulo">Na preparação</span>
+            <table class="deck-table de-tabela de-num">
+              <thead><tr><th>Destino</th><th>Linhas</th></tr></thead>
+              <tbody>
+                <tr><td>leitura, barra</td><td>22.432</td></tr>
+                <tr><td>leitura, espaço</td><td>6.368</td></tr>
+                <tr><td>descarte <code>#RADIO</code></td><td>1.464</td></tr>
+                <tr><td>descarte <code>ERR SAT</code></td><td>932</td></tr>
+                <tr><td>alerta</td><td>69</td></tr>
+                <tr><td>total</td><td>31.265</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <p class="deck-note">A conta bate com o teste do grão: 22.432 + 6.368 = 28.800 leituras no fato e 69 alertas. Nenhuma linha caiu em <code>descarte: outro</code>.</p>
+      </div>
+    </div>
+
+    <!-- Revise 06 -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 06 &middot; Revisão</span>
+          <h2 class="deck-title">Revise antes de seguir: Etapa 06</h2>
+          <p class="deck-summary">O <code>docs/observabilidade.md</code> fecha a aula com os números do grupo. Cada número precisa da consulta que o gerou.</p>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa">
+            <span class="de-rotulo">Revise antes de seguir</span>
+            <ul>
+              <li>O fato de lote tem uma linha por manifesto, igual ao <code>count()</code> de <code>s3(lake)</code>?</li>
+              <li>A soma das linhas dos lotes <code>ok</code> bate com <code>count()</code> de <code>db_ingestion</code>?</li>
+              <li>A reconciliação da telemetria fecha, sem linha sobrando?</li>
+              <li>Nenhuma chave do RustFS aparece em SQL ou em <code>docs/</code>?</li>
+              <li>Cada alvo sem medida está marcado como hipótese?</li>
+            </ul>
+          </div>
+          <div class="de-caixa is-forte">
+            <span class="de-rotulo">Gate</span>
+            <p><code>sql/005_consultas.sql</code> roda inteiro, das consultas 1 a 9, e a saída está em <code>docs/observabilidade.md</code>.</p>
+            <p>A consulta 5 lista 14 views no <code>dw</code>: 8 incrementais, 3 refreshable e 3 comuns.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fechamento -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Fechamento &middot; 12h00</span>
+          <h2 class="deck-title">O que existe às 12h10 e o que fica para a semana</h2>
+          <p class="deck-summary">O professor percorre as etapas ao vivo e a turma reproduz até onde der.</p>
+        </div>
+        <div class="deck-columns">
+          <div class="deck-panel">
+            <strong>Em sala, até 12h10</strong>
+            <ul>
+              <li>Banco <code>dw</code> com 4 fatos de negócio, 1 fato de processo, 3 dimensões e 14 views</li>
+              <li><code>specs/04_modelo_dimensional.md</code> com o grão de cada fato</li>
+              <li>Etapas 01 a 06 até onde o tempo permitir</li>
+            </ul>
+          </div>
+          <div class="deck-panel">
+            <strong>Na semana, até a Aula 06 (14/11)</strong>
+            <ul>
+              <li>Completar as etapas e rodar o <code>005</code> inteiro</li>
+              <li><code>docs/views.md</code> com o <code>EXPLAIN</code> real e <code>docs/observabilidade.md</code> com os números do grupo</li>
+              <li>Railway, se houver serviço livre: trial com crédito de US$ 5 por até 30 dias, depois plano Free de US$ 1/mês, até 5 serviços</li>
+              <li>Aula 06: Streaming com RabbitMQ e ClickHouse</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Entrega -->
+    <div class="slide">
+      <div class="deck-shell">
+        <div>
+          <span class="deck-kicker">Entrega &middot; repositório do grupo</span>
+          <h2 class="deck-title">Pasta <code>aula_05_dimensional/</code></h2>
+          <p class="deck-summary">A correção segue <code>docs/prompts.md</code>: cada etapa com o prompt literal, os arquivos gerados e os números do grupo. O link da pasta vai pelo formulário de entrega do grupo.</p>
+        </div>
+        <div class="deck-grid agenda-3 entrega-4">
+          <article class="deck-card"><h3>Pilha</h3><p><code>AGENTS.md</code>, <code>docker-compose.yml</code> e <code>clickhouse/*.xml</code> com a coleção <code>lake</code>.</p></article>
+          <article class="deck-card"><h3>Modelo</h3><p><code>specs/04_modelo_dimensional.md</code>, <code>sql/001_dimensoes_e_fatos.sql</code> e <code>sql/002_carga_historico.sql</code>.</p></article>
+          <article class="deck-card"><h3>Views e relatórios</h3><p><code>sql/003_relatorios_fechados.sql</code>, <code>sql/004_observabilidade.sql</code> e <code>docs/views.md</code>.</p></article>
+          <article class="deck-card"><h3>Observabilidade e registro</h3><p><code>sql/005_consultas.sql</code>, <code>docs/observabilidade.md</code> e <code>docs/prompts.md</code>.</p></article>
+        </div>
+      </div>
+    </div>
+
+  
+<!-- encontro:meta:start -->
+<div class="slide encontro-slide"><div class="sc"><section class="encontro-meta" data-encontro-ficha><h2>Sobre este encontro</h2><p class="encontro-ref">Data Collection and Storage · Aula 05 · 07/11/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>Ao final do encontro, o estudante deve ser capaz de declarar o grão de cada fato, construir dimensões e fatos no ClickHouse com views materializadas incrementais e refreshable e montar a observabilidade da ingestão com views em janela.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>Demonstração prática completa: a teoria ocupa a primeira parte do encontro e, em seguida, o professor constrói o projeto ao vivo enquanto cada aluno reproduz o mesmo caminho no próprio repositório, com o agente de código guiado pelo AGENTS.md e prompts no formato CREATE.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol><li>Retomada da Aula 04 e o problema de hoje</li><li>Três decisões da Aula 04</li><li>Etapa 00 · Subir a pilha com a coleção lake</li><li>Etapa 01 · O grão de cada fato</li><li>Etapa 02 · Dimensões, fatos e views materializadas incrementais</li><li>Etapa 03 · O que é uma view e como ela funciona no ClickHouse</li><li>Etapa 04 · Relatórios fechados com view materializada refreshable</li><li>Etapa 05 · Observabilidade corrente com views em janela</li><li>Etapa 06 · Observabilidade do processo, do manifesto ao descarte</li><li>Erros comuns</li><li>Fechamento, atividade em sala e entregável</li><li>Referências</li></ol></div></section></div></div>
+<!-- encontro:meta:end -->
+</div>
+
+  <img class="slide-logo-mini" src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli">
+
+  <div class="slide-footer">
+    <div class="footer-links">
+      <a href="../../../index.html" class="back-home">Início</a>
+      <a href="../../home-data-collection.html" class="back-home">Data Collection</a>
+      <a href="../materials/lesson-5-material.html" class="material-link">Material</a>
+      <a href="../laboratorio/lesson-5/README.md" class="material-link">Laboratório</a>
+    </div>
+    <div class="nav-wrapper">
+      <div class="nav-buttons"><button id="prev-btn" onclick="previousSlide()">&#8592; Anterior</button></div>
+      <div class="slide-counter"><span id="current-slide">1</span> / <span id="total-slides">1</span></div>
+      <div class="nav-buttons"><button id="next-btn" onclick="nextSlide()">Próximo &#8594;</button></div>
+    </div>
+    <button class="fullscreen-btn" onclick="toggleFullScreen()" title="Tela cheia">&#9974;</button>
+  </div>
+
+  <script>
+    let currentSlide = 0;
+    const slides = document.querySelectorAll(".slide");
+    const totalSlides = slides.length;
+    document.getElementById("total-slides").textContent = totalSlides;
+
+    function showSlide(index) {
+      slides.forEach(slide => slide.classList.remove("active"));
+      slides[index].classList.add("active");
+      currentSlide = index;
+      document.getElementById("current-slide").textContent = currentSlide + 1;
+      document.getElementById("prev-btn").disabled = currentSlide === 0;
+      document.getElementById("next-btn").disabled = currentSlide === totalSlides - 1;
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides - 1) showSlide(currentSlide + 1);
+    }
+
+    function previousSlide() {
+      if (currentSlide > 0) showSlide(currentSlide - 1);
+    }
+
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+
+    document.addEventListener("keydown", event => {
+      if (event.key === "ArrowRight" || event.key === " ") {
+        event.preventDefault();
+        nextSlide();
+      }
+      if (event.key === "ArrowLeft") previousSlide();
+      if (event.key.toLowerCase() === "f") toggleFullScreen();
+    });
+
+    showSlide(0);
+  </script>
+  <script>
+    /* Construção em etapas: trilha de progresso (00 a 06) e botão de copiar o prompt. */
+    (function () {
+      const TOTAL = 7;
+      document.querySelectorAll(".etapa-shell[data-etapa]").forEach(shell => {
+        const atual = parseInt(shell.dataset.etapa, 10);
+        const ol = document.createElement("ol");
+        ol.className = "etapa-trilha";
+        ol.setAttribute("aria-label", "Etapa " + shell.dataset.etapa + " de 06");
+        for (let i = 0; i < TOTAL; i++) {
+          const li = document.createElement("li");
+          li.textContent = String(i).padStart(2, "0");
+          if (i < atual) li.className = "is-done";
+          if (i === atual) li.className = "is-current";
+          ol.appendChild(li);
+        }
+        shell.prepend(ol);
+      });
+
+      document.querySelectorAll(".etapa-copiar").forEach(botao => {
+        botao.addEventListener("mousedown", event => event.preventDefault());
+        botao.addEventListener("click", event => {
+          event.stopPropagation();
+          const pre = botao.parentElement.querySelector("pre");
+          const texto = pre ? pre.innerText : "";
+          const ok = () => {
+            botao.textContent = "Copiado";
+            botao.classList.add("is-ok");
+            setTimeout(() => { botao.textContent = "Copiar"; botao.classList.remove("is-ok"); }, 1600);
+          };
+          if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(texto).then(ok, () => {});
+          } else {
+            const area = document.createElement("textarea");
+            area.value = texto;
+            document.body.appendChild(area);
+            area.select();
+            try { document.execCommand("copy"); ok(); } catch (e) { /* sem área de transferência */ }
+            area.remove();
+          }
+        });
+      });
+    })();
+  </script>
+  <script>
+    /* Café: cronômetro de 20 minutos calculado pelo relógio (Date.now), não por contagem de ticks.
+       Os botões não recebem foco (tabindex -1 e mousedown sem foco), então espaço e setas seguem
+       com a navegação dos slides. */
+    (function () {
+      const DURACAO_MS = 20 * 60 * 1000;
+      const relogio = document.getElementById("cafe-relogio");
+      const estado = document.getElementById("cafe-estado");
+      const iniciar = document.getElementById("cafe-iniciar");
+      const reiniciar = document.getElementById("cafe-reiniciar");
+      if (!relogio || !estado || !iniciar || !reiniciar) return;
+
+      let restanteMs = DURACAO_MS;   // tempo que falta quando parado
+      let fimEm = null;              // instante (Date.now) em que acaba, quando rodando
+      let intervalo = null;
+
+      function formatar(ms) {
+        const s = Math.ceil(ms / 1000);
+        return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+      }
+
+      function pararIntervalo() {
+        if (intervalo !== null) { clearInterval(intervalo); intervalo = null; }
+      }
+
+      function terminar() {
+        pararIntervalo();
+        fimEm = null;
+        restanteMs = 0;
+        relogio.textContent = "00:00";
+        relogio.classList.add("is-fim");
+        estado.textContent = "Fim do intervalo. Hora da Etapa 01.";
+        iniciar.textContent = "Iniciar";
+        iniciar.disabled = true;
+      }
+
+      function desenhar() {
+        if (fimEm === null) { relogio.textContent = formatar(restanteMs); return; }
+        const ms = Math.max(0, fimEm - Date.now());
+        if (ms === 0) { terminar(); return; }
+        relogio.textContent = formatar(ms);
+      }
+
+      function comecar() {
+        if (restanteMs <= 0) return;
+        fimEm = Date.now() + restanteMs;
+        pararIntervalo();
+        intervalo = setInterval(desenhar, 250);
+        iniciar.textContent = "Pausar";
+        estado.textContent = "Em andamento.";
+        desenhar();
+      }
+
+      function pausar() {
+        restanteMs = Math.max(0, fimEm - Date.now());
+        fimEm = null;
+        pararIntervalo();
+        if (restanteMs === 0) { terminar(); return; }
+        iniciar.textContent = "Continuar";
+        estado.textContent = "Pausado.";
+        desenhar();
+      }
+
+      function zerar() {
+        pararIntervalo();
+        fimEm = null;
+        restanteMs = DURACAO_MS;
+        relogio.classList.remove("is-fim");
+        iniciar.disabled = false;
+        iniciar.textContent = "Iniciar";
+        estado.textContent = "Pronto para começar.";
+        desenhar();
+      }
+
+      [iniciar, reiniciar].forEach(botao => {
+        botao.addEventListener("mousedown", event => event.preventDefault());
+      });
+      iniciar.addEventListener("click", event => {
+        event.stopPropagation();
+        if (fimEm === null) comecar(); else pausar();
+        iniciar.blur();
+      });
+      reiniciar.addEventListener("click", event => {
+        event.stopPropagation();
+        zerar();
+        reiniciar.blur();
+      });
+      document.addEventListener("visibilitychange", () => { if (!document.hidden) desenhar(); });
+
+      desenhar();
+    })();
+  </script>
+<!-- semana:js:start -->
+<script src="../../../js/semana-ano.js" defer></script>
+<!-- semana:js:end -->
+</body>
+</html>

@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗄️</text></svg>">
+  <title>Material Aula 01 — Arquitetura de Software de Dados e Spec-Driven Development</title>
+  <link rel="stylesheet" href="../css/dc-styles.css">
+
+<!-- encontro:css:start -->
+<link rel="stylesheet" href="../../../css/encontro.css">
+<!-- encontro:css:end -->
+
+<!-- semana:css:start -->
+<link rel="stylesheet" href="../../../css/semana-ano.css">
+<!-- semana:css:end -->
+</head>
+<body>
+  <main class="page">
+    <div class="material-nav">
+      <a href="../../../index.html">&larr; Início</a>
+      <a href="../../home-data-collection.html">&larr; Data Collection &amp; Storage</a>
+      <a href="../laboratorio/lesson-1/README.md">Roteiro do laboratório</a>
+      <a href="../slides/slide-lesson-1.html">Ver Slide &rarr;</a>
+    </div>
+
+    <header class="hero">
+      <img class="logo-full" src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli">
+      <span class="kicker">Data Collection and Storage &middot; Inteli</span>
+      <h1>Aula 01 — Arquitetura de Software de Dados e Spec-Driven Development</h1>
+      <p class="meta">Aula 01 &middot; 10/10/2026 &middot; Sábado &middot; 8h30 &ndash; 12h10</p>
+      <p>A aula define o método usado em toda a disciplina: arquitetura de software aplicada a dados, avaliação por ATAM, Spec-Driven Development (SDD) e prompts no formato CREATE. O primeiro projeto SDD é pequeno de propósito: cada grupo publica no Railway um MinIO próprio, que servirá de object storage nas Aulas 02, 03 e 04 e no projeto final.</p>
+    </header>
+<!-- encontro:meta:start -->
+<div class="container" style="max-width:1100px;margin:24px auto 0;padding:0 16px;"><section class="encontro-meta" data-encontro-ficha><h2>Sobre este encontro</h2><p class="encontro-ref">Data Collection and Storage · Aula 01 · 10/10/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>Ao final do encontro, o estudante deve ser capaz de descrever a arquitetura de software de um projeto de dados em Spec-Driven Development, da persona e dos objetivos de negócio à especificação, ao plano, às tarefas e à validação ATAM, e publicar um MinIO próprio no Railway pelo terminal.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>Demonstração prática completa: a teoria ocupa a primeira parte do encontro e, em seguida, o professor constrói o projeto ao vivo enquanto cada aluno reproduz o mesmo caminho no próprio repositório, com o agente de código guiado pelo AGENTS.md e prompts no formato CREATE.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol><li>O problema concreto e o resultado da aula</li><li>Como a manhã está organizada</li><li>Arquitetura de software aplicada a dados</li><li>ATAM: avaliar a arquitetura antes de confiar nela</li><li>Spec-Driven Development</li><li>O formato CREATE</li><li>Boas práticas de prompt para agentes</li><li>Setup 1: repositório do grupo e Codespace</li><li>Setup 2: agente de código</li><li>Setup 3: conta e CLI do Railway</li><li>Por que MinIO e por que a imagem da coolLabs</li><li>Demonstração SDD: os oito prompts do projeto MinIO</li></ol></div></section></div>
+<!-- encontro:meta:end -->
+
+
+    <article class="material">
+
+      <section class="content-block" id="sumario">
+        <h2>Sumário</h2>
+        <ol>
+          <li><a href="#s1">O problema concreto e o resultado da aula</a></li>
+          <li><a href="#s2">Como a manhã está organizada</a></li>
+          <li><a href="#s3">Arquitetura de software aplicada a dados</a></li>
+          <li><a href="#s4">ATAM: avaliar a arquitetura antes de confiar nela</a></li>
+          <li><a href="#s5">Spec-Driven Development</a></li>
+          <li><a href="#s6">O formato CREATE</a></li>
+          <li><a href="#s7">Boas práticas de prompt para agentes</a></li>
+          <li><a href="#s8">Setup 1: repositório do grupo e Codespace</a></li>
+          <li><a href="#s9">Setup 2: agente de código</a></li>
+          <li><a href="#s10">Setup 3: conta e CLI do Railway</a></li>
+          <li><a href="#s11">Por que MinIO e por que a imagem da coolLabs</a></li>
+          <li><a href="#s12">Demonstração SDD: os oito prompts do projeto MinIO</a></li>
+          <li><a href="#s13">Conferência: MinIO local e cliente mc</a></li>
+          <li><a href="#s14">Conferência: deploy no Railway pelo terminal</a></li>
+          <li><a href="#s15">Exemplo resolvido de ponta a ponta</a></li>
+          <li><a href="#s16">Problemas comuns</a></li>
+          <li><a href="#s17">Atividade em sala e entregável</a></li>
+          <li><a href="#s18">Referências</a></li>
+        </ol>
+      </section>
+
+      <!-- 1 -->
+      <section class="content-block" id="s1">
+        <h2>1. O problema concreto e o resultado da aula</h2>
+        <p>A partir da Aula 02, cada grupo vai coletar dados de APIs e de páginas web, gravar arquivos JSON e HTML, convertê-los em Parquet e consultá-los com DuckDB. Todos esses passos precisam de um lugar comum para guardar objetos. Se cada integrante gravar no próprio Codespace, os arquivos ficam espalhados, somem quando o Codespace é apagado e ninguém consegue reproduzir a coleta do colega. O grupo precisa de um object storage compartilhado, acessível de qualquer máquina, protegido por credencial e barato o bastante para caber no crédito de avaliação do Railway.</p>
+        <p>Esse problema é pequeno, mas já tem todos os ingredientes de uma decisão arquitetural: há uma persona com uma dor, há restrições de custo e de plataforma, há atributos de qualidade em tensão (segurança contra praticidade, reprodutibilidade contra atualização) e há riscos que só aparecem quando se pergunta "e se?". Por isso ele serve como primeiro projeto de Spec-Driven Development da disciplina. O professor constrói o projeto ao vivo, etapa por etapa, e cada grupo reproduz o mesmo ciclo no próprio repositório.</p>
+        <div class="note">
+          <strong>Resultado esperado ao fim da manhã</strong>
+          <p>Um repositório do grupo no GitHub com a pasta <code>aula_01_minio/</code> contendo <code>AGENTS.md</code>, <code>docs/</code> e <code>specs/</code> preenchidos para o projeto MinIO; um MinIO no ar no Railway com os buckets <code>raw</code>, <code>bronze</code>, <code>silver</code> e <code>gold</code>; o mesmo MinIO rodando localmente por <code>docker compose</code>; a avaliação ATAM, os ADRs, a matriz de rastreabilidade e o histórico dos prompts enviados.</p>
+        </div>
+      </section>
+
+      <!-- 2 -->
+      <section class="content-block" id="s2">
+        <h2>2. Como a manhã está organizada</h2>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Horário</th><th>Bloco</th><th>O que acontece</th></tr></thead>
+          <tbody>
+            <tr><td>8h30 &ndash; 9h30</td><td>Conceitos</td><td>Arquitetura de dados, atributos de qualidade, C4, ADR, ATAM, SDD, CREATE e boas práticas de prompt (seções 3 a 7).</td></tr>
+            <tr><td>9h30 &ndash; 10h15</td><td>Setup</td><td>Repositório do grupo, Codespace, agente de código e Railway (seções 8 a 10).</td></tr>
+            <tr><td>10h15 &ndash; 11h40</td><td>Demonstração SDD</td><td>O professor executa os prompts 1 a 8 no projeto MinIO; os grupos reproduzem em paralelo (seções 11 a 14).</td></tr>
+            <tr><td>11h40 &ndash; 12h10</td><td>Fechamento</td><td>ATAM, ADRs, rastreabilidade, conferência do entregável e registro no formulário (seções 15 a 17).</td></tr>
+          </tbody>
+        </table></div>
+        <p>O ambiente da disciplina é o mesmo em todas as aulas: GitHub Codespaces (ou a máquina do aluno, com Docker), o agente de código de preferência de cada aluno (Claude Code, Codex CLI, Gemini CLI, OpenCode, Cursor ou Copilot) e o Railway para publicar serviços. A disciplina não usa AWS. Quando o material diz "API compatível com S3", refere-se ao protocolo que o MinIO implementa, e não ao serviço da Amazon.</p>
+      </section>
+
+      <!-- 3 -->
+      <section class="content-block" id="s3">
+        <h2>3. Arquitetura de software aplicada a dados</h2>
+
+        <h3>3.1 O que é um sistema de dados</h3>
+        <p>Um sistema de dados é o conjunto de componentes que leva um fato do mundo até uma decisão. A forma mais útil de enxergá-lo é por cinco responsabilidades, que aparecem em qualquer pipeline, do script de uma tarde até uma plataforma corporativa:</p>
+        <div class="method-flow">
+          <div class="method-step"><strong>Fontes</strong><span>APIs, páginas web, bancos operacionais, sensores, arquivos.</span></div>
+          <div class="method-step"><strong>Coleta</strong><span>Programas que buscam ou recebem os dados, em lote ou em fluxo.</span></div>
+          <div class="method-step is-current"><strong>Armazenamento</strong><span>Object storage, bancos relacionais, colunares, filas.</span></div>
+          <div class="method-step"><strong>Processamento</strong><span>Limpeza, tipagem, junção, agregação, validação.</span></div>
+          <div class="method-step"><strong>Consumo</strong><span>Consultas, painéis, modelos, APIs para outras equipes.</span></div>
+        </div>
+        <p>A disciplina percorre essas cinco responsabilidades ao longo do semestre. Esta aula constrói o armazenamento de objetos, porque é dele que as Aulas 02 a 04 dependem: a Aula 02 grava JSON bruto no bucket <code>raw</code>, a Aula 03 grava resultados de API e de scraping, e a Aula 04 lê o que foi gravado para montar as camadas <code>bronze</code>, <code>silver</code> e <code>gold</code> de um lakehouse. Os nomes dos quatro buckets seguem a arquitetura medalhão: <code>raw</code> guarda o dado como chegou, <code>bronze</code> guarda o dado bruto organizado, <code>silver</code> guarda o dado limpo e tipado, e <code>gold</code> guarda o dado pronto para uma pergunta de negócio.</p>
+        <p>Arquitetura, nesse contexto, é o conjunto de decisões que são caras de mudar depois: onde o dado fica, quem pode ler, como um componente fala com outro, o que acontece quando algo falha. Escolher a biblioteca de HTTP do coletor é uma decisão de implementação; decidir que todo dado bruto é gravado sem alteração num bucket imutável antes de qualquer transformação é uma decisão arquitetural, porque muda o que se consegue reprocessar, auditar e corrigir meses depois.</p>
+
+        <h3>3.2 Requisitos funcionais e atributos de qualidade</h3>
+        <p>Um requisito funcional diz o que o sistema faz: "gravar a resposta da API no bucket <code>raw</code>", "criar os quatro buckets". Um atributo de qualidade diz quão bem ele faz, sob quais condições: "a gravação continua correta quando o proxy devolve 502", "nenhum acesso anônimo é aceito". Dois sistemas com os mesmos requisitos funcionais podem ter arquiteturas completamente diferentes porque respondem a atributos de qualidade diferentes. Na prática, são os atributos de qualidade que decidem a arquitetura.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Atributo</th><th>Pergunta que ele faz</th><th>Exemplo no projeto MinIO</th></tr></thead>
+          <tbody>
+            <tr><td>Disponibilidade</td><td>O serviço responde quando é chamado? O que acontece numa falha?</td><td>O proxy do Railway devolve 502 esporádico; o cliente precisa tentar de novo.</td></tr>
+            <tr><td>Latência</td><td>Quanto tempo uma operação leva, medida em qual percentil?</td><td>Tempo de gravação de um JSON pequeno; sem meta definida, fica como hipótese.</td></tr>
+            <tr><td>Custo</td><td>Quanto custa manter, e o que acontece quando o dinheiro acaba?</td><td>Crédito único de US$ 5 no trial; volumes apagados 30 dias após o fim dos créditos.</td></tr>
+            <tr><td>Idempotência</td><td>Executar duas vezes produz o mesmo resultado que uma?</td><td>Criar buckets com <code>mc mb --ignore-existing</code>; regravar a mesma chave de objeto não duplica.</td></tr>
+            <tr><td>Rastreabilidade</td><td>Dá para saber de onde veio um dado e por que uma decisão foi tomada?</td><td>Cada requisito aponta para decisão, componente e evidência em <code>docs/rastreabilidade.md</code>.</td></tr>
+            <tr><td>Segurança e LGPD</td><td>Quem acessa, com qual credencial, e onde o segredo fica?</td><td>Repositório público no GitHub: nenhuma senha pode ser versionada.</td></tr>
+          </tbody>
+        </table></div>
+        <p>Idempotência merece atenção desde já, porque ela é a condição para tentar de novo com segurança. Se o coletor da Aula 02 grava cada lote de telemetria numa chave determinada pela data, pela hora e pelo caminhão (<code>raw/telemetria/data=2026-10-17/hora=12/caminhao=CAM-0412/lote_1200.txt</code>), repetir a gravação depois de um 502 sobrescreve o mesmo objeto. Se a chave incluísse o instante da tentativa, cada repetição criaria um arquivo novo e a contagem de registros ficaria errada sem que nenhum erro aparecesse.</p>
+
+        <h3>3.3 Decisões arquiteturais e trade-offs</h3>
+        <p>Toda decisão arquitetural compra um atributo pagando com outro. O trabalho do arquiteto é tornar esse preço visível antes que ele seja cobrado. A tabela abaixo mostra três decisões do projeto MinIO e o que cada uma custa.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Decisão</th><th>Atributo que melhora</th><th>Atributo que piora</th></tr></thead>
+          <tbody>
+            <tr><td>Fixar a imagem na tag <code>RELEASE.2025-10-15T17-29-55Z</code></td><td>Reprodutibilidade: todo deploy roda o mesmo binário.</td><td>Atualização: correções de segurança exigem trocar a tag manualmente.</td></tr>
+            <tr><td>Publicar só a porta 9000 (API) e deixar o console 9001 sem domínio</td><td>Segurança: menor superfície exposta na internet.</td><td>Usabilidade: não há interface web para o MinIO publicado; usa-se <code>mc</code>.</td></tr>
+            <tr><td>Um serviço com um volume em <code>/data</code></td><td>Custo e simplicidade: cabe no trial.</td><td>Durabilidade: sem réplica; perder o volume é perder os dados.</td></tr>
+          </tbody>
+        </table></div>
+        <p>Uma análise em que nenhuma decisão custou nada indica que alguém deixou de olhar de perto. Esse é um dos sinais que o grupo deve procurar ao revisar o que o agente produzir.</p>
+
+        <h3>3.4 C4: contexto, contêineres e componentes</h3>
+        <p>O modelo C4, de Simon Brown, descreve uma arquitetura em níveis de zoom. Cada nível responde a uma pergunta diferente e serve a um público diferente. Na disciplina usamos os três primeiros níveis, desenhados em Mermaid dentro de <code>specs/plan.md</code>, porque o GitHub renderiza Mermaid diretamente no Markdown e o diagrama fica versionado junto com o texto.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Nível</th><th>Pergunta</th><th>No projeto MinIO</th></tr></thead>
+          <tbody>
+            <tr><td>1. Contexto</td><td>Quem usa o sistema e com quais sistemas externos ele conversa?</td><td>Grupo, pipelines das próximas aulas, Railway, GitHub.</td></tr>
+            <tr><td>2. Contêineres</td><td>Quais unidades executáveis e armazenamentos existem, e como se comunicam?</td><td>MinIO local, MinIO no Railway, volumes, domínio público, cliente <code>mc</code>.</td></tr>
+            <tr><td>3. Componentes</td><td>Quais partes internas de um contêiner têm responsabilidades distintas?</td><td>Etapas do script de verificação.</td></tr>
+          </tbody>
+        </table></div>
+        <p>Nível 1, contexto:</p>
+        <pre><code>flowchart LR
+  eng["Grupo: engenheiro de dados"]
+  pipes["Pipelines das Aulas 02 a 04"]
+  sist["Object storage do grupo (MinIO)"]
+  rail["Railway (plataforma de deploy)"]
+  gh["GitHub (repositório e Codespaces)"]
+  eng --&gt;|"opera com mc e scripts"| sist
+  pipes --&gt;|"gravam e leem objetos pela API S3"| sist
+  sist --&gt;|"executa em"| rail
+  eng --&gt;|"versiona specs e código"| gh</code></pre>
+        <div class="diagram"><div class="mermaid">
+flowchart LR
+  eng["Grupo: engenheiro de dados"]
+  pipes["Pipelines das Aulas 02 a 04"]
+  sist["Object storage do grupo (MinIO)"]
+  rail["Railway (plataforma de deploy)"]
+  gh["GitHub (repositório e Codespaces)"]
+  eng --&gt;|"opera com mc e scripts"| sist
+  pipes --&gt;|"gravam e leem objetos pela API S3"| sist
+  sist --&gt;|"executa em"| rail
+  eng --&gt;|"versiona specs e código"| gh
+        </div></div>
+        <p>Nível 2, contêineres:</p>
+        <pre><code>flowchart LR
+  subgraph cs["Codespace do integrante"]
+    mc["Cliente mc e scripts"]
+    local["MinIO local (docker compose)"]
+    vloc[("Volume minio_data")]
+  end
+  subgraph rw["Railway: projeto minio-grupo-xx"]
+    dom["Domínio público HTTPS"]
+    svc["Serviço minio (imagem coolLabs fixada)"]
+    vol[("Volume em /data")]
+  end
+  mc --&gt;|"API S3, porta 9000"| local
+  local --- vloc
+  mc --&gt;|"HTTPS"| dom
+  dom --&gt;|"porta 9000"| svc
+  svc --- vol</code></pre>
+        <div class="diagram"><div class="mermaid">
+flowchart LR
+  subgraph cs["Codespace do integrante"]
+    mc["Cliente mc e scripts"]
+    local["MinIO local (docker compose)"]
+    vloc[("Volume minio_data")]
+  end
+  subgraph rw["Railway: projeto minio-grupo-xx"]
+    dom["Domínio público HTTPS"]
+    svc["Serviço minio (imagem coolLabs fixada)"]
+    vol[("Volume em /data")]
+  end
+  mc --&gt;|"API S3, porta 9000"| local
+  local --- vloc
+  mc --&gt;|"HTTPS"| dom
+  dom --&gt;|"porta 9000"| svc
+  svc --- vol
+        </div></div>
+        <p>Nível 3, componentes do script de verificação. O nível 3 só vale a pena onde há lógica própria; o MinIO é um produto pronto e não precisa ser decomposto, mas o script que prova que ele funciona é código do grupo:</p>
+        <pre><code>flowchart TB
+  env["Carrega .env sem ecoar valores"] --&gt; alias["Configura alias do mc"]
+  alias --&gt; saude["Saúde: mc ready"]
+  saude --&gt; anon["Acesso anônimo deve receber 403"]
+  anon --&gt; buckets["Confere raw, bronze, silver, gold"]
+  buckets --&gt; ida["Grava, lê e compara objeto de verificação"]
+  ida --&gt; rel["Salva saída em docs/evidencias"]</code></pre>
+        <div class="diagram"><div class="mermaid">
+flowchart TB
+  env["Carrega .env sem ecoar valores"] --&gt; alias["Configura alias do mc"]
+  alias --&gt; saude["Saúde: mc ready"]
+  saude --&gt; anon["Acesso anônimo deve receber 403"]
+  anon --&gt; buckets["Confere raw, bronze, silver, gold"]
+  buckets --&gt; ida["Grava, lê e compara objeto de verificação"]
+  ida --&gt; rel["Salva saída em docs/evidencias"]
+        </div></div>
+        <p>Um erro frequente em diagramas gerados por IA é a divergência entre figura e texto: o Mermaid mostra um componente que o texto não menciona, ou o texto descreve uma comunicação que o diagrama não tem. Na revisão, confira nome por nome.</p>
+
+        <h3>3.5 ADR: registro de decisão arquitetural</h3>
+        <p>Um Architecture Decision Record (ADR), formato proposto por Michael Nygard, é um arquivo curto que registra uma decisão, o contexto em que ela foi tomada, as alternativas descartadas e as consequências. O valor do ADR aparece meses depois, quando alguém pergunta "por que a imagem é da coolLabs e não a oficial?" e a resposta está escrita, com data e motivo. Na disciplina, cada ADR fica em <code>docs/adr/ADR-NNN-titulo.md</code> e segue o modelo do laboratório: status, contexto e forças, requisitos e cenários relacionados, alternativas, decisão com a tática aplicada, consequências positivas e negativas, riscos, evidência necessária e condição de revisão.</p>
+        <p>ADRs não são apagados. Quando uma decisão muda, cria-se um novo ADR e o anterior recebe o status "substituído por ADR-NNN". O histórico de decisões é, ele próprio, um dado do projeto.</p>
+      </section>
+
+      <!-- 4 -->
+      <section class="content-block" id="s4">
+        <h2>4. ATAM: avaliar a arquitetura antes de confiar nela</h2>
+        <p>O Architecture Tradeoff Analysis Method (ATAM), desenvolvido no Software Engineering Institute da Carnegie Mellon, avalia uma arquitetura confrontando suas decisões com cenários de qualidade que importam para o negócio. O método não produz nota, ranking nem selo de "arquitetura correta". Ele produz cenários mensuráveis, pontos de sensibilidade e de trade-off, riscos, não-riscos e temas de risco, além de uma lista honesta do que ainda não se sabe. Na disciplina, o ATAM é a etapa 7 do SDD: depois de implementar, o grupo pressiona o que construiu.</p>
+
+        <h3>4.1 Drivers de negócio e utility tree</h3>
+        <p>O ATAM começa pelos drivers de negócio, as forças que pressionam a arquitetura: prazo, custo, regulação, equipe, risco. No projeto MinIO, os drivers são concretos: o crédito do trial é único, o repositório é público, três aulas dependem do storage e o grupo não tem experiência prévia com operação de infraestrutura.</p>
+        <p>Os drivers são refinados numa utility tree, organizada como atributo, refinamento e cenário. Cada cenário recebe um par (importância para o negócio, dificuldade técnica). A análise começa pelos cenários (alta, alta), onde valor e incerteza se encontram.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Atributo</th><th>Refinamento</th><th>Cenário (resumo)</th><th>Imp. &times; Dif.</th></tr></thead>
+          <tbody>
+            <tr><td>Durabilidade</td><td>Redeploy</td><td>Novo deploy do serviço não perde objetos gravados.</td><td>Alta &times; Média</td></tr>
+            <tr><td>Segurança</td><td>Credencial</td><td>Senha root commitada por engano no repositório público.</td><td>Alta &times; Alta</td></tr>
+            <tr><td>Custo</td><td>Fim do crédito</td><td>Consumo se aproxima dos US$ 5 antes do fim da disciplina.</td><td>Alta &times; Média</td></tr>
+            <tr><td>Disponibilidade</td><td>Proxy</td><td>Escrita recebe 502 do proxy do Railway.</td><td>Média &times; Média</td></tr>
+            <tr><td>Durabilidade</td><td>Política do trial</td><td>Volume apagado 30 dias após o fim dos créditos.</td><td>Alta &times; Baixa</td></tr>
+          </tbody>
+        </table></div>
+
+        <h3>4.2 O cenário de qualidade tem seis partes</h3>
+        <p>Um cenário de qualidade transforma uma intenção vaga ("o sistema deve ser seguro") em algo verificável. Ele tem seis partes, e a ausência de qualquer uma delas, principalmente da métrica, impede a verificação.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Parte</th><th>Pergunta</th><th>Exemplo: redeploy não perde dados</th></tr></thead>
+          <tbody>
+            <tr><td>Fonte</td><td>Quem ou o que provoca?</td><td>Um integrante do grupo.</td></tr>
+            <tr><td>Estímulo</td><td>O que acontece?</td><td>Executa <code>railway up</code> com um Dockerfile alterado, ou <code>railway redeploy</code>.</td></tr>
+            <tr><td>Ambiente</td><td>Em qual condição?</td><td>Operação normal, com objetos já gravados em <code>raw</code>.</td></tr>
+            <tr><td>Artefato</td><td>Qual parte é afetada?</td><td>Serviço <code>minio</code> e volume montado em <code>/data</code>.</td></tr>
+            <tr><td>Resposta</td><td>Como o sistema reage?</td><td>O novo contêiner monta o mesmo volume e os objetos continuam acessíveis.</td></tr>
+            <tr><td>Métrica</td><td>Como saberemos que foi suficiente?</td><td>Contagem de objetos de verificação antes e depois do redeploy é igual; zero objetos perdidos.</td></tr>
+          </tbody>
+        </table></div>
+        <p>Compare duas versões do mesmo cenário. A versão fraca diz: "o storage deve ser confiável". Ela não informa quando, onde, nem como medir. A versão forte diz: "quando um integrante executa <code>railway redeploy</code> com objetos já gravados em <code>raw</code>, o serviço volta com o mesmo volume e a listagem de <code>raw/_verificacao/</code> mostra os mesmos objetos de antes, verificável por um comando, com zero perdas". A segunda pode ser executada e pode falhar; por isso ela serve para verificar a arquitetura.</p>
+
+        <h3>4.3 O vocabulário das descobertas</h3>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Termo</th><th>Significado</th><th>Exemplo no projeto MinIO</th></tr></thead>
+          <tbody>
+            <tr><td>Ponto de sensibilidade</td><td>Uma decisão afeta fortemente um atributo.</td><td>O caminho de montagem do volume: se o volume não estiver em <code>/data</code>, o MinIO grava no disco efêmero do contêiner e todo redeploy apaga os dados.</td></tr>
+            <tr><td>Ponto de trade-off</td><td>A mesma decisão melhora um atributo e piora outro.</td><td>Expor só a porta 9000: melhora segurança, piora usabilidade (sem console remoto).</td></tr>
+            <tr><td>Risco</td><td>Algo que pode impedir um cenário de ser atendido.</td><td>Todos os scripts e integrantes usam a credencial root; um vazamento dá acesso total.</td></tr>
+            <tr><td>Não-risco</td><td>A decisão responde satisfatoriamente ao cenário.</td><td>Requisição sem assinatura recebe 403 (verificado com <code>curl</code>).</td></tr>
+            <tr><td>Tema de risco</td><td>Padrão que se repete entre várias descobertas.</td><td>"Tudo depende de um único volume e de uma única credencial."</td></tr>
+          </tbody>
+        </table></div>
+        <p>A distinção que mais confunde: sensibilidade é sobre um atributo; trade-off é quando a mesma decisão puxa dois atributos em direções opostas. Todo trade-off é um ponto sensível, mas nem todo ponto sensível é trade-off.</p>
+
+        <h3>4.4 Táticas de Len Bass</h3>
+        <p>Uma tática, no catálogo de Len Bass, Paul Clements e Rick Kazman (<em>Software Architecture in Practice</em>), é uma decisão de projeto que influencia a resposta do sistema a um estímulo, mirando um atributo de qualidade. Descrever a decisão pela tática, e não pela ferramenta, permite discutir a análise. "Usamos MinIO" não diz qual atributo foi atendido. "Separamos o estado (volume) da computação (contêiner) para que a substituição do contêiner não afete os dados" diz, e permite perguntar qual é o custo.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Atributo</th><th>Grupo de táticas</th><th>Tática</th><th>Aplicação no projeto MinIO</th></tr></thead>
+          <tbody>
+            <tr><td>Disponibilidade</td><td>Detectar falhas</td><td>Monitoramento, ping/eco</td><td>Healthcheck do compose com <code>mc ready local</code>; <code>mc ready railway</code> no script.</td></tr>
+            <tr><td>Disponibilidade</td><td>Recuperar de falhas</td><td>Retry</td><td>Cliente repete a operação após 502, com espera crescente.</td></tr>
+            <tr><td>Disponibilidade</td><td>Recuperar de falhas</td><td>Rollback</td><td>Voltar à tag anterior da imagem se um deploy falhar.</td></tr>
+            <tr><td>Segurança</td><td>Resistir a ataques</td><td>Autenticar atores</td><td>Toda requisição S3 é assinada com usuário e senha.</td></tr>
+            <tr><td>Segurança</td><td>Resistir a ataques</td><td>Limitar exposição</td><td>Só a porta 9000 recebe domínio público.</td></tr>
+            <tr><td>Segurança</td><td>Resistir a ataques</td><td>Limitar acesso; alterar configurações padrão</td><td>Senha gerada com <code>openssl rand -hex 24</code>, nunca o padrão; segredo fora do Git.</td></tr>
+            <tr><td>Modificabilidade</td><td>Adiar vínculo</td><td>Vínculo em tempo de configuração</td><td>Credenciais e endpoint vêm de variáveis de ambiente, não do código.</td></tr>
+          </tbody>
+        </table></div>
+        <p>Regra prática para revisar o que o agente produzir: decisão sem tática nomeada é decisão sem justificativa; tática sem cenário associado é otimização especulativa.</p>
+
+        <h3>4.5 O que o ATAM entrega no repositório</h3>
+        <p>No esqueleto SDD da disciplina, a análise vai para <code>docs/atam.md</code> (drivers, utility tree, cenários de seis partes, descobertas, riscos aceitos e próximos experimentos), as decisões vão para <code>docs/adr/</code> e a matriz requisito, decisão, componente, evidência e estado vai para <code>docs/rastreabilidade.md</code>. Cada linha da matriz recebe um estado: <code>atendido</code> quando há evidência executável ou registrada, <code>parcial</code> quando a evidência cobre só parte do critério de aceite (a razão diz qual parte falta) e <code>não atendido</code>, com a razão. Uma linha sem evidência nunca é marcada como atendida. Essa é a mesma convenção cobrada no projeto final.</p>
+      </section>
+
+      <!-- 5 -->
+      <section class="content-block" id="s5">
+        <h2>5. Spec-Driven Development</h2>
+
+        <h3>5.1 Por que especificar antes de pedir código a um agente</h3>
+        <p>Um agente de código, como o Claude Code ou o Codex CLI, lê arquivos, escreve arquivos e executa comandos. Ele é rápido, mas preenche qualquer lacuna do pedido com a resposta mais provável no material em que foi treinado. Se o pedido é "suba um MinIO no Railway", o agente escolhe a imagem, a porta, onde guardar a senha e se o console fica público, e cada escolha parece razoável isoladamente. O problema é que essas escolhas não foram feitas pelo grupo, não estão registradas e não respondem a nenhum requisito. Uma delas (a senha num arquivo versionado de um repositório público, por exemplo) pode ser grave.</p>
+        <p>Spec-Driven Development inverte a ordem: antes de qualquer código, o grupo escreve, com ajuda do agente, quem é a persona, quais objetivos de negócio importam, quais requisitos o sistema cumpre e com quais critérios de aceite, qual arquitetura atende a esses requisitos e quais tarefas pequenas levam até ela. A especificação vira o contexto do agente. Cada prompt seguinte lê arquivos do repositório em vez de depender da memória da conversa, e cada artefato gerado pode ser revisado, versionado e contestado.</p>
+
+        <h3>5.2 O ciclo da disciplina</h3>
+        <div class="method-flow">
+          <div class="method-step"><strong>1. Persona</strong><span>Quem usa o dado, que decisão toma, qual dor.</span></div>
+          <div class="method-step"><strong>2. Objetivos</strong><span>Resultados de negócio com métrica, drivers e restrições.</span></div>
+          <div class="method-step"><strong>3. Spec</strong><span>RF e RNF com critérios Dado/Quando/Então.</span></div>
+          <div class="method-step"><strong>4. Plano</strong><span>C4 em Mermaid e escolhas ligadas a requisitos.</span></div>
+          <div class="method-step"><strong>5. Tarefas</strong><span>Pequenas, cada uma com requisito e verificação.</span></div>
+          <div class="method-step"><strong>6. Implementação</strong><span>Uma tarefa por vez, com teste e evidência.</span></div>
+          <div class="method-step is-current"><strong>7. Validação ATAM</strong><span>Cenários, descobertas, ADRs e rastreabilidade.</span></div>
+        </div>
+        <p>Cada etapa é um prompt independente no formato CREATE, copiado por inteiro. Entre uma etapa e outra, o grupo lê o que foi produzido e responde às perguntas do quadro "Revise antes de seguir". O prompt economiza digitação; a revisão decide se o artefato pode virar fonte de verdade para a etapa seguinte, e é nela que o grupo aprende a reconhecer um requisito mal escrito.</p>
+
+        <h3>5.3 A convenção de pastas da disciplina</h3>
+        <p>Cada grupo tem um único repositório no GitHub, o mesmo informado no formulário de grupo. Cada aula vira uma pasta nesse repositório, e o projeto final fica em <code>projeto_final/</code>, na raiz, ao lado das pastas de aula, com o mesmo esqueleto SDD (ver o <a href="../materials/lesson-8-material.html">enunciado do projeto final</a>).</p>
+        <pre><code>repositorio-do-grupo/
+├── .gitignore                 # .env e credenciais fora do Git
+├── README.md
+├── aula_01_minio/             # esta aula
+├── aula_02_coleta_json/       # uma pasta por aula
+├── aula_03_api_scraping/
+├── ...
+└── projeto_final/             # projeto final, mesmo esqueleto</code></pre>
+        <p>Dentro de cada pasta de aula (e do projeto final), a estrutura é sempre a mesma:</p>
+        <pre><code>&lt;projeto&gt;/
+├── AGENTS.md                  # regras do agente: escopo, comandos, segredos, gates, commits
+├── .env.example               # nomes das variáveis, sem valores reais
+├── docs/
+│   ├── 00_persona.md          # quem usa o dado, decisão que toma, dor, frequência
+│   ├── 01_objetivos_negocio.md # objetivos com métrica, drivers, restrições
+│   ├── atam.md                # utility tree, cenários de seis partes, descobertas
+│   ├── adr/ADR-001-*.md       # decisões arquiteturais
+│   ├── rastreabilidade.md     # requisito, decisão, componente, evidência, estado
+│   ├── prompts.md             # prompts CREATE realmente enviados, na ordem
+│   └── evidencias/            # saídas de comandos que provam critérios de aceite
+├── specs/
+│   ├── spec.md                # RF-xx / RNF-xx com Dado/Quando/Então
+│   ├── plan.md                # C4 em Mermaid, escolhas ligadas a requisitos
+│   └── tasks.md               # tarefas T-xx ligadas a requisito e verificação
+├── src/ … tests/ … scripts/ …</code></pre>
+        <p>Dois arquivos merecem explicação. <code>docs/prompts.md</code> é o histórico real dos prompts enviados ao agente, colado como foi enviado, inclusive as tentativas refeitas. Ele não é reescrito para parecer melhor: serve para que o professor e o próprio grupo entendam como o projeto foi conduzido. <code>docs/evidencias/</code> guarda as saídas de comandos que comprovam os critérios de aceite, sempre conferidas para não conter segredo.</p>
+        <p>Os commits seguem a convenção <code>tipo(T-xx): descrição [RF-yy]</code>, como em <code>feat(T-03): script cria os quatro buckets de forma idempotente [RF-02]</code>. Com isso, <code>git log --oneline --grep "RF-02"</code> mostra a história de um requisito, do critério de aceite até o código que o atende.</p>
+
+        <h3>5.4 Rastreabilidade: do requisito à evidência</h3>
+        <p>Rastreabilidade é a capacidade de seguir um fio do requisito até a prova de que ele foi atendido. No SDD da disciplina, o fio tem cinco pontos: o requisito em <code>specs/spec.md</code>, a decisão em <code>specs/plan.md</code> ou num ADR, a tarefa em <code>specs/tasks.md</code>, o teste ou comando de verificação ligado à tarefa e a evidência registrada. Se qualquer ponto faltar, o fio se rompe: um requisito sem tarefa nunca foi implementado de propósito; uma tarefa sem verificação foi implementada sem prova; um trecho de código sem requisito é uma decisão que ninguém pediu.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Requisito</th><th>Decisão</th><th>Tarefa</th><th>Verificação</th><th>Evidência</th><th>Estado</th></tr></thead>
+          <tbody>
+            <tr><td>RF-02 (buckets da arquitetura medalhão)</td><td>Criação idempotente por script</td><td>T-03</td><td><code>bash scripts/criar_buckets.sh railway</code> duas vezes</td><td><code>docs/evidencias/T-03_buckets.txt</code></td><td>atendido</td></tr>
+          </tbody>
+        </table></div>
+
+        <h3>5.5 O que a IA costuma errar e como o humano revisa</h3>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Erro típico</th><th>Como aparece</th><th>Como pegar na revisão</th></tr></thead>
+          <tbody>
+            <tr><td>Inventar números</td><td>"Latência p95 de 200 ms", "99,9% de disponibilidade", "10 GB por mês" sem origem.</td><td>Para cada número, pergunte de qual arquivo ele veio. Sem origem, exija a marcação "hipótese: validação pendente".</td></tr>
+            <tr><td>Escolher tecnologia por moda</td><td>Kubernetes, Terraform, Kafka ou um proxy reverso aparecem sem requisito que os justifique.</td><td>Toda escolha da tabela do plano precisa apontar para RF, RNF ou restrição. Se não aponta, sai.</td></tr>
+            <tr><td>Concordar consigo mesma</td><td>Na etapa ATAM, o agente avalia a arquitetura que ele mesmo propôs e conclui que está tudo bem.</td><td>Peça explicitamente o que está errado ou ausente. Uma análise sem nenhum risco ou trade-off deve ser refeita.</td></tr>
+            <tr><td>Transformar hipótese em fato</td><td>O que era "hipótese" na persona aparece como requisito firme na spec.</td><td>Compare os arquivos: a marcação de hipótese precisa sobreviver de uma etapa para outra.</td></tr>
+            <tr><td>Divergir entre diagrama e texto</td><td>O Mermaid tem um componente que o texto não cita.</td><td>Confira nome por nome.</td></tr>
+            <tr><td>Declarar sucesso sem executar</td><td>"O teste passou" sem mostrar a saída do comando.</td><td>Exija a saída real do terminal e salve-a em <code>docs/evidencias/</code>.</td></tr>
+          </tbody>
+        </table></div>
+        <p>A governança é simples: o agente analisa, propõe e executa o que foi autorizado. Ele não tem autoridade para criar requisito, aceitar risco ou encerrar uma divergência. Essas decisões são do grupo, e ficam registradas com nome e motivo nos ADRs.</p>
+
+        <h3>5.6 Ferramentas de SDD existentes</h3>
+        <p>Spec-Driven Development tem ferramentas próprias. O <a href="https://github.com/github/spec-kit" target="_blank" rel="noopener noreferrer">GitHub Spec Kit</a> organiza o fluxo em comandos para o agente (especificar, planejar, gerar tarefas, implementar) e gera arquivos de especificação no repositório. O <a href="https://github.com/Fission-AI/OpenSpec" target="_blank" rel="noopener noreferrer">OpenSpec</a> propõe um fluxo parecido, centrado em propostas de mudança sobre especificações vivas. As duas servem como referência de como a comunidade está estruturando a prática. A disciplina não depende delas: usa a convenção de pastas da seção 5.3 e prompts CREATE escritos à mão, porque assim cada etapa fica explícita, funciona com qualquer agente e não exige instalar mais uma ferramenta no Codespace.</p>
+      </section>
+
+      <!-- 6 -->
+      <section class="content-block" id="s6">
+        <h2>6. O formato CREATE</h2>
+        <p>CREATE é um formato de prompt proposto por Dave Birss. As seis letras nomeiam as seis partes que um pedido precisa ter para que o modelo não precise adivinhar: Character, Request, Examples, Adjustments, Type of output e Extras. Na disciplina, todo prompt para o agente usa esse formato, com rótulos em português.</p>
+
+        <h3>6.1 As seis partes, com exemplo</h3>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Rótulo</th><th>Função</th><th>Exemplo (etapa de spec do projeto MinIO)</th></tr></thead>
+          <tbody>
+            <tr><td><code>[C] Personagem</code></td><td>Quem o agente é nesta etapa e o que ele não faz.</td><td>"Você é um engenheiro de requisitos de dados. Nesta etapa você escreve requisitos; não escreve código nem escolhe tecnologia."</td></tr>
+            <tr><td><code>[R] Pedido</code></td><td>O que fazer, com o artefato de saída e o caminho do arquivo.</td><td>"Escreva <code>specs/spec.md</code> com RF e RNF do object storage do grupo."</td></tr>
+            <tr><td><code>[E] Exemplos</code></td><td>Uma amostra curta do formato esperado.</td><td>Um RF completo com origem e critério Dado/Quando/Então.</td></tr>
+            <tr><td><code>[A] Ajustes</code></td><td>Restrições, proibições e critérios de qualidade.</td><td>"Não invente números; preserve IDs; cada critério precisa ser verificável por um comando."</td></tr>
+            <tr><td><code>[T] Tipo de saída</code></td><td>Arquivos, formato e tamanho.</td><td>"Somente <code>specs/spec.md</code>, em Markdown, até duas páginas."</td></tr>
+            <tr><td><code>[E] Extras</code></td><td>Contexto, fontes a ler, quando perguntar e quando parar.</td><td>"Leia <code>AGENTS.md</code> e os dois arquivos de <code>docs/</code>. Se faltar informação, pergunte. Pare ao final."</td></tr>
+          </tbody>
+        </table></div>
+
+        <h3>6.2 Por que o formato reduz ambiguidade</h3>
+        <p>Cada parte fecha uma porta que o modelo abriria por conta própria. Sem personagem, o agente assume o papel mais genérico, que costuma ser o de "assistente que resolve tudo" e por isso avança etapas. Sem pedido com caminho de arquivo, ele escolhe onde gravar. Sem exemplo, ele escolhe o formato, e cada execução sai diferente. Sem ajustes, ele inventa números e escolhe tecnologia. Sem tipo de saída, ele escreve demais. Sem extras, ele não sabe quais arquivos são fonte de verdade nem quando parar. O exemplo é a parte que mais muda o resultado: um único RF bem escrito ensina ao modelo o nível de detalhe, a numeração e o estilo do critério de aceite melhor do que um parágrafo de instruções.</p>
+
+        <h3>6.3 O mesmo pedido, antes e depois</h3>
+        <p>Pedido sem estrutura:</p>
+        <pre><code>Crie a especificação do nosso MinIO no Railway.</code></pre>
+        <p>Resultado provável: um documento com requisitos genéricos ("o sistema deve ser escalável"), números sem origem ("disponibilidade de 99,9%"), escolha de tecnologia misturada com requisito e nenhuma ligação com a persona. O mesmo pedido no formato CREATE é o prompt 3 da seção 12.3: ele diz quem o agente é, qual arquivo escrever, mostra um RF de exemplo, proíbe números sem origem, limita o tamanho e manda parar ao final.</p>
+      </section>
+
+      <!-- 7 -->
+      <section class="content-block" id="s7">
+        <h2>7. Boas práticas de prompt para agentes</h2>
+        <p>Um agente de código age no repositório. As práticas abaixo existem porque cada uma evita um tipo de dano observado com frequência em sala.</p>
+        <ol class="steps">
+          <li>Um prompt por etapa. Pedir persona, spec e código na mesma mensagem faz o agente produzir tudo raso e impede a revisão entre etapas. Refazer um prompt grande também custa caro, em tempo e em cota do agente.</li>
+          <li>Contexto por arquivo, e não por memória. O agente deve ler <code>AGENTS.md</code>, <code>docs/</code> e <code>specs/</code> a cada etapa. A memória da conversa se perde quando a sessão fecha, quando outro integrante assume ou quando o contexto do modelo enche; o arquivo continua no repositório.</li>
+          <li>Pedir o plano antes de editar. O agente lista os arquivos que pretende criar ou alterar e o motivo. O grupo confirma ou corrige antes que algo seja escrito.</li>
+          <li>Critério de parada explícito. Todo prompt termina com "pare ao final da etapa". Sem isso, o agente tende a seguir para a próxima etapa por iniciativa própria.</li>
+          <li>Gates verificáveis. Uma etapa termina quando um critério objetivo é atendido: o compose valida, o teste passa, a listagem mostra os quatro buckets. "Parece bom" não é gate.</li>
+          <li>Revisão do diff. Antes de cada commit, <code>git diff</code> e <code>git status</code>. Procure segredos, números sem origem, arquivos fora do escopo e mudanças que ninguém pediu.</li>
+          <li>Segredos fora do prompt. Nunca cole chave ou senha na conversa. Tudo o que o agente lê, inclusive a saída de comandos que ele executa, é enviado ao provedor do modelo. Por isso, nesta aula, a senha do MinIO é gerada e configurada por uma pessoa do grupo em outro terminal, e o <code>AGENTS.md</code> proíbe o agente de ler <code>.env</code>.</li>
+        </ol>
+        <div class="note">
+          <strong>Registre o que foi enviado</strong>
+          <p>Depois de cada prompt, cole o texto enviado em <code>docs/prompts.md</code>, com data, modelo e resultado da revisão. Se o prompt foi refeito, registre as duas versões. Depois, faça o commit da etapa, por exemplo <code>docs(T-00): persona do projeto MinIO</code>.</p>
+        </div>
+      </section>
+
+      <!-- 8 -->
+      <section class="content-block" id="s8">
+        <h2>8. Setup 1: repositório do grupo e Codespace</h2>
+        <p>O repositório do grupo é o mesmo durante todo o semestre e precisa ser público, porque o formulário de grupo confere isso no GitHub antes de aceitar o envio. Ser público aumenta a responsabilidade com segredos: qualquer senha versionada fica visível para a internet, inclusive no histórico de commits.</p>
+        <ol class="steps">
+          <li>Um integrante cria o repositório em <a href="https://github.com/new" target="_blank" rel="noopener noreferrer">github.com/new</a>: nome sugerido <code>dcs-2026-grupo-xx</code>, visibilidade Public, marque "Add a README file".</li>
+          <li>Em Settings &gt; Collaborators, adicione os colegas do grupo.</li>
+          <li>Cada integrante abre o repositório e clica em Code &gt; Codespaces &gt; Create codespace on main. Um repositório sem <code>.devcontainer</code> usa a imagem universal do GitHub, que já traz Docker, Python 3 e Node.</li>
+          <li>No terminal do Codespace, confira as três ferramentas:</li>
+        </ol>
+        <pre><code>docker --version
+python3 --version
+node --version</code></pre>
+        <ol class="steps" start="5">
+          <li>Copie o modelo da disciplina para a raiz do repositório. O <code>cp -rn</code> não sobrescreve arquivos que já existam.</li>
+        </ol>
+        <pre><code>git clone --depth 1 https://github.com/afonsolelis/aulas.git /tmp/aulas
+LAB=/tmp/aulas/pages/data-collection/laboratorio/lesson-1
+cp -rn "$LAB/modelo_repositorio/." .
+cp aula_01_minio/.env.example aula_01_minio/.env
+git status --short</code></pre>
+        <p>A saída de <code>git status --short</code> deve listar <code>.gitignore</code> e os arquivos de <code>aula_01_minio/</code>, mas nunca <code>aula_01_minio/.env</code>. Se o <code>.env</code> aparecer, o <code>.gitignore</code> não foi copiado: pare e corrija antes de qualquer commit.</p>
+        <ol class="steps" start="6">
+          <li>Faça o primeiro commit do esqueleto: <code>git add . &amp;&amp; git commit -m "chore(T-00): esqueleto SDD da aula 01"</code> e <code>git push</code>.</li>
+        </ol>
+        <div class="note">
+          <strong>Gate do setup 1</strong>
+          <p>As três versões aparecem no terminal; <code>aula_01_minio/AGENTS.md</code>, <code>docs/</code> e <code>specs/</code> existem; <code>git ls-files | grep '\.env$'</code> não retorna nada.</p>
+        </div>
+      </section>
+
+      <!-- 9 -->
+      <section class="content-block" id="s9">
+        <h2>9. Setup 2: agente de código</h2>
+        <p>Cada integrante usa o agente de código ou a IA de sua preferência: Claude Code, Codex CLI, Gemini CLI, OpenCode com o provedor que quiser, Cursor ou Copilot. O fluxo SDD, o <code>AGENTS.md</code> e os prompts CREATE são os mesmos para qualquer um deles. O que o agente precisa é ler arquivos, escrever arquivos e executar comandos dentro da pasta do projeto, porque os prompts pedem exatamente isso.</p>
+        <h3>9.1 Abrir o agente na pasta do projeto</h3>
+        <pre><code>cd aula_01_minio
+claude            # ou o agente que você usa</code></pre>
+        <p>Abra o agente dentro de <code>aula_01_minio/</code>, que é onde está o <code>AGENTS.md</code> do projeto. Assim ele enxerga as regras e a estrutura de pastas desde o primeiro pedido.</p>
+        <h3>9.2 Garantir que o agente leia o AGENTS.md</h3>
+        <ol class="steps">
+          <li>No Claude Code, que lê instruções de um <code>CLAUDE.md</code>, crie um arquivo que importe o <code>AGENTS.md</code>, para não manter dois arquivos: <code>echo "@AGENTS.md" &gt; CLAUDE.md</code>. Outros agentes leem o <code>AGENTS.md</code> diretamente ou aceitam o arquivo colado no contexto.</li>
+          <li>Teste o agente com um pedido que só lê: <code>Leia AGENTS.md e liste, em 5 itens, as regras que você deve seguir neste projeto. Não edite nada.</code></li>
+        </ol>
+        <h3>9.3 Chaves e revezamento</h3>
+        <p>Se o agente escolhido pedir chave de API, guarde-a num gerenciador de senhas ou no campo seguro do próprio agente. Ela não vai para nenhum arquivo do repositório. O grupo trabalha em revezamento: um integrante pilota o agente no próprio Codespace enquanto os outros revisam os arquivos gerados; para trocar o piloto, o próximo integrante faz <code>git pull</code> e assume. Se o agente travar no meio da aula, o material mostra, para cada etapa, os comandos esperados, e o grupo pode concluir manualmente.</p>
+        <div class="note">
+          <strong>Gate do setup 2</strong>
+          <p>O agente respondeu ao teste citando regras do <code>AGENTS.md</code>; <code>git grep -nE "\bsk-[A-Za-z0-9_-]{16,}"</code> não encontra nada (<code>sk-</code> é o prefixo comum das chaves de API).</p>
+        </div>
+      </section>
+
+      <!-- 10 -->
+      <section class="content-block" id="s10">
+        <h2>10. Setup 3: conta e CLI do Railway</h2>
+        <p>O Railway é uma plataforma que executa contêineres a partir de um Dockerfile, de uma imagem ou de um repositório, com volumes persistentes, variáveis de ambiente e domínios públicos com HTTPS. Na disciplina, ele publica o MinIO (esta aula), o Postgres (Aula 05) e os serviços de streaming (Aula 06).</p>
+        <h3>10.1 Conta e limites do trial</h3>
+        <ol class="steps">
+          <li>Crie a conta em <a href="https://railway.com" target="_blank" rel="noopener noreferrer">railway.com</a> entrando com o GitHub. A verificação pela conta do GitHub libera o Full Trial, sem restrição de rede de saída.</li>
+          <li>Confira no painel o crédito do trial.</li>
+        </ol>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Item</th><th>Valor</th></tr></thead>
+          <tbody>
+            <tr><td>Crédito do trial</td><td>US$ 5, crédito único, por até 30 dias</td></tr>
+            <tr><td>Depois do trial</td><td>Plano Free, com US$ 1 por mês</td></tr>
+            <tr><td>Recursos no trial</td><td>1 GB de RAM, vCPU compartilhada, até 5 serviços por projeto</td></tr>
+            <tr><td>Volumes de contas trial</td><td>Apagados 30 dias após o fim dos créditos</td></tr>
+          </tbody>
+        </table></div>
+        <p>A última linha tem consequência direta: o que for gravado no MinIO do Railway pode desaparecer depois do semestre. Ao fim da disciplina, exporte os buckets com <code>mc mirror</code> (seção 14.5). Esse risco reaparece no ATAM como cenário.</p>
+        <h3>10.2 CLI</h3>
+        <pre><code>npm i -g @railway/cli
+railway --version
+railway login --browserless
+railway whoami</code></pre>
+        <p>No Codespace não há navegador local, por isso o login usa <code>--browserless</code>: a CLI mostra um link e um código; abra o link em outra aba, confirme o código e volte ao terminal. O login é feito pela pessoa, nunca pelo agente.</p>
+        <div class="note">
+          <strong>Gate do setup 3</strong>
+          <p><code>railway whoami</code> mostra o seu usuário.</p>
+        </div>
+      </section>
+
+      <!-- 11 -->
+      <section class="content-block" id="s11">
+        <h2>11. Por que MinIO e por que a imagem da coolLabs</h2>
+        <p>O MinIO é um servidor de object storage que implementa a API S3. Isso significa que qualquer cliente S3 (o <code>mc</code>, a biblioteca <code>boto3</code>, o SDK <code>minio</code> para Python, a extensão <code>httpfs</code> do DuckDB) conversa com ele apenas trocando o endpoint. Rodar o mesmo MinIO localmente e no Railway permite desenvolver com o compose e publicar com o mesmo binário.</p>
+        <p>Há um fato recente que muda a forma de obter o MinIO. A edição comunitária entrou em modo de manutenção em dezembro de 2025, o repositório foi arquivado em abril de 2026 e a empresa deixou de publicar imagens Docker oficiais. O endereço de download do cliente <code>mc</code> (<code>dl.min.io</code>) responde hoje com HTTP 410. A disciplina usa a imagem mantida pela coolLabs, construída a partir das releases oficiais e usada pelo template de MinIO do próprio Railway: <code>ghcr.io/coollabsio/minio</code> (também publicada como <code>coollabsio/minio</code> no Docker Hub). A tag é fixada em <code>RELEASE.2025-10-15T17-29-55Z</code>, a mesma do template do Railway. Usar <code>latest</code> faria cada deploy depender do que a coolLabs publicou por último.</p>
+        <p>A imagem já traz o cliente <code>mc</code> (release <code>RELEASE.2025-08-13T08-35-41Z</code>) e não traz <code>curl</code> nem <code>wget</code>. Por isso o healthcheck do compose usa <code>mc ready local</code>. Esses dois fatos foram conferidos no preparo da aula, executando a imagem localmente.</p>
+        <p>As portas são duas: 9000 é a API compatível com S3, usada por todos os clientes; 9001 é o console web. As credenciais de administrador vêm das variáveis <code>MINIO_ROOT_USER</code> e <code>MINIO_ROOT_PASSWORD</code>, e o comando de execução é <code>server /data --console-address ":9001"</code>.</p>
+      </section>
+
+      <!-- 12 -->
+      <section class="content-block" id="s12">
+        <h2>12. Demonstração SDD: os oito prompts do projeto MinIO</h2>
+        <p>O professor executa os prompts abaixo ao vivo, no repositório de demonstração; cada grupo executa os mesmos prompts no próprio repositório, dentro do agente de código aberto em <code>aula_01_minio/</code>. Os sete primeiros seguem a sequência SDD; o oitavo conduz o deploy e a verificação no Railway. Cada prompt é um bloco completo: copie por inteiro, sem resumir.</p>
+        <div class="note">
+          <strong>Antes de cada prompt</strong>
+          <p>Confira que o anterior foi revisado e commitado. Depois de cada prompt: responda ao quadro "Revise antes de seguir", cole o prompt em <code>docs/prompts.md</code> e faça o commit da etapa. Se a revisão reprovar o artefato, peça a correção citando a pergunta que falhou, em vez de reescrever o arquivo à mão sem registro.</p>
+        </div>
+
+        <h3>12.1 Prompt 1: persona</h3>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é um analista de requisitos de engenharia de dados que trabalha com um grupo de alunos de MBA. Nesta etapa você só descreve pessoas e problemas. Você não propõe tecnologia, não escreve código e não executa comandos.
+
+[R] Pedido
+Preencha docs/00_persona.md para o projeto aula_01_minio: um object storage próprio do grupo, compatível com a API S3, que será usado nas Aulas 02, 03 e 04 da disciplina (coleta de JSON, APIs e scraping, lakehouse) e no projeto final. Descreva uma persona principal: o engenheiro de dados do grupo, que precisa de um object storage próprio, barato e reprodutível para o semestre. Use a tabela que já existe no arquivo.
+
+[E] Exemplos
+Linha bem escrita:
+| Dor atual | Cada integrante guarda arquivos no próprio Codespace; quando o Codespace é apagado, os dados coletados somem e ninguém consegue reproduzir a coleta do colega. |
+Linha mal escrita (não faça assim):
+| Dor atual | Precisa de uma solução escalável e robusta na nuvem. |
+
+[A] Ajustes
+- Use somente as informações deste prompt, de AGENTS.md e dos fatos listados em Extras.
+- Não invente números (volume de dados, quantidade de arquivos, custo, tempo). Onde faltar um valor, escreva "hipótese: validação pendente".
+- Não cite produtos ou ferramentas nas linhas de dor e de sucesso; a persona fala do problema dela.
+- Preencha "Fatos, lacunas e suposições" com pelo menos três linhas, cada fato com a origem.
+- Não crie nem altere outros arquivos.
+
+[T] Tipo de saída
+Somente docs/00_persona.md, em Markdown, com no máximo uma página. Antes de editar, mostre em tópicos o que vai escrever e espere minha confirmação.
+
+[E] Extras
+Leia antes: AGENTS.md e docs/00_persona.md.
+Fatos do contexto (origem: enunciado da Aula 01):
+- o grupo tem um único repositório público no GitHub e cada integrante trabalha no próprio Codespace;
+- a plataforma de publicação é o Railway, com crédito único de US$ 5 no trial de até 30 dias;
+- volumes de contas trial são apagados 30 dias após o fim dos créditos;
+- a coleta da Aula 02 será horária e gravará JSON bruto.
+Se faltar informação para uma linha, pergunte antes de supor. Ao terminar, liste as perguntas abertas e pare.</code></pre>
+        <div class="note">
+          <strong>Revise antes de seguir</strong>
+          <ul>
+            <li>A persona descreve uma pessoa com decisão e dor, ou descreve o sistema?</li>
+            <li>Algum número apareceu sem origem? Se sim, ele está marcado como hipótese?</li>
+            <li>A tabela de fatos tem pelo menos três linhas, e cada fato aponta para uma origem?</li>
+            <li>Algum produto (MinIO, Railway, S3) apareceu na dor ou no sucesso? Se sim, peça a correção.</li>
+            <li>Algum arquivo além de <code>docs/00_persona.md</code> foi alterado (<code>git status</code>)?</li>
+          </ul>
+        </div>
+
+        <h3>12.2 Prompt 2: objetivos de negócio</h3>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é um product owner técnico de uma equipe de dados. Você traduz a dor da persona em objetivos de negócio mensuráveis, drivers e restrições. Você não escreve requisitos técnicos nem código.
+
+[R] Pedido
+Preencha docs/01_objetivos_negocio.md a partir de docs/00_persona.md. Escreva exatamente estes quatro objetivos, cada um com métrica de sucesso e origem:
+OBJ-01 custo dentro do crédito de US$ 5 do trial do Railway;
+OBJ-02 dados persistem entre deploys e reinícios do serviço;
+OBJ-03 acesso somente autenticado, sem segredo versionado no repositório público;
+OBJ-04 storage recriável do zero por comandos documentados, por qualquer integrante.
+Liste também os drivers de negócio, as restrições e o que fica fora do escopo.
+
+[E] Exemplos
+| OBJ-02 | Objetos gravados continuam disponíveis depois de um novo deploy ou reinício do serviço. | Um objeto de verificação gravado antes do redeploy aparece na listagem depois dele; zero objetos perdidos. | Persona: dor "os dados somem" |
+| RES-02 | Imagem do MinIO: ghcr.io/coollabsio/minio, tag fixada | técnica | MinIO comunitário em manutenção, sem imagens oficiais (enunciado da Aula 01) |
+
+[A] Ajustes
+- Cada objetivo precisa de uma métrica verificável. Se o valor não estiver nos fatos abaixo, escreva "hipótese: validação pendente" e diga como medir.
+- Restrições têm tipo (técnica, financeira, legal, prazo) e origem.
+- Fora do escopo, inclua pelo menos: alta disponibilidade com múltiplos nós, console web público, backup automático agendado.
+- Preserve a persona; não altere docs/00_persona.md.
+- Não escolha tecnologia além das que estão nas restrições.
+
+[T] Tipo de saída
+Somente docs/01_objetivos_negocio.md, em Markdown, com as tabelas do modelo. Mostre o plano antes de editar e espere confirmação.
+
+[E] Extras
+Leia antes: AGENTS.md, docs/00_persona.md, docs/01_objetivos_negocio.md.
+Fatos e restrições (origem: enunciado da Aula 01):
+- Railway trial: crédito único de US$ 5, até 30 dias; depois, plano Free com US$ 1 por mês; 1 GB de RAM, vCPU compartilhada, até 5 serviços por projeto; volumes de contas trial apagados 30 dias após o fim dos créditos.
+- MinIO: imagem ghcr.io/coollabsio/minio:RELEASE.2025-10-15T17-29-55Z; porta 9000 = API S3, 9001 = console.
+- Repositório do grupo público no GitHub.
+- Agente de código: o de preferência de cada integrante, sem chave de API em arquivo versionado.
+- O storage será usado pelas Aulas 02, 03 e 04 e pelo projeto final.
+Se faltar informação, pergunte. Ao terminar, liste perguntas abertas e pare.</code></pre>
+        <div class="note">
+          <strong>Revise antes de seguir</strong>
+          <ul>
+            <li>Os quatro objetivos têm métrica que se verifica com um comando ou uma observação concreta?</li>
+            <li>Os valores de US$ 5, 30 dias, 1 GB e 5 serviços foram copiados sem alteração?</li>
+            <li>Os drivers explicam por que cada objetivo importa (por exemplo, repositório público explica OBJ-03)?</li>
+            <li>O fora do escopo existe e tem os três itens pedidos?</li>
+            <li>A persona continua igual (<code>git diff docs/00_persona.md</code> vazio)?</li>
+          </ul>
+        </div>
+
+        <h3>12.3 Prompt 3: especificação</h3>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é um engenheiro de requisitos de dados. Você escreve requisitos funcionais e não funcionais com critérios de aceite verificáveis. Você não escreve código e só cita tecnologia quando ela já é uma restrição em docs/01_objetivos_negocio.md.
+
+[R] Pedido
+Escreva specs/spec.md para o projeto aula_01_minio, derivando os requisitos de docs/00_persona.md e docs/01_objetivos_negocio.md. Cubra no mínimo:
+- API compatível com S3 publicada por HTTPS num domínio do Railway;
+- buckets raw, bronze, silver e gold;
+- ambiente local equivalente por docker compose, com a mesma imagem e tag;
+- verificação automatizada (saúde, acesso anônimo negado, buckets, gravação e leitura de objeto de teste), local e no Railway;
+- recriação documentada do zero;
+- persistência entre deploys;
+- acesso autenticado e segredos fora do Git;
+- custo acompanhado dentro do crédito;
+- imagem fixada por tag, nunca latest;
+- tolerância a 502 do proxy com nova tentativa e operações idempotentes;
+- evidências de verificação registradas em docs/evidencias/.
+
+[E] Exemplos
+### RF-02: buckets da arquitetura medalhão
+O storage do grupo oferece os buckets raw, bronze, silver e gold.
+- Origem: OBJ-04
+- Critério de aceite:
+  - Dado o MinIO no ar e credenciais válidas no .env
+  - Quando scripts/criar_buckets.sh railway for executado duas vezes seguidas
+  - Então as duas execuções terminam com código 0 e mc ls lista exatamente os quatro buckets
+
+### RNF-05: tolerância a 502 do proxy
+- Atributo: disponibilidade e idempotência
+- Origem: DRV-xx (proxy do Railway devolve 502 esporádico)
+- Critério de aceite:
+  - Dado um 502 numa gravação
+  - Quando o cliente repetir a operação com espera crescente
+  - Então o objeto existe uma única vez na chave esperada; número máximo de tentativas: hipótese: validação pendente
+
+[A] Ajustes
+- Numere RF-01, RF-02... e RNF-01, RNF-02...; cada requisito tem origem (OBJ, DRV ou RES).
+- Todo critério de aceite usa Dado/Quando/Então e pode ser verificado por um comando ou teste.
+- Não invente números de latência, disponibilidade ou volume. Valor ausente = "hipótese: validação pendente".
+- Hipóteses de docs/ continuam hipóteses aqui; não as transforme em fato.
+- Inclua "Fora do escopo" coerente com docs/01_objetivos_negocio.md.
+
+[T] Tipo de saída
+Somente specs/spec.md, em Markdown, com no máximo duas páginas. Mostre a lista de RF e RNF (só títulos) antes de escrever e espere confirmação.
+
+[E] Extras
+Leia antes: AGENTS.md, docs/00_persona.md, docs/01_objetivos_negocio.md, specs/spec.md.
+Fato adicional (origem: experiência do professor com serviços no Railway): o proxy do Railway devolve 502 esporádico; reenviar uma escrita às cegas pode duplicar dados se a operação não for idempotente.
+Se algum objetivo não gerar requisito, explique por quê. Ao terminar, liste perguntas abertas e pare.</code></pre>
+        <div class="note">
+          <strong>Revise antes de seguir</strong>
+          <ul>
+            <li>Cada um dos onze itens pedidos virou ao menos um RF ou RNF?</li>
+            <li>Cada critério de aceite pode ser executado como comando? Algum diz só "deve ser seguro" ou "deve ser rápido"?</li>
+            <li>Todo requisito tem origem em OBJ, DRV ou RES?</li>
+            <li>Apareceu algum número que não está em <code>docs/</code>? Ele está marcado como hipótese?</li>
+            <li>A spec escolheu tecnologia que não é restrição (por exemplo, Terraform, Nginx, Kubernetes)?</li>
+          </ul>
+        </div>
+
+        <h3>12.4 Prompt 4: plano e arquitetura</h3>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é um arquiteto de software de dados. Você transforma a spec em arquitetura, justificando cada escolha por um requisito ou restrição. Você não escreve código nesta etapa.
+
+[R] Pedido
+Escreva specs/plan.md com:
+1. C4 nível 1 (contexto), nível 2 (contêineres) e nível 3 (componentes do script de verificação), em blocos Mermaid;
+2. tabela de escolhas técnicas: escolha, alternativas consideradas, requisito ou restrição, ADR previsto;
+3. ambientes local (docker compose no Codespace) e publicado (Railway), lado a lado;
+4. riscos técnicos iniciais e perguntas abertas.
+O plano deve conter estas decisões, já tomadas pelo grupo:
+- Dockerfile em minio_railway/ com FROM ghcr.io/coollabsio/minio:RELEASE.2025-10-15T17-29-55Z e CMD server /data --console-address ":9001";
+- volume do Railway montado em /data;
+- domínio público do Railway apenas para a porta 9000; console 9001 só no ambiente local;
+- credenciais como variáveis do serviço no Railway e no .env local, nunca em arquivo versionado;
+- docker-compose.yml com a mesma imagem e tag, portas 9000 e 9001, volume nomeado e healthcheck com "mc ready local" (a imagem não tem curl nem wget);
+- cliente mc para operar e verificar; scripts em scripts/ carregam o .env sem imprimir valores.
+
+[E] Exemplos
+flowchart LR
+  subgraph rw["Railway: projeto minio-grupo-xx"]
+    dom["Domínio público HTTPS"]
+    svc["Serviço minio"]
+    vol[("Volume em /data")]
+  end
+  dom --&gt;|"porta 9000"| svc
+  svc --- vol
+
+| Escolha | Alternativas | Requisito/restrição | ADR |
+| Imagem coolLabs com tag fixada | imagem minio/minio antiga; latest da coolLabs; compilar do código-fonte | RNF-xx (imagem fixada), RES-02 | ADR-001 |
+
+[A] Ajustes
+- Os nomes usados nos diagramas são exatamente os nomes usados no texto.
+- Toda escolha técnica aponta para RF, RNF ou RES; escolha sem origem fica marcada "sem requisito correspondente".
+- Para cada decisão relevante, liste pelo menos duas alternativas descartadas e o motivo.
+- Não acrescente componentes que a spec não pede (proxy reverso, orquestrador, banco de dados).
+
+[T] Tipo de saída
+Somente specs/plan.md, em Markdown com blocos ```mermaid. Mostre a lista de seções antes de escrever e espere confirmação.
+
+[E] Extras
+Leia antes: AGENTS.md, docs/00_persona.md, docs/01_objetivos_negocio.md, specs/spec.md, specs/plan.md.
+Os ADRs serão escritos na etapa 7; aqui apenas indique o número previsto (ADR-001 para a imagem, ADR-002 para a exposição de portas).
+Se uma decisão acima contradisser a spec, aponte a contradição e pergunte. Pare ao final.</code></pre>
+        <div class="note">
+          <strong>Revise antes de seguir</strong>
+          <ul>
+            <li>Os três diagramas renderizam no GitHub (abra <code>specs/plan.md</code> na interface web depois do push)?</li>
+            <li>Todo nome do Mermaid aparece no texto, e vice-versa?</li>
+            <li>A porta 9001 aparece com domínio público em algum lugar? Não deveria.</li>
+            <li>Cada linha da tabela de escolhas aponta para um requisito existente em <code>specs/spec.md</code>?</li>
+            <li>Algum componente novo apareceu sem requisito?</li>
+          </ul>
+        </div>
+
+        <h3>12.5 Prompt 5: tarefas</h3>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é o líder técnico do grupo. Você quebra o plano em tarefas pequenas, cada uma com requisito, verificação executável e evidência esperada.
+
+[R] Pedido
+Escreva specs/tasks.md a partir de specs/spec.md e specs/plan.md. Inclua no mínimo:
+T-01 docker-compose.yml do MinIO local;
+T-02 minio_railway/Dockerfile;
+T-03 scripts/criar_buckets.sh (local e railway, idempotente);
+T-04 scripts/verificar.sh (local e railway: saúde, 403 anônimo, buckets, ida e volta de objeto, saída salva em docs/evidencias/);
+T-05 README.md da pasta com recriação do zero;
+T-06 deploy no Railway (executado pelo prompt 8);
+T-07 teste de persistência com redeploy.
+Separe as tarefas manuais do grupo (login no Railway, geração e cadastro da senha, cópia do domínio para o .env).
+
+[E] Exemplos
+| T-03 | Criar scripts/criar_buckets.sh que cria raw, bronze, silver e gold com mc mb --ignore-existing | RF-02 | bash scripts/criar_buckets.sh local, executado duas vezes | segunda execução termina com código 0; mc ls local lista 4 buckets | [ ] |
+
+[A] Ajustes
+- Cada tarefa cabe num único prompt de implementação e toca poucos arquivos.
+- Cada RF e RNF é coberto por pelo menos uma tarefa, ou aparece em "sem tarefa" com o motivo.
+- Marque as tarefas que criam recursos no Railway ou consomem crédito.
+- Indique a ordem de execução e as dependências.
+- Todas as tarefas começam com status [ ].
+
+[T] Tipo de saída
+Somente specs/tasks.md, em Markdown, com a tabela do modelo. Mostre a lista de tarefas antes de escrever e espere confirmação.
+
+[E] Extras
+Leia antes: AGENTS.md, specs/spec.md, specs/plan.md, specs/tasks.md.
+Os scripts devem funcionar com o mc instalado no Codespace e ler as variáveis MINIO_ROOT_USER, MINIO_ROOT_PASSWORD (local) e MINIO_RAILWAY_ENDPOINT, MINIO_RAILWAY_USER, MINIO_RAILWAY_PASSWORD (Railway) do .env, conforme .env.example.
+Pare ao final.</code></pre>
+        <div class="note">
+          <strong>Revise antes de seguir</strong>
+          <ul>
+            <li>Todo RF e RNF aparece na coluna de requisito de alguma tarefa?</li>
+            <li>A verificação de cada tarefa é um comando que alguém do grupo consegue executar e ver passar ou falhar?</li>
+            <li>As tarefas manuais (senha, login, domínio) estão separadas das tarefas do agente?</li>
+            <li>Há alguma tarefa grande demais, que mexe em vários arquivos sem relação entre si?</li>
+          </ul>
+        </div>
+
+        <h3>12.6 Prompt 6: implementação, uma tarefa por vez</h3>
+        <p>Este prompt é usado uma vez por tarefa, trocando <code>T-xx</code> pelo número da tarefa. Execute T-01 a T-05 nesta etapa; T-06 e T-07 ficam para o prompt 8.</p>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é um engenheiro de dados que implementa com disciplina de testes. Você executa uma única tarefa, prova que ela funciona com a saída real do terminal e para.
+
+[R] Pedido
+Implemente a tarefa T-xx de specs/tasks.md. Siga esta ordem:
+1. mostre o plano: arquivos que vai criar ou alterar e o comando de verificação;
+2. espere minha confirmação;
+3. crie ou altere os arquivos;
+4. execute a verificação indicada na tarefa e mostre a saída real;
+5. se passou, salve a saída em docs/evidencias/T-xx_&lt;nome&gt;.txt, marque a tarefa como [x] em specs/tasks.md e proponha a mensagem de commit no formato tipo(T-xx): descrição [RF-yy].
+
+[E] Exemplos
+Evidência bem registrada (docs/evidencias/T-01_compose.txt):
+$ docker compose ps
+NAME                  IMAGE                                                   STATUS
+minio_local-minio-1   ghcr.io/coollabsio/minio:RELEASE.2025-10-15T17-29-55Z   Up 20 seconds (healthy)
+$ curl -s -o /dev/null -w "%{http_code}\n" http://localhost:9000/minio/health/live
+200
+Mensagem de commit: feat(T-01): MinIO local com healthcheck e volume nomeado [RF-03]
+
+[A] Ajustes
+- Faça somente a tarefa pedida. Não adiante outras tarefas.
+- Use a imagem ghcr.io/coollabsio/minio:RELEASE.2025-10-15T17-29-55Z; nunca latest.
+- Scripts em bash começam com set -euo pipefail, carregam o .env com "set -a; . ./.env; set +a" e nunca imprimem senha (não use set -x, não ecoe variáveis de credencial).
+- Não leia nem imprima o arquivo .env. Use docker compose config --quiet, que não mostra valores.
+- Operações repetíveis devem ser idempotentes (mc mb --ignore-existing; objeto de verificação com chave fixa raw/_verificacao/teste.json).
+- No compose: portas 9000 e 9001, volume nomeado minio_data, healthcheck com mc ready local, variáveis com ${MINIO_ROOT_USER:?} e ${MINIO_ROOT_PASSWORD:?}.
+- Não execute docker compose down -v nem apague buckets.
+- Se a verificação falhar, mostre o erro e tente corrigir no máximo duas vezes; depois disso, pare e explique.
+- Não declare sucesso sem mostrar a saída do comando.
+
+[T] Tipo de saída
+Os arquivos da tarefa, a atualização de specs/tasks.md, o arquivo de evidência e um resumo de até cinco linhas com o que mudou e a mensagem de commit proposta.
+
+[E] Extras
+Leia antes: AGENTS.md, specs/spec.md, specs/plan.md, specs/tasks.md e .env.example (só os nomes das variáveis).
+O .env local já foi criado pelo grupo a partir do .env.example. O cliente mc está instalado no Codespace (mc --version).
+Pare ao final da tarefa.</code></pre>
+        <div class="note">
+          <strong>Revise antes de seguir (a cada tarefa)</strong>
+          <ul>
+            <li>A saída mostrada é real (tem nomes de contêiner, códigos HTTP, datas) ou é um texto que "parece" saída?</li>
+            <li><code>git diff</code> contém alguma senha, chave ou o conteúdo do <code>.env</code>?</li>
+            <li>A imagem tem a tag fixada? Procure por <code>latest</code>: <code>git grep -n latest</code>.</li>
+            <li>O agente mexeu em arquivo que não estava no plano da tarefa?</li>
+            <li>Compare com o gabarito: <code>diff docker-compose.yml "$LAB/referencia/docker-compose.yml"</code> e <code>diff minio_railway/Dockerfile "$LAB/referencia/minio_railway/Dockerfile"</code>. Diferença não é erro por si só, mas cada diferença precisa ter explicação.</li>
+          </ul>
+        </div>
+
+        <h3>12.7 Prompt 7: validação ATAM</h3>
+        <p>Rode este prompt depois do prompt 8, quando o MinIO já estiver no Railway e houver evidências reais para avaliar. Ele aparece aqui na ordem do ciclo SDD; na aula, o professor executa o prompt 8 primeiro.</p>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é uma equipe avaliadora ATAM independente, com três papéis: segurança, operações/SRE e custos. Você não construiu esta arquitetura e sua tarefa é encontrar o que está errado ou ausente, não elogiar o que está bom.
+
+[R] Pedido
+Preencha docs/atam.md, crie docs/adr/ADR-001-imagem-coollabs-tag-fixada.md e docs/adr/ADR-002-api-publica-so-9000.md (outros ADRs se encontrar decisões relevantes sem registro) e preencha docs/rastreabilidade.md.
+Cubra no mínimo estes cenários, cada um com as seis partes:
+CEN-01 redeploy não perde dados;
+CEN-02 credencial vazada (senha commitada no repositório público);
+CEN-03 crédito do trial acabando;
+CEN-04 502 do proxy do Railway durante uma gravação;
+CEN-05 volume apagado 30 dias após o fim dos créditos.
+
+[E] Exemplos
+### CEN-01: redeploy não perde dados
+| Fonte | integrante do grupo |
+| Estímulo | executa railway redeploy |
+| Ambiente | operação normal, objetos em raw/_verificacao/ |
+| Artefato | serviço minio e volume em /data |
+| Resposta | o contêiner novo monta o mesmo volume; objetos continuam acessíveis |
+| Métrica | contagem de objetos antes = depois; zero perdas (evidência: docs/evidencias/T-07_persistencia.txt) |
+Decisão/tática: volume persistente separado do contêiner (disponibilidade: preparação e reparo).
+
+[A] Ajustes
+- Toda métrica tem valor e forma de medir, ou "hipótese: validação pendente".
+- Cada cenário cita a decisão relacionada, a tática de Len Bass, a evidência existente em docs/evidencias/ e a lacuna.
+- Registre pelo menos: um ponto de sensibilidade, um ponto de trade-off, três riscos, um não-risco e um tema de risco. Diferencie risco confirmado de dúvida não investigada.
+- ADRs seguem docs/adr/ADR-000-modelo.md, com alternativas descartadas, consequências negativas e condição de revisão.
+- docs/rastreabilidade.md tem uma linha para cada RF e RNF de specs/spec.md, sem exceção, com estado atendido, parcial ou não atendido. Sem evidência, a linha não pode ser "atendido".
+- Não altere spec, plano nem código. Se encontrar problema, registre como risco e recomendação.
+
+[T] Tipo de saída
+docs/atam.md, docs/adr/ADR-001-*.md, docs/adr/ADR-002-*.md e docs/rastreabilidade.md, em Markdown. Mostre a utility tree antes de escrever o resto e espere confirmação.
+
+[E] Extras
+Leia antes: AGENTS.md, todos os arquivos de docs/ e specs/, a lista de arquivos em docs/evidencias/ e o docker-compose.yml e o minio_railway/Dockerfile.
+Fatos: o proxy do Railway devolve 502 esporádico; volumes de contas trial são apagados 30 dias após o fim dos créditos; o crédito do trial é único (US$ 5).
+Ao final, liste riscos aceitos, riscos residuais e próximos experimentos, e pare.</code></pre>
+        <div class="note">
+          <strong>Revise antes de seguir</strong>
+          <ul>
+            <li>Os cinco cenários têm as seis partes, e cada métrica tem valor ou a marca de hipótese?</li>
+            <li>Existe ao menos um trade-off nomeado? Uma análise sem trade-off olhou de longe.</li>
+            <li>Algum requisito ficou "atendido" sem arquivo de evidência correspondente?</li>
+            <li>Os ADRs têm alternativas descartadas com motivo e consequências negativas?</li>
+            <li>O agente avaliou criticamente ou apenas confirmou o plano? Se não houver nenhum risco novo, peça uma segunda rodada só de objeções.</li>
+          </ul>
+        </div>
+
+        <h3>12.8 Prompt 8: deploy e verificação no Railway</h3>
+        <p>Antes deste prompt, uma pessoa do grupo deve ter feito <code>railway login --browserless</code> no mesmo Codespace. Os comandos que envolvem senha são feitos pela pessoa, em outro terminal; a seção 14 traz a sequência completa para conferência.</p>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é um engenheiro de plataforma cuidadoso. Você executa comandos que criam recursos pagos um de cada vez, com confirmação, e nunca manipula segredos.
+
+[R] Pedido
+Execute as tarefas T-06 (deploy) e T-07 (persistência) de specs/tasks.md no Railway:
+1. dentro de minio_railway/: railway init --name minio-grupo-xx; railway add --service minio; railway service link minio; railway volume add --mount-path /data;
+2. PARE e peça ao grupo para cadastrar MINIO_ROOT_USER e MINIO_ROOT_PASSWORD no Railway e no .env, em outro terminal; espere a confirmação;
+3. railway up --detach; acompanhe com railway logs até aparecer a linha de API do MinIO;
+4. railway domain --port 9000 --service minio; PARE e peça ao grupo para copiar o domínio para MINIO_RAILWAY_ENDPOINT no .env;
+5. bash scripts/criar_buckets.sh railway e bash scripts/verificar.sh railway;
+6. teste de persistência: grave raw/_verificacao/teste.json, execute railway redeploy --service minio --yes, espere o deploy e liste raw/_verificacao/;
+7. salve as saídas em docs/evidencias/T-06_deploy.txt e docs/evidencias/T-07_persistencia.txt e marque as tarefas.
+
+[E] Exemplos
+Saída esperada da verificação (sem segredos):
+The cluster 'railway' is ready
+anonimo GET /raw -&gt; 403
+[...] raw/  bronze/  silver/  gold/
+ida e volta raw/_verificacao/teste.json: conteúdo igual
+
+[A] Ajustes
+- Peça confirmação antes de cada comando que cria recurso: init, add, volume add, up, domain, redeploy.
+- Nunca gere senha, nunca execute railway variable set com valor secreto, nunca execute railway variable list nem leia o .env.
+- Nunca crie domínio para a porta 9001.
+- Não execute railway volume delete, railway delete nem railway down.
+- Se um comando receber 502, espere 10 segundos e repita no máximo três vezes; depois disso, pare e mostre railway logs.
+- Não declare sucesso sem a saída real.
+
+[T] Tipo de saída
+Os comandos executados com as saídas, os dois arquivos de evidência, specs/tasks.md atualizado e a mensagem de commit proposta: feat(T-06): MinIO publicado no Railway com volume em /data [RF-01].
+
+[E] Extras
+Leia antes: AGENTS.md, specs/plan.md, specs/tasks.md e minio_railway/Dockerfile.
+A CLI do Railway já está autenticada pelo grupo (railway whoami). Pare ao final.</code></pre>
+        <div class="note">
+          <strong>Revise antes de seguir</strong>
+          <ul>
+            <li>O agente parou nos dois pontos em que o grupo precisava agir (senha e domínio)?</li>
+            <li>Alguma senha apareceu no terminal do agente, em evidência ou em <code>git diff</code>?</li>
+            <li><code>railway domain list --service minio</code> mostra só o domínio da porta 9000?</li>
+            <li>O objeto de verificação sobreviveu ao redeploy, com a saída salva em <code>docs/evidencias/</code>?</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 13 -->
+      <section class="content-block" id="s13">
+        <h2>13. Conferência: MinIO local e cliente mc</h2>
+        <p>Esta seção mostra os comandos que o agente deveria executar nas tarefas T-01 a T-04, para que o grupo confira cada passo ou conclua manualmente se a cota do agente acabar. Os arquivos de gabarito estão em <code>laboratorio/referencia/</code>; todos foram validados no preparo da aula.</p>
+        <h3>13.1 docker-compose.yml do gabarito</h3>
+        <pre><code>name: minio_local
+
+services:
+  minio:
+    image: ghcr.io/coollabsio/minio:RELEASE.2025-10-15T17-29-55Z
+    command: ["server", "/data", "--console-address", ":9001"]
+    ports:
+      - "9000:9000"   # API compatível com S3
+      - "9001:9001"   # console web
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?defina MINIO_ROOT_USER no arquivo .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?defina MINIO_ROOT_PASSWORD no arquivo .env}
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  minio_data:</code></pre>
+        <p>A sintaxe <code>${VAR:?mensagem}</code> faz o compose recusar a execução quando a variável não existe. Sem ela, o MinIO subiria com usuário e senha vazios ou padrão. O volume nomeado <code>minio_data</code> sobrevive a <code>docker compose down</code> e só é apagado com <code>docker compose down -v</code>.</p>
+        <h3>13.2 Subir e verificar</h3>
+        <ol class="steps">
+          <li>Gere uma senha e grave no <code>.env</code> (o comando abaixo não mostra a senha na tela):</li>
+        </ol>
+        <pre><code>cd aula_01_minio
+sed -i "s|^MINIO_ROOT_PASSWORD=.*|MINIO_ROOT_PASSWORD=$(openssl rand -hex 24)|" .env</code></pre>
+        <ol class="steps" start="2">
+          <li>Valide e suba:</li>
+        </ol>
+        <pre><code>docker compose config --quiet &amp;&amp; echo "compose ok"
+docker compose up -d --wait
+docker compose ps
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:9000/minio/health/live</code></pre>
+        <p>O <code>--wait</code> só devolve o terminal quando o healthcheck passa. No teste de preparo, o contêiner chegou a <code>healthy</code> em cerca de 15 segundos e o endpoint de saúde respondeu 200. O console abre pela aba Ports do Codespace, na porta 9001; entre com o usuário e a senha do <code>.env</code>.</p>
+        <h3>13.3 Instalar o cliente mc</h3>
+        <p>Como <code>dl.min.io</code> não serve mais o binário, a instalação usa a última release publicada no GitHub do projeto <code>minio/mc</code>, conferindo o checksum que acompanha a release:</p>
+        <pre><code>MC_RELEASE=RELEASE.2025-08-13T08-35-41Z
+curl -fsSL -o "mc.$MC_RELEASE" "https://github.com/minio/mc/releases/download/$MC_RELEASE/mc.linux-amd64.$MC_RELEASE"
+curl -fsSL -o mc.sha256sum "https://github.com/minio/mc/releases/download/$MC_RELEASE/mc.linux-amd64.$MC_RELEASE.sha256sum"
+sha256sum -c mc.sha256sum
+sudo install -m 0755 "mc.$MC_RELEASE" /usr/local/bin/mc
+rm "mc.$MC_RELEASE" mc.sha256sum
+mc --version</code></pre>
+        <p>A linha <code>sha256sum -c</code> deve terminar com OK (ou SUCESSO, em locale português). Essa é a mesma release do <code>mc</code> que vem dentro da imagem da coolLabs. Se a instalação falhar, use o <code>mc</code> do próprio contêiner local: <code>docker compose exec minio mc --version</code>.</p>
+        <h3>13.4 Buckets no MinIO local</h3>
+        <pre><code>set -a; . ./.env; set +a
+mc alias set local http://localhost:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
+for b in raw bronze silver gold; do mc mb --ignore-existing "local/$b"; done
+mc ls local
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:9000/raw</code></pre>
+        <p>O último comando faz uma requisição sem assinatura e deve devolver 403. Executar o laço de <code>mc mb</code> uma segunda vez não gera erro, por causa do <code>--ignore-existing</code>: essa é a idempotência pedida em RF-02.</p>
+        <div class="note">
+          <strong>O que foi validado no preparo</strong>
+          <p><code>docker compose config</code> sem <code>.env</code> falha com a mensagem pedindo as variáveis; com <code>.env</code>, valida. O contêiner chegou a healthy, <code>/minio/health/live</code> respondeu 200, o console respondeu 200, os quatro buckets foram criados, um objeto gravado sobreviveu a <code>down</code> seguido de <code>up</code>, e o GET anônimo devolveu 403. O Dockerfile de <code>minio_railway/</code> também foi construído e executado localmente, com o endpoint de saúde respondendo 200.</p>
+        </div>
+      </section>
+
+      <!-- 14 -->
+      <section class="content-block" id="s14">
+        <h2>14. Conferência: deploy no Railway pelo terminal</h2>
+        <p>Sequência esperada para as tarefas T-06 e T-07. O deploy pelo terminal é preferido ao painel web porque cada passo fica registrado em comando, pode ser repetido por outro integrante e cumpre OBJ-04 (recriável do zero). Os comandos foram conferidos contra a ajuda da CLI do Railway na versão 5.63.1.</p>
+        <h3>14.1 Dockerfile</h3>
+        <pre><code>FROM ghcr.io/coollabsio/minio:RELEASE.2025-10-15T17-29-55Z
+EXPOSE 9000 9001
+CMD ["server", "/data", "--console-address", ":9001"]</code></pre>
+        <p>O Dockerfile não contém credencial. O <code>railway up</code> envia a pasta <code>minio_railway/</code>, o Railway detecta o Dockerfile e constrói a imagem.</p>
+        <h3>14.2 Projeto, serviço e volume (agente, com confirmação)</h3>
+        <pre><code>cd aula_01_minio/minio_railway
+railway init --name minio-grupo-xx
+railway add --service minio
+railway service link minio
+railway volume add --mount-path /data</code></pre>
+        <h3>14.3 Credenciais (pessoa do grupo, em outro terminal)</h3>
+        <pre><code>cd aula_01_minio/minio_railway
+railway variable set MINIO_ROOT_USER=admin_grupo_xx --skip-deploys
+SENHA="$(openssl rand -hex 24)"
+printf '%s' "$SENHA" | railway variable set MINIO_ROOT_PASSWORD --stdin --skip-deploys
+sed -i "s|^MINIO_RAILWAY_USER=.*|MINIO_RAILWAY_USER=admin_grupo_xx|" ../.env
+sed -i "s|^MINIO_RAILWAY_PASSWORD=.*|MINIO_RAILWAY_PASSWORD=$SENHA|" ../.env
+unset SENHA</code></pre>
+        <p>A senha passa pela entrada padrão (<code>--stdin</code>), por isso não aparece no histórico do shell nem na tela. <code>openssl rand -hex 24</code> gera 48 caracteres hexadecimais, sem símbolos que atrapalhem o shell ou URLs. O <code>--skip-deploys</code> evita disparar um deploy a cada variável cadastrada.</p>
+        <h3>14.4 Deploy, domínio e verificação</h3>
+        <pre><code>railway up --detach
+railway logs
+railway domain --port 9000 --service minio</code></pre>
+        <p>Nos logs, espere a linha que começa com <code>API:</code>. O comando de domínio devolve um endereço <code>https://...up.railway.app</code>: a pessoa do grupo o copia para <code>MINIO_RAILWAY_ENDPOINT</code> no <code>.env</code>. Em seguida:</p>
+        <pre><code>cd ..
+set -a; . ./.env; set +a
+mc alias set railway "$MINIO_RAILWAY_ENDPOINT" "$MINIO_RAILWAY_USER" "$MINIO_RAILWAY_PASSWORD"
+mc ready railway
+for b in raw bronze silver gold; do mc mb --ignore-existing "railway/$b"; done
+mc ls railway
+curl -s -o /dev/null -w "%{http_code}\n" "$MINIO_RAILWAY_ENDPOINT/raw"</code></pre>
+        <h3>14.5 Persistência e backup</h3>
+        <pre><code>echo '{"teste": "persistencia"}' &gt; /tmp/teste.json
+mc cp /tmp/teste.json railway/raw/_verificacao/teste.json
+railway redeploy --service minio --yes
+# aguarde o novo deploy ficar ativo (railway logs) e então:
+mc ls railway/raw/_verificacao/</code></pre>
+        <p>Se o objeto aparece depois do redeploy, o volume está montado no lugar certo. Se não aparece, o ponto de sensibilidade da seção 4.3 se confirmou: confira o caminho do volume com <code>railway volume list</code>. Ao fim da disciplina, antes que o volume do trial seja apagado:</p>
+        <pre><code>for b in raw bronze silver gold; do mc mirror "railway/$b" "./backup_minio/$b"; done</code></pre>
+        <div class="note">
+          <strong>O que não foi verificado no preparo</strong>
+          <p>O deploy no Railway não foi executado de ponta a ponta durante a preparação deste material; os comandos foram conferidos pela ajuda da CLI e o Dockerfile foi testado localmente. O console 9001 não recebe domínio público por decisão (ADR-002), e por isso o comportamento do console atrás do proxy do Railway não foi avaliado. O consumo real de crédito do serviço também não foi medido: trate-o como hipótese e acompanhe no painel do Railway ao longo das semanas.</p>
+        </div>
+      </section>
+
+      <!-- 15 -->
+      <section class="content-block" id="s15">
+        <h2>15. Exemplo resolvido de ponta a ponta</h2>
+        <p>Uma linha completa, do driver de negócio até a evidência, para a decisão de expor só a API. É esta a forma que <code>docs/atam.md</code>, o ADR e <code>docs/rastreabilidade.md</code> devem ter ao fim da aula, repetida para cada decisão relevante.</p>
+        <h3>Driver de negócio</h3>
+        <p>O repositório do grupo é público e o MinIO publicado tem um endereço acessível de qualquer lugar da internet. Os dados das Aulas 02 a 04 e do projeto final passam por ele, e qualquer acesso indevido compromete o trabalho do semestre.</p>
+        <h3>Cenário de seis partes (CEN-06)</h3>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Parte</th><th>Conteúdo</th></tr></thead>
+          <tbody>
+            <tr><td>Fonte</td><td>Cliente anônimo na internet.</td></tr>
+            <tr><td>Estímulo</td><td>Tenta listar o bucket <code>raw</code> e procurar um console de administração no domínio do serviço.</td></tr>
+            <tr><td>Ambiente</td><td>Operação normal, serviço publicado no Railway.</td></tr>
+            <tr><td>Artefato</td><td>Serviço <code>minio</code> e seus domínios públicos.</td></tr>
+            <tr><td>Resposta</td><td>A API nega a requisição sem assinatura; não existe domínio público que leve ao console.</td></tr>
+            <tr><td>Métrica</td><td>100% das requisições sem assinatura recebem 403; zero domínios públicos apontando para a porta 9001.</td></tr>
+          </tbody>
+        </table></div>
+        <h3>Decisão e tática</h3>
+        <p>Publicar domínio apenas para a porta 9000 e operar o MinIO publicado pelo <code>mc</code>; o console fica só no ambiente local. Táticas de segurança de Len Bass: limitar exposição (menos portas na internet) e autenticar atores (toda requisição S3 é assinada). A senha gerada e fora do Git aplica limitar acesso e alterar configurações padrão.</p>
+        <h3>Descobertas do ATAM</h3>
+        <ul>
+          <li>Ponto de sensibilidade: a lista de portas com domínio público define a superfície de ataque do serviço.</li>
+          <li>Ponto de trade-off: sem console remoto, a segurança melhora e a usabilidade piora; inspecionar o storage publicado exige <code>mc</code>.</li>
+          <li>Risco: todos os scripts e integrantes usam a credencial root; um vazamento dá controle total, inclusive de apagar buckets.</li>
+          <li>Não-risco: requisição anônima recebe 403 (evidência: <code>curl</code> registrado em <code>docs/evidencias/T-04_verificar_railway.txt</code>).</li>
+          <li>Tema de risco: dependência de uma única credencial, que reaparece no CEN-02 (credencial vazada).</li>
+        </ul>
+        <h3>ADR resumido</h3>
+        <pre><code># ADR-002: API pública só na porta 9000, console só local
+Status: aceito
+Contexto e forças: repositório público; endpoint acessível da internet; RNF de acesso autenticado.
+Requisitos/cenários: RNF-02 (acesso autenticado), CEN-02, CEN-06.
+Alternativas: (a) domínio para 9000 e 9001; (b) domínio só para 9001 e API via rede privada;
+  (c) domínio só para 9000, console local.
+Decisão: (c). Táticas: limitar exposição; autenticar atores.
+Consequências: + superfície menor; − sem interface web para o storage publicado.
+Riscos: credencial root compartilhada (R-03).
+Evidência necessária: 403 em GET anônimo; railway domain list sem domínio para 9001.
+Condição de revisão: se o grupo precisar de console remoto, reavaliar com usuário
+  de leitura separado (mc admin user add) antes de expor a 9001.</code></pre>
+        <h3>Linha da matriz em docs/rastreabilidade.md</h3>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Requisito</th><th>Decisão / ADR</th><th>Componente</th><th>Tarefa</th><th>Evidência</th><th>Estado</th></tr></thead>
+          <tbody>
+            <tr><td>RNF-02 (acesso só autenticado, segredo fora do Git)</td><td>ADR-002</td><td>Serviço <code>minio</code> + domínio da porta 9000</td><td>T-04, T-06</td><td><code>T-04_verificar_railway.txt</code> (403 anônimo); <code>git ls-files</code> sem <code>.env</code></td><td>parcial: falta credencial de menor privilégio para os pipelines</td></tr>
+          </tbody>
+        </table></div>
+        <p>O estado "parcial" é deliberado. O critério de acesso autenticado foi atendido com evidência, mas a análise revelou um risco (credencial root compartilhada) que o grupo decidiu aceitar por ora. Registrar "atendido" esconderia essa decisão.</p>
+      </section>
+
+      <!-- 16 -->
+      <section class="content-block" id="s16">
+        <h2>16. Problemas comuns</h2>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Sintoma</th><th>Causa provável</th><th>O que fazer</th></tr></thead>
+          <tbody>
+            <tr><td>Agente responde com erro de limite (429)</td><td>Cota do provedor ou do plano do agente atingida.</td><td>Espere um minuto e repita; se a cota acabar, troque o piloto do agente ou conclua pelos comandos das seções 13 e 14.</td></tr>
+            <tr><td>Agente ignora as regras do projeto</td><td><code>AGENTS.md</code> não foi lido.</td><td>Abra o agente dentro de <code>aula_01_minio/</code>; no Claude Code, confira o <code>CLAUDE.md</code> com <code>@AGENTS.md</code>; nos demais, cole o arquivo no contexto.</td></tr>
+            <tr><td><code>docker compose config</code> pede MINIO_ROOT_USER</td><td><code>.env</code> ausente ou fora da pasta do compose.</td><td><code>cp .env.example .env</code> dentro de <code>aula_01_minio/</code>.</td></tr>
+            <tr><td>Porta 9000 já em uso</td><td>Outro MinIO ou contêiner local.</td><td><code>docker ps</code>; pare o outro contêiner ou mude o lado esquerdo do mapeamento de porta.</td></tr>
+            <tr><td>502 em <code>mc</code> no Railway</td><td>Proxy do Railway ou deploy ainda subindo.</td><td>Espere 10 segundos e repita; confira <code>railway logs</code>.</td></tr>
+            <tr><td><code>mc alias set</code> falha com credencial inválida</td><td>Variáveis do Railway diferentes do <code>.env</code>, ou endpoint sem <code>https://</code>.</td><td>Recadastre a senha (seção 14.3) e confira o endpoint.</td></tr>
+            <tr><td>Objeto some após redeploy</td><td>Volume não montado em <code>/data</code>.</td><td><code>railway volume list</code>; corrija o caminho de montagem.</td></tr>
+            <tr><td><code>.env</code> aparece em <code>git status</code></td><td><code>.gitignore</code> não copiado.</td><td>Copie o <code>.gitignore</code> do modelo antes de qualquer commit. Se já foi para o GitHub, troque a senha no Railway imediatamente.</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <!-- 17 -->
+      <section class="content-block" id="s17">
+        <h2>17. Atividade em sala e entregável</h2>
+        <p>A atividade é a reprodução, pelo grupo, do que o professor demonstra: o ciclo SDD completo do projeto MinIO, no repositório do grupo, com o agente de código de cada integrante no Codespace e o MinIO publicado no Railway. O roteiro resumido, com comandos e checklists, está no <a href="../laboratorio/lesson-1/README.md">README do laboratório</a>.</p>
+        <ol class="steps">
+          <li>Criem o repositório público do grupo, abram os Codespaces e copiem o modelo (seção 8).</li>
+          <li>Cada integrante abre o agente de código de sua preferência na pasta do projeto e confere que ele lê o <code>AGENTS.md</code>; o grupo define a ordem de revezamento do piloto (seção 9).</li>
+          <li>Pelo menos uma pessoa cria a conta no Railway e autentica a CLI no Codespace que fará o deploy (seção 10).</li>
+          <li>Executem os prompts 1 a 6 em ordem, revisando e commitando cada etapa; colem cada prompt enviado em <code>docs/prompts.md</code> (seção 12).</li>
+          <li>Executem o prompt 8 e, por fim, o prompt 7 (seções 12.7, 12.8 e 14).</li>
+          <li>Confiram o entregável abaixo e registrem o repositório no formulário de grupo.</li>
+        </ol>
+        <h3>Entregável da aula</h3>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Item</th><th>Critério de aceite</th></tr></thead>
+          <tbody>
+            <tr><td><code>aula_01_minio/AGENTS.md</code></td><td>Presente, com as regras da disciplina e a convenção de commit.</td></tr>
+            <tr><td><code>docs/00_persona.md</code>, <code>docs/01_objetivos_negocio.md</code></td><td>Preenchidos, com fatos, lacunas e hipóteses separados.</td></tr>
+            <tr><td><code>specs/spec.md</code>, <code>specs/plan.md</code>, <code>specs/tasks.md</code></td><td>RF/RNF com Dado/Quando/Então; C4 em Mermaid; tarefas ligadas a requisito e verificação.</td></tr>
+            <tr><td><code>docker-compose.yml</code>, <code>minio_railway/Dockerfile</code>, <code>scripts/</code></td><td>Tag fixada; compose valida e chega a healthy; scripts não imprimem segredo.</td></tr>
+            <tr><td>MinIO no Railway</td><td><code>mc ls railway</code> lista <code>raw</code>, <code>bronze</code>, <code>silver</code>, <code>gold</code>; GET anônimo devolve 403; objeto sobrevive a redeploy.</td></tr>
+            <tr><td><code>docs/atam.md</code> e <code>docs/adr/</code></td><td>Cinco cenários de seis partes; descobertas; ADR-001 e ADR-002.</td></tr>
+            <tr><td><code>docs/rastreabilidade.md</code></td><td>Uma linha por RF e RNF, com estado atendido, parcial ou não atendido.</td></tr>
+            <tr><td><code>docs/prompts.md</code> e <code>docs/evidencias/</code></td><td>Prompts realmente enviados; saídas de verificação sem segredos.</td></tr>
+            <tr><td>Segredos</td><td><code>git ls-files | grep '\.env$'</code> vazio; nenhuma senha no histórico.</td></tr>
+          </tbody>
+        </table></div>
+        <p>Registre o repositório no formulário de grupo da disciplina. O mesmo repositório recebe as próximas aulas e o projeto final. Guardem o endpoint do Railway e as credenciais no <code>.env</code> de cada integrante que vai rodar coletas: a Aula 02 começa gravando no bucket <code>raw</code> deste MinIO.</p>
+      </section>
+
+      <!-- 18 -->
+      <section class="content-block" id="s18">
+        <h2>18. Referências</h2>
+        <ul>
+          <li>BASS, L.; CLEMENTS, P.; KAZMAN, R. <em>Software Architecture in Practice</em>. 4. ed. Addison-Wesley, 2021. Capítulos de atributos de qualidade e táticas.</li>
+          <li>KAZMAN, R.; KLEIN, M.; CLEMENTS, P. <em>ATAM: Method for Architecture Evaluation</em>. Software Engineering Institute, CMU/SEI-2000-TR-004, 2000.</li>
+          <li>BROWN, S. <a href="https://c4model.com" target="_blank" rel="noopener noreferrer">The C4 model for visualising software architecture</a>.</li>
+          <li>NYGARD, M. <a href="https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions" target="_blank" rel="noopener noreferrer">Documenting Architecture Decisions</a>, 2011.</li>
+          <li>BIRSS, D. Formato CREATE para prompts de IA generativa.</li>
+          <li><a href="https://github.com/github/spec-kit" target="_blank" rel="noopener noreferrer">GitHub Spec Kit</a> e <a href="https://github.com/Fission-AI/OpenSpec" target="_blank" rel="noopener noreferrer">OpenSpec</a>.</li>
+          <li><a href="https://agents.md" target="_blank" rel="noopener noreferrer">Formato AGENTS.md</a>; <a href="https://docs.railway.com" target="_blank" rel="noopener noreferrer">documentação do Railway</a>.</li>
+          <li><a href="https://github.com/coollabsio/minio" target="_blank" rel="noopener noreferrer">coollabsio/minio</a> (imagens do MinIO) e <a href="https://github.com/minio/mc/releases" target="_blank" rel="noopener noreferrer">releases do cliente mc</a>.</li>
+        </ul>
+      </section>
+
+    </article>
+  </main>
+
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'neutral',
+      securityLevel: 'strict',
+      themeVariables: {
+        fontFamily: 'Inter, system-ui, sans-serif',
+        primaryColor: '#ffffff',
+        primaryBorderColor: '#0f0f0f',
+        primaryTextColor: '#0f0f0f',
+        lineColor: '#5c5c5c',
+        clusterBkg: '#fafaf7',
+        clusterBorder: '#d6d6d1'
+      }
+    });
+  </script>
+<!-- encontro:pdf:start -->
+<button type="button" class="pdf-export-btn" data-encontro-data="2026-10-10" data-encontro-docente="Afonso" data-encontro-seq="02" title="Exportar esta página em PDF com o nome padronizado">📄 Exportar PDF</button>
+<script src="../../../js/encontro-pdf.js" defer></script>
+<!-- encontro:pdf:end -->
+<!-- semana:js:start -->
+<script src="../../../js/semana-ano.js" defer></script>
+<!-- semana:js:end -->
+</body>
+</html>

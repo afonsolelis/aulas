@@ -1,0 +1,2874 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗄️</text></svg>">
+  <title>Aula 04 · Arquitetura de Ingestão com Fila, DuckDB e ClickHouse</title>
+  <link href="../css/dc-slides.css" rel="stylesheet">
+  <style>
+
+    .agenda-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 12px; }
+    .agenda-3 .deck-card { padding: 16px 18px; font-size: 0.86em; }
+    .agenda-3 .deck-card ul { margin: 8px 0 0; padding-left: 18px; }
+    .entrega-4 { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+    @media (max-width: 900px) { .agenda-3, .entrega-4 { grid-template-columns: 1fr !important; } }
+    /* Construção em etapas: trilha, painel lateral e prompt rolável */
+    .etapa-shell { gap: 14px; padding-top: 30px; padding-bottom: 26px; }
+    .etapa-shell .deck-summary { max-width: 96ch; margin: 4px 0 0; }
+    .etapa-trilha { display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); gap: 3px; margin: 0 0 10px; padding: 0; list-style: none; font-family: var(--font-mono); font-size: 0.56em; font-weight: 700; letter-spacing: 0.04em; }
+    .etapa-trilha li { padding: 3px 0; text-align: center; border: 1px solid var(--deck-line); color: #a3a3a0; background: var(--deck-panel); }
+    .etapa-trilha li.is-done { color: var(--deck-muted); background: var(--deck-surface); }
+    .etapa-trilha li.is-current { color: var(--deck-panel); background: var(--deck-text); border-color: var(--deck-text); }
+    .etapa-grid { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.45fr); gap: 18px; align-items: start; }
+    .etapa-lado { display: flex; flex-direction: column; gap: 10px; font-size: 0.8em; line-height: 1.45; }
+    .etapa-item { padding: 12px 14px; border: 1px solid var(--deck-line); border-radius: 2px; background: var(--deck-panel); }
+    .etapa-item p { margin: 0; }
+    .etapa-item ul, .etapa-item ol { margin: 0; padding-left: 18px; }
+    .etapa-item li { margin-bottom: 4px; }
+    .etapa-gate { border-left: 3px solid var(--deck-text); background: var(--deck-surface); }
+    .etapa-rotulo { display: block; margin-bottom: 6px; font-size: 0.78em; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--deck-muted); }
+    .etapa-prompt { position: relative; min-width: 0; }
+    .etapa-prompt .etapa-rotulo { font-size: 0.62em; }
+    .etapa-copiar { position: absolute; top: 30px; right: 10px; z-index: 2; padding: 6px 10px !important; font-size: 0.55em !important; }
+    .etapa-copiar.is-ok { background: var(--deck-panel); color: var(--deck-text); }
+    .etapa-shell pre.etapa-pre { margin: 0; max-height: clamp(200px, calc(100vh - 420px), 560px); overflow: auto; padding: 26px 16px 14px !important; font-size: clamp(0.5em, 0.82vw, 0.66em) !important; line-height: 1.5 !important; }
+    .etapa-shell pre.etapa-pre-codigo { white-space: pre; font-size: clamp(0.5em, 0.86vw, 0.7em) !important; }
+    .etapa-pre .k { color: #ffffff; font-weight: 700; }
+    .etapa-rodadas { list-style: none; padding: 0 !important; }
+    .etapa-rodadas strong { display: inline-block; min-width: 2.4ch; font-family: var(--font-mono); }
+    .fase-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; }
+    .fase { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 14px 14px 12px; border: 1px solid var(--deck-line); border-top: 3px solid var(--deck-text); background: var(--deck-panel); font-size: 0.74em; }
+    .fase h3 { margin: 0; font-size: 1.05em; }
+    .fase p { margin: 0; color: var(--deck-muted); line-height: 1.4; flex: 1; }
+    .fase-num { font-family: var(--font-mono); font-weight: 700; font-size: 0.85em; letter-spacing: 0.06em; color: var(--deck-muted); }
+    .fase-hora { font-family: var(--font-mono); font-size: 0.85em; font-weight: 700; }
+    .fase.is-semana { border-top-style: dashed; background: var(--deck-surface); }
+    .fio-flow .method-step { min-height: 0; padding: 12px 12px; font-size: 0.82em; }
+    .fio-flow .method-step::before { margin-bottom: 6px; content: counter(method-step, decimal-leading-zero); }
+    .fio-flow code { overflow-wrap: anywhere; }
+    .fio-defs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .fio-defs .deck-panel { padding: 12px 16px; font-size: 0.82em; }
+    .fio-defs .deck-panel p { margin: 4px 0 0; }
+    .etapa-svg { display: block; width: 100%; flex: 1 1 0; min-height: 180px; }
+    .etapa-diagrama { gap: 10px; padding-top: 28px; padding-bottom: 18px; }
+    .etapa-diagrama .deck-summary { max-width: none; margin: 4px 0 0; }
+    .eixos-tabela td:first-child { font-weight: 600; white-space: nowrap; }
+    @media (max-height: 760px) {
+      .etapa-shell, .etapa-intro, .etapa-diagrama { gap: 10px; padding-top: 22px; padding-bottom: 16px; }
+      .etapa-shell .deck-title, .etapa-intro .deck-title, .etapa-diagrama .deck-title { font-size: 1.75em; }
+      .etapa-shell .deck-summary, .etapa-intro .deck-summary { font-size: 0.86em; }
+      .etapa-trilha { margin-bottom: 4px; }
+      .etapa-lado { font-size: 0.74em; gap: 8px; }
+      .etapa-item { padding: 9px 12px; }
+      .etapa-shell pre.etapa-pre { max-height: clamp(200px, calc(100vh - 392px), 560px); }
+      .fase { padding: 10px 12px 10px; }
+      .etapa-shell pre.etapa-pre-codigo { font-size: 0.56em !important; }
+      .fio-flow .method-step { padding: 8px 10px; }
+      .eixos-tabela td, .eixos-tabela th { padding: 5px 8px !important; }
+    }
+    @media (max-width: 900px) {
+      .etapa-grid { grid-template-columns: 1fr; }
+      .fase-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .etapa-trilha { font-size: 0.45em; }
+    }
+  </style>
+  <style>
+    /* didática, frente E */
+    /* Frente E: blocos 4 e 5 explicados */
+    .de-shell { gap: 14px; }
+    .de-shell .deck-summary { max-width: 96ch; margin: 6px 0 0; }
+    .de-dois { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+    .de-dois-largo { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); }
+    .de-caixa { padding: 14px 16px; border: 1px solid var(--deck-line); border-radius: 2px; background: var(--deck-panel); font-size: 0.82em; line-height: 1.45; min-width: 0; }
+    .de-caixa.is-cinza { background: var(--deck-surface); }
+    .de-caixa.is-forte { border-left: 3px solid var(--deck-text); background: var(--deck-surface); }
+    .de-caixa p { margin: 0 0 6px; }
+    .de-caixa p:last-child { margin-bottom: 0; }
+    .de-caixa ul, .de-caixa ol { margin: 4px 0 0; padding-left: 18px; }
+    .de-caixa li { margin-bottom: 3px; }
+    .de-rotulo { display: block; margin-bottom: 6px; font-size: 0.78em; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--deck-muted); }
+    .de-shell pre.de-pre { margin: 6px 0 0; padding: 22px 14px 12px !important; font-size: clamp(0.5em, 0.8vw, 0.66em) !important; line-height: 1.5 !important; white-space: pre-wrap; overflow-wrap: anywhere; box-shadow: none; }
+    .de-pre .c { color: var(--deck-code-dim); }
+    .de-pre .k { color: #ffffff; font-weight: 700; }
+    .de-svg { display: block; width: 100%; flex: 1 1 0; min-height: 150px; }
+    .de-tres { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .de-quatro { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .de-unidades { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; border: 1px solid var(--deck-line); font-size: 0.78em; }
+    .de-unidades div { padding: 8px 12px; border-right: 1px solid var(--deck-line); background: var(--deck-surface); }
+    .de-unidades div:last-child { border-right: 0; }
+    .de-unidades strong { font-family: var(--font-mono); margin-right: 6px; }
+    .de-tabela td, .de-tabela th { padding: 6px 10px !important; font-size: 0.82em !important; }
+    .de-tabela code { white-space: nowrap; }
+    .de-hash { font-family: var(--font-mono); font-size: 0.86em; overflow-wrap: anywhere; }
+    .de-hash mark { background: var(--deck-text); color: var(--deck-panel); padding: 0 2px; }
+    @media (max-height: 760px) {
+      .de-shell { gap: 9px; padding-top: 24px; padding-bottom: 16px; }
+      .de-shell .deck-title { font-size: 1.8em; }
+      .de-shell .deck-summary { font-size: 0.86em; }
+      .de-caixa { padding: 10px 12px; font-size: 0.76em; }
+    }
+    @media (max-width: 900px) {
+      .de-dois, .de-tres, .de-quatro, .de-unidades { grid-template-columns: 1fr; }
+    }
+
+    /* didática, frente F */
+    /* Frente F: slides conceituais da construção em etapas */
+    .df-termos { display: grid; gap: 12px; }
+    .df-termos.df-c3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .df-termos.df-c2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .df-termo { padding: 14px 16px; border: 1px solid var(--deck-line); border-top: 3px solid var(--deck-text); border-radius: 2px; background: var(--deck-panel); }
+    .df-termo h3 { margin: 0 0 6px; font-size: 0.92em; }
+    .df-termo p { margin: 0; font-size: 0.8em; line-height: 1.45; color: var(--deck-text); }
+    .df-tabela td:first-child { font-family: var(--font-mono); font-weight: 700; white-space: nowrap; }
+    .df-tabela td:last-child { text-align: center; font-family: var(--font-mono); }
+    .df-colunas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .df-colunas .deck-panel { font-size: 0.86em; }
+    .df-colunas ul { margin: 8px 0 0; padding-left: 18px; }
+    @media (max-height: 760px) {
+      .df-termos { gap: 9px; }
+      .df-termo { padding: 10px 14px; }
+      .df-termo h3 { margin-bottom: 4px; }
+    }
+    @media (max-width: 900px) {
+      .df-termos.df-c3, .df-termos.df-c2, .df-colunas { grid-template-columns: 1fr; }
+    }
+
+
+    /* Aula 04: ajustes locais */
+    .de-shell .deck-note { margin: 0; font-size: 0.86em; }
+    .de-shell .deck-callout { padding: 12px 18px; }
+    .de-shell .deck-callout p { margin: 6px 0 0; }
+    .de-shell pre.de-pre-largo { white-space: pre; overflow-x: auto; overflow-wrap: normal; }
+    .de-num td:not(:first-child), .de-num th:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+    .de-svg.is-alto { min-height: 260px; }
+    .de-dois-esq { grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.65fr); }
+    .mostrar-col { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+    .etapa-shell pre.etapa-pre.is-curto { max-height: none; }
+    .etapa-shell pre.etapa-pre.is-medio { max-height: clamp(140px, calc(100vh - 520px), 420px); }
+    .mostrar-tabela td, .mostrar-tabela th { padding: 4px 8px !important; font-size: 0.92em !important; }
+    .de-pre-arvore { white-space: pre !important; overflow-x: auto; overflow-wrap: normal !important; }
+    @media (max-width: 900px) { .de-dois-esq { grid-template-columns: 1fr; } }
+    /* rodapé com o link Dados: cabe numa linha a 1280 px */
+    @media (min-width: 901px) {
+      .slide-footer .footer-links { gap: 6px; }
+      .slide-footer .back-home, .slide-footer .material-link { padding: 7px 10px; }
+    }
+    @media (max-height: 760px) {
+      .de-shell .deck-callout { padding: 8px 14px; font-size: 0.86em; }
+      .de-shell .deck-note { font-size: 0.78em; }
+      .de-shell .deck-table td, .de-shell .deck-table th { padding: 4px 8px !important; font-size: 0.76em !important; }
+      .de-shell pre.de-pre { font-size: 0.56em !important; padding: 18px 12px 8px !important; }
+      .de-svg.is-alto { min-height: 200px; }
+    }
+  </style>
+
+<!-- encontro:css:start -->
+<link rel="stylesheet" href="../../../css/encontro.css">
+<!-- encontro:css:end -->
+
+<!-- semana:css:start -->
+<link rel="stylesheet" href="../../../css/semana-ano.css">
+<!-- semana:css:end -->
+</head>
+<body>
+  <div class="slide-container">
+
+    <!-- Capa -->
+    <div class="slide">
+      <div class="deck-shell" data-aula-number="04" data-year="2026">
+        <div>
+          <img class="deck-logo-full" src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli">
+          <span class="deck-kicker">Data Collection and Storage &middot; Inteli</span>
+          <h1 class="deck-title">Arquitetura de Ingestão com Fila, DuckDB e ClickHouse</h1>
+          <p class="deck-meta">Aula 04 &nbsp;&bull;&nbsp; 31/10/2026 &nbsp;&bull;&nbsp; 8h30 &ndash; 12h10</p>
+          <p class="deck-year">2026</p>
+          <p class="deck-subtitle">Um servidor Python sempre no ar recebe dados por HTTP e por uma fila RabbitMQ, guarda raw e bronze no RustFS e insere numa tabela de três colunas no ClickHouse. Onze etapas.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Agenda -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Agenda</span>
+          <h2 class="deck-title">Onze etapas, teoria dentro de cada uma</h2>
+          <p class="deck-summary">Formato da Aula 03: o prompt vai para o agente de código e, enquanto ele trabalha, os slides seguintes explicam o que o prompt pediu.</p>
+        </div>
+        <div class="deck-grid agenda-3">
+          <article class="deck-card">
+            <h3>8h30 &ndash; 9h45 &middot; Problema e contrato</h3>
+            <ul>
+              <li>8h30: abertura e arquitetura</li>
+              <li>8h45: Etapa 00, serviços, RustFS e fila</li>
+              <li>9h00: Etapa 01, persona</li>
+              <li>9h10: Etapa 02, contrato</li>
+              <li>9h30: Etapa 03, requisitos e 202</li>
+            </ul>
+          </article>
+          <article class="deck-card">
+            <h3>9h45 &ndash; 11h30 &middot; Modelo e código</h3>
+            <ul>
+              <li>9h45: Etapa 04, tabela e lake</li>
+              <li>10h10: Etapas 05 e 06, ADRs e testes</li>
+              <li>10h40: Etapas 07 e 08, código</li>
+              <li>11h05: Etapa 09, contagem e queda</li>
+              <li>11h15: Etapa 10, JSON cast</li>
+            </ul>
+          </article>
+          <article class="deck-card">
+            <h3>11h30 &ndash; 12h10 &middot; Resultado e fechamento</h3>
+            <ul>
+              <li>11h30: o resultado no ClickHouse e no RustFS, e as dúvidas da construção</li>
+              <li>12h00: fechamento</li>
+              <li>Semana: ATAM e Railway</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <!-- Três fontes, três pipelines -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">8h30 &middot; Abertura &middot; Problema</span>
+          <h2 class="deck-title">Três fontes, três pipelines</h2>
+          <p class="deck-summary">Depois das Aulas 02 e 03, o grupo tem três fontes no MinIO, e cada uma chegou por um caminho próprio: código próprio de coleta, chave própria, formato próprio. A quarta fonte pediria um quarto pipeline.</p>
+        </div>
+        <table class="deck-table de-tabela">
+          <thead><tr><th>Fonte</th><th>Aula</th><th>Como chega</th><th>Onde está</th></tr></thead>
+          <tbody>
+            <tr><td>telemetria</td><td>02</td><td>lotes TXT de 15 minutos gerados pelos caminhões</td><td><code>raw/telemetria/...</code></td></tr>
+            <tr><td>livros</td><td>03</td><td>scraping do books.toscrape.com, 1.000 páginas de detalhe</td><td><code>bronze/books_toscrape/data=D/livros.jsonl</code></td></tr>
+            <tr><td>ptax</td><td>03</td><td>API Olinda do Banco Central, boletins GBP</td><td><code>bronze/ptax/moeda=GBP/data=D/cotacoes.jsonl</code></td></tr>
+          </tbody>
+        </table>
+        <div class="de-dois">
+          <div class="de-caixa"><span class="de-rotulo">O que se repete em cada pipeline</span><ul><li>conexão com o MinIO e escolha da chave</li><li>formato de gravação e tratamento de falha</li><li>um lugar para consultar o dado</li></ul></div>
+          <div class="de-caixa is-forte"><span class="de-rotulo">A proposta de hoje</span><p>Uma porta de entrada única. Quem tem o dado o entrega num envelope com a etiqueta do domínio, e um servidor guarda tudo do mesmo jeito: raw e bronze no lake, agora no RustFS, e uma tabela consultável no ClickHouse.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Coleta por puxar e ingestão por empurrar -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Abertura &middot; Conceito</span>
+          <h2 class="deck-title">Coleta por puxar e ingestão por empurrar</h2>
+          <p class="deck-summary">Nas Aulas 02 e 03, o código da plataforma ia buscar o dado na fonte. Hoje a direção se inverte: a fonte manda o dado quando ele existe, e a plataforma precisa estar no ar para receber.</p>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa"><span class="de-rotulo">Puxar (pull) &middot; Aulas 02 e 03</span><ul><li>A plataforma decide quando coletar: agendamento, uma vez por dia.</li><li>A plataforma conhece a fonte: URL, seletor, paginação, formato de data.</li><li>Fonte fora do ar: o coletor repete com backoff ou registra a falha.</li><li>O dado novo espera a próxima execução.</li></ul></div>
+          <div class="de-caixa is-forte"><span class="de-rotulo">Empurrar (push) &middot; Aula 04</span><ul><li>A fonte decide quando enviar: a cada linha, a cada lote, a cada evento.</li><li>A fonte conhece a plataforma: um endereço e um contrato.</li><li>Plataforma fora do ar: o dado se perde, a menos que alguém o segure.</li><li>O dado novo chega em segundos.</li></ul></div>
+        </div>
+        <div class="deck-callout"><strong>Consequência para a arquitetura</strong><p>Quem empurra não espera. O servidor responde rápido, guarda a mensagem num lugar durável e grava nos destinos depois. Esse lugar durável é a fila.</p></div>
+      </div>
+    </div>
+
+    <!-- A arquitetura inteira -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Abertura &middot; Arquitetura</span>
+          <h2 class="deck-title">A arquitetura inteira num slide</h2>
+          <p class="deck-summary">Dois jeitos de entrar, uma fila, um consumidor que junta mensagens em micro-lotes e dois destinos, o lake e o ClickHouse, gravados numa ordem fixa. As etapas da manhã constroem cada caixa.</p>
+        </div>
+        <svg class="de-svg is-alto" viewBox="0 0 1200 446" role="img" aria-label="Produtor HTTP envia POST para a API, que publica na fila ingestao; produtor AMQP publica direto na fila; o consumidor recebe da fila, acumula o micro-lote e no flush grava o raw e o bronze no RustFS, insere no ClickHouse, grava o manifesto do lote e por último dá ack na fila" font-family="Inter, Helvetica, Arial, sans-serif">
+          <defs><marker id="arq-s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#0f0f0f"/></marker></defs>
+          <text x="10" y="22" font-size="15" fill="#5c5c5c">API e consumidor rodam no mesmo processo Python. Fila, RustFS e ClickHouse são contêineres do compose.</text>
+          <g stroke="#0f0f0f" stroke-width="2">
+            <rect x="10" y="50" width="180" height="80" fill="#f2f2ee"/>
+            <rect x="10" y="262" width="180" height="80" fill="#f2f2ee"/>
+            <rect x="250" y="44" width="210" height="100" fill="#ffffff"/>
+            <rect x="250" y="262" width="210" height="80" fill="#0f0f0f"/>
+            <rect x="570" y="196" width="260" height="196" fill="#ffffff" stroke-width="3"/>
+            <rect x="900" y="40" width="290" height="150" fill="#ffffff"/>
+            <rect x="900" y="242" width="290" height="150" fill="#ffffff"/>
+          </g>
+          <g text-anchor="middle" fill="#0f0f0f" font-size="17">
+            <text x="100" y="84" font-weight="700">Produtor HTTP</text>
+            <text x="100" y="108" font-size="14" fill="#5c5c5c">curl, livros_http.py</text>
+            <text x="100" y="296" font-weight="700">Produtor AMQP</text>
+            <text x="100" y="320" font-size="14" fill="#5c5c5c">ptax e telemetria</text>
+            <text x="355" y="74" font-weight="700">API (FastAPI)</text>
+            <text x="355" y="100" font-size="15" font-family="JetBrains Mono, monospace">POST /ingest</text>
+            <text x="355" y="126" font-size="14" fill="#5c5c5c">400, 413, 422 sem tocar a fila</text>
+            <text x="355" y="296" font-weight="700" fill="#ffffff" font-family="JetBrains Mono, monospace">fila ingestao</text>
+            <text x="355" y="320" font-size="14" fill="#ffffff">RabbitMQ, durável</text>
+            <text x="700" y="228" font-weight="700">Consumidor (thread)</text>
+            <text x="700" y="258" font-size="15">valida o envelope de novo</text>
+            <text x="700" y="282" font-size="15">acumula o micro-lote</text>
+            <text x="700" y="308" font-size="15" font-family="JetBrains Mono, monospace">flush: N=500 ou T=2 s</text>
+            <text x="700" y="346" font-size="13" fill="#5c5c5c">inválido: raw/ingestao_rejeitados/</text>
+            <text x="700" y="366" font-size="13" fill="#5c5c5c">com o motivo, e recebe ack</text>
+            <text x="1045" y="68" font-weight="700">RustFS (lake), API S3</text>
+            <text x="1045" y="96" font-size="14" font-family="JetBrains Mono, monospace">1. raw: envelopes, .jsonl</text>
+            <text x="1045" y="118" font-size="14" font-family="JetBrains Mono, monospace">2. bronze: Parquet</text>
+            <text x="1045" y="140" font-size="14" font-family="JetBrains Mono, monospace">4. manifesto do lote</text>
+            <text x="1045" y="172" font-size="14" fill="#5c5c5c">data_tag=X/data=D, data de Brasília</text>
+            <text x="1045" y="272" font-weight="700">3. ClickHouse, INSERT</text>
+            <text x="1045" y="300" font-size="14" font-family="JetBrains Mono, monospace">ingestao.db_ingestion</text>
+            <text x="1045" y="326" font-size="14" font-family="JetBrains Mono, monospace">timestamp, data_json,</text>
+            <text x="1045" y="346" font-size="14" font-family="JetBrains Mono, monospace">data_tag</text>
+            <text x="1045" y="376" font-size="14" fill="#5c5c5c">consulta em SQL</text>
+          </g>
+          <g stroke="#0f0f0f" stroke-width="2" marker-end="url(#arq-s)">
+            <line x1="190" y1="90" x2="248" y2="90"/>
+            <line x1="190" y1="300" x2="248" y2="300"/>
+            <line x1="355" y1="144" x2="355" y2="260"/>
+            <line x1="460" y1="284" x2="568" y2="284"/>
+            <line x1="568" y1="326" x2="462" y2="326" stroke-dasharray="6 4"/>
+            <line x1="830" y1="236" x2="898" y2="150"/>
+            <line x1="830" y1="316" x2="898" y2="316"/>
+          </g>
+          <g font-size="14" fill="#0f0f0f">
+            <text x="365" y="196">publica com confirmação</text>
+            <text x="365" y="216">do broker, responde 202</text>
+            <text x="514" y="274" text-anchor="middle">entrega</text>
+            <text x="514" y="346" text-anchor="middle">5. ack</text>
+          </g>
+          <text x="10" y="416" font-size="15" fill="#0f0f0f">Ordem do flush: 1. raw, 2. bronze, 3. INSERT no ClickHouse, 4. manifesto com o resultado, 5. ack do lote.</text>
+          <text x="10" y="438" font-size="15" fill="#0f0f0f">Sem ack, a mensagem continua na fila e volta a ser entregue.</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Retomada -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Retomada &middot; Aulas 02 e 03</span>
+          <h2 class="deck-title">Cinco termos que voltam hoje</h2>
+          <p class="deck-summary">Já explicados nas aulas anteriores. A terceira coluna mostra onde cada um aparece no servidor de ingestão.</p>
+        </div>
+        <table class="deck-table de-tabela">
+          <thead><tr><th>Termo</th><th>Visto em</th><th>Na Aula 04</th></tr></thead>
+          <tbody>
+            <tr><td>raw</td><td>Aulas 02 e 03: bytes como a fonte entregou</td><td>cada envelope como chegou, um por linha em JSON Lines, em <code>raw/ingestao/</code>; os rejeitados, em <code>raw/ingestao_rejeitados/</code></td></tr>
+            <tr><td>bronze</td><td>Aula 03: o extraído, um registro por linha</td><td>Parquet com <code>timestamp</code> e <code>data_json</code>, uma linha por objeto de <code>data</code></td></tr>
+            <tr><td>Schema on read</td><td>Aula 02: a estrutura é aplicada na leitura</td><td>a tabela não conhece os campos; o JSON cast da Etapa 10 aplica tipos na consulta</td></tr>
+            <tr><td>Chave particionada</td><td>Aulas 02 e 03: <code>chave=valor</code> no caminho</td><td><code>data_tag=X/data=D/</code>: ler um domínio num dia sem listar os outros</td></tr>
+            <tr><td>Manifesto e SHA-256</td><td>Aula 03: registro da execução, com o SHA-256 de cada objeto</td><td>um por lote em <code>raw/_manifestos/</code>, gravado depois do ClickHouse, com o resultado do lote</td></tr>
+          </tbody>
+        </table>
+        <p class="deck-note">Pasta do grupo: <code>aula_04_ingestao/</code>, com o <code>AGENTS.md</code> do laboratório. Cada aluno usa o agente de código de sua preferência.</p>
+      </div>
+    </div>
+
+    <!-- Do envelope ao JSON cast em 11 etapas -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-intro">
+        <div>
+          <span class="deck-kicker">Construção em etapas</span>
+          <h2 class="deck-title">Do envelope ao JSON cast em 11 etapas</h2>
+          <p class="deck-summary">Mesmo método da Aula 03: Spec-Driven Development com prompts CREATE. Cada etapa tem artefato, prompt e revisão. Nenhum código em <code>src/</code> antes da Etapa 07; o código nasce dos documentos revisados.</p>
+        </div>
+        <div class="fase-grid">
+          <article class="fase"><span class="fase-num">00</span><h3>Preparação</h3><p>Pasta, RustFS, RabbitMQ e ClickHouse no ar, <code>entrada/</code>, venv.</p><span class="fase-hora">8h45</span></article>
+          <article class="fase"><span class="fase-num">01&ndash;02</span><h3>Persona e contrato</h3><p>Quem empurra e quem consome; regras do envelope.</p><span class="fase-hora">9h00</span></article>
+          <article class="fase"><span class="fase-num">03&ndash;04</span><h3>Requisitos e modelo</h3><p>RF e RNF com medida; tabela de pouso e lake.</p><span class="fase-hora">9h30</span></article>
+          <article class="fase"><span class="fase-num">05</span><h3>Arquitetura</h3><p>Componentes, sequência e cinco ADRs.</p><span class="fase-hora">10h10</span></article>
+          <article class="fase"><span class="fase-num">06</span><h3>Plano e testes</h3><p>Tarefas de até 30 minutos e testes vermelhos.</p><span class="fase-hora">10h30</span></article>
+          <article class="fase"><span class="fase-num">07&ndash;09</span><h3>Código e execução</h3><p>API, consumidor, produtores, contagens e queda.</p><span class="fase-hora">10h40</span></article>
+          <article class="fase"><span class="fase-num">10</span><h3>JSON cast</h3><p>Consultas nas duas engines, silver e demonstração do resultado.</p><span class="fase-hora">11h15</span></article>
+        </div>
+        <p class="deck-note">Toda etapa termina com o prompt registrado, literal, em <code>docs/prompts.md</code>.</p>
+      </div>
+    </div>
+
+    <!-- Etapa 00 -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell" data-etapa="00">
+        <div>
+          <span class="deck-kicker">8h45 &middot; Etapa 00 &middot; Preparação</span>
+          <h2 class="deck-title">Pasta, três serviços e registro de prompts</h2>
+          <p class="deck-summary">Objetivo: RustFS, RabbitMQ e ClickHouse saudáveis, buckets e tabela criados, dados em <code>entrada/</code> e venv instalado.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Gate</span><ul><li>os três serviços <code>(healthy)</code>; <code>mc ls lake</code> lista os cinco buckets</li><li>console em <code>:9001/rustfs/console/</code>, <code>admin</code> / <code>admin123</code></li><li><code>entrada/</code>: 1.000 livros, 40 boletins, 1.920 TXT</li><li><code>SHOW CREATE TABLE</code> responde; <code>.env</code> ignorado</li></ul></div>
+            <div class="etapa-item"><span class="etapa-rotulo">Senhas</span><p>Os valores do <code>.env.example</code> servem só no Codespace: <code>admin</code> / <code>admin123</code> no RustFS, <code>ingestao</code> / <code>ingestao123</code> no RabbitMQ e no ClickHouse. No Railway, troque todas com <code>openssl rand -base64 24</code>.</p></div>
+          </div>
+          <div class="etapa-prompt">
+            <span class="etapa-rotulo">Terminal do Codespace</span>
+            <button class="copy-button etapa-copiar" type="button">Copiar</button>
+            <pre class="etapa-pre etapa-pre-codigo"><code>mkdir -p aula_04_ingestao/{docs/adr,specs/exemplos,sql,src/produtores,tests}
+# copie para aula_04_ingestao/ os arquivos de apoio do laboratório (incluindo sql/, fixtures/ e enviar_entrada.py)
+cd aula_04_ingestao
+printf '.env\n.env.*\n!.env.example\n.venv/\n__pycache__/\n.pytest_cache/\nentrada/\n' &gt;&gt; .gitignore
+cp .env.example .env
+git check-ignore .env            # deve imprimir: .env
+printf '# Registro de prompts\n' &gt; docs/prompts.md
+
+docker compose config --quiet &amp;&amp; echo "compose ok"
+docker compose up -d
+docker compose up -d --wait rustfs rabbitmq clickhouse   # volta quando os três estão healthy
+docker compose ps
+docker compose logs rustfs-init                          # raw, bronze, silver, gold e teste
+docker compose run --rm mc ls lake
+
+unzip -o dados_aula_04.zip       # baixado do rodapé dos slides; cria entrada/
+ls entrada/telemetria | wc -l    # 1920
+
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+set -a; source .env; set +a
+docker compose exec clickhouse clickhouse-client --user "$CLICKHOUSE_USER" --password "$CLICKHOUSE_PASSWORD" \
+  -q "SELECT version(); SHOW CREATE TABLE ingestao.db_ingestion"
+echo "@AGENTS.md" &gt; CLAUDE.md    # só no Claude Code</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ponte 00 -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell" data-etapa="00">
+        <div>
+          <span class="deck-kicker">Etapa 00 &middot; Enquanto o agente trabalha</span>
+          <h2 class="deck-title">Três serviços, três papéis</h2>
+          <p class="deck-summary">O primeiro <code>docker compose up</code> baixa as imagens e leva alguns minutos. Nesse tempo, a turma vê o que cada serviço faz, por que o lake agora roda no RustFS e o vocabulário mínimo de fila que o resto da manhã usa.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item"><span class="etapa-rotulo">Teoria desta etapa</span><ol><li>Object storage, broker e banco colunar</li><li>RustFS e a API S3</li><li>Fila, produtor, consumidor, mensagem e ack</li><li>DuckDB dentro do processo, ClickHouse como servidor</li></ol></div>
+            <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Na volta ao terminal</span><p>Os três serviços <code>(healthy)</code>, os cinco buckets no log do <code>rustfs-init</code>, o console do RustFS aberto e o DDL devolvido pelo <code>SHOW CREATE TABLE</code>.</p></div>
+          </div>
+          <div class="etapa-prompt">
+            <span class="etapa-rotulo">Trecho da Etapa 00</span>
+            <pre class="is-wrap etapa-pre"><code>docker compose up -d --wait rustfs rabbitmq clickhouse
+docker compose ps
+docker compose logs rustfs-init</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Object storage, broker e banco colunar -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-intro df-shell">
+        <div>
+          <span class="deck-kicker">Etapa 00 &middot; Teoria &middot; Componentes</span>
+          <h2 class="deck-title">Object storage, broker e banco colunar</h2>
+          <p class="deck-summary">Cada serviço do compose resolve uma parte diferente do problema. Nenhum deles substitui o outro: o lake guarda barato e para sempre, a fila segura o que ainda não foi gravado, o banco responde consultas.</p>
+        </div>
+        <div class="df-termos df-c3"><article class="df-termo"><h3>RustFS &middot; object storage</h3><p>Guarda arquivos inteiros (objetos) por chave, pela API S3. Aqui recebe raw, bronze, manifestos e rejeitados. Imagem <code>rustfs/rustfs:1.0.4</code>, portas 9000 (API S3) e 9001 (console).</p></article><article class="df-termo"><h3>RabbitMQ &middot; broker de mensagens</h3><p>Recebe mensagens de quem produz, guarda em filas e entrega a quem consome. Aqui, uma fila durável chamada <code>ingestao</code>. Versão 4.3.6, portas 5672 (AMQP) e 15672 (console).</p></article><article class="df-termo"><h3>ClickHouse &middot; banco colunar</h3><p>Banco SQL que guarda cada coluna separada e comprimida, feito para agregar milhões de linhas. Aqui, a tabela <code>ingestao.db_ingestion</code>. Versão 26.8.15.10, porta HTTP 8123.</p></article></div>
+        <div class="de-dois">
+          <div class="de-caixa"><span class="de-rotulo">Fora do compose</span><p>O servidor de ingestão (API e consumidor) roda no venv, com <code>python -m src.servidor</code>. Ele nasce nas Etapas 07 e 08.</p></div>
+          <div class="de-caixa"><span class="de-rotulo">Buckets</span><p><code>raw</code>, <code>bronze</code>, <code>silver</code>, <code>gold</code> e <code>teste</code>. O <code>teste</code> é só dos testes automatizados, para não sujar o <code>raw</code>.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RustFS: o que é -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 00 &middot; Teoria &middot; RustFS</span>
+          <h2 class="deck-title">RustFS, o object storage desta aula</h2>
+          <p class="deck-summary">Nas Aulas 02 e 03 o lake rodou no MinIO. Nesta aula ele roda no RustFS 1.0.4, um object storage compatível com a API S3, escrito em Rust e publicado sob a licença Apache 2.0.</p>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa">
+            <span class="de-rotulo">O que o compose sobe</span>
+            <ul>
+              <li><code>rustfs</code>: imagem <code>rustfs/rustfs:1.0.4</code>, volume <code>/data</code>, healthcheck em <code>GET /health</code> na 9000.</li>
+              <li><code>rustfs-init</code>: cria <code>raw</code>, <code>bronze</code>, <code>silver</code>, <code>gold</code> e <code>teste</code> e termina.</li>
+              <li><code>mc</code> (perfil <code>ferramentas</code>): cliente para olhar o lake com <code>docker compose run --rm mc ...</code>.</li>
+            </ul>
+            <p style="margin-top:8px;">O <code>rustfs-init</code> e o <code>mc</code> usam o cliente <code>mc</code> da imagem do MinIO, que fala S3 com qualquer servidor compatível.</p>
+          </div>
+          <div class="de-caixa is-forte">
+            <span class="de-rotulo">Por que trocar justo agora</span>
+            <p>Hoje o lake ganha raw, bronze e manifesto por lote, e o servidor fala com ele por três clientes diferentes. Trocar o servidor de objetos no meio desse desenho mostra o que depende do produto e o que depende só da API.</p>
+            <p>Conferido na preparação: na troca em si, mudaram o <code>docker-compose.yml</code> e o <code>.env</code>. O código Python e o SQL não precisaram de ajuste para falar com o RustFS.</p>
+          </div>
+        </div>
+        <div class="de-unidades">
+          <div><strong>9000</strong>API S3</div>
+          <div><strong>9001</strong>console em <code>/rustfs/console/</code></div>
+          <div><strong>admin</strong>usuário local</div>
+          <div><strong>admin123</strong>senha local</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- S3 como API -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 00 &middot; Teoria &middot; Interface</span>
+          <h2 class="deck-title">S3 como API: o que a troca mexeu</h2>
+          <p class="deck-summary">S3 nasceu como serviço da AWS, e a API dele virou o protocolo comum de object storage. Quem fala essa API conversa com qualquer servidor que a implemente. Nesta aula, três clientes falam S3 com o RustFS.</p>
+        </div>
+        <div class="de-tres">
+          <div class="de-caixa"><span class="de-rotulo">Servidor de ingestão</span><p><code>boto3</code>: <code>put_object</code> do raw, do bronze e do manifesto, com os metadados <code>sha256</code> e <code>lote</code>.</p></div>
+          <div class="de-caixa"><span class="de-rotulo">DuckDB com <code>httpfs</code></span><p><code>read_parquet('s3://bronze/...')</code> no JSON cast e no silver, com <code>URL_STYLE 'path'</code>, <code>USE_SSL false</code> e <code>REGION 'us-east-1'</code>.</p></div>
+          <div class="de-caixa"><span class="de-rotulo">Cliente <code>mc</code></span><p>Cria os buckets no <code>rustfs-init</code> e lista o lake com <code>mc tree</code>, <code>mc cat</code> e <code>mc stat</code>.</p></div>
+        </div>
+        <table class="deck-table de-tabela">
+          <thead><tr><th></th><th>MinIO (Aulas 02 e 03)</th><th>RustFS (Aula 04)</th></tr></thead>
+          <tbody>
+            <tr><td><code>docker-compose.yml</code></td><td>serviço <code>minio</code></td><td>serviços <code>rustfs</code>, <code>rustfs-init</code> e <code>mc</code></td></tr>
+            <tr><td>credenciais no <code>.env</code></td><td><code>MINIO_ROOT_USER</code>, <code>MINIO_ROOT_PASSWORD</code></td><td><code>S3_ACCESS_KEY</code>, <code>S3_SECRET_KEY</code>, passadas como <code>RUSTFS_ACCESS_KEY</code> e <code>RUSTFS_SECRET_KEY</code></td></tr>
+            <tr><td>sem mudança</td><td colspan="2"><code>S3_ENDPOINT_URL=http://localhost:9000</code>, as chamadas de boto3, <code>httpfs</code> e <code>mc</code> e os nomes dos buckets</td></tr>
+          </tbody>
+        </table>
+        <p class="deck-note">No host, a 9000 é a API S3 do RustFS; por isso o ClickHouse não publica a porta nativa dele, que também é a 9000. Sem <code>RUSTFS_SERVER_DOMAINS</code>, o RustFS só aceita endereçamento por caminho (path-style).</p>
+      </div>
+    </div>
+
+    <!-- RustFS: fatos com fonte -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 00 &middot; Teoria &middot; Fontes</span>
+          <h2 class="deck-title">RustFS: fatos e fontes</h2>
+          <p class="deck-summary">O que a aula afirma sobre o RustFS, com a fonte de cada afirmação. O que vem do próprio projeto está marcado como tal.</p>
+        </div>
+        <table class="deck-table de-tabela">
+          <thead><tr><th>Fato</th><th>Fonte</th></tr></thead>
+          <tbody>
+            <tr><td>Object storage compatível com a API S3, escrito em Rust, licença Apache 2.0</td><td>README e metadados de <code>github.com/rustfs/rustfs</code>; rótulo <code>license=Apache-2.0</code> da imagem <code>rustfs/rustfs:1.0.4</code></td></tr>
+            <tr><td>1.0.0 publicada em 16/09/2026, depois da 1.0.0-rc.6 (11/09/2026); a 1.0.4, usada hoje, em 25/10/2026</td><td>páginas de release 1.0.0 e 1.0.4 no GitHub do projeto</td></tr>
+            <tr><td>Um contêiner com duas portas: 9000 para a API S3 e 9001 para o console em <code>/rustfs/console/</code>; sem credenciais, entra com <code>rustfsadmin</code> / <code>rustfsadmin</code> e avisa no log</td><td><code>rustfs server --help</code> e <code>/entrypoint.sh</code> da imagem 1.0.4</td></tr>
+            <tr><td>Migração e convivência com outros sistemas S3, como MinIO e Ceph; versionamento, Object Lock, replicação e ciclo de vida</td><td>README do projeto (afirmação do projeto, sem medição independente)</td></tr>
+          </tbody>
+        </table>
+        <div class="deck-callout"><strong>Número medido aqui, em 30/10/2026</strong><p>O mesmo <code>COPY lote TO 's3://...'</code> do DuckDB levou 7,2 a 7,8 ms no RustFS 1.0.4 e 5,2 a 6,5 ms no MinIO, com 1, 500 e 5.000 linhas, no mesmo notebook. Comparação de desempenho divulgada pelo projeto fica fora da aula.</p></div>
+      </div>
+    </div>
+
+    <!-- Fila, produtor, consumidor, mensagem e ack -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 00 &middot; Teoria &middot; Conceito</span>
+          <h2 class="deck-title">Fila, produtor, consumidor, mensagem e ack</h2>
+          <p class="deck-summary">Uma fila é uma lista de mensagens guardada pelo broker. O produtor coloca no fim, o consumidor recebe do começo. A mensagem só sai da fila quando o consumidor confirma que terminou: o ack.</p>
+        </div>
+        <svg class="de-svg" viewBox="0 0 1200 230" role="img" aria-label="Produtor publica mensagens na fila ingestao; a fila entrega ao consumidor; o consumidor devolve ack e só então a mensagem é apagada" font-family="Inter, Helvetica, Arial, sans-serif">
+          <defs><marker id="fila-s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#0f0f0f"/></marker></defs>
+          <g stroke="#0f0f0f" stroke-width="2">
+            <rect x="20" y="60" width="180" height="80" fill="#f2f2ee"/>
+            <rect x="290" y="44" width="540" height="112" fill="#ffffff"/>
+            <rect x="930" y="60" width="240" height="80" fill="#ffffff" stroke-width="3"/>
+          </g>
+          <g stroke="#0f0f0f" stroke-width="1.5" font-family="JetBrains Mono, monospace" font-size="15" text-anchor="middle">
+            <rect x="310" y="70" width="70" height="60" fill="#ffffff"/><text x="345" y="105" stroke="none">m6</text>
+            <rect x="395" y="70" width="70" height="60" fill="#ffffff"/><text x="430" y="105" stroke="none">m5</text>
+            <rect x="480" y="70" width="70" height="60" fill="#ffffff"/><text x="515" y="105" stroke="none">m4</text>
+            <rect x="565" y="70" width="70" height="60" fill="#ffffff"/><text x="600" y="105" stroke="none">m3</text>
+            <rect x="650" y="70" width="70" height="60" fill="#e9e9e3"/><text x="685" y="105" stroke="none">m2</text>
+            <rect x="735" y="70" width="70" height="60" fill="#0f0f0f"/><text x="770" y="105" stroke="none" fill="#ffffff">m1</text>
+          </g>
+          <g text-anchor="middle" font-size="17" fill="#0f0f0f">
+            <text x="110" y="96" font-weight="700">Produtor</text>
+            <text x="110" y="120" font-size="14" fill="#5c5c5c">publica</text>
+            <text x="560" y="34" font-size="15" fill="#5c5c5c">fila ingestao: entra pelo fim, sai pelo começo</text>
+            <text x="1050" y="96" font-weight="700">Consumidor</text>
+            <text x="1050" y="120" font-size="14" fill="#5c5c5c">processa e confirma</text>
+          </g>
+          <g stroke="#0f0f0f" stroke-width="2" marker-end="url(#fila-s)">
+            <line x1="200" y1="100" x2="288" y2="100"/>
+            <line x1="830" y1="86" x2="928" y2="86"/>
+            <line x1="928" y1="124" x2="832" y2="124" stroke-dasharray="6 4"/>
+          </g>
+          <g font-size="14" fill="#0f0f0f" text-anchor="middle">
+            <text x="880" y="78">entrega</text>
+            <text x="880" y="146">ack</text>
+          </g>
+          <g font-size="14.5" fill="#5c5c5c">
+            <text x="20" y="196">m1 (preto) foi entregue e espera o ack; m2 (cinza) já foi entregue também. Se o consumidor morrer antes do ack, as duas voltam para a fila.</text>
+            <text x="20" y="220">Fila durável e mensagem persistente sobrevivem a um reinício do RabbitMQ.</text>
+          </g>
+        </svg>
+        <div class="de-quatro">
+          <div class="de-caixa"><span class="de-rotulo">Mensagem</span><p>Um corpo de bytes com cabeçalhos. Aqui, o envelope JSON.</p></div>
+          <div class="de-caixa"><span class="de-rotulo">Produtor</span><p>Quem publica: a API e os scripts de PTAX e telemetria.</p></div>
+          <div class="de-caixa"><span class="de-rotulo">Consumidor</span><p>Quem recebe e processa: a thread do servidor.</p></div>
+          <div class="de-caixa is-forte"><span class="de-rotulo">Ack</span><p>Confirmação de que a mensagem pode ser apagada. A Aula 06 aprofunda ack, prefetch e DLX.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DuckDB e ClickHouse -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 00 &middot; Teoria &middot; Comparação</span>
+          <h2 class="deck-title">DuckDB no processo, ClickHouse como servidor</h2>
+          <p class="deck-summary">Os dois são bancos colunares e falam SQL. A diferença está em onde rodam: o DuckDB é uma biblioteca que vive dentro do processo Python; o ClickHouse é um serviço que fica no ar e atende clientes pela rede.</p>
+        </div>
+        <table class="deck-table de-tabela">
+          <thead><tr><th></th><th>DuckDB</th><th>ClickHouse</th></tr></thead>
+          <tbody>
+            <tr><td>Onde roda</td><td>dentro do processo (<code>import duckdb</code>), sem servidor</td><td>contêiner próprio; cliente fala HTTP na 8123</td></tr>
+            <tr><td>Onde o dado fica</td><td>em arquivos: aqui, o Parquet do bronze no RustFS, lido via <code>httpfs</code></td><td>no disco do servidor, em partes do MergeTree</td></tr>
+            <tr><td>Quem consulta</td><td>o processo que abriu a conexão</td><td>vários clientes ao mesmo tempo</td></tr>
+            <tr><td>Papel no servidor</td><td>converte cada lote em Parquet para o bronze</td><td>recebe o INSERT de cada lote</td></tr>
+            <tr><td>Papel na Etapa 10</td><td>JSON cast lendo o histórico e gravando o silver</td><td>JSON cast sobre a tabela de pouso</td></tr>
+          </tbody>
+        </table>
+        <div class="deck-callout"><strong>Por que os dois</strong><p>O lake é o histórico barato e o backup: com o raw e o bronze, a tabela do ClickHouse pode ser recriada. O ClickHouse é a consulta rápida para quem não quer abrir arquivos. O DuckDB gera o Parquet dentro do processo, sem um quarto serviço no compose.</p></div>
+      </div>
+    </div>
+
+    <!-- Etapa 01 -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell" data-etapa="01">
+        <div>
+          <span class="deck-kicker">9h00 &middot; Etapa 01 &middot; Persona e objetivos</span>
+          <h2 class="deck-title">Quem empurra, quem consulta, quem opera</h2>
+          <p class="deck-summary">Num servidor de ingestão, o usuário que empurra o dado é outro time, e quem consulta é um analista. Os objetivos precisam de um comando que os meça.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item"><span class="etapa-rotulo">Artefatos</span><p><code>docs/00_persona.md</code>, <code>docs/01_objetivos.md</code></p></div>
+            <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Revise antes de seguir</span><ul><li>Cada OBJ tem um comando que mede?</li><li>P3 sabe o que o acorda de madrugada?</li><li>O fora de escopo segura as Aulas 05, 06 e 07 fora daqui?</li></ul></div>
+          </div>
+          <div class="etapa-prompt">
+            <span class="etapa-rotulo">Prompt CREATE</span>
+            <button class="copy-button etapa-copiar" type="button">Copiar</button>
+            <pre class="is-wrap etapa-pre"><code><span class="k">[C] Personagem</span>
+Você é gerente de produto de dados. Descreve quem empurra dado para a
+plataforma, quem consome e que decisão cada um toma. Não escreve código.
+
+<span class="k">[R] Pedido</span>
+Crie dois arquivos:
+1. docs/00_persona.md com três personas: P1 time dono de uma fonte que
+   precisa entregar dado novo sem pedir tabela nova; P2 analista que
+   consulta o dado no ClickHouse; P3 engenheiro de dados que opera o
+   servidor de ingestão e é acionado quando algo para.
+2. docs/01_objetivos.md com objetivos OBJ-01... ligados às personas,
+   cada um com métrica, como medir (comando ou consulta) e meta.
+
+<span class="k">[E] Exemplos</span>
+## OBJ-01 · Fonte nova sem mudar o banco
+- Persona: P1.
+- Métrica: passos para uma fonte nova começar a gravar.
+- Como medir: incluir a tag em DOMINIOS no .env e reiniciar o servidor;
+  nenhum CREATE TABLE.
+- Meta: hipótese, validação pendente.
+## OBJ-02 · Dado consultável em poucos segundos
+- Persona: P2.
+- Métrica: tempo entre o 202 do POST e a linha no ClickHouse.
+- Como medir: script de medição da Etapa 09.
+
+<span class="k">[A] Ajustes</span>
+- Domínios desta aula: telemetria (Aula 02), livros e ptax (Aula 03).
+- Fora de escopo: schema de cada domínio (Aula 07), DLX, prefetch e
+  ReplacingMergeTree (Aula 06), modelo dimensional (Aula 05), painel.
+- Valor sem origem: "hipótese, validação pendente".
+- Nada de código.
+
+<span class="k">[T] Tipo de saída</span>
+Markdown. 00_persona.md com até 60 linhas; 01_objetivos.md com até 70
+linhas e as seções Objetivos, Restrições, Fora de escopo e Hipóteses.
+
+<span class="k">[E] Extras</span>
+Leia AGENTS.md. Mostre o plano, espere meu ok, escreva, registre o
+prompt em docs/prompts.md e pare.</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ponte 01 -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell" data-etapa="01">
+        <div>
+          <span class="deck-kicker">Etapa 01 &middot; Enquanto o agente trabalha</span>
+          <h2 class="deck-title">As pessoas dos dois lados da fila</h2>
+          <p class="deck-summary">O agente escreve personas e objetivos. A turma olha para quem fica de cada lado do servidor e para o que significa medir um objetivo de ingestão.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item"><span class="etapa-rotulo">Teoria desta etapa</span><ol><li>Quem empurra o dado e quem o consome</li><li>Objetivos que um comando mede</li></ol></div>
+            <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Na volta ao artefato</span><p>Toda meta sem origem marcada como hipótese; o OBJ-02 aponta para a medição da Etapa 09.</p></div>
+          </div>
+          <div class="etapa-prompt">
+            <span class="etapa-rotulo">Trecho do prompt da Etapa 01</span>
+            <pre class="is-wrap etapa-pre"><code>P1 time dono de uma fonte que precisa entregar dado novo sem pedir
+tabela nova; P2 analista que consulta o dado no ClickHouse; P3
+engenheiro de dados que opera o servidor de ingestão</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quem empurra o dado e quem o consome -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-intro df-shell">
+        <div>
+          <span class="deck-kicker">Etapa 01 &middot; Teoria &middot; Personas</span>
+          <h2 class="deck-title">Quem empurra o dado e quem o consome</h2>
+          <p class="deck-summary">Na Aula 03, o usuário principal era o analista de compras e o pipeline buscava o dado por ele. Aqui aparecem dois clientes do servidor com interesses opostos, e alguém no meio que responde pelos dois.</p>
+        </div>
+        <div class="df-termos df-c3"><article class="df-termo"><h3>P1 &middot; time dono da fonte</h3><p>Quer entregar o dado e esquecer: um endereço, uma resposta rápida, nenhuma reunião para criar tabela. Sofre quando o servidor recusa sem dizer por quê.</p></article><article class="df-termo"><h3>P2 &middot; analista</h3><p>Quer o dado consultável em SQL, com tipos e nomes estáveis. Sofre quando um campo some ou muda de nome sem aviso, ou quando cada consulta exige extrair o JSON.</p></article><article class="df-termo"><h3>P3 &middot; engenheiro que opera</h3><p>Responde quando a fila cresce, o ClickHouse cai ou aparece linha duplicada. Precisa de logs com <code>data_tag</code>, tamanho do lote e tempo de cada gravação.</p></article></div>
+        <div class="deck-callout"><strong>O conflito que a Aula 05 retoma</strong><p>P1 ganha com um contrato frouxo (aceitar qualquer <code>data</code>); P2 ganha com um contrato rígido (campos e tipos fixos). O contrato desta aula valida só o envelope; a Aula 07 valida o conteúdo por domínio.</p></div>
+      </div>
+    </div>
+
+    <!-- Objetivos que um comando mede -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 01 &middot; Teoria &middot; Objetivos</span>
+          <h2 class="deck-title">Objetivos que um comando mede</h2>
+          <p class="deck-summary">Um objetivo vale quando o grupo sabe que comando roda para conferir. A meta pode ficar como hipótese até a medição; o que não pode é faltar o jeito de medir.</p>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa"><span class="de-rotulo">OBJ-01 &middot; fonte nova sem DDL</span><p>Medida: passos até a fonte nova gravar. Comando: acrescentar a tag em <code>DOMINIOS=telemetria,livros,ptax</code> no <code>.env</code> e reiniciar o servidor.</p><p>Nenhum <code>CREATE TABLE</code>: a tabela de pouso não conhece os campos, só a etiqueta.</p></div>
+          <div class="de-caixa"><span class="de-rotulo">OBJ-02 &middot; dado consultável em segundos</span><p>Medida: tempo entre o 202 do POST e a linha no ClickHouse. Comando: POST com marca única e consulta a cada 10 ms até a linha aparecer.</p><p>Referência medida em 30/10/2026 com o RustFS, sem outro tráfego, <code>FLUSH_SEGUNDOS=2</code>: p50 de 2.053 ms.</p></div>
+        </div>
+        <div class="deck-callout"><strong>Meta do grupo</strong><p>Os números da preparação servem de referência, não de meta. A meta fica como "hipótese, validação pendente" até o grupo medir no próprio Codespace, na Etapa 09.</p></div>
+      </div>
+    </div>
+
+    <!-- Etapa 02 -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell" data-etapa="02">
+        <div>
+          <span class="deck-kicker">9h10 &middot; Etapa 02 &middot; Contrato do envelope</span>
+          <h2 class="deck-title">O contrato que todo produtor assina</h2>
+          <p class="deck-summary">O contrato desta aula fala só da casca: <code>data_tag</code> e <code>data</code>. Os exemplos já existem no laboratório, um arquivo por caso, com o código de resposta esperado no nome.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item"><span class="etapa-rotulo">Artefatos</span><p><code>specs/01_contrato_envelope.md</code>, <code>specs/exemplos/</code> (cópia de <code>fixtures/exemplos/</code>)</p></div>
+            <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Revise antes de seguir</span><ul><li>Cada regra CT tem um exemplo inválido?</li><li>O 422 diz o motivo?</li><li>Fica claro que o conteúdo de <code>data</code> não é validado hoje?</li></ul></div>
+          </div>
+          <div class="etapa-prompt">
+            <span class="etapa-rotulo">Prompt CREATE</span>
+            <button class="copy-button etapa-copiar" type="button">Copiar</button>
+            <pre class="is-wrap etapa-pre"><code><span class="k">[C] Personagem</span>
+Você é engenheiro de dados responsável pelo contrato entre quem produz e
+quem consome. Escreve regras verificáveis, sem código.
+
+<span class="k">[R] Pedido</span>
+Crie specs/01_contrato_envelope.md e copie fixtures/exemplos/ para
+specs/exemplos/:
+1. O envelope: campos data_tag e data, tipos, obrigatoriedade.
+2. Regras CT-01...: data_tag está em DOMINIOS; data é objeto ou lista
+   não vazia de objetos; envelope fechado (campo extra é recusado);
+   corpo HTTP até HTTP_MAX_BYTES (1 MiB); o produtor não manda
+   timestamp de ingestão.
+3. O que o servidor acrescenta: timestamp unix em milissegundos.
+4. Respostas: 202 aceito, 422 envelope inválido (com o motivo), 413
+   corpo grande demais, 400 corpo que não é JSON.
+5. O que o contrato não cobre: os campos dentro de data.
+6. Exemplos: os 10 arquivos de specs/exemplos/ (3 válidos, 6 com 422,
+   1 com 400; o código esperado está no nome), citados nas regras.
+
+<span class="k">[E] Exemplos</span>
+specs/exemplos/valido_livros_objeto.json
+{"data_tag": "livros", "data": {"upc": "a897fe39b1053632",
+ "titulo": "A Light in the Attic", "preco_gbp": 51.77, ...}}
+specs/exemplos/invalido_422_data_tag_desconhecida.json
+{"data_tag": "vendas", "data": {"id": 1}}
+-&gt; 422, motivo: data_tag 'vendas' fora de DOMINIOS
+
+<span class="k">[A] Ajustes</span>
+- Toda regra CT tem pelo menos um exemplo inválido; se faltar, crie
+  outro arquivo no mesmo padrão de nome (invalido_&lt;código&gt;_&lt;caso&gt;).
+- Os campos dentro de data são os do bronze da Aula 03 e da linha de
+  telemetria da Aula 02; não renomeie nem traduza.
+- Nada de código. Nada de schema por domínio (Aula 07).
+
+<span class="k">[T] Tipo de saída</span>
+Markdown com até 90 linhas, tabela "regra | exemplo que viola |
+resposta".
+
+<span class="k">[E] Extras</span>
+Leia AGENTS.md, docs/00_persona.md e fixtures/. Mostre o plano, espere
+meu ok, escreva, registre o prompt e pare.</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ponte 02 -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell" data-etapa="02">
+        <div>
+          <span class="deck-kicker">Etapa 02 &middot; Enquanto o agente trabalha</span>
+          <h2 class="deck-title">O que um contrato de dados promete</h2>
+          <p class="deck-summary">O agente escreve as regras CT e cita os exemplos. A turma vê o que é um contrato entre produtor e consumidor e por que este contrato fecha o envelope e deixa o conteúdo aberto.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item"><span class="etapa-rotulo">Teoria desta etapa</span><ol><li>Produtor, consumidor e contrato</li><li>Envelope fechado, payload aberto</li><li>Registro de domínios e o motivo do 422</li><li>Respostas 202, 400, 413 e 422</li></ol></div>
+            <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Na volta ao artefato</span><p>A tabela "regra | exemplo que viola | resposta" cobre os 7 inválidos e diz o que o contrato não cobre.</p></div>
+          </div>
+          <div class="etapa-prompt">
+            <span class="etapa-rotulo">Trecho do prompt da Etapa 02</span>
+            <pre class="is-wrap etapa-pre"><code>data_tag está em DOMINIOS; data é objeto ou lista não vazia de
+objetos; envelope fechado (campo extra é recusado)</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Produtor, consumidor e contrato -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-intro df-shell">
+        <div>
+          <span class="deck-kicker">Etapa 02 &middot; Teoria &middot; Conceito</span>
+          <h2 class="deck-title">Produtor, consumidor e contrato</h2>
+          <p class="deck-summary">Contrato de dados é o acordo escrito entre quem produz um dado e quem o consome: forma, regras e o que acontece quando a regra é violada. Na Aula 03, o contrato era o da API PTAX, que o grupo só podia ler. Aqui, o grupo escreve o contrato.</p>
+        </div>
+        <div class="df-termos df-c3"><article class="df-termo"><h3>Envelope</h3><p>A casca padronizada que todo produtor usa: <code>{"data_tag": ..., "data": ...}</code>. O servidor só olha para ela.</p></article><article class="df-termo"><h3>Payload</h3><p>O conteúdo de <code>data</code>: um livro, uma lista de boletins, uma linha de telemetria. Cada domínio tem o seu.</p></article><article class="df-termo"><h3><code>data_tag</code></h3><p>A etiqueta do domínio. Decide a pasta no lake e a primeira coluna do <code>ORDER BY</code> no ClickHouse.</p></article><article class="df-termo"><h3>Registro de domínios</h3><p>A lista de etiquetas aceitas, <code>DOMINIOS</code> no <code>.env</code>. Etiqueta fora da lista é recusada.</p></article><article class="df-termo"><h3>Recusa explicada</h3><p>Toda recusa diz o motivo. Sem motivo, o produtor não sabe o que corrigir e abre um chamado para P3.</p></article><article class="df-termo"><h3>Fora do contrato</h3><p>Os campos dentro de <code>data</code>. Validar o conteúdo por domínio, com schema, é assunto da Aula 07.</p></article></div>
+      </div>
+    </div>
+
+    <!-- Envelope fechado, payload aberto -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 02 &middot; Teoria &middot; Mecanismo</span>
+          <h2 class="deck-title">Envelope fechado, payload aberto</h2>
+          <p class="deck-summary">O envelope aceita exatamente dois campos; qualquer outro é recusado. O payload aceita qualquer objeto. As duas escolhas protegem coisas diferentes.</p>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa">
+            <span class="de-rotulo">Válido &middot; <code>valido_ptax_lista.json</code> (resumido)</span>
+            <pre class="de-pre"><code>{"data_tag": "ptax",
+ "data": [
+   {"moeda": "GBP", "cotacaoVenda": 7.1249,
+    "dataHoraCotacao": "2026-10-29 10:10:54.921",
+    "tipoBoletim": "Abertura", ...},
+   <span class="c">... mais 4 boletins: 5 objetos, 5 linhas</span>
+ ]}</code></pre>
+          </div>
+          <div class="de-caixa">
+            <span class="de-rotulo">Inválido &middot; <code>invalido_422_campo_extra_timestamp.json</code></span>
+            <pre class="de-pre"><code>{"data_tag": "livros",
+ "data": {"upc": "a897fe39b1053632", ...},
+ "timestamp": 1793399396518}
+<span class="c">422: campos não permitidos no envelope:</span>
+<span class="c">['timestamp']</span></code></pre>
+          </div>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa is-forte"><span class="de-rotulo">Por que fechar o envelope</span><p>O <code>timestamp</code> é da ingestão e quem marca é o servidor. Se o produtor pudesse mandar um, a coluna que funciona como índice passaria a misturar relógios de sistemas diferentes.</p></div>
+          <div class="de-caixa"><span class="de-rotulo">Por que abrir o payload</span><p>Fonte nova entra sem mudar o servidor nem a tabela. O custo vai para quem lê: um campo renomeado na fonte só aparece na consulta.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Registro de domínios -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 02 &middot; Teoria &middot; Registro de domínios</span>
+          <h2 class="deck-title">Registro de domínios e o motivo da recusa</h2>
+          <p class="deck-summary">A lista de domínios aceitos mora no <code>.env</code>. Uma etiqueta digitada errado não cria uma pasta nova no lake: volta com 422 e o motivo, na hora, para quem enviou.</p>
+        </div>
+        <div class="de-dois de-dois-largo">
+          <div class="de-caixa">
+            <span class="de-rotulo">No <code>.env</code></span>
+            <pre class="de-pre"><code><span class="c"># Registro de domínios: data_tag fora desta lista recebe 422.</span>
+DOMINIOS=telemetria,livros,ptax</code></pre>
+            <p style="margin-top:8px;">Fonte nova: uma tag a mais e reinício do servidor. Nenhum DDL.</p>
+          </div>
+          <div class="de-caixa">
+            <span class="de-rotulo">Mesmo envelope, publicado direto na fila</span>
+            <pre class="de-pre"><code>{"recebido_em_ms": 1793401058101,
+ "motivo": "data_tag desconhecida: 'vendas';
+            aceitas: ['livros', 'ptax', 'telemetria']",
+ "corpo": "{\"data_tag\":\"vendas\",\"data\":{\"id\":1}}"}</code></pre>
+            <p style="margin-top:8px;">A fila não tem para quem responder. O consumidor grava o rejeitado em <code>raw/ingestao_rejeitados/data=D/</code> e dá ack.</p>
+          </div>
+        </div>
+        <div class="deck-callout"><strong>Medido em 30/10/2026</strong><p>Três mensagens inválidas publicadas direto na fila (tag <code>vendas</code>, <code>data</code> vazia e um texto que não é JSON) viraram três arquivos de 175, 152 e 132 bytes em <code>raw/ingestao_rejeitados/</code>. A fila terminou com 0 mensagens e 0 sem ack. A Aula 06 troca esse desvio por uma DLX.</p></div>
+      </div>
+    </div>
+
+    <!-- Respostas -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 02 &middot; Teoria &middot; Códigos HTTP</span>
+          <h2 class="deck-title">Respostas 202, 400, 413 e 422</h2>
+          <p class="deck-summary">Cada código diz ao produtor o que aconteceu e se adianta repetir. Os 10 exemplos de <code>fixtures/exemplos/</code> devolveram, na preparação, exatamente o código do nome do arquivo.</p>
+        </div>
+        <table class="deck-table de-tabela">
+          <thead><tr><th>Código</th><th>Significa</th><th>Exemplos</th><th>Repetir adianta?</th></tr></thead>
+          <tbody>
+            <tr><td>202 Accepted</td><td>envelope válido, publicado na fila; ainda não gravado</td><td><code>valido_livros_objeto</code>, <code>valido_ptax_lista</code>, <code>valido_telemetria_linha</code></td><td>não precisa</td></tr>
+            <tr><td>400 Bad Request</td><td>o corpo nem é JSON</td><td><code>invalido_400_nao_json.txt</code></td><td>só corrigindo</td></tr>
+            <tr><td>413 Content Too Large</td><td>corpo acima de <code>HTTP_MAX_BYTES</code> (1 MiB)</td><td>corpo de 1,1 MB gerado no gate da Etapa 07</td><td>só dividindo</td></tr>
+            <tr><td>422 Unprocessable Content</td><td>JSON válido, envelope fora do contrato</td><td><code>sem_data_tag</code>, <code>data_tag_desconhecida</code>, <code>data_texto</code>, <code>data_lista_vazia</code>, <code>lista_com_texto</code>, <code>campo_extra_timestamp</code></td><td>só corrigindo</td></tr>
+          </tbody>
+        </table>
+        <p class="deck-note">400 e 422 se separam pelo ponto em que a leitura falha: no parse do JSON ou na regra do envelope. Nenhum dos três erros toca a fila.</p>
+      </div>
+    </div>
+
+    <!-- Pontos-chave contrato -->
+    <div class="slide">
+      <div class="deck-shell">
+        <div>
+          <span class="deck-kicker">Etapa 02 &middot; Pontos-chave</span>
+          <h2 class="deck-title">Pontos-chave: contrato do envelope</h2>
+        </div>
+        <ol class="deck-steps">
+          <li>O envelope tem dois campos obrigatórios, <code>data_tag</code> e <code>data</code>, e nenhum outro; o <code>timestamp</code> é do servidor.</li>
+          <li><code>data</code> é um objeto ou uma lista não vazia de objetos; cada objeto vira uma linha.</li>
+          <li>A etiqueta precisa estar em <code>DOMINIOS</code>; fonte nova custa uma linha no <code>.env</code>.</li>
+          <li>Toda recusa traz o motivo: na resposta HTTP ou no arquivo de rejeitados, quando veio pela fila.</li>
+          <li>O conteúdo de <code>data</code> não é validado nesta aula. Quem paga é o leitor, e a Aula 07 traz o schema por domínio.</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- Etapa 03 -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell" data-etapa="03">
+        <div>
+          <span class="deck-kicker">9h30 &middot; Etapa 03 &middot; Requisitos</span>
+          <h2 class="deck-title">Requisitos que um teste consegue verificar</h2>
+          <p class="deck-summary">Funcionais com Dado, Quando, Então; não funcionais com número e forma de medir. Um deles declara a duplicata como consequência aceita.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item"><span class="etapa-rotulo">Artefato</span><p><code>specs/02_requisitos.md</code></p></div>
+            <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Revise antes de seguir</span><ul><li>Todo RF tem um Então que um comando confere?</li><li>O RNF de perda diz como derrubar o processo?</li><li>A duplicata aparece como consequência aceita?</li></ul></div>
+          </div>
+          <div class="etapa-prompt">
+            <span class="etapa-rotulo">Prompt CREATE</span>
+            <button class="copy-button etapa-copiar" type="button">Copiar</button>
+            <pre class="is-wrap etapa-pre"><code><span class="k">[C] Personagem</span>
+Você é analista de requisitos. Escreve requisitos que um teste
+consegue verificar.
+
+<span class="k">[R] Pedido</span>
+Crie specs/02_requisitos.md com:
+1. Requisitos funcionais RF-01... no formato Dado, Quando, Então:
+   receber por HTTP e publicar na fila; receber pela fila; recusar
+   envelope inválido (HTTP 422; fila: raw/ingestao_rejeitados com o
+   motivo); gravar cada lote no lake (raw em JSON Lines e bronze em
+   Parquet); inserir no ClickHouse; gravar o manifesto do lote;
+   confirmar (ack) a mensagem só depois de tudo gravado.
+2. Requisitos não funcionais RNF-01... com número e forma de medir:
+   tempo até consultável, perda zero com o processo derrubado, fonte
+   nova sem DDL, reprocesso do ClickHouse a partir do lake.
+3. Matriz RF/RNF x OBJ.
+
+<span class="k">[E] Exemplos</span>
+## RF-03 · Envelope inválido pela fila
+Dado uma mensagem na fila ingestao com data_tag ausente
+Quando o consumidor a lê
+Então existe um objeto em raw/ingestao_rejeitados/data=D/ com a
+mensagem e o motivo
+E a mensagem recebe ack
+E nenhuma linha nova aparece em ingestao.db_ingestion
+## RNF-02 · Nada se perde se o processo cair
+Medida: publicar 10.000 envelopes, matar o processo com kill -9 no
+meio, reiniciar; linhas distintas no ClickHouse = 10.000.
+Duplicatas são aceitas nesta aula e contadas.
+
+<span class="k">[A] Ajustes</span>
+- Entrega pelo menos uma vez: duplicata é possível e declarada.
+- Metas sem origem: "hipótese, validação pendente".
+- Preserve P, OBJ e CT.
+
+<span class="k">[T] Tipo de saída</span>
+Markdown com até 120 linhas.
+
+<span class="k">[E] Extras</span>
+Leia AGENTS.md, docs/ e specs/01_contrato_envelope.md. Mostre o plano,
+espere meu ok, escreva, registre o prompt e pare.</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ponte 03 -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell" data-etapa="03">
+        <div>
+          <span class="deck-kicker">Etapa 03 &middot; Enquanto o agente trabalha</span>
+          <h2 class="deck-title">Responder antes de gravar</h2>
+          <p class="deck-summary">Os requisitos pedem que a API responda sem esperar o lake e o ClickHouse, e que nada se perca se o processo cair. A teoria desta etapa explica o que isso compra e o que custa.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item"><span class="etapa-rotulo">Teoria desta etapa</span><ol><li>Push e pull: quem segura o dado na falha</li><li>Síncrono, assíncrono e o 202 Accepted</li><li>No máximo uma vez, pelo menos uma vez</li><li>Quanto custa responder 202</li></ol></div>
+            <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Na volta ao artefato</span><p>O RNF-02 traz o <code>kill -9</code> e conta duplicatas; o RF do ack exige raw, bronze, ClickHouse e manifesto antes.</p></div>
+          </div>
+          <div class="etapa-prompt">
+            <span class="etapa-rotulo">Trecho do prompt da Etapa 03</span>
+            <pre class="is-wrap etapa-pre"><code>- Entrega pelo menos uma vez: duplicata é possível e declarada.</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Push e pull -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 03 &middot; Teoria &middot; Comparação</span>
+          <h2 class="deck-title">Push e pull: quem segura o dado na falha</h2>
+          <p class="deck-summary">A abertura comparou quem inicia a conversa. Para os requisitos, a pergunta que importa é outra: quando um lado falha, onde o dado fica esperando.</p>
+        </div>
+        <table class="deck-table de-tabela">
+          <thead><tr><th>Situação</th><th>Pull (Aulas 02 e 03)</th><th>Push (servidor de hoje)</th></tr></thead>
+          <tbody>
+            <tr><td>Destino fora do ar</td><td>o coletor não roda; o dado continua na fonte</td><td>a fila guarda as mensagens até o consumidor voltar</td></tr>
+            <tr><td>Fonte fora do ar</td><td>o coletor repete com backoff e registra no manifesto</td><td>problema da fonte; o servidor só não recebe nada</td></tr>
+            <tr><td>Servidor de ingestão fora do ar</td><td>não existe esse componente</td><td>o POST falha; o produtor precisa repetir ou guardar</td></tr>
+            <tr><td>Pico de volume</td><td>o coletor controla o ritmo</td><td>a fila cresce e o consumidor drena no ritmo dele</td></tr>
+            <tr><td>Dado novo disponível</td><td>na próxima execução agendada</td><td>em segundos, no próximo flush</td></tr>
+          </tbody>
+        </table>
+        <p class="deck-note">No push, a fila é o que permite responder rápido sem perder: o dado aceito fica num lugar durável antes de chegar aos destinos.</p>
+      </div>
+    </div>
+
+    <!-- Síncrono e assíncrono -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 03 &middot; Teoria &middot; Mecanismo</span>
+          <h2 class="deck-title">Síncrono, assíncrono e o 202 Accepted</h2>
+          <p class="deck-summary">Numa API síncrona, a resposta só sai depois que o trabalho acabou. Numa assíncrona, a resposta confirma que o pedido foi aceito e o trabalho acontece depois. O HTTP tem um código para isso: 202 Accepted.</p>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa"><span class="de-rotulo">Síncrono &middot; alternativa descartada</span><ol><li>recebe o POST</li><li>grava raw e bronze no lake</li><li>insere no ClickHouse</li><li>responde 200</li></ol><p style="margin-top:8px;">O produtor espera todas as gravações. Se o ClickHouse está fora, o produtor recebe erro e precisa guardar o dado.</p></div>
+          <div class="de-caixa is-forte"><span class="de-rotulo">Assíncrono &middot; o servidor da aula</span><ol><li>recebe o POST e valida o envelope</li><li>publica na fila e espera a confirmação do broker</li><li>responde 202</li><li>o consumidor grava depois, em lote</li></ol><p style="margin-top:8px;">O produtor espera só a fila. O 202 promete que o dado está guardado, não que já está consultável.</p></div>
+        </div>
+        <div class="deck-callout"><strong>Dois relógios diferentes</strong><p>Medido em 30/10/2026: o POST válido responde em 1,51 ms (p50, primeira rodada, com MinIO; o POST não toca o lake); a linha aparece no ClickHouse em 2.053 ms (p50, RustFS, sem outro tráfego). O primeiro número é do produtor; o segundo, do analista.</p></div>
+      </div>
+    </div>
+
+    <!-- No máximo uma vez, pelo menos uma vez -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 03 &middot; Teoria &middot; Garantia de entrega</span>
+          <h2 class="deck-title">No máximo uma vez, pelo menos uma vez</h2>
+          <p class="deck-summary">A garantia de entrega depende de um único detalhe: o ack vem antes ou depois de gravar. Com processo que pode morrer a qualquer instante, não existe a terceira opção de graça.</p>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa"><span class="de-rotulo">At-most-once &middot; ack antes de gravar</span><p>A mensagem sai da fila assim que chega. Se o processo morre antes de gravar, o dado some. Nunca duplica, pode perder.</p></div>
+          <div class="de-caixa is-forte"><span class="de-rotulo">At-least-once &middot; ack depois de gravar</span><p>A mensagem só sai da fila depois de raw, bronze, ClickHouse e manifesto. Se o processo morre antes do ack, a fila entrega de novo. Nunca perde, pode duplicar.</p></div>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa is-cinza"><span class="de-rotulo">A escolha da aula</span><p>Pelo menos uma vez. Perder telemetria ou cotação é pior que ter uma linha repetida que se encontra com uma consulta: o par <code>(timestamp, data_json)</code> repetido denuncia a reentrega.</p></div>
+          <div class="de-caixa is-cinza"><span class="de-rotulo">O que fica para a Aula 06</span><p>Deduplicação na escrita com ReplacingMergeTree, ack manual e automático em detalhe, prefetch e DLX.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quanto custa responder 202 -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 03 &middot; Teoria &middot; Exemplo numérico</span>
+          <h2 class="deck-title">Quanto custa responder 202</h2>
+          <p class="deck-summary">Latência do <code>POST /ingest</code> em 30/10/2026: 1.000 requisições por caso depois de 50 de aquecimento, cliente sequencial, serviços e servidor no mesmo notebook. Primeira rodada, com MinIO; a API não toca o lake, e a medida não foi refeita com o RustFS.</p>
+        </div>
+        <table class="deck-table de-tabela de-num">
+          <thead><tr><th>Caso</th><th>Corpo</th><th>p50</th><th>p95</th><th>p99</th></tr></thead>
+          <tbody>
+            <tr><td>422, <code>data_tag</code> desconhecida</td><td>317 B</td><td>0,53 ms</td><td>1,00 ms</td><td>1,09 ms</td></tr>
+            <tr><td>422, <code>data</code> lista vazia</td><td>34 B</td><td>0,50 ms</td><td>0,98 ms</td><td>1,09 ms</td></tr>
+            <tr><td>202, um objeto</td><td>319 B</td><td>1,51 ms</td><td>2,19 ms</td><td>3,47 ms</td></tr>
+            <tr><td>202, lista de 10 livros</td><td>2.922 B</td><td>1,55 ms</td><td>2,08 ms</td><td>3,99 ms</td></tr>
+            <tr><td>202, lista de 100 livros</td><td>28.932 B</td><td>2,47 ms</td><td>3,62 ms</td><td>6,90 ms</td></tr>
+          </tbody>
+        </table>
+        <div class="de-dois">
+          <div class="de-caixa"><span class="de-rotulo">Leitura</span><p>O 422 não toca a fila. A diferença para o 202, cerca de 1 ms, é a publicação com confirmação do broker. O produtor de livros mandou 1.000 POSTs em 1,557 s, cerca de 640 por segundo; com o RustFS, o <code>enviar_entrada.py</code> levou 1,91 s e 2,43 s.</p></div>
+          <div class="de-caixa is-forte"><span class="de-rotulo">API e consumidor no mesmo processo</span><p>Numa primeira rodada, com o consumidor gravando 100 mil linhas ao mesmo tempo, o p95 do 422 subiu para 10 ms. Os dois disputam a CPU do mesmo processo.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Etapa 04 -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell" data-etapa="04">
+        <div>
+          <span class="deck-kicker">9h45 &middot; Etapa 04 &middot; Modelo de dados</span>
+          <h2 class="deck-title">Tabela de pouso e chaves do lake</h2>
+          <p class="deck-summary">O DDL já veio do laboratório e rodou na primeira subida do ClickHouse. O agente documenta cada escolha, confere o arquivo e descreve o layout do lake e o reprocesso.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item"><span class="etapa-rotulo">Artefatos</span><p><code>specs/03_modelo_de_dados.md</code>, <code>sql/001_db_ingestion.sql</code> conferido</p></div>
+            <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Revise antes de seguir</span><ul><li>O DDL do arquivo é o mesmo que roda no ClickHouse?</li><li>A chave do raw e a do bronze permitem ler um dia de um domínio sem listar os outros?</li><li>O manifesto tem o SHA-256 de cada arquivo?</li><li>O reprocesso está descrito em comandos?</li></ul></div>
+          </div>
+          <div class="etapa-prompt">
+            <span class="etapa-rotulo">Prompt CREATE</span>
+            <button class="copy-button etapa-copiar" type="button">Copiar</button>
+            <pre class="is-wrap etapa-pre"><code><span class="k">[C] Personagem</span>
+Você é engenheiro de dados. Desenha onde e como o dado fica guardado,
+com DDL e layout de chaves, sem código Python.
+
+<span class="k">[R] Pedido</span>
+Crie specs/03_modelo_de_dados.md e confira sql/001_db_ingestion.sql:
+1. Tabela ingestao.db_ingestion: timestamp UInt64 (unix ms da
+   ingestão), data_json JSON (o dado recebido, no tipo JSON do
+   ClickHouse, com datas e horas inferidas como texto), data_tag
+   LowCardinality(String). Motor, ORDER BY e PARTITION BY, com o
+   porquê de cada escolha.
+2. Lake, na organização da Aula 03, com D = data do recebimento em
+   America/Sao_Paulo e o mesmo nome de lote nas três chaves:
+   - raw/ingestao/data_tag=X/data=D/lote_&lt;HHMMSS&gt;_&lt;id&gt;.jsonl: um
+     envelope por linha, como chegou, com recebido_em_ms;
+   - bronze/ingestao/data_tag=X/data=D/lote_&lt;HHMMSS&gt;_&lt;id&gt;.parquet:
+     uma linha por objeto de data, colunas timestamp (UBIGINT) e
+     data_json (VARCHAR), ZSTD; data_tag e data ficam no caminho;
+   - raw/_manifestos/ingestao/data=D/lote_&lt;HHMMSS&gt;_&lt;id&gt;.json: id do
+     lote, mensagens e linhas por data_tag, chaves gravadas, bytes e
+     SHA-256 de cada arquivo, tempos de cada passo e status;
+   - raw/ingestao_rejeitados/data=D/rejeitado_&lt;HHMMSS&gt;_&lt;id&gt;.json, com
+     recebido_em_ms, motivo e corpo.
+3. Uma linha por objeto de data (lista vira várias linhas, todas com o
+   mesmo timestamp do envelope).
+4. Como recriar o bronze a partir do raw e a tabela do ClickHouse a
+   partir do bronze, em comandos.
+
+<span class="k">[E] Exemplos</span>
+| timestamp     | data_tag | data_json                                   |
+|---------------|----------|---------------------------------------------|
+| 1793452800123 | livros   | {"upc":"a897fe39b1053632","preco_gbp":51.77} |
+
+<span class="k">[A] Ajustes</span>
+- Não troque nomes nem tipos das três colunas.
+- Explique por que unix em milissegundos e não segundos nem DateTime.
+- Diga o que se ganha guardando data_json no tipo JSON e o que se perde
+  em relação ao texto que chegou, e onde esse texto continua guardado.
+- Explique por que o INSERT desliga a inferência de datas
+  (input_format_try_infer_dates e input_format_try_infer_datetimes).
+- Diga por que a chave do lote não é determinística, ao contrário das
+  chaves da Aula 03.
+- Nada de colunas por domínio (é uma das decisões discutidas na Aula 05).
+
+<span class="k">[T] Tipo de saída</span>
+Markdown com até 100 linhas, com o DDL em bloco sql.
+
+<span class="k">[E] Extras</span>
+Leia AGENTS.md, specs/ e sql/001_db_ingestion.sql. Mostre o plano,
+espere meu ok, escreva, registre o prompt e pare.</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ponte 04 -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell" data-etapa="04">
+        <div>
+          <span class="deck-kicker">Etapa 04 &middot; Enquanto o agente trabalha</span>
+          <h2 class="deck-title">Três colunas para qualquer fonte</h2>
+          <p class="deck-summary">A tabela de pouso não conhece livro, cotação nem caminhão. A teoria desta etapa mostra o que essa forma compra, o que custa e como o ClickHouse e o lake a guardam.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item"><span class="etapa-rotulo">Teoria desta etapa</span><ol><li>Tabela de pouso: prós e custos</li><li>Por que unix em milissegundos</li><li>MergeTree, ORDER BY e partição</li><li>Tipo JSON ou String</li><li>Layout do lake: raw, bronze e manifesto</li><li>O lake na organização da Aula 03</li><li>Tamanho do mesmo dia em cada forma</li></ol></div>
+            <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Na volta ao artefato</span><p>O DDL do documento é igual ao de <code>SHOW CREATE TABLE</code>; o reprocesso refaz o bronze a partir do raw e a tabela a partir do bronze.</p></div>
+          </div>
+          <div class="etapa-prompt">
+            <span class="etapa-rotulo"><code>sql/001_db_ingestion.sql</code></span>
+            <pre class="etapa-pre etapa-pre-codigo"><code>CREATE TABLE IF NOT EXISTS ingestao.db_ingestion
+(
+    timestamp UInt64,                  -- unix em milissegundos
+    data_json JSON,                    -- o dado recebido, tipo JSON
+    data_tag  LowCardinality(String)   -- o domínio
+)
+ENGINE = MergeTree
+PARTITION BY toYYYYMM(fromUnixTimestamp64Milli(toInt64(timestamp)))
+ORDER BY (data_tag, timestamp);
+<span class="c">-- INSERT com input_format_try_infer_dates = 0 e</span>
+<span class="c">-- input_format_try_infer_datetimes = 0: datas ficam texto</span></code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabela de pouso -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 04 &middot; Teoria &middot; Decisão de modelo</span>
+          <h2 class="deck-title">Tabela de pouso: prós e custos</h2>
+          <p class="deck-summary">Tabela de pouso (landing) é onde o dado chega antes de qualquer modelagem. Com três colunas genéricas, uma só tabela recebe todos os domínios. É o schema on read da Aula 02 aplicado dentro de um banco.</p>
+        </div>
+        <table class="deck-table de-tabela">
+          <thead><tr><th>Coluna</th><th>Tipo</th><th>Papel</th></tr></thead>
+          <tbody>
+            <tr><td><code>timestamp</code></td><td><code>UInt64</code></td><td>hora da ingestão em unix ms, marcada pelo servidor; segunda coluna do <code>ORDER BY</code></td></tr>
+            <tr><td><code>data_json</code></td><td><code>JSON</code></td><td>um objeto de <code>data</code>; cada caminho vira uma subcoluna com o tipo inferido no INSERT</td></tr>
+            <tr><td><code>data_tag</code></td><td><code>LowCardinality(String)</code></td><td>o domínio; poucos valores distintos, guardados como dicionário</td></tr>
+          </tbody>
+        </table>
+        <div class="de-dois">
+          <div class="de-caixa is-forte"><span class="de-rotulo">Ganhos</span><ul><li>Fonte nova sem DDL nem migração: os caminhos novos viram subcolunas sozinhos.</li><li>Nenhuma linha recusada por tipo: um caminho que muda de tipo guarda os dois valores.</li><li>Um único caminho de gravação para todos os domínios.</li></ul></div>
+          <div class="de-caixa"><span class="de-rotulo">Custos</span><ul><li>Os tipos são inferidos no INSERT, não declarados; a consulta ainda escreve <code>data_json.preco_gbp::Float64</code>.</li><li>Campo renomeado ou com tipo trocado na fonte quebra o leitor, não o servidor.</li><li>O <code>timestamp</code> não é chave única: o par <code>(timestamp, data_json)</code> é que identifica a linha.</li></ul></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Unix em milissegundos -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 04 &middot; Teoria &middot; Mecanismo</span>
+          <h2 class="deck-title">Por que unix em milissegundos</h2>
+          <p class="deck-summary">Unix é a contagem de tempo desde 01/01/1970 em UTC. Em milissegundos, o instante da ingestão vira um inteiro de 13 dígitos que o Python entrega sem conversão: <code>time.time_ns() // 1_000_000</code>.</p>
+        </div>
+        <div class="de-tres">
+          <div class="de-caixa"><span class="de-rotulo">Sem fuso</span><p>O número é o mesmo em São Paulo e em UTC. O fuso entra só na leitura: <code>fromUnixTimestamp64Milli(..., 'America/Sao_Paulo')</code>.</p></div>
+          <div class="de-caixa"><span class="de-rotulo">Ordena como número</span><p>Comparar e ordenar inteiros é barato. Por isso a coluna entra no <code>ORDER BY</code> e funciona como índice de tempo.</p></div>
+          <div class="de-caixa"><span class="de-rotulo">Segundos colidem</span><p>O produtor de livros mandou cerca de 640 POSTs por segundo. Em segundos, centenas de linhas teriam o mesmo valor; em milissegundos, quase nenhuma.</p></div>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa">
+            <span class="de-rotulo">Conferido no ClickHouse 26.8.15.10</span>
+            <pre class="de-pre"><code>SELECT toYYYYMM(fromUnixTimestamp64Milli(toInt64(1793452800123)));
+<span class="c">-- 202610</span></code></pre>
+          </div>
+          <div class="de-caixa is-cinza"><span class="de-rotulo">De onde vem o valor</span><p>A API marca a hora do recebimento no cabeçalho <code>recebido_em_ms</code> da mensagem; o consumidor usa esse valor e o guarda também em cada linha do raw. Mensagem publicada direto na fila usa a hora do consumo. Os objetos de um mesmo envelope recebem o mesmo <code>timestamp</code>.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MergeTree -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 04 &middot; Teoria &middot; Mecanismo</span>
+          <h2 class="deck-title">MergeTree, ORDER BY e partição</h2>
+          <p class="deck-summary">Cada INSERT cria uma parte: um conjunto de arquivos com as linhas ordenadas pelo <code>ORDER BY</code>. A cada 8.192 linhas (um grânulo), o índice primário guarda uma marca com o primeiro valor da chave. É um índice esparso: aponta grânulos, não linhas.</p>
+        </div>
+        <svg class="de-svg" viewBox="0 0 1200 250" role="img" aria-label="Uma parte com 32.305 linhas ordenadas por data_tag e timestamp, dividida em quatro grânulos; o primeiro tem livros, ptax e o começo da telemetria; a consulta por livros lê só o primeiro grânulo" font-family="Inter, Helvetica, Arial, sans-serif">
+          <g font-size="15" fill="#5c5c5c"><text x="10" y="22">Índice primário (marcas)</text><text x="330" y="22">Grânulos da parte, ordenados por (data_tag, timestamp)</text></g>
+          <g font-family="JetBrains Mono, monospace" font-size="15" fill="#0f0f0f">
+            <rect x="10" y="36" width="280" height="40" fill="#0f0f0f"/><text x="22" y="62" fill="#ffffff">0: livros, 1793...</text>
+            <rect x="10" y="84" width="280" height="40" fill="#ffffff" stroke="#0f0f0f" stroke-width="1.5"/><text x="22" y="110">1: telemetria, ...</text>
+            <rect x="10" y="132" width="280" height="40" fill="#ffffff" stroke="#0f0f0f" stroke-width="1.5"/><text x="22" y="158">2: telemetria, ...</text>
+            <rect x="10" y="180" width="280" height="40" fill="#ffffff" stroke="#0f0f0f" stroke-width="1.5"/><text x="22" y="206">3: telemetria, ...</text>
+          </g>
+          <g stroke="#0f0f0f" stroke-width="2">
+            <rect x="330" y="36" width="120" height="40" fill="#0f0f0f"/>
+            <rect x="450" y="36" width="10" height="40" fill="#5c5c5c"/>
+            <rect x="460" y="36" width="720" height="40" fill="#e9e9e3"/>
+            <rect x="330" y="84" width="850" height="40" fill="#e9e9e3"/>
+            <rect x="330" y="132" width="850" height="40" fill="#e9e9e3"/>
+            <rect x="330" y="180" width="802" height="40" fill="#e9e9e3"/>
+          </g>
+          <g font-size="14.5" fill="#0f0f0f">
+            <text x="340" y="62" fill="#ffffff">livros 1.000</text>
+            <text x="480" y="62">ptax 40 &middot; telemetria 7.152 (grânulo 0: 8.192 linhas)</text>
+            <text x="345" y="110">telemetria 8.192</text>
+            <text x="345" y="158">telemetria 8.192</text>
+            <text x="345" y="206">telemetria 7.729</text>
+          </g>
+          <text x="10" y="244" font-size="14.5" fill="#5c5c5c">Conta com as 32.305 linhas do gate, supondo uma parte só: <tspan font-family="JetBrains Mono, monospace">WHERE data_tag = 'livros'</tspan> lê o grânulo 0, 8.192 linhas, e pula os outros três.</text>
+        </svg>
+        <div class="de-dois">
+          <div class="de-caixa"><span class="de-rotulo"><code>ORDER BY (data_tag, timestamp)</code></span><p>Domínio primeiro: a consulta de um domínio lê só os grânulos dele. Dentro do domínio, ordem de chegada: um intervalo de tempo também pula grânulos.</p></div>
+          <div class="de-caixa"><span class="de-rotulo"><code>PARTITION BY</code> mês da ingestão</span><p>Partes de meses diferentes nunca se misturam num merge, e um mês inteiro sai com <code>DROP PARTITION</code>. O <code>toInt64</code> é necessário porque a função espera Int64 e a coluna é UInt64.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- String ou JSON -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 04 &middot; Teoria &middot; Comparação</span>
+          <h2 class="deck-title">Tipo JSON ou String na coluna data_json</h2>
+          <p class="deck-summary">O tipo <code>JSON</code> do ClickHouse faz o papel do <code>jsonb</code> do PostgreSQL: o documento é interpretado uma vez, no INSERT, e cada caminho vira uma subcoluna tipada. Os números abaixo vêm da Etapa 10, com os livros repetidos até um milhão de linhas.</p>
+        </div>
+        <table class="deck-table de-tabela de-num">
+          <thead><tr><th></th><th>tipo <code>JSON</code> (a aula)</th><th><code>String</code></th></tr></thead>
+          <tbody>
+            <tr><td>Preço médio por categoria, 1 milhão de linhas</td><td>21 ms</td><td>146 ms (<code>JSONExtract*</code>)</td></tr>
+            <tr><td>Tamanho comprimido depois de <code>OPTIMIZE FINAL</code></td><td>23.429.172 B</td><td>97.592.663 B</td></tr>
+            <tr><td>O que a coluna guarda</td><td>valores com tipo inferido na escrita; chaves em ordem alfabética</td><td>o texto exato que chegou</td></tr>
+            <tr><td><code>coletado_em</code> = <code>2026-10-30T19:27:52-03:00</code></td><td>igual ao enviado, com a inferência de datas desligada</td><td>igual ao enviado</td></tr>
+          </tbody>
+        </table>
+        <div class="deck-callout"><strong>Por que JSON na tabela de pouso</strong><p>A tabela de pouso é o que os analistas consultam, e o texto exato já está guardado no raw do lake, de onde sai o reprocesso. Com o tipo <code>JSON</code>, a leitura não interpreta o texto a cada consulta. A inferência de datas fica desligada no INSERT porque, ligada, ela trocou o <code>-03:00</code> por UTC no teste. A escala repete o mesmo texto mil vezes, o que favorece a compressão.</p></div>
+      </div>
+    </div>
+
+    <!-- Layout do lake -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 04 &middot; Teoria &middot; Lake</span>
+          <h2 class="deck-title">Layout do lake: raw, bronze e manifesto</h2>
+          <p class="deck-summary">Cada flush grava, por domínio, um arquivo no raw e um no bronze, e um manifesto para o lote. Domínio e dia estão no caminho, no formato <code>nome=valor</code> das Aulas 02 e 03. D é a data do recebimento em <code>America/Sao_Paulo</code>.</p>
+        </div>
+        <div class="de-dois de-dois-largo">
+          <div class="de-caixa">
+            <span class="de-rotulo">Chaves no RustFS</span>
+            <pre class="de-pre de-pre-largo"><code>raw/ingestao/data_tag=X/data=D/lote_&lt;HHMMSS&gt;_&lt;id&gt;.jsonl
+bronze/ingestao/data_tag=X/data=D/lote_&lt;HHMMSS&gt;_&lt;id&gt;.parquet
+raw/_manifestos/ingestao/data=D/lote_&lt;HHMMSS&gt;_&lt;id&gt;.json
+raw/ingestao_rejeitados/data=D/rejeitado_&lt;HHMMSS&gt;_&lt;id&gt;.json</code></pre>
+            <p style="margin-top:8px;"><code>HHMMSS</code> é a hora do primeiro envelope do lote, em Brasília; <code>&lt;id&gt;</code> são 8 caracteres hexadecimais aleatórios. Exemplo real: <code>lote_214917_3fa67903</code>. O mesmo nome liga raw, bronze e manifesto.</p>
+          </div>
+          <div class="de-caixa">
+            <span class="de-rotulo">O que vai em cada arquivo</span>
+            <ul><li>raw: uma linha por envelope, <code>{"recebido_em_ms": ..., "envelope": &lt;corpo&gt;}</code>; quebras de linha do corpo viram espaço.</li><li>bronze: Parquet ZSTD com <code>timestamp</code> UBIGINT e <code>data_json</code> VARCHAR, uma linha por objeto de <code>data</code>.</li><li>manifesto: mensagens e linhas por <code>data_tag</code>, chave, bytes e SHA-256 de cada arquivo, tempos e <code>status</code>.</li><li>Cada objeto leva os metadados S3 <code>sha256</code> e <code>lote</code>.</li></ul>
+          </div>
+        </div>
+        <div class="deck-callout"><strong>Reprocesso</strong><p>Tabela perdida: o DuckDB lê <code>bronze/ingestao/*/*/*.parquet</code> e o resultado volta por <code>INSERT</code>. Bronze perdido: sai de novo do raw, que guarda o <code>recebido_em_ms</code> e permite repetir o mesmo <code>timestamp</code>. Por isso raw e bronze são gravados antes do ClickHouse (ADR-002, Etapa 05).</p></div>
+      </div>
+    </div>
+
+    <!-- Lake na organização da Aula 03 -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 04 &middot; Teoria &middot; Comparação</span>
+          <h2 class="deck-title">O lake na organização da Aula 03</h2>
+          <p class="deck-summary">À esquerda, o lake depois da carga completa do zip em 30/10/2026 (README do laboratório, seção 9), resumido por prefixo. À direita, o que veio da Aula 03 e o que muda quando o dado é empurrado.</p>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa">
+            <span class="de-rotulo">Carga completa, por prefixo</span>
+            <pre class="de-pre de-pre-arvore"><code>raw/
+  ingestao/
+    data_tag=livros/data=2026-10-30/       2 .jsonl
+    data_tag=ptax/data=2026-10-30/         1 .jsonl
+    data_tag=telemetria/data=2026-10-30/  63 .jsonl
+  _manifestos/ingestao/data=2026-10-30/   65 .json
+  ingestao_rejeitados/data=2026-10-30/     3 .json
+bronze/
+  ingestao/
+    data_tag=livros/data=2026-10-30/       2 .parquet
+    data_tag=ptax/data=2026-10-30/         1 .parquet
+    data_tag=telemetria/data=2026-10-30/  63 .parquet
+silver/
+  livros/data_coleta=2026-10-30/livros.parquet
+  ptax/ptax.parquet</code></pre>
+            <p style="margin-top:8px;">raw: 66 objetos, 7.757.890 B; bronze: 66 objetos, 702.664 B; manifestos: 85.881 B. Os 132 SHA-256 dos 65 manifestos conferiram com os bytes no RustFS.</p>
+          </div>
+          <table class="deck-table de-tabela">
+            <thead><tr><th></th><th>Aula 03 (puxar)</th><th>Aula 04 (empurrar)</th></tr></thead>
+            <tbody>
+              <tr><td>raw</td><td>o corpo da resposta da fonte</td><td>o envelope como chegou, em JSON Lines</td></tr>
+              <tr><td>bronze</td><td>JSON Lines extraído</td><td>Parquet com <code>timestamp</code> e <code>data_json</code></td></tr>
+              <tr><td>partição</td><td><code>data=D</code> da coleta</td><td><code>data_tag=X/data=D</code> do recebimento, em Brasília</td></tr>
+              <tr><td>manifesto</td><td>um por execução, SHA-256 de cada objeto</td><td>um por lote, SHA-256 de cada arquivo e <code>status</code></td></tr>
+              <tr><td>chave</td><td>determinística: fonte, data e página; regravar sobrescreve</td><td>sufixo aleatório: um lote reentregue pode ter outra composição e vira outro lote</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tamanho -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 04 &middot; Teoria &middot; Exemplo numérico</span>
+          <h2 class="deck-title">O mesmo dia de telemetria em cada forma</h2>
+          <p class="deck-summary">Um dia do gerador da Aula 02 (20 caminhões, 1.920 lotes, 31.265 linhas), medido em 30/10/2026. Raw e bronze vêm da segunda rodada, no RustFS com <code>FLUSH_N=500</code>; as outras formas, da primeira.</p>
+        </div>
+        <table class="deck-table de-tabela de-num">
+          <thead><tr><th>Forma</th><th>Bytes</th><th>Relação com o TXT</th></tr></thead>
+          <tbody>
+            <tr><td>TXT original, 1.920 arquivos</td><td>1.956.243</td><td>1,00</td></tr>
+            <tr><td>JSON Lines <code>{"timestamp", "data"}</code></td><td>5.847.088</td><td>2,99</td></tr>
+            <tr><td>JSON Lines com gzip</td><td>550.383</td><td>0,28</td></tr>
+            <tr><td>raw no RustFS: envelopes em JSON Lines, 63 arquivos</td><td>7.347.808</td><td>3,76</td></tr>
+            <tr><td>bronze no RustFS: Parquet ZSTD, 63 arquivos</td><td>617.737</td><td>0,32</td></tr>
+            <tr><td>Parquet ZSTD, um arquivo só</td><td>580.547</td><td>0,30</td></tr>
+            <tr><td>ClickHouse, LZ4 padrão, depois de <code>OPTIMIZE FINAL</code></td><td>1.012.247</td><td>0,52</td></tr>
+          </tbody>
+        </table>
+        <div class="de-dois">
+          <div class="de-caixa"><span class="de-rotulo">Leitura</span><p>O raw guarda o envelope como chegou, sem compressão: 3,8 vezes o TXT e 12 vezes o bronze. É o preço de poder refazer tudo. O bronze devolve o dia a um terço do TXT. Os 63 manifestos somam 82.579 B. Gzip no raw não foi testado no servidor.</p></div>
+          <div class="de-caixa"><span class="de-rotulo">ClickHouse</span><p>1.012.247 bytes comprimidos para 5.253.229 descomprimidos (5,2 para 1) com o LZ4 padrão. <code>CODEC(ZSTD)</code> não foi testado.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pontos-chave modelo -->
+    <div class="slide">
+      <div class="deck-shell">
+        <div>
+          <span class="deck-kicker">Etapa 04 &middot; Pontos-chave</span>
+          <h2 class="deck-title">Pontos-chave: tabela de pouso e lake</h2>
+        </div>
+        <ol class="deck-steps">
+          <li>Três colunas recebem qualquer domínio; o custo é dar o tipo de cada caminho em toda consulta.</li>
+          <li>Unix em milissegundos não tem fuso, ordena como número e quase não colide; o fuso entra na leitura.</li>
+          <li><code>ORDER BY (data_tag, timestamp)</code> faz a consulta por domínio pular grânulos; a partição é por mês da ingestão.</li>
+          <li>O tipo <code>JSON</code> separa os caminhos em subcolunas no INSERT e lê sete vezes mais rápido que o texto; a inferência de datas fica desligada para não perder o <code>-03:00</code>.</li>
+          <li>O raw guarda o envelope como chegou; o bronze, o Parquet por domínio e dia, um terço do TXT; o manifesto, o recibo do lote com SHA-256. Com eles, a tabela pode ser recriada.</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- Etapa 05 -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell" data-etapa="05">
+        <div>
+          <span class="deck-kicker">10h10 &middot; Etapa 05 &middot; Arquitetura e ADRs</span>
+          <h2 class="deck-title">Componentes, sequência e cinco ADRs</h2>
+          <p class="deck-summary">O diagrama da abertura vira Mermaid, com a sequência do caminho feliz e a de uma falha do ClickHouse no meio do lote. Cada justificativa vira uma ADR com alternativa descartada.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item"><span class="etapa-rotulo">Artefatos</span><p><code>docs/arquitetura.md</code>, <code>docs/adr/ADR-001</code> a <code>ADR-005</code></p></div>
+            <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Revise antes de seguir</span><ul><li>A sequência mostra o manifesto depois do INSERT e o ack por último?</li><li>A ADR-002 diz o que acontece se o processo cair entre o bronze e o ClickHouse?</li><li>A ADR-003 diz o que o manifesto registra quando o ClickHouse falha?</li><li>Cada ADR tem custos e HH da decisão e da alternativa, com a base de cada número?</li></ul></div>
+          </div>
+          <div class="etapa-prompt">
+            <span class="etapa-rotulo">Prompt CREATE</span>
+            <button class="copy-button etapa-copiar" type="button">Copiar</button>
+            <pre class="is-wrap etapa-pre"><code><span class="k">[C] Personagem</span>
+Você é arquiteto de software de dados. Desenha componentes e sequência
+e registra cada decisão com alternativas.
+
+<span class="k">[R] Pedido</span>
+1. docs/arquitetura.md com:
+   - diagrama de componentes em Mermaid: produtor HTTP, produtor AMQP,
+     API, fila ingestao, consumidor, buffer de micro-lote, gravador do
+     raw, gravador do bronze (DuckDB), gravador do manifesto, gravador
+     do ClickHouse, RustFS, ClickHouse;
+   - diagrama de sequência do caminho feliz e de uma falha do
+     ClickHouse no meio do lote.
+2. ADRs em docs/adr/ (Contexto, Decisão, Alternativas, Consequências,
+   Custos, Previsão de esforço em HH, Status: Proposta):
+   ADR-001 HTTP publica na fila em vez de gravar direto
+   ADR-002 raw e bronze antes do ClickHouse
+   ADR-003 manifesto do lote depois do ClickHouse e ack só depois de
+           tudo gravado
+   ADR-004 micro-lote por tamanho ou tempo (N e T no .env)
+   ADR-005 tabela de três colunas com data_json no tipo JSON
+
+<span class="k">[E] Exemplos</span>
+sequenceDiagram
+  participant P as Produtor
+  participant A as API
+  participant Q as Fila ingestao
+  participant C as Consumidor
+  P-&gt;&gt;A: POST /ingest
+  A-&gt;&gt;Q: publish (persistente)
+  A--&gt;&gt;P: 202
+  Q-&gt;&gt;C: entrega
+  C-&gt;&gt;C: acumula até N ou T
+  C-&gt;&gt;RustFS: raw, envelopes do lote em JSON Lines
+  C-&gt;&gt;RustFS: bronze, Parquet do lote
+  C-&gt;&gt;ClickHouse: INSERT do lote
+  C-&gt;&gt;RustFS: manifesto do lote com status ok
+  C-&gt;&gt;Q: ack multiple
+
+<span class="k">[A] Ajustes</span>
+- Cada ADR liga a um RF ou RNF.
+- Sem ponto e vírgula dentro de rótulo Mermaid.
+- Prefetch, DLX e deduplicação ficam como "Aula 06" nas consequências.
+- Custos de cada ADR, da decisão e de cada alternativa descartada:
+  infraestrutura (serviços no Railway: crédito de teste de US$ 5 por
+  até 30 dias, depois plano Free de US$ 1/mês; no ambiente local, zero)
+  e mão de obra (quem do grupo faz cada atividade).
+- Previsão de esforço em HH (homem-hora = pessoas x horas) numa tabela
+  atividade | HH da decisão | HH da alternativa | base da estimativa,
+  com as linhas implementar, testar, documentar e operar por mês.
+  Feche com o total em HH e o custo = HH x valor-hora, com o
+  valor-hora como parâmetro que o grupo declara.
+- Estimativa sem base (medição, código existente ou tarefa parecida já
+  feita) vira pergunta para o grupo, não número.
+
+<span class="k">[T] Tipo de saída</span>
+Markdown; arquitetura.md com até 120 linhas; cada ADR com até 60.
+
+<span class="k">[E] Extras</span>
+Leia AGENTS.md, docs/ e specs/. Mostre o plano, espere meu ok, escreva,
+registre o prompt e pare.</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ponte 05 -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell" data-etapa="05">
+        <div>
+          <span class="deck-kicker">Etapa 05 &middot; Enquanto o agente trabalha</span>
+          <h2 class="deck-title">As justificativas viram ADRs</h2>
+          <p class="deck-summary">O agente escreve cinco ADRs. A turma vê o argumento de cada uma e o que acontece quando o processo cai em cada ponto do flush.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item"><span class="etapa-rotulo">Teoria desta etapa</span><ol><li>Cinco decisões e as alternativas descartadas</li><li>Custos e esforço em homem-hora</li><li>Onde o processo pode cair durante o flush</li><li>Micro-lote por tamanho ou por tempo</li></ol></div>
+            <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Na volta ao artefato</span><p>Os blocos Mermaid renderizam; cada ADR está em Proposta e cita um RF ou RNF.</p></div>
+          </div>
+          <div class="etapa-prompt">
+            <span class="etapa-rotulo">Trecho do prompt da Etapa 05</span>
+            <pre class="is-wrap etapa-pre"><code>ADR-002 raw e bronze antes do ClickHouse
+ADR-003 manifesto do lote depois do ClickHouse e ack só depois de
+        tudo gravado
+ADR-004 micro-lote por tamanho ou tempo (N e T no .env)</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cinco decisões -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 05 &middot; Teoria &middot; Decisões de arquitetura</span>
+          <h2 class="deck-title">Cinco decisões e as alternativas descartadas</h2>
+          <p class="deck-summary">ADR (Architecture Decision Record), vista na Aula 03, registra contexto, decisão, alternativas, consequências, custos e esforço em HH. Nasce como Proposta; aceitar é decisão do grupo.</p>
+        </div>
+        <table class="deck-table de-tabela">
+          <thead><tr><th>ADR</th><th>Decisão</th><th>Alternativa descartada</th><th>Consequência aceita</th></tr></thead>
+          <tbody>
+            <tr><td>001</td><td>HTTP publica na fila</td><td>a API grava direto no lake e no ClickHouse</td><td>um caminho só até os destinos; o 202 não garante dado consultável</td></tr>
+            <tr><td>002</td><td>raw e bronze antes do ClickHouse</td><td>ClickHouse primeiro, lake por exportação</td><td>o lake permite recriar a tabela; ClickHouse fora trava o ack de tudo</td></tr>
+            <tr><td>003</td><td>manifesto depois do ClickHouse, ack no fim</td><td>manifesto antes do INSERT; ack ao receber</td><td>manifesto <code>ok</code> quer dizer lote completo; o lote pode repetir</td></tr>
+            <tr><td>004</td><td>flush por <code>FLUSH_N</code> ou <code>FLUSH_SEGUNDOS</code></td><td>um flush por mensagem</td><td>até 2 s de espera com pouco tráfego</td></tr>
+            <tr><td>005</td><td>três colunas, <code>data_json</code> do tipo JSON</td><td>uma tabela por domínio; <code>data_json</code> String</td><td>fonte nova sem DDL; tipo inferido no INSERT e dado na consulta</td></tr>
+          </tbody>
+        </table>
+        <p class="deck-note">As alternativas descartadas voltam na discussão que abre a Aula 05: a questão 2 discute a ordem dos destinos, e a questão 3, a forma da tabela.</p>
+      </div>
+    </div>
+
+    <!-- Custos e HH -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 05 &middot; Teoria &middot; Custo da decisão</span>
+          <h2 class="deck-title">Custos e esforço em homem-hora</h2>
+          <p class="deck-summary">HH (homem-hora) é a unidade de esforço: pessoas vezes horas. Duas pessoas por 4 horas e uma pessoa por 8 horas dão os mesmos 8 HH. A ADR compara a decisão e a alternativa também pelo que custam para construir e para manter.</p>
+        </div>
+        <div class="de-tres">
+          <div class="de-caixa"><span class="de-rotulo">Infraestrutura</span><p>Serviços que a decisão exige. No Railway, crédito de teste de US$ 5 por até 30 dias e depois plano Free de US$ 1/mês, com até cinco serviços. No ambiente local, zero.</p></div>
+          <div class="de-caixa"><span class="de-rotulo">Mão de obra</span><p>Quem do grupo faz cada atividade e quantas horas leva. Custo = HH &times; valor-hora, com o valor-hora declarado pelo grupo como parâmetro.</p></div>
+          <div class="de-caixa"><span class="de-rotulo">Operação</span><p>HH por mês para manter a decisão no ar: reprocessar, conferir manifestos, ajustar a view ou o DDL quando o payload muda.</p></div>
+        </div>
+        <table class="deck-table de-tabela">
+          <thead><tr><th>Atividade</th><th>HH da decisão</th><th>HH da alternativa</th><th>Base da estimativa</th></tr></thead>
+          <tbody>
+            <tr><td>implementar</td><td>&hellip;</td><td>&hellip;</td><td>código de <code>referencia/src/</code>, tarefa parecida já feita</td></tr>
+            <tr><td>testar</td><td>&hellip;</td><td>&hellip;</td><td>testes da Etapa 06, teste de queda da Etapa 09</td></tr>
+            <tr><td>documentar</td><td>&hellip;</td><td>&hellip;</td><td>tamanho do <code>docs/</code> e do <code>specs/</code></td></tr>
+            <tr><td>operar, por mês</td><td>&hellip;</td><td>&hellip;</td><td>frequência do evento: queda, reprocesso, fonte nova</td></tr>
+          </tbody>
+        </table>
+        <div class="deck-callout"><strong>Número sem base vira pergunta</strong><p>A estimativa de HH vale pelo que a sustenta. Uma medição da manhã, o código que já existe ou uma tarefa parecida feita nas Aulas 01 a 03 servem de base. Sem nenhuma delas, a ADR registra a pergunta para o grupo responder, e o agente não preenche a célula.</p></div>
+      </div>
+    </div>
+
+    <!-- Onde o processo pode cair -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 05 &middot; Teoria &middot; Mecanismo</span>
+          <h2 class="deck-title">Onde o processo pode cair durante o flush</h2>
+          <p class="deck-summary">O flush tem cinco passos em ordem fixa. Tudo o que não recebeu ack volta para a fila quando a conexão do consumidor cai; o efeito de uma queda depende só de quais passos já aconteceram.</p>
+        </div>
+        <svg class="de-svg is-alto" viewBox="0 0 1200 300" role="img" aria-label="Linha do tempo do flush: acumula, grava o raw, grava o bronze, INSERT no ClickHouse, grava o manifesto, ack; quedas nos pontos A, B, C e D com consequências diferentes" font-family="Inter, Helvetica, Arial, sans-serif">
+          <defs><marker id="fl-s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#0f0f0f"/></marker></defs>
+          <g stroke="#0f0f0f" stroke-width="2">
+            <rect x="10" y="40" width="150" height="64" fill="#f2f2ee"/>
+            <rect x="200" y="40" width="160" height="64" fill="#ffffff"/>
+            <rect x="400" y="40" width="160" height="64" fill="#ffffff"/>
+            <rect x="600" y="40" width="180" height="64" fill="#ffffff"/>
+            <rect x="820" y="40" width="170" height="64" fill="#ffffff"/>
+            <rect x="1030" y="40" width="160" height="64" fill="#0f0f0f"/>
+          </g>
+          <g text-anchor="middle" font-size="17" font-weight="700" fill="#0f0f0f">
+            <text x="85" y="78">acumula N ou T</text>
+            <text x="280" y="78">1. raw</text>
+            <text x="480" y="78">2. bronze</text>
+            <text x="690" y="78">3. ClickHouse</text>
+            <text x="905" y="78">4. manifesto</text>
+            <text x="1110" y="78" fill="#ffffff">5. ack</text>
+          </g>
+          <g stroke="#0f0f0f" stroke-width="2" marker-end="url(#fl-s)">
+            <line x1="160" y1="72" x2="198" y2="72"/><line x1="360" y1="72" x2="398" y2="72"/><line x1="560" y1="72" x2="598" y2="72"/><line x1="780" y1="72" x2="818" y2="72"/><line x1="990" y1="72" x2="1028" y2="72"/>
+          </g>
+          <g stroke="#0f0f0f" stroke-width="2" stroke-dasharray="5 4">
+            <line x1="180" y1="22" x2="180" y2="136"/><line x1="580" y1="22" x2="580" y2="136"/><line x1="800" y1="22" x2="800" y2="136"/><line x1="1010" y1="22" x2="1010" y2="136"/>
+          </g>
+          <g font-family="JetBrains Mono, monospace" font-size="17" font-weight="700" text-anchor="middle" fill="#0f0f0f">
+            <text x="180" y="156">A</text><text x="580" y="156">B</text><text x="800" y="156">C</text><text x="1010" y="156">D</text>
+          </g>
+          <g font-size="14.5" fill="#0f0f0f">
+            <text x="10" y="192" font-weight="700">Queda em A</text>
+            <text x="10" y="214">O lote só existia em memória.</text>
+            <text x="10" y="234">A fila reentrega; nada repete.</text>
+            <text x="10" y="258" fill="#5c5c5c">Medido: kill -9 aos 10.000,</text>
+            <text x="10" y="278" fill="#5c5c5c">0 perdidas, 0 duplicadas.</text>
+            <text x="310" y="192" font-weight="700">Queda em B</text>
+            <text x="310" y="214">raw e bronze gravados, sem manifesto.</text>
+            <text x="310" y="234">A reentrega grava outro lote no lake;</text>
+            <text x="310" y="254">o ClickHouse recebe uma vez.</text>
+            <text x="310" y="278" fill="#5c5c5c">Decorre do mecanismo; não medido.</text>
+            <text x="610" y="192" font-weight="700">Queda em C</text>
+            <text x="610" y="214">Linhas no ClickHouse, sem manifesto.</text>
+            <text x="610" y="234">A reentrega repete o lote em raw,</text>
+            <text x="610" y="254">bronze e ClickHouse.</text>
+            <text x="610" y="278" fill="#5c5c5c">Decorre do mecanismo; não medido.</text>
+            <text x="905" y="192" font-weight="700">Queda em D</text>
+            <text x="905" y="214">Tudo gravado, manifesto ok.</text>
+            <text x="905" y="234">O lote volta inteiro e repete</text>
+            <text x="905" y="254">em todas as camadas.</text>
+            <text x="905" y="278" fill="#5c5c5c">Medido: 500 linhas, 64 manifestos.</text>
+          </g>
+        </svg>
+        <p class="deck-note">Regra de leitura: manifesto com <code>"status": "ok"</code> quer dizer lote completo em raw, bronze e ClickHouse. Se o INSERT falha, o servidor grava o manifesto com <code>erro_clickhouse</code> e o erro, não dá ack e reconecta. Em nenhum ponto uma linha se perde.</p>
+      </div>
+    </div>
+
+    <!-- Micro-lote -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 05 &middot; Teoria &middot; Exemplo numérico</span>
+          <h2 class="deck-title">Micro-lote por tamanho ou por tempo</h2>
+          <p class="deck-summary">Cada PUT no RustFS e cada INSERT no ClickHouse tem um custo fixo. O micro-lote paga esse custo uma vez para muitas mensagens. O flush acontece quando o lote chega a <code>FLUSH_N</code> envelopes ou quando passam <code>FLUSH_SEGUNDOS</code>, o que vier primeiro.</p>
+        </div>
+        <div class="de-dois de-dois-esq">
+          <div class="de-caixa">
+            <span class="de-rotulo">Custo por passo no RustFS (p50 de 30 repetições; 10 com 5.000)</span>
+            <table class="deck-table de-tabela de-num">
+              <thead><tr><th>Linhas</th><th>raw</th><th>bronze</th><th>ClickHouse</th><th>manifesto</th><th>total</th></tr></thead>
+              <tbody>
+                <tr><td>1</td><td>7,0 ms</td><td>10,5 ms</td><td>5,0 ms</td><td>7,7 ms</td><td>30,8 ms</td></tr>
+                <tr><td>500</td><td>8,0 ms</td><td>10,7 ms</td><td>5,7 ms</td><td>7,5 ms</td><td>31,6 ms</td></tr>
+                <tr><td>5.000</td><td>18,5 ms</td><td>12,4 ms</td><td>8,0 ms</td><td>7,4 ms</td><td>45,9 ms</td></tr>
+              </tbody>
+            </table>
+            <p style="margin-top:8px;">Primeira rodada, MinIO com só Parquet e INSERT: 9,2, 9,3 e 12,5 ms. Três PUTs em vez de um deixam o flush de 500 cerca de 3,4 vezes mais caro; 5.000 linhas ainda custam só 1,5 vez uma.</p>
+          </div>
+          <div class="de-caixa">
+            <span class="de-rotulo">Drenar 2.000 mensagens (MinIO)</span>
+            <table class="deck-table de-tabela de-num">
+              <thead><tr><th><code>FLUSH_N</code></th><th>Tempo</th><th>Partes</th><th>Objetos no lake</th></tr></thead>
+              <tbody>
+                <tr><td>1</td><td>22,03 s</td><td>2.000</td><td>2.000</td></tr>
+                <tr><td>500</td><td>0,48 s</td><td>4</td><td>4</td></tr>
+                <tr><td>5.000</td><td>2,53 s</td><td>1</td><td>1</td></tr>
+              </tbody>
+            </table>
+            <p style="margin-top:8px;">Com 5.000, o lote nunca enche: o flush espera os 2 s.</p>
+          </div>
+        </div>
+        <div class="deck-callout"><strong>Por que N e T juntos</strong><p>Só N: com pouco tráfego, a mensagem esperaria o lote encher. Só T: com muito tráfego, o lote cresceria sem limite de memória. Os dois juntos limitam a espera a <code>FLUSH_SEGUNDOS</code> e o tamanho a <code>FLUSH_N</code>.</p></div>
+      </div>
+    </div>
+
+    <!-- Etapa 06 -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell" data-etapa="06">
+        <div>
+          <span class="deck-kicker">10h30 &middot; Etapa 06 &middot; Plano e testes</span>
+          <h2 class="deck-title">Plano, tarefas e testes vermelhos</h2>
+          <p class="deck-summary">Tarefas de até 30 minutos, cada uma ligada a um RF ou RNF, e os testes escritos antes do código. Os exemplos do contrato viram testes sem reescrever nada.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item"><span class="etapa-rotulo">Artefatos</span><p><code>specs/plan.md</code>, <code>specs/tasks.md</code>, <code>tests/</code></p></div>
+            <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Revise antes de seguir</span><ul><li>Cada exemplo inválido tem teste?</li><li>Os testes falham por ImportError ou por asserção, e não por erro de sintaxe?</li></ul></div>
+          </div>
+          <div class="etapa-prompt">
+            <span class="etapa-rotulo">Prompt CREATE</span>
+            <button class="copy-button etapa-copiar" type="button">Copiar</button>
+            <pre class="is-wrap etapa-pre"><code><span class="k">[C] Personagem</span>
+Você é engenheiro de software. Quebra a construção em tarefas de até
+30 minutos e escreve os testes antes do código.
+
+<span class="k">[R] Pedido</span>
+1. specs/plan.md e specs/tasks.md (T-01...), cada tarefa com RF/RNF,
+   arquivo e teste que a fecha.
+2. tests/test_contrato.py: um teste por arquivo de specs/exemplos/
+   (válido aceita, inválido recusa com o motivo; o código esperado
+   está no nome do arquivo).
+3. tests/test_api.py: POST válido devolve 202, inválido 422, corpo que
+   não é JSON 400, corpo grande 413 (com a publicação na fila
+   substituída por um dublê).
+4. tests/test_integracao.py: com os três serviços do compose, publica
+   20 envelopes e confere 20 linhas no ClickHouse e no lake (marcado
+   com pytest.mark.integracao).
+Rode pytest -q e mostre que os testes falham pelo motivo certo.
+
+<span class="k">[E] Exemplos</span>
+@pytest.mark.parametrize("arquivo", sorted(EXEMPLOS.glob("invalido_422_*.json")))
+def test_envelope_invalido_e_recusado(arquivo):
+    with pytest.raises(EnvelopeInvalido):
+        validar(arquivo.read_bytes(), DOMINIOS)
+
+<span class="k">[A] Ajustes</span>
+- Ainda não escreva src/. Os testes importam de src.contrato, src.api,
+  src.consumidor.
+- Testes de integração usam o bucket teste e uma fila de teste.
+
+<span class="k">[T] Tipo de saída</span>
+Markdown para plan e tasks; Python para tests/.
+
+<span class="k">[E] Extras</span>
+Leia AGENTS.md, specs/ e docs/arquitetura.md. Mostre o plano, espere
+meu ok, escreva, rode, registre o prompt e pare.</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ponte 06 -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell" data-etapa="06">
+        <div>
+          <span class="deck-kicker">Etapa 06 &middot; Enquanto o agente trabalha</span>
+          <h2 class="deck-title">Dois níveis de teste</h2>
+          <p class="deck-summary">Os testes de unidade rodam sem nenhum serviço e cobrem o contrato e a API. O teste de integração precisa dos três contêineres e cobre o caminho até os destinos.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item"><span class="etapa-rotulo">Teoria desta etapa</span><ol><li>Testes do contrato e da API com dublê da fila</li><li>Teste de integração com os três serviços</li></ol></div>
+            <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Na volta ao artefato</span><p><code>pytest -q</code> vermelho por <code>ImportError</code> de <code>src.contrato</code>, e não por erro de sintaxe no teste.</p></div>
+          </div>
+          <div class="etapa-prompt">
+            <span class="etapa-rotulo">Trecho do prompt da Etapa 06</span>
+            <pre class="is-wrap etapa-pre"><code>Rode pytest -q e mostre que os testes falham pelo motivo certo.</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Testes do contrato e da API -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 06 &middot; Teoria &middot; Testes de unidade</span>
+          <h2 class="deck-title">Testes do contrato e da API com dublê</h2>
+          <p class="deck-summary">Os arquivos de <code>specs/exemplos/</code> são ao mesmo tempo documentação do contrato e entrada dos testes. Mudou uma regra, muda um arquivo, e o teste acompanha.</p>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa"><span class="de-rotulo"><code>test_contrato.py</code></span><p>Um caso por arquivo: 3 válidos devolvem a etiqueta e a lista de objetos; 6 inválidos levantam <code>EnvelopeInvalido</code> com o motivo; o <code>.txt</code> levanta <code>CorpoNaoJson</code>.</p></div>
+          <div class="de-caixa"><span class="de-rotulo"><code>test_api.py</code></span><p>O <code>TestClient</code> da FastAPI (por isso o <code>httpx</code> no requirements) chama <code>POST /ingest</code>. A publicação na fila é trocada por um dublê, uma função falsa que só anota o que receberia.</p></div>
+        </div>
+        <div class="deck-callout"><strong>Referência da preparação</strong><p><code>pytest -q</code> com 15 testes verdes: o contrato com os 10 exemplos e a API com 202, 422, 400 e 413, usando um publicador falso. Nenhum serviço no ar.</p></div>
+      </div>
+    </div>
+
+    <!-- Teste de integração -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 06 &middot; Teoria &middot; Teste de integração</span>
+          <h2 class="deck-title">Teste de integração com os três serviços</h2>
+          <p class="deck-summary">O teste de integração publica 20 envelopes e confere 20 linhas no ClickHouse e 20 no lake. Ele pega o que o teste de unidade não vê: credencial errada, chave no lugar errado, ack antes da hora.</p>
+        </div>
+        <div class="de-tres">
+          <div class="de-caixa"><span class="de-rotulo">Isolamento</span><p>Bucket <code>teste</code> e uma fila de teste. O <code>raw</code> e a fila <code>ingestao</code> ficam limpos para a carga da Etapa 09.</p></div>
+          <div class="de-caixa"><span class="de-rotulo">Marcação</span><p><code>pytest.mark.integracao</code> separa os testes lentos: <code>pytest -q</code> roda tudo, <code>pytest -m integracao</code> só esses.</p></div>
+          <div class="de-caixa"><span class="de-rotulo">Contagem</span><p>Envelope não é linha: uma lista de 5 boletins é um envelope e 5 linhas. O teste conta linhas.</p></div>
+        </div>
+        <p class="deck-note">Vermelho agora é o resultado esperado: os testes importam de <code>src.contrato</code>, <code>src.api</code> e <code>src.consumidor</code>, que só nascem nas Etapas 07 e 08.</p>
+      </div>
+    </div>
+
+    <!-- Etapa 07 -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell" data-etapa="07">
+        <div>
+          <span class="deck-kicker">10h40 &middot; Etapa 07 &middot; Código</span>
+          <h2 class="deck-title">Contrato e API em código</h2>
+          <p class="deck-summary">Primeiro código em <code>src/</code>: configuração, validação do envelope e a API que publica na fila. A API não grava no lake nem no ClickHouse.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item"><span class="etapa-rotulo">Artefatos</span><p><code>src/config.py</code>, <code>src/contrato.py</code>, <code>src/api.py</code></p></div>
+            <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Gate</span><ul><li><code>pytest -q tests/test_contrato.py tests/test_api.py</code> verde</li><li>curl: 202 nos <code>valido_*</code>, 422 nos <code>invalido_422_*</code>, 400 no <code>invalido_400_*</code></li><li>corpo de 1,1 MB devolve 413</li></ul></div>
+          </div>
+          <div class="etapa-prompt">
+            <span class="etapa-rotulo">Prompt CREATE</span>
+            <button class="copy-button etapa-copiar" type="button">Copiar</button>
+            <pre class="is-wrap etapa-pre"><code><span class="k">[C] Personagem</span>
+Você é engenheiro de software Python. Implementa só o que as tarefas
+pedem, uma por vez, até os testes ficarem verdes.
+
+<span class="k">[R] Pedido</span>
+Implemente as tarefas do contrato e da API:
+1. src/config.py: lê o .env (DOMINIOS, RabbitMQ, ClickHouse, RustFS
+   pelas variáveis S3_*, FLUSH_N, FLUSH_SEGUNDOS, HTTP_MAX_BYTES).
+2. src/contrato.py: validar(corpo, dominios) devolve (data_tag, lista
+   de objetos), ou levanta CorpoNaoJson ou EnvelopeInvalido com o
+   motivo.
+3. src/api.py: FastAPI com POST /ingest (202/400/413/422) que publica
+   o corpo na fila ingestao (durável, mensagem persistente, com
+   confirmação do broker e o cabeçalho recebido_em_ms) e GET /health.
+Rode pytest -q tests/test_contrato.py tests/test_api.py.
+
+<span class="k">[E] Exemplos</span>
+curl -s -o /dev/null -w "%{http_code}\n" -X POST localhost:8000/ingest \
+  -H 'content-type: application/json' \
+  --data-binary @specs/exemplos/valido_livros_objeto.json
+202
+
+<span class="k">[A] Ajustes</span>
+- Uma tarefa por vez; mostre o diff de cada uma.
+- Não grave no lake nem no ClickHouse pela API.
+- Sem segredo no código.
+
+<span class="k">[T] Tipo de saída</span>
+Python em src/; testes verdes.
+
+<span class="k">[E] Extras</span>
+Leia AGENTS.md, specs/tasks.md e tests/. Registre o prompt, marque as
+tarefas feitas em tasks.md e pare.</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ponte 07 -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell" data-etapa="07">
+        <div>
+          <span class="deck-kicker">Etapa 07 &middot; Enquanto o agente trabalha</span>
+          <h2 class="deck-title">O que conferir no código da API</h2>
+          <p class="deck-summary">Etapa de código, com teoria curta: o trecho de referência da API e o gate com <code>curl</code> sobre os exemplos do contrato.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item"><span class="etapa-rotulo">Nesta etapa</span><ol><li>Valida, publica, responde 202</li><li>Gate da API com os dez exemplos</li></ol></div>
+            <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Na volta ao código</span><p>A publicação espera a confirmação do broker antes do 202; nenhum <code>import</code> de DuckDB ou ClickHouse em <code>src/api.py</code>.</p></div>
+          </div>
+          <div class="etapa-prompt">
+            <span class="etapa-rotulo">Trecho do prompt da Etapa 07</span>
+            <pre class="is-wrap etapa-pre"><code>- Não grave no lake nem no ClickHouse pela API.</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- API de referência -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 07 &middot; Código de referência</span>
+          <h2 class="deck-title">Valida, publica, responde 202</h2>
+          <p class="deck-summary">Trecho da implementação de referência montada na preparação. O código do grupo pode ter outra forma; a ordem das verificações e o que a API não faz devem ser os mesmos.</p>
+        </div>
+        <div class="de-dois de-dois-largo">
+          <div class="de-caixa">
+            <span class="de-rotulo"><code>src/api.py</code></span>
+            <pre class="de-pre de-pre-largo"><code>@app.post("/ingest", status_code=202)
+async def ingest(request: Request):
+    recebido_ms = time.time_ns() // 1_000_000
+    corpo = await request.body()
+    if len(corpo) &gt; HTTP_MAX_BYTES:
+        return JSONResponse({"erro": "corpo maior que o limite"}, status_code=413)
+    try:
+        tag, itens = contrato.validar(corpo, DOMINIOS)
+    except contrato.CorpoNaoJson as e:
+        return JSONResponse({"erro": str(e)}, status_code=400)
+    except contrato.EnvelopeInvalido as e:
+        return JSONResponse({"erro": str(e)}, status_code=422)
+    await run_in_threadpool(publicar, corpo, recebido_ms)
+    <span class="c"># basic_publish com confirm_delivery()</span>
+    return {"status": "aceito", "data_tag": tag, "itens": len(itens)}</code></pre>
+          </div>
+          <div class="de-caixa">
+            <span class="de-rotulo">Gate da API (README do laboratório)</span>
+            <pre class="de-pre de-pre-largo"><code>for f in specs/exemplos/*; do
+  printf '%s ' "$(curl -s -o /dev/null -w '%{http_code}' \
+    -X POST localhost:8000/ingest \
+    -H 'content-type: application/json' \
+    --data-binary @"$f")"; echo "$f"
+done
+head -c 1100000 /dev/zero | tr '\0' ' ' &gt; /tmp/grande.json
+curl -s -o /dev/null -w '%{http_code}\n' -X POST \
+  localhost:8000/ingest --data-binary @/tmp/grande.json
+<span class="c"># 413</span></code></pre>
+            <p style="margin-top:8px;">Na preparação: 3 com 202, 6 com 422, 1 com 400 e o corpo de 1,1 MB com 413.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Etapa 08 -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell" data-etapa="08">
+        <div>
+          <span class="deck-kicker">10h50 &middot; Etapa 08 &middot; Código</span>
+          <h2 class="deck-title">Consumidor, gravadores e flush</h2>
+          <p class="deck-summary">Objetivo: implementar o lado que lê a fila e grava raw, bronze, ClickHouse e manifesto, com o micro-lote e a ordem raw, bronze, ClickHouse, manifesto, ack. API e consumidor sobem no mesmo processo.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item"><span class="etapa-rotulo">Artefatos</span><p><code>src/lake.py</code>, <code>src/clickhouse.py</code>, <code>src/consumidor.py</code>, <code>src/servidor.py</code></p></div>
+            <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Gate</span><ul><li><code>pytest -q</code> inteiro verde, inclusive <code>-m integracao</code></li><li>no código, o manifesto vem depois do INSERT e o ack por último</li><li>logs com o nome do lote, <code>data_tag</code>, tamanho e tempo de cada passo</li></ul></div>
+          </div>
+          <div class="etapa-prompt">
+            <span class="etapa-rotulo">Prompt CREATE</span>
+            <button class="copy-button etapa-copiar" type="button">Copiar</button>
+            <pre class="is-wrap etapa-pre"><code><span class="k">[C] Personagem</span>
+Você é engenheiro de software Python. Implementa o consumidor e os
+gravadores, uma tarefa por vez.
+
+<span class="k">[R] Pedido</span>
+1. src/lake.py, no layout de specs/03_modelo_de_dados.md:
+   - gravar_raw: um JSON Lines por lote e data_tag, uma linha
+     {"recebido_em_ms", "envelope"} por mensagem, com o corpo como
+     chegou (quebras de linha trocadas por espaço);
+   - gravar_bronze: Parquet ZSTD com timestamp e data_json escrito
+     pelo DuckDB a partir de uma tabela Arrow (pyarrow, con.register,
+     COPY para arquivo temporário) e enviado com boto3;
+   - gravar_manifesto: o JSON do lote;
+   - rejeitar: raw/ingestao_rejeitados/ com recebido_em_ms, motivo e
+     corpo.
+   Cada PUT leva os metadados sha256 e lote; o SHA-256 vai também
+   para o manifesto.
+2. src/clickhouse.py: insere o lote em ingestao.db_ingestion com
+   clickhouse-connect, num INSERT só.
+3. src/consumidor.py: lê a fila ingestao, valida de novo, rejeitado vai
+   para raw/ingestao_rejeitados com o motivo e recebe ack; válido entra
+   no buffer; flush a cada FLUSH_N envelopes ou FLUSH_SEGUNDOS; no
+   flush, raw, depois bronze, depois ClickHouse, depois manifesto com
+   status ok, depois ack multiple da última mensagem do lote. Se o
+   ClickHouse falhar, grave o manifesto com status erro_clickhouse e
+   não dê ack.
+4. src/servidor.py: sobe a API e o consumidor (thread) no mesmo
+   processo.
+Rode pytest -q, inclusive -m integracao.
+
+<span class="k">[E] Exemplos</span>
+def flush(self, canal):
+    lote = novo_lote(primeiro_timestamp)      # lote_&lt;HHMMSS&gt;_&lt;id&gt;
+    self.lake.gravar_raw(...)                 # 1. raw, por data_tag
+    self.lake.gravar_bronze(...)              # 2. bronze, por data_tag
+    self.ch.inserir(linhas)                   # 3. ClickHouse, um INSERT
+    self.lake.gravar_manifesto(...)           # 4. manifesto, status ok
+    canal.basic_ack(self.ultima_tag_entrega, multiple=True)  # 5. ack
+
+<span class="k">[A] Ajustes</span>
+- Se o lake ou o ClickHouse falhar, não dê ack: a fila reentrega.
+- timestamp em unix ms: o cabeçalho recebido_em_ms da mensagem; sem
+  ele, a hora do consumo.
+- prefetch_count do consumidor pelo menos igual a FLUSH_N.
+- Cliente do ClickHouse com async_insert de CLICKHOUSE_ASYNC_INSERT.
+- Logs com o nome do lote, data_tag, tamanho e tempo de cada passo.
+
+<span class="k">[T] Tipo de saída</span>
+Python em src/; pytest -q inteiro verde.
+
+<span class="k">[E] Extras</span>
+Leia AGENTS.md, specs/, docs/adr/ e tests/. Registre o prompt, marque
+as tarefas e pare.</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ponte 08 -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell" data-etapa="08">
+        <div>
+          <span class="deck-kicker">Etapa 08 &middot; Enquanto o agente trabalha</span>
+          <h2 class="deck-title">O flush em código e em números</h2>
+          <p class="deck-summary">Teoria curta: os trechos de referência do flush e do consumo, as medições do micro-lote com o dia inteiro de telemetria e dois ajustes que a medição pediu.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item"><span class="etapa-rotulo">Nesta etapa</span><ol><li>Flush em cinco passos</li><li>Consumo: valida de novo, dispara por N ou T</li><li>Micro-lote medido com 31.265 mensagens</li><li>Dois ajustes que a medição pediu</li></ol></div>
+            <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Na volta ao código</span><p>Ack com <code>multiple=True</code> só depois do manifesto; <code>prefetch_count</code> &ge; <code>FLUSH_N</code>; <code>async_insert</code> desligado.</p></div>
+          </div>
+          <div class="etapa-prompt">
+            <span class="etapa-rotulo">Trecho do prompt da Etapa 08</span>
+            <pre class="is-wrap etapa-pre"><code>Se o ClickHouse falhar, grave o manifesto com status erro_clickhouse e
+não dê ack.</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Flush de referência -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 08 &middot; Código de referência</span>
+          <h2 class="deck-title">Flush em cinco passos</h2>
+          <p class="deck-summary">Trecho de <code>laboratorio/referencia/src/</code>. Raw, bronze, ClickHouse, manifesto e ack, nessa ordem. Um ack com <code>multiple=True</code> confirma de uma vez todas as mensagens até a última entrega do lote.</p>
+        </div>
+        <div class="de-dois de-dois-largo">
+          <div class="de-caixa">
+            <span class="de-rotulo"><code>src/consumidor.py</code>, resumido</span>
+            <pre class="de-pre de-pre-largo"><code>lote, dia = novo_lote(ts0), dia_e_hora(ts0)[0]
+for (tag, d), g in grupos.items():         <span class="c"># 1. raw</span>
+    arquivos.append(lake.gravar_raw(lote, tag, d, g["envelopes"]))
+for (tag, d), g in grupos.items():         <span class="c"># 2. bronze</span>
+    arquivos.append(lake.gravar_bronze(lote, tag, d, g["linhas"]))
+try:
+    self.ch.inserir(linhas_ch)             <span class="c"># 3. ClickHouse</span>
+except Exception as e:
+    manifesto.update(status="erro_clickhouse", erro=repr(e)[:500])
+    self.lake.gravar_manifesto(lote, dia, manifesto)
+    raise                                  <span class="c"># sem ack</span>
+manifesto.update(status="ok")
+self.lake.gravar_manifesto(lote, dia, manifesto)  <span class="c"># 4.</span>
+self._ack(canal)                           <span class="c"># 5. ack multiple</span></code></pre>
+          </div>
+          <div class="de-caixa">
+            <span class="de-rotulo"><code>src/lake.py</code></span>
+            <pre class="de-pre de-pre-largo"><code>def chaves(lote, tag, dia):
+    return {"raw": f"ingestao/data_tag={tag}/data={dia}/{lote}.jsonl",
+            "bronze": f"ingestao/data_tag={tag}/data={dia}/{lote}.parquet"}
+
+def linha_raw(ts_ms, corpo):
+    corpo = corpo.replace(b"\r", b" ").replace(b"\n", b" ")
+    return b'{"recebido_em_ms":%d,"envelope":%s}\n' % (ts_ms, corpo)
+
+def _put(self, bucket, chave, dados, tipo, lote):
+    sha = hashlib.sha256(dados).hexdigest()
+    self.s3.put_object(Bucket=bucket, Key=chave, Body=dados,
+        ContentType=tipo, Metadata={"sha256": sha, "lote": lote})</code></pre>
+          </div>
+        </div>
+        <p class="deck-note">Se <code>gravar_raw</code>, <code>gravar_bronze</code> ou <code>inserir</code> levantar exceção, a linha do ack não roda e o lote volta para a fila. O bronze é escrito pelo DuckDB num arquivo temporário e enviado com boto3, para o SHA-256 ser o dos bytes enviados.</p>
+      </div>
+    </div>
+
+    <!-- Consumo -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 08 &middot; Código de referência</span>
+          <h2 class="deck-title">Consumo: valida de novo, dispara por N ou T</h2>
+          <p class="deck-summary">A fila aceita qualquer bytes, inclusive de quem publica sem passar pela API. Por isso o consumidor valida o envelope outra vez. O relógio é conferido no laço principal, entre as entregas.</p>
+        </div>
+        <div class="de-dois de-dois-largo">
+          <div class="de-caixa">
+            <span class="de-rotulo">Cada mensagem</span>
+            <pre class="de-pre de-pre-largo"><code>def _mensagem(self, canal, metodo, props, corpo):
+    ts = ((props.headers or {}).get("recebido_em_ms")
+          or time.time_ns() // 1_000_000)
+    try:
+        tag, itens = contrato.validar(corpo, DOMINIOS)
+    except contrato.EnvelopeInvalido as e:
+        self.lake.rejeitar(corpo, str(e), ts)
+        canal.basic_ack(metodo.delivery_tag)
+        return
+    for item in itens:
+        self.lote.append((ts, json.dumps(item,
+            ensure_ascii=False, separators=(",", ":")), tag))
+    self.ultima_tag_entrega = metodo.delivery_tag
+    self.envelopes += 1
+    if self.envelopes &gt;= FLUSH_N:
+        self.flush(canal)</code></pre>
+          </div>
+          <div class="de-caixa">
+            <span class="de-rotulo">Laço principal da thread</span>
+            <pre class="de-pre de-pre-largo"><code>canal.basic_qos(prefetch_count=FLUSH_N)
+canal.basic_consume(queue=FILA,
+    on_message_callback=self._mensagem,
+    auto_ack=False)
+while not parar.is_set():
+    con.process_data_events(time_limit=0.2)
+    if (self.lote and time.monotonic()
+            - self.inicio_lote &gt;= FLUSH_SEGUNDOS):
+        self.flush(canal)</code></pre>
+            <p style="margin-top:8px;">Prefetch é quantas mensagens sem ack o broker entrega de uma vez. Menor que <code>FLUSH_N</code>, o broker para antes de o lote encher e o flush só acontece pelo relógio. A Aula 06 aprofunda.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Micro-lote medido -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 08 &middot; Teoria &middot; Exemplo numérico</span>
+          <h2 class="deck-title">Micro-lote medido com 31.265 mensagens</h2>
+          <p class="deck-summary">Fila pré-carregada com o dia inteiro de telemetria; o servidor sobe e drena. O tempo inclui a subida do servidor, cerca de 1 s. <code>async_insert=0</code>. A tabela é da primeira rodada, com MinIO e lake só com Parquet; a segunda, com RustFS, refez só <code>FLUSH_N=500</code>.</p>
+        </div>
+        <table class="deck-table de-tabela de-num">
+          <thead><tr><th><code>FLUSH_N</code></th><th>Drenagem</th><th>Linhas/s</th><th>INSERTs</th><th>Partes criadas</th><th>Partes ativas ao fim</th><th>Objetos no lake</th><th>Bytes no lake</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>524,5 s</td><td>60</td><td>31.265</td><td>31.265</td><td>5</td><td>31.265</td><td>33.339.527</td></tr>
+            <tr><td>500</td><td>3,8 s</td><td>8.147</td><td>63</td><td>63</td><td>3</td><td>63</td><td>619.050</td></tr>
+            <tr><td>5.000</td><td>3,3 s</td><td>9.554</td><td>7</td><td>7</td><td>2</td><td>7</td><td>567.283</td></tr>
+          </tbody>
+        </table>
+        <div class="de-tres">
+          <div class="de-caixa is-forte"><span class="de-rotulo">Tempo, com RustFS</span><p>N=500 drenou o dia em 6,19 s e 5,98 s, cerca de 5.100 linhas/s, contra 3,84 s e 8.147 linhas/s no MinIO. Cada lote faz três PUTs. Com N=1, quase 9 minutos: cada mensagem paga o custo fixo.</p></div>
+          <div class="de-caixa"><span class="de-rotulo">ClickHouse</span><p>Com N=1, cerca de 19.600 merges em 9 minutos para manter 5 partes ativas. O custo aparece nas partes criadas, não nas ativas.</p></div>
+          <div class="de-caixa"><span class="de-rotulo">Lake</span><p>Com RustFS e N=500, o dia grava 189 objetos (63 raw, 63 bronze, 63 manifestos). No MinIO, N=1 gravou 54 vezes mais bytes que N=500: cada Parquet de uma linha carrega cabeçalho, rodapé e metadados.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dois ajustes -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 08 &middot; Teoria &middot; Medição</span>
+          <h2 class="deck-title">Dois ajustes que a medição pediu</h2>
+          <p class="deck-summary">Nenhum dos dois estava no desenho inicial. Os dois apareceram ao medir, na primeira rodada, com MinIO, e por isso estão no <code>.env.example</code>, no <code>requirements.txt</code> e no prompt da Etapa 08.</p>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa">
+            <span class="de-rotulo"><code>async_insert</code> do ClickHouse 26.8</span>
+            <p>O 26.8 vem com <code>async_insert=1</code> e <code>wait_for_async_insert=1</code>: cada INSERT espera o buffer do servidor, no mínimo 50 ms.</p>
+            <table class="deck-table de-tabela de-num">
+              <thead><tr><th></th><th>padrão (1)</th><th>desligado (0)</th></tr></thead>
+              <tbody>
+                <tr><td>INSERT de 1 linha, p50</td><td>55,9 ms</td><td>4,0 ms</td></tr>
+                <tr><td>2.000 mensagens, N=1</td><td>143,99 s</td><td>22,03 s</td></tr>
+                <tr><td>linhas/s</td><td>14</td><td>91</td></tr>
+              </tbody>
+            </table>
+            <p>Com um consumidor só, o buffer não junta nada: as mesmas 2.000 partes. O <code>async_insert</code> é um micro-lote do lado do servidor, útil com muitos clientes pequenos; aqui o lote já é nosso.</p>
+          </div>
+          <div class="de-caixa">
+            <span class="de-rotulo">Entregar o lote ao DuckDB</span>
+            <table class="deck-table de-tabela de-num">
+              <thead><tr><th>Forma</th><th>500 linhas</th><th>5.000 linhas</th></tr></thead>
+              <tbody>
+                <tr><td>listas Python como parâmetro (<code>unnest</code>)</td><td>61 ms</td><td>515 ms</td></tr>
+                <tr><td>JSON Lines temporário e <code>read_json</code></td><td></td><td>24,6 ms</td></tr>
+                <tr><td>tabela Arrow e <code>COPY</code></td><td></td><td>7,1 ms</td></tr>
+              </tbody>
+            </table>
+            <p>Parâmetro por parâmetro custa cerca de 50 µs por valor. Com Arrow, o DuckDB lê as colunas direto da memória do Python. Daí o <code>pyarrow==26.0.0</code> no requirements.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pontos-chave arquitetura -->
+    <div class="slide">
+      <div class="deck-shell">
+        <div>
+          <span class="deck-kicker">Etapas 05 a 08 &middot; Pontos-chave</span>
+          <h2 class="deck-title">Pontos-chave: arquitetura e micro-lote</h2>
+        </div>
+        <ol class="deck-steps">
+          <li>A API valida, publica com confirmação do broker e responde 202; quem grava é o consumidor.</li>
+          <li>Ordem do flush: raw, bronze, ClickHouse, manifesto, ack. Falhou um destino, não há ack, e a fila reentrega.</li>
+          <li>Manifesto <code>ok</code> quer dizer lote completo; queda antes do ack repete o lote, e nenhuma queda perde linha.</li>
+          <li>O micro-lote paga o custo fixo uma vez: 524,5 s com N=1 contra 3,8 s com N=500 no MinIO; cerca de 6 s com raw, bronze e manifesto no RustFS.</li>
+          <li>Medir mudou o código: <code>async_insert=0</code>, Arrow no DuckDB e <code>prefetch_count</code> &ge; <code>FLUSH_N</code>.</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- Etapa 09 -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell" data-etapa="09">
+        <div>
+          <span class="deck-kicker">11h05 &middot; Etapa 09 &middot; Produtores e execução</span>
+          <h2 class="deck-title">Três produtores, contagem e queda</h2>
+          <p class="deck-summary">As fontes das Aulas 02 e 03 passam a empurrar para o servidor: livros por HTTP, PTAX e telemetria pela fila. Os produtores leem <code>entrada/</code>, descompactada do zip do rodapé; os testes usam as fixtures.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item"><span class="etapa-rotulo">Artefatos</span><p><code>src/produtores/*.py</code>, <code>src/conferir.py</code></p></div>
+            <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Gate</span><ul><li>por <code>data_tag</code>: esperadas = ClickHouse = bronze = derivadas do raw</li><li>manifestos <code>ok</code> somando as linhas; fila com 0 mensagens e 0 sem ack</li><li><code>kill -9</code> durante a telemetria, reinício e nova conferência; duplicatas e manifestos a mais anotados em <code>docs/prompts.md</code></li><li><code>python enviar_entrada.py</code> envia a mesma pasta e confere o servidor do grupo contra o contrato</li></ul></div>
+          </div>
+          <div class="etapa-prompt">
+            <span class="etapa-rotulo">Prompt CREATE</span>
+            <button class="copy-button etapa-copiar" type="button">Copiar</button>
+            <pre class="is-wrap etapa-pre"><code><span class="k">[C] Personagem</span>
+Você é engenheiro de dados. Liga as fontes das aulas anteriores ao
+servidor e mede o que entra e o que sai.
+
+<span class="k">[R] Pedido</span>
+1. src/produtores/livros_http.py: lê entrada/livros/*.jsonl (os testes
+   usam fixtures/livros.jsonl) e manda um POST /ingest por livro.
+2. src/produtores/ptax_fila.py: lê entrada/ptax/*.jsonl (testes:
+   fixtures/ptax_cotacoes.jsonl) e publica na fila um envelope por
+   arquivo, com a lista de cotações.
+3. src/produtores/telemetria_fila.py: lê entrada/telemetria/*.txt
+   (testes: fixtures/telemetria) e publica uma mensagem por linha,
+   data = {arquivo, numero_linha, linha}, com arquivo =
+   "entrada/telemetria/&lt;nome&gt;.txt".
+4. src/conferir.py: por data_tag, linhas esperadas x linhas no
+   ClickHouse x linhas no bronze x envelopes no raw x distintas por
+   (timestamp, data_json); manifestos por status com a soma de
+   linhas; a fila com mensagens e sem ack.
+
+<span class="k">[E] Exemplos</span>
+data_tag    esperadas  clickhouse  bronze  raw_envelopes  distintas
+livros           1000        1000    1000           1000       1000
+ptax               40          40      40              1         40
+telemetria      31265       31265   31265          31265      31265
+manifestos ok: 65, linhas 32305
+
+<span class="k">[A] Ajustes</span>
+- Produtor não conhece ClickHouse nem RustFS de destino; só a API ou
+  a fila.
+- Sem paralelismo nos produtores.
+
+<span class="k">[T] Tipo de saída</span>
+Python; tabela da conferência no terminal.
+
+<span class="k">[E] Extras</span>
+Leia AGENTS.md e specs/. Registre o prompt e pare.</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ponte 09 -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell" data-etapa="09">
+        <div>
+          <span class="deck-kicker">Etapa 09 &middot; Enquanto o agente trabalha</span>
+          <h2 class="deck-title">Contar, derrubar e contar de novo</h2>
+          <p class="deck-summary">A Etapa 09 é a prova das ADRs. A turma vê os números da preparação para comparar com os do grupo: contagens, queda e tempo até a linha aparecer.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item"><span class="etapa-rotulo">Teoria desta etapa</span><ol><li>Mensagens, linhas e o gate de contagens</li><li>Teste de queda com <code>kill -9</code></li><li>Do POST à linha consultável</li></ol></div>
+            <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Na volta ao terminal</span><p>A tabela do <code>conferir.py</code> com as colunas iguais antes da queda; depois dela, duplicatas e manifestos a mais contados.</p></div>
+          </div>
+          <div class="etapa-prompt">
+            <span class="etapa-rotulo">Teste de queda (README do laboratório)</span>
+            <pre class="etapa-pre etapa-pre-codigo"><code>python -m src.servidor &amp; SERVIDOR=$!
+python enviar_entrada.py --so telemetria &amp;   # ou o produtor do grupo
+sleep 3; kill -9 $SERVIDOR      # sem flush e sem ack
+docker compose exec rabbitmq rabbitmqctl list_queues \
+  name messages messages_unacknowledged
+python -m src.servidor          # a fila reentrega</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gate de contagens -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 09 &middot; Teoria &middot; Exemplo numérico</span>
+          <h2 class="deck-title">Mensagens, linhas e o gate de contagens</h2>
+          <p class="deck-summary">Carga completa do zip com <code>enviar_entrada.py</code>, RustFS e <code>FLUSH_N=500</code>: 1.000 livros por HTTP (1,9 s), a PTAX numa mensagem só e o dia de telemetria pela fila (11,4 s, com o consumidor gravando ao mesmo tempo). 65 manifestos, todos <code>ok</code>, somando 32.305 linhas.</p>
+        </div>
+        <table class="deck-table de-tabela de-num">
+          <thead><tr><th><code>data_tag</code></th><th>Mensagens</th><th>Linhas esperadas</th><th>ClickHouse</th><th>Bronze (arquivos)</th><th>Raw: envelopes (arquivos)</th></tr></thead>
+          <tbody>
+            <tr><td>livros</td><td>1.000</td><td>1.000</td><td>1.000</td><td>1.000 (2)</td><td>1.000 (2)</td></tr>
+            <tr><td>ptax</td><td>1</td><td>40</td><td>40</td><td>40 (1)</td><td>1 (1)</td></tr>
+            <tr><td>telemetria</td><td>31.265</td><td>31.265</td><td>31.265</td><td>31.265 (63)</td><td>31.265 (63)</td></tr>
+          </tbody>
+        </table>
+        <div class="de-dois">
+          <div class="de-caixa"><span class="de-rotulo">Mensagem não é linha</span><p>Um envelope de PTAX com 40 boletins é uma mensagem, um envelope no raw e 40 linhas no bronze e no ClickHouse. Comparar mensagens com linhas dá falso alarme; o gate compara linhas esperadas.</p></div>
+          <div class="de-caixa">
+            <span class="de-rotulo">No ClickHouse</span>
+            <pre class="de-pre"><code>SELECT data_tag, count() AS linhas,
+       uniqExact(timestamp, toJSONString(data_json)) AS distintas
+FROM ingestao.db_ingestion
+GROUP BY data_tag ORDER BY data_tag</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Teste de queda -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 09 &middot; Teoria &middot; Exemplo numérico</span>
+          <h2 class="deck-title">Teste de queda com kill -9</h2>
+          <p class="deck-summary"><code>kill -9</code> encerra o processo sem chance de reação: nenhum flush, nenhum ack, nenhum <code>finally</code>. É o teste mais duro para a ADR-003. Segunda rodada, RustFS, <code>FLUSH_N=500</code>, telemetria publicada enquanto o servidor consumia.</p>
+        </div>
+        <table class="deck-table de-tabela de-num">
+          <thead><tr><th>Momento do kill</th><th>Publicadas</th><th>ClickHouse</th><th>Bronze (arquivos)</th><th>Raw (arquivos)</th><th>Manifestos</th><th>Duplicadas</th><th>Perdidas</th></tr></thead>
+          <tbody>
+            <tr><td>com 10.000 linhas no ClickHouse</td><td>31.265</td><td>31.265</td><td>31.265 (63)</td><td>31.265 (63)</td><td>63</td><td>0</td><td>0</td></tr>
+            <tr><td>entre o manifesto e o ack</td><td>31.265</td><td>31.765</td><td>31.765 (64)</td><td>31.765 (64)</td><td>64</td><td>500 em cada</td><td>0</td></tr>
+          </tbody>
+        </table>
+        <div class="de-dois">
+          <div class="de-caixa"><span class="de-rotulo">Fora do flush</span><p>O processo perde só o lote em memória, que não tinha ack. A fila reentrega e as contagens fecham. Na primeira rodada, com MinIO, o kill aos 20.000 também terminou com 0 duplicadas e 0 perdidas.</p></div>
+          <div class="de-caixa is-forte"><span class="de-rotulo">Entre o manifesto e o ack</span><p>Para a queda cair nessa janela de forma reproduzível, a medição usou uma pausa de 3 s, que existe só no script de medição. O lote voltou inteiro: 500 linhas a mais em cada camada e no ClickHouse, e dois manifestos <code>ok</code> com as mesmas mensagens.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fim a fim -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 09 &middot; Teoria &middot; Exemplo numérico</span>
+          <h2 class="deck-title">Do POST à linha consultável</h2>
+          <p class="deck-summary">30 POSTs com uma marca única cada; uma consulta ao ClickHouse a cada 10 ms até a linha aparecer. O tempo medido é o que o analista (P2) espera.</p>
+        </div>
+        <table class="deck-table de-tabela de-num">
+          <thead><tr><th>Configuração</th><th>Rodada</th><th>p50</th><th>p95</th><th>máximo</th></tr></thead>
+          <tbody>
+            <tr><td><code>FLUSH_N=500</code>, <code>FLUSH_SEGUNDOS=2</code>, sem outro tráfego</td><td>RustFS</td><td>2.053 ms</td><td>2.086 ms</td><td>2.128 ms</td></tr>
+            <tr><td><code>FLUSH_N=500</code>, <code>FLUSH_SEGUNDOS=2</code>, sem outro tráfego</td><td>MinIO</td><td>2.030 ms</td><td>2.039 ms</td><td>2.067 ms</td></tr>
+            <tr><td><code>FLUSH_N=1</code>, sem outro tráfego</td><td>RustFS</td><td>49 ms</td><td>61 ms</td><td>71 ms</td></tr>
+            <tr><td><code>FLUSH_N=1</code>, sem outro tráfego</td><td>MinIO</td><td>34 ms</td><td>52 ms</td><td>121 ms</td></tr>
+            <tr><td><code>FLUSH_N=500</code>, durante a carga de telemetria</td><td>MinIO</td><td>145 ms</td><td>2.039 ms</td><td>2.040 ms</td></tr>
+          </tbody>
+        </table>
+        <div class="de-dois">
+          <div class="de-caixa is-forte"><span class="de-rotulo">O relógio do flush domina</span><p>Com pouco tráfego, o lote não enche e quem dispara o flush é <code>FLUSH_SEGUNDOS</code>: a latência é 2 s mais o flush, que no RustFS custa cerca de 31 ms. Durante a carga, o lote enche antes e a mediana cai para 145 ms (MinIO; não refeito).</p></div>
+          <div class="de-caixa"><span class="de-rotulo">O que mexe nesse número</span><p><code>FLUSH_N=1</code> leva a 49 ms no RustFS, mas custou 524,5 s para drenar o dia de telemetria no MinIO. Baixar <code>FLUSH_SEGUNDOS</code> encurta a espera com pouco tráfego e aumenta partes e arquivos pequenos.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Etapa 10 -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell" data-etapa="10">
+        <div>
+          <span class="deck-kicker">11h15 &middot; Etapa 10 &middot; JSON cast e silver</span>
+          <h2 class="deck-title">JSON cast nas duas engines e silver</h2>
+          <p class="deck-summary">Os três arquivos SQL vieram do laboratório. O agente roda, compara as engines consulta a consulta e grava o silver de livros e PTAX.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item"><span class="etapa-rotulo">Artefatos</span><p><code>sql/duckdb_cast.sql</code>, <code>sql/clickhouse_cast.sql</code>, <code>sql/silver_livros_ptax.sql</code> rodados; resultado em <code>docs/prompts.md</code></p></div>
+            <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Revise antes de seguir</span><ul><li>As duas engines dão o mesmo resultado?</li><li>O silver tem as colunas e tipos do contrato da silver?</li></ul></div>
+          </div>
+          <div class="etapa-prompt">
+            <span class="etapa-rotulo">Prompt CREATE</span>
+            <button class="copy-button etapa-copiar" type="button">Copiar</button>
+            <pre class="is-wrap etapa-pre"><code><span class="k">[C] Personagem</span>
+Você é analista de dados. Lê o JSON do bronze (texto, no DuckDB) e o
+da tabela de pouso (tipo JSON, no ClickHouse) e devolve colunas
+tipadas.
+
+<span class="k">[R] Pedido</span>
+Os arquivos sql/duckdb_cast.sql, sql/clickhouse_cast.sql e
+sql/silver_livros_ptax.sql vieram do laboratório.
+1. Rode duckdb_cast.sql (python sql/rodar_sql.py) e clickhouse_cast.sql
+   (clickhouse-client --time --multiquery) e compare, consulta a
+   consulta, o resultado e o tempo, e as contagens do raw (envelopes
+   e linhas que eles carregam) e dos manifestos por status.
+2. Para cada consulta, diga como o campo é lido (->>,
+   json_extract_string, from_json no DuckDB; data_json.caminho::Tipo
+   no ClickHouse) e em que momento o tipo é decidido: no INSERT, na
+   consulta ou nos dois.
+3. sql/silver_livros_ptax.sql: DuckDB lendo o bronze e gravando
+   s3://silver/... no contrato da silver. Rode com
+   --var DATA=2026-10-30 (dia da coleta dos livros do zip) e confira
+   as colunas e os tipos com DESCRIBE.
+
+<span class="k">[E] Exemplos</span>
+SELECT data_json -&gt;&gt; 'categoria' AS categoria,
+       avg(CAST(data_json -&gt;&gt; 'preco_gbp' AS DECIMAL(10,2)))
+FROM read_parquet('s3://bronze/ingestao/data_tag=livros/*/*.parquet',
+                  hive_partitioning = true)
+GROUP BY ALL;
+
+<span class="k">[A] Ajustes</span>
+- Colunas e tipos da silver exatamente como no contrato da silver:
+  livros (upc, url, titulo, categoria, avaliacao TINYINT, preco_gbp
+  DECIMAL(10,2), em_estoque BOOLEAN, qtd_estoque INTEGER, coletado_em
+  TIMESTAMPTZ, arquivo_origem, processado_em); ptax (moeda,
+  data_hora_cotacao TIMESTAMP, tipo_boletim, cotacao_compra e
+  cotacao_venda DECIMAL(12,5), arquivo_origem, processado_em).
+- Deduplicar: livros por upc (coleta mais recente), ptax por moeda,
+  data_hora_cotacao e tipo_boletim.
+- Não altere os arquivos SQL sem mostrar o diff e esperar meu ok.
+- Diferença de arredondamento entre as engines é explicada, não
+  escondida.
+
+<span class="k">[T] Tipo de saída</span>
+Tabela "consulta | DuckDB | ClickHouse | tempo | igual?" no terminal
+e em docs/prompts.md, junto do prompt.
+
+<span class="k">[E] Extras</span>
+Leia AGENTS.md, specs/03_modelo_de_dados.md e o contrato silver no
+README do laboratório. Registre o prompt e pare.</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ponte 10 -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell" data-etapa="10">
+        <div>
+          <span class="deck-kicker">Etapa 10 &middot; Enquanto o agente trabalha</span>
+          <h2 class="deck-title">Do texto JSON a colunas tipadas</h2>
+          <p class="deck-summary">JSON cast é transformar o <code>data_json</code> em valores com tipo: texto, decimal, data. No bronze, ele é texto e o DuckDB interpreta a cada consulta; no ClickHouse, já é do tipo <code>JSON</code>. A teoria mostra os comandos de cada engine, quanto custam e onde o tipo pode trair.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item"><span class="etapa-rotulo">Teoria desta etapa</span><ol><li>JSON cast no DuckDB e no ClickHouse</li><li>Tempos com um milhão de linhas</li><li>O -03:00 e a inferência de datas</li><li>Silver de livros e PTAX</li></ol></div>
+            <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Na volta ao terminal</span><p>Mesmo resultado nas duas engines, com a diferença de arredondamento explicada; <code>DESCRIBE</code> do silver igual ao contrato.</p></div>
+          </div>
+          <div class="etapa-prompt">
+            <span class="etapa-rotulo">Trecho do prompt da Etapa 10</span>
+            <pre class="is-wrap etapa-pre"><code>Para cada consulta, diga qual função extrai o campo e em que momento
+o tipo é decidido.</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- JSON cast nas duas engines -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 10 &middot; Teoria &middot; Comandos</span>
+          <h2 class="deck-title">JSON cast no DuckDB e no ClickHouse</h2>
+          <p class="deck-summary">A mesma pergunta, preço médio por categoria, escrita nas duas engines. O DuckDB lê o texto do bronze no RustFS; o ClickHouse lê as subcolunas da tabela de pouso. Trechos de <code>sql/duckdb_cast.sql</code> e <code>sql/clickhouse_cast.sql</code>.</p>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa">
+            <span class="de-rotulo">DuckDB, sobre o Parquet do bronze</span>
+            <pre class="de-pre de-pre-largo"><code><span class="c">-- ->> devolve VARCHAR; o CAST dá o tipo</span>
+SELECT data_json -&gt;&gt; 'categoria' AS categoria,
+  avg(CAST(data_json -&gt;&gt; 'preco_gbp'
+           AS DECIMAL(10, 2))) AS preco_medio
+FROM read_parquet(
+  's3://bronze/ingestao/data_tag=livros/*/*.parquet',
+  hive_partitioning = true)
+GROUP BY ALL;
+
+<span class="c">-- estrutura declarada: STRUCT tipado</span>
+from_json(data_json, '{"categoria":"VARCHAR",
+  "preco_gbp":"DECIMAL(10,2)"}')</code></pre>
+          </div>
+          <div class="de-caixa">
+            <span class="de-rotulo">ClickHouse, sobre <code>ingestao.db_ingestion</code></span>
+            <pre class="de-pre de-pre-largo"><code><span class="c">-- caminho da subcoluna; o ::Tipo dá o tipo</span>
+SELECT data_json.categoria::String AS categoria,
+  avg(data_json.preco_gbp::Float64) AS preco_medio
+FROM ingestao.db_ingestion
+WHERE data_tag = 'livros'
+GROUP BY categoria;
+
+<span class="c">-- o tipo que o INSERT inferiu em cada caminho</span>
+SELECT DISTINCT arrayJoin(
+  JSONAllPathsWithTypes(data_json))
+FROM ingestao.db_ingestion
+WHERE data_tag = 'livros';</code></pre>
+          </div>
+        </div>
+        <p class="deck-note">O <code>WHERE data_tag = 'livros'</code> usa a primeira coluna do <code>ORDER BY</code>: o ClickHouse lê só os grânulos de livros.</p>
+      </div>
+    </div>
+
+    <!-- Tempos -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 10 &middot; Teoria &middot; Exemplo numérico</span>
+          <h2 class="deck-title">Tempos do JSON cast com um milhão de linhas</h2>
+          <p class="deck-summary">Preço médio por categoria, mediana de 5 execuções depois de uma de aquecimento, primeira rodada, com o Parquet no MinIO. A escala repete os 1.000 livros mil vezes, o que favorece a compressão.</p>
+        </div>
+        <table class="deck-table de-tabela de-num">
+          <thead><tr><th>Consulta</th><th>1.000 livros</th><th>1.000.000 de linhas</th></tr></thead>
+          <tbody>
+            <tr><td>DuckDB <code>-&gt;&gt;</code> com <code>CAST</code></td><td>3,8 ms</td><td>211 ms</td></tr>
+            <tr><td>DuckDB <code>json_extract_string</code> / <code>json_extract</code></td><td>3,9 ms</td><td>194 ms</td></tr>
+            <tr><td>DuckDB <code>from_json</code> com estrutura declarada</td><td>3,5 ms</td><td>130 ms</td></tr>
+            <tr><td>DuckDB sobre Parquet já tipado (silver)</td><td></td><td>7,5 ms</td></tr>
+            <tr><td>ClickHouse coluna do tipo <code>JSON</code> (a aula)</td><td></td><td>21 ms</td></tr>
+            <tr><td>ClickHouse coluna <code>JSON</code> com tipo declarado</td><td></td><td>16 ms</td></tr>
+            <tr><td>ClickHouse coluna <code>String</code>, <code>JSONExtractString</code> / <code>JSONExtractFloat</code></td><td>3,4 ms</td><td>146 ms</td></tr>
+            <tr><td>ClickHouse coluna <code>String</code>, <code>simpleJSONExtract*</code></td><td>4,6 ms</td><td>75 ms</td></tr>
+            <tr><td>ClickHouse coluna <code>String</code>, <code>CAST(data_json AS JSON)</code> na consulta</td><td>6,4 ms</td><td>957 ms</td></tr>
+          </tbody>
+        </table>
+        <p class="deck-note">Com mil livros, tudo responde em poucos milissegundos. Com um milhão, interpretar o texto a cada consulta custa caro (146 a 957 ms numa coluna <code>String</code>); ler subcolunas já separadas custa pouco (21 ms na coluna <code>JSON</code>, 7,5 ms no Parquet do silver). As linhas com <code>String</code> mostram o que a tabela de pouso evitou. Contra o bronze no RustFS, as consultas do <code>duckdb_cast.sql</code> rodaram em 7 a 90 ms com os dados reais; a mediana não foi refeita.</p>
+      </div>
+    </div>
+
+    <!-- -03:00 -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 10 &middot; Teoria &middot; Armadilha de tipo</span>
+          <h2 class="deck-title">O -03:00 e a inferência de datas</h2>
+          <p class="deck-summary">A coluna do tipo <code>JSON</code> infere o tipo de cada caminho na inserção. Para os livros, inferiu <code>avaliacao</code> Int64, <code>preco_gbp</code> Float64 e <code>em_estoque</code> Bool. Com a configuração padrão, inferiu <code>coletado_em</code> como DateTime, e isso custou o fuso.</p>
+        </div>
+        <div class="de-dois">
+          <div class="de-caixa">
+            <span class="de-rotulo">Inferência padrão do ClickHouse</span>
+            <pre class="de-pre"><code>enviado:  "2026-10-30T19:27:52-03:00"
+guardado: coletado_em  DateTime  2026-10-30 22:27:52</code></pre>
+            <p style="margin-top:8px;">Convertido para o fuso do servidor (UTC). O instante está certo, mas o <code>-03:00</code> sumiu, e quem lê não sabe mais em que fuso a coleta aconteceu.</p>
+          </div>
+          <div class="de-caixa is-forte">
+            <span class="de-rotulo">Como o consumidor insere</span>
+            <pre class="de-pre"><code>input_format_try_infer_dates     = 0
+input_format_try_infer_datetimes = 0
+guardado: coletado_em  String  2026-10-30T19:27:52-03:00</code></pre>
+            <p style="margin-top:8px;">Datas e horas ficam como texto, iguais ao raw e ao bronze. O silver as lê como <code>TIMESTAMPTZ</code>, com o deslocamento. As duas configurações estão em <code>referencia/src/clickhouse.py</code>.</p>
+          </div>
+        </div>
+        <div class="deck-callout"><strong>Float contra decimal na mesma pergunta</strong><p>Venda média dos boletins de Fechamento da PTAX: 6,95758 no DuckDB com <code>DECIMAL(12,5)</code>; 6,95757 no ClickHouse com <code>data_json.cotacaoVenda::Float64</code>, o tipo que o INSERT inferiu. O tipo escolhido no cast muda a quinta casa.</p></div>
+      </div>
+    </div>
+
+    <!-- Silver -->
+    <div class="slide">
+      <div class="deck-shell is-dense de-shell">
+        <div>
+          <span class="deck-kicker">Etapa 10 &middot; Teoria &middot; Silver</span>
+          <h2 class="deck-title">Silver de livros e PTAX</h2>
+          <p class="deck-summary">O silver de livros e PTAX mantém o contrato de colunas da Aula 03. Agora o DuckDB o grava a partir do bronze, e <code>arquivo_origem</code> passa a ser o Parquet do bronze de onde a linha veio.</p>
+        </div>
+        <table class="deck-table de-tabela">
+          <thead><tr><th>Arquivo</th><th>Colunas e tipos</th><th>Deduplicação</th></tr></thead>
+          <tbody>
+            <tr><td><code>s3://silver/livros/data_coleta=D/livros.parquet</code></td><td><code>upc</code>, <code>url</code>, <code>titulo</code>, <code>categoria</code>, <code>avaliacao</code> TINYINT, <code>preco_gbp</code> DECIMAL(10,2), <code>em_estoque</code> BOOLEAN, <code>qtd_estoque</code> INTEGER, <code>coletado_em</code> TIMESTAMPTZ, <code>arquivo_origem</code>, <code>processado_em</code></td><td>um por <code>upc</code>, a coleta mais recente</td></tr>
+            <tr><td><code>s3://silver/ptax/ptax.parquet</code></td><td><code>moeda</code>, <code>data_hora_cotacao</code> TIMESTAMP, <code>tipo_boletim</code>, <code>cotacao_compra</code> e <code>cotacao_venda</code> DECIMAL(12,5), <code>arquivo_origem</code>, <code>processado_em</code></td><td>um por moeda, data e hora e tipo de boletim</td></tr>
+          </tbody>
+        </table>
+        <div class="deck-callout"><strong>Conferido em 30/10/2026, lendo o bronze no RustFS</strong><p><code>--var DATA=2026-10-30</code>: 1.000 livros, 1.000 UPCs, preço de 10,00 a 59,99, nenhum sem <code>arquivo_origem</code>; 40 boletins PTAX, 5 por dia. <code>DESCRIBE</code> igual ao contrato. A deduplicação também absorve as linhas repetidas por reentrega.</p></div>
+      </div>
+    </div>
+
+    <!-- Pontos-chave JSON cast -->
+    <div class="slide">
+      <div class="deck-shell">
+        <div>
+          <span class="deck-kicker">Etapas 09 e 10 &middot; Pontos-chave</span>
+          <h2 class="deck-title">Pontos-chave: execução e JSON cast</h2>
+        </div>
+        <ol class="deck-steps">
+          <li>O gate compara linhas esperadas, não mensagens: um envelope de PTAX com 40 boletins vira 40 linhas.</li>
+          <li><code>kill -9</code> fora do flush não perde nem duplica; entre o manifesto e o ack, o lote repete em todas as camadas, com dois manifestos <code>ok</code>.</li>
+          <li>Com pouco tráfego, o tempo até consultável é <code>FLUSH_SEGUNDOS</code> mais a gravação.</li>
+          <li>Extrair do texto a cada consulta funciona com mil linhas e pesa com um milhão; colunas tipadas resolvem a leitura.</li>
+          <li>O tipo decidido no cast tem consequência: com a inferência de datas ligada, a coluna <code>JSON</code> perde o <code>-03:00</code>, e float e decimal divergem na quinta casa.</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- Mostrar o resultado: ingerir -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell">
+        <div>
+          <span class="deck-kicker">11h30 &middot; Mostrar o resultado &middot; 1 de 4</span>
+          <h2 class="deck-title">Ingerir o zip da aula</h2>
+          <p class="deck-summary">O zip do link Dados, no rodapé, traz a pasta <code>entrada/</code> com os três domínios. O professor descompacta e envia pelo contrato público; o mesmo script serve para o servidor de referência e para o do grupo.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Resultado esperado</span>
+              <table class="deck-table de-tabela de-num mostrar-tabela">
+                <thead><tr><th><code>data_tag</code></th><th>via</th><th>mensagens</th><th>linhas</th></tr></thead>
+                <tbody>
+                  <tr><td>livros</td><td>http</td><td>1000</td><td>1000</td></tr>
+                  <tr><td>ptax</td><td>fila</td><td>1</td><td>40</td></tr>
+                  <tr><td>telemetria</td><td>fila</td><td>31265</td><td>31265</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="etapa-item"><span class="etapa-rotulo">Medido em 30/10/2026</span><p>Livros em 1,91 s e telemetria em 11,41 s, com o consumidor gravando ao mesmo tempo. As contagens valem para um envio só: enviar duas vezes duplica as linhas.</p></div>
+          </div>
+          <div class="etapa-prompt">
+            <span class="etapa-rotulo">Terminal, na pasta do laboratório</span>
+            <button class="copy-button etapa-copiar" type="button">Copiar</button>
+            <pre class="etapa-pre etapa-pre-codigo"><code># com o .env, os serviços no ar e o venv ativo
+unzip -o dados/dados_aula_04.zip     # no Codespace, o zip baixado do rodapé; cria entrada/
+ls entrada/telemetria | wc -l        # 1920
+wc -l entrada/livros/livros.jsonl entrada/ptax/cotacoes.jsonl   # 1000 e 40
+
+# terminal 1: o servidor de referência (ou o do grupo)
+cd referencia &amp;&amp; python -m src.servidor
+
+# terminal 2, na pasta do laboratório
+python enviar_entrada.py             # livros por HTTP; PTAX e telemetria pela fila
+python enviar_entrada.py --so livros # um domínio só</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mostrar o resultado: ClickHouse -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell">
+        <div>
+          <span class="deck-kicker">11h30 &middot; Mostrar o resultado &middot; 2 de 4</span>
+          <h2 class="deck-title">ClickHouse: a tabela de ingestão</h2>
+          <p class="deck-summary">Sessão do <code>clickhouse-client</code> dentro do contêiner, na pasta do <code>docker-compose.yml</code>. Primeiro a conexão; depois, dentro da sessão, as consultas. Saia com <code>exit</code>.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Resultado esperado</span><ul><li><code>SHOW TABLES</code>: <code>db_ingestion</code></li><li><code>DESCRIBE</code>: <code>timestamp</code> UInt64, <code>data_json</code> JSON, <code>data_tag</code> LowCardinality(String)</li><li>contagem: <code>livros 1000</code>, <code>ptax 40</code>, <code>telemetria 31265</code></li><li>mais caro: The Perfect Play (Play by Play #1), Romance, 59.99</li></ul></div>
+            <div class="etapa-item"><span class="etapa-rotulo">Ao ler a saída</span><p>No <code>FORMAT Vertical</code>, o <code>-- 1.79 trillion</code> ao lado do <code>timestamp</code> é um comentário do cliente 26.8 e não faz parte do dado. Em <code>/play</code>, usuário <code>ingestao</code> e senha <code>ingestao123</code>; a página responde, mas o login nela não foi testado na preparação.</p></div>
+          </div>
+          <div class="mostrar-col">
+            <div class="etapa-prompt">
+              <span class="etapa-rotulo">1. Conectar</span>
+              <button class="copy-button etapa-copiar" type="button">Copiar</button>
+              <pre class="etapa-pre etapa-pre-codigo is-curto"><code>set -a; source .env; set +a
+docker compose exec clickhouse clickhouse-client \
+  --user "$CLICKHOUSE_USER" --password "$CLICKHOUSE_PASSWORD" --database ingestao
+# no navegador: http://localhost:8123/play</code></pre>
+            </div>
+            <div class="etapa-prompt">
+              <span class="etapa-rotulo">2. Dentro da sessão</span>
+              <button class="copy-button etapa-copiar" type="button">Copiar</button>
+              <pre class="etapa-pre etapa-pre-codigo is-medio"><code>SHOW TABLES;
+DESCRIBE db_ingestion;
+
+SELECT data_tag, count() AS linhas
+FROM db_ingestion
+GROUP BY data_tag
+ORDER BY data_tag;
+
+SELECT timestamp,
+       fromUnixTimestamp64Milli(toInt64(timestamp), 'America/Sao_Paulo') AS recebido_em,
+       data_tag, data_json
+FROM db_ingestion WHERE data_tag = 'livros' ORDER BY timestamp LIMIT 5
+FORMAT Vertical;
+
+SELECT * FROM db_ingestion WHERE data_tag = 'ptax' ORDER BY timestamp LIMIT 5 FORMAT Vertical;
+
+SELECT * FROM db_ingestion WHERE data_tag = 'telemetria' ORDER BY timestamp LIMIT 5 FORMAT Vertical;
+
+SELECT data_json.titulo::String     AS titulo,
+       data_json.categoria::String  AS categoria,
+       data_json.preco_gbp::Float64 AS preco_gbp
+FROM db_ingestion
+WHERE data_tag = 'livros'
+ORDER BY preco_gbp DESC
+LIMIT 5;</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mostrar o resultado: RustFS -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell">
+        <div>
+          <span class="deck-kicker">11h30 &middot; Mostrar o resultado &middot; 3 de 4</span>
+          <h2 class="deck-title">RustFS: o lake no console e no mc</h2>
+          <p class="deck-summary">Console em <code>http://localhost:9001/rustfs/console/</code>, login <code>admin</code> / <code>admin123</code>; a raiz <code>:9001/</code> responde 403. No terminal, o <code>mc</code> do compose lista a árvore da Aula 03 e abre um manifesto.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Resultado esperado</span><ul><li>console: <code>raw</code>, <code>bronze</code>, <code>silver</code>, <code>gold</code> e <code>teste</code> com a contagem de objetos, interface em português ("Baldes")</li><li><code>tree</code>: <code>data_tag=X/data=2026-10-30/</code> no raw e no bronze; 65 manifestos</li><li><code>du</code>: raw 7,4 MiB, bronze 685 KiB, manifestos 84 KiB</li><li>manifesto: <code>"status": "ok"</code>, mensagens, linhas, chave, bytes e <code>sha256</code> de cada arquivo, <code>tempos_ms</code></li><li><code>stat</code>: <code>X-Amz-Meta-Sha256</code> e <code>X-Amz-Meta-Lote</code></li></ul></div>
+          </div>
+          <div class="etapa-prompt">
+            <span class="etapa-rotulo">Terminal, na pasta do <code>docker-compose.yml</code></span>
+            <button class="copy-button etapa-copiar" type="button">Copiar</button>
+            <pre class="etapa-pre etapa-pre-codigo"><code># console: http://localhost:9001/rustfs/console/  (admin / admin123)
+docker compose run --rm mc ls lake                            # os cinco buckets
+docker compose run --rm mc tree --files lake/raw/ingestao
+docker compose run --rm mc tree --files lake/bronze
+docker compose run --rm mc tree --files lake/raw/_manifestos
+docker compose run --rm mc tree --files lake/silver
+docker compose run --rm mc du --depth 2 lake/raw lake/bronze  # bytes por prefixo
+
+# abrir um manifesto: copie uma chave da listagem
+docker compose run --rm mc ls --recursive lake/raw/_manifestos/ingestao/
+docker compose run --rm mc cat lake/raw/_manifestos/ingestao/data=AAAA-MM-DD/lote_HHMMSS_xxxxxxxx.json
+docker compose run --rm mc stat lake/bronze/ingestao/data_tag=ptax/data=AAAA-MM-DD/lote_HHMMSS_xxxxxxxx.parquet
+
+# resumo de raw, bronze e manifestos (consultas 1, 1a e 1b)
+python sql/rodar_sql.py sql/duckdb_cast.sql</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mostrar o resultado: portas -->
+    <div class="slide">
+      <div class="deck-shell is-dense etapa-shell">
+        <div>
+          <span class="deck-kicker">11h30 &middot; Mostrar o resultado &middot; 4 de 4</span>
+          <h2 class="deck-title">Portas para encaminhar no Codespaces</h2>
+          <p class="deck-summary">No terminal do Codespace, os comandos anteriores usam <code>localhost</code> sem nada a configurar. Só o que abre no navegador precisa de porta encaminhada, na aba Ports.</p>
+        </div>
+        <div class="etapa-grid">
+          <div class="etapa-lado">
+            <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Encaminhar</span>
+              <table class="deck-table de-tabela mostrar-tabela">
+                <thead><tr><th>Porta</th><th>Serviço</th><th>Caminho</th></tr></thead>
+                <tbody>
+                  <tr><td>9001</td><td>console do RustFS</td><td><code>/rustfs/console/</code></td></tr>
+                  <tr><td>8123</td><td>ClickHouse HTTP</td><td><code>/play</code></td></tr>
+                  <tr><td>15672</td><td>console do RabbitMQ</td><td>raiz</td></tr>
+                  <tr><td>8000</td><td>API de ingestão</td><td><code>/docs</code></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="etapa-item"><span class="etapa-rotulo">Não precisam</span><p>9000 (API S3) e 5672 (AMQP): só o servidor e os scripts, dentro do Codespace, falam com elas. Localmente, o console do RustFS só fez requisições à 9001. O acesso pelas URLs encaminhadas não foi testado na preparação.</p></div>
+          </div>
+          <div class="etapa-prompt">
+            <span class="etapa-rotulo">Endereços e logins locais</span>
+            <button class="copy-button etapa-copiar" type="button">Copiar</button>
+            <pre class="etapa-pre etapa-pre-codigo"><code># no notebook; no Codespace, troque http://localhost:PORTA pela URL encaminhada
+http://localhost:9001/rustfs/console/   # RustFS, admin / admin123
+http://localhost:8123/play              # ClickHouse, ingestao / ingestao123
+http://localhost:15672                  # RabbitMQ, ingestao / ingestao123
+http://localhost:8000/docs              # API de ingestão (FastAPI)</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fechamento -->
+    <div class="slide">
+      <div class="deck-shell is-dense">
+        <div>
+          <span class="deck-kicker">Fechamento &middot; 12h00</span>
+          <h2 class="deck-title">O que existe às 12h10 e o que fica para a semana</h2>
+          <p class="deck-summary">O professor percorre as etapas ao vivo e a turma reproduz até onde der.</p>
+        </div>
+        <div class="deck-columns">
+          <div class="deck-panel">
+            <strong>Em sala, até 12h10</strong>
+            <ul>
+              <li>Etapa 00: RustFS, RabbitMQ e ClickHouse no ar, tabela criada</li>
+              <li>Etapas 01 a 06 revisadas, do contrato aos testes vermelhos</li>
+              <li>Etapas 07 a 10 até onde o tempo permitir</li>
+            </ul>
+          </div>
+          <div class="deck-panel">
+            <strong>Na semana, até a Aula 05 (07/11)</strong>
+            <ul>
+              <li>Etapas 07 a 10, gate de contagens e teste de queda</li>
+              <li><code>docs/atam.md</code>: ClickHouse ou RustFS fora, queda antes do ack, 10 vezes o volume, payload que muda, tag nova</li>
+              <li>Railway: o trial permite 5 serviços; o MinIO que o grupo já tem lá, RabbitMQ, ClickHouse e o servidor somam 4.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Entrega -->
+    <div class="slide">
+      <div class="deck-shell">
+        <div>
+          <span class="deck-kicker">Entrega &middot; repositório do grupo</span>
+          <h2 class="deck-title">Pasta <code>aula_04_ingestao/</code></h2>
+          <p class="deck-summary">A correção segue <code>docs/prompts.md</code>: cada etapa com o prompt literal, os arquivos gerados e, na Etapa 09, os números do grupo.</p>
+        </div>
+        <div class="deck-grid agenda-3 entrega-4">
+          <article class="deck-card"><h3>Contexto e contrato</h3><p><code>docs/</code>: prompts, persona e objetivos. <code>specs/</code>: contrato do envelope, exemplos, requisitos e modelo de dados.</p></article>
+          <article class="deck-card"><h3>Decisões</h3><p><code>docs/arquitetura.md</code> com componentes e sequências em Mermaid e as cinco ADRs em Proposta.</p></article>
+          <article class="deck-card"><h3>Código</h3><p><code>plan.md</code>, <code>tasks.md</code>, <code>src/</code> rodando e <code>tests/</code> passando, inclusive a integração.</p></article>
+          <article class="deck-card"><h3>Execução e semana</h3><p>Gate de contagens, teste de queda, JSON cast, silver, <code>atam.md</code> e os serviços no Railway.</p></article>
+        </div>
+      </div>
+    </div>
+
+  
+<!-- encontro:meta:start -->
+<div class="slide encontro-slide"><div class="sc"><section class="encontro-meta" data-encontro-ficha><h2>Sobre este encontro</h2><p class="encontro-ref">Data Collection and Storage · Aula 04 · 31/10/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>Ao final do encontro, o estudante deve ser capaz de construir um servidor de ingestão com fila no RabbitMQ, raw e bronze no RustFS com DuckDB e tabela de pouso no ClickHouse, com contrato de envelope e entrega pelo menos uma vez.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>Demonstração prática completa: a teoria ocupa a primeira parte do encontro e, em seguida, o professor constrói o projeto ao vivo enquanto cada aluno reproduz o mesmo caminho no próprio repositório, com o agente de código guiado pelo AGENTS.md e prompts no formato CREATE.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol><li>Onde as Aulas 02 e 03 nos deixaram e o problema de hoje</li><li>A arquitetura inteira e as justificativas</li><li>Etapa 00 · Preparação do ambiente</li><li>Etapa 01 · Persona e objetivos</li><li>Etapa 02 · Contrato do envelope</li><li>Etapa 03 · Requisitos</li><li>Etapa 04 · Modelo de dados</li><li>Etapa 05 · Arquitetura e ADRs</li><li>Etapa 06 · Plano, tarefas e testes vermelhos</li><li>Etapa 07 · Código: contrato e API</li><li>Etapa 08 · Código: consumidor e gravadores</li><li>Etapa 09 · Produtores, execução e teste de queda</li></ol></div></section></div></div>
+<!-- encontro:meta:end -->
+</div>
+
+  <img class="slide-logo-mini" src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli">
+
+  <div class="slide-footer">
+    <div class="footer-links">
+      <a href="../../../index.html" class="back-home">Início</a>
+      <a href="../../home-data-collection.html" class="back-home">Data Collection</a>
+      <a href="../materials/lesson-4-material.html" class="material-link">Material</a>
+      <a href="../laboratorio/lesson-4/README.md" class="material-link">Laboratório</a>
+      <a href="../laboratorio/lesson-4/dados/dados_aula_04.zip" class="material-link" download>Dados</a>
+    </div>
+    <div class="nav-wrapper">
+      <div class="nav-buttons"><button id="prev-btn" onclick="previousSlide()">&#8592; Anterior</button></div>
+      <div class="slide-counter"><span id="current-slide">1</span> / <span id="total-slides">1</span></div>
+      <div class="nav-buttons"><button id="next-btn" onclick="nextSlide()">Próximo &#8594;</button></div>
+    </div>
+    <button class="fullscreen-btn" onclick="toggleFullScreen()" title="Tela cheia">&#9974;</button>
+  </div>
+
+  <script>
+    let currentSlide = 0;
+    const slides = document.querySelectorAll(".slide");
+    const totalSlides = slides.length;
+    document.getElementById("total-slides").textContent = totalSlides;
+
+    function showSlide(index) {
+      slides.forEach(slide => slide.classList.remove("active"));
+      slides[index].classList.add("active");
+      currentSlide = index;
+      document.getElementById("current-slide").textContent = currentSlide + 1;
+      document.getElementById("prev-btn").disabled = currentSlide === 0;
+      document.getElementById("next-btn").disabled = currentSlide === totalSlides - 1;
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides - 1) showSlide(currentSlide + 1);
+    }
+
+    function previousSlide() {
+      if (currentSlide > 0) showSlide(currentSlide - 1);
+    }
+
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+
+    document.addEventListener("keydown", event => {
+      if (event.key === "ArrowRight" || event.key === " ") {
+        event.preventDefault();
+        nextSlide();
+      }
+      if (event.key === "ArrowLeft") previousSlide();
+      if (event.key.toLowerCase() === "f") toggleFullScreen();
+    });
+
+    showSlide(0);
+  </script>
+  <script>
+    /* Construção em etapas: trilha de progresso (00 a 10) e botão de copiar o prompt. */
+    (function () {
+      const TOTAL = 11;
+      document.querySelectorAll(".etapa-shell[data-etapa]").forEach(shell => {
+        const atual = parseInt(shell.dataset.etapa, 10);
+        const ol = document.createElement("ol");
+        ol.className = "etapa-trilha";
+        ol.setAttribute("aria-label", "Etapa " + shell.dataset.etapa + " de 10");
+        for (let i = 0; i < TOTAL; i++) {
+          const li = document.createElement("li");
+          li.textContent = String(i).padStart(2, "0");
+          if (i < atual) li.className = "is-done";
+          if (i === atual) li.className = "is-current";
+          ol.appendChild(li);
+        }
+        shell.prepend(ol);
+      });
+
+      document.querySelectorAll(".etapa-copiar").forEach(botao => {
+        botao.addEventListener("click", event => {
+          event.stopPropagation();
+          const pre = botao.parentElement.querySelector("pre");
+          const texto = pre ? pre.innerText : "";
+          const ok = () => {
+            botao.textContent = "Copiado";
+            botao.classList.add("is-ok");
+            setTimeout(() => { botao.textContent = "Copiar"; botao.classList.remove("is-ok"); }, 1600);
+          };
+          if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(texto).then(ok, () => {});
+          } else {
+            const area = document.createElement("textarea");
+            area.value = texto;
+            document.body.appendChild(area);
+            area.select();
+            try { document.execCommand("copy"); ok(); } catch (e) { /* sem área de transferência */ }
+            area.remove();
+          }
+        });
+      });
+    })();
+  </script>
+<!-- semana:js:start -->
+<script src="../../../js/semana-ano.js" defer></script>
+<!-- semana:js:end -->
+</body>
+</html>

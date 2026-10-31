@@ -1,0 +1,60 @@
+# Aula 06 - Streaming com RabbitMQ e ClickHouse
+# Infraestrutura local do mini projeto IoT. Os tres processos Python
+# (simulador, transformador, armazenador) rodam fora do compose durante a aula.
+#
+# Uso:
+#   cp .env.example .env        # e troque as senhas
+#   docker compose up -d
+#   docker compose ps           # aguarde os dois servicos ficarem "healthy"
+#   docker compose down -v      # derruba e apaga os volumes
+
+name: aula06_streaming_iot
+
+services:
+  rabbitmq:
+    image: rabbitmq:4.3.6-management
+    hostname: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-iot}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?defina RABBITMQ_PASSWORD no .env}
+    ports:
+      - "5672:5672"     # AMQP 0-9-1 (pika)
+      - "15672:15672"   # console de gerenciamento (http://localhost:15672)
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 6
+      start_period: 20s
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:26.8.15.10
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-iot}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-iot}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?defina CLICKHOUSE_PASSWORD no .env}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    ports:
+      - "8123:8123"     # interface HTTP (clickhouse-connect e curl)
+    # A porta nativa 9000 não é publicada de propósito: o MinIO das Aulas 02-04
+    # usa 9000 no host. Para o clickhouse-client, use
+    #   docker compose exec clickhouse clickhouse-client --user iot --password ...
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - ./sql:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+volumes:
+  rabbitmq_data:
+  clickhouse_data:

@@ -1,0 +1,107 @@
+# Aula 04 · Infraestrutura local do servidor de ingestão.
+# RustFS (lake, API S3), RabbitMQ (fila) e ClickHouse (tabela de pouso).
+# O servidor de ingestão (API + consumidor) roda fora do compose, no venv.
+#
+# Uso:
+#   cp .env.example .env                                    # padrões só para uso local
+#   docker compose up -d                                    # sobe tudo e cria os buckets
+#   docker compose up -d --wait rustfs rabbitmq clickhouse  # espera os três ficarem healthy
+#   docker compose down -v                                  # derruba e apaga os volumes
+# O --wait sem nomes devolve erro porque o rustfs-init termina depois de criar os buckets.
+
+name: aula04_ingestao
+
+services:
+  rustfs:
+    image: rustfs/rustfs:1.0.4
+    environment:
+      RUSTFS_ACCESS_KEY: ${S3_ACCESS_KEY:?defina S3_ACCESS_KEY no .env}
+      RUSTFS_SECRET_KEY: ${S3_SECRET_KEY:?defina S3_SECRET_KEY no .env}
+      RUSTFS_ADDRESS: ":9000"            # API S3
+      RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_CONSOLE_ADDRESS: ":9001"    # console web em /rustfs/console/
+    ports:
+      - "${RUSTFS_API_PORT:-9000}:9000"      # API S3 (boto3, DuckDB, mc)
+      - "${RUSTFS_CONSOLE_PORT:-9001}:9001"  # console: http://localhost:9001/rustfs/console/
+    volumes:
+      - rustfs_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9000/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # Cria os buckets uma vez e termina. "teste" é só para os testes automatizados.
+  # O cliente é o mc, que vem na imagem do MinIO e fala S3 com qualquer servidor compatível.
+  rustfs-init:
+    image: ghcr.io/coollabsio/minio:RELEASE.2025-10-15T17-29-55Z
+    depends_on:
+      rustfs:
+        condition: service_healthy
+    environment:
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+    entrypoint: >
+      sh -c "mc alias set lake http://rustfs:9000 \"$$S3_ACCESS_KEY\" \"$$S3_SECRET_KEY\" >/dev/null &&
+             mc mb --ignore-existing lake/raw lake/bronze lake/silver lake/gold lake/teste &&
+             mc ls lake"
+    restart: "no"
+
+  # Cliente mc para olhar o lake. Não sobe com o "up"; use:
+  #   docker compose run --rm mc tree --files lake/raw
+  #   docker compose run --rm mc ls --recursive lake/bronze
+  mc:
+    image: ghcr.io/coollabsio/minio:RELEASE.2025-10-15T17-29-55Z
+    profiles: ["ferramentas"]
+    environment:
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+    entrypoint: ["sh", "-c", 'mc alias set lake http://rustfs:9000 "$$S3_ACCESS_KEY" "$$S3_SECRET_KEY" >/dev/null && exec mc "$$@"', "mc"]
+
+  rabbitmq:
+    image: rabbitmq:4.3.6-management
+    hostname: rabbitmq   # nome fixo: o RabbitMQ guarda os dados por nome de nó
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-ingestao}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?defina RABBITMQ_PASSWORD no .env}
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"        # AMQP 0-9-1 (pika)
+      - "${RABBITMQ_UI_PORT:-15672}:15672"   # console (http://localhost:15672)
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 6
+      start_period: 20s
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:26.8.15.10
+    environment:
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-ingestao}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?defina CLICKHOUSE_PASSWORD no .env}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    ports:
+      - "${CLICKHOUSE_HTTP_PORT:-8123}:8123"   # HTTP (clickhouse-connect e curl)
+    # A porta nativa 9000 não é publicada: o RustFS já usa 9000 no host.
+    # Para o cliente de linha de comando: docker compose exec clickhouse clickhouse-client
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      # só o DDL: roda uma vez, na primeira subida com volume vazio
+      - ./sql/001_db_ingestion.sql:/docker-entrypoint-initdb.d/001_db_ingestion.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+volumes:
+  rustfs_data:
+  rabbitmq_data:
+  clickhouse_data:

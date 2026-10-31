@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗄️</text></svg>">
+  <title>Material Aula 02 — Tipos de Storage e Coleta em Object Storage com MinIO</title>
+  <link rel="stylesheet" href="../css/dc-styles.css">
+
+<!-- encontro:css:start -->
+<link rel="stylesheet" href="../../../css/encontro.css">
+<!-- encontro:css:end -->
+
+<!-- semana:css:start -->
+<link rel="stylesheet" href="../../../css/semana-ano.css">
+<!-- semana:css:end -->
+</head>
+<body>
+  <main class="page">
+    <div class="material-nav">
+      <a href="../../../index.html">&larr; Início</a>
+      <a href="../../home-data-collection.html">&larr; Data Collection &amp; Storage</a>
+      <a href="../laboratorio/lesson-2/README.md">Roteiro do laboratório</a>
+      <a href="../slides/slide-lesson-2.html">Ver Slide &rarr;</a>
+    </div>
+
+    <header class="hero">
+      <img class="logo-full" src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli">
+      <span class="kicker">Data Collection and Storage &middot; Inteli</span>
+      <h1>Aula 02 — Tipos de Storage e Coleta em Object Storage com MinIO</h1>
+      <p class="meta">Aula 02 &middot; 17/10/2026 &middot; Sábado &middot; 8h30 &ndash; 12h10</p>
+      <p class="summary">As duas primeiras horas comparam os tipos de armazenamento (bloco, arquivo, objeto, bancos relacionais, chave-valor e documento, colunar), explicam como o object storage funciona por dentro, usam a telemetria de caminhões em TXT para justificar o MinIO e separar storage, data lake, lakehouse e data warehouse, e medem, com números da preparação da aula, o que cada decisão custa. O caso condutor de toda a aula é a telemetria de caminhões de uma transportadora fictícia: tacógrafo, GPS e rádio chegando por satélite em lotes TXT sem formato fixo. O restante da aula constrói ao vivo, em Spec-Driven Development, o coletor que tira cada lote da pasta de pouso e o grava sem alterar um byte no bucket <code>raw</code> do MinIO, primeiro no MinIO local e depois no MinIO publicado no Railway na Aula 01.</p>
+    </header>
+<!-- encontro:meta:start -->
+<div class="container" style="max-width:1100px;margin:24px auto 0;padding:0 16px;"><section class="encontro-meta" data-encontro-ficha><h2>Sobre este encontro</h2><p class="encontro-ref">Data Collection and Storage · Aula 02 · 17/10/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>Ao final do encontro, o estudante deve ser capaz de comparar os tipos de storage e seus trade-offs, distinguir storage, data lake, lakehouse e data warehouse e construir um coletor que grava lotes de telemetria no MinIO com chave particionada e idempotência.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>Demonstração prática completa: a teoria ocupa a primeira parte do encontro e, em seguida, o professor constrói o projeto ao vivo enquanto cada aluno reproduz o mesmo caminho no próprio repositório, com o agente de código guiado pelo AGENTS.md e prompts no formato CREATE.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol><li>Onde a Aula 01 nos deixou</li><li>Coleta e armazenamento como decisão arquitetural</li><li>Tipos de storage e seus trade-offs</li><li>Object storage por dentro</li><li>Do arquivo bruto ao data lake: storage, esquema e arquiteturas</li><li>Camada raw dos lotes de telemetria: chave, bytes, idempotência e procedência</li><li>A fonte da aula: o provedor por satélite e o gerador de lotes</li><li>Preparação do ambiente</li><li>O projeto da aula em SDD</li><li>Os sete prompts CREATE</li><li>Execução e verificação no MinIO local</li><li>Execução contra o MinIO do Railway</li></ol></div></section></div>
+<!-- encontro:meta:end -->
+
+
+    <article class="material">
+
+      <section class="content-block" id="sumario">
+        <h2>Sumário</h2>
+        <ol>
+          <li><a href="#s1">Onde a Aula 01 nos deixou</a></li>
+          <li><a href="#s2">Coleta e armazenamento como decisão arquitetural</a></li>
+          <li><a href="#s3">Tipos de storage e seus trade-offs</a></li>
+          <li><a href="#s4">Object storage por dentro</a></li>
+          <li><a href="#s5">Do arquivo bruto ao data lake: storage, esquema e arquiteturas</a></li>
+          <li><a href="#s6">Camada raw dos lotes de telemetria: chave, bytes, idempotência e procedência</a></li>
+          <li><a href="#s7">A fonte da aula: o provedor por satélite e o gerador de lotes</a></li>
+          <li><a href="#s8">Preparação do ambiente</a></li>
+          <li><a href="#s9">O projeto da aula em SDD</a></li>
+          <li><a href="#s10">Os sete prompts CREATE</a></li>
+          <li><a href="#s11">Execução e verificação no MinIO local</a></li>
+          <li><a href="#s12">Execução contra o MinIO do Railway</a></li>
+          <li><a href="#s13">Exemplo resolvido: cenário, ADR e rastreabilidade</a></li>
+          <li><a href="#s14">Erros comuns</a></li>
+          <li><a href="#s15">Atividade em sala e entregável</a></li>
+        </ol>
+      </section>
+
+      <!-- 1 -->
+      <section class="content-block" id="s1">
+        <h2>1. Onde a Aula 01 nos deixou</h2>
+        <p>A Aula 01 definiu o método e o ambiente que esta aula usa sem repetir. O método é o Spec-Driven Development: antes de qualquer código, o grupo escreve persona, objetivos de negócio, especificação, plano e tarefas; só então implementa, tarefa a tarefa e com testes, e fecha com uma validação ATAM que confronta a arquitetura com cenários de qualidade. Todo pedido ao agente segue o formato CREATE, com as seções <code>[C] Personagem</code>, <code>[R] Pedido</code>, <code>[E] Exemplos</code>, <code>[A] Ajustes</code>, <code>[T] Tipo de saída</code> e <code>[E] Extras</code>.</p>
+        <p>O ambiente também já existe: um Codespace aberto no repositório do grupo, um agente de código de preferência do grupo no terminal (Claude Code, Codex CLI, Gemini CLI, OpenCode ou outro) e um MinIO publicado no Railway, com volume em <code>/data</code> e domínio público para a porta 9000 (a API compatível com S3). Se algum desses itens faltar, volte ao <a href="../materials/lesson-1-material.html">material da Aula 01</a> antes de continuar.</p>
+        <div class="note">
+          <strong>Resultado esperado ao fim da aula</strong>
+          <p>Uma pasta <code>aula_02_coleta_telemetria/</code> no repositório do grupo com o esqueleto SDD preenchido, um coletor em Python com testes passando, os lotes TXT gravados no bucket <code>raw</code> do MinIO do Railway com chaves particionadas, metadados de procedência e manifesto, e um <code>docs/atam.md</code> com cenários e evidências.</p>
+        </div>
+        <h3>1.1 Agenda</h3>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Horário</th><th>Bloco</th><th>Conteúdo</th></tr></thead>
+          <tbody>
+            <tr><td>8h30 &ndash; 8h50</td><td>Teoria 1</td><td>Coleta e armazenamento como decisão arquitetural; os ingredientes de qualquer storage; quanto o bucket cresce (seção 2).</td></tr>
+            <tr><td>8h50 &ndash; 9h15</td><td>Teoria 2</td><td>Tipos de storage por unidade de acesso, trade-offs e latência medida (seção 3).</td></tr>
+            <tr><td>9h15 &ndash; 9h40</td><td>Teoria 3</td><td>Object storage por dentro: chaves, listagem, metadados, consistência, versionamento (seção 4).</td></tr>
+            <tr><td>9h40 &ndash; 10h10</td><td>Teoria 4</td><td>O lote TXT por dentro: file contra object storage, por que MinIO, storage e data lake, schema on read e on write, lake, lakehouse e warehouse (seção 5).</td></tr>
+            <tr><td>10h10 &ndash; 10h30</td><td>Teoria 5</td><td>Camada raw dos lotes de telemetria: chave pela janela em UTC, bytes preservados, idempotência, procedência e manifesto; o provedor e o gerador da aula (seções 6 e 7).</td></tr>
+            <tr><td>10h30 &ndash; 11h30</td><td>Prática em SDD</td><td>Ambiente e prompts 1 a 5 revisados, acompanhando a demonstração (seções 8 a 11).</td></tr>
+            <tr><td>11h30 &ndash; 12h00</td><td>Discussão em sala</td><td>Três decisões sobre a arquitetura com MinIO montada na demonstração (seção 15.1).</td></tr>
+            <tr><td>12h00 &ndash; 12h10</td><td>Fechamento</td><td>Conferência do que existe às 12h10 e do que fica para a semana (seção 15).</td></tr>
+          </tbody>
+        </table></div>
+        <p>A teoria ocupa duas horas porque as decisões desta aula (tipo de storage, chave, formato, idempotência, procedência) são as que as Aulas 03 e 04 herdam, e todas elas dependem de separar um storage de um data lake. Depois da teoria restam 1h40: uma hora de prática, que termina em sala com os prompts 1 a 5 revisados, 30 minutos de discussão das decisões e 10 minutos de fechamento. O restante do laboratório segue durante a semana, como a seção 15 detalha.</p>
+      </section>
+
+      <!-- 2 -->
+      <section class="content-block" id="s2">
+        <h2>2. Coleta e armazenamento como decisão arquitetural</h2>
+        <p>Um script que copia arquivos de uma pasta para um bucket parece uma tarefa pequena. A dificuldade aparece meses depois, quando o jurídico pergunta o que o tacógrafo do caminhão CAM-3126 registrou às 9h41 de 17/10/2026, ou por que existem duas versões do mesmo lote, ou quanto o armazenamento vai custar no fim do semestre. As respostas dependem de decisões tomadas no primeiro dia: onde o dado fica, com que nome, em que formato, com que informações sobre sua origem e o que acontece quando o coletor roda duas vezes.</p>
+        <p>Essas decisões são arquiteturais no sentido usado na Aula 01: são caras de mudar depois, afetam atributos de qualidade (confiabilidade, rastreabilidade, custo, segurança) e precisam ser justificadas por requisitos. Trocar o formato de chave de um bucket com milhões de objetos exige reescrever todos eles. Gravar sem metadados de coleta torna impossível, depois, separar um dado correto de um dado coletado por uma versão defeituosa do coletor.</p>
+        <p>Por isso a aula começa pelos tipos de armazenamento. O object storage é a escolha da camada bruta nesta disciplina, mas essa escolha só fica defensável quando comparada com as alternativas e com os trabalhos que cada uma faz bem.</p>
+
+        <h3>2.1 O cenário condutor da aula</h3>
+        <p>Toda a teoria desta aula é medida contra um caso único, o mesmo que a prática constrói. Uma transportadora fictícia opera caminhões pelas rodovias brasileiras, e cada caminhão leva um equipamento embarcado que registra o tacógrafo (velocidade, tempo de direção contínua, paradas), a posição do GPS e as mensagens trocadas por rádio com a central. Como boa parte das estradas não tem cobertura celular, os dados seguem por satélite até um provedor de rastreamento, que entrega à transportadora, para cada caminhão, um lote de texto a cada 15 minutos numa pasta SFTP. O provedor não guarda histórico: o lote que a transportadora não gravou não volta.</p>
+        <p>O valor desse lote é jurídico antes de ser analítico. A Lei 13.103/2015 limita a direção contínua do motorista profissional a 5h30 sem pausa, e o lote traz a linha de alerta do tacógrafo quando o limite é ultrapassado. Numa fiscalização ou num processo trabalhista, meses depois, a transportadora precisa mostrar o que o tacógrafo registrou naquela janela, e mostrar que o arquivo não foi alterado desde que chegou. Quem não gravou o lote original não tem o que mostrar. A seção 5 abre o conteúdo do lote, e a seção 7 descreve o gerador que simula o provedor no laboratório.</p>
+        <p>Dois números vão reaparecer em todos os exemplos numéricos que seguem. Na preparação da aula, em 16/10/2026, 1.920 lotes produzidos pelo gerador (20 caminhões durante 24 horas) tiveram em média 1.018 bytes, entre 917 e 1.169, com 16,3 linhas por lote. E a frota da aula, 20 caminhões com quatro lotes por hora cada, gera 80 lotes por hora e 1.920 por dia.</p>
+
+        <h3>2.2 Os ingredientes de qualquer armazenamento</h3>
+        <p>Antes de comparar tipos de storage, convém olhar do que todos eles são feitos. Qualquer sistema de armazenamento combina quatro ingredientes, e a diferença entre os tipos está na forma de combiná-los.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Ingrediente</th><th>O que faz</th><th>Onde aparece no projeto da aula</th></tr></thead>
+          <tbody>
+            <tr><td>Mídia física</td><td>Memória RAM, SSD, disco magnético. Cada degrau abaixo é mais barato por byte e mais lento por acesso, em ordens de grandeza.</td><td>O volume do Railway montado em <code>/data</code>; o disco do Codespace.</td></tr>
+            <tr><td>Rede</td><td>Qualquer acesso que atravessa a rede paga, no mínimo, uma ida e volta; cada requisição HTTP paga também cabeçalhos, assinatura e, no Railway, o proxy.</td><td>Cada <code>PUT</code> e <code>HEAD</code> do coletor; o 502 esporádico do proxy.</td></tr>
+            <tr><td>Serialização</td><td>Forma como o dado vira bytes: texto (JSON, CSV) ou binário (Parquet, Avro). Define tamanho, legibilidade e esquema.</td><td>O lote TXT gravado tal como chegou; o manifesto em JSON Lines; o Parquet da Aula 04.</td></tr>
+            <tr><td>Compressão e codificação</td><td>Reduz bytes em troca de CPU. Depende da serialização: texto repetitivo comprime bem; valores de uma mesma coluna comprimem ainda melhor.</td><td>Sem compressão na raw desta aula; compressão colunar na Aula 04.</td></tr>
+          </tbody>
+        </table></div>
+        <p>Dois conceitos atravessam a tabela. O primeiro é a distinção entre acesso sequencial e acesso aleatório: ler um bloco contíguo é barato em qualquer mídia; buscar um registro isolado custa uma operação inteira, e numa mídia de rede custa uma requisição inteira. O segundo é a separação entre armazenamento e computação: quando o dado fica num serviço de objetos e o processamento roda em outra máquina, cada lado escala e é cobrado por conta própria. É essa separação que permite ao coletor de hoje, ao DuckDB da Aula 04 e ao ClickHouse da Aula 06 lerem o mesmo bucket sem copiar o dado.</p>
+
+        <h3>2.3 Exemplo numérico: quanto o bucket cresce</h3>
+        <div class="note">
+          <strong>Exemplo numérico 1. Crescimento da camada raw</strong>
+          <p>Com 1.018 bytes por lote e 1.920 lotes por dia, a raw recebe 1.955.463 bytes por dia, cerca de 2,0 MB. Em 30 dias são 57.600 objetos e 58,7 MB; até a Aula 08 (05/12/2026, 49 dias depois de 17/10) são 94.080 objetos e 95,8 MB; em um ano, 700.800 objetos e 714 MB.</p>
+          <p>O espaço em disco é outra história. Na preparação da aula, em 16/10/2026, os 1.920 lotes de um dia foram gravados num MinIO local (imagem <code>ghcr.io/coollabsio/minio:RELEASE.2025-10-15T17-29-55Z</code>, versionamento ligado, volume num SSD com ext4) e ocuparam 13.460.999 bytes em <code>/data/raw/telemetria</code>, medidos com <code>du -sb</code> dentro do contêiner, enquanto <code>mc du</code> reportou 1,9 MiB. A diferença vem do diretório e do arquivo de metadados (<code>xl.meta</code>) que o MinIO mantém por objeto: cada objeto custou cerca de 7,0 KB em disco, 6,9 vezes o conteúdo. Em um ano, os 714 MB de TXT ocupariam cerca de 4,9 GB de volume.</p>
+          <p>A conclusão que a evidência autoriza: para objetos pequenos, o número de objetos pesa mais que o tamanho deles. Essa é a razão de gravar um objeto por lote de 15 minutos (1.920 por dia), e não um objeto por linha (31.229 linhas no mesmo dia). O custo do volume no Railway deve ser consultado na página de preços no dia da análise e citado com data; sem isso, fica como hipótese no ATAM.</p>
+        </div>
+        <div class="note">
+          <strong>Pontos-chave do bloco 1</strong>
+          <ul>
+            <li>Onde, com que nome, em que formato, com que procedência e o que acontece ao repetir: cinco decisões que custam caro depois.</li>
+            <li>Todo storage combina mídia, rede, serialização e compressão; os tipos diferem na combinação.</li>
+            <li>Para objetos de 1 KB, o custo é dominado pela contagem de objetos, e não pelos bytes de conteúdo.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 3 -->
+      <section class="content-block" id="s3">
+        <h2>3. Tipos de storage e seus trade-offs</h2>
+        <p>A comparação abaixo organiza os tipos pela unidade que o cliente lê e escreve. Essa unidade determina o protocolo, a forma de atualizar um pedaço do dado e o tipo de escala que o sistema suporta. A pergunta que atravessa a seção é sempre a mesma: qual dessas unidades corresponde ao lote que chega do satélite?</p>
+
+        <h3>3.1 Block storage</h3>
+        <p>O armazenamento em bloco expõe ao sistema operacional um dispositivo dividido em blocos de tamanho fixo, endereçados por número. O disco do notebook, um SSD NVMe e os volumes de nuvem anexados a uma máquina virtual são exemplos. O dispositivo não sabe o que é um arquivo: quem organiza os blocos em arquivos e diretórios é o sistema de arquivos instalado por cima (ext4, XFS, NTFS), ou o próprio banco de dados quando ele gerencia páginas diretamente.</p>
+        <p>A vantagem é a latência baixa e a atualização parcial: um banco de dados reescreve uma página de 8 KB sem tocar no resto do arquivo. A limitação é o acoplamento. Em geral um volume em bloco é montado por uma máquina por vez, e crescer significa redimensionar o volume e o sistema de arquivos. O volume que o Railway monta em <code>/data</code> no serviço do MinIO é armazenamento desse tipo: o MinIO grava ali e oferece objetos para fora. Quando o MinIO exige XFS e desaconselha ext4 para garantir consistência (seção 4.5), é desse degrau que ele está falando.</p>
+
+        <h3>3.2 File storage: sistemas de arquivos locais e em rede</h3>
+        <p>O armazenamento em arquivo oferece a hierarquia de diretórios e arquivos que todo programador conhece, com operações POSIX como abrir, ler a partir de um deslocamento, acrescentar ao final, renomear e travar. Localmente, é o sistema de arquivos sobre um disco em bloco. Em rede, protocolos como NFS (comum em Linux) e SMB (comum em ambientes Windows) permitem que várias máquinas montem o mesmo diretório compartilhado.</p>
+        <p>O modelo é familiar e aceita atualização parcial, o que o torna adequado para pastas compartilhadas, diretórios de trabalho de ferramentas que esperam caminhos locais e aplicações legadas. Os custos aparecem na escala: manter a semântica de diretório (renomear uma pasta, listar, travar arquivos) entre muitos clientes exige coordenação, e a hierarquia vira gargalo quando milhões de arquivos ficam no mesmo diretório. A própria documentação do MinIO registra que NFS não é estritamente consistente e, por isso, não sustenta as garantias do servidor de objetos quando usado como disco.</p>
+
+        <h3>3.3 Object storage</h3>
+        <p>O armazenamento de objetos guarda cada dado como um objeto inteiro dentro de um bucket, identificado por uma chave textual e acompanhado de metadados. O acesso é feito por HTTP, com operações como <code>PUT</code>, <code>GET</code>, <code>HEAD</code>, <code>DELETE</code> e listagem por prefixo. Não existe diretório de verdade: as barras em <code>telemetria/data=2026-10-17/hora=12/caminhao=CAM-0451/lote_1200.txt</code> são só caracteres da chave, que as ferramentas exibem como pastas. O objeto também não aceita atualização parcial: para mudar um byte, regrava-se o objeto inteiro.</p>
+        <p>Essas restrições permitem escalar a capacidade quase sem limite prático e a um custo por gigabyte menor que o de bloco e arquivo, já que o sistema não precisa coordenar travas nem hierarquia. A API do S3 virou o padrão de fato para object storage: MinIO, Ceph, Cloudflare R2 e outros implementam uma API compatível com S3, e bibliotecas como <code>boto3</code>, ferramentas como DuckDB e Spark e o cliente <code>mc</code> falam com qualquer um deles mudando apenas o endpoint. É por isso que o MinIO serve à disciplina: o código escrito contra ele roda contra outro provedor compatível sem reescrita.</p>
+
+        <h3>3.4 Bancos relacionais</h3>
+        <p>O banco relacional (PostgreSQL, MySQL, SQLite) organiza o dado em tabelas com esquema declarado, chaves e restrições, e oferece SQL e transações ACID. Ele faz bem o que o object storage não faz: atualizar uma linha, garantir que duas operações aconteçam juntas ou nenhuma aconteça, impedir que um pedido aponte para um cliente inexistente. Paga por isso com esquema rígido na escrita (o dado precisa caber na tabela antes de entrar) e com escala horizontal mais difícil. Para guardar um lote bruto cujo formato muda com o firmware, o esquema rígido trabalha contra: um campo novo exige migração antes da coleta, e o que não cabe na tabela é rejeitado. O relacional volta na Aula 05, onde o problema é justamente modelar.</p>
+
+        <h3>3.5 Chave-valor e documento</h3>
+        <p>Bancos chave-valor (Redis, Valkey, etcd) devolvem um valor a partir de uma chave com latência muito baixa, e servem a cache, sessão, contadores e filas leves. Bancos de documento (MongoDB, Couchbase) guardam documentos JSON com esquema flexível e permitem consultar por campos internos. Ambos aceitam atualização de um registro e escalam particionando por chave. O limite é a consulta analítica ampla: agregar um campo sobre milhões de documentos não é o trabalho para o qual foram desenhados. Um banco de documento só receberia o lote depois de um parser transformá-lo em JSON, e cobraria por um recurso (consulta por campo e atualização) que a camada bruta não usa.</p>
+
+        <h3>3.6 Colunar e analítico</h3>
+        <p>Armazenamentos colunares (ClickHouse, DuckDB, data warehouses, e formatos de arquivo como Parquet) guardam os valores de uma mesma coluna juntos. Uma consulta que soma uma coluna lê só aquela coluna e se beneficia de compressão alta, já que valores parecidos ficam vizinhos. O preço está na escrita: inserir linha a linha é caro, atualizar um registro isolado é caro, e o esquema precisa ser conhecido. Por isso esses sistemas costumam ler de uma camada bruta e não substituí-la. A Aula 04 transforma os lotes gravados hoje em Parquet e consulta com DuckDB; a Aula 06 usa ClickHouse para leituras de sensores.</p>
+
+        <h3>3.7 Tabela comparativa</h3>
+        <p>As colunas de latência e custo usam ordens de grandeza relativas entre os tipos, sem valores absolutos. Valores reais dependem de hardware, rede, provedor e configuração, e devem ser medidos ou consultados na página de preço do provedor antes de entrar em qualquer documento do grupo. A seção 3.9 mostra uma medição feita na preparação da aula.</p>
+        <div class="table-scroll"><table>
+          <thead>
+            <tr><th>Critério</th><th>Bloco</th><th>Arquivo (local, NFS, SMB)</th><th>Objeto</th><th>Relacional</th><th>Chave-valor / documento</th><th>Colunar / analítico</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Unidade de acesso</td><td>bloco de tamanho fixo</td><td>arquivo em diretório</td><td>objeto inteiro, por chave</td><td>linha em tabela</td><td>valor ou documento, por chave</td><td>coluna (em blocos de linhas)</td></tr>
+            <tr><td>Protocolo típico</td><td>dispositivo local, iSCSI, NVMe</td><td>POSIX; NFS, SMB em rede</td><td>HTTP, API compatível com S3</td><td>protocolo do banco, SQL</td><td>protocolo do banco, API própria</td><td>SQL, HTTP, leitura de arquivo</td></tr>
+            <tr><td>Latência típica (relativa)</td><td>a mais baixa</td><td>baixa local; maior em rede</td><td>a mais alta por operação (cada acesso é uma requisição HTTP)</td><td>baixa para leitura por índice</td><td>muito baixa por chave</td><td>alta por linha; baixa por valor em varredura</td></tr>
+            <tr><td>Escalabilidade</td><td>vertical, um volume por máquina</td><td>limitada pela coordenação da hierarquia</td><td>horizontal, capacidade quase ilimitada</td><td>vertical; horizontal com esforço</td><td>horizontal por partição de chave</td><td>horizontal em leitura</td></tr>
+            <tr><td>Custo por GB (relativo)</td><td>alto</td><td>alto</td><td>baixo</td><td>alto (armazenamento e processamento juntos)</td><td>médio a alto</td><td>médio; compressão reduz volume</td></tr>
+            <tr><td>Modelo de consistência</td><td>o do sistema de arquivos ou banco por cima</td><td>POSIX local; varia em rede (cache de cliente)</td><td>depende do servidor; S3 e MinIO documentam leitura após escrita forte</td><td>transações ACID</td><td>configurável; muitas vezes eventual entre réplicas</td><td>varia; cargas em lote</td></tr>
+            <tr><td>Atualização parcial</td><td>sim (bloco)</td><td>sim (deslocamento, append)</td><td>não; regrava o objeto</td><td>sim (linha)</td><td>sim (registro ou campo)</td><td>cara; prefere reescrever partes</td></tr>
+            <tr><td>Casos de uso</td><td>disco de VM, volume de banco, volume do MinIO</td><td>pastas compartilhadas, ferramentas legadas</td><td>camada raw, data lake, backups, mídia</td><td>sistemas transacionais, modelo relacional</td><td>cache, sessão, catálogo flexível</td><td>BI, agregações, séries temporais</td></tr>
+          </tbody>
+        </table></div>
+
+        <h3>3.8 Como escolher</h3>
+        <p>A tabela não aponta um vencedor; ela descreve trabalhos diferentes. Para escolher, cinco perguntas costumam bastar:</p>
+        <ol class="steps">
+          <li>Qual é a unidade natural do dado? Um arquivo inteiro, uma linha de pedido ou um valor de cache.</li>
+          <li>O dado será atualizado em pedaços ou só gravado e lido? Dados brutos de coleta são gravados uma vez e lidos muitas.</li>
+          <li>Quem lê, com que padrão? Um analista agregando colunas, uma aplicação buscando por chave ou um job reprocessando tudo.</li>
+          <li>O formato pode mudar sem aviso? Se sim, esquema rígido na escrita obriga a parar a coleta para migrar.</li>
+          <li>Quanto vai crescer e quem paga? O custo por gigabyte e o custo por requisição pesam diferente conforme o volume.</li>
+        </ol>
+        <p>Para o lote bruto que o provedor entrega a cada 15 minutos, as respostas apontam para o object storage: a unidade natural é o arquivo inteiro, não há atualização parcial, a leitura será em lote pelas próximas aulas, o formato muda com o firmware e o volume cresce continuamente, com a contagem de objetos pesando mais que os bytes.</p>
+
+        <h3>3.9 Exemplo numérico: a latência por operação, medida</h3>
+        <div class="note">
+          <strong>Exemplo numérico 2. Objeto contra arquivo local</strong>
+          <p>Na preparação da aula, em 16/10/2026, os 1.920 lotes de um dia, com 1.018 bytes em média, foram gravados de duas formas na mesma máquina e no mesmo SSD: num MinIO local em Docker (imagem <code>RELEASE.2025-10-15T17-29-55Z</code>, versionamento ligado), pela API compatível com S3 com <code>boto3</code> 1.43, e em arquivos comuns, com <code>fsync</code> a cada gravação. Mediana de 1.920 operações, em milissegundos; uma segunda rodada completa deu valores a menos de 0,1 ms destes:</p>
+          <div class="table-scroll"><table>
+            <thead><tr><th>Operação</th><th>Object storage (MinIO local)</th><th>Arquivo local</th></tr></thead>
+            <tbody>
+              <tr><td>Gravar um lote</td><td>4,56 (<code>PUT</code> com 7 metadados)</td><td>0,53 (write + fsync)</td></tr>
+              <tr><td>Ler um lote</td><td>2,95 (<code>GET</code>)</td><td>0,008 (read)</td></tr>
+              <tr><td>Saber se existe</td><td>2,29 (<code>HEAD</code> em chave inexistente); 2,73 (chave existente)</td><td>não medido</td></tr>
+              <tr><td>Listar um dia (1.920 chaves)</td><td>214, em 2 páginas (<code>ListObjectsV2</code> por prefixo; mediana de 21 listagens, de 170 a 289)</td><td>não medido</td></tr>
+            </tbody>
+          </table></div>
+          <p>A gravação por HTTP custou cerca de 9 vezes a gravação de arquivo, e a leitura mais de 300 vezes, sem nenhuma rede envolvida: o que se paga é a requisição (cabeçalhos, assinatura, resposta), não o disco. Contra o Railway soma-se a ida e volta pela internet e o proxy, o que o grupo deve medir e registrar no ATAM.</p>
+          <p>A mesma medição mostra por que a latência por operação não decide sozinha. O coletor de referência do professor gravou o dia inteiro, com um <code>HEAD</code> e um <code>PUT</code> por lote, em 11,7 segundos. A diferença de centenas de vezes por operação vira 12 segundos por dia de coleta, porque o coletor faz uma gravação por lote, e não milhares de leituras pontuais. O object storage perde quando o padrão de acesso é o oposto: milhares de leituras pontuais por segundo, como na tela da central que mostra a última posição de cada caminhão.</p>
+        </div>
+        <div class="note">
+          <strong>Pausa para reflexão</strong>
+          <p>A transportadora tem, além dos lotes, quatro outros dados: a última posição de cada caminhão, sobrescrita a cada minuto e consultada por chave pela tela da central; as viagens e notas fiscais, uma linha por entrega, alterada até a baixa; a foto do canhoto assinado, gravada uma vez por entrega e aberta só numa disputa; e a velocidade média por rodovia e mês, calculada sobre milhões de posições para a diretoria. Para cada um, responda às cinco perguntas da seção 3.8 e escolha um tipo da tabela 3.7. Justifique pelo padrão de acesso, e não pela ferramenta que o grupo conhece melhor.</p>
+        </div>
+        <div class="note">
+          <strong>Pontos-chave do bloco 2</strong>
+          <ul>
+            <li>A unidade de acesso (bloco, arquivo, objeto, linha, valor, coluna) determina protocolo, atualização parcial e escala.</li>
+            <li>Objeto é o único tipo sem atualização parcial; em troca, escala horizontalmente a custo baixo por GB.</li>
+            <li>Medido localmente, uma operação de objeto custa de 9 a mais de 300 vezes uma operação de arquivo; um dia inteiro de coleta ainda cabe em 12 segundos.</li>
+            <li>O padrão de acesso decide o tipo; o lote bruto é gravado uma vez e lido em lote.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 4 -->
+      <section class="content-block" id="s4">
+        <h2>4. Object storage por dentro</h2>
+        <p>Escolhido o tipo, falta entender o que a API compatível com S3 oferece e o que ela não oferece, porque o desenho do coletor nasce dessas restrições. As afirmações desta seção sobre o S3 vêm da documentação da AWS consultada em 14/10/2026; as sobre o MinIO, da documentação do projeto no GitHub. Quando um sistema compatível promete algo diferente, vale a documentação dele.</p>
+
+        <h3>4.1 Bucket, chave e objeto</h3>
+        <p>O bucket é o contêiner de nível mais alto: tem nome único no servidor e é onde se aplicam políticas de acesso, versionamento e ciclo de vida. Dentro dele, cada objeto é endereçado por uma chave, que é uma string. A combinação bucket, chave e, com versionamento ligado, identificador de versão identifica um objeto. A listagem aceita um prefixo e um delimitador, e é isso que permite navegar como se houvesse pastas: listar com prefixo <code>telemetria/data=2026-10-17/</code> devolve só os objetos daquele dia. A consequência prática é que o desenho da chave define quais leituras serão baratas. Ler um dia inteiro é uma listagem por prefixo; ler um caminhão em todos os dias, com a chave proposta nesta aula, exige listar todos os dias e filtrar.</p>
+
+        <h3>4.2 Listagem por prefixo e paginação</h3>
+        <p>A operação <code>ListObjectsV2</code> devolve no máximo 1.000 chaves por requisição, em ordem lexicográfica. Quando há mais, a resposta traz um token de continuação e o cliente faz outra requisição. Com um delimitador (<code>/</code>), as chaves que compartilham o trecho entre o prefixo e a próxima barra são agrupadas num único item <code>CommonPrefixes</code>, que é o que o console e o <code>mc</code> mostram como pasta. Cada grupo conta como um item do limite de 1.000.</p>
+        <div class="note">
+          <strong>Exemplo numérico 3. Quantas requisições custa listar</strong>
+          <p>Um ano de coleta da frota da aula acumula 700.800 objetos sob <code>telemetria/</code>. Listar tudo sem prefixo custa 701 requisições de 1.000 chaves. Listar um dia com o prefixo <code>telemetria/data=2026-10-17/</code> custa 2 requisições para 1.920 chaves, que levaram 214 ms (mediana de 21 listagens) na medição local da seção 3.9; listar uma hora, com o prefixo <code>telemetria/data=2026-10-17/hora=12/</code>, custa uma requisição com 80 chaves, medida em 14,6 ms. A partição na chave é o que transforma a listagem de um ano (701 páginas) na listagem de um dia (2 páginas) ou de uma hora (uma página), e é o mesmo mecanismo que o DuckDB usa na Aula 04 para ler só as partições filtradas.</p>
+        </div>
+
+        <h3>4.3 Metadados e seus limites</h3>
+        <p>Cada objeto carrega metadados do sistema (tamanho, data de modificação, ETag, tipo de conteúdo) e metadados definidos pelo usuário, enviados como cabeçalhos <code>x-amz-meta-*</code> na gravação. Os metadados de usuário são lidos com uma operação <code>HEAD</code>, sem baixar o conteúdo, o que os torna úteis para guardar a origem do dado. A documentação do S3 fixa três restrições que valem como regra de projeto:</p>
+        <ul>
+          <li>O cabeçalho do <code>PUT</code> é limitado a 8 KB, e dentro dele os metadados de usuário a 2 KB, somando chaves e valores. Guarde procedência, não dado.</li>
+          <li>Os valores trafegam em cabeçalhos HTTP; a AWS recomenda US-ASCII na API REST, e valores fora de ASCII são recodificados antes de serem devolvidos. O identificador <code>CAM-0412</code> e o nome do arquivo cabem; o texto livre do rádio, que pode ter acento, não deve ir para metadado.</li>
+          <li>Depois da gravação, o metadado de usuário não pode ser alterado; a única forma é copiar o objeto com metadados novos. Decida os metadados antes do primeiro <code>PUT</code>.</li>
+        </ul>
+        <p>O ETag merece atenção porque aparece no laboratório: para objetos gravados num único <code>PUT</code> e sem criptografia por chave do cliente, ele é o MD5 do conteúdo. Na preparação da aula, o <code>HEAD</code> de um lote de 983 bytes devolveu o ETag e os sete metadados de procedência tal como enviados. O coletor grava também um <code>sha256</code> próprio porque o ETag deixa de ser MD5 em uploads multipart e varia entre servidores compatíveis.</p>
+
+        <h3>4.4 Imutabilidade do objeto</h3>
+        <p>Um objeto não é editado no lugar. Uma nova gravação na mesma chave substitui o objeto inteiro, ou cria uma nova versão quando o versionamento está ligado. Essa propriedade combina com a camada bruta: o que foi coletado fica como foi coletado, e qualquer correção é um objeto novo ou uma transformação em outra camada.</p>
+
+        <h3>4.5 Consistência e escrita concorrente</h3>
+        <p>Consistência responde à pergunta: depois que uma gravação foi confirmada, uma leitura logo em seguida vê o dado novo? A documentação da AWS afirma que o S3 oferece consistência forte de leitura após escrita para <code>PUT</code> e <code>DELETE</code> em todas as regiões, inclusive para a listagem e para o <code>HEAD</code>: um processo que grava um objeto e lista o bucket em seguida vê o objeto na lista. A <a href="https://github.com/minio/minio/blob/master/docs/distributed/README.md" target="_blank" rel="noopener noreferrer">documentação do MinIO</a> declara consistência estrita de leitura após escrita e de listagem após escrita, tanto em modo distribuído quanto em modo de um nó, com uma condição: a garantia vale para sistemas de arquivos como XFS, ZFS e Btrfs, a mesma página desaconselha ext4 e avisa que NFS não é estritamente consistente. O sistema de arquivos do volume do Railway não foi verificado para esta aula, o que torna a premissa uma hipótese a registrar no ATAM. Outros sistemas compatíveis com S3 podem oferecer garantias diferentes: a garantia pertence ao servidor, e a API compatível não a transfere.</p>
+        <p>A mesma página da AWS registra dois limites que o coletor precisa respeitar. O S3 não trava objetos para escritores concorrentes: se dois <code>PUT</code> chegam ao mesmo tempo para a mesma chave, vence o de carimbo de tempo mais recente, e quem precisar de exclusão mútua tem de construí-la na aplicação. E as atualizações são atômicas por chave, nunca entre chaves: não há como gravar o documento e o manifesto "juntos ou nenhum". É por isso que a seção 6.4 trata a execução simultânea como risco residual, e não como problema resolvido.</p>
+        <p>Para o coletor, a consistência forte significa que um <code>HEAD</code> logo após um <code>PUT</code> confirmado encontra o objeto, o que sustenta a verificação de existência usada na idempotência.</p>
+
+        <h3>4.6 API compatível com S3</h3>
+        <p>O cliente fala com o MinIO exatamente como falaria com outro serviço compatível, mudando o endpoint. Em Python, com <code>boto3</code>, isso se faz com <code>endpoint_url</code>. Dois detalhes evitam horas de depuração: use endereçamento por caminho (<code>Config(s3={"addressing_style": "path"})</code>), porque o domínio do Railway não resolve subdomínios por bucket; e informe uma região (o MinIO aceita <code>us-east-1</code> como padrão), porque a assinatura das requisições a exige.</p>
+
+        <h3>4.7 Versionamento</h3>
+        <p>Com o versionamento ligado no bucket, cada gravação na mesma chave cria uma versão nova e preserva as anteriores, e uma exclusão apenas marca o objeto como apagado. O benefício é recuperar dados sobrescritos por engano. O custo é armazenamento: cada versão ocupa espaço. Na preparação desta aula, o versionamento foi ligado num MinIO local com a mesma imagem usada pelo grupo (<code>mc version enable</code>) e duas gravações na mesma chave produziram duas versões listadas por <code>mc ls --versions</code>. Nesta aula, o versionamento funciona também como detector: se a contagem de versões cresce quando o coletor processa de novo os mesmos lotes, a idempotência falhou.</p>
+
+        <h3>4.8 Ciclo de vida</h3>
+        <p>Regras de ciclo de vida (lifecycle, ou ILM no MinIO) expiram objetos ou versões antigas automaticamente após um número de dias, por prefixo. Exemplo testado na preparação: <code>mc ilm rule add --noncurrent-expire-days 7 local/raw</code> apaga versões não correntes após sete dias. A regra transforma o crescimento do bucket numa decisão explícita, e não num efeito colateral descoberto quando o crédito do Railway acaba.</p>
+        <div class="note">
+          <strong>Pontos-chave do bloco 3</strong>
+          <ul>
+            <li>A chave é uma string; prefixo e delimitador simulam pastas, e a listagem vem em páginas de 1.000.</li>
+            <li>Metadados de usuário: até 2 KB, em ASCII, imutáveis depois do <code>PUT</code>.</li>
+            <li>S3 e MinIO garantem leitura e listagem após escrita; no MinIO a garantia depende do sistema de arquivos.</li>
+            <li>Não há trava entre escritores nem atomicidade entre chaves: a aplicação carrega essa responsabilidade.</li>
+            <li>Versionamento detecta repetição indevida; ciclo de vida decide quanto tempo o histórico fica.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 5 -->
+      <section class="content-block" id="s5">
+        <h2>5. Do arquivo bruto ao data lake: storage, esquema e arquiteturas</h2>
+        <p>As seções 3 e 4 compararam os tipos de storage e mostraram como o object storage funciona por dentro. Esta seção abre o lote da transportadora para responder a três perguntas que a prática vai exigir: onde um arquivo bruto deve pousar primeiro, por que a disciplina escolheu o MinIO para essa camada e o que separa um storage de um data lake. A última parte compara data lake, lakehouse e data warehouse e as duas formas de tratar o esquema, on write e on read.</p>
+
+        <h3>5.1 O lote por dentro: cinco formatos no mesmo arquivo</h3>
+        <p>O cenário da seção 2.1 tem um detalhe que esta seção precisa: o lote não tem formato fixo. Cada tipo de equipamento e cada versão de firmware escreve de um jeito, e o provedor junta tudo no mesmo arquivo:</p>
+        <pre><code>CAM-0412|17/10/26 09:14:03|-23.5481,-46.6390|VEL 087|TAC MOT 03h12
+#RADIO 09:14 MOTORISTA: parada posto km 214 BR-116
+CAM-0412 17-10-2026 09:15:03 GPS -23.5502 -46.6411 v=85
+ERR SAT SINAL FRACO
+TAC;CAM-0977;20261017T091500;DIRECAO CONTINUA 05:31;ALERTA</code></pre>
+        <p>No trecho acima, as datas aparecem em três formatos, os separadores mudam de linha para linha, há texto livre digitado pelo motorista e uma linha de erro do próprio enlace de satélite. A última linha registra 5h31 de direção contínua, acima das 5h30 que a Lei 13.103/2015 permite sem pausa; é o tipo de evento que a transportadora precisa provar meses depois, numa fiscalização ou num processo trabalhista. Por isso o primeiro requisito é guardar o lote exatamente como chegou, antes de qualquer interpretação. O parser que transforma essas linhas em registros vem depois e vai errar algumas vezes; quando errar, o original precisa estar lá para ser lido de novo.</p>
+
+        <h3>5.2 Onde o TXT pousa: file storage contra object storage</h3>
+        <p>As duas candidatas naturais para a primeira gravação são um file storage (disco local, compartilhamento NFS ou SMB, a pasta de um servidor SFTP) e um object storage (S3, MinIO). Bloco e bancos ficam fora: o lote é um arquivo inteiro, gravado uma vez e lido depois, e nenhum banco aceita o TXT sem antes interpretá-lo.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Critério</th><th>File storage</th><th>Object storage</th></tr></thead>
+          <tbody>
+            <tr><td>Como o lote chega</td><td>cópia para uma pasta, em geral por SFTP; aceita acrescentar linhas ao arquivo aberto</td><td><code>PUT</code> HTTP do lote inteiro; não há acréscimo, cada lote é um objeto</td></tr>
+            <tr><td>Latência medida (seção 3.9)</td><td>0,53 ms para gravar, 0,008 ms para ler</td><td>4,56 ms para gravar, 2,95 ms para ler</td></tr>
+            <tr><td>Procedência</td><td>nome, data de modificação e permissões; atributos estendidos existem, mas poucas ferramentas os leem e cópias costumam perdê-los</td><td>até 2 KB de metadados de usuário por objeto, lidos com <code>HEAD</code> (seção 4.3)</td></tr>
+            <tr><td>Versão e retenção</td><td>fora do sistema, por script ou backup</td><td>versionamento e ciclo de vida nativos (seções 4.7 e 4.8)</td></tr>
+            <tr><td>Quem lê</td><td>quem monta o volume ou acessa o servidor</td><td>qualquer motor que fale a API S3, de qualquer máquina com credencial</td></tr>
+            <tr><td>Renomear</td><td>atômico no mesmo sistema de arquivos</td><td>copiar e apagar; não é atômico</td></tr>
+            <tr><td>Escala e consistência</td><td>um volume por servidor; NFS não é estritamente consistente</td><td>capacidade que cresce sem redimensionar; leitura e listagem após escrita fortes no S3 e no MinIO (seção 4.5)</td></tr>
+          </tbody>
+        </table></div>
+        <p>O file storage vence em duas linhas: é cerca de 9 vezes mais rápido para gravar e mais de 300 vezes para ler, nas medições locais da seção 3.9, e permite acrescentar linhas a um arquivo aberto, que é como muitos receptores de telemetria trabalham. O object storage vence nas linhas que importam para um dado guardado por anos e lido por vários sistemas: procedência junto do dado, versões, retenção por regra e acesso por API a partir de qualquer motor. Para a camada bruta da transportadora, o padrão de acesso é gravar o lote uma vez e lê-lo em lote depois, de modo que a latência por operação pesa pouco e a governança pesa muito.</p>
+        <p>As duas opções também podem conviver. Se o provedor só entrega por SFTP, a pasta do servidor vira uma área de pouso temporária: o lote chega lá, um processo o envia ao bucket com os metadados de procedência e só então o apaga da pasta. O que não se faz é deixar a pasta virar o repositório definitivo. É exatamente esse processo que a prática desta aula constrói, com a pasta <code>pouso/</code> no papel do SFTP.</p>
+
+        <h3>5.3 Por que MinIO: a decisão arquitetural</h3>
+        <p>Escolhido o object storage, falta escolher qual. A decisão da disciplina é o MinIO, e ela merece o formato de um ADR, porque é cara de mudar e afeta todas as aulas seguintes.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Item do ADR</th><th>Conteúdo</th></tr></thead>
+          <tbody>
+            <tr><td>Contexto</td><td>A camada bruta precisa de object storage com metadados, versionamento e ciclo de vida, acessível a partir do Codespace, do Railway e dos motores das Aulas 04 e 06, dentro do crédito da disciplina.</td></tr>
+            <tr><td>Decisão</td><td>MinIO, em Docker no Codespace para desenvolver e no Railway para a coleta contínua.</td></tr>
+            <tr><td>Por quê</td><td>API compatível com S3: o mesmo código <code>boto3</code> roda local, no Railway e na AWS, e migrar é trocar o endpoint e as credenciais. Roda onde o grupo já trabalha, sem conta na AWS. Traz metadados, versionamento, ciclo de vida e leitura após escrita estrita.</td></tr>
+            <tr><td>Alternativas descartadas</td><td>Amazon S3: gerenciado e redundante, mas exige conta própria, e o ambiente acadêmico da AWS expira em poucas horas. File storage em volume: perde metadados, versões e a API S3 que DuckDB e ClickHouse usam.</td></tr>
+            <tr><td>Consequências aceitas</td><td>O grupo opera o serviço: disco, backup, atualização. O MinIO do Railway roda em um nó, sem redundância; a perda do volume perde o dado. A consistência depende do sistema de arquivos do volume, não verificado (seção 4.5).</td></tr>
+          </tbody>
+        </table></div>
+        <p>A portabilidade é o argumento central. Como a API é a mesma do S3, a decisão é reversível: se a transportadora fosse para a AWS, a mudança ficaria no endpoint, e não no coletor nem nos leitores. Essa reversibilidade decorre da separação entre armazenamento e computação descrita na seção 2.2.</p>
+
+        <h3>5.4 Exemplo numérico: quanto a frota gera</h3>
+        <div class="note">
+          <strong>Exemplo numérico 4. Dimensionamento da frota inteira, numa hipótese declarada</strong>
+          <p>A frota da aula tem 20 caminhões; a transportadora inteira, nesta hipótese, tem 500. O número de caminhões é hipótese; o tamanho do lote vem da medição da seção 2.1 (1.018 bytes em média, um lote por caminhão a cada 15 minutos). Com isso, a frota gera 2.000 lotes por hora, 48.000 por dia e 17,52 milhões por ano; o conteúdo soma 2,0 MB por hora, 48,9 MB por dia e cerca de 17,8 GB por ano.</p>
+          <p>Com chave particionada, por exemplo <code>telemetria/data=2026-10-17/hora=12/caminhao=CAM-0412/lote_1200.txt</code>, ler uma hora da frota exige 2 listagens de até 1.000 chaves e 2.000 <code>GET</code>: cerca de 5,9 s com a mediana de 2,95 ms da seção 3.9, uma requisição por vez. Sem convenção de nome, achar essa mesma hora exige abrir o bucket inteiro: 17,52 milhões &times; 2,95 ms, cerca de 14 horas.</p>
+          <p>O mesmo cálculo mostra um custo escondido. Na seção 2.3, o MinIO local gastou cerca de 6,0 KB em disco por objeto além do conteúdo. Se essa sobrecarga se repetir, 17,52 milhões de lotes somariam cerca de 105 GB só de sobrecarga, quase seis vezes o conteúdo. Lotes de uma hora em vez de 15 minutos dividem o número de objetos, e a sobrecarga, por 4. O tamanho do lote é, portanto, uma decisão de arquitetura, a registrar com a hipótese que a sustenta.</p>
+        </div>
+
+        <h3>5.5 Diferença entre storage e data lake</h3>
+        <p>Um bucket com os lotes da frota é storage: resolve onde os bytes ficam. Ele passa a ser um data lake quando as perguntas que a transportadora fará daqui a um ano são respondidas por regras gravadas junto com o dado, e deixam de depender da memória de quem montou o bucket.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Pergunta</th><th>Só storage</th><th>Data lake</th></tr></thead>
+          <tbody>
+            <tr><td>De que caminhão e hora é o lote?</td><td>o nome que o provedor deu</td><td>chave convencionada, como <code>telemetria/data=/hora=/caminhao=</code></td></tr>
+            <tr><td>De onde veio e quando chegou?</td><td>data de modificação do arquivo</td><td>metadados de origem, horário de recepção e <code>sha256</code></td></tr>
+            <tr><td>Foi alterado depois?</td><td>não há como saber</td><td>camada bruta imutável e versionamento</td></tr>
+            <tr><td>Quem lê e grava?</td><td>quem tem a credencial</td><td>credencial por serviço, com a política mínima de cada um</td></tr>
+            <tr><td>Quanto tempo fica?</td><td>até alguém apagar</td><td>ciclo de vida por prefixo, alinhado ao prazo legal de guarda</td></tr>
+            <tr><td>Como se lê o TXT?</td><td>cada analista escreve o seu parser</td><td>parser versionado e testado, com contrato de saída</td></tr>
+          </tbody>
+        </table></div>
+        <p>O termo data lake costuma ser atribuído a James Dixon, que o usou em 2010 para um repositório que guarda o dado na forma original e deixa a estrutura para quem lê. O risco desse desenho ficou conhecido como data swamp: um depósito de arquivos sem dono, sem contrato e sem como saber o que cada um significa. Em empresas, um catálogo de dados, como o AWS Glue Data Catalog ou o Hive Metastore, registra tabelas, esquemas, donos e localização. A disciplina não usa catálogo formal; em escala pequena, a convenção de chave, os metadados e o manifesto cumprem parte desse papel.</p>
+        <p>Governança não garante que o dado esteja correto. Ela garante que, quando o dado estiver errado, seja possível achar a origem do erro e refazer o processamento a partir do original. Se o painel mostrar um caminhão a 300 km/h, a chave, o hash e a versão do parser apontam o lote e o código responsáveis.</p>
+
+        <h3>5.6 Schema on write e schema on read</h3>
+        <p>Esquema é o contrato que diz quais campos um registro tem e de que tipo. A diferença entre as duas abordagens está no momento em que esse contrato é aplicado.</p>
+        <p>Em schema on write, o parser roda antes da gravação, e só entra o que cabe na tabela. A leitura fica rápida e previsível, porque todo registro gravado já está tipado. Em schema on read, o dado é gravado como chegou, e o esquema é aplicado por quem lê. A gravação nunca recusa nada, e o custo de interpretar passa para a leitura.</p>
+        <p>A telemetria mostra a diferença com um caso concreto. Em março, o provedor atualiza o firmware, e as linhas passam a terminar com <code>TEMP_BAU 04.2</code>, a temperatura do baú refrigerado. Com schema on write, essas linhas são rejeitadas ou gravadas sem o campo novo, até alguém alterar a tabela; o que chegou nesse intervalo se perde. Com schema on read, os lotes de março ficam guardados com o campo; quando o parser aprender a ler <code>TEMP_BAU</code>, ele reprocessa os lotes antigos e o histórico aparece completo. Do mesmo modo, um defeito no parser se corrige rodando-o de novo sobre o original.</p>
+        <p>As duas abordagens convivem na mesma arquitetura, em camadas diferentes. A camada bruta fica em schema on read, porque a coleta não deve parar quando a fonte muda. As camadas consumidas por painéis e relatórios declaram o esquema, porque quem consome precisa de um contrato estável. A Aula 04 trata desse ponto em detalhe.</p>
+
+        <h3>5.7 Data lake, lakehouse e data warehouse</h3>
+        <p>Um data lake guarda arquivos em object storage, em qualquer formato, lidos em schema on read por qualquer motor que entenda o arquivo. Na transportadora, são os lotes TXT como chegaram.</p>
+        <p>Um data warehouse é um banco analítico com esquema declarado, motor de consulta próprio e armazenamento gerenciado por ele, em schema on write. Oferece transações, permissões por tabela e por coluna e SQL rápido sobre dado modelado. Guardar dado bruto nele costuma sair mais caro que em object storage, e uma mudança na fonte exige alterar o esquema antes da carga. Na transportadora, seria a tabela de horas de direção por motorista e por mês, consultada pelo jurídico. A Aula 05 constrói esse modelo com Postgres e esquema estrela.</p>
+        <p>Um lakehouse tenta ficar com o armazenamento aberto do lake e com a disciplina de tabelas do warehouse. O dado continua em object storage, em formatos abertos como Parquet, legíveis por vários motores, mas as camadas são organizadas por contrato: na disciplina, <code>raw</code> guarda os bytes da fonte, <code>bronze</code> o extraído em JSON Lines, <code>silver</code> o Parquet tipado e <code>gold</code> as tabelas no grão da pergunta de negócio. Na transportadora, a silver teria uma linha por caminhão e minuto, com posição, velocidade e o lote de origem. Arquivos Parquet gravados direto num bucket não formam, sozinhos, uma tabela com transações e histórico; formatos de tabela abertos, como Delta Lake e Apache Iceberg, acrescentam esse log de metadados. A Aula 04 constrói o lakehouse da disciplina com DuckDB e deixa esses formatos como próximo passo.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Critério</th><th>Storage com arquivos</th><th>Data lake</th><th>Lakehouse</th><th>Data warehouse</th></tr></thead>
+          <tbody>
+            <tr><td>Onde fica</td><td>pasta, volume ou bucket sem convenção</td><td>object storage, qualquer formato</td><td>object storage, formatos abertos em camadas</td><td>armazenamento do próprio motor</td></tr>
+            <tr><td>Esquema</td><td>nenhum declarado</td><td>on read</td><td>on read no raw; declarado da silver em diante</td><td>on write</td></tr>
+            <tr><td>Governança</td><td>memória das pessoas</td><td>chave, metadados, acesso, ciclo de vida</td><td>a do lake, mais contrato por tabela</td><td>esquema, permissões por tabela e coluna, transações</td></tr>
+            <tr><td>Na telemetria</td><td>a pasta do SFTP</td><td>lotes TXT como chegaram</td><td>posições tipadas por caminhão e minuto</td><td>horas de direção por motorista e mês</td></tr>
+            <tr><td>Risco típico</td><td>perda de contexto</td><td>pântano de arquivos sem dono</td><td>sem transação, se for só Parquet</td><td>custo e rigidez para dado bruto</td></tr>
+            <tr><td>Na disciplina</td><td>o ponto de partida</td><td>bucket <code>raw</code>, hoje</td><td>Aula 04</td><td>Aula 05</td></tr>
+          </tbody>
+        </table></div>
+        <div class="note">
+          <strong>Pausa para reflexão</strong>
+          <p>Para cada dado da transportadora, escolha entre storage simples, data lake, lakehouse e data warehouse, e justifique por esquema, governança e escala: (a) o lote TXT do satélite, guardado para auditoria e reprocessamento; (b) a posição por minuto de cada caminhão, lida pela roteirização e por um painel; (c) as horas de direção por motorista e mês, com acesso restrito ao jurídico; (d) a planilha de escala da semana, que só o coordenador edita.</p>
+        </div>
+        <div class="note">
+          <strong>Pontos-chave do bloco 4</strong>
+          <ul>
+            <li>File storage grava e lê mais rápido e aceita acrescentar linhas; object storage guarda procedência, versões e retenção e é lido por qualquer motor com a API S3.</li>
+            <li>O MinIO dá a API S3 no Codespace e no Railway, o que torna a decisão reversível; o custo é operar o serviço e não ter redundância.</li>
+            <li>Storage guarda bytes. Data lake acrescenta chave convencionada, procedência, imutabilidade, acesso por serviço, retenção e parser com contrato.</li>
+            <li>Schema on read preserva o TXT e permite reprocessar; schema on write dá leitura previsível e rejeita o que não cabe.</li>
+            <li>Lake guarda o bruto; lakehouse organiza Parquet em camadas sobre o lake; warehouse guarda o dado modelado no próprio motor.</li>
+          </ul>
+        </div>
+
+        <h3>5.8 Para saber mais</h3>
+        <ul>
+          <li>Dixon, J. <a href="https://jamesdixon.wordpress.com/2010/10/14/pentaho-hadoop-and-data-lakes/" target="_blank" rel="noopener noreferrer">Pentaho, Hadoop, and Data Lakes</a>, 2010: o texto em que o termo data lake aparece.</li>
+          <li>Armbrust, M. et al. <a href="https://www.cidrdb.org/cidr2021/papers/cidr2021_paper17.pdf" target="_blank" rel="noopener noreferrer">Lakehouse: A New Generation of Open Platforms that Unify Data Warehousing and Advanced Analytics</a>. CIDR, 2021: a proposta do lakehouse e a crítica ao modelo de duas camadas, lake mais warehouse.</li>
+          <li>Armbrust, M. et al. Delta Lake: High-Performance ACID Table Storage over Cloud Object Stores. PVLDB, v. 13, n. 12, 2020: como um log de transações transforma arquivos Parquet em tabela.</li>
+          <li>Kimball, R.; Ross, M. <em>The Data Warehouse Toolkit</em>. 3. ed. Wiley, 2013: o warehouse dimensional que a Aula 05 usa.</li>
+          <li>Reis, J.; Housley, M. <em>Fundamentals of Data Engineering</em>. O'Reilly, 2022, capítulo 6: sistemas de armazenamento, data lake e lakehouse.</li>
+          <li>Brasil. <a href="https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2015/lei/l13103.htm" target="_blank" rel="noopener noreferrer">Lei 13.103/2015</a>: jornada do motorista profissional, a regra que dá valor jurídico ao dado do tacógrafo.</li>
+        </ul>
+      </section>
+
+      <!-- 6 -->
+      <section class="content-block" id="s6">
+        <h2>6. Camada raw dos lotes de telemetria: chave, bytes, idempotência e procedência</h2>
+        <p>A seção 5 decidiu que o lote pousa num object storage e que a camada bruta fica em schema on read. Esta seção traduz essas escolhas em cinco decisões concretas para o coletor, cada uma com a alternativa descartada e o motivo. São elas que o grupo registra nos ADRs do laboratório.</p>
+
+        <h3>6.1 Chave particionada pela janela, em UTC</h3>
+        <p>A convenção de particionamento popularizada pelo Hive escreve cada nível da chave como <code>nome=valor</code>. Ferramentas como DuckDB e Spark reconhecem esse padrão e transformam cada nível em coluna, o que a Aula 04 usará para ler só as partições de interesse. A chave adotada nesta aula é:</p>
+        <pre><code>bucket:  raw
+chave:   telemetria/data=AAAA-MM-DD/hora=HH/caminhao=CAM-XXXX/lote_HHMM.txt
+pouso:   pouso/CAM-0451_20261017T0900.txt        (janela das 09:00, horário de Brasília)
+exemplo: telemetria/data=2026-10-17/hora=12/caminhao=CAM-0451/lote_1200.txt</code></pre>
+        <p>Três decisões estão embutidas nessa chave e devem aparecer no ADR do grupo. A primeira é particionar pelo início da janela de 15 minutos que o lote cobre, e não pelo momento em que o lote chegou ao coletor. O satélite atrasa, o provedor retransmite e o coletor pode ficar parado algumas horas; com a partição pela janela, um lote que chega às 15h40 com dados das 9h cai na partição das 9h, ao lado dos lotes vizinhos, e a chave continua determinística. A segunda é o fuso: o nome do arquivo e as linhas usam o horário de Brasília, e a chave usa UTC, que não sofre mudança de horário e casa com os metadados. A conversão acontece uma vez, no coletor, e a janela das 09:00 em Brasília vira <code>hora=12</code> e <code>lote_1200</code>. A terceira é o identificador do caminhão, <code>CAM-XXXX</code>, que já vem em ASCII e é estável.</p>
+        <p>A ordem dos níveis também é uma decisão. Com <code>data</code> e <code>hora</code> antes de <code>caminhao</code>, ler um dia inteiro da frota custa uma listagem por prefixo (2 páginas para 1.920 chaves, seção 4.2); ler um caminhão ao longo de um mês exige listar os 30 dias. A ordem inversa inverteria o custo. A aula escolhe a data na frente porque a Aula 04 lê por período; o jurídico, que pergunta por um caminhão e um dia, também é atendido com uma listagem de prefixo de hora ou de dia. Um projeto que lesse sempre por caminhão escolheria diferente, e o ADR é o lugar de dizer por quê.</p>
+
+        <h3>6.2 Bytes preservados e o manifesto em JSON Lines</h3>
+        <p>O coletor grava no bucket os bytes do arquivo, exatamente como estão no pouso. Em Python, isso significa ler com <code>Path.read_bytes()</code> e enviar esses bytes no <code>PUT</code>. Abrir o arquivo em modo texto e regravá-lo parece equivalente, mas a leitura em modo texto pode trocar o fim de linha, falhar num caractere inesperado ou normalizar acentos do texto livre do rádio, e qualquer uma dessas mudanças altera o <code>sha256</code>. Numa fiscalização, o argumento da transportadora é que o objeto na raw tem o mesmo hash registrado no momento da recepção; se o coletor alterou um byte, o argumento se perde.</p>
+        <p>O registro da execução vai para outro lugar, o manifesto, em JSON Lines: um arquivo por execução, uma linha JSON por lote processado, que permite acrescentar registros e ler linha a linha. Cada linha guarda <code>arquivo</code>, <code>chave</code>, <code>status</code> (<code>gravado</code>, <code>ja_existia</code>, <code>erro</code> ou <code>conflito_hash</code>), <code>bytes</code>, <code>sha256</code>, <code>linhas</code> e <code>alertas</code>, este último a contagem de linhas de alerta do tacógrafo (<code>TAC;...;ALERTA</code>). O manifesto fica fora do prefixo de dados, em <code>_manifestos/telemetria/data=AAAA-MM-DD/hora=HH/execucao_&lt;AAAAMMDDTHHMMSSZ&gt;.jsonl</code>, com a data e a hora do início da execução em UTC. A contagem de alertas serve de indicador para quem opera e não altera o lote.</p>
+        <p>Parser e Parquet ficam fora da raw de propósito, pelo motivo da seção 5.6: interpretar as linhas é aplicar um esquema, e a camada bruta não deve recusar nem reorganizar o que chegou. A Aula 04 lê os lotes desta aula, extrai as linhas para a bronze e tipa os campos na silver.</p>
+
+        <h3>6.3 Imutabilidade e a retransmissão do provedor</h3>
+        <p>A camada raw guarda o que o provedor entregou, sem limpeza, sem renomear campos e sem converter unidades. Se uma transformação estiver errada, a raw permite refazê-la; se a raw tiver sido transformada, o original se perdeu. Por isso as informações de procedência vão nos metadados do objeto, e não num envelope que altere o arquivo.</p>
+        <p>O provedor às vezes retransmite um lote. Na maioria das vezes, a retransmissão é idêntica e não traz problema (seção 6.4). Às vezes chega com conteúdo diferente, por exemplo com uma linha que o satélite tinha atrasado. A camada imutável não sobrescreve o objeto gravado: o coletor compara o <code>sha256</code> do arquivo com o metadado do objeto existente, registra <code>conflito_hash</code> no manifesto, deixa o arquivo no pouso e termina com código de saída diferente de zero. A decisão sobre o que fazer com a versão nova (guardar ao lado, com outra chave, ou descartar) é de uma pessoa e deve virar ADR, porque afeta a prova: a linha atrasada pode ser justamente um alerta do tacógrafo.</p>
+
+        <h3>6.4 Idempotência e a remoção do pouso</h3>
+        <p>Uma operação é idempotente quando executá-la duas vezes produz o mesmo estado que executá-la uma vez. Coletores são reexecutados por muitos motivos: agendador que dispara de novo, pessoa que roda à mão para testar, retry depois de erro de rede, provedor que retransmite o lote. Se cada execução gerasse uma chave nova (com o instante da recepção em segundos ou um UUID), cada repetição duplicaria dados. A chave determinística resolve: o mesmo caminhão, na mesma janela, sempre produz a mesma chave. A política proposta é "a primeira gravação da janela vale": antes de gravar, o coletor faz <code>HEAD</code> na chave; se o objeto existe com o mesmo <code>sha256</code>, não grava e registra <code>ja_existia</code>.</p>
+        <p>O pouso acrescenta uma regra: o arquivo só é apagado da pasta depois de um <code>PUT</code> confirmado ou de um <code>ja_existia</code> com o mesmo hash. Apagar antes seria perder o único original se o <code>PUT</code> falhasse. Apagar depois deixa uma janela em que o lote existe nos dois lugares, o que é inofensivo justamente por causa da idempotência: se o coletor cair entre o <code>PUT</code> e a remoção, a próxima execução encontra o objeto, registra <code>ja_existia</code> e apaga.</p>
+        <p>A lição do projeto ClickHouse no Railway, do professor, mostra por que isso importa: o proxy do Railway devolve 502 de forma esporádica, e um 502 não prova que o <code>PUT</code> falhou. Com retry e chave determinística, repetir a gravação é seguro. Se as tentativas se esgotarem, o lote fica no pouso, o manifesto registra <code>erro</code> e a próxima execução tenta de novo na mesma chave.</p>
+        <div class="note">
+          <strong>Exemplo numérico 5. A mesma hora coletada duas vezes</strong>
+          <p>Na preparação da aula, em 16/10/2026, o gerador produziu uma hora da frota (80 lotes, janelas das 09:00 às 09:45 de 17/10 em Brasília) e o coletor de referência do professor rodou contra o MinIO local com versionamento ligado. Em seguida, o gerador recriou os mesmos 80 lotes no pouso, simulando uma retransmissão idêntica, e o coletor rodou de novo. Mediana de três repetições, medindo só o laço do coletor:</p>
+          <div class="table-scroll"><table>
+            <thead><tr><th>Execução</th><th>Chave determinística + <code>HEAD</code></th><th>Chave com o instante da recepção</th></tr></thead>
+            <tbody>
+              <tr><td>Primeira passada</td><td>80 <code>HEAD</code> e 80 <code>PUT</code> em 0,51 s; 80 objetos, 80 versões, pouso vazio</td><td>80 <code>PUT</code>; 80 objetos</td></tr>
+              <tr><td>Segunda passada, mesmos lotes</td><td>80 <code>HEAD</code> e nenhum <code>PUT</code> em 0,21 s; 80 objetos, 80 versões, 80 linhas <code>ja_existia</code>, pouso vazio</td><td>mais 80 <code>PUT</code>; 160 objetos</td></tr>
+            </tbody>
+          </table></div>
+          <p>Com o processo Python inteiro, as passadas levaram 0,66 s e 0,35 s. Repetido sobre um dia inteiro (1.920 lotes), o coletor levou 11,7 s na primeira passada e 6,1 s na segunda: cerca de 6,1 ms por lote gravado e 3,2 ms por lote que já existia, coerentes com as medianas de <code>HEAD</code> e <code>PUT</code> da seção 3.9. Com uma chave que incluísse o instante da recepção, a segunda passada faria mais 80 <code>PUT</code> e o bucket dobraria, sem que nenhum teste unitário percebesse. A contagem de objetos e de versões em <code>telemetria/</code> antes e depois da segunda passada é a evidência do cenário C-02 do ATAM; o manifesto é um objeto novo por execução, fora desse prefixo.</p>
+          <p>Há um caso que a política não cobre por completo: o <code>PUT</code> chegou ao servidor, a resposta se perdeu no proxy e o cliente repetiu. A repetição grava os mesmos bytes na mesma chave; com versionamento ligado, isso aparece como uma segunda versão idêntica, com o mesmo ETag. O dado não duplica, mas a contagem de versões cresce. É um risco a registrar no ATAM, com a evidência de <code>mc ls --versions</code>.</p>
+        </div>
+        <p>Fica um segundo risco residual: duas execuções simultâneas podem fazer o <code>HEAD</code> ao mesmo tempo, não encontrar o objeto e gravar as duas. Como a seção 4.5 mostrou, o S3 não trava chaves e o último carimbo vence. No caso dos lotes, as duas versões terão os mesmos bytes, porque vêm do mesmo arquivo, e diferem só no metadado <code>recebido-em</code>. Para um coletor com uma execução por vez, o risco é baixo; para várias réplicas, exigiria trava externa ou gravação condicional, quando o servidor a suportar.</p>
+
+        <h3>6.5 Metadados de procedência</h3>
+        <p>Cada objeto gravado leva sete metadados de procedência, todos em ASCII, que cabem com folga nos 2 KB permitidos (seção 4.3):</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Metadado (<code>x-amz-meta-*</code>)</th><th>Exemplo</th><th>Pergunta que responde</th></tr></thead>
+          <tbody>
+            <tr><td><code>fonte</code></td><td><code>provedor-satelite</code></td><td>de onde veio</td></tr>
+            <tr><td><code>recebido-em</code></td><td><code>2026-10-17T12:15:02Z</code></td><td>quando o coletor recebeu o lote, em UTC</td></tr>
+            <tr><td><code>versao-coletor</code></td><td><code>0.1.0</code></td><td>qual código gravou (para isolar gravações de uma versão defeituosa)</td></tr>
+            <tr><td><code>sha256</code></td><td><code>6789b712602d1985...</code></td><td>o conteúdo foi alterado depois?</td></tr>
+            <tr><td><code>caminhao</code></td><td><code>CAM-0451</code></td><td>de que caminhão é o lote</td></tr>
+            <tr><td><code>janela-inicio</code></td><td><code>2026-10-17T12:00:00Z</code></td><td>que intervalo de 15 minutos o lote cobre, em UTC</td></tr>
+            <tr><td><code>arquivo-origem</code></td><td><code>CAM-0451_20261017T0900.txt</code></td><td>com que nome o lote chegou ao pouso</td></tr>
+          </tbody>
+        </table></div>
+        <p>A diferença entre <code>recebido-em</code> e <code>janela-inicio</code> mede o atraso de cada lote, do caminhão até o bucket, e responde a uma pergunta que o jurídico costuma fazer: o registro foi feito na hora ou muito depois? O <code>arquivo-origem</code> permite reconstruir o nome original, com o horário de Brasília, a partir do objeto. Na preparação da aula, o <code>mc stat</code> do objeto do exemplo mostrou os sete valores tal como enviados, e o <code>sha256sum</code> do conteúdo coincidiu com o metadado.</p>
+        <div class="note">
+          <strong>Pausa para reflexão</strong>
+          <p>Em março, o provedor anuncia que vai trocar o lote de 15 minutos por um lote por hora, com cerca de 60 linhas de posição. O que muda na chave (<code>lote_HHMM</code> ainda faz sentido?), nos metadados, no manifesto e no tamanho e na contagem do bucket? O que acontece com os lotes de 15 minutos já gravados, e com a leitura da Aula 04? Qual das cinco decisões desta seção precisaria de um ADR novo, e qual continua válida sem mudança? Responda antes de escrever o ADR-001 do prompt 7, sobre a chave e a partição; o formato esperado aparece no ADR-002 do exemplo resolvido na seção 13.</p>
+        </div>
+        <div class="note">
+          <strong>Pontos-chave do bloco 5</strong>
+          <ul>
+            <li>A chave <code>telemetria/data=/hora=/caminhao=/lote_HHMM.txt</code> particiona pelo início da janela em UTC; lote atrasado cai na hora a que pertence.</li>
+            <li>A raw grava os bytes lidos do arquivo; modo texto, troca de fim de linha ou reserialização mudam o hash e enfraquecem a prova.</li>
+            <li>Chave determinística mais <code>HEAD</code> antes do <code>PUT</code> tornam a repetição segura; retransmissão com outro conteúdo vira <code>conflito_hash</code> e espera decisão.</li>
+            <li>O pouso só perde o arquivo depois da confirmação; execução simultânea e versão idêntica por retry ficam como riscos registrados.</li>
+            <li>Sete metadados respondem de onde, quando, por qual versão, de que caminhão, de que janela e de que arquivo o lote veio.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 7 -->
+      <section class="content-block" id="s7">
+        <h2>7. A fonte da aula: o provedor por satélite e o gerador de lotes</h2>
+        <p>Não existe uma API pública de telemetria de caminhões, e dados reais de tacógrafo são dados pessoais de motoristas. O provedor da aula é, portanto, simulado. O laboratório traz o <a href="../laboratorio/lesson-2/gerar_lotes.py">gerar_lotes.py</a>, um script em Python que usa só a biblioteca padrão e escreve na pasta <code>pouso/</code> o que o provedor deixaria no SFTP: para cada caminhão e cada janela de 15 minutos, um arquivo <code>CAM-XXXX_AAAAMMDDTHHMM.txt</code>, com o início da janela no horário de Brasília, em UTF-8 e com fim de linha <code>\n</code>.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Parâmetro</th><th>Padrão</th><th>Observação</th></tr></thead>
+          <tbody>
+            <tr><td><code>--caminhoes</code></td><td>20</td><td>tamanho da frota; os identificadores são estáveis para a mesma semente</td></tr>
+            <tr><td><code>--inicio</code></td><td>última hora completa</td><td>ISO no horário de Brasília, múltiplo de 15 minutos, por exemplo <code>2026-10-17T09:00</code></td></tr>
+            <tr><td><code>--horas</code></td><td>1</td><td>cada hora gera 4 lotes por caminhão</td></tr>
+            <tr><td><code>--saida</code></td><td><code>pouso</code></td><td>pasta de pouso</td></tr>
+            <tr><td><code>--seed</code></td><td>42</td><td>semente; o conteúdo de cada lote depende só dela, do caminhão e da janela</td></tr>
+            <tr><td><code>--firmware-novo</code></td><td><code>2027-03-01</code></td><td>a partir dessa data, parte da frota acrescenta <code>TEMP_BAU nn.n</code> ao formato 3</td></tr>
+          </tbody>
+        </table></div>
+        <p>O gerador é determinístico: a mesma semente e o mesmo início produzem os mesmos bytes em qualquer máquina, e gerar duas horas de uma vez dá o mesmo resultado que gerar uma hora por vez. Isso tem duas consequências para a aula. Toda a turma obtém o mesmo lote de referência: com <code>--inicio 2026-10-17T09:00</code>, o arquivo <code>CAM-0451_20261017T0900.txt</code> tem 983 bytes e <code>sha256</code> <code>6789b712602d1985d24df7b48370a1190da3db4e2576a74b07b5520d28601b12</code>, um teste de aceitação que não depende de nenhuma implementação. E rodar o gerador de novo sobre a mesma janela simula com fidelidade a retransmissão idêntica do provedor.</p>
+        <pre><code>python gerar_lotes.py --inicio 2026-10-17T09:00
+# 80 lotes em pouso/ (20 caminhões x 4 janelas), 17/10/2026 09:00 a 10:00 (Brasília), 81987 bytes, média 1025 bytes por lote
+
+python gerar_lotes.py --inicio 2026-10-16T21:00 --horas 24   # um dia UTC inteiro: 1.920 lotes
+python gerar_lotes.py --inicio 2027-03-02T08:00              # depois do firmware novo</code></pre>
+
+        <h3>7.1 Formatos de linha</h3>
+        <p>Cada lote tem 15 linhas de posição, uma por minuto, misturadas com eventos. As proporções abaixo foram contadas nos 1.920 lotes de um dia gerados na preparação da aula (31.229 linhas):</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Formato</th><th>Exemplo</th><th>Proporção medida</th></tr></thead>
+          <tbody>
+            <tr><td>1. Posição com tacógrafo</td><td><code>CAM-0412|17/10/26 09:14:03|-23.5481,-46.6390|VEL 087|TAC MOT 03h12</code></td><td>72,0%</td></tr>
+            <tr><td>2. Rádio, texto livre e só hora</td><td><code>#RADIO 09:14 MOTORISTA: parada posto km 214 BR-116</code></td><td>4,6%</td></tr>
+            <tr><td>3. Posição do firmware novo</td><td><code>CAM-0412 17-10-2026 09:15:03 GPS -23.5502 -46.6411 v=85</code>, com <code>TEMP_BAU 04.2</code> no fim depois da data do firmware</td><td>20,2%</td></tr>
+            <tr><td>4. Erro do enlace, sem caminhão nem hora</td><td><code>ERR SAT SINAL FRACO</code></td><td>2,9%</td></tr>
+            <tr><td>5. Alerta do tacógrafo</td><td><code>TAC;CAM-0977;20261017T091500;DIRECAO CONTINUA 05:31;ALERTA</code></td><td>0,24% (74 alertas no dia)</td></tr>
+          </tbody>
+        </table></div>
+        <p>O tempo de direção contínua segue um ciclo por caminhão, com pausas de 30 a 45 minutos; quando um caminhão passa de 5h30 sem pausa, o lote daquela janela traz a linha de alerta. As mensagens de rádio incluem acentos ("trânsito lento", "pátio do cliente"), o que torna visível qualquer alteração de encoding feita pelo coletor. O nome do arquivo e as linhas ficam no horário de Brasília; o Brasil não tem horário de verão desde 2019, e o gerador usa a base de fusos do Python (<code>America/Sao_Paulo</code>), com UTC&minus;3 fixo quando a base não está disponível.</p>
+        <p>O provedor fictício não guarda histórico, e esse é o motivo de a raw existir: o lote que não foi gravado não volta. É também a premissa que a questão 1 da discussão da seção 15.1 coloca em jogo.</p>
+
+        <h3>7.2 Para saber mais</h3>
+        <ul>
+          <li>Reis, J.; Housley, M. <em>Fundamentals of Data Engineering</em>. O'Reilly, 2022, capítulo 6 (Storage): ingredientes, sistemas e abstrações de armazenamento, na mesma ordem desta aula.</li>
+          <li>Kleppmann, M. <em>Designing Data-Intensive Applications</em>. O'Reilly, 2017, capítulo 3: como bancos gravam e leem em disco, útil para entender a atualização parcial do bloco.</li>
+          <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html" target="_blank" rel="noopener noreferrer">Amazon S3: modelo de consistência</a> e <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingMetadata.html" target="_blank" rel="noopener noreferrer">metadados de objeto</a>, fontes das afirmações da seção 4.</li>
+          <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListObjectsV2.html" target="_blank" rel="noopener noreferrer">ListObjectsV2</a>: paginação, prefixo e delimitador.</li>
+          <li><a href="https://github.com/minio/minio/blob/master/docs/distributed/README.md" target="_blank" rel="noopener noreferrer">MinIO: garantias de consistência e sistemas de arquivos</a>.</li>
+          <li><a href="https://duckdb.org/docs/data/partitioning/hive_partitioning" target="_blank" rel="noopener noreferrer">DuckDB: Hive partitioning</a>, o leitor da chave desenhada hoje.</li>
+          <li><a href="https://jsonlines.org/" target="_blank" rel="noopener noreferrer">JSON Lines</a>, o formato do manifesto.</li>
+          <li><a href="https://docs.python.org/3/library/zoneinfo.html" target="_blank" rel="noopener noreferrer">Python: zoneinfo</a>, a conversão do horário de Brasília para UTC que o gerador e o coletor usam.</li>
+        </ul>
+      </section>
+
+      <!-- 8 -->
+      <section class="content-block" id="s8">
+        <h2>8. Preparação do ambiente</h2>
+        <p>Os comandos completos estão no <a href="../laboratorio/lesson-2/README.md">roteiro do laboratório</a>. Esta seção explica o que cada etapa faz.</p>
+
+        <h3>8.1 Pasta da aula no repositório do grupo</h3>
+        <ol class="steps">
+          <li>Abra o Codespace do repositório do grupo e um terminal.</li>
+          <li>Crie a pasta e o esqueleto SDD, e baixe os arquivos de apoio da pasta <code>laboratorio/</code> desta aula:</li>
+        </ol>
+        <pre><code>cd /workspaces/&lt;repositorio-do-grupo&gt;
+mkdir -p aula_02_coleta_telemetria/{docs/adr,specs,src,tests}
+cd aula_02_coleta_telemetria
+
+BASE=https://raw.githubusercontent.com/afonsolelis/aulas/main/pages/data-collection/laboratorio/lesson-2
+for f in docker-compose.yml .env.example requirements.txt AGENTS.md .gitignore gerar_lotes.py; do
+  curl -fsSLO "$BASE/$f"
+done
+ls -la</code></pre>
+        <p>O <code>AGENTS.md</code> é o modelo de regras para o agente de código: escopo, fontes de verdade, comandos permitidos, segredos e gates. Leia e ajuste antes do primeiro prompt. O <code>.gitignore</code> impede que <code>.env</code>, <code>.env.railway</code>, <code>.venv/</code> e a pasta <code>pouso/</code> entrem no Git; os lotes são recriados pelo gerador a qualquer momento.</p>
+
+        <h3>8.2 MinIO local com docker compose</h3>
+        <p>O <code>docker-compose.yml</code> sobe o MinIO com a imagem <code>ghcr.io/coollabsio/minio:RELEASE.2025-10-15T17-29-55Z</code>, a mesma do template de MinIO do Railway. A edição comunitária do MinIO entrou em modo de manutenção e deixou de ter imagens Docker oficiais publicadas; a imagem da coolLabs é construída a partir das releases oficiais. A tag fica fixa para que todos rodem a mesma versão. Um segundo serviço, <code>minio-init</code>, espera o MinIO ficar saudável e cria o bucket <code>raw</code>.</p>
+        <pre><code>cp .env.example .env
+SENHA=$(openssl rand -base64 24)
+sed -i "s|^MINIO_ROOT_PASSWORD=.*|MINIO_ROOT_PASSWORD=$SENHA|; s|^S3_SECRET_KEY=.*|S3_SECRET_KEY=$SENHA|" .env
+unset SENHA
+
+docker compose config -q &amp;&amp; echo "compose ok"
+docker compose up -d
+docker compose ps -a
+docker compose logs minio-init</code></pre>
+        <p>Gate: <code>minio</code> aparece como <code>healthy</code>, <code>minio-init</code> termina com <code>Exited (0)</code> e <code>git status</code> não lista <code>.env</code>.</p>
+        <p>A imagem do MinIO já traz o cliente <code>mc</code>, então não é preciso instalá-lo. Registre um alias dentro do contêiner e ligue o versionamento:</p>
+        <pre><code>docker compose exec minio sh -c 'mc alias set local http://localhost:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"'
+docker compose exec minio mc ls local
+docker compose exec minio mc version enable local/raw
+docker compose exec minio mc version info local/raw</code></pre>
+
+        <h3>8.3 Ambiente Python e lotes no pouso</h3>
+        <pre><code>python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python -c "import boto3, pytest; print('ok')"
+
+python gerar_lotes.py --inicio 2026-10-17T09:00
+ls pouso | wc -l                                   # 80
+sha256sum pouso/CAM-0451_20261017T0900.txt         # 6789b712602d1985...</code></pre>
+        <p>O <code>requirements.txt</code> sugere <code>boto3</code> para a API compatível com S3 e <code>pytest</code> para os testes; o gerador não precisa de nada além da biblioteca padrão. O grupo pode trocar <code>boto3</code> pelo SDK <code>minio</code>, desde que registre a decisão no plano. Abra um lote com <code>cat</code> antes do primeiro prompt: a spec fica melhor quando o grupo viu os cinco formatos com os próprios olhos.</p>
+
+        <h3>8.4 Agente de código na pasta do projeto</h3>
+        <pre><code>cd aula_02_coleta_telemetria
+claude            # ou o agente que você usa</code></pre>
+        <p>Abra o agente dentro de <code>aula_02_coleta_telemetria/</code>, para que ele enxergue o <code>AGENTS.md</code> e a estrutura de pastas. Cada grupo usa o agente que preferir; o importante é que ele leia o <code>AGENTS.md</code>. Codex CLI e OpenCode o leem diretamente. O Claude Code lê instruções de um arquivo <code>CLAUDE.md</code>; para não manter dois arquivos, crie um que importe o <code>AGENTS.md</code>:</p>
+        <pre><code>echo "@AGENTS.md" &gt; CLAUDE.md
+git add CLAUDE.md</code></pre>
+        <p>Qualquer agente de código no terminal serve, desde que leia o <code>AGENTS.md</code> e mostre o plano antes de editar. Trabalhe um prompt por vez: a revisão entre um prompt e o próximo é o ponto em que o grupo pega o erro do agente antes que ele contamine a etapa seguinte.</p>
+      </section>
+
+      <!-- 9 -->
+      <section class="content-block" id="s9">
+        <h2>9. O projeto da aula em SDD</h2>
+        <p>O cenário é o da seção 2.1, fictício, e serve para dar ao agente um problema concreto. A coordenação de frota da transportadora acompanha jornada e posição dos caminhões, e o jurídico precisa provar, meses depois, numa fiscalização ou num processo trabalhista, o que o tacógrafo registrou numa janela. Os dois dependem de um histórico dos lotes do provedor, guardado sem alteração e com prova de integridade, que as próximas etapas (Aula 04) vão interpretar e consultar.</p>
+        <p>O projeto desta aula entrega só a primeira peça: o coletor que tira os lotes do pouso e a camada raw. A sequência de prompts segue a convenção da disciplina:</p>
+        <div class="method-flow">
+          <div class="method-step"><strong>Persona e objetivos</strong><span>Prompts 1 e 2: quem usa, que decisão toma, como medir sucesso.</span></div>
+          <div class="method-step"><strong>Especificação</strong><span>Prompt 3: RF e RNF com Dado/Quando/Então.</span></div>
+          <div class="method-step"><strong>Plano e tarefas</strong><span>Prompts 4 e 5: C4, módulos, tarefas ligadas a testes.</span></div>
+          <div class="method-step"><strong>Implementação</strong><span>Prompt 6: uma tarefa por vez, teste antes de seguir.</span></div>
+          <div class="method-step"><strong>ATAM</strong><span>Prompt 7: cenários, riscos, ADRs e evidências.</span></div>
+        </div>
+        <p>Todos os prompts carregam as mesmas regras: não inventar números nem SLAs (marcar "hipótese, validação pendente"), separar fato, lacuna e suposição, preservar os IDs de requisito, não pôr segredos em arquivo versionado, mostrar o plano antes de editar e parar ao fim da etapa. Copie cada prompt por inteiro. A revisão que vem depois de cada um é a parte que produz aprendizado: o agente erra, e o grupo precisa pegar o erro antes que ele contamine a etapa seguinte.</p>
+      </section>
+
+      <!-- 10 -->
+      <section class="content-block" id="s10">
+        <h2>10. Os sete prompts CREATE</h2>
+
+        <h3>Prompt 1. Persona</h3>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é um analista de requisitos de dados que entrevista usuários de negócio antes de qualquer decisão técnica. Você escreve em português, de forma objetiva, e separa o que foi informado do que está sendo suposto.
+
+[R] Pedido
+Crie o arquivo docs/00_persona.md descrevendo as personas que vão usar os dados do coletor de telemetria desta pasta (aula_02_coleta_telemetria). Contexto fornecido pelo professor (cenário fictício): uma transportadora opera caminhões pelas rodovias brasileiras. O equipamento embarcado registra tacógrafo, posição do GPS e mensagens de rádio, que seguem por satélite até um provedor de rastreamento. O provedor entrega, para cada caminhão, um lote TXT a cada 15 minutos numa pasta SFTP, sem formato fixo, e não guarda histórico. A coordenação de frota acompanha jornada e posição. O jurídico precisa provar, meses depois, numa fiscalização ou num processo trabalhista, o que o tacógrafo registrou numa janela, por exemplo um alerta de direção contínua acima de 5h30 (Lei 13.103/2015), e que o arquivo não foi alterado. Nesta etapa não há parser nem painel: só a coleta e o armazenamento bruto dos lotes.
+
+[E] Exemplos
+Formato esperado de uma persona:
+## P-01 Analista jurídica da transportadora
+- Quem é: advogada da área trabalhista; não programa, recebe arquivos e relatórios.
+- Decisão que toma: contestar ou propor acordo num processo sobre jornada de um motorista.
+- Dor atual: o lote original do dia contestado não existe mais, ou não há como provar que não foi alterado.
+- Frequência de uso: por processo ou fiscalização (hipótese, validação pendente).
+- O que precisa do dado: o lote de um caminhão numa janela, com horário de recepção e prova de integridade.
+- Fato / suposição: separar em lista.
+
+[A] Ajustes
+- Crie no máximo três personas: o jurídico, a coordenação de frota (as duas usuárias do dado) e uma mantenedora do coletor (engenharia de dados).
+- Não invente números (volumes, frequência, metas, prazos legais de guarda). Quando precisar de um valor, escreva "hipótese, validação pendente".
+- Não proponha tecnologia, arquitetura nem código nesta etapa.
+- Termine com uma seção "Fatos, lacunas e suposições" e uma seção "Perguntas para o cliente".
+
+[T] Tipo de saída
+Um único arquivo Markdown, docs/00_persona.md, com até 70 linhas. Mostre o conteúdo proposto antes de gravar.
+
+[E] Extras
+Leia AGENTS.md antes de começar e siga as regras dele. Se faltar informação essencial, pergunte antes de escrever. Pare ao final desta etapa e aguarde revisão; não avance para objetivos de negócio.</code></pre>
+        <div class="note">
+          <strong>Revise antes de seguir</strong>
+          <p>Cada persona de negócio diz qual decisão toma e com que frequência? A do jurídico pede prova de integridade, e não só o dado? Algum número (inclusive prazo de guarda) apareceu sem a marca de hipótese? A persona de engenharia descreve o que precisa para operar o coletor (saber se rodou, o que ficou no pouso, o que falhou)? A seção de perguntas ao cliente tem pelo menos duas perguntas concretas, por exemplo por quanto tempo os lotes precisam ser guardados?</p>
+        </div>
+
+        <h3>Prompt 2. Objetivos de negócio</h3>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é um gerente de produto de dados que transforma a dor de uma persona em objetivos mensuráveis, sem prometer o que não pode medir.
+
+[R] Pedido
+Leia docs/00_persona.md e crie docs/01_objetivos_negocio.md com os objetivos de negócio do coletor dos lotes de telemetria, as métricas de sucesso, os drivers de negócio e as restrições.
+
+[E] Exemplos
+## OBJ-01 Prova íntegra da jornada
+- Descrição: manter, para cada caminhão e cada janela de 15 minutos, o lote exatamente como o provedor entregou, com horário de recepção e hash.
+- Métrica de sucesso: proporção de janelas com lote gravado, por caminhão e por dia.
+- Meta: hipótese, validação pendente (perguntar ao cliente qual falha é aceitável).
+- Personas atendidas: P-01, P-02.
+
+[A] Ajustes
+- Inclua estas restrições, com origem "restrição fornecida pelo professor": (1) armazenamento em object storage MinIO com API compatível com S3, bucket raw; (2) execução local via docker compose e publicação no MinIO do Railway criado na Aula 01; (3) orçamento limitado ao crédito do plano de teste do Railway (US$ 5, até 30 dias) e depois ao plano Free (US$ 1/mês); (4) fonte: lotes do provedor por satélite, simulados pelo gerar_lotes.py na pasta pouso/, que faz o papel do SFTP; o provedor não guarda histórico e às vezes retransmite um lote; (5) nenhum segredo em arquivo versionado.
+- Liste drivers de negócio que ajudem a priorizar atributos de qualidade (por exemplo: integridade como prova, não perder janelas, rastreabilidade da origem, custo previsível).
+- Não invente metas numéricas: toda meta sem fonte fica como "hipótese, validação pendente".
+- Não escreva requisitos técnicos nem arquitetura ainda.
+
+[T] Tipo de saída
+Arquivo Markdown docs/01_objetivos_negocio.md, com seções: Objetivos (OBJ-xx), Métricas de sucesso, Drivers de negócio, Restrições (com origem), Fora de escopo, Fatos/lacunas/suposições. Até 80 linhas.
+
+[E] Extras
+Preserve os IDs de persona (P-xx). Mostre o plano do arquivo antes de gravar. Pergunte se faltar informação. Pare ao final desta etapa.</code></pre>
+        <div class="note">
+          <strong>Revise antes de seguir</strong>
+          <p>Cada objetivo aponta para uma persona? As cinco restrições aparecem com origem? Alguma meta virou número sem fonte? A seção "Fora de escopo" exclui explicitamente o parser das linhas, o painel, a transformação e o SFTP real (que são de outras aulas ou fora da disciplina)?</p>
+        </div>
+
+        <h3>Prompt 3. Especificação</h3>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é um engenheiro de dados sênior que escreve especificações verificáveis. Todo requisito seu tem critério de aceite que um teste automatizado ou um comando consegue confirmar.
+
+[R] Pedido
+Leia docs/00_persona.md e docs/01_objetivos_negocio.md e crie specs/spec.md com os requisitos funcionais (RF-xx) e não funcionais (RNF-xx) do coletor. Fatos técnicos a usar (verificados pelo professor):
+- Pasta de pouso: pouso/ (variável POUSO_DIR). Arquivos CAM-XXXX_AAAAMMDDTHHMM.txt, com o início da janela de 15 minutos no horário de Brasília (America/Sao_Paulo).
+- Conteúdo: UTF-8, fim de linha \n, 15 linhas de posição (uma por minuto) misturadas com eventos, em cinco formatos: (1) CAM-0412|17/10/26 09:14:03|-23.5481,-46.6390|VEL 087|TAC MOT 03h12; (2) #RADIO 09:14 MOTORISTA: parada posto km 214 BR-116; (3) CAM-0412 17-10-2026 09:15:03 GPS -23.5502 -46.6411 v=85, com TEMP_BAU nn.n opcional no fim; (4) ERR SAT SINAL FRACO; (5) TAC;CAM-0977;20261017T091500;DIRECAO CONTINUA 05:31;ALERTA.
+- Gerador: python gerar_lotes.py --inicio 2026-10-17T09:00 cria 80 lotes (20 caminhões x 4 janelas). O lote CAM-0451_20261017T0900.txt tem 983 bytes e sha256 6789b712602d1985d24df7b48370a1190da3db4e2576a74b07b5520d28601b12.
+- Bucket: raw. Chave: telemetria/data=AAAA-MM-DD/hora=HH/caminhao=CAM-XXXX/lote_HHMM.txt, com data, hora e HHMM do início da janela convertidos para UTC.
+- Bytes gravados exatamente como estão no arquivo, sem decodificar, reserializar ou trocar fim de linha.
+- Metadados do objeto (ASCII): fonte=provedor-satelite, recebido-em (ISO 8601 UTC), versao-coletor, sha256 dos bytes gravados, caminhao, janela-inicio (ISO 8601 UTC), arquivo-origem.
+- Manifesto em JSON Lines em _manifestos/telemetria/data=AAAA-MM-DD/hora=HH/execucao_&lt;AAAAMMDDTHHMMSSZ&gt;.jsonl, com data e hora do início da execução em UTC; uma linha por lote: arquivo, chave, status (gravado|ja_existia|erro|conflito_hash), bytes, sha256, linhas, alertas (quantidade de linhas TAC;...;ALERTA).
+- Configuração por variáveis de ambiente: S3_ENDPOINT_URL, S3_ACCESS_KEY, S3_SECRET_KEY, BUCKET_RAW, S3_REGION, COLETOR_VERSAO, POUSO_DIR.
+- O MinIO do Railway fica atrás de um proxy que devolve 502 esporádico; um 502 não prova que o PUT falhou.
+
+Cubra no mínimo: leitura dos lotes do pouso e validação do nome; gravação dos bytes sem alteração; chave determinística pela janela; idempotência (HEAD antes do PUT; chave existente com o mesmo sha256 vira ja_existia); retransmissão com conteúdo diferente (sha256 diferente vira conflito_hash, nada é sobrescrito e o arquivo fica no pouso); remoção do arquivo do pouso só depois de PUT confirmado ou de ja_existia com o mesmo sha256; metadados; manifesto; arquivo com nome fora do padrão (não é gravado, fica no pouso e aparece no manifesto como erro); falha num lote não impede os outros; código de saída diferente de zero se algum lote terminar em erro ou conflito_hash; retry com espera crescente para 502/503/504 e timeout do MinIO; nenhuma repetição para 403; credenciais só por variável de ambiente; mesma execução contra MinIO local e do Railway mudando só variáveis.
+
+[E] Exemplos
+RF-03 Chave determinística pela janela
+Dado o lote pouso/CAM-0451_20261017T0900.txt (janela das 09:00 em Brasília),
+Quando o coletor calcula a chave do objeto,
+Então a chave é telemetria/data=2026-10-17/hora=12/caminhao=CAM-0451/lote_1200.txt,
+E o mesmo lote processado em qualquer outro momento calcula a mesma chave.
+Verificação: teste unitário de função pura, sem relógio.
+
+RNF-02 Sem segredos versionados
+Dado o repositório do grupo,
+Quando se executa git diff --staged antes do commit,
+Então nenhum valor de S3_ACCESS_KEY ou S3_SECRET_KEY aparece.
+Verificação: comando de revisão listado no AGENTS.md.
+
+[A] Ajustes
+- Cada requisito tem ID estável, descrição de uma frase, critério Dado/Quando/Então e uma linha "Verificação" (teste unitário, teste de integração ou comando).
+- Não invente SLA, tempo de resposta, número de tentativas ou tempo de espera como fato. Proponha valores iniciais marcados "hipótese, validação pendente".
+- Não escolha bibliotecas nem descreva módulos: isso é do plano.
+- Não especifique parser das linhas: o coletor só conta alertas para o manifesto.
+- Liste em "Fora de escopo": parser e transformação, Parquet, SFTP real, agendamento automático em produção e painel.
+
+[T] Tipo de saída
+Arquivo Markdown specs/spec.md com seções: Contexto, Requisitos funcionais, Requisitos não funcionais, Fora de escopo, Fatos/lacunas/suposições, Rastreabilidade (requisito para objetivo OBJ-xx). Use tabela na seção de rastreabilidade.
+
+[E] Extras
+Preserve os IDs P-xx e OBJ-xx. Mostre a lista de requisitos antes de gravar o arquivo. Pergunte se algum fato técnico parecer contraditório. Pare ao final desta etapa.</code></pre>
+        <div class="note">
+          <strong>Revise antes de seguir</strong>
+          <p>Todo RF e RNF tem Dado/Quando/Então e uma linha de verificação executável? A chave usa o início da janela em UTC, e o exemplo das 09:00 em Brasília virando <code>hora=12</code> aparece? Existem requisitos separados para "já existe com o mesmo hash" e "já existe com hash diferente"? A remoção do pouso depende da confirmação? O hash de aceitação do lote <code>CAM-0451_20261017T0900.txt</code> está num critério? O retry exclui o 403? Algum número (tentativas, espera, timeout) aparece sem a marca de hipótese? Cada requisito aponta para um objetivo?</p>
+        </div>
+
+        <h3>Prompt 4. Plano e arquitetura</h3>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é um arquiteto de software de dados. Você justifica cada escolha técnica com um requisito e desenha a arquitetura no modelo C4 usando Mermaid.
+
+[R] Pedido
+Leia specs/spec.md e crie specs/plan.md com a arquitetura do coletor e as escolhas técnicas. Inclua:
+1. Diagrama C4 de contexto (Mermaid): personas do jurídico e da frota, coletor, provedor por satélite (pasta pouso/, no papel do SFTP), MinIO (local e Railway).
+2. Diagrama C4 de contêineres e componentes (Mermaid): ponto de entrada python -m src.coletor; módulos separados para configuração, leitura do pouso e validação do nome, construção de chave e metadados, gravação no object storage, manifesto e limpeza do pouso.
+3. Diagrama de sequência (Mermaid) de uma execução: para cada lote, ler os bytes, calcular sha256 e chave, HEAD no MinIO; se não existir, PUT com metadados; se existir, comparar sha256; apagar do pouso só se gravado ou ja_existia; linha no manifesto; ao final, PUT do manifesto.
+4. Tabela de escolhas técnicas: escolha, alternativa considerada, requisito que justifica. Considere: boto3 ou SDK minio; um objeto por lote ou concatenar os lotes da hora; partição pelo início da janela em UTC, pela hora de chegada ou pelo horário de Brasília; apagar o arquivo do pouso ou movê-lo para pouso/processados.
+5. Configuração do cliente S3 para MinIO: endpoint_url vindo de S3_ENDPOINT_URL, endereçamento por caminho (addressing_style path), região de S3_REGION, retry do cliente.
+6. Estratégia de testes: unitários com pytest, usando tmp_path como pouso e um armazenamento falso em memória com a mesma interface do gravador; teste de integração marcado com @pytest.mark.integracao, executado só quando o MinIO local está no ar, usando lotes do gerar_lotes.py.
+
+[E] Exemplos
+| Escolha | Alternativa | Justificativa |
+|---|---|---|
+| Um objeto por lote | Concatenar os 4 lotes da hora num objeto | RF-xx (bytes sem alteração) e RF-xx (sha256 do arquivo recebido); custo: 1.920 objetos por dia na frota da aula, com cerca de 7,0 KB em disco por objeto medidos na preparação da aula |
+
+[A] Ajustes
+- Toda tecnologia citada aponta para um RF ou RNF; se não houver, escreva "sem requisito correspondente" e remova ou justifique.
+- Os nomes nos diagramas e no texto são os mesmos.
+- O gravador recebe o cliente de armazenamento por parâmetro (injeção de dependência), para que os testes usem o armazenamento falso.
+- Não escreva código de produção. Assinaturas de funções em pseudocódigo são aceitas.
+- Não invente valores de timeout ou tentativas; mantenha os do spec com a marca de hipótese.
+
+[T] Tipo de saída
+Arquivo Markdown specs/plan.md com blocos Mermaid, uma tabela de escolhas e uma seção "Riscos técnicos iniciais". Até 150 linhas.
+
+[E] Extras
+Leia AGENTS.md. Mostre o esboço do plano antes de gravar. Pergunte se algum requisito estiver ambíguo. Pare ao final desta etapa.</code></pre>
+        <div class="note">
+          <strong>Revise antes de seguir</strong>
+          <p>Os nomes dos componentes no Mermaid batem com os do texto? O diagrama de sequência mostra o <code>HEAD</code> antes do <code>PUT</code>, a comparação de hash e a remoção do pouso depois da confirmação? A escolha entre apagar e mover para <code>processados/</code> tem justificativa ligada a requisito? O cliente S3 usa endereçamento por caminho? Alguma biblioteca entrou sem requisito?</p>
+        </div>
+
+        <h3>Prompt 5. Tarefas</h3>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é um tech lead que quebra um plano em tarefas pequenas, cada uma entregável em minutos e verificável por um teste.
+
+[R] Pedido
+Leia specs/spec.md e specs/plan.md e crie specs/tasks.md com a lista ordenada de tarefas de implementação do coletor.
+
+[E] Exemplos
+## T-03 Construir chave e metadados
+- Requisitos: RF-03, RF-05
+- Arquivos: src/chaves.py, tests/test_chaves.py
+- Teste que prova: test_chave_usa_inicio_da_janela_em_utc; test_metadados_em_ascii
+- Pronto quando: python -m pytest -q tests/test_chaves.py passa
+- Depende de: T-01
+
+[A] Ajustes
+- Cada tarefa cita pelo menos um RF ou RNF, os arquivos tocados e o nome do teste que a prova.
+- A primeira tarefa cria a estrutura (src/__init__.py, tests/, pytest.ini com o marcador integracao registrado) e um teste trivial que passa.
+- A idempotência tem tarefa própria, com teste usando o armazenamento falso: duas execuções sobre o mesmo lote resultam em uma gravação e um status ja_existia.
+- A retransmissão com conteúdo diferente tem tarefa própria: lote com o mesmo nome e outro conteúdo resulta em conflito_hash, nenhum PUT e o arquivo continua no pouso.
+- A remoção do pouso tem teste em que o armazenamento falso falha no PUT e o arquivo continua no pouso.
+- O retry tem tarefa própria, com teste em que o armazenamento falso devolve 502 e depois sucesso, e outro em que devolve 403 e não há nova tentativa.
+- A última tarefa é o teste de integração contra o MinIO local, com os 80 lotes de python gerar_lotes.py --inicio 2026-10-17T09:00 e o hash de aceitação do spec.
+- No fim, uma tabela de cobertura: requisito, tarefa, teste. Requisito sem tarefa aparece como lacuna.
+
+[T] Tipo de saída
+Arquivo Markdown specs/tasks.md, com 6 a 10 tarefas e a tabela de cobertura.
+
+[E] Extras
+Preserve IDs RF, RNF e OBJ. Mostre a lista antes de gravar. Pare ao final desta etapa; não comece a implementar.</code></pre>
+        <div class="note">
+          <strong>Revise antes de seguir</strong>
+          <p>Todo requisito aparece em pelo menos uma tarefa? Cada tarefa tem um teste nomeado? Existem tarefas para idempotência, conflito de hash, remoção do pouso e retry? A ordem respeita as dependências (chave antes do gravador, gravador antes do coletor)? O teste de integração usa o gerador, e não arquivos escritos à mão?</p>
+        </div>
+
+        <h3>Prompt 6. Implementação tarefa a tarefa</h3>
+        <p>Este prompt é usado uma vez por tarefa. Troque <code>T-xx</code> pela tarefa da vez.</p>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é um engenheiro de dados que pratica desenvolvimento orientado a testes em Python. Você escreve código pequeno, legível, com tipos e sem dependências fora do requirements.txt.
+
+[R] Pedido
+Implemente somente a tarefa T-xx de specs/tasks.md. Escreva primeiro o teste descrito na tarefa, rode python -m pytest -q e mostre a falha; depois implemente o mínimo para o teste passar e rode de novo.
+
+[E] Exemplos
+Teste esperado para a chave (T-03):
+def test_chave_usa_inicio_da_janela_em_utc():
+    assert montar_chave("CAM-0451_20261017T0900.txt") == \
+        "telemetria/data=2026-10-17/hora=12/caminhao=CAM-0451/lote_1200.txt"
+
+[A] Ajustes
+- Leia spec.md, plan.md e tasks.md antes de editar. Mostre o plano de alteração (arquivos e funções) e espere minha confirmação.
+- Toque apenas nos arquivos listados na tarefa. Nunca edite gerar_lotes.py nem os arquivos de pouso/.
+- Credenciais e endpoint vêm de variáveis de ambiente; nunca escreva valores reais em código ou teste. Nos testes, use valores falsos como "teste".
+- Os bytes gravados são exatamente os lidos do arquivo (Path.read_bytes()); o sha256 é calculado sobre esses bytes. Nunca abra o lote em modo texto para gravá-lo.
+- O cliente boto3 usa endpoint_url=S3_ENDPOINT_URL, region_name=S3_REGION e Config(s3={"addressing_style": "path"}).
+- Testes unitários não acessam rede: use tmp_path como pouso e o armazenamento falso.
+- Não altere spec.md nem plan.md. Se a tarefa estiver errada, pare e explique.
+
+[T] Tipo de saída
+Arquivos de código e teste da tarefa, a saída de python -m pytest -q antes e depois, e um resumo de até cinco linhas com o que mudou.
+
+[E] Extras
+Se precisar de pacote fora do requirements.txt, peça autorização. Ao terminar, marque a tarefa como concluída em specs/tasks.md e pare. Não comece a próxima tarefa.</code></pre>
+        <div class="note">
+          <strong>Revise antes de seguir</strong>
+          <p>O teste falhou antes e passou depois? O diff toca só os arquivos da tarefa? Há credencial, URL do Railway ou número mágico no código? O lote é lido com <code>read_bytes()</code> e enviado sem passar por <code>decode</code>, <code>open(..., "r")</code> ou troca de fim de linha? O arquivo do pouso só é apagado depois da confirmação? Rode você mesmo <code>python -m pytest -q</code> antes de pedir a próxima tarefa.</p>
+        </div>
+
+        <h3>Prompt 7. Validação ATAM</h3>
+        <p>Use este prompt depois de rodar o coletor no MinIO local e no Railway (seções 11 e 12), porque a análise precisa de evidência medida.</p>
+        <pre class="is-wrap"><code>[C] Personagem
+Você é uma equipe avaliadora ATAM independente, formada por um arquiteto de dados, um engenheiro de confiabilidade, uma pessoa de custos e uma advogada que vai usar os lotes como prova. Vocês desconfiam de afirmações sem evidência.
+
+[R] Pedido
+Leia docs/00_persona.md, docs/01_objetivos_negocio.md, specs/spec.md, specs/plan.md, specs/tasks.md e o código em src/. Crie docs/atam.md e os ADRs em docs/adr/. O docs/atam.md deve conter:
+1. Drivers de negócio e atributos de qualidade priorizados.
+2. Utility tree: atributo, refinamento, cenário, com importância e dificuldade (alta, média, baixa) justificadas.
+3. Cenários de seis partes (fonte do estímulo, estímulo, ambiente, artefato, resposta, medida da resposta), cobrindo no mínimo:
+   C-01 MinIO fora do ar durante a coleta;
+   C-02 os mesmos lotes coletados duas vezes (agendador duplicado ou retransmissão idêntica);
+   C-03 MinIO do Railway devolvendo 502 no PUT;
+   C-04 crescimento do bucket ao longo de 30 dias comparado ao crédito do Railway;
+   C-05 firmware novo acrescentando TEMP_BAU ao formato 3;
+   C-06 credencial do MinIO aparecendo no diff;
+   C-07 provedor retransmitindo um lote com conteúdo diferente.
+4. Para cada cenário: decisão arquitetural relacionada, evidência existente (teste, comando, saída de mc), lacuna.
+5. Pontos de sensibilidade, pontos de trade-off, riscos (inclusive execuções simultâneas), não-riscos e temas de risco.
+6. Matriz requisito, decisão, componente, evidência, com uma linha por RF e RNF.
+Crie ADR-001 sobre o formato da chave e a partição pelo início da janela em UTC, e ADR-002 sobre a política de idempotência (primeira gravação da janela vale; conflito_hash para conteúdo diferente). Crie outros ADRs se encontrar decisões relevantes sem registro.
+
+[E] Exemplos
+C-02 Idempotência
+- Fonte: agendador, pessoa do grupo ou provedor que retransmite.
+- Estímulo: os mesmos 80 lotes chegam de novo ao pouso e o coletor roda outra vez.
+- Ambiente: operação normal, MinIO disponível, versionamento ligado no bucket raw.
+- Artefato: gravador, limpeza do pouso e bucket raw.
+- Resposta: nenhum objeto nem versão novos em telemetria/; ja_existia no manifesto para cada lote; pouso vazio ao final.
+- Medida: contagem de objetos e de versões em telemetria/data=D/hora=H igual antes e depois (saída de mc find e mc ls --recursive --versions colada como evidência).
+
+[A] Ajustes
+- Não invente valores. Para C-04, use o tamanho medido dos objetos (mc du) e o número de lotes por dia; preço do armazenamento do Railway só com fonte citada, senão "hipótese, validação pendente".
+- Diferencie risco confirmado (com evidência) de dúvida não investigada.
+- Exija para cada resposta de cenário uma evidência executável; se não houver, registre como lacuna e proponha o teste ou comando.
+- Não altere código, spec nem plano. Se encontrar contradição, registre como descoberta.
+
+[T] Tipo de saída
+docs/atam.md em Markdown com tabelas; docs/adr/ADR-001-chave-particionada-pela-janela.md e docs/adr/ADR-002-idempotencia-primeira-gravacao.md, cada um com status, contexto, alternativas, decisão, consequências positivas e negativas, requisitos relacionados e condição de revisão.
+
+[E] Extras
+Peça que eu cole a saída dos comandos mc e pytest se ela não estiver no repositório. Mostre a utility tree antes de escrever o restante. Pare ao final.</code></pre>
+        <div class="note">
+          <strong>Revise para fechar</strong>
+          <p>Os sete cenários têm as seis partes e uma medida verificável? O C-04 usa tamanho medido, e não estimado de memória? Há pelo menos um trade-off nomeado (por exemplo, primeira gravação vale contra última gravação vale, ou parar no <code>conflito_hash</code> contra aceitar a retransmissão)? O risco de execuções simultâneas aparece como risco, e não como resolvido? A matriz tem linha para todo requisito, inclusive os sem evidência?</p>
+        </div>
+      </section>
+
+      <!-- 11 -->
+      <section class="content-block" id="s11">
+        <h2>11. Execução e verificação no MinIO local</h2>
+        <p>Com as tarefas implementadas e os testes passando, rode o coletor contra o MinIO local. O carregamento do <code>.env</code> com <code>set -a</code> exporta todas as variáveis para o processo Python. O <code>--inicio</code> fixo faz todos os grupos gerarem os mesmos lotes, o que torna as contagens e o hash comparáveis entre grupos.</p>
+        <pre><code>set -a; source .env; set +a
+python -m pytest -q
+
+python gerar_lotes.py --inicio 2026-10-17T09:00
+python -m src.coletor
+ls pouso | wc -l                                   # 0
+
+python gerar_lotes.py --inicio 2026-10-17T09:00     # o provedor reenvia os mesmos lotes
+python -m src.coletor
+ls pouso | wc -l                                   # 0 de novo</code></pre>
+        <p>Verifique o bucket com o <code>mc</code> dentro do contêiner. Quando a saída segue por um pipe (<code>| wc -l</code>, <code>| sha256sum</code>), use <code>exec -T</code>: sem terminal alocado, os bytes chegam ao comando seguinte sem conversão de fim de linha.</p>
+        <pre><code>docker compose exec -T minio mc find local/raw/telemetria --name "*.txt" | wc -l
+docker compose exec -T minio mc ls --recursive --versions local/raw/telemetria/ | wc -l
+docker compose exec minio mc ls local/raw/telemetria/data=2026-10-17/hora=12/
+docker compose exec minio mc ls --recursive local/raw/_manifestos/</code></pre>
+        <p>Inspecione o objeto de referência:</p>
+        <pre><code>K=telemetria/data=2026-10-17/hora=12/caminhao=CAM-0451/lote_1200.txt
+docker compose exec minio mc stat local/raw/$K
+docker compose exec -T minio mc cat local/raw/$K | sha256sum
+docker compose exec -T minio mc cat local/raw/$K | head -5</code></pre>
+        <div class="note">
+          <strong>Gates locais</strong>
+          <ul>
+            <li><code>python -m pytest -q</code> sem falhas.</li>
+            <li>80 objetos <code>.txt</code> e 80 versões em <code>telemetria/</code> depois da primeira execução: 20 caminhões vezes 4 lotes por hora gerada. Para cada hora a mais, mais 80.</li>
+            <li>A segunda execução sobre os mesmos lotes não muda a contagem de objetos nem a de versões em <code>telemetria/</code>, o pouso termina vazio e o manifesto dela mostra 80 linhas <code>ja_existia</code>.</li>
+            <li><code>mc stat</code> mostra os sete metadados: <code>X-Amz-Meta-Fonte</code>, <code>X-Amz-Meta-Recebido-Em</code>, <code>X-Amz-Meta-Versao-Coletor</code>, <code>X-Amz-Meta-Sha256</code>, <code>X-Amz-Meta-Caminhao</code>, <code>X-Amz-Meta-Janela-Inicio</code> (<code>2026-10-17T12:00:00Z</code>) e <code>X-Amz-Meta-Arquivo-Origem</code> (<code>CAM-0451_20261017T0900.txt</code>).</li>
+            <li>O <code>sha256sum</code> do conteúdo é igual ao metadado e a <code>6789b712602d1985d24df7b48370a1190da3db4e2576a74b07b5520d28601b12</code>.</li>
+          </ul>
+        </div>
+        <p>Teste também as falhas. Para a retransmissão com conteúdo diferente, gere os lotes de um caminhão e acrescente uma linha a um deles; o coletor deve registrar <code>conflito_hash</code>, manter o arquivo no pouso e sair com código diferente de zero. Para o MinIO fora do ar, pare o contêiner; o coletor deve terminar com código diferente de zero, sem travar, depois de esgotar as tentativas definidas no spec, e sem apagar nada do pouso.</p>
+        <pre><code>python gerar_lotes.py --inicio 2026-10-17T09:00 --caminhoes 1
+echo "linha que chegou atrasada" &gt;&gt; pouso/CAM-9840_20261017T0915.txt
+python -m src.coletor; echo "saida $?"
+ls pouso
+
+docker compose stop minio
+python -m src.coletor; echo "saida $?"
+ls pouso
+docker compose start minio</code></pre>
+        <p>Com <code>--caminhoes 1</code>, o gerador escreve só os quatro lotes do caminhão <code>CAM-9840</code>, que já estão no bucket; três terminam em <code>ja_existia</code> e o alterado em <code>conflito_hash</code>. Decida o que fazer com ele, registre no cenário C-07 e retire-o do pouso antes de seguir.</p>
+      </section>
+
+      <!-- 12 -->
+      <section class="content-block" id="s12">
+        <h2>12. Execução contra o MinIO do Railway</h2>
+        <p>O mesmo código roda contra o MinIO do Railway mudando só as variáveis de ambiente. O coletor continua rodando no Codespace, lendo o pouso local; só o destino muda. Esse é o teste prático da escolha por uma API compatível com S3.</p>
+        <ol class="steps">
+          <li>Crie <code>.env.railway</code> a partir do <code>.env</code> e troque <code>S3_ENDPOINT_URL</code> pelo domínio público da porta 9000 (com <code>https://</code>), e <code>S3_ACCESS_KEY</code> e <code>S3_SECRET_KEY</code> pelas credenciais do MinIO do Railway. Confirme com <code>git status --short</code> que o arquivo não aparece.</li>
+          <li>Registre o alias <code>railway</code> no <code>mc</code> sem passar as chaves na linha de comando. O <code>mc</code> pede os valores de forma interativa, e eles não ficam no histórico do shell.</li>
+          <li>Garanta o bucket e o versionamento no Railway.</li>
+          <li>Gere os lotes, rode o coletor duas vezes e verifique contagens e tamanho.</li>
+        </ol>
+        <pre><code>cp .env .env.railway
+# edite .env.railway com o endpoint e as credenciais do Railway
+git status --short
+
+docker compose exec minio mc alias set railway https://&lt;dominio-da-porta-9000&gt;
+docker compose exec minio mc mb --ignore-existing railway/raw
+docker compose exec minio mc version enable railway/raw
+
+set -a; source .env.railway; set +a
+python gerar_lotes.py --inicio 2026-10-17T09:00 &amp;&amp; python -m src.coletor
+python gerar_lotes.py --inicio 2026-10-17T09:00 &amp;&amp; python -m src.coletor
+
+docker compose exec minio mc ls --recursive railway/raw/telemetria/ | head
+docker compose exec -T minio mc find railway/raw/telemetria --name "*.txt" | wc -l
+docker compose exec -T minio mc ls --recursive --versions railway/raw/telemetria/ | wc -l
+docker compose exec minio mc du railway/raw
+
+set -a; source .env; set +a   # volta ao ambiente local</code></pre>
+        <p>Gates: 80 objetos e 80 versões em <code>railway/raw/telemetria/</code> depois das duas execuções e pouso vazio. Se o proxy do Railway devolver 502, os logs do coletor devem mostrar novas tentativas com espera crescente, e as contagens não podem crescer além do esperado; se as tentativas se esgotarem, o lote fica no pouso e a próxima execução tenta de novo. Guarde essa saída: ela é evidência do cenário C-03 no ATAM. Compare também o tempo de uma passada contra o Railway com os 0,51 s medidos no MinIO local (seção 6.4): a diferença é o custo da internet e do proxy.</p>
+        <p>O <code>mc du</code> dá o tamanho do bucket. Com 80 lotes por hora, são 1.920 por dia; multiplicado pelo tamanho medido de cada objeto, o grupo tem uma estimativa de crescimento para o cenário C-04. O preço do volume no Railway deve ser consultado na página de preços da plataforma no dia da análise e citado com data. Lembre ainda que volumes de contas em teste são apagados 30 dias após o fim dos créditos: planeje a exportação dos dados ao fim da disciplina.</p>
+      </section>
+
+      <!-- 13 -->
+      <section class="content-block" id="s13">
+        <h2>13. Exemplo resolvido: cenário, ADR e rastreabilidade</h2>
+        <p>Este exemplo mostra o nível de detalhe esperado no <code>docs/atam.md</code> para um cenário. Os valores medidos devem vir da execução do grupo.</p>
+
+        <h3>Cenário C-03: 502 do proxy do Railway no PUT</h3>
+        <div class="table-scroll"><table>
+          <tbody>
+            <tr><td>Fonte do estímulo</td><td>proxy de entrada do Railway</td></tr>
+            <tr><td>Estímulo</td><td>resposta 502 a um <code>PUT</code> de lote</td></tr>
+            <tr><td>Ambiente</td><td>coleta normal contra o MinIO do Railway, 80 lotes no pouso</td></tr>
+            <tr><td>Artefato</td><td>gravador, limpeza do pouso e bucket <code>raw</code></td></tr>
+            <tr><td>Resposta</td><td>o cliente repete a gravação com espera crescente, na mesma chave; se as tentativas se esgotarem, registra <code>erro</code> no manifesto, deixa o arquivo no pouso e segue para o próximo lote</td></tr>
+            <tr><td>Medida</td><td>nenhum arquivo apagado do pouso sem objeto correspondente no bucket; nenhuma versão extra em <code>telemetria/</code> além de uma por lote, salvo o caso de resposta perdida; código de saída diferente de zero quando houver erro final</td></tr>
+          </tbody>
+        </table></div>
+        <p>Descobertas. Ponto de sensibilidade: o número de tentativas e a espera determinam se a execução termina antes da próxima janela de 15 minutos. Trade-off: mais tentativas aumentam a chance de gravar, mas alongam a execução e consomem mais requisições. Risco: se o <code>PUT</code> chegou ao servidor e só a resposta se perdeu, a nova tentativa grava os mesmos bytes na mesma chave; com versionamento ligado, isso cria uma segunda versão idêntica. Não-risco: não há perda do lote, porque o arquivo só sai do pouso depois da confirmação, nem duplicação de chave, porque a chave é determinística.</p>
+
+        <h3>ADR-002 resumido: primeira gravação da janela vale</h3>
+        <ul>
+          <li>Status: aceito.</li>
+          <li>Contexto: o coletor pode rodar mais de uma vez sobre o mesmo lote, e o provedor às vezes retransmite; a camada raw deve ser imutável e servir de prova.</li>
+          <li>Alternativas: última gravação vale (sobrescrever); chave com o instante da recepção (sem idempotência); gravação condicional no servidor (depende de suporte a verificar).</li>
+          <li>Decisão: <code>HEAD</code> antes do <code>PUT</code>. Se a chave existe com o mesmo <code>sha256</code>, não grava, registra <code>ja_existia</code> e apaga do pouso; com <code>sha256</code> diferente, registra <code>conflito_hash</code>, não grava e mantém o arquivo no pouso.</li>
+          <li>Consequências: positiva, reexecução segura, contagem estável e prova preservada; negativa, uma retransmissão corrigida fica parada até alguém decidir; risco residual em execuções simultâneas.</li>
+          <li>Requisitos: RF de idempotência, RF de conflito de hash, RF de remoção do pouso e RF de chave determinística do spec do grupo.</li>
+          <li>Revisão: se o coletor passar a rodar em mais de uma réplica, ou se os conflitos passarem a ser frequentes.</li>
+        </ul>
+
+        <h3>Linha da matriz de rastreabilidade</h3>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Requisito</th><th>Decisão</th><th>Componente</th><th>Evidência</th></tr></thead>
+          <tbody>
+            <tr><td>RF de idempotência</td><td>ADR-002</td><td>gravador e limpeza do pouso</td><td>teste unitário com armazenamento falso; contagem de objetos e versões em <code>telemetria/</code> igual antes e depois da segunda execução (saída de <code>mc find</code> e <code>mc ls --versions</code>)</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <!-- 14 -->
+      <section class="content-block" id="s14">
+        <h2>14. Erros comuns</h2>
+        <ul>
+          <li>Abrir o lote em modo texto e regravá-lo, ou decodificar e recodificar os bytes. O fim de linha ou um acento do rádio pode mudar, e o hash deixa de corresponder ao que o provedor entregou.</li>
+          <li>Usar a hora de chegada ou o horário de Brasília na chave. Um lote atrasado cai na hora errada, e a partição deixa de casar com o metadado <code>janela-inicio</code> em UTC.</li>
+          <li>Apagar o arquivo do pouso antes de confirmar o <code>PUT</code>. Se a gravação falhar, o único original se perde, e o provedor não reenvia.</li>
+          <li>Sobrescrever o objeto quando a retransmissão tem outro conteúdo. A raw deixa de ser imutável, e a versão que servia de prova muda sem registro.</li>
+          <li>Pôr o texto do rádio ou qualquer acento nos metadados. Cabeçalhos HTTP esperam ASCII.</li>
+          <li>Esquecer o endereçamento por caminho no <code>boto3</code>. O cliente tenta resolver <code>raw.&lt;dominio&gt;</code> e falha com erro de DNS ou de certificado.</li>
+          <li>Repetir requisições que devolveram 403. O erro é de credencial; repetir só atrasa o diagnóstico.</li>
+          <li>Testes unitários que dependem do MinIO real ou do pouso de verdade. Passam ou falham conforme o ambiente; use <code>tmp_path</code> e o armazenamento falso.</li>
+          <li>Editar <code>gerar_lotes.py</code> ou um arquivo do pouso para o teste passar. A fonte simulada é fixa, e o hash de aceitação depende dela.</li>
+          <li>Colar a senha do MinIO no prompt, no <code>mc alias set</code> com chaves na linha de comando ou num arquivo versionado. Se acontecer, troque a senha no Railway.</li>
+          <li>Pedir ao agente várias etapas num prompt só. O grupo perde o ponto de revisão entre as etapas, que é onde o erro do agente é pego antes de contaminar a etapa seguinte.</li>
+        </ul>
+      </section>
+
+      <!-- 15 -->
+      <section class="content-block" id="s15">
+        <h2>15. Atividade em sala e entregável</h2>
+        <p>Depois das duas horas de teoria, a prática vai das 10h30 às 12h10. O professor constrói o projeto ao vivo, prompt a prompt, e cada grupo reproduz no próprio Codespace com o agente de código de sua preferência. O ritmo é seguir a demonstração até o prompt 5 junto com a turma, das 10h30 às 11h30. Das 11h30 às 12h00, a turma discute três decisões sobre a arquitetura que a demonstração montou (seção 15.1), e os últimos dez minutos conferem o que existe e o que fica para a semana. O que não couber na sala continua durante a semana, com o material e o roteiro do laboratório.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Precisa existir às 12h10</th><th>Fica para a semana (até a Aula 03, 24/10/2026)</th></tr></thead>
+          <tbody>
+            <tr><td>Pasta <code>aula_02_coleta_telemetria/</code> com os seis arquivos de apoio, MinIO local no ar, ambiente Python instalado e os 80 lotes de referência no pouso.</td><td>Tarefas restantes do <code>tasks.md</code>, uma por vez, com <code>pytest</code> verde a cada uma.</td></tr>
+            <tr><td>Prompts 1 a 5 executados, revisados e commitados: persona, objetivos, <code>spec.md</code>, <code>plan.md</code>, <code>tasks.md</code>.</td><td>Execução contra o MinIO local com os gates da seção 11 e contra o MinIO do Railway (seção 12).</td></tr>
+            <tr><td>As três decisões da discussão anotadas, com a justificativa do grupo, para virar ADR.</td><td>Prompt 7 (ATAM) com as saídas de <code>mc</code> coladas como evidência, e os ADRs que registram as decisões da discussão.</td></tr>
+          </tbody>
+        </table></div>
+        <ol class="steps">
+          <li>Prepare a pasta <code>aula_02_coleta_telemetria/</code>, suba o MinIO local, o ambiente Python e gere os lotes de referência (seção 8).</li>
+          <li>Execute os prompts 1 a 5 no agente, um por vez, com a revisão de cada um. Faça commit ao fim de cada etapa revisada.</li>
+          <li>Implemente as tarefas com o prompt 6, uma por vez, rodando <code>python -m pytest -q</code> a cada uma.</li>
+          <li>Rode o coletor no MinIO local e passe pelos gates da seção 11, inclusive os dois testes de falha.</li>
+          <li>Rode o coletor contra o MinIO do Railway (seção 12) e guarde as saídas de <code>mc ls</code>, <code>mc stat</code>, <code>mc du</code> e as contagens.</li>
+          <li>Execute o prompt 7 com essas evidências e revise o <code>docs/atam.md</code>.</li>
+          <li>Antes do commit final, confira que nenhum segredo está no diff.</li>
+        </ol>
+        <pre><code>git status --short
+git diff --staged -- . ':!.env.example' | grep -nE "SECRET_KEY=|PASSWORD=|ACCESS_KEY=" &amp;&amp; echo "PARE: possível segredo no diff"</code></pre>
+        <div class="note">
+          <strong>Entregável da Aula 02</strong>
+          <p>No repositório do grupo, antes da Aula 03 (24/10/2026), a pasta <code>aula_02_coleta_telemetria/</code> com:</p>
+          <ul>
+            <li><code>AGENTS.md</code>, <code>docs/00_persona.md</code>, <code>docs/01_objetivos_negocio.md</code>, <code>specs/spec.md</code>, <code>specs/plan.md</code>, <code>specs/tasks.md</code>;</li>
+            <li><code>src/</code> com o coletor e <code>tests/</code> com testes passando (<code>python -m pytest -q</code>);</li>
+            <li>lotes no bucket <code>raw</code> do MinIO do Railway, com chaves no formato <code>telemetria/data=AAAA-MM-DD/hora=HH/caminhao=CAM-XXXX/lote_HHMM.txt</code>, os sete metadados de procedência e os manifestos em <code>_manifestos/telemetria/</code>;</li>
+            <li><code>docs/atam.md</code> com os cenários C-01 a C-07, a matriz de rastreabilidade e as saídas de <code>mc</code> como evidência, e os ADRs em <code>docs/adr/</code>.</li>
+          </ul>
+          <p>A Aula 03 grava outras fontes no mesmo MinIO, e a Aula 04 lê estes lotes para construir as camadas bronze, silver e gold. Mantenha o bucket e as credenciais do Railway.</p>
+        </div>
+
+        <h3>15.1 Discussão: três decisões sobre a arquitetura com MinIO</h3>
+        <p>Às 11h30, depois da demonstração, a turma revisa a arquitetura montada pela manhã numa discussão de decisões. O caso é o próprio coletor: pasta de pouso no papel do SFTP, MinIO local para desenvolver, MinIO de um nó no Railway para a coleta contínua, bucket <code>raw</code> com chave particionada pela janela, <code>HEAD</code> antes do <code>PUT</code>, metadados de procedência e manifesto. São três questões, cada uma com quatro táticas de ganho e custo declarados, e nenhuma delas é a correta.</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Questão</th><th>O que se decide</th><th>Blocos que ela retoma</th></tr></thead>
+          <tbody>
+            <tr><td>1. Durabilidade da camada bruta</td><td>Onde a raw mora, sabendo que um nó e um volume guardam lotes que o provedor não reenvia e que servem de prova de jornada.</td><td>Blocos 2 e 3: tipos de storage, garantias do object storage, versionamento.</td></tr>
+            <tr><td>2. Política de escrita</td><td>Primeira ou última gravação da janela, deduplicação posterior ou <code>PUT</code> condicional, diante do 502 do proxy, de disparos duplos e de retransmissões com conteúdo diferente. Traz um dado novo na discussão.</td><td>Bloco 5: idempotência, imutabilidade, procedência e risco residual.</td></tr>
+            <tr><td>3. Linhas sem formato e o firmware novo</td><td>Quando e onde interpretar o TXT: parser na coleta, raw bruta e bronze depois, parser em cada leitura ou os dois na mesma execução.</td><td>Bloco 4: storage contra data lake, schema on read e on write, lake e lakehouse.</td></tr>
+          </tbody>
+        </table></div>
+        <ol class="steps">
+          <li>Em cada questão, decida sozinho em três minutos e escreva o que precisa ser verdade para a sua tática funcionar.</li>
+          <li>Na discussão, defenda primeiro o custo da sua escolha.</li>
+          <li>Decida outra vez. Manter a escolha também é uma decisão e precisa de justificativa.</li>
+          <li>Depois da aula, registre as três decisões do grupo como ADRs em <code>docs/adr/</code> e leve a questão 2 para os cenários C-02 e C-07 do <code>docs/atam.md</code>.</li>
+        </ol>
+      </section>
+
+    </article>
+  </main>
+<!-- encontro:pdf:start -->
+<button type="button" class="pdf-export-btn" data-encontro-data="2026-10-17" data-encontro-docente="Afonso" data-encontro-seq="02" title="Exportar esta página em PDF com o nome padronizado">📄 Exportar PDF</button>
+<script src="../../../js/encontro-pdf.js" defer></script>
+<!-- encontro:pdf:end -->
+<!-- semana:js:start -->
+<script src="../../../js/semana-ano.js" defer></script>
+<!-- semana:js:end -->
+</body>
+</html>
