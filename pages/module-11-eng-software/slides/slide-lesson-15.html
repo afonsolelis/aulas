@@ -224,7 +224,7 @@
     <button type="button" class="fullscreen-btn" onclick="toggleFullScreen()" title="Tela cheia">⛶</button>
   </footer>
 
-  <script src="/_app/aulas.js"></script>
+  <script src="/static/js/aulas.js"></script>
   <script>
     /* ------------------------------------------------------------------
        Navegação. A lista de slides é relida a cada mudança porque os
@@ -282,21 +282,14 @@
 
        O enunciado não está neste arquivo, e não está em nenhum arquivo do
        repositório: github.com/afonsolelis/aulas é público, e o que for
-       versionado é legível pela turma dias antes da aula. O texto mora em
-       prova_provas e prova_partes, tabelas sem policy de RLS e sem grant
-       para a chave publicável abaixo. O único caminho de leitura é a
-       função prova_abrir, security definer, que confere o hash SHA-256 do
-       token antes de devolver qualquer texto. Ver supabase/prova-schema.sql.
-
-       A chave publicável não é segredo e não precisa ser: com ela, um
-       select direto nessas tabelas responde 401.
+       versionado é legível pela turma dias antes da aula.
+       O texto mora no banco do app, e o único caminho de leitura é a rota
+       POST /api/v1/inteli/prova/{slug}/abrir, que confere o hash SHA-256
+       do token (no cabeçalho Authorization, nunca na URL) antes de devolver
+       qualquer texto.
        ------------------------------------------------------------------ */
-    const SUPABASE_URL = 'https://lcyxqwdgsrbcpecqyqje.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_x68LvlGFJns-zsrYTERvqw_-x5GWA8p';
     const PROVA_SLUG = 'm11-l15-observabilidade';
     const GUARDA_TOKEN = 'prova-host:' + PROVA_SLUG;
-
-    const db = aulas.cliente();
 
     const form = document.getElementById('form-abertura');
     const campo = document.getElementById('campo-token');
@@ -402,11 +395,8 @@
       botao.disabled = true;
       status.textContent = 'Conferindo o token…';
       try {
-        const { data, error } = await db.rpc('prova_abrir', {
-          p_slug: PROVA_SLUG,
-          p_token: token,
-        });
-        if (error) throw error;
+        const api = Aulas('inteli', { token });
+        const data = await api.tentar(api.post('prova', PROVA_SLUG, 'abrir', {}));
         if (!data || data.ok !== true) {
           status.textContent = (data && data.erro) || 'Token do professor inválido.';
           campo.value = '';

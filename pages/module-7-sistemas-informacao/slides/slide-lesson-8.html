@@ -30,8 +30,6 @@
     .slide:not(.cover):not(.daily):not(.encontro-slide):not(.prova-slide) .sc { width:86%; transform:scale(1.14); transform-origin:center; }
     .cover .sc { width:88%; transform:scale(1.1); transform-origin:center; }
     .daily .sc { width:88%; transform:scale(1.06); transform-origin:center; }
-    .top-nav { position:fixed; top:14px; left:18px; z-index:90; display:flex; gap:8px; }
-    .top-nav a { padding:7px 12px; border-radius:999px; background:color-mix(in srgb,var(--paper) 94%,transparent); color:var(--ink); border:1px solid var(--line); text-decoration:none; font-size:.75rem; font-weight:800; box-shadow:0 3px 12px color-mix(in srgb,var(--ink) 12%,transparent); }
     .eyebrow { margin:0 0 7px; color:var(--si); font-size:.72rem; font-weight:800; letter-spacing:.14em; text-transform:uppercase; }
     .sh { color:var(--paper); padding:15px 20px; border-radius:14px; margin-bottom:13px; }
     .sh.green { background:linear-gradient(120deg,color-mix(in srgb,var(--si) 70%,var(--ink)),var(--si)); }
@@ -177,7 +175,6 @@
       .flow { grid-template-columns:1fr; }
       .flow .node::after { display:none; }
     }
-    @media print { .top-nav { display:none!important; } }
     /* ------------------------------------------------------------------
        Prova escrita. O enunciado não está neste arquivo: os slides abaixo
        são montados em tempo de execução, a partir da resposta de
@@ -270,9 +267,6 @@
 <!-- encontro:css:end -->
 </head>
 <body>
-<nav class="top-nav" aria-label="Navegação da aula">
-  <a href="../../home-module-7-sistemas-informacao.html">← Voltar</a>
-</nav>
 
 <div class="slide-container">
 
@@ -490,28 +484,21 @@
   showSlide(0);
 </script>
 
-<script src="/_app/aulas.js"></script>
+<script src="/static/js/aulas.js"></script>
 <script>
   /* ------------------------------------------------------------------
      Abertura da prova.
 
      O enunciado não está neste arquivo, e não está em nenhum arquivo do
      repositório: github.com/afonsolelis/aulas é público, e o que for
-     versionado é legível pela turma dias antes da aula. O texto mora em
-     prova_provas e prova_partes, tabelas sem policy de RLS e sem grant
-     para a chave publicável abaixo. O único caminho de leitura é a
-     função prova_abrir, security definer, que confere o hash SHA-256 do
-     token antes de devolver qualquer texto. Ver supabase/prova-schema.sql.
-
-     A chave publicável não é segredo e não precisa ser: com ela, um
-     select direto nessas tabelas responde 401.
+     versionado é legível pela turma dias antes da aula.
+     O texto mora no banco do app, e o único caminho de leitura é a rota
+     POST /api/v1/inteli/prova/{slug}/abrir, que confere o hash SHA-256
+     do token (no cabeçalho Authorization, nunca na URL) antes de devolver
+     qualquer texto.
      ------------------------------------------------------------------ */
-  const SUPABASE_URL = 'https://lcyxqwdgsrbcpecqyqje.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_x68LvlGFJns-zsrYTERvqw_-x5GWA8p';
   const PROVA_SLUG = 'm7-l8-relatorios';
   const GUARDA_TOKEN = 'prova-host:' + PROVA_SLUG;
-
-  const db = aulas.cliente();
 
   const form = document.getElementById('form-abertura');
   const campo = document.getElementById('campo-token');
@@ -612,11 +599,8 @@
     botao.disabled = true;
     status.textContent = 'Conferindo o token…';
     try {
-      const { data, error } = await db.rpc('prova_abrir', {
-        p_slug: PROVA_SLUG,
-        p_token: token,
-      });
-      if (error) throw error;
+      const api = Aulas('inteli', { token });
+      const data = await api.tentar(api.post('prova', PROVA_SLUG, 'abrir', {}));
       if (!data || data.ok !== true) {
         status.textContent = (data && data.erro) || 'Token do professor inválido.';
         campo.value = '';

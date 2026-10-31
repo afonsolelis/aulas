@@ -204,19 +204,17 @@
     <p class="creditos">Inteli — Instituto de Tecnologia e Liderança · Módulo 7 de Sistemas de Informação · Prof. Afonso Brandão</p>
   </main>
 
-  <script src="/_app/aulas.js"></script>
+  <script src="/static/js/aulas.js"></script>
   <script>
   /* ------------------------------------------------------------------
-     Chave publicável: a proteção não está no sigilo dela, e sim na RLS
-     e nas funções SECURITY DEFINER. Ver supabase/tbl-schema.sql.
+     A página fala com o app pelo contrato próprio (/api/v1), pelo
+     cliente /static/js/aulas.js.
      ------------------------------------------------------------------ */
-  const SUPABASE_URL = 'https://lcyxqwdgsrbcpecqyqje.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_x68LvlGFJns-zsrYTERvqw_-x5GWA8p';
   const SLUG = 'm7-si-a09-plano-ti-2026-2a';
   const GUARDA = 'tbl:' + SLUG;
   const LETRAS = ['A', 'B', 'C', 'D'];
 
-  const db = aulas.cliente();
+  const api = Aulas('inteli');
 
   const $ = s => document.querySelector(s);
   const esc = s => String(s ?? '').replace(/[&<>"']/g,
@@ -263,11 +261,10 @@
     el.classList.toggle('erro', !!erro);
   }
 
-  async function rpc(fn, args) {
-    const { data, error } = await db.rpc(fn, args);
-    if (error) throw new Error(error.message);
-    if (data && data.ok === false) throw new Error(data.erro);
-    return data;
+  // Erro de regra (nome em uso, rodada fechada…) ou de rede chega como
+  // exceção com a mensagem a mostrar.
+  async function chamar(promessa) {
+    try { return await promessa; } catch (e) { throw new Error(e.message); }
   }
 
   /* --------------------------- desenho --------------------------- */
@@ -521,7 +518,7 @@
     if (rodada) {
       const ta = $('#justificativa');
       if (ta) {
-        ta.addEventListener('input', () => { rascunho = ta.value; atualizarContagem(); });
+        ta.addEventListener('input', () => { rascunho = ta.value; atualizarContagem(); atualizarBotao(); });
         atualizarContagem();
       }
       atualizarBotao();
@@ -554,6 +551,7 @@
     if (s) {
       $('#presenca').textContent = s.participantes + ' na sala · ' +
         (['voto1','voto2'].includes(s.fase) ? s.votos_rodada + ' já decidiram' : 'aguardando o professor');
+      atualizarBotao();
     }
   }
 
@@ -562,7 +560,7 @@
   async function atualizar() {
     if (!eu) return;
     try {
-      const novo = await rpc('tbl_estado', { p_slug: SLUG, p_participante: eu.id });
+      const novo = await chamar(api.get('tbl', SLUG, 'estado', { participante: eu.id }));
       if (!novo.inscrito) {   // a sala foi reiniciada para outra turma
         eu = null; guardar(null);
         $('#tela-sala').hidden = true; $('#tela-entrada').hidden = false;
@@ -588,10 +586,10 @@
     if (!rodada || escolhaAtual === null) return;
     enviando = true; atualizarBotao(); recado('');
     try {
-      await rpc('tbl_votar', {
-        p_participante: eu.id, p_rodada: rodada,
-        p_escolha: escolhaAtual, p_justificativa: rascunho
-      });
+      await chamar(api.post('tbl', SLUG, 'votar', {
+        participante: eu.id, rodada,
+        escolha: escolhaAtual, justificativa: rascunho
+      }));
       recado('Decisão registrada. Você pode alterá-la enquanto a rodada estiver aberta.');
       chaveRender = '';
       await atualizar();
@@ -607,8 +605,8 @@
     const nome = $('#nome').value.trim();
     $('#erro-entrada').hidden = true;
     try {
-      const r = await rpc('tbl_entrar', { p_slug: SLUG, p_nome: nome, p_id: eu ? eu.id : null });
-      eu = { id: r.participante_id, nome: r.nome };
+      const r = await chamar(api.post('tbl', SLUG, 'entrar', { nome, participante: eu ? eu.id : null }));
+      eu = { id: r.participante, nome: r.nome };
       guardar(eu);
       chaveRender = '';
       await atualizar();
@@ -632,13 +630,9 @@
     if (e.target.closest('#registrar')) registrar();
   });
 
-  // A virada de fase chega pelo Realtime; a consulta periódica cobre
-  // contagem de presentes, votos e eventual perda do canal.
-  db.channel('tbl-' + SLUG)
-    .on('postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'tbl_sessions', filter: 'slug=eq.' + SLUG },
-        () => { chaveRender = ''; atualizar(); })
-    .subscribe();
+  // A virada de fase chega por eventos do servidor (SSE); a consulta periódica
+  // cobre contagem de presentes, votos e eventual perda do canal (por isso 0).
+  api.ouvir('tbl', SLUG, () => { chaveRender = ''; atualizar(); }, 0);
 
   if (eu && eu.id) { $('#nome').value = eu.nome; atualizar(); }
   setInterval(atualizar, 4000);

@@ -186,14 +186,14 @@
     </div>
   </footer>
 
-  <script src="/_app/aulas.js"></script>
+  <script src="/static/js/aulas.js"></script>
   <script>
-  const SUPABASE_URL = 'https://lcyxqwdgsrbcpecqyqje.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_x68LvlGFJns-zsrYTERvqw_-x5GWA8p';
   const SLUG = new URLSearchParams(location.search).get('sala') || 'plano-ti-m7-a9';
   const CHAVE_TOKEN = 'quiz-host:' + SLUG;   // o mesmo token do painel
 
-  const db = aulas.cliente();
+  // Professor: o token vai no cabeçalho Authorization, nunca na URL. Com a
+  // sessão do /admin (página servida pelo app), o token é dispensado.
+  const api = () => Aulas('inteli', { token });
   const el = (id) => document.getElementById(id);
   const LETRAS = ['A', 'B', 'C', 'D', 'E'];
   let token = localStorage.getItem(CHAVE_TOKEN) || '';
@@ -201,12 +201,13 @@
 
   const faixa = (t) => t === null ? 'medio' : t < 50 ? 'ruim' : t < 75 ? 'medio' : 'bom';
 
-  async function carregar() {
+  // silencioso: a primeira tentativa, pela sessão do /admin, não mostra a recusa.
+  async function carregar(silencioso) {
     el('aviso').textContent = '';
     try {
-      const { data, error } = await db.rpc('quiz_relatorio', { p_slug: SLUG, p_token: token });
-      if (error) throw error;
-      if (!data.ok) { el('aviso').textContent = data.erro; return; }
+      const cliente = api();
+      const data = await cliente.tentar(cliente.get('quiz', SLUG, 'relatorio'));
+      if (!data.ok) { if (silencioso !== true) el('aviso').textContent = data.erro; return; }
       localStorage.setItem(CHAVE_TOKEN, token);
       dados = data;
       desenhar(data);
@@ -374,6 +375,7 @@
   el('btn-csv').addEventListener('click', baixarCsv);
 
   if (token) carregar();
+  else carregar(true);
   </script>
 <!-- semana:js:start -->
 <script src="../../../js/semana-ano.js" defer></script>
