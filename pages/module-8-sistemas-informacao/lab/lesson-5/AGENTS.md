@@ -4,7 +4,7 @@ Rules for the coding agent in this folder, whatever agent is used (Claude Code, 
 
 ## Scope
 
-- Project: the Silver layer of the pharmacy chain as a hybrid Data Warehouse. One enriched table (`data_ingestao`, `data_linha`, `data_tag`) is written first to a long-lived lake in the local MinIO (Parquet, read and written with DuckDB) and then loaded into ClickHouse, which keeps a one-year window by TTL.
+- Project: the Silver layer of the pharmacy chain as a hybrid Data Warehouse. One enriched table (`data_ingestao`, `data_linha`, `data_tag`) is written first to a long-lived lake in the local RustFS, an S3-compatible object storage (Parquet, read and written with DuckDB) and then loaded into ClickHouse, which keeps a one-year window by TTL.
 - Work only inside `lesson_05_dw/`.
 - One step at a time. Show the plan before editing and stop at the end of the step.
 
@@ -40,12 +40,13 @@ At the end of each step, append to `docs/prompts.md` a section with the number a
 ## Data rules
 
 - Bronze is read-only. Only the generators write under `bronze/`.
+- RustFS accepts only path-style addresses: DuckDB uses `URL_STYLE 'path'` and `USE_SSL false`.
 - The three columns keep exactly these names: `data_ingestao`, `data_linha`, `data_tag`.
 - `customer_cpf` never reaches the Silver layer, not even in quarantine.
 - Every record read from Bronze ends in exactly one tag, including `quarantine.v1` with a reason.
 - Order of a load: lake, then ClickHouse from the lake files, then the manifest. ClickHouse never holds a row that the lake does not hold.
 - In ClickHouse, `data_linha` is of type `JSON`, never `String`. Every INSERT uses `input_format_try_infer_dates = 0`, `input_format_try_infer_datetimes = 0` and `async_insert = 0`.
-- The secret of the MinIO in DuckDB is created at the start of each session; never `CREATE PERSISTENT SECRET`.
+- The secret of RustFS in DuckDB is created at the start of each session; never `CREATE PERSISTENT SECRET`.
 
 ## Secrets
 

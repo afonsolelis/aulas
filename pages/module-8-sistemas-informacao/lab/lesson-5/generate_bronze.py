@@ -1,4 +1,4 @@
-"""Generate the Bronze layer of the pharmacy chain in the local MinIO.
+"""Generate the Bronze layer of the pharmacy chain in the local object storage (S3 API).
 
 Lessons 4 and 5 · Module 8 · Information Systems · Inteli (copied from lab/lesson-4, unchanged)
 

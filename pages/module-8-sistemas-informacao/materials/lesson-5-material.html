@@ -176,7 +176,7 @@
       <div class="head-copy">
         <span class="badge">Module 8 · Information Systems · Lesson 5 · Week 4</span>
         <h1>Data Warehouses: the hybrid Silver layer</h1>
-        <p>Reference material for the session in which the professor builds, live and with a coding agent, the Silver layer of the pharmacy chain as a Data Warehouse. One enriched table with the columns data_ingestao, data_linha and data_tag is written first to a long-lived lake in the MinIO, read with DuckDB, and then loaded into ClickHouse, which keeps a one-year window for tactical queries. The material explains the Silver layer as a warehouse, enrichment, auditability, columnar warehouses, the lifecycle of the data, Third Normal Form and Data Vault, and it brings the measurements of the rehearsal, the four prompts in full and the lab script.</p>
+        <p>Reference material for the session in which the professor builds, live and with a coding agent, the Silver layer of the pharmacy chain as a Data Warehouse. One enriched table with the columns data_ingestao, data_linha and data_tag is written first to a long-lived lake in RustFS, an S3-compatible object storage read with DuckDB, and then loaded into ClickHouse, which keeps a one-year window for tactical queries. The material explains the Silver layer as a warehouse, enrichment, auditability, columnar warehouses, the lifecycle of the data, Third Normal Form and Data Vault, and it brings the measurements of the rehearsal, the four prompts in full and the lab script.</p>
       </div>
       <div class="head-actions">
         <a class="primary" href="../slides/slide-lesson-5.html">▶ Slides</a>
@@ -230,13 +230,13 @@
         <h2>1. How to read this material</h2>
         <p class="lead">This material accompanies Lesson 5, in which the professor runs the lab alone, on the classroom computer, while the class follows on the projector. Each step starts with a CREATE prompt that the professor assembles and pastes into a coding agent, and while the agent writes the files the slides explain the concept that those files implement. Each step ends with a review in which the result is compared with the counts measured in the rehearsal. The groups then apply the same reasoning to the partner data in the artifact Data Ingestion Structure.</p>
         <p>Parts I to IV follow the theory blocks of the session. Part I places the Silver layer of the medallion architecture in the tradition of the Data Warehouse and describes the enriched table with its three columns. Part II covers the techniques of enrichment named in the description of the session and the reason why every load writes the lake before the warehouse. Part III compares two columnar warehouses, Amazon Redshift and ClickHouse, and discusses the lifecycle of the data and the evolution of its schema. Part IV presents Third Normal Form and Data Vault, which the last step of the lab builds as views over the same lake, and compares them with the enriched table. Part V is the lab, with the setup of the classroom computer, the four prompts in full with their review questions, the verification and the mistakes that the agent made in the rehearsal.</p>
-        <p>Every number in this material was measured on 02/11/2026 on the preparation machine, with DuckDB 2.0.0, ClickHouse 26.8.15.10 and clickhouse-connect 1.11.0, using the generators of the lab. The counts of rows are deterministic, because the generators use fixed seeds, and they should be reproduced exactly on the classroom computer. The times describe one machine with local containers and serve to compare the steps among themselves, and they will differ on another computer.</p>
+        <p>Every number in this material was measured on 02/11/2026 on the preparation machine, with RustFS 1.0.4, DuckDB 2.0.0, ClickHouse 26.8.15.10 and clickhouse-connect 1.11.0, using the generators of the lab. The counts of rows are deterministic, because the generators use fixed seeds, and they should be reproduced exactly on the classroom computer. The times describe one machine with local containers and serve to compare the steps among themselves, and they will differ on another computer.</p>
       </section>
 
       <section class="mat-section" id="case">
         <h2>2. The case and the hybrid architecture</h2>
         <p>The case is the pharmacy chain of the module, with six stores (CMP-01 Campinas, STS-02 Santos, SOR-03 Sorocaba, JUN-04 Jundiaí, BAU-05 Bauru and FRA-06 Franca), grouped in the regions Coast and Interior, and forty products, part of them continuous-use medicines. Lesson 4 built an ETL that read the Bronze layer from a local MinIO and loaded a Silver layer of conformed tables into a DuckDB file. This lesson keeps the same Bronze, produced by the same generator, and changes the design of the Silver layer in two directions. The first is the shape of the data, which becomes a single enriched table with the columns <code>data_ingestao</code>, <code>data_linha</code> and <code>data_tag</code>. The second is where the data lives, because the Silver layer now has two copies with different purposes.</p>
-        <p>The architecture was decided by the professor before the session and is recorded by the agent in an ADR during Step 01. Each load reads the Bronze, enriches it with DuckDB and writes first a standardised lake in the MinIO, one Parquet file per tag and per day under <code>silver/enriched/data_tag=&lt;tag&gt;/ingestion_date=&lt;D&gt;/data.parquet</code>, together with a manifest of the run under <code>silver/_manifests/run_&lt;id&gt;.json</code> that records the SHA-256 of every file. Only then does the load fill ClickHouse, and it does so by reading the files it has just written to the lake, never the Bronze. This order is what makes the warehouse auditable, since ClickHouse never holds a row that the lake does not hold, and ClickHouse can be rebuilt from the lake at any moment.</p>
+        <p>The architecture was decided by the professor before the session and is recorded by the agent in an ADR during Step 01. Each load reads the Bronze, enriches it with DuckDB and writes first a standardised lake in RustFS, one Parquet file per tag and per day under <code>silver/enriched/data_tag=&lt;tag&gt;/ingestion_date=&lt;D&gt;/data.parquet</code>, together with a manifest of the run under <code>silver/_manifests/run_&lt;id&gt;.json</code> that records the SHA-256 of every file. Only then does the load fill ClickHouse, and it does so by reading the files it has just written to the lake, never the Bronze. This order is what makes the warehouse auditable, since ClickHouse never holds a row that the lake does not hold, and ClickHouse can be rebuilt from the lake at any moment.</p>
         <div class="layers sr">
           <div class="layer l-src"><b>Sources</b><span>POS JSON, ERP Parquet, supplier CSV</span></div>
           <div class="layer l-b"><b>Bronze</b><span>MinIO, read-only, partitioned by ingestion date</span></div>
@@ -245,7 +245,7 @@
           <div class="layer l-c"><b>ClickHouse</b><span>silver.enriched loaded from the lake, TTL of one year</span></div>
         </div>
         <p>The two copies serve two kinds of question. ClickHouse keeps a short window, up to one year, removed automatically by a TTL, and answers the tactical questions of the operation, such as which lots expire in the next three months or how much each store sold since Monday. The lake keeps every version for years or decades and is read with DuckDB for the strategic questions, for data science and for heavy manipulations such as training runs that last hours or days, which should not compete with the tactical queries for the resources of the warehouse. Section 8 explains why the decision on the length of the ClickHouse window belongs to the business.</p>
-        <p>The environment runs in two containers declared in <code>docker-compose.yml</code>. The MinIO uses the image <code>coollabsio/minio:RELEASE.2025-10-15T17-29-55Z</code> and publishes the S3 API on port 9000 and the web console on port 9001. ClickHouse uses the image <code>clickhouse/clickhouse-server:26.8.15.10</code> and publishes only its HTTP interface, on port 8123, which is the one used by <code>clickhouse-connect</code>. The native port of ClickHouse is also 9000, and since the MinIO already occupies that port on the host, the native port is not published.</p>
+        <p>The environment runs in two containers declared in <code>docker-compose.yml</code>. The object storage is RustFS, image <code>rustfs/rustfs:1.0.4</code>, which publishes the S3 API on port 9000 and the web console on port 9001, under the path <code>/rustfs/console/</code>. It replaces the MinIO of Lesson 4 because the official MinIO image is no longer published, and since it speaks the same S3 API the generator of Lesson 4 and DuckDB work against it unchanged; the rehearsal arrived at the same counts with both. RustFS accepts only path-style addresses, which is why DuckDB is configured with <code>URL_STYLE 'path'</code>. ClickHouse uses the image <code>clickhouse/clickhouse-server:26.8.15.10</code> and publishes only its HTTP interface, on port 8123, which is the one used by <code>clickhouse-connect</code>. The native port of ClickHouse is also 9000, and since RustFS already occupies that port on the host, the native port is not published.</p>
       </section>
 
       <section class="mat-section" id="silver-dw">
@@ -353,13 +353,13 @@ TTL toDateTime(data_ingestao) + INTERVAL 1 YEAR;</code></pre></div>
         <div class="table-wrap"><table>
           <thead><tr><th>Stage</th><th>What it does</th><th>Measured in the rehearsal (Step 02)</th></tr></thead>
           <tbody>
-            <tr><td>Enrich</td><td>DuckDB reads the Bronze over httpfs and builds one relation <code>(data_ingestao, data_tag, data_linha)</code></td><td>0.43 s</td></tr>
-            <tr><td>Write the lake</td><td>one Parquet file per tag and day, SHA-256 of the bytes uploaded</td><td>58 files, 2.18 s</td></tr>
-            <tr><td>Load ClickHouse</td><td>truncate <code>silver.enriched</code> and insert the Parquet files of the lake</td><td>58 inserts from Python, 8.9 s</td></tr>
-            <tr><td>Write the manifest</td><td>keys, tags, rows, bytes and SHA-256 per file, rows per tag, times and status</td><td>status <code>ok</code>; total about 12.8 s</td></tr>
+            <tr><td>Enrich</td><td>DuckDB reads the Bronze over httpfs and builds one relation <code>(data_ingestao, data_tag, data_linha)</code></td><td>1.73 s</td></tr>
+            <tr><td>Write the lake</td><td>one Parquet file per tag and day, SHA-256 of the bytes uploaded</td><td>58 files, 2.21 s</td></tr>
+            <tr><td>Load ClickHouse</td><td>truncate <code>silver.enriched</code> and insert the Parquet files of the lake</td><td>58 inserts from Python, 6.27 s</td></tr>
+            <tr><td>Write the manifest</td><td>keys, tags, rows, bytes and SHA-256 per file, rows per tag, times and status</td><td>status <code>ok</code>; total about 10.2 s</td></tr>
           </tbody>
         </table></div>
-        <p>The order has three consequences. The first is that ClickHouse never holds a row that the lake does not hold, because the only input of ClickHouse is the set of lake files of the run. If the load of ClickHouse fails, the manifest is written with the status <code>error_clickhouse</code> and the process exits with a non-zero code, so that the scheduler knows that the tactical copy is out of date while the lake remains complete. The second is that ClickHouse is disposable, in the sense that it can be rebuilt from the lake at any moment. In the rehearsal, rebuilding it from the 63 lake files of Step 03 sent 26,453 rows in 6.88 s. The third is that the integrity of the lake can be checked later, because the manifest keeps the SHA-256 of every file. The reconciliation of Step 03 recomputes the hash of each file listed in the last manifest, and any difference means that a file was changed after the load.</p>
+        <p>The order has three consequences. The first is that ClickHouse never holds a row that the lake does not hold, because the only input of ClickHouse is the set of lake files of the run. If the load of ClickHouse fails, the manifest is written with the status <code>error_clickhouse</code> and the process exits with a non-zero code, so that the scheduler knows that the tactical copy is out of date while the lake remains complete. The second is that ClickHouse is disposable, in the sense that it can be rebuilt from the lake at any moment. In the rehearsal, rebuilding it from the 63 lake files of Step 03 sent 26,453 rows in 6.81 s. The third is that the integrity of the lake can be checked later, because the manifest keeps the SHA-256 of every file. The reconciliation of Step 03 recomputes the hash of each file listed in the last manifest, and any difference means that a file was changed after the load.</p>
         <div class="code-wrap"><div class="code-label"><span>Structure of silver/_manifests/run_&lt;run_id&gt;.json (values abbreviated)</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>{
   "run_id": "...",
   "status": "ok",
@@ -371,7 +371,7 @@ TTL toDateTime(data_ingestao) + INTERVAL 1 YEAR;</code></pre></div>
   "rows_per_tag": {"pos.sale_line.v1": 20891, "erp.stock_position.v1": 3346,
                    "supplier.delivery.v1": 258, "erp.store.v1": 6,
                    "erp.product.v1": 40, "quarantine.v1": 136},
-  "times_s": {"enrich": 0.43, "lake": 2.18, "clickhouse": 8.9}
+  "times_s": {"enrich": 1.73, "lake": 2.21, "clickhouse": 6.27}
 }</code></pre></div>
         <p>A rerun over the same Bronze must arrive at the same result, and the design ensures it in two ways. Each lake key is determined by the tag and the day, so a rerun overwrites the same keys instead of adding files, and ClickHouse is truncated and rebuilt from the lake, so it cannot accumulate copies of a previous run. Since <code>data_ingestao</code> comes from the Bronze, the content of every record is also the same in both runs.</p>
         <h3>The decision and its alternatives</h3>
@@ -418,7 +418,7 @@ TTL toDateTime(data_ingestao) + INTERVAL 1 YEAR;</code></pre></div>
           <tbody>
             <tr><td>Lots that expire in less than 90 days after the delivery, by store (tactical)</td><td>ClickHouse</td><td>6 lots</td><td>0.3 s</td></tr>
             <tr><td>Revenue since 2026-10-19 by store (tactical)</td><td>ClickHouse</td><td>6 stores, from 183,509.63 to 201,981.98</td><td>0.28 s</td></tr>
-            <tr><td>Lines and revenue of 17 October by year and region (strategic)</td><td>DuckDB over the lake</td><td>4 rows, 2024 and 2026, Coast and Interior</td><td>0.07 s</td></tr>
+            <tr><td>Lines and revenue of 17 October by year and region (strategic)</td><td>DuckDB over the lake</td><td>4 rows, 2024 and 2026, Coast and Interior</td><td>0.25 s</td></tr>
           </tbody>
         </table></div>
         <p>The strategic query was fast in the rehearsal because the lake is small, with 63 files and 589 KiB. Its place is the lake for another reason, which is that ClickHouse no longer holds the rows of 2024 and cannot answer it. The same reasoning applies to data science, whose training runs read years of data for hours or days and would degrade the tactical queries if they ran on the warehouse.</p>
@@ -526,21 +526,21 @@ WHERE data_tag = 'supplier.delivery.v2';</code></pre></div>
 
       <section class="mat-section" id="lab">
         <h2>13. Preparing the environment</h2>
-        <p>The lab runs on the classroom computer, with Linux Mint, Docker Engine and Python 3, and with Claude Code as the coding agent. The support files are in the folder <code>lab/lesson-5/</code> of the module, linked at the top of this page: <code>docker-compose.yml</code> with the MinIO and ClickHouse, <code>.env.example</code>, <code>requirements.txt</code> (DuckDB, boto3, clickhouse-connect, python-dotenv, pytz and pytest), <code>generate_bronze.py</code>, the same generator of Lesson 4, <code>generate_supplier_v2.py</code>, which writes version 2 of the supplier file, <code>AGENTS.md</code> with the rules for the agent and <code>README.md</code>. The code of the Silver layer is not there. It is written live, through the prompts of section 14, in the folder <code>lesson_05_dw/</code>, which starts as a copy of the lab folder.</p>
+        <p>The lab runs on the classroom computer, with Linux Mint, Docker Engine and Python 3, and with Claude Code as the coding agent. The support files are in the folder <code>lab/lesson-5/</code> of the module, linked at the top of this page: <code>docker-compose.yml</code> with RustFS and ClickHouse, <code>.env.example</code>, <code>requirements.txt</code> (DuckDB, boto3, clickhouse-connect, python-dotenv, pytz and pytest), <code>generate_bronze.py</code>, the same generator of Lesson 4, <code>generate_supplier_v2.py</code>, which writes version 2 of the supplier file, <code>AGENTS.md</code> with the rules for the agent and <code>README.md</code>. The code of the Silver layer is not there. It is written live, through the prompts of section 14, in the folder <code>lesson_05_dw/</code>, which starts as a copy of the lab folder.</p>
         <div class="code-wrap"><div class="code-label"><span>Terminal · classroom computer (Linux Mint), from the root of the repository</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>cp -r pages/module-8-sistemas-informacao/lab/lesson-5 ~/lesson_05_dw
 cd ~/lesson_05_dw
 mkdir -p specs docs/adr sql src tests/fixtures warehouse
 printf '.env\n.venv/\n__pycache__/\nwarehouse/\n' &gt; .gitignore
-cp .env.example .env              # change both passwords: openssl rand -base64 24
+cp .env.example .env              # change S3_SECRET_KEY and CLICKHOUSE_PASSWORD: openssl rand -base64 24
 
-docker compose up -d --wait       # MinIO and ClickHouse healthy
+docker compose up -d --wait       # RustFS and ClickHouse healthy
 python3 -m venv .venv &amp;&amp; source .venv/bin/activate
 pip install -r requirements.txt
 python generate_bronze.py         # 14 days, 2026-10-12 to 2026-10-25, 45 objects
 
 echo "@AGENTS.md" &gt; CLAUDE.md      # Claude Code imports the rules; other agents read AGENTS.md
 claude</code></pre></div>
-        <p>The file <code>.env</code> holds the passwords of the MinIO and of ClickHouse and is never committed, pasted into a prompt or shown on the projector. The rules of <code>AGENTS.md</code> forbid the agent to read or print it, and the agent refers to the credentials only by the names of the variables. The generator prints the defects it planted, and that output is the expected result of the enrichment.</p>
+        <p>The file <code>.env</code> holds the passwords of RustFS and of ClickHouse and is never committed, pasted into a prompt or shown on the projector. The rules of <code>AGENTS.md</code> forbid the agent to read or print it, and the agent refers to the credentials only by the names of the variables. The generator prints the defects it planted, and that output is the expected result of the enrichment.</p>
         <div class="table-wrap"><table>
           <thead><tr><th>Counter printed by generate_bronze.py</th><th>Value</th><th>Meaning</th></tr></thead>
           <tbody>
@@ -560,7 +560,7 @@ claude</code></pre></div>
             <tr><td>missing_delivery_qty</td><td>13</td><td>empty quantidade</td></tr>
           </tbody>
         </table></div>
-        <p>The console of the MinIO is at <code>http://localhost:9001</code>, where the prefixes <code>bronze/</code> and, after Step 02, <code>silver/enriched/</code> and <code>silver/_manifests/</code> can be shown to the class. ClickHouse answers on <code>http://localhost:8123</code>, and its client is opened inside the container with the command recorded in <code>AGENTS.md</code>, which uses the variables of the container instead of typing the password.</p>
+        <p>The console of RustFS is at <code>http://localhost:9001/rustfs/console/</code> (the root of the port answers 403), with the pair <code>S3_ACCESS_KEY</code> and <code>S3_SECRET_KEY</code> as login, where the prefixes <code>bronze/</code> and, after Step 02, <code>silver/enriched/</code> and <code>silver/_manifests/</code> can be shown to the class. ClickHouse answers on <code>http://localhost:8123</code>, and its client is opened inside the container with the command recorded in <code>AGENTS.md</code>, which uses the variables of the container instead of typing the password.</p>
       </section>
 
       <section class="mat-section" id="steps">
@@ -584,9 +584,10 @@ claude</code></pre></div>
         <p>The first step produces no Python. The agent writes the contract of the Silver layer, with the three columns, the catalogue of tags and the layout of the lake, the ADR of the hybrid design and the DDL of ClickHouse, which it applies and displays with <code>SHOW CREATE TABLE</code>. Showing the catalogue of tags before writing the files gives the professor a moment to correct a key or a rule before it spreads to the code.</p>
         <div class="code-wrap"><div class="code-label"><span>Prompt 01 · CREATE</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>[C] Character
 You are a senior data architect. You work in the folder lesson_05_dw/,
-which holds the Bronze layer of the pharmacy chain in a local MinIO and an
-empty ClickHouse. In this step you write the contract of the Silver layer,
-the decision record and one DDL file; you do not write Python.
+which holds the Bronze layer of the pharmacy chain in a local RustFS (an
+S3-compatible object storage) and an empty ClickHouse. In this step you
+write the contract of the Silver layer, the decision record and one DDL
+file; you do not write Python.
 
 [R] Request
 Write three files:
@@ -695,9 +696,9 @@ Then run the load and print the rows per data_tag in the lake and in
 ClickHouse.
 
 Facts measured on 02/11/2026 (confirm before use):
-- Reference run: 24,677 rows in 58 Parquet files and 6 tags, about 13 s
-  in total on the preparation machine (0.4 s to enrich, 2.2 s to write
-  the lake, 8.9 s to load ClickHouse).
+- Reference run: 24,677 rows in 58 Parquet files and 6 tags, about 10 s
+  in total on the preparation machine (1.7 s to enrich, 2.2 s to write
+  the lake, 6.3 s to load ClickHouse).
 - In ClickHouse the JSON paths keep their types: sold_at stays String,
   quantity Int64, unit_price Float64, continuous_use Bool.
 
@@ -720,7 +721,7 @@ data_linha:  {"sale_id":"BAU-05-20261012-00007","store_id":5,
 - Every INSERT uses input_format_try_infer_dates = 0,
   input_format_try_infer_datetimes = 0 and async_insert = 0, so that
   sold_at keeps its text and offset.
-- DuckDB reaches the MinIO with URL_STYLE 'path' and USE_SSL false; it
+- DuckDB reaches RustFS with URL_STYLE 'path' and USE_SSL false; it
   needs the pytz package to hand TIMESTAMPTZ values to Python.
 - Do not use CREATE PERSISTENT SECRET.
 
@@ -776,7 +777,7 @@ Facts measured on 02/11/2026 (confirm before use):
 - After both generators: 26,453 rows in 63 files in the lake; 24,695 in
   ClickHouse. The 1,758 rows of 2024-10-17 stay only in the lake: the TTL
   removed them already at insert time, before any OPTIMIZE.
-- Rebuilding ClickHouse from the lake took 6.9 s; 0 SHA-256 mismatches.
+- Rebuilding ClickHouse from the lake took 6.8 s; 0 SHA-256 mismatches.
 
 [E] Example
 data_tag                  lake  window  clickhouse
@@ -830,7 +831,7 @@ Facts measured on 02/11/2026 (confirm before use):
   lot 18; 0 sale lines without a product.
 - Data Vault: hub_sale 22,385, hub_delivery 292, sat_delivery_lot 18.
 - Tactical query: 6 lots, 0.3 s. Strategic query: 4 rows (2024 and 2026,
-  Coast and Interior), 0.07 s; ClickHouse has no 2024 rows to answer it.
+  Coast and Interior), 0.25 s; ClickHouse has no 2024 rows to answer it.
 
 [E] Example
 CREATE OR REPLACE VIEW sat_delivery_lot AS
@@ -847,7 +848,7 @@ WHERE data_tag = 'supplier.delivery.v2';
 - In the comparison, show what each model needed when the version 2 of
   the supplier arrived: which tables changed in 3NF and which in the
   Data Vault.
-- The secret of the MinIO is created at the start of each session; never
+- The secret of RustFS is created at the start of each session; never
   stored in the DuckDB file.
 - Mermaid without semicolons in labels.
 
@@ -881,7 +882,7 @@ docker compose exec clickhouse sh -c 'clickhouse-client --user "$CLICKHOUSE_USER
             <tr><td>Bronze</td><td>49 objects, 4.77 MiB (45 of the 14 days, 1 of version 2 of the supplier, 3 of 2024-10-17)</td></tr>
             <tr><td>3NF views</td><td>store 6, product 40, supplier 1, sale_line 22,385, delivery 292, lot 18; 0 sale lines without a product</td></tr>
             <tr><td>Data Vault views</td><td>hub_store 6, hub_product 40, hub_sale 22,385, link_sale 22,385, sat_sale 22,385, hub_delivery 292, sat_delivery 292, sat_delivery_lot 18</td></tr>
-            <tr><td>Queries</td><td>tactical 6 lots in 0.3 s; strategic 4 rows in 0.07 s</td></tr>
+            <tr><td>Queries</td><td>tactical 6 lots in 0.3 s; strategic 4 rows in 0.25 s</td></tr>
           </tbody>
         </table></div>
         <p>A last check concerns privacy. No path of <code>data_linha</code> may be called <code>customer_cpf</code>, in any tag, and the check can be done in ClickHouse by listing the paths that the <code>JSON</code> type created, or in the lake by searching the keys of <code>data_linha</code> with DuckDB.</p>
@@ -892,7 +893,7 @@ docker compose exec clickhouse sh -c 'clickhouse-client --user "$CLICKHOUSE_USER
         <p>The reference implementation was built with the same prompts on 02/11/2026, and the mistakes below appeared in that rehearsal. Most of them pass a superficial test and are caught only by a count or by the type of a column, which is why the prompts of the lab already carry the corresponding adjustments.</p>
         <p>The first mistake concerns time zones. DuckDB returns values of type <code>TIMESTAMPTZ</code> to Python only when the package <code>pytz</code> is installed, and without it the load fails at the moment of converting <code>data_ingestao</code>. The package is in <code>requirements.txt</code> for this reason. A related mistake happens in ClickHouse. The <code>JSON</code> type infers dates and timestamps from strings by default, so <code>sold_at</code>, written by the enrichment as <code>2026-10-12T20:25:08-03:00</code>, became a timestamp without the offset. Every insert must therefore use <code>input_format_try_infer_dates = 0</code> and <code>input_format_try_infer_datetimes = 0</code>, and the review of Step 02 checks that <code>sold_at</code> stayed String.</p>
         <p>The second mistake concerns the evolution of the supplier file. Reading the CSV files of both versions with <code>union_by_name</code> works while a file of version 2 exists, but when none exists yet the query fails with a Binder Error saying that the relation does not have a column named <code>lote</code>. The enrichment must add the missing columns explicitly, so that version 1 keeps loading alone, which is the second question of the review of Step 03.</p>
-        <p>The third group of mistakes concerns the connection to the services. ClickHouse 26.8 enables <code>async_insert</code> by default, which makes an insert return before the rows are visible, so a count right after the load can return fewer rows than were sent. Setting <code>async_insert = 0</code> makes each insert synchronous. The MinIO and the native port of ClickHouse both use port 9000, so only the HTTP port 8123 of ClickHouse is published, and an agent that tries the native protocol finds the MinIO instead. DuckDB reaches the MinIO only with <code>URL_STYLE 'path'</code> and <code>USE_SSL false</code>, and the secret must be created at the start of each session with <code>CREATE OR REPLACE SECRET</code>, never with <code>CREATE PERSISTENT SECRET</code>, which would store the password in the profile of the user.</p>
+        <p>The third group of mistakes concerns the connection to the services. ClickHouse 26.8 enables <code>async_insert</code> by default, which makes an insert return before the rows are visible, so a count right after the load can return fewer rows than were sent. Setting <code>async_insert = 0</code> makes each insert synchronous. RustFS and the native port of ClickHouse both use port 9000, so only the HTTP port 8123 of ClickHouse is published, and an agent that tries the native protocol finds RustFS instead. DuckDB reaches RustFS only with <code>URL_STYLE 'path'</code> and <code>USE_SSL false</code>, and the secret must be created at the start of each session with <code>CREATE OR REPLACE SECRET</code>, never with <code>CREATE PERSISTENT SECRET</code>, which would store the password in the profile of the user.</p>
         <p>The fourth mistake comes from the version of DuckDB. In DuckDB 2.0 the relations returned by <code>con.sql(...)</code> no longer have the method <code>fetchone()</code>, which agents trained on older code still write, and <code>fetchall()</code> must be used instead.</p>
         <p>The last mistake concerns the reconciliation. Since the TTL removes expired rows already at insert time, a reconciliation that compares ClickHouse with the whole lake reports a difference of 1,758 rows after Step 03, although both copies are correct. The comparison must be made with the rows of the lake inside the window, and the window must be read from the TTL of the table.</p>
       </section>
@@ -920,7 +921,7 @@ package "Sources" {
   [Supplier ACME] as SUP
 }
 
-node "MinIO (Object Storage)" {
+node "RustFS (Object Storage)" {
   [Bronze bucket] as BRONZE
   [Silver lake] as LAKE
 }

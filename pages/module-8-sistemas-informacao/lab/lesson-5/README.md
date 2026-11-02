@@ -10,7 +10,7 @@ The code is not here. It is written live, through the prompts, in a folder `less
 
 | File | Use |
 |---|---|
-| `docker-compose.yml` | local MinIO (`coollabsio/minio:RELEASE.2025-10-15T17-29-55Z`, ports 9000 and 9001) and ClickHouse (`clickhouse/clickhouse-server:26.8.15.10`, HTTP port 8123) |
+| `docker-compose.yml` | local RustFS (`rustfs/rustfs:1.0.4`, S3 API on port 9000, console on 9001 at `/rustfs/console/`) and ClickHouse (`clickhouse/clickhouse-server:26.8.15.10`, HTTP port 8123) |
 | `.env.example` | credentials and client settings; copy to `.env` |
 | `requirements.txt` | Python dependencies (DuckDB, boto3, clickhouse-connect, python-dotenv, pytz, pytest) |
 | `AGENTS.md` | rules for the coding agent |
@@ -21,7 +21,7 @@ The code is not here. It is written live, through the prompts, in a folder `less
 ## The architecture
 
 ```text
-Bronze (MinIO)                 enrich (DuckDB)          lake: silver/enriched/data_tag=<tag>/ingestion_date=<D>/data.parquet
+Bronze (RustFS)                enrich (DuckDB)          lake: silver/enriched/data_tag=<tag>/ingestion_date=<D>/data.parquet
 bronze/source=.../*.json  -->  normalise, aggregate,  --> + silver/_manifests/run_<id>.json (SHA-256 per file)
 bronze/source=.../*.parquet    derive, deduplicate,         years and decades: strategy, data science (DuckDB)
 bronze/source=.../*.csv        quarantine                        |
@@ -37,7 +37,7 @@ The enriched table has three columns: `data_ingestao` (when the record entered t
 cp -r lab/lesson-5 ~/lesson_05_dw && cd ~/lesson_05_dw
 mkdir -p specs docs/adr sql src tests/fixtures warehouse
 printf '.env\n.venv/\n__pycache__/\nwarehouse/\n' > .gitignore
-cp .env.example .env              # change both passwords: openssl rand -base64 24
+cp .env.example .env              # change S3_SECRET_KEY and CLICKHOUSE_PASSWORD: openssl rand -base64 24
 docker compose up -d --wait
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
@@ -56,7 +56,7 @@ echo "@AGENTS.md" > CLAUDE.md && claude
 
 ## 3. Reference numbers
 
-Measured on 02/11/2026 with DuckDB 2.0.0, ClickHouse 26.8.15.10 and clickhouse-connect 1.11.0.
+Measured on 02/11/2026 with RustFS 1.0.4, DuckDB 2.0.0, ClickHouse 26.8.15.10 and clickhouse-connect 1.11.0. The same counts came out with the MinIO of Lesson 4; RustFS replaces it because the official MinIO image is no longer published, and it speaks the same S3 API (path-style addresses only).
 
 | Moment | Lake | ClickHouse |
 |---|---:|---:|
@@ -73,7 +73,7 @@ Measured on 02/11/2026 with DuckDB 2.0.0, ClickHouse 26.8.15.10 and clickhouse-c
 | `erp.product.v1` | 40 | 40 | 40 |
 | `quarantine.v1` | 136 | 145 | 136 |
 
-The 1,758 rows of 2024-10-17 stay only in the lake: the TTL removed them already at insert time. Rebuilding ClickHouse from the 63 lake files took 6.9 s, with 0 SHA-256 mismatches.
+The 1,758 rows of 2024-10-17 stay only in the lake: the TTL removed them already at insert time. Rebuilding ClickHouse from the 63 lake files took 6.8 s, with 0 SHA-256 mismatches.
 
 Step 04: 3NF views store 6, product 40, supplier 1, sale_line 22,385, delivery 292, lot 18; Data Vault hub_sale 22,385, hub_delivery 292, sat_delivery_lot 18. Tactical query (lots expiring in less than 90 days) in ClickHouse: 6 lots. Strategic query (17 October by year and region) in DuckDB over the lake: 4 rows, 2024 and 2026.
 

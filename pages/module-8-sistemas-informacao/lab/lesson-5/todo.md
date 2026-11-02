@@ -1,7 +1,7 @@
 # Preparação do computador da aula (Linux Mint)
 
 Checklist para a Aula 5 de SI08 (quinta, 05/11/2026, 11:00 às 13:00). A aula constrói ao vivo, por prompts, a
-camada Silver híbrida: enriquecimento em DuckDB, lake no MinIO e cópia tática no ClickHouse. Tudo roda offline
+camada Silver híbrida: enriquecimento em DuckDB, lake no RustFS e cópia tática no ClickHouse. Tudo roda offline
 depois que as imagens e os pacotes estiverem baixados, exceto o agente de IA, que precisa de internet.
 
 Os comandos valem para o Linux Mint 21 ou 22, que usam a base do Ubuntu 22.04 ou 24.04. Se o Docker já foi
@@ -28,7 +28,7 @@ instalado para a Aula 2 de ES08 (`remo-api/laboratorio/todo.md`), pule a primeir
       pacote `python3-venv`, instalado acima.
 - [ ] Baixar as duas imagens com antecedência:
 
-      docker pull coollabsio/minio:RELEASE.2025-10-15T17-29-55Z
+      docker pull rustfs/rustfs:1.0.4
       docker pull clickhouse/clickhouse-server:26.8.15.10
 
 - [ ] Clonar ou atualizar o repositório das aulas e montar a pasta da aula:
@@ -41,7 +41,7 @@ instalado para a Aula 2 de ES08 (`remo-api/laboratorio/todo.md`), pule a primeir
       printf '.env\n.venv/\n__pycache__/\nwarehouse/\n' > .gitignore
       cp .env.example .env
 
-- [ ] Trocar as duas senhas do `.env` (`MINIO_ROOT_PASSWORD` igual a `S3_SECRET_KEY`, e `CLICKHOUSE_PASSWORD`)
+- [ ] Trocar as duas senhas do `.env` (`S3_SECRET_KEY` e `CLICKHOUSE_PASSWORD`)
       por valores de `openssl rand -base64 24`, editando num editor fora da projeção.
 - [ ] Criar o venv e instalar os pacotes com internet, para não depender da rede da sala:
 
@@ -80,7 +80,8 @@ Depois do ensaio, volte ao estado inicial da aula:
 - [ ] `source .venv/bin/activate && python generate_bronze.py` (a Bronze de 14 dias já fica pronta antes da aula;
       o slide do ambiente mostra os comandos, mas não é preciso rodá-los ao vivo).
 - [ ] `echo "@AGENTS.md" > CLAUDE.md`.
-- [ ] Console do MinIO aberto em `http://localhost:9001`, numa aba do navegador, para mostrar o lake.
+- [ ] Console do RustFS aberto em `http://localhost:9001/rustfs/console/` (a raiz da porta devolve 403), numa aba do
+      navegador, para mostrar o lake. O login é o par `S3_ACCESS_KEY` e `S3_SECRET_KEY` do `.env`.
 - [ ] Terminal com fonte grande (`Ctrl+Shift++`, pelo menos 18 pt) e Claude Code aberto em `~/lesson_05_dw`, em
       modo que pede confirmação antes de editar.
 - [ ] Deck aberto: `https://afonsolelis.github.io/aulas/pages/module-8-sistemas-informacao/slides/slide-lesson-5.html`.
@@ -90,6 +91,8 @@ Depois do ensaio, volte ao estado inicial da aula:
 ## Se algo falhar durante a aula
 
 - **`permission denied` no Docker:** a sessão não recarregou o grupo; rode `newgrp docker` no terminal.
+- **RustFS não fica `healthy` ou o login do console falha:** `docker compose logs rustfs`; o compose exige
+  `S3_ACCESS_KEY` e `S3_SECRET_KEY` no `.env`, e o console fica em `/rustfs/console/`, não na raiz da porta 9001.
 - **ClickHouse não fica `healthy`:** `docker compose logs clickhouse`; se faltar a senha, o `.env` está sem
   `CLICKHOUSE_PASSWORD`.
 - **`ModuleNotFoundError: pytz`:** o venv não está ativo ou foi criado antes do `requirements.txt` atual.
