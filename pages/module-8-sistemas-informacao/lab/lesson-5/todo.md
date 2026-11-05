@@ -1,7 +1,9 @@
 # Preparação do computador da aula (Linux Mint)
 
-Checklist para a Aula 5 de SI08 (quinta, 05/11/2026, 11:00 às 13:00). A aula constrói ao vivo, por prompts, a
-camada Silver híbrida: enriquecimento em DuckDB, lake no RustFS e cópia tática no ClickHouse. Tudo roda offline
+Checklist para a Aula 5 de SI08 (quinta, 05/11/2026, 14:00 às 16:00). A aula constrói ao vivo, por prompts, a
+camada Silver híbrida sobre os CSVs brutos da Olist (enriquecimento em DuckDB, lake no RustFS e cópia tática no
+ClickHouse) e, no fim, um modelo estrela com views e materialized views que responde quantas vendas o Norte fez
+por mês em comparação com o Sudeste. Os dados estão em `data/olist_raw_csv.zip`, dentro da própria pasta. Tudo roda offline
 depois que as imagens e os pacotes estiverem baixados, exceto o agente de IA, que precisa de internet.
 
 Os comandos valem para o Linux Mint 21 ou 22, que usam a base do Ubuntu 22.04 ou 24.04. Se o Docker já foi
@@ -61,12 +63,12 @@ instalado para a Aula 2 de ES08 (`remo-api/laboratorio/todo.md`), pule a primeir
 
     cd ~/lesson_05_dw && source .venv/bin/activate
     docker compose up -d --wait
-    python generate_bronze.py
+    python load_bronze.py
     echo "@AGENTS.md" > CLAUDE.md
     claude          # rode os prompts das Etapas 01 a 04 (material, seção do laboratório)
 
-Compare com os números de referência do `README.md` desta pasta (24.677 linhas depois da Etapa 02; 26.453 no lake
-e 24.695 no ClickHouse depois da Etapa 03). As contagens têm de ser iguais; os tempos mudam com a máquina.
+Compare com os números de referência do `README.md` desta pasta (347.578 linhas no lake e no ClickHouse depois da
+Etapa 02; Norte 1.796 e Sudeste 66.193 na Etapa 04). As contagens têm de ser iguais; os tempos mudam com a máquina.
 
 Depois do ensaio, volte ao estado inicial da aula:
 
@@ -77,8 +79,9 @@ Depois do ensaio, volte ao estado inicial da aula:
 ## Na manhã da aula
 
 - [ ] `docker compose up -d --wait` em `~/lesson_05_dw` e `docker compose ps` com os dois serviços `healthy`.
-- [ ] `source .venv/bin/activate && python generate_bronze.py` (a Bronze de 14 dias já fica pronta antes da aula;
-      o slide do ambiente mostra os comandos, mas não é preciso rodá-los ao vivo).
+- [ ] `source .venv/bin/activate && python load_bronze.py` (a Bronze com os 8 CSVs fica pronta antes da aula; o
+      slide do ambiente mostra os comandos e a tabela de defeitos que o script imprime, mas não é preciso rodá-los
+      ao vivo).
 - [ ] `echo "@AGENTS.md" > CLAUDE.md`.
 - [ ] Console do RustFS aberto em `http://localhost:9001/rustfs/console/` (a raiz da porta devolve 403), numa aba do
       navegador, para mostrar o lake. O login é o par `S3_ACCESS_KEY` e `S3_SECRET_KEY` do `.env`.
@@ -96,13 +99,20 @@ Depois do ensaio, volte ao estado inicial da aula:
 - **ClickHouse não fica `healthy`:** `docker compose logs clickhouse`; se faltar a senha, o `.env` está sem
   `CLICKHOUSE_PASSWORD`.
 - **`ModuleNotFoundError: pytz`:** o venv não está ativo ou foi criado antes do `requirements.txt` atual.
-- **Binder Error "does not have a column named lote" na Etapa 02:** o agente leu o CSV do fornecedor com
-  `union_by_name` esperando a versão 2, que só chega na Etapa 03. É um bom exemplo para a turma; peça ao agente que
-  acrescente as colunas ausentes.
-- **Para recomeçar do zero:** `docker compose down -v && docker compose up -d --wait && python generate_bronze.py`.
+- **`KeyError: 'product_category_name'` ou join de categorias vazio:** o arquivo de tradução começa com BOM UTF-8;
+  é um dos defeitos da fonte. Peça ao agente que leia com `utf-8-sig` (Python) ou confira o cabeçalho (DuckDB).
+- **`AttributeError ... fetchone()` no DuckDB 2.0:** relações não têm mais `fetchone()`; use
+  `con.execute(...).fetchone()`.
+- **ClickHouse não alcança o lake (`Connection refused` em `localhost:9000`):** dentro do container o RustFS está
+  em `http://rustfs:9000` (`S3_ENDPOINT_FROM_CLICKHOUSE`).
+- **`CANNOT_PARSE_DATETIME` na Etapa 04:** o parse de `purchased_at` rodou sobre linhas de outras tags; o filtro
+  por `data_tag` tem de ficar dentro da subconsulta.
+- **Agregado da estrela desatualizado:** `SYSTEM REFRESH VIEW gold.fact_order_item` não atualiza
+  `gold.agg_sales_month_region`; rode o refresh e o `SYSTEM WAIT VIEW` de cada uma, nessa ordem.
+- **Para recomeçar do zero:** `docker compose down -v && docker compose up -d --wait && python load_bronze.py`.
 - **Sem internet na sala:** o lab local funciona, mas o agente não. Siga pelo material e pelos números do `README.md`.
 
 ## Depois da aula
 
 - [ ] `docker compose down -v` em `~/lesson_05_dw`.
-- [ ] Guardar `docs/` e `sql/` gerados se quiser mostrá-los à turma na Aula 6.
+- [ ] Guardar `docs/` e `sql/` gerados (em especial `docs/star_model.md`) se quiser mostrá-los à turma na Aula 6.
