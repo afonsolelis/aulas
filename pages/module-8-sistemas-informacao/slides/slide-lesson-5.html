@@ -85,6 +85,12 @@
     .code-mini { border-radius:10px; background:var(--ink); color:var(--paper); overflow:hidden; box-shadow:0 5px 18px color-mix(in srgb,var(--ink) 14%,transparent); }
     .code-mini .code-cap { display:block; padding:5px 12px; font-size:.6rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; background:color-mix(in srgb,var(--ink) 78%,var(--si)); }
     .code-mini pre { margin:0; padding:9px 12px; font-family:'JetBrains Mono',monospace; font-size:.66rem; line-height:1.5; white-space:pre; overflow:hidden; }
+    .code-mini { position:relative; }
+    .solo { display:grid; grid-template-columns:minmax(0,3fr) minmax(0,2fr); gap:12px; align-items:start; }
+    .solo .code-mini pre { font-size:.74rem; line-height:1.5; padding:12px 16px; }
+    .solo .tbl { margin:0; }
+    .solo.long .code-mini pre { font-size:.6rem; line-height:1.42; padding:9px 14px; }
+    .code-mini .etapa-copiar { top:2px; right:8px; padding:2px 9px; font-size:.58rem; }
     .code-mini .cm { color:color-mix(in srgb,var(--paper) 55%,var(--si)); }
     .gates { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-top:10px; }
     .gate { padding:9px 12px; border-radius:10px; background:var(--paper); border:1px solid var(--line); border-top:4px solid var(--accent); font-size:.74rem; line-height:1.4; }
@@ -736,32 +742,58 @@ Stop at the end.</code></pre>
   </section>
   <section class="slide">
     <div class="sc">
-      <header class="sh dark reveal"><span class="kick">Step 02 · Check in ClickHouse</span><div class="st">Looking at the enriched table</div><p class="ss">Open <code>http://localhost:8123/play</code>, fill in the user <code>silver</code> and the password of <code>CLICKHOUSE_PASSWORD</code> in <code>.env</code>, and run each query with Ctrl+Enter. Opening the address without a query returns <code>Empty query</code>, which is not an error of the login.</p></header>
-      <div class="g2 reveal">
-        <div class="code-mini"><span class="code-cap">1 · Rows per tag, and 2 · three records</span><pre>SELECT data_tag, count() AS rows
+      <header class="sh si reveal"><span class="kick">Step 02 · Check 1 of 4</span><div class="st">Rows per tag in the enriched table</div><p class="ss">Open <code>http://localhost:8123/play</code> with the user <code>silver</code> and the password of <code>CLICKHOUSE_PASSWORD</code> in <code>.env</code>. Play runs one statement at a time, so each slide holds one.</p></header>
+      <div class="solo reveal">
+        <div class="code-mini"><span class="code-cap">ClickHouse Play · one statement · Ctrl+Enter</span><button class="etapa-copiar" type="button">Copy</button><pre>SELECT data_tag, count() AS rows
 FROM silver.enriched
 GROUP BY data_tag
-ORDER BY data_tag;
-
-SELECT data_ingestao, data_tag, data_linha
+ORDER BY data_tag;</pre></div>
+        <article class="card"><span class="label">What comes back</span><table class="tbl tbl-sm"><thead><tr><th>data_tag</th><th>rows</th></tr></thead><tbody><tr><td>olist.customer.v1</td><td>99,441</td></tr><tr><td>olist.order.v1</td><td>99,433</td></tr><tr><td>olist.order_item.v1</td><td>112,642</td></tr><tr><td>olist.product.v1</td><td>32,951</td></tr><tr><td>olist.seller.v1</td><td>3,095</td></tr><tr><td>quarantine.v1</td><td>16</td></tr></tbody></table></article>
+      </div>
+      <p class="note reveal">The total is 347,578 rows, the same count that the manifest of the run records for the lake. Opening the address of ClickHouse without a query returns <code>Empty query</code>, which is not an error of the login.</p>
+    </div>
+  </section>
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><span class="kick">Step 02 · Check 2 of 4</span><div class="st">Three records of one tag</div><p class="ss">The three columns of the contract appear as they are stored: the ingestion date, the tag and the record in JSON.</p></header>
+      <div class="solo reveal">
+        <div class="code-mini"><span class="code-cap">ClickHouse Play · one statement · Ctrl+Enter</span><button class="etapa-copiar" type="button">Copy</button><pre>SELECT data_ingestao, data_tag, data_linha
 FROM silver.enriched
-WHERE data_tag = 'olist.customer.v1'
+WHERE data_tag = &#x27;olist.customer.v1&#x27;
 LIMIT 3;</pre></div>
-        <div class="code-mini"><span class="code-cap">3 · Orders per region, and 4 · the quarantine</span><pre>SELECT data_linha.customer_region::String AS region,
+        <article class="card"><span class="label">What comes back</span><p><code>2026-11-05 00:00:00.000</code> · <code>olist.customer.v1</code> · <code>{"city":"osasco", "customer_id":"00012a2c…", "region":"Southeast", "state":"SP", "zip_prefix":"06273", "source_file":"s3://olist-lake/bronze/…"}</code></p></article>
+      </div>
+      <p class="note reveal">The <code>zip_prefix</code> keeps five characters, with the leading zero that the CSV had lost, and <code>source_file</code> points to the Bronze object that produced the record.</p>
+    </div>
+  </section>
+  <section class="slide">
+    <div class="sc">
+      <header class="sh si reveal"><span class="kick">Step 02 · Check 3 of 4</span><div class="st">Orders per region of the customer</div><p class="ss">A path of the JSON is read with a dot. Its type is <code>Dynamic</code>, which ClickHouse refuses in <code>GROUP BY</code> until it is cast to a concrete type.</p></header>
+      <div class="solo reveal">
+        <div class="code-mini"><span class="code-cap">ClickHouse Play · one statement · Ctrl+Enter</span><button class="etapa-copiar" type="button">Copy</button><pre>SELECT data_linha.customer_region::String AS region,
        count() AS orders
 FROM silver.enriched
-WHERE data_tag = 'olist.order.v1'
+WHERE data_tag = &#x27;olist.order.v1&#x27;
 GROUP BY region
-ORDER BY orders DESC;
-
-SELECT data_linha.entity::String AS entity,
+ORDER BY orders DESC;</pre></div>
+        <article class="card"><span class="label">What comes back</span><table class="tbl tbl-sm"><thead><tr><th>region</th><th>orders</th></tr></thead><tbody><tr><td>Southeast</td><td>68,259</td></tr><tr><td>South</td><td>14,147</td></tr><tr><td>Northeast</td><td>9,394</td></tr><tr><td>Central-West</td><td>5,782</td></tr><tr><td>North</td><td>1,851</td></tr></tbody></table></article>
+      </div>
+      <p class="note reveal">These are all orders, in any status. The question of Step 04 counts only delivered orders, which is why the North drops to 1,796 there.</p>
+    </div>
+  </section>
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><span class="kick">Step 02 · Check 4 of 4</span><div class="st">What went to the quarantine</div><p class="ss">Rejected records stay in the table with the tag <code>quarantine.v1</code>, the entity, the key and the reason, so that no line of the source disappears without a trace.</p></header>
+      <div class="solo reveal">
+        <div class="code-mini"><span class="code-cap">ClickHouse Play · one statement · Ctrl+Enter</span><button class="etapa-copiar" type="button">Copy</button><pre>SELECT data_linha.entity::String AS entity,
        data_linha.reason::String AS reason,
        count() AS records
 FROM silver.enriched
-WHERE data_tag = 'quarantine.v1'
+WHERE data_tag = &#x27;quarantine.v1&#x27;
 GROUP BY entity, reason;</pre></div>
+        <article class="card"><span class="label">What comes back</span><table class="tbl tbl-sm"><thead><tr><th>entity</th><th>reason</th><th>records</th></tr></thead><tbody><tr><td>orders</td><td>delivered without delivery date</td><td>8</td></tr><tr><td>order_items</td><td>order in quarantine</td><td>8</td></tr></tbody></table></article>
       </div>
-      <p class="note reveal">Expected: 347,578 rows in six tags; 68,259 orders in the Southeast and 1,851 in the North, before the filter of delivered orders of Step 04; 16 records in quarantine, 8 orders and their 8 items. A path of <code>data_linha</code> has the type <code>Dynamic</code>, and ClickHouse refuses it in <code>GROUP BY</code> until it is cast with <code>::String</code>.</p>
+      <p class="note reveal">The wording of the reason is the one written by the agent in Step 02 and may differ slightly; the counts, 8 orders and their 8 items, may not.</p>
     </div>
   </section>
 
@@ -1160,6 +1192,266 @@ ORDER BY month;</pre></div>
   </section>
 
   <!-- ====== SLIDE 36: VERIFICATION ====== -->
+  <section class="slide">
+    <div class="sc">
+      <header class="sh si reveal"><span class="kick">Step 04 · Gold live 1 of 14</span><div class="st">The Gold database</div><p class="ss">Every object of the star lives in a database of its own, so that Silver and Gold can be read, granted and dropped separately.</p></header>
+      <div class="solo reveal">
+        <div class="code-mini"><span class="code-cap">ClickHouse Play · one statement · Ctrl+Enter</span><button class="etapa-copiar" type="button">Copy</button><pre>CREATE DATABASE IF NOT EXISTS gold;</pre></div>
+        <article class="card"><span class="label">What comes back</span><p><code>Ok.</code> and no rows, because a <code>CREATE</code> returns nothing.</p><p>Run it once; the next slides create the dimensions, the fact, the aggregate and the report tables inside it.</p></article>
+      </div>
+      <p class="note reveal">From here on the statements build the star of Step 04 by hand, in the order of the dependencies: dimensions, fact, aggregate and reports.</p>
+    </div>
+  </section>
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><span class="kick">Step 04 · Gold live 2 of 14</span><div class="st">Dimension of the customer, as a view</div><p class="ss">A view stores only its query, so the dimension is computed from <code>silver.enriched</code> at each use and never falls out of date.</p></header>
+      <div class="solo reveal">
+        <div class="code-mini"><span class="code-cap">ClickHouse Play · one statement · Ctrl+Enter</span><button class="etapa-copiar" type="button">Copy</button><pre>CREATE OR REPLACE VIEW gold.dim_customer AS
+SELECT data_linha.customer_id::String        AS customer_id,
+       data_linha.customer_unique_id::String AS customer_unique_id,
+       data_linha.zip_prefix::String         AS zip_prefix,
+       data_linha.city::String               AS city,
+       data_linha.state::String              AS state,
+       data_linha.region::String             AS region
+FROM silver.enriched
+WHERE data_tag = &#x27;olist.customer.v1&#x27;;</pre></div>
+        <article class="card"><span class="label">What comes back</span><p><code>Ok.</code> and no rows, because a <code>CREATE</code> returns nothing.</p><p>Check with <code>SELECT count() FROM gold.dim_customer</code>: 99,441 rows.</p></article>
+      </div>
+      <p class="note reveal">The region is kept here once per customer; the fact refers to it through <code>customer_id</code>.</p>
+    </div>
+  </section>
+  <section class="slide">
+    <div class="sc">
+      <header class="sh si reveal"><span class="kick">Step 04 · Gold live 3 of 14</span><div class="st">Dimension of the seller, as a view</div><p class="ss">The seller has its own region, which the report of the flow between regions compares with the region of the customer.</p></header>
+      <div class="solo reveal">
+        <div class="code-mini"><span class="code-cap">ClickHouse Play · one statement · Ctrl+Enter</span><button class="etapa-copiar" type="button">Copy</button><pre>CREATE OR REPLACE VIEW gold.dim_seller AS
+SELECT data_linha.seller_id::String  AS seller_id,
+       data_linha.zip_prefix::String AS zip_prefix,
+       data_linha.city::String       AS city,
+       data_linha.state::String      AS state,
+       data_linha.region::String     AS region
+FROM silver.enriched
+WHERE data_tag = &#x27;olist.seller.v1&#x27;;</pre></div>
+        <article class="card"><span class="label">What comes back</span><p><code>Ok.</code> and no rows, because a <code>CREATE</code> returns nothing.</p><p>Check with <code>SELECT count() FROM gold.dim_seller</code>: 3,095 rows.</p></article>
+      </div>
+      <p class="note reveal">Two dimensions read the same five regions from different tags, which is why the region was derived once, in the Silver layer.</p>
+    </div>
+  </section>
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><span class="kick">Step 04 · Gold live 4 of 14</span><div class="st">Dimension of the product, as a view</div><p class="ss">The category comes in English from the Silver layer; the 610 products without category arrive as <code>unknown</code>.</p></header>
+      <div class="solo reveal">
+        <div class="code-mini"><span class="code-cap">ClickHouse Play · one statement · Ctrl+Enter</span><button class="etapa-copiar" type="button">Copy</button><pre>CREATE OR REPLACE VIEW gold.dim_product AS
+SELECT data_linha.product_id::String        AS product_id,
+       data_linha.category_en::String       AS category,
+       data_linha.weight_g::Nullable(Int64) AS weight_g
+FROM silver.enriched
+WHERE data_tag = &#x27;olist.product.v1&#x27;;</pre></div>
+        <article class="card"><span class="label">What comes back</span><p><code>Ok.</code> and no rows, because a <code>CREATE</code> returns nothing.</p><p>Check with <code>SELECT count() FROM gold.dim_product</code>: 32,951 rows.</p></article>
+      </div>
+      <p class="note reveal">The weight is <code>Nullable</code> because a few products of the source have no measures.</p>
+    </div>
+  </section>
+  <section class="slide">
+    <div class="sc">
+      <header class="sh si reveal"><span class="kick">Step 04 · Gold live 5 of 14</span><div class="st">Dimension of the date, generated</div><p class="ss">The calendar does not come from the source: it is generated, one row per day, so that a month without sales still exists as a row.</p></header>
+      <div class="solo reveal">
+        <div class="code-mini"><span class="code-cap">ClickHouse Play · one statement · Ctrl+Enter</span><button class="etapa-copiar" type="button">Copy</button><pre>CREATE OR REPLACE VIEW gold.dim_date AS
+SELECT toUInt32(toYYYYMMDD(d))    AS date_key,
+       d                          AS date,
+       formatDateTime(d, &#x27;%Y-%m&#x27;) AS month,
+       toQuarter(d)               AS quarter,
+       toYear(d)                  AS year,
+       toDayOfWeek(d)             AS weekday
+FROM (SELECT toDate(&#x27;2016-01-01&#x27;) + number AS d
+      FROM numbers(1096));</pre></div>
+        <article class="card"><span class="label">What comes back</span><p><code>Ok.</code> and no rows, because a <code>CREATE</code> returns nothing.</p><p>Check with <code>SELECT count() FROM gold.dim_date</code>: 1,096 days, from 2016-01-01 to 2018-12-31.</p></article>
+      </div>
+      <p class="note reveal">The key <code>date_key</code> is the date written as a number, such as 20180115, which the fact computes from <code>purchased_at</code>.</p>
+    </div>
+  </section>
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><span class="kick">Step 04 · Gold live 6 of 14</span><div class="st">The fact, one row per order item</div><p class="ss">The fact is a refreshable materialized view: a table that ClickHouse fills as soon as it is created and recomputes every hour.</p></header>
+      <div class="solo long reveal">
+        <div class="code-mini"><span class="code-cap">ClickHouse Play · one statement · Ctrl+Enter</span><button class="etapa-copiar" type="button">Copy</button><pre>CREATE MATERIALIZED VIEW IF NOT EXISTS gold.fact_order_item
+REFRESH EVERY 1 HOUR
+ENGINE = MergeTree ORDER BY (date_key, order_id, order_item_id)
+AS
+SELECT i.order_id, i.order_item_id,
+       toUInt32(toYYYYMMDD(o.purchased_at)) AS date_key,
+       o.customer_id, i.seller_id, i.product_id,
+       o.order_status, i.price, i.freight_value
+FROM (SELECT data_linha.order_id::String      AS order_id,
+             data_linha.order_item_id::UInt16 AS order_item_id,
+             data_linha.seller_id::String     AS seller_id,
+             data_linha.product_id::String    AS product_id,
+             toDecimal64(data_linha.price::Float64, 2)         AS price,
+             toDecimal64(data_linha.freight_value::Float64, 2) AS freight_value
+      FROM silver.enriched WHERE data_tag = &#x27;olist.order_item.v1&#x27;) AS i
+INNER JOIN
+     (SELECT data_linha.order_id::String     AS order_id,
+             data_linha.customer_id::String  AS customer_id,
+             data_linha.order_status::String AS order_status,
+             parseDateTime64BestEffort(data_linha.purchased_at::String,
+                                       0, &#x27;America/Sao_Paulo&#x27;) AS purchased_at
+      FROM silver.enriched WHERE data_tag = &#x27;olist.order.v1&#x27;) AS o
+ON i.order_id = o.order_id;</pre></div>
+        <article class="card"><span class="label">What comes back</span><p><code>Ok.</code> and no rows, because a <code>CREATE</code> returns nothing.</p><p>Check with <code>SELECT count() FROM gold.fact_order_item</code>: 112,642 items.</p></article>
+      </div>
+      <p class="note reveal">Each subquery filters its tag before parsing, because the paths of an order do not exist in the rows of the other tags.</p>
+    </div>
+  </section>
+  <section class="slide">
+    <div class="sc">
+      <header class="sh si reveal"><span class="kick">Step 04 · Gold live 7 of 14</span><div class="st">The aggregate by month and region</div><p class="ss">The aggregate answers the question of the business with 107 rows. It depends on the fact, so its scheduled refresh runs after the refresh of the fact.</p></header>
+      <div class="solo reveal">
+        <div class="code-mini"><span class="code-cap">ClickHouse Play · one statement · Ctrl+Enter</span><button class="etapa-copiar" type="button">Copy</button><pre>CREATE MATERIALIZED VIEW IF NOT EXISTS gold.agg_sales_month_region
+REFRESH EVERY 1 HOUR DEPENDS ON gold.fact_order_item
+ENGINE = MergeTree ORDER BY (month, region)
+AS
+SELECT d.month AS month, c.region AS region,
+       uniqExact(f.order_id) AS orders,
+       count()               AS items,
+       sum(f.price)          AS revenue
+FROM gold.fact_order_item AS f
+INNER JOIN gold.dim_customer AS c ON f.customer_id = c.customer_id
+INNER JOIN gold.dim_date     AS d ON f.date_key    = d.date_key
+WHERE f.order_status = &#x27;delivered&#x27;
+GROUP BY month, region;</pre></div>
+        <article class="card"><span class="label">What comes back</span><p><code>Ok.</code> and no rows, because a <code>CREATE</code> returns nothing.</p><p>Check with <code>SELECT count() FROM gold.agg_sales_month_region</code>: 107 rows. If it returns 0, the aggregate ran before the fact was ready: run <code>SYSTEM REFRESH VIEW gold.agg_sales_month_region</code> and count again.</p></article>
+      </div>
+      <p class="note reveal">After a new load of the Silver layer, run <code>SYSTEM REFRESH VIEW</code> and <code>SYSTEM WAIT VIEW</code> on the fact first and on the aggregate next: a manual refresh does not cascade.</p>
+    </div>
+  </section>
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><span class="kick">Step 04 · Gold live 8 of 14</span><div class="st">North against Southeast, month by month</div><p class="ss">This is the question of the session, answered from the aggregate in a few milliseconds.</p></header>
+      <div class="solo reveal">
+        <div class="code-mini"><span class="code-cap">ClickHouse Play · one statement · Ctrl+Enter</span><button class="etapa-copiar" type="button">Copy</button><pre>SELECT month,
+       sumIf(orders, region = &#x27;North&#x27;)     AS north,
+       sumIf(orders, region = &#x27;Southeast&#x27;) AS southeast,
+       if(southeast = 0, NULL,
+          round(100 * north / southeast, 2)) AS north_pct_of_southeast
+FROM gold.agg_sales_month_region
+WHERE region IN (&#x27;North&#x27;, &#x27;Southeast&#x27;)
+GROUP BY month
+ORDER BY month;</pre></div>
+        <article class="card"><span class="label">What comes back</span><table class="tbl tbl-sm"><thead><tr><th>month</th><th>north</th><th>southeast</th><th>%</th></tr></thead><tbody><tr><td>2017-11</td><td>124</td><td>5,000</td><td>2.48</td></tr><tr><td>2018-01</td><td>135</td><td>4,816</td><td>2.80</td></tr><tr><td>2018-05</td><td>91</td><td>4,837</td><td>1.88</td></tr><tr><td>2018-08</td><td>73</td><td>4,690</td><td>1.56</td></tr><tr><td>total</td><td>1,796</td><td>66,193</td><td>2.71</td></tr></tbody></table></article>
+      </div>
+      <p class="note reveal">The query returns 22 months. The guard against a division by zero matters in 2016-09, when the Southeast had a single delivered order and the North none.</p>
+    </div>
+  </section>
+  <section class="slide">
+    <div class="sc">
+      <header class="sh si reveal"><span class="kick">Step 04 · Gold live 9 of 14</span><div class="st">Report table: indicators per month</div><p class="ss">Each report is one more materialized view over the star, with one row per point of a chart, so the dashboard reads tens of rows instead of the 112,642 of the fact.</p></header>
+      <div class="solo reveal">
+        <div class="code-mini"><span class="code-cap">ClickHouse Play · one statement · Ctrl+Enter</span><button class="etapa-copiar" type="button">Copy</button><pre>CREATE MATERIALIZED VIEW IF NOT EXISTS gold.rpt_kpi_month
+REFRESH EVERY 1 HOUR DEPENDS ON gold.fact_order_item
+ENGINE = MergeTree ORDER BY month
+AS
+SELECT d.month AS month,
+       uniqExact(f.order_id)    AS orders,
+       uniqExact(f.customer_id) AS customers,
+       uniqExact(f.seller_id)   AS sellers,
+       sum(f.price)             AS revenue,
+       round(sum(f.price) / uniqExact(f.order_id), 2) AS avg_ticket
+FROM gold.fact_order_item AS f
+INNER JOIN gold.dim_date AS d ON f.date_key = d.date_key
+WHERE f.order_status = &#x27;delivered&#x27;
+GROUP BY month;</pre></div>
+        <article class="card"><span class="label">What comes back</span><p><code>Ok.</code> and no rows, because a <code>CREATE</code> returns nothing.</p><p>Check with <code>SELECT count() FROM gold.rpt_kpi_month</code>: 23 months.</p></article>
+      </div>
+      <p class="note reveal">The average ticket divides the revenue by the distinct orders, not by the items, because an order with three items is one purchase.</p>
+    </div>
+  </section>
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><span class="kick">Step 04 · Gold live 10 of 14</span><div class="st">Chart: revenue and ticket per month</div><p class="ss">The data of a line chart: one row per month, read in milliseconds.</p></header>
+      <div class="solo reveal">
+        <div class="code-mini"><span class="code-cap">ClickHouse Play · one statement · Ctrl+Enter</span><button class="etapa-copiar" type="button">Copy</button><pre>SELECT month, orders, revenue, avg_ticket
+FROM gold.rpt_kpi_month
+ORDER BY month;</pre></div>
+        <article class="card"><span class="label">What comes back</span><table class="tbl tbl-sm"><thead><tr><th>month</th><th>orders</th><th>revenue</th><th>ticket</th></tr></thead><tbody><tr><td>2017-01</td><td>750</td><td>111,797.92</td><td>149.06</td></tr><tr><td>2017-11</td><td>7,288</td><td>987,643.58</td><td>135.51</td></tr><tr><td>2018-05</td><td>6,749</td><td>977,539.82</td><td>144.84</td></tr><tr><td>total</td><td>96,470</td><td>13,220,181.73</td><td></td></tr></tbody></table></article>
+      </div>
+      <p class="note reveal">The best month is 2017-11, with 7,288 delivered orders. The first months of 2016 have one or two orders and show how the marketplace started.</p>
+    </div>
+  </section>
+  <section class="slide">
+    <div class="sc">
+      <header class="sh si reveal"><span class="kick">Step 04 · Gold live 11 of 14</span><div class="st">Report table: revenue by month and category</div><p class="ss">The category comes from <code>dim_product</code>, so the report joins the fact to two dimensions.</p></header>
+      <div class="solo reveal">
+        <div class="code-mini"><span class="code-cap">ClickHouse Play · one statement · Ctrl+Enter</span><button class="etapa-copiar" type="button">Copy</button><pre>CREATE MATERIALIZED VIEW IF NOT EXISTS gold.rpt_revenue_month_category
+REFRESH EVERY 1 HOUR DEPENDS ON gold.fact_order_item
+ENGINE = MergeTree ORDER BY (month, category)
+AS
+SELECT d.month AS month, p.category AS category,
+       uniqExact(f.order_id) AS orders,
+       count()               AS items,
+       sum(f.price)          AS revenue,
+       sum(f.freight_value)  AS freight
+FROM gold.fact_order_item AS f
+INNER JOIN gold.dim_product AS p ON f.product_id = p.product_id
+INNER JOIN gold.dim_date    AS d ON f.date_key   = d.date_key
+WHERE f.order_status = &#x27;delivered&#x27;
+GROUP BY month, category;</pre></div>
+        <article class="card"><span class="label">What comes back</span><p><code>Ok.</code> and no rows, because a <code>CREATE</code> returns nothing.</p><p>Check with <code>SELECT count() FROM gold.rpt_revenue_month_category</code>: 1,273 rows.</p></article>
+      </div>
+      <p class="note reveal">Summing <code>revenue</code> across months is correct. Summing <code>orders</code> across categories is not, because an order with items of two categories appears in both.</p>
+    </div>
+  </section>
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><span class="kick">Step 04 · Gold live 12 of 14</span><div class="st">Chart: the ten categories that sell most</div><p class="ss">The data of a bar chart, summed over the months of the report table.</p></header>
+      <div class="solo reveal">
+        <div class="code-mini"><span class="code-cap">ClickHouse Play · one statement · Ctrl+Enter</span><button class="etapa-copiar" type="button">Copy</button><pre>SELECT category,
+       sum(revenue) AS revenue,
+       sum(orders)  AS orders
+FROM gold.rpt_revenue_month_category
+GROUP BY category
+ORDER BY revenue DESC
+LIMIT 10;</pre></div>
+        <article class="card"><span class="label">What comes back</span><table class="tbl tbl-sm"><thead><tr><th>category</th><th>revenue</th><th>orders</th></tr></thead><tbody><tr><td>health_beauty</td><td>1,233,124.14</td><td>8,647</td></tr><tr><td>watches_gifts</td><td>1,165,897.51</td><td>5,493</td></tr><tr><td>bed_bath_table</td><td>1,023,428.73</td><td>9,272</td></tr><tr><td>sports_leisure</td><td>954,669.33</td><td>7,529</td></tr><tr><td>computers_accessories</td><td>888,609.43</td><td>6,529</td></tr></tbody></table></article>
+      </div>
+      <p class="note reveal">The table shows the first five of the ten. Watches sell fewer orders than bed and bath but more revenue, because the ticket is higher.</p>
+    </div>
+  </section>
+  <section class="slide">
+    <div class="sc">
+      <header class="sh si reveal"><span class="kick">Step 04 · Gold live 13 of 14</span><div class="st">Report table: flow between regions</div><p class="ss">The report crosses the region of the seller with the region of the customer, which needs both dimensions at once.</p></header>
+      <div class="solo reveal">
+        <div class="code-mini"><span class="code-cap">ClickHouse Play · one statement · Ctrl+Enter</span><button class="etapa-copiar" type="button">Copy</button><pre>CREATE MATERIALIZED VIEW IF NOT EXISTS gold.rpt_region_flow
+REFRESH EVERY 1 HOUR DEPENDS ON gold.fact_order_item
+ENGINE = MergeTree ORDER BY (seller_region, customer_region)
+AS
+SELECT s.region AS seller_region,
+       c.region AS customer_region,
+       uniqExact(f.order_id)          AS orders,
+       sum(f.price)                   AS revenue,
+       round(avg(f.freight_value), 2) AS avg_freight
+FROM gold.fact_order_item AS f
+INNER JOIN gold.dim_seller   AS s ON f.seller_id   = s.seller_id
+INNER JOIN gold.dim_customer AS c ON f.customer_id = c.customer_id
+WHERE f.order_status = &#x27;delivered&#x27;
+GROUP BY seller_region, customer_region;</pre></div>
+        <article class="card"><span class="label">What comes back</span><p><code>Ok.</code> and no rows, because a <code>CREATE</code> returns nothing.</p><p>Check with <code>SELECT count() FROM gold.rpt_region_flow</code>: 23 pairs of regions.</p></article>
+      </div>
+      <p class="note reveal">This is the question that the star answers and the enriched table does not: the order of the Silver layer carries the region of the customer, not of the seller.</p>
+    </div>
+  </section>
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><span class="kick">Step 04 · Gold live 14 of 14</span><div class="st">Chart: who sells to the North</div><p class="ss">The data of a matrix or a stacked bar: where the orders of the North came from and what the freight cost.</p></header>
+      <div class="solo reveal">
+        <div class="code-mini"><span class="code-cap">ClickHouse Play · one statement · Ctrl+Enter</span><button class="etapa-copiar" type="button">Copy</button><pre>SELECT seller_region, orders, avg_freight
+FROM gold.rpt_region_flow
+WHERE customer_region = &#x27;North&#x27;
+ORDER BY orders DESC;</pre></div>
+        <article class="card"><span class="label">What comes back</span><table class="tbl tbl-sm"><thead><tr><th>seller_region</th><th>orders</th><th>avg_freight</th></tr></thead><tbody><tr><td>Southeast</td><td>1,509</td><td>35.49</td></tr><tr><td>South</td><td>203</td><td>46.86</td></tr><tr><td>Northeast</td><td>45</td><td>44.74</td></tr><tr><td>Central-West</td><td>43</td><td>27.29</td></tr></tbody></table></article>
+      </div>
+      <p class="note reveal">Of the orders of the North, 83.8 % came from sellers of the Southeast. The rows add up to 1,800, not 1,796, because an order with sellers of two regions appears in both rows.</p>
+    </div>
+  </section>
   <section class="slide">
     <div class="sc">
       <header class="sh si reveal"><span class="kick">15:42 · Verification</span><div class="st">What closes the lab</div><p class="ss">Each check has a command and an expected result. The professor runs them on the projector; the groups will run the same checks on their own data.</p></header>
