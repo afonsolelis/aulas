@@ -1454,6 +1454,150 @@ ORDER BY orders DESC;</pre></div>
   </section>
   <section class="slide">
     <div class="sc">
+      <header class="sh si reveal"><span class="kick">Your turn · 1 of 9</span><div class="st">Log in to the class server</div><p class="ss">Open <code>http://10.8.8.10:8123/play</code> and fill in the user <code>aluno</code> and the password <code>aluno</code> at the top right. The user reads <code>silver</code> and <code>gold</code> and creates objects only in the database <code>lab</code>.</p></header>
+      <div class="solo reveal">
+        <div class="code-mini"><span class="code-cap">shrek2 · user aluno · one statement · Ctrl+Enter</span><button class="etapa-copiar" type="button">Copy</button><pre>SELECT count() AS rows FROM silver.enriched;</pre></div>
+        <article class="card"><span class="label">What comes back</span><table class="tbl tbl-sm"><thead><tr><th>rows</th></tr></thead><tbody><tr><td>347,578</td></tr></tbody></table></article>
+      </div>
+      <p class="note reveal">Every object of the group is named with its number, as in <code>lab.g01_…</code>: replace <code>g01</code> with the number of your group in every statement that follows, because all groups share the same database.</p>
+    </div>
+  </section>
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><span class="kick">Your turn · 2 of 9</span><div class="st">A dimension as a normal view, with JSONExtract</div><p class="ss"><code>JSONExtractString(data_linha, 'state')</code> reads one key of the JSON and returns it as text. There are versions for each type: <code>JSONExtractUInt</code>, <code>JSONExtractFloat</code>, <code>JSONExtractBool</code>.</p></header>
+      <div class="solo reveal">
+        <div class="code-mini"><span class="code-cap">shrek2 · user aluno · one statement · Ctrl+Enter</span><button class="etapa-copiar" type="button">Copy</button><pre>CREATE OR REPLACE VIEW lab.g01_dim_customer AS
+SELECT JSONExtractString(data_linha, &#x27;customer_id&#x27;) AS customer_id,
+       JSONExtractString(data_linha, &#x27;city&#x27;)        AS city,
+       JSONExtractString(data_linha, &#x27;state&#x27;)       AS state,
+       JSONExtractString(data_linha, &#x27;region&#x27;)      AS region
+FROM silver.enriched
+WHERE data_tag = &#x27;olist.customer.v1&#x27;;</pre></div>
+        <article class="card"><span class="label">What comes back</span><p><code>Ok.</code> and no rows, because a <code>CREATE</code> returns nothing.</p><p>Check with <code>SELECT count() FROM lab.g01_dim_customer</code>: 99,441 customers.</p></article>
+      </div>
+      <p class="note reveal">A normal view stores only the query. Each time someone reads it, ClickHouse runs the query again over <code>silver.enriched</code>, so the view is always current and costs the full computation at every use.</p>
+    </div>
+  </section>
+  <section class="slide">
+    <div class="sc">
+      <header class="sh si reveal"><span class="kick">Your turn · 3 of 9</span><div class="st">The fact as a materialized view</div><p class="ss">The fact joins the items to their orders, one row per order item. As a refreshable materialized view, ClickHouse computes it once, stores the result and recomputes it every hour.</p></header>
+      <div class="solo long reveal">
+        <div class="code-mini"><span class="code-cap">shrek2 · user aluno · one statement · Ctrl+Enter</span><button class="etapa-copiar" type="button">Copy</button><pre>CREATE MATERIALIZED VIEW IF NOT EXISTS lab.g01_fact_order_item
+REFRESH EVERY 1 HOUR
+ENGINE = MergeTree ORDER BY (order_id, order_item_id)
+AS
+SELECT i.order_id, i.order_item_id, o.customer_id, i.seller_id,
+       i.product_id, o.order_status, o.purchased_at,
+       i.price, i.freight_value
+FROM (SELECT JSONExtractString(data_linha, &#x27;order_id&#x27;)      AS order_id,
+             JSONExtractUInt(data_linha, &#x27;order_item_id&#x27;)   AS order_item_id,
+             JSONExtractString(data_linha, &#x27;seller_id&#x27;)     AS seller_id,
+             JSONExtractString(data_linha, &#x27;product_id&#x27;)    AS product_id,
+             JSONExtractFloat(data_linha, &#x27;price&#x27;)          AS price,
+             JSONExtractFloat(data_linha, &#x27;freight_value&#x27;)  AS freight_value
+      FROM silver.enriched WHERE data_tag = &#x27;olist.order_item.v1&#x27;) AS i
+INNER JOIN
+     (SELECT JSONExtractString(data_linha, &#x27;order_id&#x27;)     AS order_id,
+             JSONExtractString(data_linha, &#x27;customer_id&#x27;)  AS customer_id,
+             JSONExtractString(data_linha, &#x27;order_status&#x27;) AS order_status,
+             parseDateTimeBestEffort(JSONExtractString(data_linha, &#x27;purchased_at&#x27;),
+                                     &#x27;America/Sao_Paulo&#x27;)  AS purchased_at
+      FROM silver.enriched WHERE data_tag = &#x27;olist.order.v1&#x27;) AS o
+ON i.order_id = o.order_id;</pre></div>
+        <article class="card"><span class="label">What comes back</span><p><code>Ok.</code> and no rows, because a <code>CREATE</code> returns nothing.</p><p>Check with <code>SELECT count() FROM lab.g01_fact_order_item</code>: 112,642 items.</p></article>
+      </div>
+      <p class="note reveal">Each subquery filters its tag before extracting the keys, because a key of an order does not exist in the rows of a customer or a product.</p>
+    </div>
+  </section>
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><span class="kick">Your turn · 4 of 9</span><div class="st">A report as a normal view</div><p class="ss">The report answers how many delivered orders and how much revenue each state of the customer had. First as a normal view, which stores only the query.</p></header>
+      <div class="solo reveal">
+        <div class="code-mini"><span class="code-cap">shrek2 · user aluno · one statement · Ctrl+Enter</span><button class="etapa-copiar" type="button">Copy</button><pre>CREATE OR REPLACE VIEW lab.g01_v_sales_state AS
+SELECT c.state AS state,
+       uniqExact(f.order_id)  AS orders,
+       round(sum(f.price), 2) AS revenue
+FROM lab.g01_fact_order_item AS f
+INNER JOIN lab.g01_dim_customer AS c ON f.customer_id = c.customer_id
+WHERE f.order_status = &#x27;delivered&#x27;
+GROUP BY state;</pre></div>
+        <article class="card"><span class="label">What comes back</span><p><code>Ok.</code> and no rows, because a <code>CREATE</code> returns nothing.</p><p>Nothing is computed yet: the view runs only when it is read.</p></article>
+      </div>
+      <p class="note reveal">The same query will now be created a second time, as a materialized view, so that the two can be compared.</p>
+    </div>
+  </section>
+  <section class="slide">
+    <div class="sc">
+      <header class="sh si reveal"><span class="kick">Your turn · 5 of 9</span><div class="st">The same report as a materialized view</div><p class="ss">The query is identical. The difference is in the first two lines: <code>REFRESH EVERY 1 HOUR</code> and an engine to store the result.</p></header>
+      <div class="solo reveal">
+        <div class="code-mini"><span class="code-cap">shrek2 · user aluno · one statement · Ctrl+Enter</span><button class="etapa-copiar" type="button">Copy</button><pre>CREATE MATERIALIZED VIEW IF NOT EXISTS lab.g01_mv_sales_state
+REFRESH EVERY 1 HOUR
+ENGINE = MergeTree ORDER BY state
+AS
+SELECT c.state AS state,
+       uniqExact(f.order_id)  AS orders,
+       round(sum(f.price), 2) AS revenue
+FROM lab.g01_fact_order_item AS f
+INNER JOIN lab.g01_dim_customer AS c ON f.customer_id = c.customer_id
+WHERE f.order_status = &#x27;delivered&#x27;
+GROUP BY state;</pre></div>
+        <article class="card"><span class="label">What comes back</span><p><code>Ok.</code> and no rows, because a <code>CREATE</code> returns nothing.</p><p>ClickHouse computes the 27 states as soon as the view is created and keeps them in a table of its own.</p></article>
+      </div>
+      <p class="note reveal">A materialized view of ClickHouse can also be incremental, fed on each insert into one source table; with joins and a table that is reloaded, the refreshable kind is the safe choice.</p>
+    </div>
+  </section>
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><span class="kick">Your turn · 6 of 9</span><div class="st">Reading the normal view</div><p class="ss">Run the report from the normal view and look at the line under the result in Play, which shows the time and the rows read.</p></header>
+      <div class="solo reveal">
+        <div class="code-mini"><span class="code-cap">shrek2 · user aluno · one statement · Ctrl+Enter</span><button class="etapa-copiar" type="button">Copy</button><pre>SELECT state, orders, revenue
+FROM lab.g01_v_sales_state
+ORDER BY revenue DESC
+LIMIT 10;</pre></div>
+        <article class="card"><span class="label">What comes back</span><table class="tbl tbl-sm"><thead><tr><th>state</th><th>orders</th><th>revenue</th></tr></thead><tbody><tr><td>SP</td><td>40,494</td><td>5,066,562.98</td></tr><tr><td>RJ</td><td>12,350</td><td>1,759,651.13</td></tr><tr><td>MG</td><td>11,354</td><td>1,552,481.83</td></tr><tr><td>…</td><td></td><td></td></tr><tr><td>time</td><td>≈ 0.18 s</td><td>219,138 rows read</td></tr></tbody></table></article>
+      </div>
+      <p class="note reveal">To answer, ClickHouse read the fact and the customers again and grouped them, the whole computation for ten rows of result.</p>
+    </div>
+  </section>
+  <section class="slide">
+    <div class="sc">
+      <header class="sh si reveal"><span class="kick">Your turn · 7 of 9</span><div class="st">Reading the materialized view</div><p class="ss">Run the same report from the materialized view and compare the line under the result with the previous one.</p></header>
+      <div class="solo reveal">
+        <div class="code-mini"><span class="code-cap">shrek2 · user aluno · one statement · Ctrl+Enter</span><button class="etapa-copiar" type="button">Copy</button><pre>SELECT state, orders, revenue
+FROM lab.g01_mv_sales_state
+ORDER BY revenue DESC
+LIMIT 10;</pre></div>
+        <article class="card"><span class="label">What comes back</span><table class="tbl tbl-sm"><thead><tr><th>state</th><th>orders</th><th>revenue</th></tr></thead><tbody><tr><td>SP</td><td>40,494</td><td>5,066,562.98</td></tr><tr><td>RJ</td><td>12,350</td><td>1,759,651.13</td></tr><tr><td>MG</td><td>11,354</td><td>1,552,481.83</td></tr><tr><td>…</td><td></td><td></td></tr><tr><td>time</td><td>≈ 0.005 s</td><td>54 rows read</td></tr></tbody></table></article>
+      </div>
+      <p class="note reveal">The rows are the same, read about 35 times faster, because the result was already stored. The price is freshness: after a new load of the Silver layer, the materialized view shows the old numbers until <code>SYSTEM REFRESH VIEW lab.g01_mv_sales_state</code>, while the normal view is current at once.</p>
+    </div>
+  </section>
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><span class="kick">Your turn · 8 of 9</span><div class="st">Where each one lives</div><p class="ss">The catalogue of ClickHouse shows what each object keeps: a view has no rows of its own, a materialized view has a table behind it.</p></header>
+      <div class="solo reveal">
+        <div class="code-mini"><span class="code-cap">shrek2 · user aluno · one statement · Ctrl+Enter</span><button class="etapa-copiar" type="button">Copy</button><pre>SELECT name, engine, total_rows, total_bytes
+FROM system.tables
+WHERE database = &#x27;lab&#x27; AND name LIKE &#x27;g01_%&#x27;
+ORDER BY name;</pre></div>
+        <article class="card"><span class="label">What comes back</span><table class="tbl tbl-sm"><thead><tr><th>name</th><th>engine</th><th>total_rows</th></tr></thead><tbody><tr><td>g01_dim_customer</td><td>View</td><td>NULL</td></tr><tr><td>g01_fact_order_item</td><td>MaterializedView</td><td>112,642</td></tr><tr><td>g01_mv_sales_state</td><td>MaterializedView</td><td>27</td></tr><tr><td>g01_v_sales_state</td><td>View</td><td>NULL</td></tr></tbody></table></article>
+      </div>
+      <p class="note reveal">Use a normal view when the result must always be current or is read rarely, as in the dimensions; use a materialized view when the result is read often and can wait for the next refresh, as in the fact and the tables of a dashboard.</p>
+    </div>
+  </section>
+  <section class="slide">
+    <div class="sc">
+      <header class="sh si reveal"><span class="kick">Your turn · 9 of 9</span><div class="st">A report of the group</div><p class="ss">Each group chooses one question of the business, builds its own dimension, fact and report in <code>lab</code> with the prefix of the group, once as a view and once as a materialized view, and writes the query of the chart.</p></header>
+      <div class="g3 reveal">
+        <article class="card"><span class="label">Late deliveries</span><p>Which region of the customer has the highest share of late orders? The order carries <code>delivered_late</code> (Bool) and <code>delivery_days</code> (Int) in <code>olist.order.v1</code>.</p></article>
+        <article class="card dark"><span class="label dark">Freight by category</span><p>In which categories does the freight weigh most against the price? The item carries <code>freight_value</code>, and the product carries <code>category_en</code> in <code>olist.product.v1</code>.</p></article>
+        <article class="card grn"><span class="label grn">Sellers far from customers</span><p>Do sellers of one region sell more to their own region? The seller carries <code>region</code> in <code>olist.seller.v1</code>, and the customer carries it in <code>olist.customer.v1</code>.</p></article>
+      </div>
+      <p class="note reveal">Deliver the statements in the order they were run, the result of the chart query and one sentence on why the report was kept as a view or as a materialized view. Objects of other groups must not be dropped; <code>DROP</code> works only inside <code>lab</code>.</p>
+    </div>
+  </section>
+  <section class="slide">
+    <div class="sc">
       <header class="sh si reveal"><span class="kick">15:42 · Verification</span><div class="st">What closes the lab</div><p class="ss">Each check has a command and an expected result. The professor runs them on the projector; the groups will run the same checks on their own data.</p></header>
       <table class="tbl tbl-sm reveal"><thead><tr><th>Check</th><th>Command</th><th>Expected</th></tr></thead><tbody><tr><td>every record ends in one tag</td><td><code>python -m src.load_hybrid</code></td><td>347,578 rows; 16 in quarantine</td></tr><tr><td>lake and ClickHouse agree</td><td><code>python -m src.reconcile</code></td><td>OK for every tag inside the window</td></tr><tr><td>no file of the lake was altered</td><td>same command</td><td>0 SHA-256 mismatches</td></tr><tr><td>ClickHouse is rebuildable</td><td>drop and reload from the lake</td><td>same counts, about 1 s</td></tr><tr><td>the star is complete</td><td><code>SELECT count() FROM gold.fact_order_item</code></td><td>112,642 items; 107 rows in the aggregate</td></tr><tr><td>the star is fresh</td><td><code>system.view_refreshes</code></td><td>last success after the last load</td></tr><tr><td>the answer is consistent</td><td><code>sql/question.sql</code> and DuckDB</td><td>North 1,796 · Southeast 66,193 in both</td></tr></tbody></table>
     </div>
