@@ -734,6 +734,36 @@ Stop at the end.</code></pre>
       </div>
     </div>
   </section>
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><span class="kick">Step 02 · Check in ClickHouse</span><div class="st">Looking at the enriched table</div><p class="ss">Open <code>http://localhost:8123/play</code>, fill in the user <code>silver</code> and the password of <code>CLICKHOUSE_PASSWORD</code> in <code>.env</code>, and run each query with Ctrl+Enter. Opening the address without a query returns <code>Empty query</code>, which is not an error of the login.</p></header>
+      <div class="g2 reveal">
+        <div class="code-mini"><span class="code-cap">1 · Rows per tag, and 2 · three records</span><pre>SELECT data_tag, count() AS rows
+FROM silver.enriched
+GROUP BY data_tag
+ORDER BY data_tag;
+
+SELECT data_ingestao, data_tag, data_linha
+FROM silver.enriched
+WHERE data_tag = 'olist.customer.v1'
+LIMIT 3;</pre></div>
+        <div class="code-mini"><span class="code-cap">3 · Orders per region, and 4 · the quarantine</span><pre>SELECT data_linha.customer_region::String AS region,
+       count() AS orders
+FROM silver.enriched
+WHERE data_tag = 'olist.order.v1'
+GROUP BY region
+ORDER BY orders DESC;
+
+SELECT data_linha.entity::String AS entity,
+       data_linha.reason::String AS reason,
+       count() AS records
+FROM silver.enriched
+WHERE data_tag = 'quarantine.v1'
+GROUP BY entity, reason;</pre></div>
+      </div>
+      <p class="note reveal">Expected: 347,578 rows in six tags; 68,259 orders in the Southeast and 1,851 in the North, before the filter of delivered orders of Step 04; 16 records in quarantine, 8 orders and their 8 items. A path of <code>data_linha</code> has the type <code>Dynamic</code>, and ClickHouse refuses it in <code>GROUP BY</code> until it is cast with <code>::String</code>.</p>
+    </div>
+  </section>
 
   <!-- ====== SLIDE 20: STEP 03 PROMPT ====== -->
   <section class="slide etapa-slide" data-etapa="03">
