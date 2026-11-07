@@ -16,8 +16,8 @@
 
 import { paraLog, slugDeSala } from './lib/entrada.mjs';
 
-const URL_BASE = process.env.SUPABASE_URL || 'https://lcyxqwdgsrbcpecqyqje.supabase.co';
-const CHAVE = process.env.SUPABASE_KEY || 'sb_publishable_x68LvlGFJns-zsrYTERvqw_-x5GWA8p';
+// PostgREST do projeto aulas_inteli na VPS (supabase/README.md). Sem chave: a API só atende o papel anon.
+const URL_BASE = process.env.AULAS_API_URL || 'https://aulas-inteli-api.afonsolelis.tech';
 const SLUG = slugDeSala(process.argv[2] || 'gmud-m7-a5');
 const TOKEN = process.env.QUIZ_TOKEN;
 
@@ -28,9 +28,9 @@ if (!TOKEN) {
 
 const LETRAS = ['A', 'B', 'C', 'D', 'E'];
 
-const resposta = await fetch(`${URL_BASE}/rest/v1/rpc/quiz_relatorio`, {
+const resposta = await fetch(`${URL_BASE}/rpc/quiz_relatorio`, {
   method: 'POST',
-  headers: { apikey: CHAVE, Authorization: `Bearer ${CHAVE}`, 'Content-Type': 'application/json' },
+  headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ p_slug: SLUG, p_token: TOKEN }),
 });
 const dados = await resposta.json();

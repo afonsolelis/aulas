@@ -117,30 +117,30 @@ sala, logo após aplicar o seed:**
 
 ```bash
 set -a; . ./.env; set +a
-psql "$DATABASE_URL?sslmode=require" -v ON_ERROR_STOP=1 -c \
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c \
   "insert into quiz_host_tokens (session_slug, token)
    values ('<slug>', '$QUIZ_HOST_TOKEN')
    on conflict (session_slug) do update set token = excluded.token;"
 ```
 
-Aplicação do seed pelo pooler (a conexão direta é IPv6 e não funciona nesta
-máquina). `DATABASE_URL` já aponta para o pooler, na porta 6543 — trocar para
-5432 quando o script tiver DDL, porque o transaction mode não serve para
-migração. É o caso de `quiz-funcoes.sql`, que acrescenta colunas:
+O banco é o Postgres do projeto `aulas_inteli` na VPS (ver `supabase/README.md`), sem porta pública.
+Abra o túnel SSH antes (`ssh -f -N -L 55434:127.0.0.1:55434 root@srv2127534.hstgr.cloud`); `DATABASE_URL`
+aponta para `postgresql://postgres:<senha>@127.0.0.1:55434/aulas`. Depois de criar ou trocar função
+(é o caso de `quiz-funcoes.sql`), rode `notify pgrst, 'reload schema'` para a API enxergar a mudança:
 
 ```bash
 set -a; . ./.env; set +a
-psql "$DATABASE_URL?sslmode=require" -v ON_ERROR_STOP=1 \
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
   -f supabase/quiz-seed-lesson-N.sql
 ```
 
-Alternativa sem o `.env`: colar o conteúdo no SQL Editor do painel.
+Sem túnel, direto na VPS: `docker exec -i postgres-mep8w8n2uxj8gfu2m2g9gvaw psql -U postgres -d aulas < supabase/quiz-seed-lesson-N.sql`.
 
 Conferir ao final, com a mesma chamada que a página do professor faz:
 
 ```bash
-curl -s -X POST "$SUPABASE_URL/rest/v1/rpc/quiz_host" \
-  -H "apikey: <chave publicável>" -H "Content-Type: application/json" \
+curl -s -X POST "https://aulas-inteli-api.afonsolelis.tech/rpc/quiz_host" \
+  -H "Content-Type: application/json" \
   -d '{"p_slug":"<slug>","p_token":"'"$QUIZ_HOST_TOKEN"'","p_acao":"ver"}'
 ```
 
@@ -183,7 +183,7 @@ npm test                                    # specs de filesystem, roda no pre-c
 set -a; . ./.env; set +a
 node scripts/testar-quiz.mjs <slug>         # ciclo completo pelas RPCs
 
-python3 -m http.server 8123 &               # o cliente do Supabase não roda em file://
+python3 -m http.server 8123 &               # o cliente da API não roda em file://
 node scripts/ensaio-quiz-navegador.mjs      # as páginas num navegador real
 ```
 

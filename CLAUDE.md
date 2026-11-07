@@ -190,9 +190,29 @@ Tests run against local `file://` URLs (no server needed). They validate:
 
 When adding a new module/lesson, ensure the corresponding file exists on disk before committing or tests will fail.
 
-### Páginas interativas: Supabase, e não `aulas-projeto`, enquanto não houver deploy
+`tests/tbl-m7-lesson-9.spec.ts` é a exceção: abre o TBL da Aula 9 do Módulo 7 por `file://` e responde as chamadas a `https://aulas-inteli-api.afonsolelis.tech/rpc/*` com uma sala em memória, no contrato de `supabase/tbl-funcoes.sql`. Não toca no banco.
 
-As páginas de quiz, TBL, enquete e prova falam com o Supabase (`lcyxqwdgsrbcpecqyqje`) pelo `supabase-js`. Em 28–29/10/2026 elas foram migradas para o contrato próprio do `aulas-projeto` (ADR-18: `/_app/aulas.js` ou `/static/js/aulas.js`, `/api/v1`), mas essa plataforma ainda não está implantada em lugar nenhum. Publicadas no GitHub Pages, as páginas pediam o cliente por caminho absoluto, recebiam 404 e o painel do professor não chegava a conferir o token. Em 04/11/2026 a migração foi desfeita (páginas, scripts de ensaio e instruções voltaram à versão de 27/10). Não reaplique o contrato do `aulas-projeto` antes de a plataforma estar no ar e servindo estas páginas; o histórico da migração está nos commits `3ce522e`, `fd383c8` e `ebfe4bd`.
+### Páginas interativas (quiz, TBL, prova, enquete, semáforo, conselho)
+
+Desde 07/11/2026 o banco é um Postgres + PostgREST próprio na VPS Hostinger, projeto `aulas_inteli` no Coolify, e não mais o Supabase cloud (`lcyxqwdgsrbcpecqyqje`). Tabelas, funções, grants e RLS foram copiados de lá sem mudança, então as funções continuam as de `supabase/*.sql`. O desenho é o mesmo dos repositórios `aulas_mackenzie` e `aulas_senac`, cada um no seu projeto.
+
+- a página carrega `js/api_aulas.js` por caminho relativo (`<script src="../../../js/api_aulas.js"></script>`) e cria o cliente com `const db = window.aulasApi.cliente();`, sem URL nem chave;
+- `db.rpc(fn, args)` faz `POST https://aulas-inteli-api.afonsolelis.tech/rpc/{fn}` e devolve `{ data, error }`, como o supabase-js; páginas que usam `fetch` direto chamam `${SUPABASE_URL}/rpc/{fn}`, com `SUPABASE_URL = window.AULAS_API_URL` ou a URL da API escrita na página;
+- não há Realtime: `db.channel(...)` existe só para não quebrar o código e avisa `CHANNEL_ERROR`; quiz, painéis e TBL consultam o estado a cada segundo (`setInterval(..., 1000)`), e a página mostra "Conectado por consulta periódica".
+
+As páginas funcionam por `http.server` local (`python -m http.server 8000`) e pelo GitHub Pages, falando com a API real: para testar sem mexer numa sala de aula, use uma sala de teste (as páginas de quiz aceitam `?sala=<slug>`).
+
+**Sala nova ou ajuste de função.** Rode o SQL no banco da VPS com `psql`, pelo túnel SSH (porta 55434 só no loopback da VPS):
+
+```bash
+ssh -f -N -L 55434:127.0.0.1:55434 root@srv2127534.hstgr.cloud
+psql "postgresql://postgres:<INTELI_PG_ADMIN_PASSWORD>@127.0.0.1:55434/aulas" -v ON_ERROR_STOP=1 -f supabase/quiz-seed-<aula>.sql
+psql "postgresql://postgres:<INTELI_PG_ADMIN_PASSWORD>@127.0.0.1:55434/aulas" -c "notify pgrst, 'reload schema'"
+```
+
+A senha fica no `.env` do repositório de infraestrutura `hostinger` (`INTELI_PG_*`). Não rode `quiz-schema.sql` nem `tbl-schema.sql`: eles recriam as tabelas. Depois de criar ou trocar função, `notify pgrst, 'reload schema'` faz o PostgREST enxergar a mudança.
+
+As famílias `alocacao_*` e `modulo_*` vieram junto, com dados e políticas, mas dependem de login (Supabase Auth com Google), que o PostgREST novo não tem. Hoje nenhuma página as usa; o schema `auth` do banco novo só lê o JWT (`auth.uid()`, `auth.jwt()`), sem usuários.
 
 ### `specs/` — Normative Rules
 
@@ -237,7 +257,7 @@ Dates are stored as `dd/mm/yyyy` strings to match exactly what is rendered in th
 
 9. **Toda aula com avaliação ponderada em sala tem flag no card da home.** Marque `"ponderada": true` na aula em `config/calendar.json` e inclua `<span class="ponderada-badge">⚖️ Ponderada em sala</span>` no card correspondente em `pages/home-module-*.html`. Ao mover a ponderada de aula, mova as duas coisas juntas. O spec `tests/calendar-consistency.spec.ts` falha se uma existir sem a outra. Detalhes em `specs/lesson-cards.md`.
 
-10. **Conteúdo de avaliação nunca entra no repositório.** O repositório é público (`github.com/afonsolelis/aulas`), de modo que enunciado de prova, alternativa correta e gabarito versionados ficam legíveis pela turma dias antes da aula. Enunciado de prova mora em `prova_provas`/`prova_partes` no Supabase — tabelas com RLS sem policy e `revoke all`, acessíveis apenas pela função `prova_abrir(slug, token)`, que confere o hash SHA-256 do token do professor (`supabase/prova-schema.sql`). O SQL que popula essas tabelas fica em `supabase/private/`, ignorado pelo git; o formato está em `supabase/prova-seed.example.sql`. O deck busca o texto no momento da projeção e não contém uma linha do enunciado.
+10. **Conteúdo de avaliação nunca entra no repositório.** O repositório é público (`github.com/afonsolelis/aulas`), de modo que enunciado de prova, alternativa correta e gabarito versionados ficam legíveis pela turma dias antes da aula. Enunciado de prova mora em `prova_provas`/`prova_partes` no banco `aulas_inteli` da VPS — tabelas com RLS sem policy e `revoke all`, acessíveis apenas pela função `prova_abrir(slug, token)`, que confere o hash SHA-256 do token do professor (`supabase/prova-schema.sql`). O SQL que popula essas tabelas fica em `supabase/private/`, ignorado pelo git; o formato está em `supabase/prova-seed.example.sql`. O deck busca o texto no momento da projeção e não contém uma linha do enunciado.
    > **Pendência conhecida:** os seeds de quiz e de TBL (`supabase/quiz-seed-*.sql`, `supabase/tbl-seed-*.sql`) ainda trazem enunciado, alternativa correta e explicação em texto claro no repositório público.
 
 ## Nested Projects

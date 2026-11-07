@@ -21,14 +21,14 @@
 import { executarPsql } from './lib/psql.mjs';
 import { paraLog, slugDeSala } from './lib/entrada.mjs';
 
-const URL_BASE = process.env.SUPABASE_URL || 'https://lcyxqwdgsrbcpecqyqje.supabase.co';
-const CHAVE = process.env.SUPABASE_KEY || 'sb_publishable_x68LvlGFJns-zsrYTERvqw_-x5GWA8p';
+// PostgREST do projeto aulas_inteli na VPS (supabase/README.md). Sem chave: a API só atende o papel anon.
+const URL_BASE = process.env.AULAS_API_URL || 'https://aulas-inteli-api.afonsolelis.tech';
 const SLUG = slugDeSala(process.argv[2] || 'stakeholders-m7-a6');
 const TOKEN = process.env.QUIZ_HOST_TOKEN;
 const BANCO = process.env.DATABASE_URL;
 
 if (!TOKEN) { console.error('Defina QUIZ_HOST_TOKEN (está no .env da raiz).'); process.exit(2); }
-if (!BANCO) { console.error('Defina DATABASE_URL (está no .env da raiz).'); process.exit(2); }
+if (!BANCO) { console.error('Defina DATABASE_URL (no .env da raiz: postgresql://postgres:<senha>@127.0.0.1:55434/aulas, com o túnel SSH aberto; ver supabase/README.md).'); process.exit(2); }
 
 const falhas = [];
 let verificacoes = 0;
@@ -42,9 +42,9 @@ function conferir(condicao, descricao, detalhe) {
 }
 
 async function rpc(funcao, corpo) {
-  const r = await fetch(`${URL_BASE}/rest/v1/rpc/${funcao}`, {
+  const r = await fetch(`${URL_BASE}/rpc/${funcao}`, {
     method: 'POST',
-    headers: { apikey: CHAVE, Authorization: `Bearer ${CHAVE}`, 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(corpo),
   });
   if (!r.ok) throw new Error(`${funcao}: HTTP ${r.status} ${await r.text()}`);

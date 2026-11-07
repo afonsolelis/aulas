@@ -4,7 +4,7 @@ import path from 'path';
 /**
  * TBL da Aula 9 do Módulo 7 — sequência de questões sobre o plano de tecnologia.
  *
- * O Supabase é simulado por interceptação de `/rest/v1/rpc/*`: as funções
+ * O PostgREST da VPS é simulado por interceptação de `/rpc/*`: as funções
  * respondem com o mesmo contrato de `supabase/tbl-funcoes.sql`, o que
  * permite exercitar a página do aluno e o painel do professor sem tocar
  * no banco. O corte de informação por fase é reproduzido aqui justamente
@@ -180,7 +180,7 @@ function salaFalsa() {
   };
 
   const ligar = async (context: BrowserContext) => {
-    await context.route('**/rest/v1/rpc/*', async route => {
+    await context.route('https://aulas-inteli-api.afonsolelis.tech/rpc/*', async route => {
       const fn = new URL(route.request().url()).pathname.split('/').pop() as string;
       const corpo = route.request().postDataJSON();
       await route.fulfill({
@@ -189,7 +189,6 @@ function salaFalsa() {
       });
     });
     // O canal de Realtime não é exercitado aqui; a consulta periódica cobre a virada de fase.
-    await context.route('**/realtime/**', route => route.abort());
   };
 
   return { sala, ligar };
