@@ -62,6 +62,13 @@ O sistema mantém a paleta Inteli e adota uma linguagem sóbria: pouca cor, tipo
 24. Texto corrido tem contraste mínimo de 4,5:1 sobre o fundo. `--inteli-verde` e `--inteli-coral` não são usados como cor de texto pequeno sobre branco; para isso existem `--ds-verde-texto` e `--ds-coral-texto`.
 25. Todo elemento interativo tem `:focus-visible` com anel de 2 px em `--inteli-roxo` (ou branco sobre fundo escuro).
 
+## Layout das homes (`.tm`)
+
+26. A página inicial e as homes (módulos, autoestudos e palestras) usam o layout terminal de `css/inteli-ds.css`, ativado por `<body class="tm">`: menu lateral fixo numerado (`[1]`, `[2]`…), sem cabeçalho no topo; abertura com título em JetBrains Mono; seções com rótulo mono à esquerda e conteúdo à direita; rodapé `inteli-footer tm-rodape` com links `[ ]`.
+27. A página inicial não exibe quadro de números do acervo nem repete no corpo os atalhos do menu lateral em forma de card.
+28. Módulos (`.tm-lista`), autoestudos e palestras (`.tm-grade`) aparecem em cards de contorno quadrado de 1 px, raio 0, duas colunas e altura igual por linha. A descrição de cada card tem uma frase curta, para que os cards da grade fiquem do mesmo tamanho.
+29. Nas homes de módulo, os cards de aula mantêm a marcação original (`lesson-card`, `lesson-number`, `📅`, `ponderada-badge`, botões 🎞️ Slides e 📝 Material) e são apresentados em lista plana dentro de `.tm-aulas`; os tópicos ficam em `.tm-topicos`.
+
 ## Validação
 
 `tests/design-system.spec.ts` confere as regras 2, 9, 12, 16 e a existência dos tokens da regra 5.
