@@ -69,6 +69,12 @@ O sistema mantém a paleta Inteli e adota uma linguagem sóbria: pouca cor, tipo
 28. Módulos (`.tm-lista`), autoestudos e palestras (`.tm-grade`) aparecem em cards de contorno quadrado de 1 px, raio 0, colunas de no mínimo 280 px e altura igual em toda a grade. A descrição de cada card tem uma frase curta, para que os cards da grade fiquem do mesmo tamanho.
 29. Nas homes de módulo, os cards de aula mantêm a marcação original (`lesson-card`, `lesson-number`, `📅`, `ponderada-badge`, botões 🎞️ Slides e 📝 Material) e são apresentados em lista plana dentro de `.tm-aulas`; os tópicos ficam em `.tm-topicos`.
 
+## Slides em layout terminal (`.tm-deck`)
+
+30. Decks com `<body class="tm-deck">` recebem a camada 5c de `css/inteli-ds.css`, que se sobrepõe ao CSS próprio do deck: fundo branco, títulos de seção e de capa em JetBrains Mono, cabeçalho de seção sem bloco colorido e com linha de base de 1 px, cards e etiquetas com contorno de 1 px e cantos retos, tabelas com cabeçalho sem preenchimento, daily com contorno e cronômetro em mono, rodapé branco com botões retos. Blocos de terminal (`.code-mini`, `.kpi`) continuam escuros, e o botão Material mantém `--ds-verde-escuro` (regra 23).
+31. A camada altera só cor, fonte, borda e raio; tamanhos e espaçamentos continuam os do deck. Depois de aplicá-la, o deck passa por `npm run validate:slides` sem nenhum `OVERFLOW`.
+32. Hoje usam a camada os 13 decks do Módulo 8 de Sistemas de Informação.
+
 ## Validação
 
 `tests/design-system.spec.ts` confere as regras 2, 9, 12, 16 e a existência dos tokens da regra 5.
