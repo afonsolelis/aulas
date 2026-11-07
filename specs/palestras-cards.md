@@ -1,5 +1,7 @@
 # Spec: Cards de Palestras
 
+> Valores visuais (cor, fonte, raio, sombra) seguem `specs/design-system.md`, que prevalece em caso de conflito com os exemplos abaixo.
+
 ## Objetivo
 
 Cada palestra na página `home-palestras.html` deve identificar claramente a empresa parceira que a originou.
@@ -22,13 +24,13 @@ Todo card de palestra **deve ter** um elemento com a classe `company-tag` exibin
 ```css
 .company-tag {
   display: inline-block;
-  background: #f1f4f8;
-  border: 1px solid #dfe5ec;
-  color: #374151;
+  background: #f3f5f5;
+  border: 1px solid #dbdfe3;
+  color: #4d475d;
   font-size: 0.75rem;
   font-weight: 700;
   padding: 3px 10px;
-  border-radius: 999px;
+  border-radius: 4px;
   margin-bottom: 10px;
   letter-spacing: 0.02em;
 }

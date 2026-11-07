@@ -4,6 +4,7 @@ Este diretório consolida as regras definidas para o portal HTML de aulas.
 
 Arquivos:
 
+- `design-system.md`: Design System Inteli v2 (cor, tipografia, forma, componentes); prevalece sobre os valores visuais dos demais specs. Documentação completa em `docs/design-system.md`.
 - `routes-naming.md`: convenções obrigatórias de nomes de arquivos e rotas HTML.
 - `slides-format.md`: estrutura e tecnologia esperada para slides.
 - `slides-footer.md`: padrão obrigatório do footer dos slides.

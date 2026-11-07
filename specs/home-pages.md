@@ -1,5 +1,7 @@
 # Spec: Páginas Home de Módulo
 
+> Valores visuais (cor, fonte, raio, sombra) seguem `specs/design-system.md`, que prevalece em caso de conflito com os exemplos abaixo.
+
 ## Escopo
 
 Aplica-se a todas as páginas `pages/home-*.html`.

@@ -1,5 +1,7 @@
 # Especificação de Slides — Design System Moderno
 
+> Valores visuais (cor, fonte, raio, sombra) seguem `specs/design-system.md`, que prevalece em caso de conflito com os exemplos abaixo.
+
 ## Visão Geral
 
 Esta especificação define o padrão atual para criação de slides no projeto Aulas. O design system utiliza HTML padronizado com JavaScript nativo para navegação e animações CSS/JavaScript integradas diretamente no arquivo.
@@ -19,18 +21,18 @@ Esta especificação define o padrão atual para criação de slides no projeto 
   <!-- Favicon -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
   
-  <!-- Fontes Google (Manrope) -->
+  <!-- Fontes Google (Inter) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
   <!-- Estilos globais Inteli -->
   <link href="../../../css/inteli-styles.css" rel="stylesheet">
   
   <!-- Estilos customizados do slide -->
   <style>
-    :root { --ac:#ff4545; --hi:#c62828; --dk:#2e2640; --gr:#0d9488; --re:#dc2626; --am:#d97706; }
-    body { margin:0; padding:0; overflow:hidden; font-family:'Manrope',sans-serif; background:#f5f7fb; color:var(--dk); }
+    :root { --ac:#ff4545; --hi:#ff4545; --dk:#2e2640; --gr:#2f8f78; --re:#ff4545; --am:#ff4545; }
+    body { margin:0; padding:0; overflow:hidden; font-family:'Inter',sans-serif; background:#f3f5f5; color:var(--dk); }
     /* Classes do design system abaixo */
   </style>
 </head>
@@ -70,16 +72,16 @@ Esta especificação define o padrão atual para criação de slides no projeto 
 
 ```css
 /* Engineering Software (vermelho) */
---ac:#ff4545; --hi:#c62828; --dk:#2e2640;
+--ac:#ff4545; --hi:#ff4545; --dk:#2e2640;
 
 /* Sistemas de Informação (verde) */
---ac:#89cea5; --hi:#5eb88a; --dk:#1e1829;
+--ac:#89cea5; --hi:#2f8f78; --dk:#2e2640;
 
 /* Adm Tech (roxo/navy) */
---ac:#855ede; --hi:#6b4dbb; --dk:#2e2640;
+--ac:#2e2640; --hi:#2e2640; --dk:#2e2640;
 
 /* Common/Ciclo Comum (cinza) */
---ac:#6b7280; --hi:#4b5563; --dk:#1f2937;
+--ac:#777283; --hi:#4d475d; --dk:#2e2640;
 ```
 
 ### Estrutura Base
@@ -97,22 +99,22 @@ Esta especificação define o padrão atual para criação de slides no projeto 
 ### Slide Header
 
 ```css
-.sh { color:white; padding:16px 22px; border-radius:14px; margin-bottom:14px; }
-.sh.blue  { background:linear-gradient(135deg,var(--ac),var(--hi)); }
-.sh.dark  { background:linear-gradient(135deg,var(--dk),#4a3d6b); }
-.sh.green { background:linear-gradient(135deg,var(--gr),#10b981); }
-.st { font-size:1.9rem; font-weight:800; margin:0 0 4px; line-height:1.15; }
+.sh { color:white; padding:16px 22px; border-radius:6px; margin-bottom:14px; }
+.sh.blue  { background:linear-gradient(var(--ac),var(--ac)); }
+.sh.dark  { background:linear-gradient(var(--dk),var(--dk)); }
+.sh.green { background:linear-gradient(var(--gr),var(--gr)); }
+.st { font-size:1.9rem; font-weight:700; margin:0 0 4px; line-height:1.15; }
 .ss { font-size:0.95rem; opacity:.9; margin:0; }
 ```
 
 ### Boxes de Conteúdo
 
 ```css
-.box { background:white; border:1px solid #dfe5ec; border-left:5px solid var(--hi); border-radius:12px; padding:14px 18px; box-shadow:0 4px 14px rgba(46,38,64,.06); }
+.box { background:white; border:1px solid #dbdfe3; border-left:5px solid var(--hi); border-radius:6px; padding:14px 18px; box-shadow:var(--ds-sombra-1); }
 .box h3 { font-size:1rem; font-weight:700; margin:0 0 6px; color:var(--dk); }
-.box p  { margin:0 0 5px; font-size:.88rem; line-height:1.5; color:#374151; }
+.box p  { margin:0 0 5px; font-size:.88rem; line-height:1.5; color:#4d475d; }
 .box ul { margin:3px 0; padding-left:1.1rem; }
-.box li { font-size:.87rem; margin-bottom:3px; line-height:1.4; color:#374151; }
+.box li { font-size:.87rem; margin-bottom:3px; line-height:1.4; color:#4d475d; }
 .box.acc { border-left-color:var(--ac); }
 .box.grn { border-left-color:var(--gr); }
 ```
@@ -147,12 +149,12 @@ Esta especificação define o padrão atual para criação de slides no projeto 
 ### CSS da Capa
 
 ```css
-.cover-bg { background:linear-gradient(135deg,#12082c 0%,#c62828 55%,#ff4545 100%) !important; }
-.cv-badge { background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.28); color:white; padding:5px 16px; border-radius:999px; font-size:.82rem; font-weight:600; display:inline-block; margin-bottom:18px; }
-.cv-title { font-size:3rem; font-weight:800; color:white; line-height:1.15; margin:0 0 14px; }
+.cover-bg { background:linear-gradient(#2e2640,#2e2640) !important; }
+.cv-badge { background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.28); color:white; padding:5px 16px; border-radius:4px; font-size:.82rem; font-weight:600; display:inline-block; margin-bottom:18px; }
+.cv-title { font-size:3rem; font-weight:700; color:white; line-height:1.15; margin:0 0 14px; }
 .cv-sub   { font-size:1.1rem; color:rgba(255,255,255,.82); margin:0 0 28px; }
 .cv-tags  { display:flex; flex-wrap:wrap; gap:8px; }
-.cv-tag { background:rgba(255,255,255,.13); border:1px solid rgba(255,255,255,.28); backdrop-filter:blur(8px); color:white; padding:7px 16px; border-radius:10px; font-weight:700; font-size:.84rem; opacity:0; transform:translateY(18px); transition:all .5s cubic-bezier(.34,1.3,.64,1); }
+.cv-tag { background:rgba(255,255,255,.13); border:1px solid rgba(255,255,255,.28); backdrop-filter:blur(8px); color:white; padding:7px 16px; border-radius:6px; font-weight:700; font-size:.84rem; opacity:0; transform:translateY(18px); transition:all .5s cubic-bezier(.34,1.3,.64,1); }
 .cv-tag.vis { opacity:1; transform:translateY(0); }
 ```
 
@@ -211,12 +213,12 @@ function animCover() {
 ### CSS
 
 ```css
-.slide-footer { position:fixed; bottom:0; left:0; right:0; background:rgba(255,255,255,.97); border-top:1px solid #dfe5ec; padding:10px 24px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 -2px 10px rgba(46,38,64,.06); z-index:100; gap:12px; }
+.slide-footer { position:fixed; bottom:0; left:0; right:0; background:rgba(255,255,255,.97); border-top:1px solid #dbdfe3; padding:10px 24px; display:flex; justify-content:space-between; align-items:center; box-shadow:var(--ds-sombra-1); z-index:100; gap:12px; }
 .footer-links { display:flex; gap:10px; }
-.back-home { color:var(--dk); text-decoration:none; font-weight:700; display:inline-flex; align-items:center; gap:5px; padding:8px 14px; border-radius:10px; background:#f1f4f8; font-size:.9rem; }
+.back-home { color:var(--dk); text-decoration:none; font-weight:700; display:inline-flex; align-items:center; gap:5px; padding:8px 14px; border-radius:6px; background:#f3f5f5; font-size:.9rem; }
 .back-home.material { background:#2f8f78 !important; color:white !important; }
-.nav-wrapper { display:flex; align-items:center; gap:14px; background:#f1f4f8; padding:7px 18px; border-radius:30px; }
-.nav-buttons button { background:var(--dk); color:white; border:none; padding:8px 16px; border-radius:8px; font-weight:700; cursor:pointer; }
+.nav-wrapper { display:flex; align-items:center; gap:14px; background:#f3f5f5; padding:7px 18px; border-radius:6px; }
+.nav-buttons button { background:var(--dk); color:white; border:none; padding:8px 16px; border-radius:6px; font-weight:700; cursor:pointer; }
 .slide-counter { font-weight:700; color:var(--dk); min-width:70px; text-align:center; }
 ```
 
@@ -267,21 +269,21 @@ showSlide(0);
 ```css
 .pipe { display:flex; align-items:flex-start; justify-content:center; gap:0; margin:14px 0; }
 .ps { flex:1; display:flex; flex-direction:column; align-items:center; text-align:center; position:relative; }
-.pn { width:52px; height:52px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.3rem; color:white; font-weight:800; z-index:2; box-shadow:0 4px 14px rgba(0,0,0,.18); flex-shrink:0; }
+.pn { width:52px; height:52px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.3rem; color:white; font-weight:700; z-index:2; box-shadow:var(--ds-sombra-1); flex-shrink:0; }
 .pl { font-size:.8rem; font-weight:700; color:var(--dk); margin-top:7px; }
 .pc { position:absolute; top:26px; left:calc(50% + 26px); width:calc(100% - 52px); height:4px; z-index:1; }
-.pcb { width:100%; height:100%; border-radius:2px; background:linear-gradient(90deg,var(--fc,#ff4545),var(--tc,#c62828)); }
+.pcb { width:100%; height:100%; border-radius:2px; background:linear-gradient(90deg,var(--fc,#ff4545),var(--tc,#ff4545)); }
 ```
 
 ### Terminal / Código
 
 ```css
-.term { background:#1e1e2e; border-radius:14px; overflow:hidden; box-shadow:0 8px 32px rgba(0,0,0,.3); display:flex; flex-direction:column; }
+.term { background:#1e1e2e; border-radius:6px; overflow:hidden; box-shadow:var(--ds-sombra-2); display:flex; flex-direction:column; }
 .term-bar { background:#313244; padding:7px 12px; display:flex; align-items:center; gap:6px; }
 .dot { width:10px; height:10px; border-radius:50%; }
 .dot.r{background:#f38ba8;} .dot.y{background:#f9e2af;} .dot.g{background:#a6e3a1;}
 .term-ttl { color:#6c7086; font-size:.7rem; font-weight:600; margin-left:7px; font-family:monospace; }
-.term-body { padding:12px 14px; font-family:'Courier New',monospace; font-size:.8rem; line-height:1.65; flex:1; overflow:hidden; }
+.term-body { padding:12px 14px; font-family:'JetBrains Mono',monospace; font-size:.8rem; line-height:1.65; flex:1; overflow:hidden; }
 /* Syntax highlighting */
 .kw{color:#89b4fa;font-weight:700;} .pth{color:#a6e3a1;} .ver{color:#f9e2af;}
 .cm{color:#6c7086;font-style:italic;} .txt{color:#cdd6f4;}
@@ -290,11 +292,11 @@ showSlide(0);
 ### Method Cards
 
 ```css
-.mc { background:white; border-radius:11px; padding:12px 14px; border-top:4px solid var(--mc,var(--ac)); box-shadow:0 4px 14px rgba(46,38,64,.08); opacity:0; transform:translateY(18px) scale(.93); transition:all .5s cubic-bezier(.34,1.3,.64,1); }
+.mc { background:white; border-radius:6px; padding:12px 14px; border-top:4px solid var(--mc,var(--ac)); box-shadow:var(--ds-sombra-1); opacity:0; transform:translateY(18px) scale(.93); transition:all .5s cubic-bezier(.34,1.3,.64,1); }
 .mc.vis { opacity:1; transform:translateY(0) scale(1); }
-.mb { font-size:.74rem; font-weight:800; padding:2px 9px; border-radius:5px; background:var(--mc,var(--ac)); color:white; display:inline-block; margin-bottom:6px; font-family:monospace; }
+.mb { font-size:.74rem; font-weight:700; padding:2px 9px; border-radius:4px; background:var(--mc,var(--ac)); color:white; display:inline-block; margin-bottom:6px; font-family:monospace; }
 .mt { font-size:.84rem; font-weight:700; color:var(--dk); margin-bottom:3px; }
-.md { font-size:.76rem; color:#64748b; line-height:1.35; }
+.md { font-size:.76rem; color:#777283; line-height:1.35; }
 ```
 
 ### Status Bars
@@ -302,20 +304,20 @@ showSlide(0);
 ```css
 .sbr { display:flex; align-items:center; gap:10px; opacity:0; transform:translateX(-18px); transition:all .5s cubic-bezier(.34,1.56,.64,1); margin-bottom:7px; }
 .sbr.vis { opacity:1; transform:translateX(0); }
-.scg { width:48px; font-size:.78rem; font-weight:800; font-family:monospace; color:var(--dk); text-align:right; flex-shrink:0; }
-.str { flex:1; height:26px; background:#f1f5f9; border-radius:8px; overflow:hidden; }
-.sf  { height:100%; border-radius:8px; display:flex; align-items:center; padding-left:10px; transition:width .85s cubic-bezier(.34,1.56,.64,1); }
+.scg { width:48px; font-size:.78rem; font-weight:700; font-family:monospace; color:var(--dk); text-align:right; flex-shrink:0; }
+.str { flex:1; height:26px; background:#f3f5f5; border-radius:6px; overflow:hidden; }
+.sf  { height:100%; border-radius:6px; display:flex; align-items:center; padding-left:10px; transition:width .85s cubic-bezier(.34,1.56,.64,1); }
 ```
 
 ### Story Table
 
 ```css
 .stbl { width:100%; border-collapse:separate; border-spacing:0 5px; }
-.stbl th { padding:9px 12px; font-size:.86rem; font-weight:800; text-align:left; border-radius:9px; }
+.stbl th { padding:9px 12px; font-size:.86rem; font-weight:700; text-align:left; border-radius:6px; }
 .stbl th:nth-child(1){background:var(--dk);color:white;width:22%;}
-.stbl th:nth-child(2){background:linear-gradient(135deg,var(--ac),#e53e3e);color:white;}
-.stbl th:nth-child(3){background:linear-gradient(135deg,var(--gr),#10b981);color:white;}
-.stbl td { padding:9px 12px; font-size:.86rem; vertical-align:top; border-radius:8px; }
+.stbl th:nth-child(2){background:linear-gradient(var(--ac),var(--ac));color:white;}
+.stbl th:nth-child(3){background:linear-gradient(var(--gr),var(--gr));color:white;}
+.stbl td { padding:9px 12px; font-size:.86rem; vertical-align:top; border-radius:6px; }
 .stbl td:nth-child(1){background:var(--dk);color:white;font-weight:700;}
 ```
 
@@ -323,10 +325,10 @@ showSlide(0);
 
 ```css
 .lstack { display:flex; flex-direction:column; gap:8px; margin:8px 0; }
-.alayer { border-radius:12px; padding:13px 18px; display:flex; align-items:center; gap:14px; opacity:0; transform:translateX(-28px) scale(.95); transition:all .6s cubic-bezier(.34,1.3,.64,1); }
+.alayer { border-radius:6px; padding:13px 18px; display:flex; align-items:center; gap:14px; opacity:0; transform:translateX(-28px) scale(.95); transition:all .6s cubic-bezier(.34,1.3,.64,1); }
 .alayer.vis { opacity:1; transform:translateX(0) scale(1); }
 .li { font-size:1.9rem; flex-shrink:0; }
-.ln { font-size:1rem; font-weight:800; color:white; margin-bottom:2px; }
+.ln { font-size:1rem; font-weight:700; color:white; margin-bottom:2px; }
 .lt { font-size:.78rem; color:rgba(255,255,255,.88); }
 ```
 
@@ -337,7 +339,7 @@ showSlide(0);
 - [ ] Footer: Botões Home, Material (verde), navegação e contador
 - [ ] Navegação: Botões funcionam com clique e teclas (← → Espaço)
 - [ ] CSS: Variáveis de cores do curso configuradas no :root
-- [ ] Fonte: Manrope carregada do Google Fonts
+- [ ] Fonte: Inter carregada do Google Fonts
 - [ ] Animações: Funções JavaScript para cada slide (data-anim)
 
 ## Boas Práticas

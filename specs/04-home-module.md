@@ -1,5 +1,7 @@
 # Especificação das Páginas Home de Módulo
 
+> Valores visuais (cor, fonte, raio, sombra) seguem `specs/design-system.md`, que prevalece em caso de conflito com os exemplos abaixo.
+
 ## Visão Geral
 
 Esta especificação define os padrões para criação das páginas home de cada módulo. Estas páginas servem como hub central para todas as aulas e recursos do módulo.
@@ -345,7 +347,7 @@ Para módulos com múltiplas disciplinas:
 .topics-list {
   background-color: #e6eaeb;
   padding: 15px;
-  border-radius: 10px;
+  border-radius: 6px;
   margin-bottom: 15px;
   font-size: 0.9rem;
 }

@@ -1,5 +1,7 @@
 # Spec: Formato dos Slides
 
+> Valores visuais (cor, fonte, raio, sombra) seguem `specs/design-system.md`, que prevalece em caso de conflito com os exemplos abaixo.
+
 ## Objetivo
 
 Padronizar a estrutura dos arquivos de slides do portal.

@@ -1,5 +1,7 @@
 # Spec: Estrutura Obrigatória dos Slides do Módulo 2
 
+> Valores visuais (cor, fonte, raio, sombra) seguem `specs/design-system.md`, que prevalece em caso de conflito com os exemplos abaixo.
+
 ## Objetivo
 
 Todo deck de slides do Módulo 2 deve ter exatamente **3 slides fixos no início**: Capa, Daily (com cronômetro) e Agenda. Essa sequência é obrigatória independente do conteúdo da aula.
@@ -21,12 +23,12 @@ Todo deck de slides do Módulo 2 deve ter exatamente **3 slides fixos no início
 
 **CSS obrigatório:**
 ```css
-.cover-bg { background:linear-gradient(135deg,#1f2937 0%,#4b5563 50%,#b2b6bf 100%) !important; }
-.cv-badge { background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.28); color:white; padding:5px 16px; border-radius:999px; font-size:.82rem; font-weight:600; display:inline-block; margin-bottom:18px; }
-.cv-title { font-size:3rem; font-weight:800; color:white; line-height:1.15; margin:0 0 14px; }
+.cover-bg { background:linear-gradient(#2e2640,#2e2640) !important; }
+.cv-badge { background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.28); color:white; padding:5px 16px; border-radius:4px; font-size:.82rem; font-weight:600; display:inline-block; margin-bottom:18px; }
+.cv-title { font-size:3rem; font-weight:700; color:white; line-height:1.15; margin:0 0 14px; }
 .cv-sub   { font-size:1.1rem; color:rgba(255,255,255,.82); margin:0 0 28px; }
 .cv-tags  { display:flex; flex-wrap:wrap; gap:8px; }
-.cv-tag   { background:rgba(255,255,255,.13); border:1px solid rgba(255,255,255,.28); color:white; padding:7px 16px; border-radius:10px; font-weight:700; font-size:.84rem; opacity:0; transform:translateY(18px); transition:all .5s cubic-bezier(.34,1.3,.64,1); }
+.cv-tag   { background:rgba(255,255,255,.13); border:1px solid rgba(255,255,255,.28); color:white; padding:7px 16px; border-radius:6px; font-weight:700; font-size:.84rem; opacity:0; transform:translateY(18px); transition:all .5s cubic-bezier(.34,1.3,.64,1); }
 .cv-tag.vis { opacity:1; transform:translateY(0); }
 ```
 
@@ -78,8 +80,8 @@ function animCover() {
 
 **CSS obrigatório:**
 ```css
-.daily-timer { font-size:3.5rem; font-weight:800; font-family:monospace; background:rgba(255,255,255,.15); border-radius:16px; padding:10px 28px; display:inline-block; margin-bottom:16px; letter-spacing:4px; color:white; }
-.daily-tag { background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.3); padding:6px 16px; border-radius:8px; font-weight:700; font-size:.85rem; color:white; opacity:0; transform:translateY(14px); transition:all .45s cubic-bezier(.34,1.3,.64,1); display:inline-block; margin:4px; }
+.daily-timer { font-size:3.5rem; font-weight:700; font-family:monospace; background:rgba(255,255,255,.15); border-radius:6px; padding:10px 28px; display:inline-block; margin-bottom:16px; letter-spacing:4px; color:white; }
+.daily-tag { background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.3); padding:6px 16px; border-radius:6px; font-weight:700; font-size:.85rem; color:white; opacity:0; transform:translateY(14px); transition:all .45s cubic-bezier(.34,1.3,.64,1); display:inline-block; margin:4px; }
 .daily-tag.vis { opacity:1; transform:translateY(0); }
 ```
 
@@ -137,15 +139,15 @@ function animDaily() {
 **Estrutura HTML:**
 ```html
 <!-- ====== SLIDE 2: DAILY ====== -->
-<div class="slide cover-bg" style="background:linear-gradient(135deg,#1f2937 0%,#4b5563 50%,#b2b6bf 100%)!important;">
+<div class="slide cover-bg" style="background:linear-gradient(#2e2640,#2e2640)!important;">
   <div class="sc" style="text-align:center;">
-    <div style="background:rgba(255,255,255,.12);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.22);border-radius:20px;padding:28px 32px;">
-      <div style="font-size:2rem;font-weight:800;color:white;margin-bottom:6px;">⏱️ Daily — 15 Minutos</div>
+    <div style="background:rgba(255,255,255,.12);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.22);border-radius:6px;padding:28px 32px;">
+      <div style="font-size:2rem;font-weight:700;color:white;margin-bottom:6px;">⏱️ Daily — 15 Minutos</div>
       <div style="font-size:1rem;color:rgba(255,255,255,.85);margin-bottom:18px;">O que você fez? O que vai fazer? Algum impedimento?</div>
       <div class="daily-timer" id="daily-timer">15:00</div>
       <div style="margin-bottom:18px;">
-        <button id="daily-start-btn" onclick="startDaily()" style="background:rgba(255,255,255,.25);border:1px solid rgba(255,255,255,.4);color:white;padding:9px 22px;border-radius:10px;font-weight:700;font-size:.9rem;cursor:pointer;margin:0 6px;font-family:'Manrope',sans-serif;">▶ Iniciar</button>
-        <button onclick="resetDaily()" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:white;padding:9px 22px;border-radius:10px;font-weight:700;font-size:.9rem;cursor:pointer;margin:0 6px;font-family:'Manrope',sans-serif;">↺ Reset</button>
+        <button id="daily-start-btn" onclick="startDaily()" style="background:rgba(255,255,255,.25);border:1px solid rgba(255,255,255,.4);color:white;padding:9px 22px;border-radius:6px;font-weight:700;font-size:.9rem;cursor:pointer;margin:0 6px;font-family:'Inter',sans-serif;">▶ Iniciar</button>
+        <button onclick="resetDaily()" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:white;padding:9px 22px;border-radius:6px;font-weight:700;font-size:.9rem;cursor:pointer;margin:0 6px;font-family:'Inter',sans-serif;">↺ Reset</button>
       </div>
       <div>
         <span class="daily-tag" id="dt0">✅ O que fiz</span>

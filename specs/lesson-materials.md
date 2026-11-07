@@ -1,5 +1,7 @@
 # Spec: Materiais de Leitura — Padrão Livro Didático
 
+> Valores visuais (cor, fonte, raio, sombra) seguem `specs/design-system.md`, que prevalece em caso de conflito com os exemplos abaixo.
+
 ## Objetivo
 
 Definir o padrão obrigatório para páginas de material de leitura do Módulo 2 e futuros módulos modernos. O material deve ter profundidade de livro didático, com texto explicativo extenso, demonstrações interativas e animações scroll-triggered.
@@ -57,7 +59,7 @@ CSS:
 ```css
 #progress-bar {
   position: fixed; top: 0; left: 0; height: 3px;
-  background: linear-gradient(90deg, var(--ac), var(--hi));
+  background: linear-gradient(var(--ac),var(--ac));
   width: 0%; z-index: 9999; transition: width .1s;
 }
 ```
@@ -91,9 +93,9 @@ CSS:
 #float-nav.visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
 .fn-btn {
   display: flex; align-items: center; gap: 6px;
-  padding: 10px 16px; border-radius: 999px;
+  padding: 10px 16px; border-radius: 4px;
   font-size: .82rem; font-weight: 700; text-decoration: none;
-  box-shadow: 0 4px 18px rgba(0,0,0,.25); white-space: nowrap;
+  box-shadow: var(--ds-sombra-1); white-space: nowrap;
 }
 .fn-btn-slides { background: white; color: var(--ac); border: 2px solid var(--ac); }
 .fn-btn-back   { background: var(--dk); color: white; }
@@ -255,22 +257,22 @@ document.querySelectorAll('.sr').forEach(el => srObserver.observe(el));
 
 ```css
 :root {
-  --ac: #1863dc;   /* accent/link blue */
-  --hi: #855ede;   /* highlight purple */
-  --dk: #2e2640;   /* dark purple (headings) */
-  --gr: #0d9488;   /* green (success/tip) */
-  --re: #dc2626;   /* red (danger) */
-  --am: #d97706;   /* amber (warn) */
-  --text: #1e293b;
-  --muted: #64748b;
-  --border: #e2e8f0;
-  --bg: #f8fafc;
+  --ac: #2e2640;   /* destaque e link (roxo) */
+  --hi: #2e2640;   /* realce (roxo) */
+  --dk: #2e2640;   /* títulos (roxo) */
+  --gr: #2f8f78;   /* sucesso e dica (verde escuro) */
+  --re: #ff4545;   /* erro (coral) */
+  --am: #ff4545;   /* atenção (coral) */
+  --text: #2e2640;
+  --muted: #777283;
+  --border: #dbdfe3;
+  --bg: #f3f5f5;
   --card: #ffffff;
 }
 ```
 
 Fontes obrigatórias:
-- `Manrope` (texto) via Google Fonts
+- `Inter` (texto) via Google Fonts
 - `JetBrains Mono` (código) via Google Fonts
 
 ## Regras de Qualidade de Conteúdo

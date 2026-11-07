@@ -1,5 +1,7 @@
 # Especificação de Materiais de Leitura
 
+> Valores visuais (cor, fonte, raio, sombra) seguem `specs/design-system.md`, que prevalece em caso de conflito com os exemplos abaixo.
+
 ## Visão Geral
 
 Esta especificação define os padrões para criação de materiais de leitura em HTML que complementam as aulas. Estes materiais são documentos estáticos para estudo individual dos alunos.
@@ -25,7 +27,7 @@ Esta especificação define os padrões para criação de materiais de leitura e
   <!-- Fontes Google -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
   <!-- Estilos globais Inteli -->
   <link href="../../css/inteli-styles.css" rel="stylesheet">
@@ -33,20 +35,20 @@ Esta especificação define os padrões para criação de materiais de leitura e
   <!-- Estilos customizados -->
   <style>
     body { 
-      background: #f7f9fb; 
-      color: #1f2933; 
-      font-family: "Manrope", sans-serif; 
+      background: #f3f5f5; 
+      color: #2e2640; 
+      font-family: "Inter", sans-serif; 
     }
     .page-header { 
-      background: linear-gradient(135deg, #2e2640, #1b1530); 
+      background: linear-gradient(135deg, #2e2640, #2e2640); 
       color: #fff; 
       padding: 28px 0; 
       margin-bottom: 24px; 
     }
     .cardx { 
       background: #fff; 
-      border: 1px solid #e3e7ea; 
-      border-radius: 14px; 
+      border: 1px solid #dbdfe3; 
+      border-radius: 6px; 
       padding: 22px; 
       margin-bottom: 14px; 
     }
@@ -56,18 +58,18 @@ Esta especificação define os padrões para criação de materiais de leitura e
       margin-bottom: 10px; 
     }
     .code { 
-      background: #1f1d2b; 
-      color: #d9f7e6; 
-      border-radius: 10px; 
+      background: #2e2640; 
+      color: #edf8f2; 
+      border-radius: 6px; 
       padding: 14px; 
       overflow-x: auto; 
       font-size: .88rem; 
     }
     .formula-box { 
-      background: #f8fafc; 
+      background: #f3f5f5; 
       border-left: 5px solid #89cea5; 
       padding: 12px 18px; 
-      border-radius: 0 10px 10px 0; 
+      border-radius: 0 6px 6px 0; 
       font-family: monospace; 
       margin: 10px 0; 
     }
@@ -244,8 +246,8 @@ def funcao():
 ```
 
 **Características:**
-- Background escuro (`#1f1d2b`)
-- Texto claro (`#d9f7e6`)
+- Background escuro (`#2e2640`)
+- Texto claro (`#edf8f2`)
 - Fonte monospace
 - Scroll horizontal se necessário
 
@@ -330,8 +332,8 @@ def funcao():
 /* Container principal */
 .cardx { 
   background: #fff; 
-  border: 1px solid #e3e7ea; 
-  border-radius: 14px; 
+  border: 1px solid #dbdfe3; 
+  border-radius: 6px; 
   padding: 22px; 
   margin-bottom: 14px; 
 }
@@ -345,9 +347,9 @@ def funcao():
 
 /* Código */
 .code { 
-  background: #1f1d2b; 
-  color: #d9f7e6; 
-  border-radius: 10px; 
+  background: #2e2640; 
+  color: #edf8f2; 
+  border-radius: 6px; 
   padding: 14px; 
   overflow-x: auto; 
   font-size: .88rem; 
@@ -356,17 +358,17 @@ def funcao():
 
 /* Fórmulas */
 .formula-box { 
-  background: #f8fafc; 
+  background: #f3f5f5; 
   border-left: 5px solid #89cea5; 
   padding: 12px 18px; 
-  border-radius: 0 10px 10px 0; 
+  border-radius: 0 6px 6px 0; 
   font-family: monospace; 
   margin: 10px 0; 
 }
 
 /* Header da página */
 .page-header { 
-  background: linear-gradient(135deg, #2e2640, #1b1530); 
+  background: linear-gradient(135deg, #2e2640, #2e2640); 
   color: #fff; 
   padding: 28px 0; 
   margin-bottom: 24px; 
@@ -438,12 +440,12 @@ Use `pages/module-X/materials/lesson-1-material.html` como referência para novo
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="../../css/inteli-styles.css" rel="stylesheet">
   <style>
-    body { background: #f7f9fb; color: #1f2933; font-family: "Manrope", sans-serif; }
-    .page-header { background: linear-gradient(135deg, #2e2640, #1b1530); color: #fff; padding: 28px 0; margin-bottom: 24px; }
-    .cardx { background: #fff; border: 1px solid #e3e7ea; border-radius: 14px; padding: 22px; margin-bottom: 14px; }
+    body { background: #f3f5f5; color: #2e2640; font-family: "Inter", sans-serif; }
+    .page-header { background: linear-gradient(135deg, #2e2640, #2e2640); color: #fff; padding: 28px 0; margin-bottom: 24px; }
+    .cardx { background: #fff; border: 1px solid #dbdfe3; border-radius: 6px; padding: 22px; margin-bottom: 14px; }
     .title { color: #2e2640; font-weight: 700; margin-bottom: 10px; }
-    .code { background: #1f1d2b; color: #d9f7e6; border-radius: 10px; padding: 14px; overflow-x: auto; }
-    .formula-box { background: #f8fafc; border-left: 5px solid #89cea5; padding: 12px 18px; font-family: monospace; margin: 10px 0; }
+    .code { background: #2e2640; color: #edf8f2; border-radius: 6px; padding: 14px; overflow-x: auto; }
+    .formula-box { background: #f3f5f5; border-left: 5px solid #89cea5; padding: 12px 18px; font-family: monospace; margin: 10px 0; }
   </style>
 </head>
 <body>

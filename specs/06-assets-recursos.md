@@ -1,5 +1,7 @@
 # Especificação de Assets e Recursos
 
+> Valores visuais (cor, fonte, raio, sombra) seguem `specs/design-system.md`, que prevalece em caso de conflito com os exemplos abaixo.
+
 ## Visão Geral
 
 Esta especificação define os padrões para assets (imagens, diagramas, ícones) e recursos utilizados no projeto Aulas.
@@ -219,12 +221,12 @@ assets/
 
 /* Imagem com borda arredondada */
 .img-rounded {
-  border-radius: 12px;
+  border-radius: 6px;
 }
 
 /* Imagem com sombra */
 .img-shadow {
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  box-shadow: var(--ds-sombra-1);
 }
 
 /* Imagem centralizada */
@@ -372,10 +374,10 @@ print(f"Média: {media}")</code></pre>
 ```css
 .code-block {
   background: #1e1e2e;
-  color: #f8f8f2 !important;
+  color: #f3f5f5 !important;
   padding: 20px;
-  border-radius: 12px;
-  font-family: 'Space Mono', monospace;
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', monospace;
   font-size: 0.85rem;
   margin: 10px 0;
   overflow-x: auto;
@@ -476,9 +478,9 @@ pages/module-5-adm-tech/
 ### Fontes
 
 ```html
-<!-- Manrope (principal) -->
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- Inter (principal) -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-<!-- Space Mono (código) -->
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<!-- JetBrains Mono (código) -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 ```

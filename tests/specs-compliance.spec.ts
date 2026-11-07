@@ -263,9 +263,8 @@ test.describe('module-2-common.md - Módulo 2 do Ciclo Comum', () => {
     const css = readRepoFile('css/inteli-styles.css');
 
     expect(indexHtml).toContain('pages/home-module-2-common.html');
-    expect(indexHtml).toContain('card-header-common');
-    expect(indexHtml).toContain('bg-common');
-    expect(css).toMatch(/\.card-header-common\s*\{[\s\S]*background-color:\s*var\(--inteli-dark-gray\)/);
+    expect(indexHtml).toContain('ds-curso-comum');
+    expect(css).toMatch(/\.card-header-common\s*\{[^}]*--ds-curso:\s*var\(--inteli-dark-gray\)/);
     expect(css).toMatch(/\.bg-common\s*\{[\s\S]*background-color:\s*var\(--inteli-dark-gray\)/);
     expect(fs.existsSync(resolveRepoPath('pages/home-module-2-common.html'))).toBe(true);
   });

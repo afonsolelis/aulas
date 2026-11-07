@@ -26,15 +26,21 @@ test.describe('Página Inicial (index.html) - Validação de Identidade e Estrut
     });
   });
 
+  // specs/design-system.md, regras 21 e 22: a cor do curso é a linha superior do card.
   test('as classes de cor dos cards de disciplinas devem seguir o padrão estabelecido', () => {
-    expect(indexHtml).toContain('card-header-si');
-    expect(indexHtml).toContain('card-header-eng-software');
-    expect(indexHtml).toContain('card-header-adm-tech');
-    expect(indexHtml).toContain('card-header-common');
+    const ds = readRepoFile('css/inteli-ds.css');
+    expect(indexHtml).toContain('ds-curso-si');
+    expect(indexHtml).toContain('ds-curso-eng-software');
+    expect(indexHtml).toContain('ds-curso-adm-tech');
+    expect(indexHtml).toContain('ds-curso-comum');
 
-    expect(css).toMatch(/\.card-header-si\s*\{[\s\S]*background-color:\s*var\(--si-blue\)/);
-    expect(css).toMatch(/\.card-header-eng-software\s*\{[\s\S]*background-color:\s*var\(--eng-software-yellow\)/);
-    expect(css).toMatch(/\.card-header-adm-tech\s*\{[\s\S]*background-color:\s*var\(--adm-tech-navy\)/);
-    expect(css).toMatch(/\.card-header-common\s*\{[\s\S]*background-color:\s*var\(--inteli-dark-gray\)/);
+    expect(ds).toMatch(/--ds-curso-si:\s*var\(--inteli-verde\)/);
+    expect(ds).toMatch(/--ds-curso-eng-software:\s*var\(--inteli-coral\)/);
+    expect(ds).toMatch(/--ds-curso-adm-tech:\s*var\(--inteli-roxo\)/);
+    expect(ds).toMatch(/--ds-curso-comum:\s*var\(--inteli-cinza-400\)/);
+    expect(css).toMatch(/\.card-header-si\s*\{[^}]*--ds-curso:\s*var\(--si-blue\)/);
+    expect(css).toMatch(/\.card-header-eng-software\s*\{[^}]*--ds-curso:\s*var\(--eng-software-yellow\)/);
+    expect(css).toMatch(/\.card-header-adm-tech\s*\{[^}]*--ds-curso:\s*var\(--adm-tech-navy\)/);
+    expect(css).toMatch(/\.card-header-common\s*\{[^}]*--ds-curso:\s*var\(--inteli-dark-gray\)/);
   });
 });

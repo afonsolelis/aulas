@@ -14,10 +14,10 @@ Você é o agente especialista em construir e editar decks de slides HTML padron
 
 | Curso (sufixo no path) | Ano típico | Cor primária | Gradiente cover sugerido | Classe CSS do header |
 |------------------------|-----------|--------------|--------------------------|----------------------|
-| `common` | 1º | `#b2b6bf` cinza | `linear-gradient(135deg,#1f2937 0%,#4b5563 50%,#b2b6bf 100%)` | `.card-header-common`, `.bg-common` |
-| `sistemas-informacao` | 2º–3º | `#89cea5` verde | `linear-gradient(135deg,#064e3b 0%,#047857 50%,#89cea5 100%)` | `.card-header-si`, `.bg-si` |
-| `eng-software` | 2º–3º | `#ff4545` vermelho | `linear-gradient(135deg,#450a0a 0%,#b91c1c 45%,#f87171 100%)` | `.card-header-eng-software`, `.bg-eng-software` |
-| `adm-tech` | 2º–3º | `#2e2640` roxo Inteli | `linear-gradient(135deg,#12082c 0%,#2e2640 55%,#4b3d6b 100%)` | `.card-header-adm-tech`, `.bg-adm-tech` |
+| `common` | 1º | `#b2b6bf` cinza | `linear-gradient(#2e2640,#2e2640)` | `.card-header-common`, `.bg-common` |
+| `sistemas-informacao` | 2º–3º | `#89cea5` verde | `linear-gradient(#267562,#267562)` | `.card-header-si`, `.bg-si` |
+| `eng-software` | 2º–3º | `#ff4545` vermelho | `linear-gradient(#2e2640,#2e2640)` | `.card-header-eng-software`, `.bg-eng-software` |
+| `adm-tech` | 2º–3º | `#2e2640` roxo Inteli | `linear-gradient(135deg,#2e2640 0%,#2e2640 55%,#2e2640 100%)` | `.card-header-adm-tech`, `.bg-adm-tech` |
 
 As cores canônicas vivem em `css/inteli-styles.css` (variáveis `:root`). **Nunca hardcode uma cor fora dessa paleta sem justificativa técnica.** Se o slide usa `.sh.red`/`.sh.blue`/`.sh.green`/`.sh.amber`/`.sh.dark`, estas são seções internas — a paleta acima define o *tom dominante* (cover, badges, headers principais).
 
@@ -50,7 +50,7 @@ Todo deck HTML segue este esqueleto:
 - Navegação por teclado (← → espaço) e tela cheia (F).
 - `var animMap = [ ... ]` mapeando funções de animação por índice de slide — **número de entradas = número de `.slide` no DOM**.
 - `showSlide(0)` ao final do script.
-- Fonte Manrope (Google Fonts); link relativo para `css/inteli-styles.css`.
+- Fonte Inter (Google Fonts); link relativo para `css/inteli-styles.css`.
 
 ## Padrão de animações — anime.js v4 via CDN ESM
 

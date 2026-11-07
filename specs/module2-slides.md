@@ -1,5 +1,7 @@
 # Spec: Slides do Módulo 2 — Sistema Próprio de Navegação
 
+> Valores visuais (cor, fonte, raio, sombra) seguem `specs/design-system.md`, que prevalece em caso de conflito com os exemplos abaixo.
+
 ## Objetivo
 
 Documentar o padrão obrigatório para slides do Módulo 2 e módulos modernos. Estes slides usam HTML padronizado com sistema de navegação próprio em JS vanilla.
@@ -10,7 +12,7 @@ Documentar o padrão obrigatório para slides do Módulo 2 e módulos modernos. 
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- Bootstrap + Google Fonts Manrope/JetBrains Mono -->
+  <!-- Bootstrap + Google Fonts Inter/JetBrains Mono -->
   <!-- Link para ../../../css/inteli-styles.css -->
   <style>
     /* variáveis de cor + estilos do slide system */
@@ -131,7 +133,7 @@ const animMap = [
 }
 .back-home {
   color: white; text-decoration: none; font-weight: 700;
-  font-size: .82rem; padding: 6px 14px; border-radius: 8px;
+  font-size: .82rem; padding: 6px 14px; border-radius: 6px;
   background: rgba(255,255,255,.12); transition: background .2s;
 }
 .back-home:hover { background: rgba(255,255,255,.22); color: white; }

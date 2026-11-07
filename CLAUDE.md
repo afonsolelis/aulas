@@ -143,25 +143,18 @@ Estrutura base:
 </div>
 ```
 
-Navegação: use o padrão `.slide/.active` com JS próprio (setas do teclado + botões prev/next). O link para o material da aula fica só no footer (`📖 Material`); não o repita no `.top-nav`, que se limita a "← Voltar" e a links que o footer não tem. Decks de slides não levam botão de exportação em PDF, que existe só nas páginas de material, plano e aula. Importe `css/inteli-styles.css` via caminho relativo e a fonte Manrope do Google Fonts.
+Navegação: use o padrão `.slide/.active` com JS próprio (setas do teclado + botões prev/next). O link para o material da aula fica só no footer (`📖 Material`); não o repita no `.top-nav`, que se limita a "← Voltar" e a links que o footer não tem. Decks de slides não levam botão de exportação em PDF, que existe só nas páginas de material, plano e aula. Importe `css/inteli-styles.css` via caminho relativo e, por último no `<head>`, `css/inteli-ds.css` (Design System Inteli v2, com Inter e JetBrains Mono).
 
-### CSS Design System
+### Design System Inteli v2
 
-CSS variables are defined in `/css/inteli-styles.css` — never hardcode colors.
+Regras em `specs/design-system.md`; documentação completa em `docs/design-system.md`; vitrine dos componentes em `pages/design-system.html`. Tokens e componentes moram em `css/inteli-ds.css`, que toda página carrega por último no `<head>`.
 
-Key color variables:
-- `--inteli-purple: #855ede` / `--inteli-blue: #1863dc`
-- `--inteli-dark-purple: #2E2640` / `--inteli-very-dark: #1e1829`
-- Course headers: `.card-header-si` (green `#89cea5`), `.card-header-eng-software` (red `#ff4545`), `.card-header-adm-tech` (navy `#2e2640`)
-
-Glassmorphism pattern for cards:
-```css
-background: rgba(255,255,255,0.85);
-backdrop-filter: blur(16px);
-border-radius: 20px;
-box-shadow: 0 8px 32px rgba(31,38,135,0.37);
-border: 1px solid rgba(255,255,255,0.18);
-```
+- Paleta Inteli, sem outros matizes: roxo `#2e2640`, verde `#89cea5`, coral `#ff4545`, cinzas `#b2b6bf`, `#caced6`, `#e6eaeb` e branco. Derivações (níveis de texto, tons de fundo, `--ds-verde-texto`, `--ds-coral-texto`) estão documentadas; use os tokens `var(--ds-*)` e não escreva hex novo.
+- Pouca cor: no máximo um marcador de cor por bloco (linha superior do card, quadrado da etiqueta, filete do destaque). Sem gradiente entre cores sólidas.
+- Tipografia: Inter (texto e títulos) e JetBrains Mono (rótulos, botões, metadados, números, código). Pesos de 400 a 700.
+- Forma: raio de 0, 2, 4 ou 6 px; sem pílula. Contorno de 1 px no lugar de sombra difusa. Hover muda borda ou fundo, sem deslocar mais que 1 px.
+- Cor de curso: `.ds-curso-si`, `.ds-curso-eng-software`, `.ds-curso-adm-tech`, `.ds-curso-comum` (e as antigas `.card-header-*`, que definem `--ds-curso`).
+- Página nova ou colada de outro lugar: rode `node scripts/aplicar-design-system.mjs <arquivo>` antes do commit. `tests/design-system.spec.ts` barra fonte, raio, cor e carregamento fora do padrão.
 
 ### Module Config JSON Schema
 
