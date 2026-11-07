@@ -26,7 +26,7 @@ Documentação do sistema visual do portal de aulas. As regras obrigatórias, em
 O portal reúne slides projetados em sala, materiais de leitura longos, homes de módulo e atividades ao vivo (quiz, TBL). O sistema parte de quatro princípios, que valem para todos esses formatos.
 
 1. A paleta é a do Inteli. O roxo, o verde, o coral e os cinzas da marca são as únicas matizes do portal. Nenhuma cor de outra biblioteca (Tailwind, Bootstrap, Material) entra.
-2. Pouca cor. A hierarquia vem da tipografia, do peso e do espaço. A cor marca, não preenche: cada bloco tem no máximo um marcador colorido, como a linha superior de um card ou o quadrado de uma etiqueta.
+2. Pouca cor. A hierarquia vem da tipografia, do peso e do espaço. A cor marca, não preenche: cada bloco tem no máximo um marcador colorido, como o quadrado ao lado do nome do curso num card ou numa etiqueta.
 3. Forma contida. Cantos quase retos (até 6 px) e contorno de 1 px no lugar de sombra. A página parece um documento técnico organizado, e não um conjunto de botões flutuantes.
 4. Duas vozes tipográficas. Inter carrega o texto e os títulos. JetBrains Mono carrega tudo o que é metadado, rótulo, comando, número ou ação. A troca de família já diz ao leitor que tipo de informação ele está lendo.
 
@@ -117,10 +117,13 @@ Todas as derivações saem da paleta. Os níveis de texto e os fundos resultam d
 A classe de curso define a variável `--ds-curso`, que os componentes leem. Assim o mesmo card serve aos quatro cursos:
 
 ```html
-<a class="ds-card ds-card--curso ds-curso-si" href="...">...</a>
+<a class="ds-card ds-curso-si" href="...">
+  <span class="ds-rotulo"><span class="ds-quadrado"></span> Sistemas de Informação</span>
+  ...
+</a>
 ```
 
-As classes antigas `.card-header-si`, `.card-header-eng-software`, `.card-header-adm-tech`, `.card-header-common` e `.bg-si`, `.bg-eng-software`, `.bg-adm-tech`, `.bg-common` também definem `--ds-curso`. Em cabeçalho de card, viram linha superior de 3 px sobre fundo branco. Em `.module-badge`, viram o quadrado de cor da etiqueta.
+As classes antigas `.card-header-si`, `.card-header-eng-software`, `.card-header-adm-tech`, `.card-header-common` e `.bg-si`, `.bg-eng-software`, `.bg-adm-tech`, `.bg-common` também definem `--ds-curso`. Em cabeçalho de card, viram um quadrado de 10 px antes do título, sobre fundo branco. Em `.module-badge`, viram o quadrado de cor da etiqueta.
 
 ### 3.4 Semântica
 
@@ -134,7 +137,7 @@ A paleta Inteli tem um só tom quente. Por isso alerta e erro compartilham o cor
 
 ### 3.5 Pouca cor, na prática
 
-- Card: fundo branco, borda de 1 px, cor só na linha superior (`.ds-card--curso`).
+- Card: fundo branco, borda de 1 px, cor só no quadrado de 10 px ao lado do nome do curso (`.ds-quadrado`). Sem faixa no topo.
 - Etiqueta: fundo branco, texto escuro, quadrado de 7 px na cor do curso (`.ds-tag--cor`).
 - Destaque: fundo cinza fraco, filete esquerdo de 2 px na cor (`.ds-destaque`).
 - Botão: o primário é roxo; o resto é contorno ou fantasma. Botão de curso (`.btn-si`, `.btn-eng`...) também é roxo, com filete interno na cor do curso.
@@ -316,8 +319,8 @@ O `.btn` do Bootstrap já segue o mesmo desenho (seção 10).
 Estrutura: rótulo ou etiqueta, título, texto, lista opcional, rodapé opcional.
 
 ```html
-<a class="ds-card ds-card--curso ds-curso-si" href="pages/home-module-7-sistemas-informacao.html">
-  <span class="ds-tag ds-tag--cor">Sistemas de Informação</span>
+<a class="ds-card ds-curso-si" href="pages/home-module-7-sistemas-informacao.html">
+  <span class="ds-rotulo"><span class="ds-quadrado"></span> Sistemas de Informação</span>
   <h3 class="ds-card__titulo">Sistemas de Gestão e Governança Empresarial</h3>
   <p class="ds-card__texto">Implantação de um sistema de gestão empresarial em um caso real.</p>
   <ul class="ds-card__lista">
@@ -328,7 +331,8 @@ Estrutura: rótulo ou etiqueta, título, texto, lista opcional, rodapé opcional
 ```
 
 - `a.ds-card` ganha borda forte e `--ds-sombra-2` no hover.
-- `.ds-card--curso` acrescenta a linha superior de 3 px na cor do curso.
+- A cor do curso entra pelo `.ds-quadrado` (10 px; `.ds-quadrado--sm` tem 7 px), que lê `--ds-curso` da classe `.ds-curso-*` mais próxima. A classe `.ds-card--curso` continua aceita, mas não desenha nada.
+- Em grade, os cards podem ficar unidos, com bordas compartilhadas e sem raio, como na página inicial.
 - Os itens de `.ds-card__lista` aparecem em mono, precedidos de traço.
 
 ### 9.6 Destaque
@@ -401,7 +405,8 @@ O Bootstrap 5.3 continua em uso nas homes e em parte dos materiais. `css/inteli-
 
 As homes de módulo (`pages/home-module-*.html`) trazem estilo próprio com classes como `.module-header`, `.lesson-card`, `.lesson-number`, `.lesson-btn-*`, `.week-tag`, `.sprint-*` e `.prof-badge`. A seção 5 de `css/inteli-ds.css` alinha essas classes ao sistema:
 
-- o cabeçalho do módulo fica branco, com linha superior na cor do curso (detectada por `:has(.badge-si)` e equivalentes);
+- o cabeçalho do módulo fica branco, e a cor do curso aparece só no quadrado da etiqueta (detectada por `:has(.badge-si)` e equivalentes);
+- o bloco de sprint tem borda neutra, com o quadrado da cor da sprint ao lado do rótulo "Sprint";
 - o número da aula vira quadrado de 36 px com borda, em mono;
 - o botão Slides fica roxo, o Material fica com contorno e o Plano fica fantasma;
 - semana e sprint ganham rótulos em mono e filete esquerdo de 2 px.
@@ -434,7 +439,7 @@ Branco sobre roxo dá 14,3:1, e roxo sobre verde dá 7,8:1.
 
 | Tipo | Orientação |
 |------|------------|
-| `index.html` | cabeçalho com logo e atalhos fantasma; abertura com rótulo, título display e lead; seções numeradas com `.ds-grade` de cards |
+| `index.html` | cabeçalho com logo e atalhos fantasma; abertura com rótulo, título display, lead e quadro de números do acervo; atalhos e módulos em grade unida (bordas compartilhadas); quadrado de cor por curso e filtro por curso |
 | Home de módulo | cabeçalho branco com linha do curso; cards de aula com número em mono, botões Slides (primário), Material (secundário) e Plano (fantasma) |
 | Slide | capa em roxo sólido; títulos em Inter 700 com tracking negativo; rótulos de aula e data em mono; caixas com borda de 1 px e filete; rodapé com Home, Material (`#2f8f78`) e navegação em mono |
 | Material de leitura | coluna de até 72 caracteres, 17 px, entrelinha 1,6; sumário lateral em mono; destaques com filete de 2 px |
@@ -508,7 +513,7 @@ Os passos 6 e 7 não se aplicam a `pages/palestras/`. O script é idempotente.
 --ds-ease  --ds-rapido  --ds-medio
 ```
 
-Classes de componente: `.ds-rotulo`, `.ds-num`, `.ds-btn` (`--sm`, `--lg`, `--primario`, `--secundario`, `--fantasma`, `--perigo`, `--material`, `--inverso`), `.ds-tag` (`--cor`, `--sucesso`, `--alerta`, `--roxo`), `.ds-card` (`--curso`, `__titulo`, `__texto`, `__lista`, `__rodape`), `.ds-curso-*`, `.ds-destaque` (`--sucesso`, `--alerta`), `.ds-indicador__valor`, `.ds-indicador__rotulo`, `.ds-terminal` (`__prompt`, `__fraco`), `.ds-tecla`, `.ds-tabela`, `.ds-cabecalho` (`__interno`), `.ds-titulo-pagina`, `.ds-lead`, `.ds-grade`, `.ds-secao` (`__cabeca`, `__titulo`), `.ds-container`, `.ds-mono`, `.ds-texto-suave`.
+Classes de componente: `.ds-rotulo`, `.ds-num`, `.ds-btn` (`--sm`, `--lg`, `--primario`, `--secundario`, `--fantasma`, `--perigo`, `--material`, `--inverso`), `.ds-tag` (`--cor`, `--sucesso`, `--alerta`, `--roxo`), `.ds-card` (`--curso`, `__titulo`, `__texto`, `__lista`, `__rodape`), `.ds-quadrado` (`--sm`), `.ds-curso-*`, `.ds-destaque` (`--sucesso`, `--alerta`), `.ds-indicador__valor`, `.ds-indicador__rotulo`, `.ds-terminal` (`__prompt`, `__fraco`), `.ds-tecla`, `.ds-tabela`, `.ds-cabecalho` (`__interno`), `.ds-titulo-pagina`, `.ds-lead`, `.ds-grade`, `.ds-secao` (`__cabeca`, `__titulo`), `.ds-container`, `.ds-mono`, `.ds-texto-suave`.
 
 ## 16. Histórico
 
@@ -516,3 +521,4 @@ Classes de componente: `.ds-rotulo`, `.ds-num`, `.ds-btn` (`--sm`, `--lg`, `--pr
 |--------|------|---------|
 | v1 | até 11/2026 | Manrope e Space Mono; cabeçalhos de card preenchidos com a cor do curso; raios de 10 a 25 px e pílulas; sombras difusas; gradientes roxo-verde; cores do Tailwind misturadas à paleta |
 | v2 | 07/11/2026 | Inter e JetBrains Mono; paleta Inteli exclusiva com derivações documentadas; cor como marcador; raio até 6 px; contorno de 1 px; componentes `.ds-*`; script de aplicação e teste de conformidade |
+| v2.1 | 07/11/2026 | Cor de curso vira quadrado de 10 px (`.ds-quadrado`) em cards, cabeçalhos de card e sprints, no lugar da faixa superior; página inicial com grade unida, quadro de números e filtro por curso |

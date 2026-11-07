@@ -150,7 +150,7 @@ Navegação: use o padrão `.slide/.active` com JS próprio (setas do teclado + 
 Regras em `specs/design-system.md`; documentação completa em `docs/design-system.md`; vitrine dos componentes em `pages/design-system.html`. Tokens e componentes moram em `css/inteli-ds.css`, que toda página carrega por último no `<head>`.
 
 - Paleta Inteli, sem outros matizes: roxo `#2e2640`, verde `#89cea5`, coral `#ff4545`, cinzas `#b2b6bf`, `#caced6`, `#e6eaeb` e branco. Derivações (níveis de texto, tons de fundo, `--ds-verde-texto`, `--ds-coral-texto`) estão documentadas; use os tokens `var(--ds-*)` e não escreva hex novo.
-- Pouca cor: no máximo um marcador de cor por bloco (linha superior do card, quadrado da etiqueta, filete do destaque). Sem gradiente entre cores sólidas.
+- Pouca cor: no máximo um marcador de cor por bloco (quadrado de cor ao lado do nome do curso, filete do destaque; sem faixa no topo do card). Sem gradiente entre cores sólidas.
 - Tipografia: Inter (texto e títulos) e JetBrains Mono (rótulos, botões, metadados, números, código). Pesos de 400 a 700.
 - Forma: raio de 0, 2, 4 ou 6 px; sem pílula. Contorno de 1 px no lugar de sombra difusa. Hover muda borda ou fundo, sem deslocar mais que 1 px.
 - Cor de curso: `.ds-curso-si`, `.ds-curso-eng-software`, `.ds-curso-adm-tech`, `.ds-curso-comum` (e as antigas `.card-header-*`, que definem `--ds-curso`).

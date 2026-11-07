@@ -26,7 +26,7 @@ test.describe('Página Inicial (index.html) - Validação de Identidade e Estrut
     });
   });
 
-  // specs/design-system.md, regras 21 e 22: a cor do curso é a linha superior do card.
+  // specs/design-system.md, regras 21 e 22: a cor do curso é um quadrado no cabeçalho do card.
   test('as classes de cor dos cards de disciplinas devem seguir o padrão estabelecido', () => {
     const ds = readRepoFile('css/inteli-ds.css');
     expect(indexHtml).toContain('ds-curso-si');

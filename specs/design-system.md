@@ -28,7 +28,7 @@ O sistema mantém a paleta Inteli e adota uma linguagem sóbria: pouca cor, tipo
    | `--inteli-branco` | `#ffffff` | fundo |
 
 6. São permitidas apenas as derivações documentadas em `docs/design-system.md`: níveis de texto e tons de fundo, obtidos pela mistura do roxo e dos cinzas com branco; `--ds-coral-texto` (`#d53f44`), coral misturado ao roxo; e os dois verdes escuros que o acervo já usava, `--ds-verde-escuro` (`#2f8f78`, fundo de botão) e `--ds-verde-texto` (`#267562`, texto). Os dois tons de texto existem porque verde e coral puros não dão contraste de leitura sobre branco.
-7. A cor ocupa no máximo um marcador por bloco: a linha superior do card, o quadrado da etiqueta ou o filete do destaque. Fundo inteiro colorido fica restrito à capa de slide, ao botão primário e ao bloco de terminal.
+7. A cor ocupa no máximo um marcador por bloco: o quadrado de cor no cabeçalho do card ou da etiqueta, ou o filete do destaque. Faixa colorida no topo de card ou cabeçalho não é usada. Fundo inteiro colorido fica restrito à capa de slide, ao botão primário e ao bloco de terminal.
 8. Gradiente entre cores sólidas não é usado. Gradiente só é admitido para transparência, como esmaecer a borda de uma área rolável.
 9. As cores de outras paletas (Tailwind, Bootstrap) que existiam no acervo foram convertidas para o equivalente Inteli de mesmo papel. A tabela de conversão está em `scripts/aplicar-design-system.mjs`, e o teste impede que elas voltem.
 10. Exceções: o tema de realce de sintaxe dos blocos de código (Catppuccin) e as páginas de `pages/palestras/`, que podem seguir a identidade da instituição convidada.
@@ -53,7 +53,7 @@ O sistema mantém a paleta Inteli e adota uma linguagem sóbria: pouca cor, tipo
 
 19. Botões seguem `.ds-btn` (ou `.btn` do Bootstrap, já ajustado): mono, peso 500, raio 4 px, altura de 28, 36 ou 44 px. Variantes: primário (roxo), secundário (contorno), fantasma e perigo (coral).
 20. Etiquetas seguem `.ds-tag`: mono em caixa alta, borda de 1 px, raio 2 px, quadrado de cor opcional.
-21. Cards seguem `.ds-card`. A identidade do curso aparece como linha superior de 3 px e etiqueta, e não como cabeçalho preenchido.
+21. Cards seguem `.ds-card`. A identidade do curso aparece como um quadrado de 10 px (`.ds-quadrado`) ao lado do nome do curso, no cabeçalho do card, e não como faixa nem como cabeçalho preenchido.
 22. As cores de curso são: Adm Tech `--inteli-roxo`, Sistemas de Informação `--inteli-verde`, Engenharia de Software `--inteli-coral`, Ciclo Comum `--inteli-cinza-400`. As classes `.card-header-*` e `.bg-*` de curso definem `--ds-curso` e continuam válidas.
 23. O botão Material dos slides mantém o fundo `#2f8f78` (`--ds-verde-escuro`) com texto branco em peso 600.
 
