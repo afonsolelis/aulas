@@ -31,9 +31,8 @@ const publishedModuleHomes = [
   'pages/home-module-11-eng-software.html',
   'pages/home-module-7-sistemas-informacao.html',
 ];
-const underConstructionHomes = [
-  'pages/home-module-8-sistemas-informacao.html',
-];
+// Nenhuma home de módulo está em construção hoje. O Módulo 8 de SI está em andamento desde 15/10/2026.
+const underConstructionHomes: string[] = [];
 const autoestudoFiles = getHtmlFilesCached('pages/autoestudos');
 const module2Slides = getHtmlFilesCached('pages/module-2-common/slides');
 const module6Slides = getHtmlFilesCached('pages/module-6-eng-software/slides');
