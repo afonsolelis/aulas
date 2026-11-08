@@ -10,6 +10,7 @@ The lab is the page `index.html` of this folder, published with the module. It r
 2. It creates the table `db_ingestion` from that copy and replays every statement that created, changed or dropped an object, which is also kept in the localStorage. The model survives a reload or the closing of the tab.
 3. "Prompt" opens the CREATE prompt of a step (`prompts/`); "Reference SQL" loads the SQL of the professor (`sql/`). Ctrl+Enter runs every statement of the editor and shows one result per statement.
 4. "Drop the model" removes every object except `db_ingestion`; "Forget everything" also removes the data and the draft of the editor.
+5. The drill-down explorer at the bottom reads `report.mv_card_price_2026_09` (frozen in September) or `report.v_card_price_latest` (last capture) and draws ranked bars by the dimensions checked (set, rarity, card, variant). Clicking a bar drills down along set › rarity › card, the chips of the path roll up, and the side panel shows the SQL of the view and checks that the same level of `gold.agg_price_cube` (its `grouping_id`) gives the same numbers.
 
 ## The data
 
