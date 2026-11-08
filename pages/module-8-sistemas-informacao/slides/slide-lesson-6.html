@@ -322,15 +322,15 @@
       <header class="sh si reveal"><span class="kick">0:17 · The data</span><div class="st">One landing table with three columns</div><p class="ss">The capture keeps every record exactly as TCGplayer published it, in the same shape as the landing table of Lesson 4 and the enriched table of Lesson 5. The model of the session reads only this table.</p></header>
       <div class="g2-wide g2 reveal">
         <table class="tbl tbl-sm"><thead><tr><th>data_tag</th><th>One record is</th><th>Rows</th><th>timestamp</th></tr></thead><tbody>
-          <tr><td><code>tcgplayer.set.v1</code></td><td>a set, with code and release date</td><td>7</td><td>07/11/2026</td></tr>
-          <tr><td><code>tcgplayer.product.v1</code></td><td>a card (1,273) or a sealed product (217), with rarity, number and type in <code>extendedData</code></td><td>1,490</td><td>07/11/2026</td></tr>
-          <tr><td><code>tcgplayer.price.v1</code></td><td>the prices of one product in one printing (Normal, Holofoil, Reverse Holofoil)</td><td>5,951</td><td>01/03, 01/05, 01/07, 01/09 and 07/11/2026</td></tr>
+          <tr><td><code>tcgplayer.set.v1</code></td><td>a set, with code and release date</td><td>7</td><td>1794081927</td></tr>
+          <tr><td><code>tcgplayer.product.v1</code></td><td>a card (1,273) or a sealed product (217), with rarity, number and type in <code>extendedData</code></td><td>1,490</td><td>1794081927</td></tr>
+          <tr><td><code>tcgplayer.price.v1</code></td><td>the prices of one product in one printing (Normal, Holofoil, Reverse Holofoil)</td><td>5,951</td><td>noon UTC of 01/03, 01/05, 01/07, 01/09 and 07/11/2026</td></tr>
         </tbody></table>
         <div class="stack">
-          <div class="code-mini"><span class="code-cap">db_ingestion</span><pre>timestamp  TIMESTAMP   when it was captured
+          <div class="code-mini"><span class="code-cap">db_ingestion</span><pre>timestamp  BIGINT      Unix time of the capture
 data_json  JSON        the record, as published
 data_tag   VARCHAR     the kind of record</pre></div>
-          <div class="callout dark"><b>Size</b>2.3 MB of JSON, 132 KB compressed. The lab keeps the compressed copy in the localStorage of the browser, which holds about 5 MB per site.</div>
+          <div class="callout dark"><b>Unix time</b>Every date of the lesson is Unix time, in seconds since 1970-01-01 UTC: 1794052800 is 07/11/2026 at 12:00. 2.2 MB of JSON, 131 KB compressed. The lab keeps the compressed copy in the localStorage of the browser, which holds about 5 MB per site.</div>
         </div>
       </div>
       <p class="note reveal">Source: tcgcsv.com, public daily mirror of the catalogue and the prices of TCGplayer (category 3, Pokémon). The long text of the cards and the image addresses were removed to fit the browser storage.</p>
@@ -376,22 +376,25 @@ for a lab that runs inside the browser.
 2. sql/01_dimensions.sql, schema gold, every dimension a view over
    db_ingestion:
    - dim_set from tcgplayer.set.v1: set_id, set_name, set_code,
-     released_on (date), release_month (&#x27;YYYY-MM&#x27;);
+     released_at (Unix time of publishedOn), release_month (&#x27;YYYY-MM&#x27;);
    - dim_product from tcgplayer.product.v1: product_id, set_id,
      product_name, kind (&#x27;card&#x27; when the product has a collector Number,
      otherwise &#x27;sealed&#x27;), number, rarity, card_type, hp, stage;
    - dim_variant: the distinct subTypeName of tcgplayer.price.v1;
-   - dim_date: date_key (yyyymmdd), date, month, quarter, year of the
-     capture dates of the prices;
+   - dim_date: date_unix (Unix time of 00:00 UTC of the day of the
+     capture), month (&#x27;YYYY-MM&#x27;), quarter, year of the capture dates of the
+     prices;
    - a final SELECT with the number of rows of each dimension.
 
 Facts measured on 07/11/2026 (confirm before use):
 - db_ingestion: 7 sets, 1,490 products, 5,951 prices.
-- 1,273 products are cards; 3 variants; 5 capture dates (2026-03-01,
-  2026-05-01, 2026-07-01, 2026-09-01, 2026-11-07).
+- 1,273 products are cards; 3 variants; 5 capture dates, date_unix
+  1772323200 (2026-03-01), 1777593600 (2026-05-01), 1782864000
+  (2026-07-01), 1788220800 (2026-09-01) and 1794009600 (2026-11-07).
 
 <span class="k">[E] Example</span>
-db_ingestion(timestamp TIMESTAMP, data_json JSON, data_tag VARCHAR)
+db_ingestion(timestamp BIGINT, data_json JSON, data_tag VARCHAR)
+timestamp is Unix time in seconds, UTC: 1794052800 = 2026-11-07 12:00.
 tcgplayer.set.v1     {&quot;groupId&quot;:24541,&quot;name&quot;:&quot;ME: Ascended Heroes&quot;,
                       &quot;abbreviation&quot;:&quot;ASC&quot;,&quot;publishedOn&quot;:&quot;2026-01-30T00:00:00&quot;,...}
 tcgplayer.product.v1 {&quot;productId&quot;:676088,&quot;name&quot;:&quot;Pikachu ex - 276/217&quot;,
@@ -402,6 +405,11 @@ tcgplayer.price.v1   {&quot;productId&quot;:676088,&quot;marketPrice&quot;:571.1
                       &quot;lowPrice&quot;:504.9,&quot;subTypeName&quot;:&quot;Holofoil&quot;,...}
 
 <span class="k">[A] Adjustments</span>
+- Every date of the model is Unix time in seconds (BIGINT), never DATE or
+  TIMESTAMP. The day of a timestamp is timestamp // 86400 * 86400; to
+  extract a label such as the month, use epoch_ms(timestamp * 1000),
+  which returns a TIMESTAMP in UTC, never to_timestamp, which depends on
+  the time zone of the browser.
 - Read a field with data_json-&gt;&gt;&#x27;field&#x27;.
 - The attributes of a product are a list of {name, value} in extendedData.
   Inside a macro or a lambda, use json_extract(j, &#x27;$.extendedData&#x27;) and
@@ -459,11 +467,12 @@ Stop at the end.</code></pre>
         <tr><td><code>gold.dim_set</code></td><td><code>tcgplayer.set.v1</code></td><td>release month › set</td><td>7</td><td>view</td></tr>
         <tr><td><code>gold.dim_product</code></td><td><code>tcgplayer.product.v1</code></td><td>kind (card or sealed) › rarity › product</td><td>1,490</td><td>view</td></tr>
         <tr><td><code>gold.dim_variant</code></td><td><code>tcgplayer.price.v1</code></td><td>Normal, Holofoil, Reverse Holofoil</td><td>3</td><td>view</td></tr>
-        <tr><td><code>gold.dim_date</code></td><td>timestamp of the prices</td><td>year › quarter › month › day</td><td>5</td><td>view</td></tr>
+        <tr><td><code>gold.dim_date</code></td><td>timestamp of the prices; key <code>date_unix</code></td><td>year › quarter › month › day</td><td>5</td><td>view</td></tr>
       </tbody></table>
-      <div class="g2 reveal" style="margin-top:10px">
+      <div class="g3 reveal" style="margin-top:10px">
         <article class="card"><span class="label">Why views</span><p>A dimension is read in every query but changes little, and here it is small. As a view it keeps no copy and always shows the current landing table, at the cost of reading the JSON again.</p></article>
         <article class="card dark"><span class="label dark">The JSON of a product</span><p>Rarity, number and type arrive as a list of pairs in <code>extendedData</code>. A macro <code>gold.attr(json, name)</code> filters the list and returns the value, so each attribute is one line of the view.</p></article>
+        <article class="card grn"><span class="label grn">Dates in Unix time</span><p>The key of the day is <code>date_unix</code>, the Unix time of 00:00 UTC: <code>timestamp // 86400 * 86400</code>. Month, quarter and year are labels of the hierarchy, taken from <code>epoch_ms(timestamp * 1000)</code>.</p></article>
       </div>
     </div>
   </section>
@@ -471,14 +480,14 @@ Stop at the end.</code></pre>
   <section class="slide">
     <div class="sc">
       <header class="sh si reveal"><span class="kick">Step 01 · Theory 3</span><div class="st">A natural key that repeats</div><p class="ss">The code of a set looks like a key, but TCGplayer gave the code 30C to two different sets released on the same day. A model that groups by the code merges them.</p></header>
-      <table class="tbl tbl-sm reveal"><thead><tr><th>set_id</th><th>set_code</th><th>set_name</th><th>released_on</th><th>Cards</th></tr></thead><tbody>
-        <tr><td>24541</td><td>ASC</td><td>ME: Ascended Heroes</td><td>2026-01-30</td><td>575</td></tr>
-        <tr><td>24587</td><td>POR</td><td>ME03: Perfect Order</td><td>2026-03-27</td><td>124</td></tr>
-        <tr><td>24655</td><td>CRI</td><td>ME04: Chaos Rising</td><td>2026-05-22</td><td>122</td></tr>
-        <tr><td>24688</td><td>PBL</td><td>ME05: Pitch Black</td><td>2026-07-17</td><td>120</td></tr>
-        <tr><td>24722</td><td><b>30C</b></td><td>ME: 30th Celebration</td><td>2026-09-16</td><td>161</td></tr>
-        <tr><td>24837</td><td><b>30C</b></td><td>ME: 30th Celebration Classic Collection</td><td>2026-09-16</td><td>30</td></tr>
-        <tr><td>24831</td><td>DLR</td><td>ME06: Delta Reign</td><td>2026-11-06</td><td>141</td></tr>
+      <table class="tbl tbl-sm reveal"><thead><tr><th>set_id</th><th>set_code</th><th>set_name</th><th>released_at (Unix)</th><th>Cards</th></tr></thead><tbody>
+        <tr><td>24541</td><td>ASC</td><td>ME: Ascended Heroes</td><td>1769731200 · 2026-01-30</td><td>575</td></tr>
+        <tr><td>24587</td><td>POR</td><td>ME03: Perfect Order</td><td>1774569600 · 2026-03-27</td><td>124</td></tr>
+        <tr><td>24655</td><td>CRI</td><td>ME04: Chaos Rising</td><td>1779408000 · 2026-05-22</td><td>122</td></tr>
+        <tr><td>24688</td><td>PBL</td><td>ME05: Pitch Black</td><td>1784246400 · 2026-07-17</td><td>120</td></tr>
+        <tr><td>24722</td><td><b>30C</b></td><td>ME: 30th Celebration</td><td>1789516800 · 2026-09-16</td><td>161</td></tr>
+        <tr><td>24837</td><td><b>30C</b></td><td>ME: 30th Celebration Classic Collection</td><td>1789516800 · 2026-09-16</td><td>30</td></tr>
+        <tr><td>24831</td><td>DLR</td><td>ME06: Delta Reign</td><td>1793923200 · 2026-11-06</td><td>141</td></tr>
       </tbody></table>
       <div class="callout dark reveal"><b>Consequence for the model</b>The fact refers to a set by <code>set_id</code>, the identifier that TCGplayer guarantees, and the cube groups by <code>set_name</code>. The code stays in the dimension as an attribute for display, which is the role a natural key has in a star schema.</div>
     </div>
@@ -502,12 +511,12 @@ the fact that measures the business process.
 <span class="k">[R] Request</span>
 sql/02_fact.sql:
 1. view gold.fact_price, a periodic snapshot with one row per product,
-   variant and capture date: date_key, product_id, set_id, variant,
+   variant and capture date: date_unix, product_id, set_id, variant,
    market_price, low_price, mid_price, high_price (DECIMAL(10,2)) and
-   days_since_release (days between released_on of the set and the
-   capture date), from tcgplayer.price.v1;
+   days_since_release (whole days between released_at of the set and
+   date_unix), from tcgplayer.price.v1;
 2. the test of the grain: number of rows, number of distinct
-   (date_key, product_id, variant) and rows without market_price;
+   (date_unix, product_id, variant) and rows without market_price;
 3. the number of prices per capture date and set.
 
 Facts measured on 07/11/2026 (confirm before use):
@@ -516,7 +525,7 @@ Facts measured on 07/11/2026 (confirm before use):
   (642) and POR (15); on 2026-11-07 all seven sets.
 
 <span class="k">[E] Example</span>
-SELECT CAST(strftime(timestamp, &#x27;%Y%m%d&#x27;) AS INTEGER) AS date_key,
+SELECT timestamp // 86400 * 86400                    AS date_unix,
        CAST(data_json-&gt;&gt;&#x27;productId&#x27; AS INTEGER)       AS product_id,
        data_json-&gt;&gt;&#x27;subTypeName&#x27;                      AS variant
 FROM db_ingestion WHERE data_tag = &#x27;tcgplayer.price.v1&#x27;;
@@ -524,6 +533,7 @@ FROM db_ingestion WHERE data_tag = &#x27;tcgplayer.price.v1&#x27;;
 <span class="k">[A] Adjustments</span>
 - The whole gold layer is views, the fact included: nothing is stored,
   and the fact always shows the last capture of db_ingestion.
+- date_unix is the Unix time of 00:00 UTC of the day, as in dim_date.
 - The price record has no set: take set_id from dim_product.
 - fact_price and dim_product both have set_id: join dim_set with ON, not
   with USING, to avoid an ambiguous column.
@@ -589,15 +599,15 @@ Stop at the end.</code></pre>
     <div class="sc">
       <header class="sh si reveal"><span class="kick">Step 02 · Result</span><div class="st">The fact grows with the sets</div><p class="ss">The grain test passes: 5,951 rows and 5,951 distinct combinations of date, product and variant. The number of prices grows with each capture, because a set only has prices after it is released.</p></header>
       <div class="g2 reveal">
-        <table class="tbl tbl-sm"><thead><tr><th>Capture date</th><th>Prices</th><th>Products</th><th>Sets priced</th></tr></thead><tbody>
-          <tr><td>2026-03-01</td><td>657</td><td>619</td><td>ASC; POR in pre-sale</td></tr>
-          <tr><td>2026-05-01</td><td>896</td><td>779</td><td>+ POR; CRI in pre-sale</td></tr>
-          <tr><td>2026-07-01</td><td>1,153</td><td>960</td><td>+ CRI; PBL and 30th Celebration in pre-sale</td></tr>
-          <tr><td>2026-09-01</td><td>1,414</td><td>1,147</td><td>+ PBL; Delta Reign in pre-sale</td></tr>
-          <tr><td>2026-11-07</td><td>1,831</td><td>1,477</td><td>all seven sets</td></tr>
+        <table class="tbl tbl-sm"><thead><tr><th>date_unix · day</th><th>Prices</th><th>Products</th><th>Sets priced</th></tr></thead><tbody>
+          <tr><td>1772323200 · 03-01</td><td>657</td><td>619</td><td>ASC; POR in pre-sale</td></tr>
+          <tr><td>1777593600 · 05-01</td><td>896</td><td>779</td><td>+ POR; CRI in pre-sale</td></tr>
+          <tr><td>1782864000 · 07-01</td><td>1,153</td><td>960</td><td>+ CRI; PBL and 30th Celebration in pre-sale</td></tr>
+          <tr><td>1788220800 · 09-01</td><td>1,414</td><td>1,147</td><td>+ PBL; Delta Reign in pre-sale</td></tr>
+          <tr><td>1794009600 · 11-07</td><td>1,831</td><td>1,477</td><td>all seven sets</td></tr>
         </tbody></table>
         <div class="stack">
-          <div class="kpi"><b>5,951 = 5,951</b><span>rows = distinct (date_key, product_id, variant)</span></div>
+          <div class="kpi"><b>5,951 = 5,951</b><span>rows = distinct (date_unix, product_id, variant)</span></div>
           <div class="kpi"><b>49</b><span>prices without market price, kept in the fact view</span></div>
           <div class="callout dark"><b>Coverage changes over time</b>A set is priced first through its sealed products in pre-sale, and its cards enter the fact only after the release, many of them weeks later. This affects every sum over a set, as step 04 shows.</div>
         </div>
@@ -611,7 +621,7 @@ Stop at the end.</code></pre>
       <div class="etapa-grid reveal">
         <div class="etapa-lado">
           <div class="etapa-item"><span class="etapa-rotulo">Files</span><p><code>sql/03_cube_and_mart.sql</code>.</p></div>
-          <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Review before moving on</span><ul><li>Are the cube and the mart views, like the rest of gold?</li><li>Does the cube keep <code>date_key</code> in every grouping?</li><li>524 cells in 8 levels, with grouping_id from 0 to 7?</li></ul></div>
+          <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Review before moving on</span><ul><li>Are the cube and the mart views, like the rest of gold?</li><li>Does the cube keep <code>date_unix</code> in every grouping?</li><li>524 cells in 8 levels, with grouping_id from 0 to 7?</li></ul></div>
         </div>
         <div class="etapa-prompt">
           <span class="etapa-rotulo">Prompt 03 · CREATE</span>
@@ -624,18 +634,19 @@ friendly names that a dashboard can read.
 <span class="k">[R] Request</span>
 sql/03_cube_and_mart.sql:
 1. view gold.agg_price_cube, the cube as a summarised fact table, only
-   for cards with a market price: GROUP BY date_key, CUBE (set_name,
+   for cards with a market price: GROUP BY date_unix, CUBE (set_name,
    rarity, variant), with grouping_id (grouping() of the three), &#x27;all&#x27; in
    place of the NULL of a total, and the measures prices (count),
    market_value (sum), avg_market_price and max_market_price;
 2. schema mart_collectors with two views:
-   - card_price: date, set_code, set_name, released_on, card, number,
-     rarity, variant, market_price, days_since_release, cards only;
-   - set_value: date, set_name, prices, market_value, from the level
-     &quot;set&quot; of the cube;
+   - card_price: captured_at (date_unix), month, set_code, set_name,
+     released_at, card, number, rarity, variant, market_price,
+     days_since_release, cards only;
+   - set_value: captured_at, month, set_name, prices, market_value, from
+     the level &quot;set&quot; of the cube;
 3. the number of cells of each level of the cube (grouping_id 0 to 7);
-4. on 2026-11-07, the market value of all cards, next to the sum of that
-   value over the five dates.
+4. on 2026-11-07 (date_unix 1794009600), the market value of all cards,
+   next to the sum of that value over the five dates.
 
 Facts measured on 07/11/2026 (confirm before use):
 - 524 cells: 182 set x rarity x variant, 137 set x rarity, 48 set x
@@ -644,10 +655,10 @@ Facts measured on 07/11/2026 (confirm before use):
   US$ 51,967.84, a number without meaning.
 
 <span class="k">[E] Example</span>
-SELECT f.date_key, grouping(s.set_name, p.rarity, f.variant) AS grouping_id,
+SELECT f.date_unix, grouping(s.set_name, p.rarity, f.variant) AS grouping_id,
        coalesce(s.set_name, &#x27;all&#x27;) AS set_name, ...
 FROM gold.fact_price AS f ...
-GROUP BY f.date_key, CUBE (s.set_name, p.rarity, f.variant);
+GROUP BY f.date_unix, CUBE (s.set_name, p.rarity, f.variant);
 
 <span class="k">[A] Adjustments</span>
 - The date stays in every grouping, because the price is semi-additive.
@@ -707,14 +718,14 @@ Stop at the end.</code></pre>
           <tr><td><code>GROUPING SETS (...)</code></td><td>only the listed ones</td><td>as many as listed</td></tr>
           <tr><td><code>grouping(a, b, c)</code></td><td>a bit per aggregated column</td><td>0 = finest, 7 = total</td></tr>
         </tbody></table>
-        <div class="code-mini"><span class="code-cap">the cube of the session</span><pre>SELECT f.date_key,
+        <div class="code-mini"><span class="code-cap">the cube of the session</span><pre>SELECT f.date_unix,
        grouping(s.set_name, p.rarity, f.variant)
                                    AS grouping_id,
        coalesce(s.set_name, 'all') AS set_name,
        ...
        sum(f.market_price)         AS market_value
 FROM gold.fact_price AS f ...
-GROUP BY f.date_key,
+GROUP BY f.date_unix,
          CUBE (s.set_name, p.rarity, f.variant);</pre></div>
       </div>
       <div class="callout dark reveal"><b>ROLLUP for a hierarchy</b>When the columns form a hierarchy, such as year, quarter and month, ROLLUP generates only the meaningful levels. CUBE over a hierarchy would also produce month without year, which repeats the same month of different years.</div>
@@ -775,37 +786,39 @@ sql/04_reports.sql, schema report:
 1. two materialized reports frozen in September 2026, as tables built with
    CREATE TABLE ... AS from the mart:
    - report.mv_card_price_2026_09: set_name, card, rarity, variant,
-     market_price of the capture of 2026-09;
+     market_price of the capture of month &#x27;2026-09&#x27;;
    - report.mv_set_value_2026_09: set_name, prices, market_value of the
      same capture;
 2. two live reports, as normal views over the last capture:
-   - report.v_card_price_latest and report.v_set_value_latest, with the
-     date of the capture;
+   - report.v_card_price_latest and report.v_set_value_latest, with
+     captured_at (Unix time) of the capture;
 3. a demonstration in three statements: the market price of
    &quot;Pikachu ex - 276/217&quot; in the frozen report and in the live one; an
    INSERT into db_ingestion of a SIMULATED price record of that card
-   (productId 676088, Holofoil, marketPrice 600.0, timestamp
-   2026-11-10 12:00:00); the same comparison again; then a DELETE of the
-   simulated record;
+   (productId 676088, Holofoil, marketPrice 600.0, timestamp 1794312000,
+   that is 2026-11-10 12:00 UTC); the same comparison again; then a
+   DELETE of the simulated record;
 4. a final SELECT that lists every object of gold, mart_collectors and
    report with its kind (table or view).
 
 Facts measured on 07/11/2026 (confirm before use):
 - The frozen report keeps 1,226 card prices and the value of 5 sets.
-- Pikachu ex 276/217: 1,049.08 in September (frozen), 571.17 on
-  2026-11-07 (live); after the simulated capture the live view shows
-  600.00 on 2026-11-10 and the frozen report still 1,049.08.
+- Pikachu ex 276/217: 1,049.08 in September (frozen), 571.17 captured at
+  1794009600 (live); after the simulated capture the live view shows
+  600.00 captured at 1794268800 and the frozen report still 1,049.08.
 
 <span class="k">[E] Example</span>
 CREATE OR REPLACE TABLE report.mv_set_value_2026_09 AS
 SELECT set_name, prices, market_value
 FROM mart_collectors.set_value
-WHERE strftime(date, &#x27;%Y-%m&#x27;) = &#x27;2026-09&#x27;;
+WHERE month = &#x27;2026-09&#x27;;
 
 <span class="k">[A] Adjustments</span>
 - DuckDB has no materialized view: the materialized report is a table,
   and refreshing it means running its CREATE again.
-- The live views filter the last date with max(date), never a fixed date.
+- The live views filter the last capture with max(captured_at), never a
+  fixed value.
+- Every date is Unix time in seconds, as in the rest of the model.
 - Mark the INSERT as simulated in a comment, and remove it at the end.
 
 <span class="k">[T] Type of output</span>
@@ -839,9 +852,9 @@ Stop at the end.</code></pre>
     <div class="sc">
       <header class="sh si reveal"><span class="kick">Step 04 · Result</span><div class="st">A new capture reaches only the view</div><p class="ss">The script compares the Pikachu ex 276/217 in the frozen report of September and in the live report, inserts a simulated capture of 10/11/2026 at US$ 600.00, compares again and removes the simulated record.</p></header>
       <div class="g2 reveal">
-        <table class="tbl"><thead><tr><th>Moment</th><th>Frozen · September</th><th>Live · last capture</th><th>Date of the live report</th></tr></thead><tbody>
-          <tr><td>before</td><td>1,049.08</td><td>571.17</td><td>2026-11-07</td></tr>
-          <tr><td>after the simulated capture</td><td><b>1,049.08</b></td><td><b>600.00</b></td><td>2026-11-10</td></tr>
+        <table class="tbl"><thead><tr><th>Moment</th><th>Frozen · September</th><th>Live · last capture</th><th>captured_at of the live report</th></tr></thead><tbody>
+          <tr><td>before</td><td>1,049.08</td><td>571.17</td><td>1794009600</td></tr>
+          <tr><td>after the simulated capture</td><td><b>1,049.08</b></td><td><b>600.00</b></td><td>1794268800</td></tr>
         </tbody></table>
         <div class="stack">
           <div class="kpi"><b>1,226 · 5</b><span>card prices and set values kept in the reports of September</span></div>
@@ -870,11 +883,11 @@ ready, and five questions came from the business.
 <span class="k">[R] Request</span>
 sql/05_questions.sql, one query per question, each reading the cube or the
 mart and never db_ingestion, with a comment naming the OLAP operation:
-Q1 roll-up: on 2026-11-07, the average and the maximum market price of a
-   card of each rarity;
+Q1 roll-up: on 2026-11-07 (date_unix 1794009600), the average and the
+   maximum market price of a card of each rarity;
 Q2 slice: the five most expensive cards of Ascended Heroes (ASC) on
    2026-11-07;
-Q3 pivot: the market value of each set (rows) on each capture date
+Q3 pivot: the market value of each set (rows) in each month of capture
    (columns);
 Q4 dice and pivot: for Common, Uncommon, Rare and Double Rare on
    2026-11-07, the average price of each variant (Normal, Reverse
@@ -895,13 +908,14 @@ Facts measured on 07/11/2026 (confirm before use):
   571.17, +18.9 % and +US$ 90.59; every other card lost value.
 
 <span class="k">[E] Example</span>
-PIVOT (SELECT set_name, strftime(date, &#x27;%m-%d&#x27;) AS day, market_value
+PIVOT (SELECT set_name, month, market_value
        FROM mart_collectors.set_value)
-ON day USING sum(market_value) GROUP BY set_name;
+ON month USING sum(market_value) GROUP BY set_name;
 
 <span class="k">[A] Adjustments</span>
 - Q5 compares the same card and variant on two dates, with arg_min and
-  arg_max of market_price by date, never the sum of a set.
+  arg_max of market_price by captured_at, never the sum of a set.
+- Every date is Unix time in seconds; filter a day by its date_unix.
 - Ignore products without market price.
 
 <span class="k">[T] Type of output</span>
@@ -957,7 +971,7 @@ Stop at the end.</code></pre>
   <section class="slide">
     <div class="sc">
       <header class="sh si reveal"><span class="kick">Q3 · Pivot</span><div class="st">The value of each set on each date</div><p class="ss">One copy of every card of a set, priced on each capture date. The sum is valid inside a date and the dates sit side by side, never added.</p></header>
-      <table class="tbl tbl-sm reveal"><thead><tr><th>Set</th><th>03-01</th><th>05-01</th><th>07-01</th><th>09-01</th><th>11-07</th></tr></thead><tbody>
+      <table class="tbl tbl-sm reveal"><thead><tr><th>Set</th><th>2026-03</th><th>2026-05</th><th>2026-07</th><th>2026-09</th><th>2026-11</th></tr></thead><tbody>
         <tr><td>ME: Ascended Heroes</td><td>5,910.16</td><td>7,699.40</td><td>7,576.39</td><td>5,712.33</td><td>3,516.89</td></tr>
         <tr><td>ME03: Perfect Order</td><td></td><td>917.08</td><td>781.93</td><td>627.94</td><td>459.14</td></tr>
         <tr><td>ME04: Chaos Rising</td><td></td><td></td><td>953.79</td><td>653.84</td><td>436.91</td></tr>
@@ -994,12 +1008,12 @@ Stop at the end.</code></pre>
   <section class="slide">
     <div class="sc">
       <header class="sh si reveal"><span class="kick">Q5 · The question of the session</span><div class="st">One card out of 137 appreciated</div><p class="ss">Each card is compared with itself, in the same variant, on its first capture and on 07/11/2026. Only cards that cost at least US$ 5 at the first capture enter, so that a few cents do not become a large percentage.</p></header>
-      <table class="tbl tbl-sm reveal"><thead><tr><th>Set</th><th>Card</th><th>Rarity</th><th>First capture</th><th>First US$</th><th>07/11 US$</th><th>Gain US$</th><th>Gain %</th></tr></thead><tbody>
-        <tr><td>ASC</td><td><b>Pikachu ex - 276/217</b></td><td>Special Illustration Rare</td><td>2026-03-01</td><td>480.58</td><td>571.17</td><td><b>+90.59</b></td><td><b>+18.9</b></td></tr>
-        <tr><td>PBL</td><td>Crushing Hammer</td><td>Ultra Rare</td><td>2026-09-01</td><td>5.20</td><td>4.37</td><td>−0.83</td><td>−16.0</td></tr>
-        <tr><td>PBL</td><td>Mega Zeraora ex - 098/084</td><td>Ultra Rare</td><td>2026-09-01</td><td>6.69</td><td>5.61</td><td>−1.08</td><td>−16.1</td></tr>
-        <tr><td>ASC</td><td>Pikachu ex - 277/217</td><td>Special Illustration Rare</td><td>2026-03-01</td><td>327.88</td><td>243.04</td><td>−84.84</td><td>−25.9</td></tr>
-        <tr><td>ASC</td><td>Mega Dragonite ex - 290/217</td><td>Special Illustration Rare</td><td>2026-03-01</td><td>574.74</td><td>402.35</td><td>−172.39</td><td>−30.0</td></tr>
+      <table class="tbl tbl-sm reveal"><thead><tr><th>Set</th><th>Card</th><th>Rarity</th><th>First capture (Unix)</th><th>First US$</th><th>07/11 US$</th><th>Gain US$</th><th>Gain %</th></tr></thead><tbody>
+        <tr><td>ASC</td><td><b>Pikachu ex - 276/217</b></td><td>Special Illustration Rare</td><td>1772323200</td><td>480.58</td><td>571.17</td><td><b>+90.59</b></td><td><b>+18.9</b></td></tr>
+        <tr><td>PBL</td><td>Crushing Hammer</td><td>Ultra Rare</td><td>1788220800</td><td>5.20</td><td>4.37</td><td>−0.83</td><td>−16.0</td></tr>
+        <tr><td>PBL</td><td>Mega Zeraora ex - 098/084</td><td>Ultra Rare</td><td>1788220800</td><td>6.69</td><td>5.61</td><td>−1.08</td><td>−16.1</td></tr>
+        <tr><td>ASC</td><td>Pikachu ex - 277/217</td><td>Special Illustration Rare</td><td>1772323200</td><td>327.88</td><td>243.04</td><td>−84.84</td><td>−25.9</td></tr>
+        <tr><td>ASC</td><td>Mega Dragonite ex - 290/217</td><td>Special Illustration Rare</td><td>1772323200</td><td>574.74</td><td>402.35</td><td>−172.39</td><td>−30.0</td></tr>
       </tbody></table>
       <div class="callout dark reveal"><b>Answer</b>Among the 137 cards that cost at least US$ 5 on their first capture, only the Pikachu ex 276/217 of Ascended Heroes appreciated, by 18.9 % and US$ 90.59. All the others lost value, which is the usual path of a set after its release. The same model, with a longer window or a lower threshold, would show the cards that recover later.</div>
     </div>
@@ -1043,9 +1057,9 @@ object of the group starts with gNN_.
    non-additive, and five questions of the partner, each one with the OLAP
    operation that answers it (roll-up, drill-down, slice, dice or pivot).
 2. sql/clickhouse/00_db_ingestion.sql: table lab.gNN_db_ingestion
-   (timestamp DateTime64(3), data_json String, data_tag
-   LowCardinality(String)), MergeTree ORDER BY (data_tag, timestamp), and
-   the command that loads our enriched data into it.
+   (timestamp Int64, data_json String, data_tag LowCardinality(String)),
+   MergeTree ORDER BY (data_tag, timestamp), with timestamp in Unix time
+   (seconds, UTC), and the command that loads our enriched data into it.
 3. sql/clickhouse/01_dimensions.sql: one view lab.gNN_dim_&lt;name&gt; per
    dimension, with JSONExtractString, JSONExtractFloat and JSONExtractInt.
 4. sql/clickhouse/02_fact.sql: the fact as a view lab.gNN_fact_&lt;process&gt;,
@@ -1068,6 +1082,10 @@ FROM lab.g01_db_ingestion
 WHERE data_tag = &#x27;partner.customer.v1&#x27;;
 
 <span class="k">[A] Adjustments</span>
+- Every date of the model is Unix time in seconds (Int64), never Date or
+  DateTime: the day is intDiv(timestamp, 86400) * 86400, and a label such
+  as the month comes from formatDateTime(toDateTime(timestamp, &#x27;UTC&#x27;),
+  &#x27;%Y-%m&#x27;).
 - Replace gNN with the number of the group in every object; never drop an
   object of another group.
 - The console http://10.8.8.10:8123/play runs one statement at a time:

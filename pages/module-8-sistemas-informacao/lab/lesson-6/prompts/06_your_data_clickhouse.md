@@ -11,9 +11,9 @@ object of the group starts with gNN_.
    non-additive, and five questions of the partner, each one with the OLAP
    operation that answers it (roll-up, drill-down, slice, dice or pivot).
 2. sql/clickhouse/00_db_ingestion.sql: table lab.gNN_db_ingestion
-   (timestamp DateTime64(3), data_json String, data_tag
-   LowCardinality(String)), MergeTree ORDER BY (data_tag, timestamp), and
-   the command that loads our enriched data into it.
+   (timestamp Int64, data_json String, data_tag LowCardinality(String)),
+   MergeTree ORDER BY (data_tag, timestamp), with timestamp in Unix time
+   (seconds, UTC), and the command that loads our enriched data into it.
 3. sql/clickhouse/01_dimensions.sql: one view lab.gNN_dim_<name> per
    dimension, with JSONExtractString, JSONExtractFloat and JSONExtractInt.
 4. sql/clickhouse/02_fact.sql: the fact as a view lab.gNN_fact_<process>,
@@ -36,6 +36,10 @@ FROM lab.g01_db_ingestion
 WHERE data_tag = 'partner.customer.v1';
 
 [A] Adjustments
+- Every date of the model is Unix time in seconds (Int64), never Date or
+  DateTime: the day is intDiv(timestamp, 86400) * 86400, and a label such
+  as the month comes from formatDateTime(toDateTime(timestamp, 'UTC'),
+  '%Y-%m').
 - Replace gNN with the number of the group in every object; never drop an
   object of another group.
 - The console http://10.8.8.10:8123/play runs one statement at a time:

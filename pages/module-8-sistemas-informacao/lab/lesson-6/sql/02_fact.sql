@@ -11,7 +11,7 @@
 
 CREATE OR REPLACE VIEW gold.fact_price AS
 SELECT
-    CAST(strftime(i.timestamp, '%Y%m%d') AS INTEGER)   AS date_key,
+    i.timestamp // 86400 * 86400                        AS date_unix,
     CAST(i.data_json->>'productId' AS INTEGER)          AS product_id,
     p.set_id,
     i.data_json->>'subTypeName'                         AS variant,
@@ -19,21 +19,21 @@ SELECT
     CAST(i.data_json->>'lowPrice' AS DECIMAL(10, 2))    AS low_price,
     CAST(i.data_json->>'midPrice' AS DECIMAL(10, 2))    AS mid_price,
     CAST(i.data_json->>'highPrice' AS DECIMAL(10, 2))   AS high_price,
-    date_diff('day', s.released_on, CAST(i.timestamp AS DATE)) AS days_since_release
+    (i.timestamp // 86400 * 86400 - s.released_at) // 86400 AS days_since_release
 FROM db_ingestion AS i
 JOIN gold.dim_product AS p ON p.product_id = CAST(i.data_json->>'productId' AS INTEGER)
 JOIN gold.dim_set     AS s ON s.set_id = p.set_id
 WHERE i.data_tag = 'tcgplayer.price.v1';
 
--- The test of the grain: rows = distinct (date, product, variant).
+-- The test of the grain: rows = distinct (date_unix, product, variant).
 SELECT count(*) AS rows,
-       count(DISTINCT (date_key, product_id, variant)) AS grain_keys,
+       count(DISTINCT (date_unix, product_id, variant)) AS grain_keys,
        count(*) FILTER (WHERE market_price IS NULL)    AS without_market_price
 FROM gold.fact_price;
 
 -- Prices per date and set: the sets released later appear later.
-SELECT d.date, s.set_code, count(*) AS prices
+SELECT f.date_unix, d.month, s.set_code, count(*) AS prices
 FROM gold.fact_price AS f
-JOIN gold.dim_date AS d USING (date_key)
-JOIN gold.dim_set  AS s USING (set_id)
-GROUP BY ALL ORDER BY d.date, s.set_code;
+JOIN gold.dim_date AS d USING (date_unix)
+JOIN gold.dim_set  AS s ON s.set_id = f.set_id
+GROUP BY ALL ORDER BY f.date_unix, s.set_code;

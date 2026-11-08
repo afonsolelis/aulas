@@ -109,7 +109,7 @@
     <section class="lab-head">
       <p class="meta">Module 8 · Information Systems · Lesson 6 · Lab</p>
       <h1>Dimensional modelling in the browser</h1>
-      <p>DuckDB runs inside this page. The table <code>db_ingestion</code> holds what was captured from TCGplayer about the Pokémon TCG sets of 2026 and is kept in the localStorage of the browser, together with every statement that created an object, so the model survives a reload. Each step has a CREATE prompt for the coding agent and the reference SQL of the professor.</p>
+      <p>DuckDB runs inside this page. Every date is Unix time, in seconds. The table <code>db_ingestion</code> holds what was captured from TCGplayer about the Pokémon TCG sets of 2026 and is kept in the localStorage of the browser, together with every statement that created an object, so the model survives a reload. Each step has a CREATE prompt for the coding agent and the reference SQL of the professor.</p>
       <div class="status" id="status">
         <span class="wait" id="st-engine">DuckDB: loading</span>
         <span class="wait" id="st-data">db_ingestion: waiting</span>
@@ -135,7 +135,8 @@
             <span class="hint">Ctrl+Enter runs every statement · results appear below</span>
           </div>
           <textarea id="sql" spellcheck="false" aria-label="SQL editor">-- Paste the SQL written by the agent, or load the reference of a step.
-SELECT data_tag, count(*) AS rows, min(timestamp) AS first, max(timestamp) AS last
+-- timestamp is Unix time: seconds since 1970-01-01 UTC.
+SELECT data_tag, count(*) AS rows, min(timestamp) AS first_unix, max(timestamp) AS last_unix
 FROM db_ingestion
 GROUP BY data_tag
 ORDER BY data_tag;</textarea>
@@ -178,9 +179,9 @@ ORDER BY data_tag;</textarea>
   <script type="module">
     import * as duckdb from 'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.32.0/+esm';
 
-    const KEY_DATA = 'm8si-l6.db_ingestion.gz.b64';
-    const KEY_LOG = 'm8si-l6.model.statements';
-    const KEY_DRAFT = 'm8si-l6.editor';
+    const KEY_DATA = 'm8si-l6.v2.db_ingestion.gz.b64';  // v2: timestamp in Unix time
+    const KEY_LOG = 'm8si-l6.v2.model.statements';
+    const KEY_DRAFT = 'm8si-l6.v2.editor';
     const WRITES = /^(CREATE|INSERT|UPDATE|DELETE|DROP|ALTER)\b/i;
     const MAX_ROWS = 500;
     const $ = (id) => document.getElementById(id);
@@ -215,10 +216,11 @@ ORDER BY data_tag;</textarea>
     function readLog() { try { return JSON.parse(localStorage.getItem(KEY_LOG) || '[]'); } catch { return []; } }
     function writeLog(list) { try { localStorage.setItem(KEY_LOG, JSON.stringify(list)); } catch (e) { console.warn('localStorage full', e); } }
 
-    function formatValue(v, typeId) {
+    function formatValue(v, typeId, name = '') {
       if (v === null || v === undefined) return '';
       if (typeId === 8 && typeof v === 'number') return new Date(v).toISOString().slice(0, 10);
       if (typeId === 10 && typeof v === 'number') return new Date(v).toISOString().replace('T', ' ').slice(0, 19);
+      if (typeof v === 'number' && /(^|_)(timestamp|unix|captured_at|released_at)$/.test(name)) return String(v);
       if (typeof v === 'bigint') return v.toString();
       if (typeof v === 'number') return Number.isInteger(v) ? v.toLocaleString('en-US') : v.toLocaleString('en-US', { maximumFractionDigits: 4 });
       if (typeof v === 'object') { try { return JSON.stringify(v.toJSON ? v.toJSON() : v, (k, x) => typeof x === 'bigint' ? x.toString() : x); } catch { return String(v); } }
@@ -246,7 +248,7 @@ ORDER BY data_tag;</textarea>
           const r = document.createElement('tr');
           fields.forEach((f) => {
             const td = document.createElement('td'); const v = row[f.name];
-            td.textContent = formatValue(v, f.type.typeId);
+            td.textContent = formatValue(v, f.type.typeId, f.name);
             if (typeof v === 'number' || typeof v === 'bigint') td.className = 'num';
             td.title = td.textContent; r.appendChild(td);
           });
@@ -325,7 +327,7 @@ ORDER BY data_tag;</textarea>
       }
       await window.__db.registerFileText('db_ingestion.json', await gunzip(bytes));
       await conn.query(`CREATE OR REPLACE TABLE db_ingestion AS
-        SELECT * FROM read_json('db_ingestion.json', columns = {'timestamp': 'TIMESTAMP', 'data_json': 'JSON', 'data_tag': 'VARCHAR'})`);
+        SELECT * FROM read_json('db_ingestion.json', columns = {'timestamp': 'BIGINT', 'data_json': 'JSON', 'data_tag': 'VARCHAR'})`);
       const n = (await conn.query('SELECT count(*) AS n FROM db_ingestion')).toArray()[0].n;
       setStatus('st-data', 'ok', `db_ingestion: ${Number(n).toLocaleString('en-US')} rows`);
     }
@@ -360,6 +362,9 @@ ORDER BY data_tag;</textarea>
       $('run').disabled = false;
       await refreshCatalogue(); refreshStorage();
     }
+
+    // Leftovers of the first version of the lab, with dates as text.
+    try { ['m8si-l6.db_ingestion.gz.b64', 'm8si-l6.model.statements', 'm8si-l6.editor'].forEach((k) => localStorage.removeItem(k)); } catch {}
 
     // UI ------------------------------------------------------------------
     try { const d = localStorage.getItem(KEY_DRAFT); if (d) $('sql').value = d; } catch {}

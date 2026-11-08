@@ -5,11 +5,11 @@ ready, and five questions came from the business.
 [R] Request
 sql/05_questions.sql, one query per question, each reading the cube or the
 mart and never db_ingestion, with a comment naming the OLAP operation:
-Q1 roll-up: on 2026-11-07, the average and the maximum market price of a
-   card of each rarity;
+Q1 roll-up: on 2026-11-07 (date_unix 1794009600), the average and the
+   maximum market price of a card of each rarity;
 Q2 slice: the five most expensive cards of Ascended Heroes (ASC) on
    2026-11-07;
-Q3 pivot: the market value of each set (rows) on each capture date
+Q3 pivot: the market value of each set (rows) in each month of capture
    (columns);
 Q4 dice and pivot: for Common, Uncommon, Rare and Double Rare on
    2026-11-07, the average price of each variant (Normal, Reverse
@@ -30,13 +30,14 @@ Facts measured on 07/11/2026 (confirm before use):
   571.17, +18.9 % and +US$ 90.59; every other card lost value.
 
 [E] Example
-PIVOT (SELECT set_name, strftime(date, '%m-%d') AS day, market_value
+PIVOT (SELECT set_name, month, market_value
        FROM mart_collectors.set_value)
-ON day USING sum(market_value) GROUP BY set_name;
+ON month USING sum(market_value) GROUP BY set_name;
 
 [A] Adjustments
 - Q5 compares the same card and variant on two dates, with arg_min and
-  arg_max of market_price by date, never the sum of a set.
+  arg_max of market_price by captured_at, never the sum of a set.
+- Every date is Unix time in seconds; filter a day by its date_unix.
 - Ignore products without market price.
 
 [T] Type of output

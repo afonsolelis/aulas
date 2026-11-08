@@ -15,34 +15,34 @@ CREATE SCHEMA IF NOT EXISTS report;
 CREATE OR REPLACE TABLE report.mv_card_price_2026_09 AS
 SELECT set_name, card, rarity, variant, market_price
 FROM mart_collectors.card_price
-WHERE strftime(date, '%Y-%m') = '2026-09';
+WHERE month = '2026-09';
 
 CREATE OR REPLACE TABLE report.mv_set_value_2026_09 AS
 SELECT set_name, prices, market_value
 FROM mart_collectors.set_value
-WHERE strftime(date, '%Y-%m') = '2026-09';
+WHERE month = '2026-09';
 
 -- Normal views, live: always the last capture that arrived.
 CREATE OR REPLACE VIEW report.v_card_price_latest AS
-SELECT date, set_name, card, rarity, variant, market_price
+SELECT captured_at, set_name, card, rarity, variant, market_price
 FROM mart_collectors.card_price
-WHERE date = (SELECT max(date) FROM mart_collectors.card_price);
+WHERE captured_at = (SELECT max(captured_at) FROM mart_collectors.card_price);
 
 CREATE OR REPLACE VIEW report.v_set_value_latest AS
-SELECT date, set_name, prices, market_value
+SELECT captured_at, set_name, prices, market_value
 FROM mart_collectors.set_value
-WHERE date = (SELECT max(date) FROM mart_collectors.set_value);
+WHERE captured_at = (SELECT max(captured_at) FROM mart_collectors.set_value);
 
 -- Before: the Pikachu ex 276/217 in the frozen report and in the live one.
 SELECT 'before' AS moment,
        (SELECT market_price FROM report.mv_card_price_2026_09 WHERE card = 'Pikachu ex - 276/217') AS frozen_september,
        (SELECT market_price FROM report.v_card_price_latest  WHERE card = 'Pikachu ex - 276/217') AS live_latest,
-       (SELECT max(date) FROM report.v_card_price_latest)                                          AS live_date;
+       (SELECT max(captured_at) FROM report.v_card_price_latest)                                   AS live_captured_at;
 
 -- A new capture arrives in the landing table. This record is SIMULATED for
--- the demonstration: a price of US$ 600.00 on 10/11/2026.
+-- the demonstration: a price of US$ 600.00 on 2026-11-10 12:00 UTC.
 INSERT INTO db_ingestion VALUES (
-    TIMESTAMP '2026-11-10 12:00:00',
+    1794312000,
     '{"productId":676088,"lowPrice":560.0,"midPrice":690.0,"highPrice":5000.0,"marketPrice":600.0,"directLowPrice":null,"subTypeName":"Holofoil"}',
     'tcgplayer.price.v1');
 
@@ -50,10 +50,10 @@ INSERT INTO db_ingestion VALUES (
 SELECT 'after' AS moment,
        (SELECT market_price FROM report.mv_card_price_2026_09 WHERE card = 'Pikachu ex - 276/217') AS frozen_september,
        (SELECT market_price FROM report.v_card_price_latest  WHERE card = 'Pikachu ex - 276/217') AS live_latest,
-       (SELECT max(date) FROM report.v_card_price_latest)                                          AS live_date;
+       (SELECT max(captured_at) FROM report.v_card_price_latest)                                   AS live_captured_at;
 
 -- Remove the simulated capture, so that the next steps use only real data.
-DELETE FROM db_ingestion WHERE timestamp = TIMESTAMP '2026-11-10 12:00:00';
+DELETE FROM db_ingestion WHERE timestamp = 1794312000;
 
 -- What each object of the model keeps.
 SELECT schema_name, table_name AS object, 'table (materialized)' AS kind, estimated_size AS rows

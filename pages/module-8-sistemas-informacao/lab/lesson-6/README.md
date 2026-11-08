@@ -6,14 +6,17 @@ The lab is the page `index.html` of this folder, published with the module. It r
 
 ## How the page works
 
-1. On the first visit it downloads `data/db_ingestion.json.gz` (132 KB) and keeps it, in base64, in the localStorage of the browser (about 343 KB counted in UTF-16, of about 5 MB per site).
+1. On the first visit it downloads `data/db_ingestion.json.gz` (131 KB) and keeps it, in base64, in the localStorage of the browser (about 343 KB counted in UTF-16, of about 5 MB per site).
 2. It creates the table `db_ingestion` from that copy and replays every statement that created, changed or dropped an object, which is also kept in the localStorage. The model survives a reload or the closing of the tab.
 3. "Prompt" opens the CREATE prompt of a step (`prompts/`); "Reference SQL" loads the SQL of the professor (`sql/`). Ctrl+Enter runs every statement of the editor and shows one result per statement.
 4. "Drop the model" removes every object except `db_ingestion`; "Forget everything" also removes the data and the draft of the editor.
 
 ## The data
 
-`db_ingestion(timestamp TIMESTAMP, data_json JSON, data_tag VARCHAR)`, captured on 07/11/2026 from tcgcsv.com, the public daily mirror of the catalogue and the prices of TCGplayer (category 3, Pokémon):
+Every date of the lab is Unix time, in seconds since 1970-01-01 UTC: `timestamp` in the landing table, `date_unix` (00:00 UTC of the day) in `gold.dim_date` and in the fact, `released_at` in `gold.dim_set` and `captured_at` in the mart and the reports. Month, quarter and year are labels of the hierarchy.
+
+
+`db_ingestion(timestamp BIGINT, data_json JSON, data_tag VARCHAR)`, captured on 07/11/2026 from tcgcsv.com, the public daily mirror of the catalogue and the prices of TCGplayer (category 3, Pokémon):
 
 | data_tag | One record is | Rows |
 |---|---|---:|

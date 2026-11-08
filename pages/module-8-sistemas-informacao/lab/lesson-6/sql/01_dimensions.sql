@@ -6,7 +6,8 @@
 -- the field names of TCGplayer.
 --
 -- Dimensions are views: they store no copy and always show the current
--- state of db_ingestion.
+-- state of db_ingestion. Every date is Unix time, in seconds since
+-- 1970-01-01 UTC, as the column timestamp of db_ingestion.
 
 CREATE SCHEMA IF NOT EXISTS gold;
 
@@ -21,8 +22,8 @@ SELECT
     CAST(data_json->>'groupId' AS INTEGER)              AS set_id,
     data_json->>'name'                                  AS set_name,
     data_json->>'abbreviation'                          AS set_code,
-    CAST(CAST(data_json->>'publishedOn' AS TIMESTAMP) AS DATE) AS released_on,
-    strftime(CAST(data_json->>'publishedOn' AS TIMESTAMP), '%Y-%m') AS release_month
+    CAST(epoch(CAST(data_json->>'publishedOn' AS TIMESTAMP)) AS BIGINT) AS released_at,
+    strftime(CAST(data_json->>'publishedOn' AS TIMESTAMP), '%Y-%m')     AS release_month
 FROM db_ingestion
 WHERE data_tag = 'tcgplayer.set.v1';
 
@@ -48,14 +49,14 @@ SELECT DISTINCT data_json->>'subTypeName' AS variant
 FROM db_ingestion
 WHERE data_tag = 'tcgplayer.price.v1';
 
--- Date of capture, with the hierarchy year > quarter > month > day.
+-- Date of capture, with the hierarchy year > quarter > month > day. The key
+-- date_unix is the Unix time of 00:00 UTC of the day of the capture.
 CREATE OR REPLACE VIEW gold.dim_date AS
 SELECT DISTINCT
-    CAST(strftime(timestamp, '%Y%m%d') AS INTEGER) AS date_key,
-    CAST(timestamp AS DATE)                        AS date,
-    strftime(timestamp, '%Y-%m')                   AS month,
-    year(timestamp) || '-Q' || quarter(timestamp)  AS quarter,
-    year(timestamp)                                AS year
+    timestamp // 86400 * 86400                            AS date_unix,
+    strftime(epoch_ms(timestamp * 1000), '%Y-%m')         AS month,
+    year(epoch_ms(timestamp * 1000)) || '-Q' || quarter(epoch_ms(timestamp * 1000)) AS quarter,
+    year(epoch_ms(timestamp * 1000))                      AS year
 FROM db_ingestion
 WHERE data_tag = 'tcgplayer.price.v1';
 
