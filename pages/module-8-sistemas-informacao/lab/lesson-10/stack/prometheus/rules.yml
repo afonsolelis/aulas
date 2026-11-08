@@ -22,7 +22,9 @@ groups:
           severity: critical
         annotations:
           summary: "The last run of tcg-dataapp on {{ $labels.instance }} failed"
-          description: "tcg_run_failed_tasks counts the tasks that failed or were skipped; ops.pipeline_runs has the error of each attempt."
+          # The alert carries the trace of the run: tcg_run_info has the trace_id as a label.
+          description: >-
+            {{ with query "tcg_run_info{job='tcg_dataapp'}" }}{{ with first . }}Run {{ .Labels.run_id }}, trace {{ .Labels.trace_id }}: open it in Tempo, then the log lines of the failing span in Loki.{{ end }}{{ end }}
 
       - alert: TcgNoSuccessfulRun
         # the run is scheduled daily; two hours of tolerance
@@ -62,3 +64,31 @@ groups:
           severity: warning
         annotations:
           summary: "Prometheus cannot read the state of the warehouse"
+
+  # Lesson 10 · the closed loop. These alerts are the human part of the loop:
+  # they fire only when the controller cannot correct the DataApp on its own.
+  - name: tcg_controller_alerts
+    rules:
+      - alert: TcgControllerEscalated
+        expr: tcg_controller_escalated{job="tcg_controller"} == 1
+        labels:
+          severity: critical
+        annotations:
+          summary: "The controller of tcg-dataapp handed the loop to a person"
+          description: "ops.controller_state has the reason; tcg-dataapp control --acknowledge clears it after the fix."
+
+      - alert: TcgControllerBreakerOpenTooLong
+        expr: max_over_time(tcg_controller_breaker_open{job="tcg_controller"}[2h]) == 1 and tcg_controller_breaker_open{job="tcg_controller"} == 1
+        for: 2h
+        labels:
+          severity: warning
+        annotations:
+          summary: "The circuit breaker on tcgcsv.com has been open for two hours"
+
+      - alert: TcgControllerSilent
+        # the loop itself can stop; nobody would notice without this rule
+        expr: time() - tcg_controller_last_tick_timestamp_seconds{job="tcg_controller"} > 3 * 300
+        labels:
+          severity: warning
+        annotations:
+          summary: "The controller has not ticked for {{ $value | humanizeDuration }}"

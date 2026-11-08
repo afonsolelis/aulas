@@ -1,0 +1,30 @@
+# Lesson 10 · the OpenTelemetry collector: receives OTLP from the DataApp and routes each signal.
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch: {}
+
+exporters:
+  otlp/tempo:                 # traces → Tempo, by OTLP over gRPC
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+  otlphttp/loki:              # logs → Loki, by its native OTLP endpoint
+    endpoint: http://loki:3100/otlp
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp/tempo]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/loki]

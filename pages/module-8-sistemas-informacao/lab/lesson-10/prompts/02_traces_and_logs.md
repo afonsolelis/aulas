@@ -1,51 +1,58 @@
 [C] Character
-You are the same engineer. The run now measures itself, but Prometheus
-collects by pulling: it reads an HTTP endpoint every 15 seconds, and a
-run of forty seconds is gone before most scrapes.
+You are the same data engineer. The metrics say that a run failed and how
+long each task took, but not where inside the run the time went, nor what
+the program said when it failed. Those are the other two signals: the trace,
+which records the path of one run as a tree of spans, and the log, which
+records discrete events. They are useful together only if they share
+identifiers.
 
 [R] Request
-1. RunMetrics.push(gateway, instance): pushadd_to_gateway in the group
-   job=tcg_dataapp, instance=<instance>; the registry of the last success is
-   pushed only after a successful run.
-2. tcg-dataapp run --push URL (or TCG_PUSHGATEWAY; TCG_INSTANCE, default
-   local). A push that fails prints a warning and does not change the exit
-   code of the run.
-3. A custom collector WarehouseCollector(db_path) that, at each scrape,
-   opens the DuckDB file read-only and reports:
-   - tcg_ingestion_rows, tcg_ingestion_last_timestamp_seconds and
-     tcg_ingestion_batches by data_tag;
-   - tcg_gold_fact_rows and tcg_gold_fact_grain_keys;
-   - tcg_pipeline_last_run_tasks{status} and
-     tcg_pipeline_last_run_end_timestamp_seconds from ops.pipeline_runs;
-   - tcg_warehouse_readable: 1, or 0 when the file is missing, locked by a
-     run or without the gold layer, instead of failing the scrape.
-4. tcg-dataapp metrics [--port 9108] [--once]: the exporter, serving
-   /metrics with start_http_server, or one scrape printed.
-5. Tests: the push sends two POSTs to /metrics/job/tcg_dataapp/instance/test
-   after a good run and one after a failed run (a fake Pushgateway with
-   http.server); the exporter reads freshness, volume and grain; an
-   unreadable warehouse gives tcg_warehouse_readable 0.
-
-Facts measured on 08/11/2026 (confirm before use):
-- The exporter after a real run: 5,951 prices in 5 batches, newest price
-  at 1794052800 (07/11/2026 12:00 UTC), fact 5,951 rows = 5,951 keys,
-  12 tasks ok in the last run.
-- A scrape during a run returned tcg_warehouse_readable 0: DuckDB accepts
-  one writer process and no reader while it writes.
+Add traces and structured logs with OpenTelemetry (opentelemetry-sdk and
+opentelemetry-exporter-otlp-proto-http):
+1. src/tcg_dataapp/observability.py:
+   - tracer() and logger() over the OpenTelemetry API, so the package does
+     nothing extra until a provider is installed;
+   - a JsonFormatter that writes one JSON object per line with ts (Unix
+     seconds), level, msg, service, run_id, trace_id and span_id of the
+     active span, and the fields passed in extra=;
+   - setup(log_path, otlp_endpoint): the JSON lines go to
+     out/logs/tcg-dataapp.jsonl; with TCG_OTLP_ENDPOINT, the spans go to
+     /v1/traces and the log records to /v1/logs of the collector, with a
+     batch processor; flush() at the end of each command.
+2. Spans:
+   - tcg_dataapp.run, the root, with tcg.run_id, tcg.trigger and tcg.sets;
+   - task <name>, one per task, with an event "attempt failed" per failed
+     attempt, the exception recorded and the status ERROR when the task
+     fails for good; skipped tasks get tcg.status = skipped;
+   - tcgcsv.<endpoint>, one per request, kind CLIENT, with the server and
+     the number of records, from the InstrumentedClient;
+   - sql <file>, one per SQL file of build_gold, with db.statements.
+3. Log lines run.start, task.ok, task.fail, task.skip and run.end, written
+   inside the span they describe, with a contextvar for the run_id.
+4. tcg-dataapp run prints the trace_id next to the run_id, and
+   RunMetrics.finish receives the trace_id for tcg_run_info.
+5. tests/test_signals.py with an InMemorySpanExporter installed once in
+   conftest.py: a run is one trace whose tasks are children of the root; a
+   failure marks its span and skips the dependents; every log line of a run
+   has its run_id and trace_id, and the line of a failing attempt has the
+   span_id of its task.
 
 [E] Example
-pushadd_to_gateway(gateway, job="tcg_dataapp", registry=self.registry,
-                   grouping_key={"instance": instance})
+{"ts": 1794146637.498, "level": "error", "msg": "task attempt failed",
+ "run_id": "e44b5b8a34eb", "trace_id": "5d1d4930...", "span_id": "ba8fc2d7eb92ef1c",
+ "event": "task.fail", "task": "extract_sets", "attempt": 3,
+ "error": "ConnectionError: fault injected: source_down"}
 
 [A] Adjustments
-- pushadd (POST), not push (PUT): PUT replaces the whole group and would
-  erase the time of the last success when a run fails.
-- The exporter computes nothing new: it reads what the pipeline and the
-  gold layer already keep.
+- The processors and the etls call only the OpenTelemetry API; the SDK is
+  configured by the command line and by the tests, never by a library.
+- Spans of requests do not record the URL with parameters, only the
+  server and the endpoint.
+- A JSON log line never carries data of the source, only counts and errors.
 
 [T] Type of output
-The files, the output of pytest, of tcg-dataapp run --push and of
-tcg-dataapp metrics --once.
+The files, the output of pytest, one trace printed as a tree (name,
+duration, status) and the last five lines of the JSON log.
 
 [E] Extras
 Show the plan before editing. Record this prompt in docs/prompts.md.

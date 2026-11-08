@@ -13,7 +13,7 @@ from pathlib import Path
 
 import py7zr
 
-USER_AGENT = "tcg-dataapp/0.4 (Inteli, Module 8)"
+USER_AGENT = "tcg-dataapp/0.4.1 (Inteli, Module 8)"
 
 
 class TcgcsvClient:

@@ -241,6 +241,23 @@
     .steps p { margin:0; font-size:.72rem; line-height:1.4; color:color-mix(in srgb,var(--ink) 75%,var(--paper)); }
     .stack { display:flex; flex-direction:column; gap:10px; }
     .steps b { display:block; margin-bottom:5px; font-size:1rem; }
+    .loop-fig { background:var(--paper); border:1px solid var(--line); border-radius:6px; padding:8px 10px; }
+    .loop-svg { display:block; width:100%; height:auto; max-height:34vh; }
+    .loop-svg .loop-node rect, .loop-svg .loop-node circle { fill:var(--paper); stroke:var(--ink); stroke-width:1.5; }
+    .loop-svg .loop-node.is-ref rect { fill:var(--soft-si); stroke:var(--si-deep); }
+    .loop-svg .loop-node.is-plant rect { fill:var(--soft-ink); }
+    .loop-svg .loop-node.is-sensor rect { fill:var(--soft-si); stroke:var(--si-deep); }
+    .loop-svg .loop-node.is-human rect { fill:var(--paper); stroke-dasharray:5 4; }
+    .loop-svg text { fill:var(--ink); font:700 17px 'Inter',sans-serif; text-anchor:middle; }
+    .loop-svg text.sub { font:500 12.5px 'JetBrains Mono',monospace; fill:color-mix(in srgb,var(--ink) 72%,var(--paper)); }
+    .loop-svg text.out { font-size:18px; fill:var(--ink); }
+    .loop-svg .loop-edge { fill:none; stroke:var(--ink); stroke-width:1.6; }
+    .loop-svg .loop-edge.is-feedback { stroke:var(--si-deep); stroke-width:2.2; }
+    .loop-svg .loop-edge.is-dashed { stroke-dasharray:5 4; }
+    .loop-svg .loop-head { fill:var(--ink); }
+    .loop-svg .loop-lbl { font:600 12px 'JetBrains Mono',monospace; fill:var(--si-deep); }
+    .loop-legend { margin-top:10px; }
+    .loop-legend .card p { font-size:.76rem; }
   </style>
   <script type="module">
     import { animate, stagger } from 'https://cdn.jsdelivr.net/npm/animejs@4/+esm';
@@ -266,8 +283,8 @@
       <span class="cover-badge">Module 8 · Information Systems · Lesson 10 · Week 9</span>
       <p class="eyebrow">Instruction session · Wednesday, December 9, 2026 · one hour of demonstration, one hour of application</p>
       <h1>Metrics and Telemetry</h1>
-      <p class="lead">The package of Lesson 7 runs the model in one command, but a run is only described by what it prints. This session turns every run and the state of the warehouse into Prometheus metrics, answers questions about them in PromQL and writes the alerts that warn when the data stops arriving or the model breaks.</p>
-      <div class="cover-tags"><span>Prometheus</span><span>Pushgateway</span><span>Custom exporter</span><span>PromQL</span><span>Grafana</span><span>Alerting rules</span></div>
+      <p class="lead">The package of Lesson 7 runs the model in one command, but a run is only described by what it prints. This session gives the DataApp the three signals of observability, metrics, traces and logs, linked by the identifiers they share, and then closes the loop: a controller compares the indicators with their objectives and acts on the DataApp, calling a person only when it cannot correct it.</p>
+      <div class="cover-tags"><span>Metrics · Prometheus</span><span>Traces · OpenTelemetry and Tempo</span><span>Logs · JSON and Loki</span><span>Correlation</span><span>SLI and SLO</span><span>Closed loop</span></div>
     </div>
   </section>
 
@@ -291,70 +308,50 @@
 
   <section class="slide">
     <div class="sc">
-      <header class="sh si reveal"><span class="kick">Agenda · two hours</span><div class="st">One hour instrumenting the DataApp, one hour on your own</div><p class="ss">In the first hour the professor instruments the package of Lesson 7 live with a coding agent, in four steps, and compares each step with the reference in <code>lab/lesson-10/</code>. In the second hour each group instruments a service of its own DataApp.</p></header>
+      <header class="sh si reveal"><span class="kick">Agenda · two hours</span><div class="st">Three signals and one loop, then your DataApp</div><p class="ss">In the first hour the professor builds the reference of <code>lab/lesson-10/</code> live with a coding agent, in four steps: the metrics, the traces and logs, the stack that links them and the controller that closes the loop. In the second hour each group applies the same method to its own DataApp.</p></header>
       <div class="agenda reveal">
-        <article><b>0:20 · step 01</b><strong>Metrics of the run</strong><span class="who">Agent: <code>telemetry.py</code></span><span>Metric types, names and labels; the text format</span></article>
-        <article><b>0:30 · step 02</b><strong>Push and exporter</strong><span class="who">Agent: <code>--push</code>, <code>metrics</code></span><span>Why a batch job pushes; an exporter reads the warehouse</span></article>
-        <article><b>0:38 · step 03</b><strong>Stack and PromQL</strong><span class="who">Agent: <code>stack/</code></span><span>Targets and scrapes; questions answered in PromQL</span></article>
-        <article><b>0:48 · step 04</b><strong>Dashboard and alerts</strong><span class="who">Agent: <code>rules.yml</code>, Grafana</span><span>Alerting on symptoms; a run that fails on purpose</span></article>
-        <article><b>1:00 · groups</b><strong>Your DataApp</strong><span class="who">Each group</span><span>Metrics, dashboard and three alerts with tests</span></article>
+        <article><b>0:22 · step 01</b><strong>Metrics</strong><span class="who">Agent: <code>telemetry.py</code></span><span>Types, labels, push and exporter; the info metric of the run</span></article>
+        <article><b>0:30 · step 02</b><strong>Traces and logs</strong><span class="who">Agent: <code>observability.py</code></span><span>Spans of run, task, request and SQL; JSON lines with the span</span></article>
+        <article><b>0:38 · step 03</b><strong>Stack and correlation</strong><span class="who">Agent: <code>stack/</code></span><span>Collector, Tempo, Loki, Grafana; from the alert to the log line</span></article>
+        <article><b>0:46 · step 04</b><strong>Closed loop</strong><span class="who">Agent: <code>control.py</code></span><span>Sensor, comparator, controller, actuators and guardrails</span></article>
+        <article><b>1:00 · groups</b><strong>Your DataApp</strong><span class="who">Each group</span><span>The three signals and one loop for one SLO</span></article>
       </div>
-      <div class="callout dark reveal"><b>Where the work happens</b>On the computer: the virtual environment of the package, Docker Compose for Prometheus, the Pushgateway and Grafana, and the browser on ports 9090 and 3000.</div>
+      <div class="callout dark reveal"><b>Where the work happens</b>On the computer: the virtual environment of the package, Docker Compose for six containers (Prometheus, Pushgateway, OpenTelemetry collector, Tempo, Loki and Grafana) and the browser on Grafana.</div>
     </div>
   </section>
 
   <section class="slide">
     <div class="sc">
-      <header class="sh si reveal"><span class="kick">0:15 · Why monitor a DataApp</span><div class="st">The run log answers one run; metrics answer every run</div><p class="ss">Lesson 7 left a log of every attempt in <code>ops.pipeline_runs</code>, which explains a run after someone looks at it. Metrics are numbers kept over time and evaluated by a machine, so the question is asked every fifteen seconds even when nobody is looking.</p></header>
-      <table class="tbl tbl-sm reveal"><thead><tr><th>Question of the operator</th><th>With the package of Lesson 7</th><th>With the metrics of this session</th></tr></thead><tbody>
-        <tr><td>Did last night's run succeed?</td><td>open the terminal of the server or query <code>ops.pipeline_runs</code></td><td><code>tcg_run_success</code>, and the alert <code>TcgRunFailed</code></td></tr>
-        <tr><td>Are the prices of today in the warehouse?</td><td>a query by hand on <code>db_ingestion</code></td><td><code>tcg:price_freshness_seconds</code>, and <code>TcgPricesStale</code></td></tr>
-        <tr><td>Is the source getting slower?</td><td>the seconds printed per task, lost after the run</td><td><code>tcg_source_request_duration_seconds</code>, a histogram per endpoint</td></tr>
-        <tr><td>Did the grain of the fact break?</td><td>the run stops at <code>check_quality</code></td><td>the run stops and <code>TcgGrainBroken</code> warns someone</td></tr>
-        <tr><td>Has the scheduler stopped calling the run?</td><td>no record at all: a run that never starts leaves no log</td><td><code>TcgNoSuccessfulRun</code>, on the time of the last success</td></tr>
-      </tbody></table>
-    </div>
-  </section>
-
-  <section class="slide">
-    <div class="sc">
-      <header class="sh si reveal"><span class="kick">0:17 · The model of Prometheus</span><div class="st">Targets, scrapes and time series</div><p class="ss">Prometheus pulls: every fifteen seconds it reads the HTTP endpoint <code>/metrics</code> of each target and stores each line as a sample of a time series. A series is identified by its name and its labels, so the same name with another label value is another series.</p></header>
-      <div class="solo reveal">
-        <div class="code-mini"><span class="code-cap">the path of a number in this session</span><pre>tcg-dataapp run ──push──▶ Pushgateway :9091 ◀─┐
-                                               │ scrape every 15 s
-tcg-dataapp metrics :9108 (exporter) ◀─────────┤
-                                               │
-                           Prometheus :9090 ───┘──▶ rules.yml ──▶ alerts
-                                │
-                                └──▶ Grafana :3000 (PromQL in each panel)</pre></div>
-        <div class="stack">
-          <div class="kpi"><b>target</b><span>an endpoint that Prometheus scrapes; <code>up</code> says if the last scrape worked</span></div>
-          <div class="kpi"><b>series</b><span><code>tcg_task_rows{task="extract_sets"}</code>: a name and its labels</span></div>
-          <div class="kpi"><b>sample</b><span>a value and a timestamp, in Unix seconds, like every date of the module</span></div>
-        </div>
+      <header class="sh si reveal"><span class="kick">0:15 · The three signals</span><div class="st">Each signal answers a different question</div><p class="ss">A metric is a number kept over time, cheap to store and to evaluate, which says that something changed. A trace is the path of one execution as a tree of timed spans, which says where. A log is a record of a discrete event, which says what the program knew at that moment.</p></header>
+      <div class="g3 reveal">
+        <article class="card"><span class="label">Metrics</span><h3>Is something wrong?</h3><p><code>tcg_run_success 0</code>, <code>tcg:price_freshness_seconds</code>. Aggregated by design, so the cost does not grow with the number of runs, only with the number of series. Prometheus evaluates them every 15 s and fires the alerts.</p></article>
+        <article class="card dark"><span class="label dark">Traces</span><h3>Where did it go wrong?</h3><p>One run of 30.6 s is a trace of 38 spans: the run, 13 tasks, 20 requests to the source and 4 SQL files. The failing span carries the status ERROR, the attempts and the exception. Stored in Tempo.</p></article>
+        <article class="card grn"><span class="label grn">Logs</span><h3>What exactly happened?</h3><p>JSON lines such as <code>task.fail</code>, with the attempt and the error text, written inside the span they describe. Stored in Loki and in <code>out/logs/</code>, and searched by any field.</p></article>
       </div>
+      <div class="callout dark reveal"><b>The common error</b>Three tools that do not share identifiers give three partial views. The value of the signals is in the path from one to the other, which the next slide shows.</div>
     </div>
   </section>
 
   <section class="slide">
     <div class="sc">
-      <header class="sh si reveal"><span class="kick">0:19 · Metric types</span><div class="st">Four types, chosen by how the number behaves</div><p class="ss">The type tells Prometheus and the reader how the number may change, and therefore which functions make sense over it. A counter only grows and is read with <code>rate()</code>; a gauge goes up and down and is read as it is.</p></header>
-      <table class="tbl tbl-sm reveal"><thead><tr><th>Type</th><th>Behaviour</th><th>In tcg-dataapp</th></tr></thead><tbody>
-        <tr><td>Counter</td><td>only grows, restarts at zero with the process</td><td><code>tcg_task_attempts_total{task,status}</code>, <code>tcg_source_request_errors_total{endpoint}</code></td></tr>
-        <tr><td>Gauge</td><td>any value, up or down</td><td><code>tcg_task_rows</code>, <code>tcg_run_success</code>, <code>tcg_run_last_success_timestamp_seconds</code>, everything the exporter reads</td></tr>
-        <tr><td>Histogram</td><td>counts of observations per bucket, plus sum and count</td><td><code>tcg_source_request_duration_seconds{endpoint}</code>, buckets from 0.1 to 16 s</td></tr>
-        <tr><td>Summary</td><td>quantiles computed in the process itself</td><td>not used: quantiles of a summary cannot be added across instances</td></tr>
+      <header class="sh si reveal"><span class="kick">0:18 · Correlation</span><div class="st">Three identifiers link the signals</div><p class="ss">The run_id names one run of the DataApp, the trace_id names its trace and the span_id names one operation inside it. Each signal carries the identifiers that lead to the next one, so the person on call goes from the alert to the line that explains it without guessing.</p></header>
+      <table class="tbl tbl-sm reveal"><thead><tr><th>Hop</th><th>Where</th><th>Identifier that leads on</th><th>Rehearsal of 08/11/2026</th></tr></thead><tbody>
+        <tr><td>1 · alert</td><td>Prometheus, <code>TcgRunFailed</code></td><td>its description reads <code>tcg_run_info{run_id, trace_id}</code></td><td>"Run e44b5b8a34eb, trace 5d1d4930…"</td></tr>
+        <tr><td>2 · metric</td><td>Grafana, table of <code>tcg_run_info</code></td><td>the <code>trace_id</code> is a link to Tempo</td><td>one series per instance, replaced at each push</td></tr>
+        <tr><td>3 · trace</td><td>Tempo, 17 spans</td><td>the span with status ERROR and its <code>span_id</code></td><td><code>task extract_sets</code>: 3 events "attempt failed"</td></tr>
+        <tr><td>4 · log line</td><td>Loki, <code>| span_id="ba8fc2d7…"</code></td><td>each line has the <code>trace_id</code>, a link back</td><td>3 lines: <code>ConnectionError: fault injected</code></td></tr>
       </tbody></table>
+      <div class="callout warn reveal"><b>Cardinality</b>The run_id is never a label of every metric, because each run would create new series. It lives in one info metric, <code>tcg_run_info</code>, and in the traces and logs, which are built to hold one record per event.</div>
     </div>
   </section>
 
   <section class="slide etapa-slide" data-etapa="01">
     <div class="sc">
-      <header class="sh prompt reveal"><p class="etapa-kicker">Step 01 · 0:20 · Metrics of the run</p><div class="st">Every run describes itself in numbers</div><p class="ss">The first step instruments the run without touching the layers: a module of telemetry owns the metrics, the pipeline calls it after each attempt, and the client of the source is wrapped so that every request is timed.</p></header>
+      <header class="sh prompt reveal"><p class="etapa-kicker">Step 01 · 0:22 · Metrics</p><div class="st">Every run describes itself in numbers</div><p class="ss">The first step instruments the run without touching the layers: a module of telemetry owns the metrics, the client of the source is wrapped so that every request is timed, the run pushes at the end and an exporter reads the state of the warehouse.</p></header>
       <div class="etapa-grid reveal">
         <div class="etapa-lado">
-          <div class="etapa-item"><span class="etapa-rotulo">Files</span><p><code>src/tcg_dataapp/telemetry.py</code>, <code>pipeline.py</code>, <code>cli.py</code>, <code>tests/test_telemetry.py</code>.</p></div>
-          <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Review before moving on</span><ul><li>Does <code>out/metrics.prom</code> show the rows 7, 1490, 657, 896, 1153, 1414 and 1831?</li><li>Are the 13 requests (1 groups, 7 products, 5 archives) in the histogram?</li><li>Do the etls still not import <code>prometheus_client</code>?</li></ul></div>
+          <div class="etapa-item"><span class="etapa-rotulo">Files</span><p><code>telemetry.py</code>, <code>pipeline.py</code>, <code>cli.py</code> (<code>--push</code>, <code>metrics</code>), <code>tests/test_telemetry.py</code>.</p></div>
+          <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Review before moving on</span><ul><li>Does <code>out/metrics.prom</code> show the rows 7, 1490, 657, 896, 1153, 1414 and 1831?</li><li>Is there one series of <code>tcg_run_info</code>, with the run and the trace?</li><li>Do the etls still not import <code>prometheus_client</code>?</li></ul></div>
         </div>
         <div class="etapa-prompt">
           <span class="etapa-rotulo">Prompt 01 · CREATE</span>
@@ -362,54 +359,50 @@ tcg-dataapp metrics :9108 (exporter) ◀─────────┤
           <pre class="etapa-pre"><code><span class="k">[C] Character</span>
 You are a data engineer who operates pipelines in production. The package
 tcg-dataapp of Lesson 7 runs the whole model in one command, but nobody
-knows how a run went unless they read the terminal. Now every run must
-describe itself in numbers that Prometheus can read.
+knows how a run went unless they read the terminal. The first of the three
+signals is the metric: numbers kept over time, which a machine evaluates
+every fifteen seconds even when nobody is looking.
 
 <span class="k">[R] Request</span>
-Instrument the package with prometheus_client (version 0.4.0):
+Instrument the package with prometheus_client (version 0.4.1):
 1. src/tcg_dataapp/telemetry.py with a class RunMetrics(run_id) that owns a
-   CollectorRegistry of its own (never the global one) and holds:
-   - tcg_task_attempts_total{task,status}: counter of attempts by outcome
-     (success, failed, skipped);
-   - tcg_task_duration_seconds{task} and tcg_task_rows{task}: gauges of the
-     last attempt and of the rows written by each extraction;
-   - tcg_source_request_duration_seconds{endpoint}: histogram of the
-     requests to tcgcsv.com (groups, products, prices, archive), buckets
-     0.1 to 16 s, and tcg_source_request_errors_total{endpoint};
-   - tcg_quality_value{measure}: the numbers of check_quality;
-   - tcg_run_success, tcg_run_duration_seconds, tcg_run_failed_tasks and
-     tcg_run_last_completion_timestamp_seconds;
-   - tcg_run_last_success_timestamp_seconds, in a second registry, set only
-     when the run succeeds.
-2. A wrapper InstrumentedClient with the same methods as TcgcsvClient that
-   times every call into the histogram, so the etls layer does not import
-   prometheus_client.
-3. pipeline.run creates a RunMetrics, wraps the client and calls
-   metrics.attempt(task, status, seconds, result) after each attempt and
-   metrics.finish(failed) at the end.
-4. tcg-dataapp run writes the metrics to out/metrics.prom in the text
-   format.
-5. tests/test_telemetry.py, with the FakeClient of Lesson 7: a good run
-   reports rows, requests, quality and success; a failed run reports the
-   failure and no success time.
+   CollectorRegistry of its own and holds:
+   - tcg_task_attempts_total{task,status}, tcg_task_duration_seconds{task},
+     tcg_task_rows{task};
+   - tcg_source_request_duration_seconds{endpoint} (histogram, buckets 0.1
+     to 16 s) and tcg_source_request_errors_total{endpoint};
+   - tcg_quality_value{measure}, tcg_run_success, tcg_run_duration_seconds,
+     tcg_run_failed_tasks, tcg_run_last_success_timestamp_seconds (pushed
+     only after a success);
+   - tcg_run_info{run_id,trace_id} = 1, an info metric that names the run
+     and its trace, so an alert can lead to the trace.
+2. An InstrumentedClient with the methods of TcgcsvClient that times every
+   call, so the etls layer does not import prometheus_client.
+3. tcg-dataapp run --push URL: pushadd to a Pushgateway (job tcg_dataapp),
+   because a run of forty seconds ends before most scrapes; the same text
+   goes to out/metrics.prom.
+4. tcg-dataapp metrics: an exporter on port 9108 whose collector reads the
+   warehouse at each scrape (rows and newest timestamp per tag, fact rows
+   and grain keys, last run) and reports tcg_warehouse_readable 0 instead of
+   failing while a run holds the DuckDB file.
+5. Tests with the FakeClient: a good run, a failed run, the push and the
+   exporter.
 
 Facts measured on 08/11/2026 (confirm before use):
-- out/metrics.prom of a real run: tcg_task_rows 7, 1490, 657, 896, 1153,
-  1414 and 1831; tcg_quality_value fact_rows = fact_grain_keys = 5951;
-  13 requests (1 groups, 7 products, 5 archives); tcg_run_success 1.
+- a real run: tcg_task_rows 7, 1490, 657, 896, 1153, 1414 and 1831;
+  fact_rows = fact_grain_keys = 5951; 13 requests; tcg_run_success 1.
 
 <span class="k">[E] Example</span>
 tcg_task_rows{task=&quot;extract_prices_2026-11-07&quot;} 1831.0
-tcg_source_request_duration_seconds_count{endpoint=&quot;archive&quot;} 5.0
-tcg_run_success 1.0
+tcg_run_info{run_id=&quot;16fb5bb50f14&quot;,trace_id=&quot;5fddbb48a70b11fdd1df9bc8c0d4cf26&quot;} 1.0
 
 <span class="k">[A] Adjustments</span>
-- Names in snake_case with the prefix tcg_ and the unit as suffix
-  (_seconds, _total); every timestamp in Unix seconds.
-- Labels with few values only: task, status, endpoint, measure. Never the
-  run_id or a product as a label, because each new value is a new series.
-- Call disable_created_metrics(): the *_created series are noise in a job
-  that lives forty seconds.
+- Names in snake_case with the prefix tcg_ and the unit as suffix; every
+  timestamp in Unix seconds.
+- Labels with few values only (task, status, endpoint, measure). The run_id
+  appears only in tcg_run_info, which keeps a single series per instance
+  because each push replaces it.
+- Call disable_created_metrics().
 
 <span class="k">[T] Type of output</span>
 The files, the output of pytest and the lines of out/metrics.prom without
@@ -425,88 +418,83 @@ Stop at the end.</code></pre>
 
   <section class="slide">
     <div class="sc">
-      <header class="sh si reveal"><span class="kick">Step 01 · Theory</span><div class="st">Names, labels and cardinality</div><p class="ss">Each distinct combination of labels is a new series that Prometheus stores and indexes. A label with few values, such as the task, is cheap; a label with the run identifier or the product would create a series per run or per card, which is the classic way of bringing a Prometheus down.</p></header>
-      <div class="solo reveal">
-        <div class="code-mini"><span class="code-cap">out/metrics.prom of the run of 08/11/2026 (excerpt)</span><pre># TYPE tcg_task_rows gauge
-tcg_task_rows{task="extract_sets"} 7.0
-tcg_task_rows{task="extract_products"} 1490.0
-tcg_task_rows{task="extract_prices_2026-11-07"} 1831.0
-# TYPE tcg_source_request_duration_seconds histogram
-tcg_source_request_duration_seconds_bucket{endpoint="archive",le="2.0"} 0.0
-tcg_source_request_duration_seconds_bucket{endpoint="archive",le="4.0"} 5.0
-tcg_source_request_duration_seconds_count{endpoint="archive"} 5.0
-tcg_source_request_duration_seconds_sum{endpoint="archive"} 14.83
-tcg_quality_value{measure="fact_rows"} 5951.0
-tcg_run_success 1.0
-tcg_run_duration_seconds 25.11</pre></div>
-        <div class="stack">
-          <div class="kpi"><b>tcg_</b><span>a prefix per application, so the names do not collide</span></div>
-          <div class="kpi"><b>_seconds</b><span>the unit in the name, always in base units; <code>_total</code> closes a counter</span></div>
-          <div class="kpi"><b>4 labels</b><span><code>task</code>, <code>status</code>, <code>endpoint</code>, <code>measure</code>: each with a dozen values at most</span></div>
-        </div>
-      </div>
+      <header class="sh si reveal"><span class="kick">Step 01 · Theory</span><div class="st">Metric types, and why a batch job pushes</div><p class="ss">The type says how the number may change and which functions make sense over it. Prometheus pulls from its targets every 15 s; a run of 30 s has no endpoint after it ends, so it pushes to a Pushgateway, which is scraped in its place.</p></header>
+      <table class="tbl tbl-sm reveal"><thead><tr><th>Type</th><th>Behaviour</th><th>In tcg-dataapp</th></tr></thead><tbody>
+        <tr><td>Counter</td><td>only grows; read with <code>rate()</code></td><td><code>tcg_task_attempts_total{task,status}</code>, <code>tcg_source_request_errors_total</code></td></tr>
+        <tr><td>Gauge</td><td>any value, up or down</td><td><code>tcg_task_rows</code>, <code>tcg_run_success</code>, the freshness read by the exporter</td></tr>
+        <tr><td>Histogram</td><td>counts per bucket, plus sum and count</td><td><code>tcg_source_request_duration_seconds{endpoint}</code>, 0.1 to 16 s</td></tr>
+        <tr><td>Info</td><td>a gauge always 1, whose labels are the data</td><td><code>tcg_run_info{run_id, trace_id}</code></td></tr>
+      </tbody></table>
+      <div class="callout dark reveal"><b>Push keeps the last good time</b><code>pushadd</code> replaces only the metrics being sent, and the time of the last success is sent only after a success, so a failed run does not erase it.</div>
     </div>
   </section>
 
   <section class="slide etapa-slide" data-etapa="02">
     <div class="sc">
-      <header class="sh prompt reveal"><p class="etapa-kicker">Step 02 · 0:30 · Push and exporter</p><div class="st">Two ways of reaching Prometheus</div><p class="ss">The run lasts about thirty seconds and is gone before most scrapes, so it pushes its metrics at the end. The state of the warehouse lives longer than any run, so a small exporter reads it from DuckDB at each scrape.</p></header>
+      <header class="sh prompt reveal"><p class="etapa-kicker">Step 02 · 0:30 · Traces and logs</p><div class="st">The path of one run, and what it said</div><p class="ss">The second step adds the other two signals with OpenTelemetry. The package calls only the API; the command line installs the SDK, which writes JSON lines to a file and, with an endpoint, sends spans and log records to a collector.</p></header>
       <div class="etapa-grid reveal">
         <div class="etapa-lado">
-          <div class="etapa-item"><span class="etapa-rotulo">Files</span><p><code>telemetry.py</code> (<code>push</code>, <code>WarehouseCollector</code>), <code>cli.py</code> (<code>--push</code>, <code>metrics</code>), <code>config.py</code>.</p></div>
-          <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Review before moving on</span><ul><li>After a good run, two POSTs to <code>/metrics/job/tcg_dataapp/instance/…</code>; after a failed run, one?</li><li>Does <code>tcg-dataapp metrics --once</code> show 5,951 rows = 5,951 keys?</li><li>Does a scrape during a run return <code>tcg_warehouse_readable 0</code> instead of an error?</li></ul></div>
+          <div class="etapa-item"><span class="etapa-rotulo">Files</span><p><code>observability.py</code>, spans in <code>pipeline.py</code>, <code>telemetry.py</code> and <code>processors/gold.py</code>, <code>tests/test_signals.py</code>.</p></div>
+          <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Review before moving on</span><ul><li>Is a run one trace, with the 13 tasks as children of the root?</li><li>Does a failing task end with status ERROR, its attempts as events and the exception?</li><li>Does the log line of the failure carry the span_id of its task?</li></ul></div>
         </div>
         <div class="etapa-prompt">
           <span class="etapa-rotulo">Prompt 02 · CREATE</span>
           <button class="etapa-copiar" type="button">Copy</button>
           <pre class="etapa-pre"><code><span class="k">[C] Character</span>
-You are the same engineer. The run now measures itself, but Prometheus
-collects by pulling: it reads an HTTP endpoint every 15 seconds, and a
-run of forty seconds is gone before most scrapes.
+You are the same data engineer. The metrics say that a run failed and how
+long each task took, but not where inside the run the time went, nor what
+the program said when it failed. Those are the other two signals: the trace,
+which records the path of one run as a tree of spans, and the log, which
+records discrete events. They are useful together only if they share
+identifiers.
 
 <span class="k">[R] Request</span>
-1. RunMetrics.push(gateway, instance): pushadd_to_gateway in the group
-   job=tcg_dataapp, instance=&lt;instance&gt;; the registry of the last success is
-   pushed only after a successful run.
-2. tcg-dataapp run --push URL (or TCG_PUSHGATEWAY; TCG_INSTANCE, default
-   local). A push that fails prints a warning and does not change the exit
-   code of the run.
-3. A custom collector WarehouseCollector(db_path) that, at each scrape,
-   opens the DuckDB file read-only and reports:
-   - tcg_ingestion_rows, tcg_ingestion_last_timestamp_seconds and
-     tcg_ingestion_batches by data_tag;
-   - tcg_gold_fact_rows and tcg_gold_fact_grain_keys;
-   - tcg_pipeline_last_run_tasks{status} and
-     tcg_pipeline_last_run_end_timestamp_seconds from ops.pipeline_runs;
-   - tcg_warehouse_readable: 1, or 0 when the file is missing, locked by a
-     run or without the gold layer, instead of failing the scrape.
-4. tcg-dataapp metrics [--port 9108] [--once]: the exporter, serving
-   /metrics with start_http_server, or one scrape printed.
-5. Tests: the push sends two POSTs to /metrics/job/tcg_dataapp/instance/test
-   after a good run and one after a failed run (a fake Pushgateway with
-   http.server); the exporter reads freshness, volume and grain; an
-   unreadable warehouse gives tcg_warehouse_readable 0.
-
-Facts measured on 08/11/2026 (confirm before use):
-- The exporter after a real run: 5,951 prices in 5 batches, newest price
-  at 1794052800 (07/11/2026 12:00 UTC), fact 5,951 rows = 5,951 keys,
-  12 tasks ok in the last run.
-- A scrape during a run returned tcg_warehouse_readable 0: DuckDB accepts
-  one writer process and no reader while it writes.
+Add traces and structured logs with OpenTelemetry (opentelemetry-sdk and
+opentelemetry-exporter-otlp-proto-http):
+1. src/tcg_dataapp/observability.py:
+   - tracer() and logger() over the OpenTelemetry API, so the package does
+     nothing extra until a provider is installed;
+   - a JsonFormatter that writes one JSON object per line with ts (Unix
+     seconds), level, msg, service, run_id, trace_id and span_id of the
+     active span, and the fields passed in extra=;
+   - setup(log_path, otlp_endpoint): the JSON lines go to
+     out/logs/tcg-dataapp.jsonl; with TCG_OTLP_ENDPOINT, the spans go to
+     /v1/traces and the log records to /v1/logs of the collector, with a
+     batch processor; flush() at the end of each command.
+2. Spans:
+   - tcg_dataapp.run, the root, with tcg.run_id, tcg.trigger and tcg.sets;
+   - task &lt;name&gt;, one per task, with an event &quot;attempt failed&quot; per failed
+     attempt, the exception recorded and the status ERROR when the task
+     fails for good; skipped tasks get tcg.status = skipped;
+   - tcgcsv.&lt;endpoint&gt;, one per request, kind CLIENT, with the server and
+     the number of records, from the InstrumentedClient;
+   - sql &lt;file&gt;, one per SQL file of build_gold, with db.statements.
+3. Log lines run.start, task.ok, task.fail, task.skip and run.end, written
+   inside the span they describe, with a contextvar for the run_id.
+4. tcg-dataapp run prints the trace_id next to the run_id, and
+   RunMetrics.finish receives the trace_id for tcg_run_info.
+5. tests/test_signals.py with an InMemorySpanExporter installed once in
+   conftest.py: a run is one trace whose tasks are children of the root; a
+   failure marks its span and skips the dependents; every log line of a run
+   has its run_id and trace_id, and the line of a failing attempt has the
+   span_id of its task.
 
 <span class="k">[E] Example</span>
-pushadd_to_gateway(gateway, job=&quot;tcg_dataapp&quot;, registry=self.registry,
-                   grouping_key={&quot;instance&quot;: instance})
+{&quot;ts&quot;: 1794146637.498, &quot;level&quot;: &quot;error&quot;, &quot;msg&quot;: &quot;task attempt failed&quot;,
+ &quot;run_id&quot;: &quot;e44b5b8a34eb&quot;, &quot;trace_id&quot;: &quot;5d1d4930...&quot;, &quot;span_id&quot;: &quot;ba8fc2d7eb92ef1c&quot;,
+ &quot;event&quot;: &quot;task.fail&quot;, &quot;task&quot;: &quot;extract_sets&quot;, &quot;attempt&quot;: 3,
+ &quot;error&quot;: &quot;ConnectionError: fault injected: source_down&quot;}
 
 <span class="k">[A] Adjustments</span>
-- pushadd (POST), not push (PUT): PUT replaces the whole group and would
-  erase the time of the last success when a run fails.
-- The exporter computes nothing new: it reads what the pipeline and the
-  gold layer already keep.
+- The processors and the etls call only the OpenTelemetry API; the SDK is
+  configured by the command line and by the tests, never by a library.
+- Spans of requests do not record the URL with parameters, only the
+  server and the endpoint.
+- A JSON log line never carries data of the source, only counts and errors.
 
 <span class="k">[T] Type of output</span>
-The files, the output of pytest, of tcg-dataapp run --push and of
-tcg-dataapp metrics --once.
+The files, the output of pytest, one trace printed as a tree (name,
+duration, status) and the last five lines of the JSON log.
 
 <span class="k">[E] Extras</span>
 Show the plan before editing. Record this prompt in docs/prompts.md.
@@ -518,71 +506,97 @@ Stop at the end.</code></pre>
 
   <section class="slide">
     <div class="sc">
-      <header class="sh si reveal"><span class="kick">Step 02 · Theory</span><div class="st">Pull for services, push for batch jobs</div><p class="ss">Pull lets Prometheus know when a target is down, because the scrape fails. A batch job has no endpoint after it ends, so the Pushgateway keeps its last values and is scraped in its place; the cost is that Prometheus can no longer tell a dead job from a quiet one, which the alert on the last success covers.</p></header>
-      <div class="g3 reveal">
-        <article class="card"><span class="label">Pushgateway</span><h3>pushadd, not push</h3><p>A POST replaces only the metrics with the names being sent. The time of the last success is sent only after a success, so a failed run leaves it as it was; a PUT would erase it.</p></article>
-        <article class="card dark"><span class="label dark">honor_labels</span><h3>The labels of the push</h3><p>Without <code>honor_labels: true</code> every pushed series would get <code>job="pushgateway"</code> and the address of the Pushgateway as instance, and the machine of the run would be lost.</p></article>
-        <article class="card grn"><span class="label grn">Exporter</span><h3>Reads, computes nothing</h3><p>The collector reads <code>db_ingestion</code>, <code>gold.fact_price</code> and <code>ops.pipeline_runs</code> at each scrape. It reports what the pipeline already keeps, from outside the pipeline.</p></article>
+      <header class="sh si reveal"><span class="kick">Step 02 · Theory</span><div class="st">A span is an operation with a time, a parent and a status</div><p class="ss">Each span records its start and end, its parent, attributes that describe it, events that happened inside it and a status. The tree of spans of one run shows the time that each part took and the exact place of a failure.</p></header>
+      <div class="solo reveal">
+        <div class="code-mini"><span class="code-cap">the trace of a good run (38 spans, 30.6 s)</span><pre>tcg_dataapp.run                     30.6 s  run_id 16fb5bb50f14
+├─ task extract_sets                 1.07 s
+│  └─ tcgcsv.groups                         1 request
+├─ task extract_products             7.02 s
+│  └─ tcgcsv.products  × 7
+├─ task extract_prices_2026-03-01    3.01 s
+│  └─ tcgcsv.archive                        records 657
+├─ ...  (5 more extractions)
+├─ task build_gold                   0.05 s
+│  └─ sql 01_dimensions.sql … sql 04_live_reports.sql
+├─ task check_quality                0.08 s
+└─ task write_report                 0.17 s</pre></div>
+        <div class="code-mini"><span class="code-cap">a JSON log line of the failed run</span><pre>{"ts": 1794146686.73,
+ "level": "error",
+ "msg": "task attempt failed",
+ "run_id": "e44b5b8a34eb",
+ "trace_id": "5d1d4930…6173a2",
+ "span_id": "ba8fc2d7eb92ef1c",
+ "event": "task.fail",
+ "task": "extract_sets",
+ "attempt": 2,
+ "error": "ConnectionError: fault
+           injected: source_down"}</pre></div>
       </div>
-      <div class="callout warn reveal"><b>A finding of the rehearsal</b>DuckDB accepts one writer process and no reader while it writes. Two of three scrapes made during a run could not open the file; the collector reports <code>tcg_warehouse_readable 0</code>, and the alert waits two minutes before warning.</div>
     </div>
   </section>
 
   <section class="slide etapa-slide" data-etapa="03">
     <div class="sc">
-      <header class="sh prompt reveal"><p class="etapa-kicker">Step 03 · 0:38 · Stack and PromQL</p><div class="st">Prometheus collects, PromQL answers</div><p class="ss">The third step brings up the stack with Docker Compose, points Prometheus at the Pushgateway and at the exporter, and answers the questions of the operator in PromQL over the data of a real run.</p></header>
+      <header class="sh prompt reveal"><p class="etapa-kicker">Step 03 · 0:38 · Stack and correlation</p><div class="st">From the alert to the line that explains it</div><p class="ss">The third step brings up six containers and links them. The DataApp sends traces and logs to one address, the OpenTelemetry collector, which routes each signal; Grafana reads the three stores and turns the identifiers into links.</p></header>
       <div class="etapa-grid reveal">
         <div class="etapa-lado">
-          <div class="etapa-item"><span class="etapa-rotulo">Files</span><p><code>stack/compose.yaml</code>, <code>stack/prometheus/prometheus.yml</code>, the recording rules of <code>rules.yml</code>.</p></div>
-          <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Review before moving on</span><ul><li>Are the three targets <code>up</code> at <code>localhost:9090/targets</code>?</li><li>Does <code>sum(tcg_task_rows{task=~"extract_prices_.*"})</code> give 5,951?</li><li>Does <code>promtool check config</code> pass?</li></ul></div>
+          <div class="etapa-item"><span class="etapa-rotulo">Files</span><p><code>stack/compose.yaml</code>, <code>otel/config.yaml</code>, <code>tempo/tempo.yaml</code>, <code>grafana/provisioning/datasources/datasources.yml</code>, <code>prometheus/rules.yml</code>.</p></div>
+          <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Review before moving on</span><ul><li>Does <code>promtool test rules</code> print SUCCESS, with the trace in <code>TcgRunFailed</code>?</li><li>With <code>TCG_FAULT=source_down</code>, does the alert name the run and the trace?</li><li>Does "Logs for this span" open exactly the lines of the failing span?</li></ul></div>
         </div>
         <div class="etapa-prompt">
           <span class="etapa-rotulo">Prompt 03 · CREATE</span>
           <button class="etapa-copiar" type="button">Copy</button>
           <pre class="etapa-pre"><code><span class="k">[C] Character</span>
-You are the same engineer, now in the role of whoever operates the
-monitoring. The DataApp exposes its numbers; a Prometheus must collect
-them and answer questions about them.
+You are the same data engineer, now responsible for the place where the
+three signals are read. A person on call receives an alert and must reach
+the line that explains it in less than a minute: from the alert to the
+metric, from the metric to the trace, from the failing span to its log lines.
 
 <span class="k">[R] Request</span>
-Create the folder stack/ next to the package:
-1. compose.yaml with prom/prometheus:v3.15.0 (port 9090,
-   --web.enable-lifecycle), prom/pushgateway:v1.11.2 (port 9091) and
-   grafana/grafana:13.2.4 (port ${GRAFANA_PORT:-3000}, anonymous Viewer);
-   extra_hosts host.docker.internal:host-gateway so that Prometheus reaches
-   the exporter running on the host.
-2. prometheus/prometheus.yml: scrape and evaluation every 15 s; the jobs
-   pushgateway (honor_labels: true), tcg_exporter
-   (host.docker.internal:9108) and prometheus; rule_files: rules.yml.
-3. A recording rule tcg:price_freshness_seconds =
-   clamp_min(time() - tcg_ingestion_last_timestamp_seconds{data_tag=
-   &quot;tcgplayer.price.v1&quot;}, 0) and tcg:source_request_duration_seconds:p95
-   with histogram_quantile over the buckets of the last pushed run.
-4. Bring the stack up, run tcg-dataapp run --push localhost:9091 with the
-   exporter on, and answer in PromQL: did the last run succeed; how long
-   ago was the last success; how old is the newest price; is the grain
-   intact; which three tasks took longest; how many prices were loaded;
-   what is the mean and the p95 of each kind of request.
+Write stack/ with Docker Compose and verify the path of correlation:
+1. compose.yaml with Prometheus v3.15.0, Pushgateway v1.11.2, the
+   OpenTelemetry collector contrib 0.141.0 (OTLP on 4317 and 4318), Tempo
+   2.10.10 (traces), Loki 3.6.3 (logs, with its OTLP endpoint) and Grafana
+   13.2.4, with anonymous access and viewers allowed in Explore.
+2. otel/config.yaml: the traces pipeline exports to Tempo, the logs
+   pipeline to http://loki:3100/otlp.
+3. grafana/provisioning/datasources/datasources.yml:
+   - Tempo with tracesToLogsV2 to Loki, filtering by the span:
+     {service_name=&quot;tcg-dataapp&quot;} | span_id=&quot;${__span.spanId}&quot;;
+   - Loki with a derived field on the structured metadata trace_id that
+     opens the trace in Tempo.
+4. prometheus.yml (Pushgateway with honor_labels, the exporter) and
+   rules.yml with the recording rule tcg:price_freshness_seconds and the
+   alerts TcgRunFailed, TcgNoSuccessfulRun, TcgRunTooSlow, TcgPricesStale,
+   TcgGrainBroken and TcgExporterDown. The description of TcgRunFailed
+   reads the run_id and the trace_id from tcg_run_info with the template
+   function query.
+5. The dashboard: the panels of the run, a table of tcg_run_info whose
+   trace_id is a link to Tempo, a table of traces with an error and a panel
+   of the error and warning lines from Loki.
+6. A run that fails on purpose (TCG_FAULT=source_down) and the path, with
+   the commands and the answers: alert → trace_id → span with status ERROR
+   → its log lines in Loki.
 
 Facts measured on 08/11/2026 (confirm before use):
-- promtool check config: valid, 1 rule file, 8 rules.
-- The three targets up; topk(3, tcg_task_duration_seconds):
-  extract_products 7.25 s, extract_prices_2026-11-07 3.47 s,
-  extract_prices_2026-07-01 3.43 s; sum(tcg_task_rows{task=~
-  &quot;extract_prices_.*&quot;}) = 5951; p95 of archive 3.9 s.
+- a good run with --with-today: 38 spans in Tempo, 15 log lines in Loki;
+- the failed run: TcgRunFailed fired with &quot;Run e44b5b8a34eb, trace
+  5d1d4930...&quot;, the span task extract_sets had 3 events &quot;attempt failed&quot;,
+  and Loki returned its 3 lines by span_id.
 
 <span class="k">[E] Example</span>
-time() - tcg_run_last_success_timestamp_seconds{job=&quot;tcg_dataapp&quot;}
+curl -s -G localhost:3100/loki/api/v1/query_range \
+  --data-urlencode &#x27;query={service_name=&quot;tcg-dataapp&quot;} | span_id=&quot;ba8fc2d7eb92ef1c&quot;&#x27;
 
 <span class="k">[A] Adjustments</span>
-- Without honor_labels the job of every pushed series would be pushgateway
-  and the instance would be the Pushgateway, not the machine of the run.
-- The histogram of a pushed run holds only that run: no rate() over it.
-- Pin every image to a version; no latest.
+- promtool check config and promtool test rules must pass, run from the
+  image of Prometheus; rules_test.yml covers TcgRunFailed with its trace.
+- Port 3000 may be taken: GRAFANA_PORT=3001.
+- docker compose down -v at the end.
 
 <span class="k">[T] Type of output</span>
-The files, the output of promtool check config and a table with each
-question, its PromQL and the value returned.
+The files, the output of promtool, and a table with the four hops of the
+path (where, query or click, what it returned).
 
 <span class="k">[E] Extras</span>
 Show the plan before editing. Record this prompt in docs/prompts.md.
@@ -594,87 +608,150 @@ Stop at the end.</code></pre>
 
   <section class="slide">
     <div class="sc">
-      <header class="sh si reveal"><span class="kick">Step 03 · Result</span><div class="st">The questions of the operator in PromQL</div><p class="ss">Values returned on 08/11/2026, one minute after a run pushed at 11:27 UTC, with the exporter on. A selector picks series by name and labels; functions and operators work on whole vectors at once.</p></header>
-      <table class="tbl tbl-sm reveal"><thead><tr><th>Question</th><th>PromQL</th><th>Value</th></tr></thead><tbody>
-        <tr><td>Did the last run succeed?</td><td><code>tcg_run_success{job="tcg_dataapp"}</code></td><td>1</td></tr>
-        <tr><td>How long since the last success?</td><td><code>time() - tcg_run_last_success_timestamp_seconds</code></td><td>62 s</td></tr>
-        <tr><td>How old is the newest price?</td><td><code>tcg:price_freshness_seconds</code></td><td>84,499 s (23.5 h)</td></tr>
-        <tr><td>Is the grain intact?</td><td><code>tcg_gold_fact_rows - tcg_gold_fact_grain_keys</code></td><td>0</td></tr>
-        <tr><td>Which tasks took longest?</td><td><code>topk(3, tcg_task_duration_seconds)</code></td><td>products 7.25 s, prices of 07/11 3.47 s, of 01/07 3.43 s</td></tr>
-        <tr><td>How many prices were loaded?</td><td><code>sum(tcg_task_rows{task=~"extract_prices_.*"})</code></td><td>5,951</td></tr>
-        <tr><td>Mean time of an archive</td><td><code>…_sum / …_count</code> of the histogram</td><td>2.97 s</td></tr>
+      <header class="sh si reveal"><span class="kick">Step 03 · Result</span><div class="st">Three stores, three query languages</div><p class="ss">Each signal has its store and its language, and the questions of the person on call cross them. Values of the rehearsal of 08/11/2026.</p></header>
+      <table class="tbl tbl-sm reveal"><thead><tr><th>Signal and store</th><th>Query</th><th>Answer</th></tr></thead><tbody>
+        <tr><td>metrics · Prometheus</td><td><code>topk(3, tcg_task_duration_seconds)</code></td><td>products 9.52 s, prices of 07/11 8.12 s, of today 6.83 s</td></tr>
+        <tr><td>metrics · Prometheus</td><td><code>tcg_gold_fact_rows - tcg_gold_fact_grain_keys</code></td><td>0: the grain is intact</td></tr>
+        <tr><td>traces · Tempo (TraceQL)</td><td><code>{name="tcg_dataapp.run" &amp;&amp; status=error}</code></td><td>the runs with <code>source_down</code> and <code>duplicate_prices</code></td></tr>
+        <tr><td>traces · Tempo (TraceQL)</td><td><code>{name=~"tcgcsv.*" &amp;&amp; duration &gt; 3s}</code></td><td>the archives of the past dates</td></tr>
+        <tr><td>logs · Loki (LogQL)</td><td><code>{service_name="tcg-dataapp"} | trace_id="5d1d…"</code></td><td>17 lines: 4 errors, 12 skipped tasks, 1 start</td></tr>
+        <tr><td>logs · Loki (LogQL)</td><td><code>… | event="control.tick"</code></td><td>one line per decision of the controller</td></tr>
       </tbody></table>
+      <div class="callout dark reveal"><b>Alerts on symptoms</b><code>TcgRunFailed</code>, <code>TcgNoSuccessfulRun</code> (26 h), <code>TcgPricesStale</code> (36 h), <code>TcgGrainBroken</code>, <code>TcgRunTooSlow</code> (120 s) and <code>TcgExporterDown</code>, each tested with <code>promtool</code> before it reaches production.</div>
     </div>
   </section>
 
   <section class="slide">
     <div class="sc">
-      <header class="sh si reveal"><span class="kick">Step 03 · Theory</span><div class="st">Quantiles come from the buckets</div><p class="ss">A histogram does not keep the observations, only how many fell at or below each bucket bound. <code>histogram_quantile</code> finds the bucket where the quantile falls and interpolates inside it, so the answer is an estimate whose precision depends on the buckets chosen.</p></header>
-      <div class="g3 reveal">
-        <article class="card"><span class="label">groups</span><h3>p95 = 0.975 s</h3><p>One request of 0.70 s, in the bucket from 0.5 to 1 s. The 95th percentile is placed at 95% of that bucket: 0.5 + 0.95 × 0.5.</p></article>
-        <article class="card dark"><span class="label dark">archive</span><h3>p95 = 3.9 s</h3><p>Five archives, all between 2 and 4 s, with a mean of 2.97 s. The estimate goes towards the upper bound of the bucket.</p></article>
-        <article class="card grn"><span class="label grn">recording rule</span><h3>Computed once</h3><p><code>tcg:source_request_duration_seconds:p95</code> is evaluated every 15 s and stored as a series; the dashboard reads it instead of repeating the expression.</p></article>
+      <header class="sh dark reveal"><span class="kick">0:42 · Control theory</span><div class="st">The elements of a closed loop</div><p class="ss">A closed loop measures the output of a process, compares it with a reference and acts on the process to reduce the difference. Each element of the diagram has a counterpart in the DataApp, and the observability of the previous steps is only one of them: the sensor.</p></header>
+      <div class="loop-fig reveal">
+        <svg class="loop-svg" viewBox="0 0 960 300" role="img" aria-labelledby="loop-title loop-desc">
+          <title id="loop-title">The closed loop of the DataApp</title>
+          <desc id="loop-desc">The setpoint, the SLO, enters a comparator that subtracts the SLI measured by the sensor. The error goes to the controller, which chooses an action; the actuator applies it to the plant, the DataApp and its source. The sensor measures the plant again, and the measurement returns to the comparator: that return is the feedback.</desc>
+          <defs><marker id="loop-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="loop-head" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+          <g class="loop-node is-ref"><rect x="10" y="40" width="130" height="64" rx="4"/><text x="75" y="68">setpoint</text><text class="sub" x="75" y="88">SLO: 36 h</text></g>
+          <g class="loop-node is-cmp"><circle cx="210" cy="72" r="30"/><text x="210" y="78">Σ</text><text class="sub out" x="190" y="32">+</text><text class="sub out" x="186" y="122">−</text></g>
+          <g class="loop-node"><rect x="280" y="40" width="140" height="64" rx="4"/><text x="350" y="68">controller</text><text class="sub" x="350" y="88">decide()</text></g>
+          <g class="loop-node"><rect x="468" y="40" width="232" height="64" rx="4"/><text x="584" y="68">actuators</text><text class="sub" x="584" y="88">rerun · breaker · quarantine</text></g>
+          <g class="loop-node is-plant"><rect x="748" y="30" width="202" height="84" rx="4"/><text x="849" y="64">plant</text><text class="sub" x="849" y="86">DataApp + tcgcsv.com</text></g>
+          <g class="loop-node is-sensor"><rect x="470" y="196" width="290" height="64" rx="4"/><text x="615" y="224">sensor</text><text class="sub" x="615" y="244">metrics · traces · logs → SLI</text></g>
+          <g class="loop-node is-human"><rect x="40" y="196" width="300" height="64" rx="4"/><text x="190" y="224">escalation to a person</text><text class="sub" x="190" y="244">once, when the guardrails are spent</text></g>
+          <path class="loop-edge" d="M140,72 H178" marker-end="url(#loop-arrow)"/>
+          <path class="loop-edge" d="M240,72 H278" marker-end="url(#loop-arrow)"/><text class="loop-lbl" x="259" y="60">error</text>
+          <path class="loop-edge" d="M420,72 H466" marker-end="url(#loop-arrow)"/>
+          <path class="loop-edge" d="M700,72 H746" marker-end="url(#loop-arrow)"/>
+          <path class="loop-edge" d="M849,114 V228 H762" marker-end="url(#loop-arrow)"/>
+          <path class="loop-edge is-feedback" d="M470,228 H430 V150 H210 V104" marker-end="url(#loop-arrow)"/><text class="loop-lbl" x="430" y="140">feedback: SLI</text>
+          <path class="loop-edge is-dashed" d="M310,104 V194" marker-end="url(#loop-arrow)"/>
+        </svg>
       </div>
-      <div class="callout dark reveal"><b>Why there is no rate() here</b>A pushed histogram holds only the last run, and the next push replaces it. In a service that lives longer than the scrape, the usual form is <code>histogram_quantile(0.95, sum by (le) (rate(…_bucket[5m])))</code>.</div>
+      <div class="g3 reveal loop-legend">
+        <article class="card"><span class="label">Comparator</span><p>error = SLI − SLO. A positive error is a violation: data older than 36 h, a source failing above 50 %, a grain broken.</p></article>
+        <article class="card dark"><span class="label dark">Controller</span><p><code>decide()</code>, a pure function of the SLIs, the state and the clock, which returns one action per tick.</p></article>
+        <article class="card grn"><span class="label grn">Feedback</span><p>The next tick reads the effect of the last action. Without it, the system acts blindly, which is an open loop.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><span class="kick">0:44 · Observability is not control</span><div class="st">Observability alone does not close the loop</div><p class="ss">Metrics, traces and logs measure the process and show it. A dashboard and an alert give the measurement to a person, who then decides and acts. The loop closes only where something compares the measurement with the setpoint and acts on the process.</p></header>
+      <table class="tbl tbl-sm reveal"><thead><tr><th></th><th>Open loop</th><th>Loop closed by a person</th><th>Automatic closed loop</th></tr></thead><tbody>
+        <tr><td>In the DataApp</td><td>cron runs the DataApp at 06:00, whatever happened</td><td>the alert calls the person on call, who reruns or fixes</td><td><code>tcg-dataapp control</code> reruns, opens the breaker or quarantines</td></tr>
+        <tr><td>Sensor</td><td>none</td><td>metrics, traces and logs</td><td>the same SLIs, read every tick</td></tr>
+        <tr><td>Decision</td><td>fixed in advance</td><td>a person, when awake and available</td><td>a rule, tested, every 5 minutes</td></tr>
+        <tr><td>Time to act</td><td>the next day</td><td>minutes to hours</td><td>one tick</td></tr>
+        <tr><td>Risk</td><td>stale or wrong data for a day</td><td>fatigue, nights, holidays</td><td>acting wrongly fast, which the guardrails limit</td></tr>
+      </tbody></table>
+      <div class="callout warn reveal"><b>The person stays in the loop</b>The controller handles the failures that have a known and safe action. Everything else, and every failure that persists, is escalated once to a person, with the trace of what the controller tried.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><span class="kick">0:45 · Stability</span><div class="st">A loop that acts must not oscillate</div><p class="ss">An automatic action changes the process that the sensor reads next. A rerun against a source that is down fails again; a threshold crossed back and forth turns the action on and off at every tick. Guardrails bound what the controller may do, so its failure modes are slow and visible.</p></header>
+      <div class="g2 reveal">
+        <article class="card"><span class="label">Hysteresis</span><h3>A dead band on the freshness</h3><p>The data becomes stale above 36 h and fresh again only below 30 h. Between them, the previous state holds, so a value near the threshold does not flap.</p></article>
+        <article class="card dark"><span class="label dark">Backoff</span><h3>A circuit breaker on the source</h3><p>When the source fails, the controller stops calling it. It probes after 300 s, then 600 s, then 1,200 s, and escalates at the fourth opening.</p></article>
+        <article class="card grn"><span class="label grn">Budget and cooldown</span><h3>At most 3 reruns in 6 h</h3><p>Reruns are at least 600 s apart. When the budget is spent, the problem is not transient, and the controller escalates.</p></article>
+        <article class="card"><span class="label">Escalation once</span><h3>Then it holds</h3><p>After escalating, the controller holds every automatic action until the SLIs recover or a person runs <code>control --acknowledge</code>.</p></article>
+      </div>
     </div>
   </section>
 
   <section class="slide etapa-slide" data-etapa="04">
     <div class="sc">
-      <header class="sh prompt reveal"><p class="etapa-kicker">Step 04 · 0:48 · Dashboard and alerts</p><div class="st">Someone reads it, and the machine warns</div><p class="ss">The last step writes the alerts that call a person, tests them with promtool before they reach production, provisions the Grafana dashboard from files, and makes a run fail on purpose to watch an alert fire and resolve.</p></header>
+      <header class="sh prompt reveal"><p class="etapa-kicker">Step 04 · 0:46 · Closed loop</p><div class="st">A controller that reads the SLIs and acts</div><p class="ss">The last step writes the controller and the faults that rehearse it. The decision is a pure function, so every rule has a test with a fake clock; the actions run in the real DataApp, and each tick is itself a trace, a log line and a metric.</p></header>
       <div class="etapa-grid reveal">
         <div class="etapa-lado">
-          <div class="etapa-item"><span class="etapa-rotulo">Files</span><p><code>stack/prometheus/rules.yml</code>, <code>rules_test.yml</code>, <code>stack/grafana/</code> (datasource, provider, <code>tcg_dataapp.json</code>).</p></div>
-          <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Review before moving on</span><ul><li>Does <code>promtool test rules rules_test.yml</code> print SUCCESS?</li><li>With <code>TCG_BASE_URL=http://127.0.0.1:9</code>, does <code>TcgRunFailed</code> fire?</li><li>Does the next good run resolve it?</li></ul></div>
+          <div class="etapa-item"><span class="etapa-rotulo">Files</span><p><code>control.py</code>, <code>faults.py</code>, <code>config.py</code> (setpoints and guardrails), <code>cli.py</code> (<code>control</code>), <code>tests/test_control.py</code>.</p></div>
+          <div class="etapa-item etapa-gate"><span class="etapa-rotulo">Review before moving on</span><ul><li>Does a source down open the breaker and escalate once, with no rerun?</li><li>Is a duplicated batch quarantined, with gold back to rows = keys and the frozen report kept?</li><li>Do the 25 tests pass, the 7 of the loop included?</li></ul></div>
         </div>
         <div class="etapa-prompt">
           <span class="etapa-rotulo">Prompt 04 · CREATE</span>
           <button class="etapa-copiar" type="button">Copy</button>
           <pre class="etapa-pre"><code><span class="k">[C] Character</span>
-You are the same engineer. The numbers are in Prometheus; now a person
-must read them at a glance, and the system must warn when nobody is
-looking.
+You are a reliability engineer who knows control theory. Everything built
+so far is the sensor and the display of a loop: the DataApp is measured and
+a person is warned. The loop is still open, because nothing compares the
+measurement with the setpoint and acts on the process. Close it, and make
+sure that it cannot oscillate nor act forever without a person.
 
 <span class="k">[R] Request</span>
-1. Alerting rules in prometheus/rules.yml, each with severity and summary:
-   - TcgRunFailed: tcg_run_success == 0 (critical);
-   - TcgNoSuccessfulRun: no success for more than 26 h (critical);
-   - TcgRunTooSlow: tcg_run_duration_seconds &gt; 120 (warning);
-   - TcgPricesStale: tcg:price_freshness_seconds &gt; 36 h for 5 m (warning);
-   - TcgGrainBroken: tcg_gold_fact_rows != tcg_gold_fact_grain_keys
-     (critical);
-   - TcgExporterDown: up == 0 or tcg_warehouse_readable == 0 for 2 m.
-2. prometheus/rules_test.yml for promtool test rules: a failed run fires
-   TcgRunFailed and a good run resolves it; prices without news fire
-   TcgPricesStale only after 36 h plus 5 m; one row above the grain fires
-   TcgGrainBroken.
-3. Grafana provisioned from files: the datasource Prometheus (uid
-   prometheus) and the dashboard &quot;TCG DataApp&quot; (uid tcg-dataapp), with five
-   stats (last run, since the last success, price freshness, rows above the
-   grain, run duration), the duration of each task, the rows of each
-   extraction, the rows of db_ingestion by tag and the p95 of the requests.
-4. Make a run fail on purpose (TCG_BASE_URL=http://127.0.0.1:9) with
-   --push, watch TcgRunFailed fire, then run again and watch it resolve.
-
-Facts measured on 08/11/2026 (confirm before use):
-- promtool test rules: SUCCESS.
-- The failed run (12 tasks failed or skipped) fired TcgRunFailed within
-  one evaluation; the good run afterwards resolved it.
+Write src/tcg_dataapp/control.py and the command tcg-dataapp control:
+1. Setpoints in config.py, from TCG_* variables: freshness 36 h (and 30 h
+   to leave the stale state: hysteresis), run duration 120 s, error rate of
+   the source 50 %, plus the grain and the success of the last run.
+2. sense(con, now): the SLIs read from the warehouse (newest price, last
+   run of ops.pipeline_runs with its failed tasks and the class of the
+   error: source, quality or other; error rate of the extractions; grain).
+3. errors(): SLI minus SLO; decide(sli, state, settings, now, history): a
+   pure function that returns one action:
+   - quarantine when the quality gate failed: move every batch that is not
+     in ops.good_batches (tag, timestamp, rows, md5 digest, recorded by
+     the last good run) to quarantine.db_ingestion, rebuild and check gold;
+     the frozen reports are tables and stay as they are; a second
+     quarantine within the window also escalates;
+   - open_breaker when the source failed; hold while it is open; probe
+     after a backoff that doubles at every opening; escalate at the fourth
+     opening;
+   - rerun (with the prices of today) when the data is stale or the run
+     failed for another reason, with a cooldown of 600 s and a budget of 3
+     reruns per 6 h; escalate when the budget is spent;
+   - resolve when every SLI is back within its SLO; none otherwise.
+4. Escalation happens once: it sets state.escalated, optionally posts to
+   TCG_ESCALATION_WEBHOOK, and every later tick holds until the SLIs
+   recover or a person runs tcg-dataapp control --acknowledge.
+5. The loop is observable: a span control.tick with control.sense and
+   control.act &lt;action&gt; (the rerun is a child of it), one JSON log line,
+   one row of ops.controller_actions with the trace_id, and the metrics
+   tcg_controller_* pushed as job tcg_controller.
+6. faults.py: TCG_FAULT=source_down or duplicate_prices, applied to the
+   client of the run and of the probe.
+7. tests/test_control.py with a fake clock: stale data is rerun and the
+   loop settles; a source down opens, backs off and escalates once without
+   any rerun; a source that returns closes the breaker alone; a bad batch
+   is quarantined and a repeated one escalates without oscillating; a
+   failure without a specific actuator is rerun within the budget.
 
 <span class="k">[E] Example</span>
-- alert: TcgRunFailed
-  expr: tcg_run_success{job=&quot;tcg_dataapp&quot;} == 0
-  labels: {severity: critical}
+tick 4a1b2d5ed253  open_breaker the source failed: error rate 100% against an SLO of 50%
+      → breaker open for 20 s (opening 1)
+tick df512f4b8f19  probe        backoff elapsed; probing the source
+      → probe failed (ConnectionError); breaker open for 80 s (opening 3) · escalated to a person
 
 <span class="k">[A] Adjustments</span>
-- Alert on symptoms that someone must act on, not on every number.
-- Each threshold says where it comes from: a daily run plus two hours; three
-  times the reference run of about 40 s.
-- Colours of the dashboard from the palette of the course.
+- decide() never touches the database or the clock: everything comes in
+  its arguments, so each rule has a test.
+- Protection (quarantine) is not limited by the budget; remediation
+  (rerun, probe) is.
+- An SLI without an actuator, such as the duration of the run, is only
+  measured and alerted: say so in the code.
 
 <span class="k">[T] Type of output</span>
-The files, the output of promtool test rules, the list of alerts at
-/api/v1/alerts after each run and a screenshot of the dashboard.
+The files, the output of pytest, and a real rehearsal with short
+guardrails (TCG_BREAKER_BACKOFF=20, --interval 10) for source_down and for
+duplicate_prices, with the line of each tick.
 
 <span class="k">[E] Extras</span>
 Show the plan before editing. Record this prompt in docs/prompts.md.
@@ -686,51 +763,65 @@ Stop at the end.</code></pre>
 
   <section class="slide">
     <div class="sc">
-      <header class="sh si reveal"><span class="kick">Step 04 · Theory</span><div class="st">Alert on symptoms, with a reason for each threshold</div><p class="ss">An alert calls a person, so it must describe a problem that someone has to act on. Each threshold comes from how the DataApp runs, and <code>for:</code> asks the condition to hold for a while before it fires, which filters one bad scrape.</p></header>
-      <table class="tbl tbl-sm reveal"><thead><tr><th>Alert</th><th>Expression</th><th>Why this threshold</th></tr></thead><tbody>
-        <tr><td>TcgRunFailed · critical</td><td><code>tcg_run_success == 0</code></td><td>a failed run publishes nothing</td></tr>
-        <tr><td>TcgNoSuccessfulRun · critical</td><td>last success older than 26 h</td><td>a daily run plus two hours of tolerance</td></tr>
-        <tr><td>TcgRunTooSlow · warning</td><td><code>tcg_run_duration_seconds > 120</code></td><td>three times the reference run</td></tr>
-        <tr><td>TcgPricesStale · warning</td><td>freshness above 36 h, <code>for: 5m</code></td><td>one missed day and a half</td></tr>
-        <tr><td>TcgGrainBroken · critical</td><td>rows ≠ keys of the grain</td><td>every sum of the cube would be wrong</td></tr>
-        <tr><td>TcgExporterDown · warning</td><td><code>up == 0</code> or not readable, <code>for: 2m</code></td><td>a run holds the file for about 30 s</td></tr>
+      <header class="sh dark reveal"><span class="kick">Step 04 · Theory</span><div class="st">One actuator per failure, each with its limit</div><p class="ss">Each failure has an action that is safe to repeat and a limit beyond which the action stops helping. Protection, which keeps a wrong number from being served, comes before remediation, which tries to bring the data back.</p></header>
+      <table class="tbl tbl-sm reveal"><thead><tr><th>Failure measured</th><th>Actuator</th><th>Guardrail</th><th>Escalates when</th></tr></thead><tbody>
+        <tr><td>data older than 36 h</td><td>rerun with the prices of today</td><td>600 s of cooldown, 3 per 6 h</td><td>the budget is spent</td></tr>
+        <tr><td>the source fails above 50 %</td><td>circuit breaker: hold, probe after a doubling backoff</td><td>no rerun while open</td><td>the fourth opening</td></tr>
+        <tr><td>a batch breaks the quality gate</td><td>quarantine every batch not in the last good state; rebuild and check gold</td><td>protection, outside the budget</td><td>the second quarantine in 6 h</td></tr>
+        <tr><td>the run takes more than 120 s</td><td>none</td><td></td><td>always: an alert to a person</td></tr>
       </tbody></table>
-      <div class="callout dark reveal"><b>Who receives the alert</b>Prometheus evaluates the rules and shows them at <code>/alerts</code>. Routing to e-mail or chat is the job of Alertmanager, which is the next piece of the stack and is left out of this lab.</div>
+      <div class="callout dark reveal"><b>Last known good state</b>A successful run records each batch of <code>db_ingestion</code> with its rows and an md5 digest in <code>ops.good_batches</code>. The quarantine moves every batch that differs to <code>quarantine.db_ingestion</code>, so the views of gold serve the last good numbers again; the frozen reports are tables and are not touched.</div>
     </div>
   </section>
 
   <section class="slide">
     <div class="sc">
-      <header class="sh si reveal"><span class="kick">Step 04 · Result</span><div class="st">A run fails on purpose, an alert fires, a good run resolves it</div><p class="ss">The rehearsal of 08/11/2026. The source was replaced by a closed port, the run failed after one retry and skipped everything downstream, and Prometheus fired the alert at its next evaluation.</p></header>
+      <header class="sh dark reveal"><span class="kick">Step 04 · Result</span><div class="st">The loop in the rehearsal of 08/11/2026</div><p class="ss">The real DataApp with a fault injected and short guardrails: a backoff of 20 s, ticks every 10 s and escalation at the third opening of the breaker.</p></header>
       <div class="solo reveal">
-        <div class="code-mini"><span class="code-cap">11:26 UTC · TCG_BASE_URL=http://127.0.0.1:9 tcg-dataapp run --push localhost:9091</span><pre>  fail  extract_sets  attempt 1/2: URLError: Connection refused
-  fail  extract_sets  attempt 2/2: URLError: Connection refused
-  skip  extract_products  (a dependency failed)
-  ...   (10 more tasks skipped)
-run d0c7a0b7e3e8: FAILED
-metrics pushed to localhost:9091
+        <div class="code-mini"><span class="code-cap">TCG_FAULT=source_down · control --interval 10 --ticks 9</span><pre>open_breaker  error rate 100%, SLO 50%  → open 20 s
+hold          breaker open 9 s more
+probe         probe failed             → open 40 s
+hold · hold · hold
+probe         probe failed             → open 80 s
+                                         escalated to a person
+hold · hold   waiting for a person
+              (a person reruns the DataApp)
+resolve       breaker closed, escalation resolved
+none          every SLI within its SLO</pre></div>
+        <div class="code-mini"><span class="code-cap">TCG_FAULT=duplicate_prices · 9,613 rows for 7,782 keys</span><pre>transient
+quarantine  3 batches, 5,159 rows
+            gold 5,951 rows = 5,951 keys
+            frozen September: 1,226 rows kept
+rerun       ok: 7,782 rows
+none        every SLI within its SLO
 
-GET /api/v1/alerts   TcgRunFailed   firing
+persistent, within 6 h
+quarantine  gold 5,951 = 5,951
+            second quarantine → escalated
+hold · hold · hold · hold</pre></div>
+      </div>
+      <div class="callout dark reveal"><b>The loop is observable too</b>A tick that reruns is one trace of 41 spans: <code>control.tick</code>, <code>control.sense</code>, <code>control.act rerun</code> and the whole run under it. <code>TcgControllerEscalated</code> fired in Prometheus when the controller gave up.</div>
+    </div>
+  </section>
 
-11:27 UTC · tcg-dataapp run --push localhost:9091
-run cf7aebca8ab9: OK      12 tasks · 25.1 s
-
-GET /api/v1/alerts   (no alerts)</pre></div>
-        <div class="stack">
-          <div class="kpi"><b>SUCCESS</b><span><code>promtool test rules</code>: three scenarios, before any run</span></div>
-          <div class="kpi"><b>9 panels</b><span>dashboard "TCG DataApp", provisioned from a JSON file</span></div>
-          <div class="kpi"><b>14 passed</b><span>pytest in about 3 s, with a fake Pushgateway</span></div>
-        </div>
+  <section class="slide">
+    <div class="sc">
+      <header class="sh dark reveal"><span class="kick">0:58 · The same idea at scale</span><div class="st">Closed loops in the tools you will meet</div><p class="ss">The controller of the DataApp is small, but its structure is the one of the control loops that run most production systems: a declared desired state, a measurement of the current state, and an action that reduces the difference.</p></header>
+      <div class="g2 reveal">
+        <article class="card"><span class="label">Kubernetes</span><h3>Reconciliation loop</h3><p>Each controller compares the desired state of a resource with the observed state and acts until they match: a Deployment of three replicas recreates a pod that died.</p></article>
+        <article class="card dark"><span class="label dark">Kubernetes</span><h3>Horizontal Pod Autoscaler</h3><p>A setpoint of CPU or of a custom metric, a sensor in the metrics API, and an actuator on the number of replicas, with a stabilisation window against oscillation.</p></article>
+        <article class="card grn"><span class="label grn">Alertmanager</span><h3>Webhook to remediation</h3><p>An alert sent to a webhook that runs a playbook closes the loop for a known failure; routing, grouping and silences are its guardrails.</p></article>
+        <article class="card"><span class="label">SRE</span><h3>Error budget</h3><p>The SLO allows a measured amount of failure. While budget remains, changes go out; when it is spent, releases stop. It is a feedback loop on how a team works.</p></article>
       </div>
     </div>
   </section>
 
   <section class="slide">
     <div class="sc">
-      <header class="sh si reveal"><span class="kick">1:00 · Second hour</span><div class="st">Instrument a service of your DataApp</div><p class="ss">Each group applies the four prompts to its own DataApp, the pipeline of Lesson 7 or the flow of Lesson 8, with the data of the partner. The measure of success is a dashboard that answers whether the last run worked and whether the data is fresh, and alerts that would have warned of a real failure.</p></header>
+      <header class="sh si reveal"><span class="kick">1:00 · Second hour</span><div class="st">Three signals and one loop for your DataApp</div><p class="ss">Each group applies the method to its own DataApp, the package of Lesson 7 or the flow of Lesson 8, with prompt 05. The measure of success is a failure rehearsed on purpose and followed from the alert to the log line, and one SLO whose loop either recovers or escalates once.</p></header>
       <div class="g2 reveal">
-        <article class="card"><span class="label">What to build</span><ul><li>the metrics of each run, pushed to a Pushgateway</li><li>the freshness and the volume of the data, by an exporter or a query</li><li>a Grafana dashboard provisioned from files</li><li>at least three alerting rules, each with a <code>promtool</code> test</li></ul></article>
-        <article class="card dark"><span class="label dark">What to use</span><ul><li>the prompts of <code>lab/lesson-10/prompts/</code>, adapted to the partner data</li><li>the stack of <code>lab/lesson-10/stack/</code> as a starting point</li><li>the run log of Lesson 7 as the source of the numbers that already exist</li></ul></article>
+        <article class="card"><span class="label">The three signals</span><ul><li>metrics of each run, pushed, with an info metric of the run and the trace</li><li>one span per run, task, call to the source and transformation</li><li>JSON lines with run_id, trace_id and span_id</li><li>three alerting rules, each with a <code>promtool</code> test</li></ul></article>
+        <article class="card dark"><span class="label dark">One closed loop</span><ul><li>one SLO with its setpoint and dead band</li><li>the sensor, the actuator and what it changes</li><li>cooldown, budget and the condition to escalate</li><li>a test that breaks the DataApp and proves the loop</li></ul></article>
       </div>
       <div class="callout dark reveal"><b>Next session</b>Lesson 11 turns the DataApp into technical infographics: charts chosen for the data and dashboards built for the people who read them.</div>
     </div>
@@ -748,7 +839,7 @@ GET /api/v1/alerts   (no alerts)</pre></div>
   </section>
 
 <!-- encontro:meta:start -->
-<div class="slide encontro-slide"><div class="sc"><section class="encontro-meta" data-encontro-ficha><h2>About this session</h2><p class="encontro-ref">Metrics and Telemetry · 09/12/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Learning objective</h3><p>By the end of the session, students should be able to instrument a DataApp with Prometheus metrics of the appropriate types, collect them by push for batch runs and by an exporter for the state of the data, answer operational questions in PromQL, and build a Grafana dashboard and tested alerting rules for a service of the project.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Session strategy</h3><p>Demonstration followed by application. In the first hour the professor instruments the TCGplayer package of Lesson 7 live with a coding agent in four CREATE prompts (metrics of the run, push and exporter, the Prometheus stack with PromQL, dashboard and alerts), checking each step against the reference in lab/lesson-10 and making a run fail on purpose to watch an alert fire and resolve. In the second hour each group instruments a service of its own DataApp with the same prompts.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Session structure</h3><ol><li>Daily — 15 min</li><li>Why a DataApp needs metrics; targets, series and metric types (5 min)</li><li>Step 01 — metrics of the run: names, labels and cardinality (10 min)</li><li>Step 02 — Pushgateway for the batch run and an exporter of the warehouse (8 min)</li><li>Step 03 — the stack in Docker Compose and questions in PromQL (10 min)</li><li>Step 04 — alerting rules tested with promtool and the Grafana dashboard (12 min)</li><li>Second hour — each group instruments a service of its DataApp: metrics, dashboard and three tested alerts (60 min)</li></ol></div></section></div></div>
+<div class="slide encontro-slide"><div class="sc"><section class="encontro-meta" data-encontro-ficha><h2>About this session</h2><p class="encontro-ref">Metrics and Telemetry · 09/12/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Learning objective</h3><p>By the end of the session, students should be able to instrument a DataApp with metrics, traces and structured logs linked by run, trace and span identifiers, follow a failure from the alert to the log line that explains it, and close the loop on one SLO with a controller that compares the indicator with its setpoint, acts within guardrails and escalates to a person when it cannot recover.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Session strategy</h3><p>Demonstration followed by application. In the first hour the professor builds the observability of the Lesson 7 package live with a coding agent and four CREATE prompts, injecting faults to follow a failure through the three signals and to watch the controller recover or escalate, and distinguishes observability, the sensor and display of the loop, from control, which compares and acts. In the second hour each group applies the method to its own DataApp with prompt 05.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Session structure</h3><ol><li>Daily — 15 min</li><li>The three signals and their correlation (7 min)</li><li>Step 01 — metrics in Prometheus (8 min)</li><li>Step 02 — traces and structured logs with OpenTelemetry (8 min)</li><li>Step 03 — the stack; from the alert to the log line (4 min)</li><li>The closed loop, and why observability alone does not close it (4 min)</li><li>Step 04 — the controller of the DataApp with injected faults (14 min)</li><li>Second hour — the groups apply it to their DataApp (60 min)</li></ol></div></section></div></div>
 <!-- encontro:meta:end -->
 </div>
 
@@ -756,11 +847,11 @@ GET /api/v1/alerts   (no alerts)</pre></div>
   <div class="footer-links">
     <a href="../../home-module-8-sistemas-informacao.html" class="back-home">🏠 Home</a>
     <a href="../materials/lesson-10-material.html" class="back-home material-link">📖 Material</a>
-    <a href="https://github.com/afonsolelis/aulas/tree/main/pages/module-8-sistemas-informacao/lab/lesson-10" class="back-home lab-link" target="_blank" rel="noopener noreferrer">🧪 Lab and stack</a>
+    <a href="https://github.com/afonsolelis/aulas/tree/main/pages/module-8-sistemas-informacao/lab/lesson-10" class="back-home lab-link" target="_blank" rel="noopener noreferrer">🧪 Lab, stack and controller</a>
   </div>
   <div class="nav-wrapper">
     <button class="nav-btn" id="prev" type="button">← Previous</button>
-    <div class="slide-counter"><span id="current-slide">1</span> / <span id="total-slides">19</span></div>
+    <div class="slide-counter"><span id="current-slide">1</span> / <span id="total-slides">21</span></div>
     <button class="nav-btn" id="next" type="button">Next →</button>
     <button class="fullscreen-btn" id="fullscreen" type="button" aria-label="Toggle full screen">⛶</button>
   </div>

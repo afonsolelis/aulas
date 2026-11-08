@@ -11,6 +11,8 @@ tests:
     input_series:
       - series: 'tcg_run_success{job="tcg_dataapp", instance="local"}'
         values: '1 0 0 1'
+      - series: 'tcg_run_info{job="tcg_dataapp", instance="local", run_id="a1b2c3d4e5f6", trace_id="4bf92f3577b34da6a3ce929d0e0e4736"}'
+        values: '1 1 1 1'
     alert_rule_test:
       - eval_time: 1m
         alertname: TcgRunFailed
@@ -18,7 +20,7 @@ tests:
           - exp_labels: {severity: critical, job: tcg_dataapp, instance: local}
             exp_annotations:
               summary: "The last run of tcg-dataapp on local failed"
-              description: "tcg_run_failed_tasks counts the tasks that failed or were skipped; ops.pipeline_runs has the error of each attempt."
+              description: "Run a1b2c3d4e5f6, trace 4bf92f3577b34da6a3ce929d0e0e4736: open it in Tempo, then the log lines of the failing span in Loki."
       - eval_time: 3m
         alertname: TcgRunFailed
         exp_alerts: []
@@ -57,3 +59,20 @@ tests:
           - exp_labels: {severity: critical, job: tcg_exporter}
             exp_annotations:
               summary: "gold.fact_price has more rows than keys of its grain"
+
+  # The controller escalates: the alert fires at once and stops when it is acknowledged.
+  - interval: 1m
+    input_series:
+      - series: 'tcg_controller_escalated{job="tcg_controller", instance="local"}'
+        values: '0 1 1 0'
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: TcgControllerEscalated
+        exp_alerts:
+          - exp_labels: {severity: critical, job: tcg_controller, instance: local}
+            exp_annotations:
+              summary: "The controller of tcg-dataapp handed the loop to a person"
+              description: "ops.controller_state has the reason; tcg-dataapp control --acknowledge clears it after the fix."
+      - eval_time: 3m
+        alertname: TcgControllerEscalated
+        exp_alerts: []

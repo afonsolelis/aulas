@@ -7,4 +7,4 @@ def test_version(capsys):
     with pytest.raises(SystemExit) as stop:
         main(["--version"])
     assert stop.value.code == 0
-    assert "tcg-dataapp 0.4.0" in capsys.readouterr().out
+    assert "tcg-dataapp 0.4.1" in capsys.readouterr().out

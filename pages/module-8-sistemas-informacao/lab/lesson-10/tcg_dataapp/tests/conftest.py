@@ -2,8 +2,19 @@
 from __future__ import annotations
 
 import pytest
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
 from tcg_dataapp.config import Settings
+
+# One tracer provider for the whole test session (OpenTelemetry accepts only one
+# per process); the fixture spans empties its exporter before each test.
+_EXPORTER = InMemorySpanExporter()
+_provider = TracerProvider()
+_provider.add_span_processor(SimpleSpanProcessor(_EXPORTER))
+trace.set_tracer_provider(_provider)
 
 SETS = {
     1: {"groupId": 1, "name": "Test Set One", "abbreviation": "TS1", "publishedOn": "2026-07-01T00:00:00", "categoryId": 3},
@@ -34,13 +45,18 @@ PRICES = {
 
 
 class FakeClient:
+    """fail_times: the first calls of groups() raise; down: every call raises while True."""
+
+    base_url = "https://fake.tcgcsv.test"
+
     def __init__(self, fail_times: int = 0):
         self.fail_times = fail_times
         self.calls = 0
+        self.down = False
 
     def groups(self):
         self.calls += 1
-        if self.calls <= self.fail_times:
+        if self.down or self.calls <= self.fail_times:
             raise ConnectionError("tcgcsv is down")
         return list(SETS.values()) + [{"groupId": 99, "name": "Other", "abbreviation": "OT", "publishedOn": "2020-01-01T00:00:00"}]
 
@@ -52,6 +68,12 @@ class FakeClient:
 
     def prices_today(self, group_id):
         return PRICES["2026-09-01"].get(group_id, [])
+
+
+@pytest.fixture
+def spans():
+    _EXPORTER.clear()
+    return _EXPORTER
 
 
 @pytest.fixture

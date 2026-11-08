@@ -1,4 +1,4 @@
-"""Metrics of the DataApp in the Prometheus format.
+"""Metrics of the DataApp in the Prometheus format (traces and logs are in observability.py).
 
 Two ways of reaching Prometheus, because the DataApp has two kinds of process:
 
@@ -21,9 +21,12 @@ import time
 from pathlib import Path
 
 import duckdb
+from opentelemetry.trace import SpanKind, Status, StatusCode
 from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram, disable_created_metrics, generate_latest
 from prometheus_client.exposition import pushadd_to_gateway
 from prometheus_client.core import GaugeMetricFamily
+
+from tcg_dataapp.observability import tracer
 
 # The *_created series (when each counter started) only add noise to a job that lives forty seconds.
 disable_created_metrics()
@@ -53,6 +56,10 @@ class RunMetrics:
         self.run_success = Gauge("tcg_run_success", "1 when every task of the run succeeded, 0 otherwise", registry=r)
         self.run_duration = Gauge("tcg_run_duration_seconds", "Duration of the whole run", registry=r)
         self.run_failed_tasks = Gauge("tcg_run_failed_tasks", "Tasks that failed or were skipped in the run", registry=r)
+        # An info metric: always 1, its labels say which run (and which trace) the series above describe.
+        # One series per instance, replaced at every push, so the cardinality stays at one.
+        self.run_info = Gauge("tcg_run_info", "Identifiers of the last run: run_id and trace_id, to open its trace",
+                              ["run_id", "trace_id"], registry=r)
         self.run_completion = Gauge("tcg_run_last_completion_timestamp_seconds",
                                     "Unix time at which the last run ended, successful or not", registry=r)
         # Pushed only after a successful run, so a failure does not erase it.
@@ -75,8 +82,9 @@ class RunMetrics:
                 if measure in result:
                     self.quality.labels(measure=measure).set(result[measure])
 
-    def finish(self, failed: list[str]) -> None:
+    def finish(self, failed: list[str], trace_id: str = "") -> None:
         now = time.time()
+        self.run_info.labels(run_id=self.run_id, trace_id=trace_id).set(1)
         self.run_duration.set(time.perf_counter() - self._started)
         self.run_failed_tasks.set(len(failed))
         self.run_success.set(0 if failed else 1)
@@ -115,7 +123,9 @@ class RunMetrics:
 
 
 class InstrumentedClient:
-    """Same methods as TcgcsvClient; times each call into tcg_source_request_duration_seconds."""
+    """Same methods as TcgcsvClient. Each call is one child span (tcgcsv.<endpoint>), timed
+    into tcg_source_request_duration_seconds and, when it raises, counted in
+    tcg_source_request_errors_total and recorded in the span with status ERROR."""
 
     METHODS = {"groups": "groups", "products": "products", "prices_today": "prices", "prices_archive": "archive"}
 
@@ -129,15 +139,29 @@ class InstrumentedClient:
         if endpoint is None or not callable(target):
             return target
 
+        base = getattr(self._client, "base_url", "")
+
         def call(*args, **kwargs):
             t0 = time.perf_counter()
-            try:
-                return target(*args, **kwargs)
-            except Exception:
-                self._metrics.source_errors.labels(endpoint=endpoint).inc()
-                raise
-            finally:
-                self._metrics.source_latency.labels(endpoint=endpoint).observe(time.perf_counter() - t0)
+            with tracer().start_as_current_span(f"tcgcsv.{endpoint}", kind=SpanKind.CLIENT,
+                                                record_exception=False, set_status_on_exception=False) as span:
+                span.set_attribute("http.request.method", "GET")
+                span.set_attribute("server.address", base.split("//")[-1].split("/")[0])
+                span.set_attribute("tcg.endpoint", endpoint)
+                if args:
+                    span.set_attribute("tcg.argument", str(args[0]))
+                try:
+                    result = target(*args, **kwargs)
+                except Exception as error:
+                    self._metrics.source_errors.labels(endpoint=endpoint).inc()
+                    span.record_exception(error)
+                    span.set_status(Status(StatusCode.ERROR, f"{type(error).__name__}: {error}"))
+                    raise
+                finally:
+                    self._metrics.source_latency.labels(endpoint=endpoint).observe(time.perf_counter() - t0)
+                size = sum(len(v) for v in result.values()) if isinstance(result, dict) else len(result)
+                span.set_attribute("tcg.records", size)
+                return result
 
         return call
 
@@ -202,7 +226,7 @@ class WarehouseCollector:
         status = GaugeMetricFamily("tcg_pipeline_last_run_tasks", "Task attempts of the last run in ops.pipeline_runs, by status",
                                    labels=["status"])
         ended = GaugeMetricFamily("tcg_pipeline_last_run_end_timestamp_seconds", "Unix time of the end of the last run")
-        last_run = con.execute("SELECT run_id FROM ops.pipeline_runs ORDER BY started_at DESC, ended_at DESC LIMIT 1").fetchone()
+        last_run = con.execute("SELECT run_id FROM ops.pipeline_runs ORDER BY started_at DESC, rowid DESC LIMIT 1").fetchone()
         if last_run:
             for st, n in con.execute("SELECT status, count(*) FROM ops.pipeline_runs WHERE run_id = ? GROUP BY 1 ORDER BY 1",
                                      [last_run[0]]).fetchall():

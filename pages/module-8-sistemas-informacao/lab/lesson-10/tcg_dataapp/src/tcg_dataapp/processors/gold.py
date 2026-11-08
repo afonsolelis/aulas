@@ -7,6 +7,7 @@ from importlib import resources
 import duckdb
 
 from tcg_dataapp.etls.landing import run
+from tcg_dataapp.observability import tracer
 
 SQL_FILES = ("01_dimensions.sql", "02_fact.sql", "03_cube_and_mart.sql", "04_live_reports.sql")
 
@@ -16,10 +17,18 @@ def sql_text(name: str) -> str:
 
 
 def build_gold(con: duckdb.DuckDBPyConnection) -> list[str]:
-    """Create or replace every view of gold, mart_collectors and the live reports."""
+    """Create or replace every view of gold, mart_collectors and the live reports.
+
+    Each SQL file is a child span (sql <file>) with the number of statements, so a
+    trace shows which file failed and how long each one took.
+    """
     for name in SQL_FILES:
-        for statement in con.extract_statements(sql_text(name)):
-            con.execute(statement).fetchall()
+        with tracer().start_as_current_span(f"sql {name}") as span:
+            statements = con.extract_statements(sql_text(name))
+            span.set_attribute("db.system", "duckdb")
+            span.set_attribute("db.statements", len(statements))
+            for statement in statements:
+                con.execute(statement).fetchall()
     return list(SQL_FILES)
 
 

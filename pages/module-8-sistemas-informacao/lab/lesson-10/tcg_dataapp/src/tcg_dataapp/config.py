@@ -34,3 +34,20 @@ class Settings:
     pushgateway: str = field(default_factory=lambda: os.environ.get("TCG_PUSHGATEWAY", ""))
     instance: str = field(default_factory=lambda: os.environ.get("TCG_INSTANCE", "local"))
     metrics_port: int = field(default_factory=lambda: int(os.environ.get("TCG_METRICS_PORT", "9108")))
+    # Lesson 10: traces and logs. The OTLP endpoint is the collector (empty: JSON logs to a file only).
+    otlp_endpoint: str = field(default_factory=lambda: os.environ.get("TCG_OTLP_ENDPOINT", ""))
+    # Fault injected into the client of the source, to rehearse failures: "" (none),
+    # "source_down" (every request raises) or "duplicate_prices" (the prices of today arrive twice).
+    fault: str = field(default_factory=lambda: os.environ.get("TCG_FAULT", ""))
+    # Lesson 10: setpoints of the closed loop (control.py). Times in seconds.
+    slo_freshness_s: int = field(default_factory=lambda: int(os.environ.get("TCG_SLO_FRESHNESS", str(36 * 3600))))
+    slo_freshness_ok_s: int = field(default_factory=lambda: int(os.environ.get("TCG_SLO_FRESHNESS_OK", str(30 * 3600))))
+    slo_run_duration_s: float = field(default_factory=lambda: float(os.environ.get("TCG_SLO_RUN_DURATION", "120")))
+    slo_source_error_rate: float = field(default_factory=lambda: float(os.environ.get("TCG_SLO_SOURCE_ERRORS", "0.5")))
+    # Guardrails of the controller.
+    control_max_actions: int = field(default_factory=lambda: int(os.environ.get("TCG_CONTROL_MAX_ACTIONS", "3")))
+    control_window_s: int = field(default_factory=lambda: int(os.environ.get("TCG_CONTROL_WINDOW", str(6 * 3600))))
+    control_cooldown_s: int = field(default_factory=lambda: int(os.environ.get("TCG_CONTROL_COOLDOWN", "600")))
+    breaker_backoff_s: int = field(default_factory=lambda: int(os.environ.get("TCG_BREAKER_BACKOFF", "300")))
+    breaker_max_opens: int = field(default_factory=lambda: int(os.environ.get("TCG_BREAKER_MAX_OPENS", "4")))
+    escalation_webhook: str = field(default_factory=lambda: os.environ.get("TCG_ESCALATION_WEBHOOK", ""))

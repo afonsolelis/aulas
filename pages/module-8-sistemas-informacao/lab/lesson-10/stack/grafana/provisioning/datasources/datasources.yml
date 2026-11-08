@@ -1,0 +1,45 @@
+# Lesson 10 · the three datasources and the links between them.
+#   Tempo → Loki   from a span, "Logs for this span" opens the log lines written inside it
+#   Loki  → Tempo  the trace_id of a log line is a link to its trace
+#   Prometheus     the dashboard turns the trace_id label of tcg_run_info into a link
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+
+  - name: Tempo
+    uid: tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    jsonData:
+      tracesToLogsV2:
+        datasourceUid: loki
+        spanStartTimeShift: "-5m"
+        spanEndTimeShift: "5m"
+        filterByTraceID: true
+        filterBySpanID: true
+        customQuery: true
+        query: '{service_name="tcg-dataapp"} | span_id="$${__span.spanId}"'
+      lokiSearch:
+        datasourceUid: loki
+      nodeGraph:
+        enabled: true
+
+  - name: Loki
+    uid: loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    jsonData:
+      derivedFields:
+        - name: trace_id
+          matcherType: label
+          matcherRegex: trace_id
+          datasourceUid: tempo
+          url: "$${__value.raw}"
+          urlDisplayLabel: Open the trace

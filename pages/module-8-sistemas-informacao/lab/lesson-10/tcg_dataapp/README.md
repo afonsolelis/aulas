@@ -1,6 +1,6 @@
-# tcg-dataapp 0.4.0 · instrumented for Prometheus
+# tcg-dataapp 0.4.1 · observable and controlled in closed loop
 
-The model of Lesson 6, automated as an installable Python package in Lesson 7 and instrumented with metrics in Lesson 10. One command collects the prices that TCGplayer published for the Pokémon TCG sets of 2026, loads them into a local DuckDB file and builds the whole gold layer, the frozen and live reports, the five questions and the Parquet files of the marts.
+The model of Lesson 6, automated as an installable Python package in Lesson 7. In Lesson 10 it gains the three signals of observability and a controller that closes the loop on its objectives. One command collects the prices that TCGplayer published for the Pokémon TCG sets of 2026, loads them into a local DuckDB file and builds the whole gold layer, the frozen and live reports, the five questions and the Parquet files of the marts.
 
 Every date is Unix time in seconds (UTC).
 
@@ -9,37 +9,53 @@ Every date is Unix time in seconds (UTC).
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e '.[dev]'
-tcg-dataapp run              # about 40 s; the archives of tcgcsv are downloaded once per date
-tcg-dataapp status           # rows of db_ingestion and the last run
-tcg-dataapp run --with-today # also the prices of today, from the live API
-tcg-dataapp run --push localhost:9091   # also push the metrics of the run to a Pushgateway
-tcg-dataapp metrics          # the exporter: /metrics on port 9108 with the state of the warehouse
-tcg-dataapp metrics --once   # one scrape, printed
-pytest                       # 14 tests, without network
+tcg-dataapp run --with-today           # about 30 s; metrics, trace and JSON log of the run
+tcg-dataapp status                     # rows of db_ingestion and the last run
+tcg-dataapp metrics                    # the exporter: /metrics on port 9108 with the state of the warehouse
+tcg-dataapp control --interval 300     # the closed loop; --once for cron; --acknowledge after a person takes over
+pytest                                 # 25 tests, without network
 ```
 
-The run writes `warehouse/tcg.duckdb`, `out/report.md`, `out/marts/*.parquet` and `out/metrics.prom`. The settings come from environment variables: `TCG_DB_PATH`, `TCG_OUT_DIR`, `TCG_SETS`, `TCG_PRICE_DATES`, `TCG_FROZEN_MONTH`, `TCG_RETRIES`, `TCG_RETRY_DELAY`, and, for the metrics, `TCG_PUSHGATEWAY`, `TCG_INSTANCE` and `TCG_METRICS_PORT` (see `src/tcg_dataapp/config.py`).
+The run writes `warehouse/tcg.duckdb`, `out/report.md`, `out/marts/*.parquet`, `out/metrics.prom` and `out/logs/tcg-dataapp.jsonl`. The settings come from environment variables (see `src/tcg_dataapp/config.py`):
 
-## Metrics (Lesson 10)
+| Group | Variables |
+|---|---|
+| data | `TCG_DB_PATH`, `TCG_OUT_DIR`, `TCG_SETS`, `TCG_PRICE_DATES`, `TCG_FROZEN_MONTH`, `TCG_RETRIES`, `TCG_RETRY_DELAY` |
+| signals | `TCG_PUSHGATEWAY`, `TCG_INSTANCE`, `TCG_METRICS_PORT`, `TCG_OTLP_ENDPOINT` |
+| setpoints | `TCG_SLO_FRESHNESS` (129600 s), `TCG_SLO_FRESHNESS_OK` (108000 s), `TCG_SLO_RUN_DURATION` (120 s), `TCG_SLO_SOURCE_ERRORS` (0.5) |
+| guardrails | `TCG_CONTROL_MAX_ACTIONS` (3), `TCG_CONTROL_WINDOW` (21600 s), `TCG_CONTROL_COOLDOWN` (600 s), `TCG_BREAKER_BACKOFF` (300 s), `TCG_BREAKER_MAX_OPENS` (4), `TCG_ESCALATION_WEBHOOK` |
+| rehearsal | `TCG_FAULT`: `source_down` or `duplicate_prices` |
 
-`telemetry.py` reaches Prometheus in two ways, because the DataApp has two kinds of process.
+## The three signals
 
-| Process | How Prometheus gets the numbers | Metrics |
-|---|---|---|
-| `tcg-dataapp run`, a batch of about 30 to 40 s | the run pushes to a Pushgateway at the end (`pushadd`, group `job=tcg_dataapp, instance=<TCG_INSTANCE>`), and Prometheus scrapes the Pushgateway | `tcg_task_attempts_total`, `tcg_task_duration_seconds`, `tcg_task_rows`, `tcg_source_request_duration_seconds` (histogram), `tcg_source_request_errors_total`, `tcg_quality_value`, `tcg_run_success`, `tcg_run_duration_seconds`, `tcg_run_failed_tasks`, `tcg_run_last_completion_timestamp_seconds`, `tcg_run_last_success_timestamp_seconds` |
-| `tcg-dataapp metrics`, a long-running exporter | Prometheus scrapes it; at each scrape it reads the DuckDB file | `tcg_ingestion_rows`, `tcg_ingestion_last_timestamp_seconds`, `tcg_ingestion_batches`, `tcg_gold_fact_rows`, `tcg_gold_fact_grain_keys`, `tcg_pipeline_last_run_tasks`, `tcg_pipeline_last_run_end_timestamp_seconds`, `tcg_warehouse_readable` |
+| Signal | Module | What it records | Where it goes |
+|---|---|---|---|
+| metrics | `telemetry.py` | numbers of each run (attempts, durations, rows, requests, quality, outcome, `tcg_run_info{run_id,trace_id}`) and of the warehouse (freshness, volume, grain) | Pushgateway (the run) and scrape of the exporter → Prometheus |
+| traces | `observability.py` | one span `tcg_dataapp.run`, one `task <name>` per task, one `tcgcsv.<endpoint>` per request, one `sql <file>` per SQL file; failures as status ERROR, events and exceptions | OTLP → collector → Tempo |
+| logs | `observability.py` | JSON lines (`run.start`, `task.ok`, `task.fail`, `task.skip`, `run.end`) with `run_id`, `trace_id` and `span_id` | `out/logs/tcg-dataapp.jsonl`; OTLP → collector → Loki |
 
-The time of the last success is pushed only after a successful run, so a failed run does not erase it. DuckDB accepts one writer process and no reader while it writes, so a scrape during a run reports `tcg_warehouse_readable 0` instead of failing. The monitoring stack (Prometheus, Pushgateway, Grafana, rules and dashboard) is in `../stack/`.
+The signals meet in their identifiers. The alert `TcgRunFailed` reads the `trace_id` from `tcg_run_info`; the trace shows the span with the error; the `span_id` of that span selects its log lines in Loki, and the `trace_id` of a log line opens the trace again. The stack and the links between the datasources are in `../stack/`.
 
-To run every day at 06:00 UTC without an orchestrator, a line of crontab is enough; Lesson 8 replaces it with Prefect:
+## The closed loop
 
-```cron
-0 6 * * * cd /path/to/project && .venv/bin/tcg-dataapp run --with-today --push localhost:9091 >> out/cron.log 2>&1
+`control.py` implements a feedback controller over the DataApp.
+
+```text
+ setpoint (SLO) ──▶ (comparator: SLI − SLO) ──▶ controller: decide() ──▶ actuators ──▶ plant: DataApp + tcgcsv.com
+        ▲                                                                                        │
+        └──────────────────────── sensor: sense(), the SLIs read from the warehouse ◀────────────┘
 ```
+
+| Failure | Actuator | Guardrail | When it escalates |
+|---|---|---|---|
+| data older than 36 h (leaves the state only below 30 h) | rerun with the prices of today | 600 s of cooldown, 3 reruns per 6 h | when the budget is spent |
+| the source fails | circuit breaker: hold, then probe after a backoff that doubles | no rerun while it is open | at the fourth opening |
+| a batch breaks the quality gate | quarantine every batch that is not in the last good state, rebuild and check gold; the frozen reports are not touched | protection is not limited by the budget | at the second quarantine in 6 h |
+| the run is slow | none: measured and alerted only | | the alert goes to a person |
+
+An escalation happens once and holds every automatic action until the SLIs are back within the SLOs or a person runs `tcg-dataapp control --acknowledge`. Each tick is a span `control.tick` (the rerun that it starts is its child), one JSON log line, one row of `ops.controller_actions` with its `trace_id`, and the metrics `tcg_controller_*`, pushed as `job=tcg_controller`.
 
 ## Layers
-
-Each layer depends only on the layer below it.
 
 | Layer | Module | Does |
 |---|---|---|
@@ -47,26 +63,19 @@ Each layer depends only on the layer below it.
 | processors | `processors/gold.py`, `processors/quality.py`, `processors/sql/*.sql` | the gold layer as views, the monthly frozen reports and the checks that stop the run |
 | etls | `etls/tcgcsv.py`, `etls/extract.py`, `etls/landing.py` | the client of tcgcsv.com, the extraction and the idempotent load into `db_ingestion` |
 
-`pipeline.py` wires the layers into tasks with dependencies, retries and a log in `ops.pipeline_runs`; `telemetry.py` turns each run and the state of the warehouse into metrics; `cli.py` is the command `tcg-dataapp`.
+`pipeline.py` wires the layers into tasks with dependencies, retries and a log in `ops.pipeline_runs`, and records `ops.good_batches` after a good run; `telemetry.py`, `observability.py` and `control.py` are the cross-cutting modules of Lesson 10; `cli.py` is the command `tcg-dataapp`. The processors and the etls call only the OpenTelemetry API; the SDK is configured by the command line.
 
-## The pipeline
+## Reference numbers (08/11/2026, DuckDB 2.0.0, OpenTelemetry SDK 1.45.2)
 
-```text
-extract_sets ─▶ extract_products ─┬▶ extract_prices_2026-03-01 ─┐
-                                  ├▶ ...                         ├▶ build_gold ─▶ check_quality ─┬▶ freeze_reports ─┐
-                                  └▶ extract_prices_2026-11-07 ─┘                                 └▶ export_marts ───┴▶ write_report
-```
+- A good run with `--with-today`: 13 tasks ok in 30.6 s, 7,782 prices in 6 captures, 697 cells; 38 spans in Tempo and 15 log lines in Loki.
+- A run with `TCG_FAULT=source_down` and 2 retries: failed in 3.0 s, 17 spans, `TcgRunFailed` firing with the run and the trace in its description.
+- The controller against the source down, with a backoff of 20 s and escalation at the third opening:
 
-- A task runs only after every task it depends on succeeded; a failure is retried `TCG_RETRIES` times with a growing pause, and a task that still fails skips its dependents.
-- Every attempt is a row of `ops.pipeline_runs` (run, task, attempt, status, start and end in Unix time, detail).
-- Loading a batch (one tag at one timestamp) replaces it, so a rerun never duplicates rows. The prices of today are loaded as the batch of noon UTC, so two runs on the same day keep one price per product.
-- Every run captures the catalogue again; the dimensions keep the last version of each set and product (`QUALIFY row_number() ... = 1`), so the grain of the fact holds.
-- A frozen report is created once per month, from the last capture of that month, and never rebuilt.
+  ```text
+  open_breaker · hold · probe (fails, 40 s) · hold · hold · hold · probe (fails, 80 s, escalated) · hold · hold
+  ```
 
-## Reference numbers of Lesson 10 (08/11/2026, DuckDB 2.0.0, prometheus-client 0.26.0)
-
-A run with `--push`: 12 tasks ok in 25.1 s (`tcg_run_duration_seconds`), the same 5,951 prices and 524 cells; 13 requests to tcgcsv.com, with a mean of 2.97 s per archive. A second run with `--with-today`: 7,782 prices in 6 captures, 30.3 s. A run with `TCG_BASE_URL=http://127.0.0.1:9`: `tcg_run_success 0`, 12 tasks failed or skipped, and `TcgRunFailed` firing in Prometheus.
-
-## Reference numbers of Lesson 7 (07/11/2026, DuckDB 2.0.0)
-
-First run: 7 sets, 1,490 products, 5,951 prices in 5 captures; `gold.fact_price` 5,951 rows = 5,951 keys of the grain; 524 cells in the cube; `report.mv_card_price_2026_09` 1,226 rows, with the Pikachu ex 276/217 at US$ 1,049.08. A second run keeps the fact at 5,951 rows and the frozen report as it was. With `--with-today` on 08/11/2026: 7,782 prices in 6 captures, the same after a second run on the same day.
+  Then `resolve` after a person reran the DataApp.
+- The controller against a duplicated batch: quarantine of 3 batches (5,159 rows), gold back to 5,951 = 5,951 keys, the frozen report kept at 1,226 rows. Then:
+  - a successful rerun when the fault was transient;
+  - an immediate escalation when the same fault recurred within six hours.
