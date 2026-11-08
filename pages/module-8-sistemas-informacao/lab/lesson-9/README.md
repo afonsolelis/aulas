@@ -40,4 +40,4 @@ python tools/traceability.py    # the utility tree with the result of each leaf
 
 ## The graded activity
 
-The in-class graded activity of this session is the application of the six steps to the DataApp of the group, done by each student alone during the session. Its statement and criteria are delivered in class and are not kept in this public repository.
+The in-class graded activity of this session is the application of the six steps to the DataApp of the group, done by each student alone during the session. Its statement is the DAG and Testing Activity on Adalove: each student works on a branch `graded-activity/student-name` with a Prefect pipeline (Lesson 8) and the tests derived in the six steps, documents the implementation and the testing approach in a pull request and submits only the link by Friday, 04/12/2026. The criteria are those listed in the activity on Adalove.
