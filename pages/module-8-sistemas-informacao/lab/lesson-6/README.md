@@ -24,7 +24,7 @@ Every date of the lab is Unix time, in seconds since 1970-01-01 UTC: `timestamp`
 | `tcgplayer.product.v1` | a product: 1,273 cards and 217 sealed products | 1,490 |
 | `tcgplayer.price.v1` | the prices of a product in one printing, on 01/03, 01/05, 01/07, 01/09 and 07/11/2026 | 5,951 |
 
-`data/db_ingestion.json` is the same file uncompressed (2.3 MB), for the groups who want to load it elsewhere. `build/capture_tcgplayer.py` rebuilds both files (professor only; needs `py7zr`).
+`data/db_ingestion.json` is the same file uncompressed (2.2 MB), for the groups who want to load it elsewhere. `capture/capture_tcgplayer.py` rebuilds both files (professor only; needs `py7zr`).
 
 ## Steps
 
