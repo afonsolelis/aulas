@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 6 - Data Cubes and Data Marts - Material - Inteli</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧊</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <link href="../../../css/inteli-styles.css" rel="stylesheet">
+  <style>
+    :root {
+      --si: var(--si-blue);
+      --ink: var(--inteli-dark-purple);
+      --coral: var(--inteli-coral);
+      --paper: var(--inteli-white);
+      --line: var(--inteli-light-gray);
+      --si-deep: color-mix(in srgb,var(--si) 42%,var(--ink));
+      --soft-si: color-mix(in srgb,var(--si) 18%,var(--paper));
+      --soft-ink: color-mix(in srgb,var(--ink) 6%,var(--paper));
+      --soft-coral: color-mix(in srgb,var(--coral) 10%,var(--paper));
+    }
+    *, *::before, *::after { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; font-family:'Inter',sans-serif; color:var(--ink); background:var(--soft-ink); }
+    a { color:var(--si-deep); }
+    #progress-bar { position:fixed; inset:0 auto auto 0; width:0; height:3px; z-index:9999; background:linear-gradient(var(--ink),var(--ink)); }
+    .mat-header { color:var(--paper); background:linear-gradient(var(--ink),var(--ink)); padding:42px 24px 34px; }
+    .head-inner { width:min(1160px,100%); margin:auto; display:flex; justify-content:space-between; align-items:end; gap:28px; }
+    .head-copy { max-width:780px; }
+    .badge { display:inline-block; margin-bottom:12px; padding:5px 11px; border:1px solid color-mix(in srgb,var(--paper) 36%,transparent); border-radius:4px; background:color-mix(in srgb,var(--paper) 12%,transparent); font-size:.72rem; font-weight:700; letter-spacing:.06em; }
+    .mat-header h1 { margin:0; font-size:2.45rem; line-height:1.12; letter-spacing:-.03em; }
+    .mat-header p { margin:10px 0 0; max-width:760px; color:color-mix(in srgb,var(--paper) 90%,var(--si)); line-height:1.6; }
+    .head-actions { display:flex; flex-wrap:wrap; gap:7px; justify-content:flex-end; }
+    .head-actions a { padding:8px 12px; border-radius:6px; color:var(--paper); border:1px solid color-mix(in srgb,var(--paper) 45%,transparent); text-decoration:none; font-size:.76rem; font-weight:700; white-space:nowrap; }
+    .head-actions a.primary { background:var(--paper); color:var(--ink); }
+    .mat-layout { display:grid; grid-template-columns:290px minmax(0,1fr); gap:34px; width:min(1240px,100%); margin:auto; padding:36px 24px 64px; }
+    .mat-sidebar { position:sticky; top:18px; align-self:start; max-height:calc(100vh - 36px); overflow:auto; }
+    .mat-toc { padding:18px; border:1px solid var(--line); border-radius:6px; background:var(--paper); box-shadow:var(--ds-sombra-1); }
+    .mat-toc h2 { margin:0 0 10px; font-size:.74rem; letter-spacing:.11em; text-transform:uppercase; }
+    .toc-part { margin:12px 0 4px; padding:0 8px; font-size:.64rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--si-deep); }
+    .mat-toc a { display:flex; justify-content:space-between; gap:8px; padding:5px 8px; border-left:3px solid transparent; color:color-mix(in srgb,var(--ink) 68%,var(--paper)); text-decoration:none; font-size:.76rem; line-height:1.32; }
+    .mat-toc a span { flex-shrink:0; font-size:.68rem; color:color-mix(in srgb,var(--ink) 50%,var(--paper)); }
+    .mat-toc a:hover, .mat-toc a.active { color:var(--ink); background:var(--soft-si); border-left-color:var(--si-deep); }
+    .toc-total { margin-top:10px; padding-top:10px; border-top:1px solid var(--line); color:color-mix(in srgb,var(--ink) 60%,var(--paper)); font-size:.7rem; }
+    .mat-article { min-width:0; }
+    .part-title { margin:8px 0 26px; padding:14px 18px; border-radius:6px; background:var(--ink); color:var(--paper); }
+    .part-title small { display:block; font-size:.68rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:color-mix(in srgb,var(--paper) 75%,var(--si)); }
+    .part-title strong { display:block; margin-top:3px; font-size:1.15rem; }
+    .mat-section { margin:0 0 52px; scroll-margin-top:26px; }
+    .mat-section h2 { margin:0 0 18px; padding-bottom:10px; border-bottom:2px solid var(--line); font-size:1.65rem; line-height:1.25; }
+    .mat-section h3 { margin:28px 0 9px; font-size:1.1rem; }
+    .mat-section h4 { margin:20px 0 6px; font-size:.95rem; }
+    .mat-section p, .mat-section li, .mat-section dd { font-size:.94rem; line-height:1.75; color:color-mix(in srgb,var(--ink) 84%,var(--paper)); }
+    .mat-section p { margin:0 0 14px; text-align:justify; text-justify:inter-word; hyphens:auto; }
+    .mat-section ul, .mat-section ol { margin:10px 0 16px; padding-left:1.35rem; }
+    .mat-section li { margin-bottom:5px; }
+    .lead { font-size:1.05rem!important; color:var(--ink)!important; }
+    .g2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin:16px 0; }
+    .g3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin:16px 0; }
+    .card { padding:17px 18px; border:1px solid var(--line); border-left:5px solid var(--si); border-radius:6px; background:var(--paper); box-shadow:var(--ds-sombra-1); }
+    .card.dark { border-left-color:var(--ink); }
+    .card.coral { border-left-color:var(--coral); }
+    .card h3, .card h4 { margin:0 0 7px; font-size:1rem; }
+    .card p { text-align:left!important; }
+    .card p:last-child { margin-bottom:0; }
+    .callout { margin:18px 0; padding:15px 18px; border:1px solid color-mix(in srgb,var(--si) 55%,var(--paper)); border-left:5px solid var(--si-deep); border-radius:6px; background:var(--soft-si); }
+    .callout-warn { border-color:color-mix(in srgb,var(--coral) 35%,var(--paper)); border-left-color:var(--coral); background:var(--soft-coral); }
+    .callout-tip { border-color:color-mix(in srgb,var(--ink) 20%,var(--paper)); border-left-color:var(--ink); background:var(--paper); }
+    .callout-label { margin-bottom:5px; color:var(--ink); font-size:.69rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; }
+    .callout p:last-child { margin:0; }
+    .table-wrap { margin:17px 0; overflow-x:auto; border:1px solid var(--line); border-radius:6px; background:var(--paper); }
+    table { width:100%; min-width:720px; border-collapse:collapse; font-size:.8rem; }
+    th { padding:10px 11px; background:var(--ink); color:var(--paper); text-align:left; font-weight:700; }
+    td { padding:10px 11px; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.5; }
+    tr:last-child td { border-bottom:0; }
+    tbody tr:nth-child(even) { background:var(--soft-ink); }
+    code { padding:2px 6px; border-radius:4px; background:var(--soft-si); color:var(--ink); font:600 .86em 'JetBrains Mono',monospace; }
+    .code-wrap { margin:16px 0; border:1px solid var(--line); border-radius:6px; overflow:hidden; background:var(--ink); }
+    .code-label { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:7px 12px; background:color-mix(in srgb,var(--ink) 82%,var(--si)); color:var(--paper); font-size:.7rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+    .code-actions { display:flex; gap:6px; flex-shrink:0; }
+    .code-copy, .code-src { padding:3px 9px; border:1px solid color-mix(in srgb,var(--paper) 40%,transparent); border-radius:6px; background:transparent; color:var(--paper); font:700 .68rem 'Inter',sans-serif; cursor:pointer; text-decoration:none; text-transform:none; letter-spacing:0; }
+    .code-block { margin:0; padding:14px 16px; overflow-x:auto; max-height:460px; color:var(--paper); }
+    .code-block code { padding:0; background:none; color:inherit; font-size:.78rem; line-height:1.6; }
+    .hl-kw { color:color-mix(in srgb,var(--si) 85%,var(--paper)); font-weight:700; }
+    .hl-fn { color:color-mix(in srgb,var(--coral) 55%,var(--paper)); }
+    .hl-str { color:color-mix(in srgb,var(--si) 45%,var(--paper)); }
+    .hl-num { color:color-mix(in srgb,var(--coral) 35%,var(--paper)); }
+    .hl-cmt { color:var(--inteli-dark-gray); font-style:italic; }
+    .uml-pair { margin:20px 0 26px; }
+    .uml-pair .code-wrap { margin-bottom:0; border-radius:6px 6px 0 0; }
+    .uml-fig { margin:0; padding:18px; border:1px solid var(--line); border-top:0; border-radius:0 0 6px 6px; background:var(--paper); text-align:center; }
+    .uml-fig img { display:block; max-width:100%; height:auto; margin:0 auto; }
+    .uml-fig figcaption { margin-top:12px; font-size:.76rem; color:color-mix(in srgb,var(--ink) 62%,var(--paper)); }
+    .vp-map { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; margin:20px 0 8px; }
+    .vp-map article { padding:14px 12px; border-radius:6px; background:var(--paper); border:1px solid var(--line); border-top:5px solid var(--ink); box-shadow:var(--ds-sombra-1); }
+    .vp-map article:nth-child(2) { border-top-color:var(--si-deep); }
+    .vp-map article:nth-child(3) { border-top-color:color-mix(in srgb,var(--coral) 72%,var(--ink)); }
+    .vp-map article:nth-child(4) { border-top-color:color-mix(in srgb,var(--inteli-dark-gray) 40%,var(--ink)); }
+    .vp-map article:nth-child(5) { border-top-color:var(--inteli-dark-gray); }
+    .vp-map strong { display:block; margin-bottom:3px; font-size:.86rem; }
+    .vp-map em { display:block; margin-bottom:6px; font-size:.72rem; font-style:normal; font-weight:700; color:var(--si-deep); }
+    .vp-map p { margin:0!important; font-size:.78rem!important; line-height:1.45!important; text-align:left!important; }
+    .vp-axis { margin:0 0 18px; padding:9px 12px; border-radius:6px; background:var(--paper); border:1px dashed color-mix(in srgb,var(--ink) 30%,var(--paper)); text-align:center; font-size:.78rem; font-weight:700; }
+    .layers { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:12px; margin:20px 0 10px; }
+    .layer { position:relative; padding:14px 12px; border-radius:6px; color:var(--paper); }
+    .layer b { display:block; font-size:.95rem; margin-bottom:4px; }
+    .layer span { display:block; font-size:.76rem; line-height:1.4; opacity:.92; }
+    .layer:not(:last-child)::after { content:''; position:absolute; right:-12px; top:50%; width:12px; height:2px; background:var(--ink); }
+    .l-src { background:color-mix(in srgb,var(--inteli-dark-gray) 40%,var(--ink)); }
+    .l-b { background:color-mix(in srgb,var(--coral) 55%,var(--ink)); }
+    .l-s { background:var(--si-deep); }
+    .l-g { background:var(--ink); }
+    .l-c { background:var(--paper); color:var(--ink); box-shadow:inset 0 0 0 2px var(--ink); }
+    .undercurrent { margin:0 0 20px; padding:10px 14px; border-radius:6px; background:var(--paper); border:1px dashed var(--si-deep); font-size:.78rem; line-height:1.5; }
+    .undercurrent b { color:var(--si-deep); }
+    .v-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; margin:18px 0; }
+    .v-grid article { padding:14px 12px; border-radius:6px; background:var(--paper); border:1px solid var(--line); border-top:5px solid var(--si-deep); }
+    .v-grid article:nth-child(2) { border-top-color:var(--coral); }
+    .v-grid article:nth-child(3) { border-top-color:var(--ink); }
+    .v-grid article:nth-child(4) { border-top-color:color-mix(in srgb,var(--coral) 60%,var(--ink)); }
+    .v-grid article:nth-child(5) { border-top-color:var(--si); }
+    .v-grid strong { display:block; font-size:1rem; }
+    .v-grid em { display:block; margin:2px 0 6px; font-size:.72rem; font-style:normal; font-weight:700; color:var(--si-deep); }
+    .v-grid p { margin:0!important; font-size:.78rem!important; line-height:1.45!important; text-align:left!important; }
+    .scenario { margin:16px 0; border:1px solid var(--line); border-radius:6px; overflow:hidden; background:var(--paper); }
+    .scenario-head { padding:9px 14px; background:var(--soft-si); font-size:.78rem; font-weight:700; }
+    .scenario dl { display:grid; grid-template-columns:170px 1fr; margin:0; }
+    .scenario dt, .scenario dd { margin:0; padding:8px 14px; border-top:1px solid var(--line); font-size:.82rem; line-height:1.5; }
+    .scenario dt { font-weight:700; background:var(--soft-ink); }
+    .glossary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:16px 0; }
+    .glossary div { padding:12px 14px; border:1px solid var(--line); border-radius:6px; background:var(--paper); }
+    .glossary dt { font-weight:700; font-size:.9rem; margin-bottom:3px; }
+    .glossary dd { margin:0; font-size:.84rem!important; line-height:1.55!important; }
+    .sr { opacity:0; transform:translateY(20px); transition:opacity .6s, transform .6s; }
+    .sr.vis { opacity:1; transform:none; }
+    .check-list { list-style:none; padding:0!important; display:grid; gap:7px; }
+    .check-list li { position:relative; margin:0!important; padding:9px 10px 9px 36px; border:1px solid var(--line); border-radius:6px; background:var(--paper); cursor:pointer; user-select:none; }
+    .check-list li::before { content:''; position:absolute; left:11px; top:11px; width:15px; height:15px; border:2px solid var(--si-deep); border-radius:4px; }
+    .check-list li.done { color:color-mix(in srgb,var(--ink) 55%,var(--paper)); text-decoration:line-through; background:var(--soft-si); }
+    .check-list li.done::before { background:var(--si-deep); }
+    .refs li { font-size:.86rem!important; }
+    #float-nav { position:fixed; right:24px; bottom:25px; z-index:9998; display:flex; flex-direction:column; gap:7px; opacity:0; transform:translateY(12px); pointer-events:none; transition:.25s ease; }
+    #float-nav.visible { opacity:1; transform:none; pointer-events:auto; }
+    .fn-btn { padding:9px 13px; border-radius:4px; text-decoration:none; box-shadow:var(--ds-sombra-1); font-size:.74rem; font-weight:700; text-align:center; }
+    .fn-btn-slides { background:var(--paper); color:var(--ink); border:2px solid var(--si-deep); }
+    .fn-btn-alt { background:var(--paper); color:var(--ink); border:2px solid var(--ink); }
+    .fn-btn-back { background:var(--ink); color:var(--paper); }
+    .dl-row { display:flex; flex-wrap:wrap; gap:8px; margin:16px 0 8px; }
+    .dl-btn { display:inline-block; padding:9px 14px; border-radius:6px; background:var(--ink); color:var(--paper); border:2px solid var(--ink); text-decoration:none; font-size:.8rem; font-weight:700; white-space:nowrap; }
+    .dl-btn.alt { background:var(--paper); color:var(--ink); border-color:var(--si-deep); }
+    .dl-btn:hover { background:var(--si-deep); border-color:var(--si-deep); color:var(--paper); }
+    .mat-section p.dl-note { font-size:.82rem; text-align:left; color:color-mix(in srgb,var(--ink) 70%,var(--paper)); }
+    .inteli-footer { padding:26px 20px; border-top:1px solid var(--line); background:var(--paper); text-align:center; font-size:.8rem; }
+    .inteli-footer img { height:40px; margin-bottom:8px; }
+    @media(max-width:1100px) { .v-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @media(max-width:960px) { .mat-layout { grid-template-columns:1fr; } .mat-sidebar { display:none; } .head-inner { display:block; } .head-actions { margin-top:20px; justify-content:flex-start; } .vp-map { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @media(max-width:700px) { .layers { grid-template-columns:1fr; } .layer::after { display:none; } .g2,.g3,.vp-map,.v-grid,.glossary { grid-template-columns:1fr; } .mat-header h1 { font-size:1.9rem; } .scenario dl { grid-template-columns:1fr; } }
+    @media print { .sr { opacity:1!important; transform:none!important; } .code-block { max-height:none; } }
+  </style>
+
+<!-- encontro:css:start -->
+<link rel="stylesheet" href="../../../css/encontro.css">
+<!-- encontro:css:end -->
+
+<!-- semana:css:start -->
+<link rel="stylesheet" href="../../../css/semana-ano.css">
+<!-- semana:css:end -->
+<!-- ds:css -->
+<link rel="stylesheet" href="../../../css/inteli-ds.css">
+</head>
+<body>
+  <div id="progress-bar" aria-hidden="true"></div>
+  <nav id="float-nav" aria-label="Quick navigation">
+    <a class="fn-btn fn-btn-slides" href="../slides/slide-lesson-6.html">▶ Slides</a>
+    <a class="fn-btn fn-btn-alt" href="../lab/lesson-6/index.html">🧪 Lab</a>
+    <a class="fn-btn fn-btn-back" href="../../home-module-8-sistemas-informacao.html">← Module</a>
+  </nav>
+
+  <header class="mat-header">
+    <div class="head-inner">
+      <div class="head-copy">
+        <span class="badge">Module 8 · Information Systems · Lesson 6 · Week 5</span>
+        <h1>Data Cubes and Data Marts</h1>
+        <p>Reference material for the session in which the professor builds, live and with a coding agent, a dimensional model over a landing table with what TCGplayer published about the Pokémon TCG sets of 2026: dimensions with hierarchies, a periodic snapshot of prices, a cube as a summarised fact table and a data mart, all in DuckDB inside the browser, up to the cards that appreciated most during the year. In the second hour each group builds the same model over the partner data in the ClickHouse of the class.</p>
+      </div>
+      <div class="head-actions">
+        <a class="primary" href="../slides/slide-lesson-6.html">▶ Slides</a>
+        <a href="../lab/lesson-6/index.html">🧪 Lab in the browser</a>
+        <a href="../lab/lesson-6/data/db_ingestion.json" download>⬇ db_ingestion (JSON, 2.3 MB)</a>
+        <a href="../../home-module-8-sistemas-informacao.html">← Back to module</a>
+      </div>
+    </div>
+  </header>
+
+
+<!-- encontro:meta:start -->
+<div class="container" style="max-width:1100px;margin:24px auto 0;padding:0 16px;"><section class="encontro-meta" data-encontro-ficha><h2>About this session</h2><p class="encontro-ref">Data Cubes and Data Marts · 10/11/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Learning objective</h3><p>By the end of the session, students should be able to model a data cube with at least three dimensions over a landing table, declaring its grain, its dimensions with their hierarchies and the additivity of its measures, to build a summarised fact table with CUBE and a data mart with views over conformed dimensions, and to answer multidimensional questions with roll-up, slice, dice and pivot, first over the prices of the Pokémon TCG sets of 2026 and then over the partner data in ClickHouse.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Session strategy</h3><p>Demonstration followed by application. In the first hour the professor builds the model live with a coding agent in four steps (dimensions, fact, cube and mart, and five questions), pasting each CREATE prompt and running the SQL it writes in a lab page with DuckDB inside the browser, over a landing table kept in the localStorage; while the agent works, the slides explain the concept of the step, and each step closes with a review against the numbers of the rehearsal. In the second hour each group repeats the four steps over the partner data in the ClickHouse of the class, starting with a specification that is reviewed before any SQL.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Session structure</h3><ol><li>Daily — 15 min</li><li>Running case, landing table db_ingestion and lab in the browser — 7 min</li><li>Step 01: grain, dimensions and hierarchies; a natural key that repeats — 12 min</li><li>Step 02: the fact of prices as a periodic snapshot; additive, semi-additive and non-additive measures — 8 min</li><li>Step 03: the cube with CUBE and ROLLUP as a summarised fact table; views and materialisation; data mart and conformed dimensions — 12 min</li><li>Step 04: the five operations of OLAP and the five questions — 10 min</li><li>Second hour: each group models the partner data in ClickHouse (shrek2), from the specification to the cube and five answers — 60 min</li></ol></div></section></div>
+<!-- encontro:meta:end -->
+<div class="mat-layout">
+    <aside class="mat-sidebar">
+      <nav class="mat-toc" aria-label="Table of contents">
+        <h2>In this material</h2>
+        <div class="toc-part">Part I · Foundations</div>
+        <a href="#reading">1. How to read this material</a>
+        <a href="#case">2. The case: the market of Pokémon cards on TCGplayer</a>
+        <a href="#landing">3. The landing table db_ingestion</a>
+        <a href="#browser">4. The lab in the browser</a>
+        <div class="toc-part">Part II · Dimensional modelling</div>
+        <a href="#grain">5. Grain and dimensions</a>
+        <a href="#fact">6. The fact and its kind</a>
+        <a href="#measures">7. Additive, semi-additive and non-additive measures</a>
+        <div class="toc-part">Part III · Cubes and marts</div>
+        <a href="#cube">8. Data cubes and OLAP</a>
+        <a href="#cube-sql">9. CUBE, ROLLUP and GROUPING SETS</a>
+        <a href="#materialisation">10. Views, tables and materialisation</a>
+        <a href="#mart">11. Data marts and conformed dimensions</a>
+        <a href="#olap">12. The five operations of OLAP</a>
+        <div class="toc-part">Part IV · Lab</div>
+        <a href="#open">13. Step 00 · Opening the lab</a>
+        <a href="#steps">14. The lab in four steps</a>
+        <a href="#answers">15. The five answers</a>
+        <a href="#mistakes">16. Recurring mistakes of agents</a>
+        <div class="toc-part">Part V · Second hour</div>
+        <a href="#clickhouse">17. Your data in ClickHouse</a>
+        <a href="#prompt05">18. Prompt 05 and the delivery</a>
+        <a href="#glossary">19. Glossary</a>
+        <a href="#checklist">20. Checklist</a>
+        <a href="#references">21. References and self-study</a>
+        <div class="toc-total" id="toc-total"></div>
+      </nav>
+    </aside>
+
+    <article class="mat-article">
+
+      <div class="part-title"><small>Part I</small><strong>Foundations</strong></div>
+      <section class="mat-section" id="reading">
+        <h2>1. How to read this material</h2>
+<p class="lead">This material accompanies Lesson 6, which has two hours. In the first, the professor builds a dimensional model live, in four steps, over a landing table with what TCGplayer published about the Pokémon TCG sets released in 2026; each step starts with a CREATE prompt sent to a coding agent, and the SQL that the agent writes runs in the lab page of the module, inside the browser. In the second hour, each group applies the same steps to the partner data in the ClickHouse of the class.</p>
+<p>Parts I to III follow the theory blocks of the first hour: the case and the landing table, the grain, the dimensions and the kinds of fact and measure, and then the cube, the materialisation and the data mart. Part IV describes the lab step by step, with the prompts in full, the reference SQL and the results, and Part V describes the work of the groups in ClickHouse. A reader who missed the session can reproduce every result by opening the lab page and running the reference SQL of each step, without installing anything.</p>
+<p>Every number was measured on 07/11/2026 with DuckDB 1.4.3 compiled to WebAssembly (DuckDB-WASM 1.32.0) and confirmed with the Python package of the same version. The landing table is a fixed file of the repository, so the counts and the prices are deterministic and must be reproduced exactly; a different count indicates a wrong filter or a wrong join, not a change of the data.</p>
+      </section>
+      <section class="mat-section" id="case">
+        <h2>2. The case: the market of Pokémon cards on TCGplayer</h2>
+<p>TCGplayer is the largest marketplace of collectible cards in the United States. For each product it lists, a single card in a given printing or a sealed product such as a booster box, it publishes a market price computed from recent sales, together with the lowest, the middle and the highest listing. The public site tcgcsv.com mirrors the catalogue and the prices of TCGplayer once a day and keeps a daily archive of the prices, which makes it possible to know the price of a card on past dates without an account or a key of the official API, whose access is restricted to approved partners.</p>
+<p>The case of the lesson takes the seven Pokémon TCG sets released in 2026, from ME: Ascended Heroes in January to ME06: Delta Reign in November, with their 1,490 products and the prices of those products on five dates. Collectors, stores and investors ask different questions of the same prices: a collector wants the current value of a card, a store wants to know which rarities and printings are worth keeping in stock, and an investor wants to know which cards gained value during the year. The last question is the question of the session.</p>
+<div class="table-wrap"><table><thead><tr><th>Set</th><th>Code</th><th>Released on</th><th>Cards</th><th>Products</th></tr></thead><tbody><tr><td>ME: Ascended Heroes</td><td>ASC</td><td>2026-01-30</td><td>575</td><td>620</td></tr><tr><td>ME03: Perfect Order</td><td>POR</td><td>2026-03-27</td><td>124</td><td>156</td></tr><tr><td>ME04: Chaos Rising</td><td>CRI</td><td>2026-05-22</td><td>122</td><td>150</td></tr><tr><td>ME05: Pitch Black</td><td>PBL</td><td>2026-07-17</td><td>120</td><td>148</td></tr><tr><td>ME: 30th Celebration</td><td>30C</td><td>2026-09-16</td><td>161</td><td>224</td></tr><tr><td>ME: 30th Celebration Classic Collection</td><td>30C</td><td>2026-09-16</td><td>30</td><td>30</td></tr><tr><td>ME06: Delta Reign</td><td>DLR</td><td>2026-11-06</td><td>141</td><td>162</td></tr></tbody></table></div>
+<p>The question needs care, because a set is not priced all at once. TCGplayer lists the sealed products of a set in pre-sale weeks before the release, and the single cards enter the price list after the release, many of them weeks later. A comparison between the total value of a set on two dates therefore mixes appreciation with coverage, and the only valid comparison of appreciation is the same card, in the same printing, on two dates.</p>
+      </section>
+      <section class="mat-section" id="landing">
+        <h2>3. The landing table db_ingestion</h2>
+<p>The data of the lesson arrives in one table with three columns, the same shape as the landing table of Lesson 4 and the enriched table of Lesson 5. <code>timestamp</code> records when the record was captured, <code>data_json</code> keeps the record exactly as TCGplayer published it, with its field names, and <code>data_tag</code> says which kind of record it is. Keeping the record whole in a JSON column means that a new field published by the source does not break the load, and that the model can be rebuilt from the landing table at any time.</p>
+<div class="table-wrap"><table><thead><tr><th>data_tag</th><th>One record is</th><th>Rows</th><th>timestamp</th></tr></thead><tbody><tr><td><code>tcgplayer.set.v1</code></td><td>a set, with its code and release date</td><td>7</td><td>07/11/2026</td></tr><tr><td><code>tcgplayer.product.v1</code></td><td>a product: 1,273 cards, which have a collector number, and 217 sealed products</td><td>1,490</td><td>07/11/2026</td></tr><tr><td><code>tcgplayer.price.v1</code></td><td>the prices of one product in one printing (Normal, Holofoil or Reverse Holofoil)</td><td>5,951</td><td>01/03, 01/05, 01/07, 01/09 and 07/11/2026</td></tr></tbody></table></div>
+<div class="code-wrap"><div class="code-label"><span>One record of each tag (the product and the price are the Pikachu ex 276/217)</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>tcgplayer.set.v1      {&quot;groupId&quot;:24541,&quot;name&quot;:&quot;ME: Ascended Heroes&quot;,&quot;abbreviation&quot;:&quot;ASC&quot;,
+                       &quot;isSupplemental&quot;:false,&quot;publishedOn&quot;:&quot;2026-01-30T00:00:00&quot;,...}
+tcgplayer.product.v1  {&quot;productId&quot;:676088,&quot;name&quot;:&quot;Pikachu ex - 276/217&quot;,&quot;groupId&quot;:24541,
+                       &quot;extendedData&quot;:[{&quot;name&quot;:&quot;Number&quot;,&quot;value&quot;:&quot;276/217&quot;},
+                                       {&quot;name&quot;:&quot;Rarity&quot;,&quot;value&quot;:&quot;Special Illustration Rare&quot;},
+                                       {&quot;name&quot;:&quot;Card Type&quot;,&quot;value&quot;:&quot;Lightning&quot;},
+                                       {&quot;name&quot;:&quot;HP&quot;,&quot;value&quot;:&quot;200&quot;},{&quot;name&quot;:&quot;Stage&quot;,&quot;value&quot;:&quot;Basic&quot;}],...}
+tcgplayer.price.v1    {&quot;productId&quot;:676088,&quot;lowPrice&quot;:504.9,&quot;midPrice&quot;:699.41,&quot;highPrice&quot;:5000.0,
+                       &quot;marketPrice&quot;:571.17,&quot;directLowPrice&quot;:587.14,&quot;subTypeName&quot;:&quot;Holofoil&quot;}</code></pre></div>
+<p>Two simplifications were made in the capture, both recorded in <code>build/capture_tcgplayer.py</code> of the lab. The long text of each card, with its attacks and rules, and the address of its image were removed from the products, so that the file fits the storage of the browser. The prices of each date come from the daily archive of tcgcsv.com and receive the timestamp of noon of that date. The complete file has 2.3 MB of JSON and 132 KB once compressed, and it can be downloaded from the lab as <code>data/db_ingestion.json</code> by the groups who want to repeat the model elsewhere.</p>
+      </section>
+      <section class="mat-section" id="browser">
+        <h2>4. The lab in the browser</h2>
+<p>The lab page loads DuckDB compiled to WebAssembly, which runs the same SQL engine as the command line, inside the tab and without a server. On the first visit the page downloads the compressed landing table, keeps it in the localStorage of the browser and creates <code>db_ingestion</code> from it; on later visits the copy in the localStorage is used, and the page works without network once DuckDB itself is in the cache. Every statement that creates, changes or removes an object is also kept, and it runs again when the page reloads, so the model built during the session survives a reload or the closing of the tab.</p>
+<p>The localStorage holds about 5 MB per site, counted in characters of two bytes, and is shared by every page of the same address. The compressed landing table occupies about 343 KB of it and the statements of the complete model less than 20 KB, which leaves room for the other pages of the portal. The data itself lives in the memory of the tab while it is open: what persists is the source and the recipe, and the model is rebuilt from them in less than a second. The panel at the side of the editor shows the objects of the model, the space used, and two buttons, one that drops the model and keeps the data, and one that forgets everything.</p>
+<p>The choice of the browser has a teaching purpose and a limit. It removes every installation from the session, so that the time is spent on the model and not on the environment, and it makes the lab reproducible by any student at home. It does not replace a warehouse: the data of a real partner, with millions of rows, belongs to a server, which is why the second hour runs in ClickHouse.</p>
+      </section>
+      <div class="part-title"><small>Part II</small><strong>Dimensional modelling</strong></div>
+      <section class="mat-section" id="grain">
+        <h2>5. Grain and dimensions</h2>
+<p>Kimball and Ross design a dimensional model in four decisions taken in order, because each one depends on the previous. The first selects the business process to be measured, which here is the pricing of a product by TCGplayer. The second declares the grain, the exact meaning of one row of the fact table: one product, in one printing, on one capture date. The third chooses the dimensions that describe the context of each row, and the fourth the numerical facts that are measured. The grain comes before the dimensions because it determines which questions the model can answer: a grain of one set per date would answer how much a set is worth on that date, but never which card appreciated, while the finer grain answers both, since the value of a set is the sum of its cards.</p>
+<h3>The dimensions of the case and their hierarchies</h3>
+<p>Each dimension has a hierarchy, an order of its attributes from the general to the specific, which is the path along which a question climbs or descends. The four dimensions of the case are written as views over the landing table, because they are small, read in every query and rarely changed; as views they keep no copy and always reflect the current landing table, at the cost of reading the JSON again at each use.</p>
+<div class="table-wrap"><table><thead><tr><th>Dimension</th><th>From</th><th>Hierarchy</th><th>Rows</th></tr></thead><tbody><tr><td><code>gold.dim_set</code></td><td><code>tcgplayer.set.v1</code></td><td>release month › set</td><td>7</td></tr><tr><td><code>gold.dim_product</code></td><td><code>tcgplayer.product.v1</code></td><td>kind (card or sealed) › rarity › product</td><td>1,490</td></tr><tr><td><code>gold.dim_variant</code></td><td><code>tcgplayer.price.v1</code></td><td>Normal, Holofoil, Reverse Holofoil</td><td>3</td></tr><tr><td><code>gold.dim_date</code></td><td>timestamp of the prices</td><td>year › quarter › month › day</td><td>5</td></tr></tbody></table></div>
+<p>The attributes of a product arrive as a list of pairs in <code>extendedData</code>, and a card is told apart from a sealed product by the presence of a collector number in that list. A macro <code>gold.attr(json, name)</code> filters the list and returns the value of one attribute, so each attribute is one line of the view and the rule that reads the list is written once.</p>
+<h3>A natural key that repeats</h3>
+<p>The code of a set looks like a key, but TCGplayer gave the code <code>30C</code> to two sets released on the same day, ME: 30th Celebration and its Classic Collection. A model that identifies or groups sets by the code merges the two without any error message, and the merged set shows a value that belongs to neither. The fact therefore refers to a set by <code>set_id</code>, the identifier that TCGplayer guarantees as unique, the cube groups by <code>set_name</code>, and the code remains in the dimension as an attribute for display. This is the role that a natural key has in a star schema: it describes the member, while the identity comes from a key that the model can trust.</p>
+      </section>
+      <section class="mat-section" id="fact">
+        <h2>6. The fact and its kind</h2>
+<p>Kimball distinguishes three kinds of fact table by what one row records. A transaction fact has one row per event, inserted once and never updated, as the item of an order in the star of Lesson 5. A periodic snapshot has one row per entity per period, even when nothing happened in the period, and records the state of the entity at that moment, as the price of a card on each capture date. An accumulating snapshot has one row per process and is updated as the process advances through its milestones, as an order with the dates of approval, shipping and delivery. The fact of this lesson is a periodic snapshot, because TCGplayer does not publish each sale but the price of the day, and the state on each capture date is the finest measurement available.</p>
+<p><code>gold.fact_price</code> is a table, not a view, because it is the only object of the star that grows with every capture and the one read by every question; as a table, its JSON is read and typed once, when the fact is built. It carries the four prices of the record and the number of days since the release of the set, computed when the fact is built, together with the keys of the product, the set, the variant and the date.</p>
+<h3>The test of the grain</h3>
+<p>The grain declared in the specification is verified with a query: the number of rows of the fact must be equal to the number of distinct combinations of its key. A larger number of rows means that the same product, variant and date appear twice, and that every sum over the fact counts some prices twice. In the case the test returns 5,951 rows and 5,951 combinations, and 49 rows without market price, which are kept because the other prices of the record are valid.</p>
+<div class="table-wrap"><table><thead><tr><th>Capture date</th><th>Prices</th><th>Products</th><th>Sets priced</th></tr></thead><tbody><tr><td>2026-03-01</td><td>657</td><td>619</td><td>ASC; POR in pre-sale</td></tr><tr><td>2026-05-01</td><td>896</td><td>779</td><td>+ POR; CRI in pre-sale</td></tr><tr><td>2026-07-01</td><td>1,153</td><td>960</td><td>+ CRI; PBL and 30th Celebration in pre-sale</td></tr><tr><td>2026-09-01</td><td>1,414</td><td>1,147</td><td>+ PBL; Delta Reign in pre-sale</td></tr><tr><td>2026-11-07</td><td>1,831</td><td>1,477</td><td>all seven sets</td></tr></tbody></table></div>
+      </section>
+      <section class="mat-section" id="measures">
+        <h2>7. Additive, semi-additive and non-additive measures</h2>
+<p>A measure is classified by the dimensions across which its sum still has meaning, and the classification decides how every aggregate of the model may treat it. An additive measure can be summed across every dimension, as the number of price records. A semi-additive measure can be summed across some dimensions but not across time: the market prices of all the cards of a set on one date add up to the cost of buying one copy of each, but the price of one card summed over five dates is a number without meaning. A non-additive measure cannot be summed across any dimension, as an average or a percentage, and must be recomputed from the fact at each level.</p>
+<div class="table-wrap"><table><thead><tr><th>Kind</th><th>Adds up across</th><th>In this lesson</th><th>In Lesson 5</th></tr></thead><tbody><tr><td>additive</td><td>every dimension</td><td>number of price records</td><td>price and freight of the items</td></tr><tr><td>semi-additive</td><td>every dimension except time</td><td>market price</td><td>open orders on a day</td></tr><tr><td>non-additive</td><td>no dimension</td><td>average price of a rarity; percentage of appreciation</td><td>distinct count of orders</td></tr></tbody></table></div>
+<p>The classification has two practical consequences. Every aggregation of a semi-additive measure keeps the time dimension, or takes one point of it, such as the first or the last date, and never sums over it; this is why the cube of the lesson groups by the date in every one of its levels. A non-additive measure is recomputed from the fact for each cell, and an average of averages or a sum of distinct counts gives a wrong number that looks plausible, which makes the error hard to notice.</p>
+      </section>
+      <div class="part-title"><small>Part III</small><strong>Cubes and marts</strong></div>
+      <section class="mat-section" id="cube">
+        <h2>8. Data cubes and OLAP</h2>
+<p>A data cube organises a measure by several dimensions at once. Each cell holds the measure for one combination of members, one set, one rarity and one variant in the case, and the totals along each dimension are cells too: the cell of a set with every rarity and every variant is the total of the set. With three dimensions there are 2³ = 8 combinations of grouped and aggregated dimensions, from the finest level, where the three are present, to the grand total, where none is.</p>
+<p>Online analytical processing, OLAP, is the kind of workload that a cube serves: few users, wide questions over large volumes, read much more often than written. A cube can be kept in a dedicated multidimensional engine (MOLAP), as summary tables of a relational warehouse (ROLAP), or in a mix of both (HOLAP). This lesson builds the relational kind, in which the cube is a summarised fact table: a fact table with a coarser grain, computed from the base fact, that answers the frequent questions without reading every price and joining four dimensions each time.</p>
+      </section>
+      <section class="mat-section" id="cube-sql">
+        <h2>9. CUBE, ROLLUP and GROUPING SETS</h2>
+<p>The three extensions of <code>GROUP BY</code> compute several groupings in one statement and return them in one result. <code>CUBE (a, b, c)</code> generates every combination of the listed columns; <code>ROLLUP (a, b, c)</code> generates only the hierarchy from left to right, that is (a, b, c), (a, b), (a) and the total; <code>GROUPING SETS</code> generates only the combinations listed. In a row of a level where a column was aggregated the column is <code>NULL</code>, and the function <code>grouping()</code> tells this <code>NULL</code> apart from a real one: with several arguments it returns a number in which each bit says whether the corresponding column was aggregated, so 0 is the finest level and 7 the total of three columns.</p>
+<div class="table-wrap"><table><thead><tr><th>Clause</th><th>Generates</th><th>For three columns</th></tr></thead><tbody><tr><td><code>CUBE (a, b, c)</code></td><td>every combination</td><td>8 groupings</td></tr><tr><td><code>ROLLUP (a, b, c)</code></td><td>the hierarchy from left to right</td><td>4 groupings</td></tr><tr><td><code>GROUPING SETS (...)</code></td><td>only the listed ones</td><td>as many as listed</td></tr><tr><td><code>grouping(a, b, c)</code></td><td>a bit per aggregated column</td><td>0 = finest, 7 = total</td></tr></tbody></table></div>
+<p>ROLLUP fits a hierarchy, such as year, quarter and month, because it generates only the meaningful levels; CUBE over the same columns would also produce the month without the year, which merges the same month of different years. The cube of the case uses CUBE, because set, rarity and variant are independent dimensions, and keeps the date outside it, in the plain <code>GROUP BY</code>, because the price is semi-additive. The result has 524 cells in eight levels, against 5,951 rows of the fact.</p>
+<div class="table-wrap"><table><thead><tr><th>grouping_id</th><th>Level</th><th>Cells</th></tr></thead><tbody><tr><td>0</td><td>set × rarity × variant</td><td>182</td></tr><tr><td>1</td><td>set × rarity</td><td>137</td></tr><tr><td>2</td><td>set × variant</td><td>48</td></tr><tr><td>3</td><td>set</td><td>18</td></tr><tr><td>4</td><td>rarity × variant</td><td>68</td></tr><tr><td>5</td><td>rarity</td><td>51</td></tr><tr><td>6</td><td>variant</td><td>15</td></tr><tr><td>7</td><td>all cards</td><td>5</td></tr></tbody></table></div>
+<p>The last cell shows why the date stays in every grouping. One copy of every card was worth US$ 18,989.68 on 07/11/2026, while the same value summed over the five dates gives US$ 51,967.84, which adds the same cards up to five times and corresponds to nothing that can be bought.</p>
+      </section>
+      <section class="mat-section" id="materialisation">
+        <h2>10. Views, tables and materialisation</h2>
+<p>An optimised view is a stored result that spares the repeated cost of a query, and the engines differ in how they keep that result up to date. A view keeps only its query and computes it at every read, so it is always current and pays the full cost each time. A stored result is cheap to read and remains as it was until it is computed again. DuckDB has no materialized view: a stored result is a table created with <code>CREATE TABLE ... AS SELECT</code>, and refreshing it means running the same statement again, which the lab does when the page replays the model. ClickHouse has two kinds of materialized view, which the second hour uses.</p>
+<div class="table-wrap"><table><thead><tr><th>Object</th><th>Keeps data</th><th>When it is computed</th><th>In this lesson</th></tr></thead><tbody><tr><td>view (DuckDB and ClickHouse)</td><td>no, only the query</td><td>at every read</td><td>dimensions and mart</td></tr><tr><td><code>CREATE TABLE AS</code> (DuckDB)</td><td>yes</td><td>when the statement runs</td><td>fact and cube</td></tr><tr><td>incremental materialized view (ClickHouse)</td><td>yes, in a target table</td><td>at every INSERT, over the inserted block only</td><td>second hour, for loads in batches</td></tr><tr><td>refreshable materialized view (ClickHouse)</td><td>yes, replaced at once</td><td>on a schedule, over the whole source</td><td>second hour: fact and cube</td></tr></tbody></table></div>
+<p>The choice follows from how often the object is read and how current it must be. A dimension that is small and changes little fits a view; a fact and a cube read by a dashboard fit a stored result, refreshed after each load. An incremental materialized view of ClickHouse sees only the rows inserted after it was created, so the rows already in the source must be loaded once, separately, with the same query.</p>
+      </section>
+      <section class="mat-section" id="mart">
+        <h2>11. Data marts and conformed dimensions</h2>
+<p>A data mart is the part of the warehouse that serves one area of the business, with the names, the granularity and the questions of that area. In the approach of Kimball the warehouse is the union of its marts, built one at a time, and what keeps them consistent is that they share their dimensions: a dimension is conformed when it has the same keys, the same attributes and the same meaning in every fact that uses it. A question that crosses two marts, such as the price of a card against the sales of a store, then compares the same sets, the same cards and the same dates.</p>
+<p>The mart of the case, <code>mart_collectors</code>, has two views over <code>gold</code>. <code>card_price</code> joins the fact to its four dimensions and exposes the price of each card on each date with readable names; <code>set_value</code> exposes the level "set" of the cube. A dashboard reads the mart and never the landing table, so a change in the JSON of the source is absorbed by the dimensions and does not reach the users. The bus matrix records which dimension each mart uses and is the plan of the warehouse.</p>
+<div class="table-wrap"><table><thead><tr><th>Bus matrix</th><th>dim_set</th><th>dim_product</th><th>dim_variant</th><th>dim_date</th></tr></thead><tbody><tr><td>prices (mart_collectors, this lesson)</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr><tr><td>sales of a store (hypothetical mart)</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr></tbody></table></div>
+      </section>
+      <section class="mat-section" id="olap">
+        <h2>12. The five operations of OLAP</h2>
+<p>Every multidimensional question can be described as a movement over the cube. Roll-up climbs a hierarchy, from the card to its rarity or from the day to the month, and returns fewer cells at a higher level; drill-down descends it, from the rarity to its cards. Slice fixes one member of one dimension, such as one set, and leaves a cube with one dimension less; dice fixes several members of several dimensions, such as four rarities, three variants and one date, and leaves a smaller cube. Pivot turns the axes and shows the same cells in another layout, with the dates as columns and the sets as rows.</p>
+<div class="table-wrap"><table><thead><tr><th>Operation</th><th>In SQL over the cube</th><th>Question of the lesson</th></tr></thead><tbody><tr><td>roll-up / drill-down</td><td>choose the level by <code>grouping_id</code></td><td>Q1: average price of each rarity</td></tr><tr><td>slice</td><td><code>WHERE</code> on one member</td><td>Q2: the most expensive cards of one set</td></tr><tr><td>pivot</td><td><code>PIVOT</code> in DuckDB; conditional aggregation in ClickHouse</td><td>Q3: value of each set on each date</td></tr><tr><td>dice</td><td><code>WHERE</code> on several members, often with a pivot</td><td>Q4: price of each printing of four rarities</td></tr><tr><td>comparison over time</td><td>the same member on two points of the time dimension</td><td>Q5: the cards that appreciated most</td></tr></tbody></table></div>
+      </section>
+      <div class="part-title"><small>Part IV</small><strong>Lab</strong></div>
+      <section class="mat-section" id="open">
+        <h2>13. Step 00 · Opening the lab</h2>
+<p>The lab is the page <code>lab/lesson-6/</code> of the module, linked from the slides, from this material and from the home of the module. It needs only a recent browser; on the first visit it downloads DuckDB from a public CDN and the landing table from the repository, which takes a few seconds, and the status line shows the version of DuckDB, the number of rows of <code>db_ingestion</code> (7,448) and how many statements of the model were replayed.</p>
+<p>Each step has two buttons. "Prompt" opens the CREATE prompt of the step, with a button to copy it to the coding agent; "Reference SQL" loads into the editor the SQL that the professor wrote and measured, for when the agent takes longer than the slot of the step or writes something that does not run. The editor runs every statement of the script with Ctrl+Enter, shows one result per statement and stops at the first error. Clicking an object in the side panel writes a query that shows its first rows.</p>
+<p>The coding agent works in a folder of the professor, writes the SQL file of the step and does not run it: the SQL is pasted into the lab and runs there. The prompts state the facts measured in the rehearsal, so that both the agent and the class can compare the result of each step with the expected numbers.</p>
+      </section>
+      <section class="mat-section" id="steps">
+        <h2>14. The lab in four steps</h2>
+<p>The four steps below are the ones shown on the slides, in the same order. Each one has the prompt in full, the review that closes it and the reference SQL, which is the same file that the lab loads.</p><h3>Step 01 · Dimensions</h3><div class="code-wrap"><div class="code-label"><span>Prompt 01 · CREATE</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>[C] Character
+You are a dimensional modeller. A table called db_ingestion holds what was
+captured from TCGplayer about the Pokemon TCG sets released in 2026, exactly
+as it arrived. You write the dimensions of a star schema over it, in DuckDB,
+for a lab that runs inside the browser.
+
+[R] Request
+1. specs/dimensional_model.md: the business process (the market price of a
+   product on a capture date), the grain of the fact (one product, in one
+   variant, on one capture date), the four dimensions with their
+   hierarchies and a Mermaid ER diagram of the star.
+2. sql/01_dimensions.sql, schema gold, every dimension a view over
+   db_ingestion:
+   - dim_set from tcgplayer.set.v1: set_id, set_name, set_code,
+     released_on (date), release_month (&#x27;YYYY-MM&#x27;);
+   - dim_product from tcgplayer.product.v1: product_id, set_id,
+     product_name, kind (&#x27;card&#x27; when the product has a collector Number,
+     otherwise &#x27;sealed&#x27;), number, rarity, card_type, hp, stage;
+   - dim_variant: the distinct subTypeName of tcgplayer.price.v1;
+   - dim_date: date_key (yyyymmdd), date, month, quarter, year of the
+     capture dates of the prices;
+   - a final SELECT with the number of rows of each dimension.
+
+Facts measured on 07/11/2026 (confirm before use):
+- db_ingestion: 7 sets, 1,490 products, 5,951 prices.
+- 1,273 products are cards; 3 variants; 5 capture dates (2026-03-01,
+  2026-05-01, 2026-07-01, 2026-09-01, 2026-11-07).
+
+[E] Example
+db_ingestion(timestamp TIMESTAMP, data_json JSON, data_tag VARCHAR)
+tcgplayer.set.v1     {&quot;groupId&quot;:24541,&quot;name&quot;:&quot;ME: Ascended Heroes&quot;,
+                      &quot;abbreviation&quot;:&quot;ASC&quot;,&quot;publishedOn&quot;:&quot;2026-01-30T00:00:00&quot;,...}
+tcgplayer.product.v1 {&quot;productId&quot;:676088,&quot;name&quot;:&quot;Pikachu ex - 276/217&quot;,
+                      &quot;groupId&quot;:24541,&quot;extendedData&quot;:[
+                      {&quot;name&quot;:&quot;Number&quot;,&quot;value&quot;:&quot;276/217&quot;},
+                      {&quot;name&quot;:&quot;Rarity&quot;,&quot;value&quot;:&quot;Special Illustration Rare&quot;},...]}
+tcgplayer.price.v1   {&quot;productId&quot;:676088,&quot;marketPrice&quot;:571.17,
+                      &quot;lowPrice&quot;:504.9,&quot;subTypeName&quot;:&quot;Holofoil&quot;,...}
+
+[A] Adjustments
+- Read a field with data_json-&gt;&gt;&#x27;field&#x27;.
+- The attributes of a product are a list of {name, value} in extendedData.
+  Inside a macro or a lambda, use json_extract(j, &#x27;$.extendedData&#x27;) and
+  the syntax lambda e: ..., because -&gt; is ambiguous there.
+- The rarity of a sealed product is &#x27;n/a&#x27;.
+- The script is pasted into the lab page and runs in DuckDB-WASM 1.32
+  (DuckDB 1.4): no files, no COPY, no read_json.
+
+[T] Type of output
+The two files and nothing else.
+
+[E] Extras
+Show the plan before editing. Record this prompt in docs/prompts.md.
+Stop at the end.</code></pre></div><p>Review before moving on:</p><ul><li>7 sets, 1,490 products, 1,273 cards, 3 variants and 5 dates</li><li>the four dimensions and the macro are views or macros, none is a table</li><li>a sealed product has the rarity n/a</li></ul><details><summary>Reference SQL of step 01</summary><div class="code-wrap"><div class="code-label"><span>lab/lesson-6/sql/01_dimensions.sql</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>-- Lesson 6 · Step 01 · Dimensions over the landing table
+--
+-- Reference of the professor for prompt 01. In class the coding agent writes
+-- its own version and the professor runs it in the lab page.
+-- Everything reads db_ingestion, where each record is a JSON object with
+-- the field names of TCGplayer.
+--
+-- Dimensions are views: they store no copy and always show the current
+-- state of db_ingestion.
+
+CREATE SCHEMA IF NOT EXISTS gold;
+
+-- The extended attributes of a product arrive as a list of {name, value}.
+CREATE OR REPLACE MACRO gold.attr(j, attr_name) AS
+    list_filter(from_json(json_extract(j, &#x27;$.extendedData&#x27;), &#x27;[{&quot;name&quot;:&quot;VARCHAR&quot;,&quot;value&quot;:&quot;VARCHAR&quot;}]&#x27;),
+                lambda e: e.name = attr_name)[1].value;
+
+-- Set (collection): one row per set released in 2026.
+CREATE OR REPLACE VIEW gold.dim_set AS
+SELECT
+    CAST(data_json-&gt;&gt;&#x27;groupId&#x27; AS INTEGER)              AS set_id,
+    data_json-&gt;&gt;&#x27;name&#x27;                                  AS set_name,
+    data_json-&gt;&gt;&#x27;abbreviation&#x27;                          AS set_code,
+    CAST(CAST(data_json-&gt;&gt;&#x27;publishedOn&#x27; AS TIMESTAMP) AS DATE) AS released_on,
+    strftime(CAST(data_json-&gt;&gt;&#x27;publishedOn&#x27; AS TIMESTAMP), &#x27;%Y-%m&#x27;) AS release_month
+FROM db_ingestion
+WHERE data_tag = &#x27;tcgplayer.set.v1&#x27;;
+
+-- Product: a single card (it has a collector number) or a sealed product.
+-- Hierarchy of the card: set &gt; rarity &gt; card.
+CREATE OR REPLACE VIEW gold.dim_product AS
+SELECT
+    CAST(data_json-&gt;&gt;&#x27;productId&#x27; AS INTEGER)            AS product_id,
+    CAST(data_json-&gt;&gt;&#x27;groupId&#x27; AS INTEGER)              AS set_id,
+    data_json-&gt;&gt;&#x27;name&#x27;                                  AS product_name,
+    CASE WHEN gold.attr(data_json, &#x27;Number&#x27;) IS NULL THEN &#x27;sealed&#x27; ELSE &#x27;card&#x27; END AS kind,
+    gold.attr(data_json, &#x27;Number&#x27;)                      AS number,
+    coalesce(gold.attr(data_json, &#x27;Rarity&#x27;), &#x27;n/a&#x27;)     AS rarity,
+    gold.attr(data_json, &#x27;Card Type&#x27;)                   AS card_type,
+    TRY_CAST(gold.attr(data_json, &#x27;HP&#x27;) AS INTEGER)     AS hp,
+    gold.attr(data_json, &#x27;Stage&#x27;)                       AS stage
+FROM db_ingestion
+WHERE data_tag = &#x27;tcgplayer.product.v1&#x27;;
+
+-- Variant: the printing of a card, which TCGplayer prices separately.
+CREATE OR REPLACE VIEW gold.dim_variant AS
+SELECT DISTINCT data_json-&gt;&gt;&#x27;subTypeName&#x27; AS variant
+FROM db_ingestion
+WHERE data_tag = &#x27;tcgplayer.price.v1&#x27;;
+
+-- Date of capture, with the hierarchy year &gt; quarter &gt; month &gt; day.
+CREATE OR REPLACE VIEW gold.dim_date AS
+SELECT DISTINCT
+    CAST(strftime(timestamp, &#x27;%Y%m%d&#x27;) AS INTEGER) AS date_key,
+    CAST(timestamp AS DATE)                        AS date,
+    strftime(timestamp, &#x27;%Y-%m&#x27;)                   AS month,
+    year(timestamp) || &#x27;-Q&#x27; || quarter(timestamp)  AS quarter,
+    year(timestamp)                                AS year
+FROM db_ingestion
+WHERE data_tag = &#x27;tcgplayer.price.v1&#x27;;
+
+-- Check: 7 sets, 1,490 products (1,273 cards), 3 variants, 5 dates.
+SELECT &#x27;dim_set&#x27; AS dimension, count(*) AS rows FROM gold.dim_set
+UNION ALL SELECT &#x27;dim_product&#x27;, count(*) FROM gold.dim_product
+UNION ALL SELECT &#x27;dim_product (cards)&#x27;, count(*) FROM gold.dim_product WHERE kind = &#x27;card&#x27;
+UNION ALL SELECT &#x27;dim_variant&#x27;, count(*) FROM gold.dim_variant
+UNION ALL SELECT &#x27;dim_date&#x27;, count(*) FROM gold.dim_date;</code></pre></div></details><h3>Step 02 · Fact</h3><div class="code-wrap"><div class="code-label"><span>Prompt 02 · CREATE</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>[C] Character
+You are the same dimensional modeller. The dimensions exist in gold; now
+the fact that measures the business process.
+
+[R] Request
+sql/02_fact.sql:
+1. table gold.fact_price, a periodic snapshot with one row per product,
+   variant and capture date: date_key, product_id, set_id, variant,
+   market_price, low_price, mid_price, high_price (DECIMAL(10,2)) and
+   days_since_release (days between released_on of the set and the
+   capture date), from tcgplayer.price.v1;
+2. the test of the grain: number of rows, number of distinct
+   (date_key, product_id, variant) and rows without market_price;
+3. the number of prices per capture date and set.
+
+Facts measured on 07/11/2026 (confirm before use):
+- 5,951 rows, 5,951 distinct keys of the grain, 49 without market_price.
+- Prices per date grow as the sets are released: on 2026-03-01 only ASC
+  (642) and POR (15); on 2026-11-07 all seven sets.
+
+[E] Example
+SELECT CAST(strftime(timestamp, &#x27;%Y%m%d&#x27;) AS INTEGER) AS date_key,
+       CAST(data_json-&gt;&gt;&#x27;productId&#x27; AS INTEGER)       AS product_id,
+       data_json-&gt;&gt;&#x27;subTypeName&#x27;                      AS variant
+FROM db_ingestion WHERE data_tag = &#x27;tcgplayer.price.v1&#x27;;
+
+[A] Adjustments
+- The fact is a table, so the JSON is typed once; the dimensions stay
+  views.
+- The price record has no set: take set_id from dim_product.
+- fact_price and dim_product both have set_id: join dim_set with ON, not
+  with USING, to avoid an ambiguous column.
+- The price is semi-additive: it adds up across products on one date,
+  never across dates. Write this in a comment of the file.
+
+[T] Type of output
+The file and the three results.
+
+[E] Extras
+Show the plan before editing. Record this prompt in docs/prompts.md.
+Stop at the end.</code></pre></div><p>Review before moving on:</p><ul><li>5,951 rows and 5,951 distinct keys of the grain</li><li>49 rows without market price</li><li>the number of prices per date and set grows as in section 6</li></ul><details><summary>Reference SQL of step 02</summary><div class="code-wrap"><div class="code-label"><span>lab/lesson-6/sql/02_fact.sql</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>-- Lesson 6 · Step 02 · The fact and the test of the grain
+--
+-- Reference of the professor for prompt 02.
+--
+-- gold.fact_price is a periodic snapshot: one product, in one variant, on
+-- one date of capture. It is a table, so the JSON is read and typed once.
+-- Its prices are semi-additive: the market price of all the cards of a set
+-- on one date adds up to the cost of the set, but adding the same card over
+-- several dates means nothing.
+
+CREATE OR REPLACE TABLE gold.fact_price AS
+SELECT
+    CAST(strftime(i.timestamp, &#x27;%Y%m%d&#x27;) AS INTEGER)   AS date_key,
+    CAST(i.data_json-&gt;&gt;&#x27;productId&#x27; AS INTEGER)          AS product_id,
+    p.set_id,
+    i.data_json-&gt;&gt;&#x27;subTypeName&#x27;                         AS variant,
+    CAST(i.data_json-&gt;&gt;&#x27;marketPrice&#x27; AS DECIMAL(10, 2)) AS market_price,
+    CAST(i.data_json-&gt;&gt;&#x27;lowPrice&#x27; AS DECIMAL(10, 2))    AS low_price,
+    CAST(i.data_json-&gt;&gt;&#x27;midPrice&#x27; AS DECIMAL(10, 2))    AS mid_price,
+    CAST(i.data_json-&gt;&gt;&#x27;highPrice&#x27; AS DECIMAL(10, 2))   AS high_price,
+    date_diff(&#x27;day&#x27;, s.released_on, CAST(i.timestamp AS DATE)) AS days_since_release
+FROM db_ingestion AS i
+JOIN gold.dim_product AS p ON p.product_id = CAST(i.data_json-&gt;&gt;&#x27;productId&#x27; AS INTEGER)
+JOIN gold.dim_set     AS s ON s.set_id = p.set_id
+WHERE i.data_tag = &#x27;tcgplayer.price.v1&#x27;;
+
+-- The test of the grain: rows = distinct (date, product, variant).
+SELECT count(*) AS rows,
+       count(DISTINCT (date_key, product_id, variant)) AS grain_keys,
+       count(*) FILTER (WHERE market_price IS NULL)    AS without_market_price
+FROM gold.fact_price;
+
+-- Prices per date and set: the sets released later appear later.
+SELECT d.date, s.set_code, count(*) AS prices
+FROM gold.fact_price AS f
+JOIN gold.dim_date AS d USING (date_key)
+JOIN gold.dim_set  AS s USING (set_id)
+GROUP BY ALL ORDER BY d.date, s.set_code;</code></pre></div></details><h3>Step 03 · Cube and mart</h3><div class="code-wrap"><div class="code-label"><span>Prompt 03 · CREATE</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>[C] Character
+You are the same dimensional modeller. The collectors area of the business
+wants fast answers by set, rarity and variant, and a few views with
+friendly names that a dashboard can read.
+
+[R] Request
+sql/03_cube_and_mart.sql:
+1. table gold.agg_price_cube, the cube as a summarised fact table, only
+   for cards with a market price: GROUP BY date_key, CUBE (set_name,
+   rarity, variant), with grouping_id (grouping() of the three), &#x27;all&#x27; in
+   place of the NULL of a total, and the measures prices (count),
+   market_value (sum), avg_market_price and max_market_price;
+2. schema mart_collectors with two views:
+   - card_price: date, set_code, set_name, released_on, card, number,
+     rarity, variant, market_price, days_since_release, cards only;
+   - set_value: date, set_name, prices, market_value, from the level
+     &quot;set&quot; of the cube;
+3. the number of cells of each level of the cube (grouping_id 0 to 7);
+4. on 2026-11-07, the market value of all cards, next to the sum of that
+   value over the five dates.
+
+Facts measured on 07/11/2026 (confirm before use):
+- 524 cells: 182 set x rarity x variant, 137 set x rarity, 48 set x
+  variant, 18 set, 68 rarity x variant, 51 rarity, 15 variant, 5 all.
+- All cards on 2026-11-07: US$ 18,989.68; summed over the five dates:
+  US$ 51,967.84, a number without meaning.
+
+[E] Example
+SELECT f.date_key, grouping(s.set_name, p.rarity, f.variant) AS grouping_id,
+       coalesce(s.set_name, &#x27;all&#x27;) AS set_name, ...
+FROM gold.fact_price AS f ...
+GROUP BY f.date_key, CUBE (s.set_name, p.rarity, f.variant);
+
+[A] Adjustments
+- The date stays in every grouping, because the price is semi-additive.
+- Group by set_name, not set_code: the code 30C belongs to two sets.
+- grouping_id 0 is the finest cell and 7 the total of all cards.
+- The mart reads gold and never db_ingestion.
+
+[T] Type of output
+The file and the two results.
+
+[E] Extras
+Show the plan before editing. Record this prompt in docs/prompts.md.
+Stop at the end.</code></pre></div><p>Review before moving on:</p><ul><li>524 cells in the eight levels of section 9</li><li>US$ 18,989.68 on 07/11/2026 and 51,967.84 summed over the dates</li><li>the mart reads only gold</li></ul><details><summary>Reference SQL of step 03</summary><div class="code-wrap"><div class="code-label"><span>lab/lesson-6/sql/03_cube_and_mart.sql</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>-- Lesson 6 · Step 03 · The cube and a data mart for collectors
+--
+-- Reference of the professor for prompt 03.
+--
+-- The cube crosses set, rarity and variant on every date. It groups by
+-- set_name and not by set_code, because the code 30C belongs to two sets
+-- (ME: 30th Celebration and its Classic Collection): a natural key that
+-- repeats would merge them.
+--
+-- The cube crosses set, rarity and variant on every date. Because the price
+-- is semi-additive, the date stays in every grouping: GROUP BY date_key and
+-- CUBE of the other three. A cell answers &quot;on this date, how much did the
+-- cards of this set, of this rarity, in this variant cost?&quot;.
+
+CREATE OR REPLACE TABLE gold.agg_price_cube AS
+SELECT
+    f.date_key,
+    grouping(s.set_name, p.rarity, f.variant) AS grouping_id,
+    coalesce(s.set_name, &#x27;all&#x27;)               AS set_name,
+    coalesce(p.rarity, &#x27;all&#x27;)                 AS rarity,
+    coalesce(f.variant, &#x27;all&#x27;)                AS variant,
+    count(*)                                  AS prices,
+    sum(f.market_price)                       AS market_value,
+    round(avg(f.market_price), 2)             AS avg_market_price,
+    max(f.market_price)                       AS max_market_price
+FROM gold.fact_price AS f
+JOIN gold.dim_product AS p USING (product_id)
+JOIN gold.dim_set     AS s ON s.set_id = f.set_id
+WHERE p.kind = &#x27;card&#x27; AND f.market_price IS NOT NULL
+GROUP BY f.date_key, CUBE (s.set_name, p.rarity, f.variant);
+
+-- A data mart for the collectors area: friendly names, one view per question.
+CREATE SCHEMA IF NOT EXISTS mart_collectors;
+
+CREATE OR REPLACE VIEW mart_collectors.card_price AS
+SELECT d.date, s.set_code, s.set_name, s.released_on, p.product_name AS card, p.number,
+       p.rarity, f.variant, f.market_price, f.days_since_release
+FROM gold.fact_price AS f
+JOIN gold.dim_date    AS d USING (date_key)
+JOIN gold.dim_product AS p USING (product_id)
+JOIN gold.dim_set     AS s ON s.set_id = f.set_id
+WHERE p.kind = &#x27;card&#x27;;
+
+CREATE OR REPLACE VIEW mart_collectors.set_value AS
+SELECT d.date, c.set_name, c.prices, c.market_value
+FROM gold.agg_price_cube AS c
+JOIN gold.dim_date AS d USING (date_key)
+WHERE c.grouping_id = 3;
+
+-- Size of the cube by level.
+SELECT grouping_id,
+       CASE grouping_id
+           WHEN 0 THEN &#x27;set x rarity x variant&#x27; WHEN 1 THEN &#x27;set x rarity&#x27;
+           WHEN 2 THEN &#x27;set x variant&#x27;          WHEN 3 THEN &#x27;set&#x27;
+           WHEN 4 THEN &#x27;rarity x variant&#x27;       WHEN 5 THEN &#x27;rarity&#x27;
+           WHEN 6 THEN &#x27;variant&#x27;                WHEN 7 THEN &#x27;all cards&#x27; END AS level,
+       count(*) AS cells
+FROM gold.agg_price_cube
+GROUP BY ALL ORDER BY grouping_id;
+
+-- Why the date stays in the grouping: the value of all cards on the last
+-- date is meaningful; the sum of that value over the five dates is not.
+SELECT
+    (SELECT market_value FROM gold.agg_price_cube WHERE grouping_id = 7 AND date_key = 20261107) AS value_on_2026_11_07,
+    (SELECT sum(market_value) FROM gold.agg_price_cube WHERE grouping_id = 7)                    AS sum_over_dates_meaningless;</code></pre></div></details><h3>Step 04 · Five questions</h3><div class="code-wrap"><div class="code-label"><span>Prompt 04 · CREATE</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>[C] Character
+You are an analyst of the collectors area. The cube and the mart are
+ready, and five questions came from the business.
+
+[R] Request
+sql/04_questions.sql, one query per question, each reading the cube or the
+mart and never db_ingestion, with a comment naming the OLAP operation:
+Q1 roll-up: on 2026-11-07, the average and the maximum market price of a
+   card of each rarity;
+Q2 slice: the five most expensive cards of Ascended Heroes (ASC) on
+   2026-11-07;
+Q3 pivot: the market value of each set (rows) on each capture date
+   (columns);
+Q4 dice and pivot: for Common, Uncommon, Rare and Double Rare on
+   2026-11-07, the average price of each variant (Normal, Reverse
+   Holofoil, Holofoil) as columns;
+Q5 the question of the session: which cards appreciated most between
+   their first capture and 2026-11-07, in percent and in US$, among cards
+   that cost at least US$ 5 at the first capture.
+
+Facts measured on 07/11/2026 (confirm before use):
+- Q1: RGB Rare averages US$ 3,973.48; Special Illustration Rare 76.32;
+  Common 0.20.
+- Q2: Mega Gengar ex - 284/217 at US$ 614.27 leads.
+- Q3: ME: Ascended Heroes went from US$ 5,910.16 on 2026-03-01 to
+  3,516.89; ME: 30th Celebration jumps from 1,349.93 to 12,403.41 only
+  because most of its cards had no market price on 2026-09-01.
+- Q4: a Common costs 0.15 Normal and 0.25 Reverse Holofoil.
+- Q5: only Pikachu ex - 276/217 (Holofoil) appreciated, from 480.58 to
+  571.17, +18.9 % and +US$ 90.59; every other card lost value.
+
+[E] Example
+PIVOT (SELECT set_name, strftime(date, &#x27;%m-%d&#x27;) AS day, market_value
+       FROM mart_collectors.set_value)
+ON day USING sum(market_value) GROUP BY set_name;
+
+[A] Adjustments
+- Q5 compares the same card and variant on two dates, with arg_min and
+  arg_max of market_price by date, never the sum of a set.
+- Ignore products without market price.
+
+[T] Type of output
+The file, the five results and one sentence per question with the answer.
+
+[E] Extras
+Show the plan before editing. Record this prompt in docs/prompts.md.
+Stop at the end.</code></pre></div><p>Review before moving on:</p><ul><li>the five answers of section 15</li><li>no query reads db_ingestion</li><li>Q5 compares the same card and variant on two dates</li></ul><details><summary>Reference SQL of step 04</summary><div class="code-wrap"><div class="code-label"><span>lab/lesson-6/sql/04_questions.sql</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>-- Lesson 6 · Step 04 · Five questions, one OLAP operation each
+--
+-- Reference of the professor for prompt 04. Every question reads the cube or
+-- the mart, never db_ingestion.
+
+-- Q1 · Roll-up: from the card to the rarity. On 07/11/2026, how much is
+--      the average card of each rarity worth?
+SELECT rarity, prices, avg_market_price, max_market_price
+FROM gold.agg_price_cube
+WHERE date_key = 20261107 AND grouping_id = 5
+ORDER BY avg_market_price DESC;
+
+-- Q2 · Slice: one set. Which are the five most expensive cards of
+--      Ascended Heroes on 07/11/2026?
+SELECT card, rarity, variant, market_price
+FROM mart_collectors.card_price
+WHERE set_code = &#x27;ASC&#x27; AND date = DATE &#x27;2026-11-07&#x27;
+ORDER BY market_price DESC LIMIT 5;
+
+-- Q3 · Pivot: sets as rows, dates as columns. How did the market value of
+--      one copy of every card of each set change? (semi-additive: it adds
+--      cards inside a date, never dates)
+PIVOT (SELECT set_name, strftime(date, &#x27;%m-%d&#x27;) AS day, market_value FROM mart_collectors.set_value)
+ON day USING sum(market_value)
+GROUP BY set_name
+ORDER BY set_name;
+
+-- Q4 · Dice and pivot: the four lowest rarities, the three variants, the
+--      last date. How much does each printing of the same rarity cost?
+PIVOT (SELECT rarity, variant, avg_market_price
+       FROM gold.agg_price_cube
+       WHERE date_key = 20261107 AND grouping_id = 4
+         AND rarity IN (&#x27;Common&#x27;, &#x27;Uncommon&#x27;, &#x27;Rare&#x27;, &#x27;Double Rare&#x27;))
+ON variant IN (&#x27;Normal&#x27;, &#x27;Reverse Holofoil&#x27;, &#x27;Holofoil&#x27;) USING max(avg_market_price)
+GROUP BY rarity
+ORDER BY rarity;
+
+-- Q5 · The question of the session. Which cards appreciated most between
+--      their first capture and 07/11/2026? Cards that cost at least US$ 5 at
+--      the first capture, so that a few cents do not become 100 %.
+WITH first_and_last AS (
+    SELECT set_code, card, rarity, variant,
+           arg_min(market_price, date) AS first_price,
+           min(date)                   AS first_date,
+           arg_max(market_price, date) AS last_price
+    FROM mart_collectors.card_price
+    WHERE market_price IS NOT NULL
+    GROUP BY ALL
+    HAVING count(*) &gt;= 2
+)
+SELECT set_code, card, rarity, variant, first_date, first_price, last_price,
+       last_price - first_price                         AS gain_usd,
+       round(100 * (last_price / first_price - 1), 1)  AS gain_pct
+FROM first_and_last
+WHERE first_price &gt;= 5
+ORDER BY gain_pct DESC
+LIMIT 10;</code></pre></div></details>
+      </section>
+      <section class="mat-section" id="answers">
+        <h2>15. The five answers</h2>
+<p>The five questions were chosen so that each one exercises a different operation over the cube, and each one reads the cube or the mart, never the landing table. The prices are market prices of TCGplayer in US dollars.</p>
+<h3>Q1 · Roll-up: the value of a rarity</h3>
+<p>On 07/11/2026 the average card of each rarity is worth, from the most to the least valuable:</p>
+<div class="table-wrap"><table><thead><tr><th>Rarity</th><th>Prices</th><th>Average US$</th><th>Maximum US$</th></tr></thead><tbody><tr><td>RGB Rare</td><td>3</td><td>3,973.48</td><td>4,492.45</td></tr><tr><td>Mega Hyper Rare</td><td>6</td><td>160.91</td><td>284.88</td></tr><tr><td>Special Illustration Rare</td><td>56</td><td>76.32</td><td>614.27</td></tr><tr><td>Futuristic Rare</td><td>2</td><td>30.36</td><td>34.70</td></tr><tr><td>Classic Collection</td><td>30</td><td>20.71</td><td>132.76</td></tr><tr><td>Mega Attack Rare</td><td>7</td><td>10.15</td><td>31.13</td></tr><tr><td>Illustration Rare</td><td>98</td><td>4.60</td><td>40.65</td></tr><tr><td>Ultra Rare</td><td>85</td><td>2.94</td><td>13.76</td></tr><tr><td>Double Rare</td><td>90</td><td>0.98</td><td>7.66</td></tr><tr><td>Pikachu Rare</td><td>30</td><td>0.73</td><td>2.96</td></tr><tr><td>Rare</td><td>181</td><td>0.26</td><td>1.95</td></tr><tr><td>Uncommon</td><td>391</td><td>0.22</td><td>1.36</td></tr><tr><td>Common</td><td>648</td><td>0.20</td><td>0.81</td></tr></tbody></table></div>
+<h3>Q2 · Slice: the top of Ascended Heroes</h3>
+<div class="table-wrap"><table><thead><tr><th>Card</th><th>Rarity</th><th>Variant</th><th>US$ on 07/11/2026</th></tr></thead><tbody><tr><td>Mega Gengar ex - 284/217</td><td>Special Illustration Rare</td><td>Holofoil</td><td>614.27</td></tr><tr><td>Pikachu ex - 276/217</td><td>Special Illustration Rare</td><td>Holofoil</td><td>571.17</td></tr><tr><td>Mega Dragonite ex - 290/217</td><td>Special Illustration Rare</td><td>Holofoil</td><td>402.35</td></tr><tr><td>Pikachu ex - 277/217</td><td>Special Illustration Rare</td><td>Holofoil</td><td>243.04</td></tr><tr><td>Mega Charizard Y ex - 294/217</td><td>Mega Hyper Rare</td><td>Holofoil</td><td>223.84</td></tr></tbody></table></div>
+<h3>Q3 · Pivot: the value of each set on each date</h3>
+<div class="table-wrap"><table><thead><tr><th>Set</th><th>03-01</th><th>05-01</th><th>07-01</th><th>09-01</th><th>11-07</th></tr></thead><tbody><tr><td>ME: Ascended Heroes</td><td>5,910.16</td><td>7,699.40</td><td>7,576.39</td><td>5,712.33</td><td>3,516.89</td></tr><tr><td>ME03: Perfect Order</td><td></td><td>917.08</td><td>781.93</td><td>627.94</td><td>459.14</td></tr><tr><td>ME04: Chaos Rising</td><td></td><td></td><td>953.79</td><td>653.84</td><td>436.91</td></tr><tr><td>ME05: Pitch Black</td><td></td><td></td><td></td><td>795.37</td><td>534.94</td></tr><tr><td>ME: 30th Celebration</td><td></td><td></td><td></td><td>1,349.93</td><td>12,403.41</td></tr><tr><td>ME: 30th Celebration Classic Collection</td><td></td><td></td><td></td><td></td><td>621.24</td></tr><tr><td>ME06: Delta Reign</td><td></td><td></td><td></td><td></td><td>1,017.15</td></tr></tbody></table></div>
+<p>Every set loses value after its release; Ascended Heroes peaks in May and ends at 59 % of its value in March. The apparent ninefold rise of the 30th Celebration is coverage and not appreciation: on 01/09 most of its cards had no market price yet, and its three RGB Rare cards, worth about US$ 4,000 each, entered the sum later.</p>
+<h3>Q4 · Dice and pivot: the printings of four rarities</h3>
+<div class="table-wrap"><table><thead><tr><th>Rarity · 07/11/2026</th><th>Normal</th><th>Reverse Holofoil</th><th>Holofoil</th></tr></thead><tbody><tr><td>Common</td><td>0.15</td><td>0.25</td><td>0.18</td></tr><tr><td>Uncommon</td><td>0.16</td><td>0.28</td><td></td></tr><tr><td>Rare</td><td></td><td>0.32</td><td>0.20</td></tr><tr><td>Double Rare</td><td></td><td></td><td>0.98</td></tr></tbody></table></div>
+<p>A Reverse Holofoil costs about 1.7 times the Normal print of a Common or an Uncommon. An empty cell means that the rarity is not printed in that variant.</p>
+<h3>Q5 · The question of the session</h3>
+<div class="table-wrap"><table><thead><tr><th>Set</th><th>Card</th><th>First capture</th><th>First US$</th><th>07/11 US$</th><th>Gain US$</th><th>Gain %</th></tr></thead><tbody><tr><td>ASC</td><td>Pikachu ex - 276/217 (Holofoil)</td><td>2026-03-01</td><td>480.58</td><td>571.17</td><td>+90.59</td><td>+18.9</td></tr><tr><td>PBL</td><td>Crushing Hammer (Holofoil)</td><td>2026-09-01</td><td>5.20</td><td>4.37</td><td>−0.83</td><td>−16.0</td></tr><tr><td>PBL</td><td>Mega Zeraora ex - 098/084 (Holofoil)</td><td>2026-09-01</td><td>6.69</td><td>5.61</td><td>−1.08</td><td>−16.1</td></tr><tr><td>ASC</td><td>Pikachu ex - 277/217 (Holofoil)</td><td>2026-03-01</td><td>327.88</td><td>243.04</td><td>−84.84</td><td>−25.9</td></tr><tr><td>ASC</td><td>Mega Dragonite ex - 290/217 (Holofoil)</td><td>2026-03-01</td><td>574.74</td><td>402.35</td><td>−172.39</td><td>−30.0</td></tr></tbody></table></div>
+<p>Among the 137 cards that cost at least US$ 5 on their first capture and have at least two captures, only the Pikachu ex 276/217 of Ascended Heroes appreciated, by 18.9 % and US$ 90.59; every other card lost value, which is the usual path of a set in the months after its release. The threshold of US$ 5 keeps out the cards of a few cents, whose percentages are large and meaningless. The same query, with a longer window or a lower threshold, answers the question again as new captures are added to the landing table.</p>
+      </section>
+      <section class="mat-section" id="mistakes">
+        <h2>16. Recurring mistakes of agents</h2>
+<p>The traps below were found while the lab was rehearsed on 07/11/2026, and the prompts already carry the corresponding adjustments. Most of them do not raise an error and are caught only by a count or by one specific number, which is why each prompt states the facts measured in the rehearsal.</p>
+<h3>Reading the JSON</h3>
+<p>Inside a macro or a lambda of DuckDB the operator <code>-></code> is read as the arrow of a lambda, and a macro written as <code>j->'extendedData'</code> fails with an error about a column that does not exist. The attribute must be read with <code>json_extract(j, '$.extendedData')</code> and the lambda written with the syntax <code>lambda e: ...</code>. An agent that treats <code>extendedData</code> as an object, and not as a list of pairs, returns <code>NULL</code> for every rarity without any error.</p>
+<h3>Keys and joins</h3>
+<p>The fact and <code>dim_product</code> both carry <code>set_id</code>, and a chain of joins with <code>USING (set_id)</code> after <code>USING (product_id)</code> is ambiguous; the set must be joined with <code>ON s.set_id = f.set_id</code>. An agent that groups the cube by <code>set_code</code> merges the two sets with the code <code>30C</code> silently, which is visible only in the value of the set.</p>
+<h3>Measures</h3>
+<p>The most frequent error of the cube is to leave the date out of the grouping, or to sum the level "all cards" over the dates, which returns US$ 51,967.84 instead of a value on one date. In Q5, comparing the value of a set between two dates confuses appreciation with coverage; the comparison must be the same card and variant, with <code>arg_min</code> and <code>arg_max</code> of the price by date. An average of rarity computed by averaging the averages of the sets gives a different and wrong number, because the sets have different numbers of cards.</p>
+<h3>The lab</h3>
+<p>The lab runs DuckDB 1.4, not the 2.0 of the command line of Lesson 5, and an agent that writes for 2.0, or that uses <code>read_json</code>, <code>COPY</code> or files, writes SQL that does not run in the browser. A statement that fails stops the script, and the statements before it are already kept in the localStorage, so the script can be corrected and run again from the failed statement.</p>
+      </section>
+      <div class="part-title"><small>Part V</small><strong>Second hour</strong></div>
+      <section class="mat-section" id="clickhouse">
+        <h2>17. Your data in ClickHouse</h2>
+<p>In the second hour each group repeats the four steps over the partner data, in the ClickHouse of the class (<code>shrek2</code>, console at <code>http://10.8.8.10:8123/play</code>, user <code>aluno</code>), where the user reads <code>silver</code> and <code>gold</code> and creates objects only in the database <code>lab</code>. As in Lesson 5, every object of the group starts with its prefix, <code>lab.g01_</code> for group 1, and no object of another group may be dropped.</p>
+<p>The group first creates <code>lab.gNN_db_ingestion</code> with the three columns of the landing table and loads into it the enriched partner data of Lesson 5. The console of ClickHouse runs one statement at a time and does not upload files, so the load is done from the computer of the group, with <code>clickhouse-connect</code> in Python or with an <code>INSERT ... FORMAT JSONEachRow</code> sent over HTTP, in which <code>data_json</code> goes as a string with the record inside it.</p>
+<div class="code-wrap"><div class="code-label"><span>Landing table and load of the group (replace g01)</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>CREATE TABLE IF NOT EXISTS lab.g01_db_ingestion (
+    timestamp DateTime64(3),
+    data_json String,
+    data_tag  LowCardinality(String)
+) ENGINE = MergeTree ORDER BY (data_tag, timestamp);
+
+-- one JSON object per line: {&quot;timestamp&quot;:&quot;2026-11-10 14:00:00&quot;,&quot;data_json&quot;:&quot;{...}&quot;,&quot;data_tag&quot;:&quot;partner.order.v1&quot;}
+curl -u aluno:aluno &#x27;http://10.8.8.10:8123/?query=INSERT%20INTO%20lab.g01_db_ingestion%20FORMAT%20JSONEachRow&#x27; \
+     --data-binary @db_ingestion.jsonl</code></pre></div>
+<p>The model follows the same decisions of the first hour, with the syntax of ClickHouse. The table below lists the equivalences that the agent of the group needs; the prompt 05 already carries them.</p>
+<div class="table-wrap"><table><thead><tr><th>In the lab (DuckDB)</th><th>In ClickHouse</th></tr></thead><tbody><tr><td><code>data_json->>'field'</code></td><td><code>JSONExtractString(data_json, 'field')</code>, <code>JSONExtractFloat</code>, <code>JSONExtractInt</code></td></tr><tr><td>view</td><td>view</td></tr><tr><td><code>CREATE TABLE AS</code> for the fact and the cube</td><td>refreshable materialized view (<code>REFRESH EVERY 1 HOUR</code>, MergeTree)</td></tr><tr><td><code>GROUP BY date_key, CUBE (a, b, c)</code></td><td>the same, or <code>GROUP BY ... WITH CUBE</code>; check that <code>grouping()</code> returns 0 at the finest level</td></tr><tr><td><code>PIVOT</code></td><td><code>sumIf</code> or <code>maxIf</code> per column</td></tr><tr><td><code>arg_min</code> / <code>arg_max</code></td><td><code>argMin</code> / <code>argMax</code></td></tr><tr><td><code>count(DISTINCT x)</code></td><td><code>uniqExact(x)</code></td></tr></tbody></table></div>
+      </section>
+      <section class="mat-section" id="prompt05">
+        <h2>18. Prompt 05 and the delivery</h2>
+<p>The prompt of the second hour asks the agent of the group for the specification first and stops there, so that the group reviews the grain, the measures and the five questions of the partner before any SQL reaches the shared server. Only after that review does the group ask for the SQL files.</p>
+<div class="code-wrap"><div class="code-label"><span>Prompt 05 · CREATE · your data in ClickHouse</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>[C] Character
+You are the dimensional modeller of our group. Our partner data already
+went through the enrichment of Lesson 5. Now it becomes a star and a cube
+in the ClickHouse of the class (shrek2), in the database lab, where every
+object of the group starts with gNN_.
+
+[R] Request
+1. specs/dimensional_model.md: the business process of the partner that
+   we measure, the grain of the fact in one sentence, the dimensions with
+   their hierarchies, the measures classified as additive, semi-additive or
+   non-additive, and five questions of the partner, each one with the OLAP
+   operation that answers it (roll-up, drill-down, slice, dice or pivot).
+2. sql/clickhouse/00_db_ingestion.sql: table lab.gNN_db_ingestion
+   (timestamp DateTime64(3), data_json String, data_tag
+   LowCardinality(String)), MergeTree ORDER BY (data_tag, timestamp), and
+   the command that loads our enriched data into it.
+3. sql/clickhouse/01_dimensions.sql: one view lab.gNN_dim_&lt;name&gt; per
+   dimension, with JSONExtractString, JSONExtractFloat and JSONExtractInt.
+4. sql/clickhouse/02_fact.sql: the fact as a refreshable materialized view
+   lab.gNN_fact_&lt;process&gt; (REFRESH EVERY 1 HOUR, MergeTree), and the test
+   of the grain.
+5. sql/clickhouse/03_cube.sql: the cube as a refreshable materialized view
+   lab.gNN_agg_&lt;process&gt;_cube with GROUP BY ... WITH CUBE (or GROUPING
+   SETS) over at least three dimensions and grouping() of each one.
+6. sql/clickhouse/04_questions.sql and docs/answers.md: the five
+   questions, each answer with the number and the query that produced it.
+
+[E] Example
+CREATE OR REPLACE VIEW lab.g01_dim_customer AS
+SELECT JSONExtractString(data_json, &#x27;customer_id&#x27;) AS customer_id,
+       JSONExtractString(data_json, &#x27;state&#x27;)       AS state
+FROM lab.g01_db_ingestion
+WHERE data_tag = &#x27;partner.customer.v1&#x27;;
+
+[A] Adjustments
+- Replace gNN with the number of the group in every object; never drop an
+  object of another group.
+- The console http://10.8.8.10:8123/play runs one statement at a time:
+  keep every statement self-contained and end each file with the
+  statements that check it.
+- To load the data, use clickhouse-connect from Python or
+  INSERT ... FORMAT JSONEachRow over HTTP with curl; the Play console does
+  not upload files.
+- A distinct count does not add up across a dimension: compute the totals
+  of the cube in the cube, never by summing finer cells.
+- If a measure is semi-additive, keep its time dimension in every grouping
+  of the cube.
+- Run SYSTEM REFRESH VIEW and SYSTEM WAIT VIEW after the first load.
+
+[T] Type of output
+The files, the rows of every object of the group and the five answers.
+
+[E] Extras
+Show the plan before editing. Record this prompt in docs/prompts.md.
+Stop after the specification and wait for our review before the SQL.</code></pre></div>
+<div class="table-wrap"><table><thead><tr><th>Check</th><th>Statement on shrek2</th><th>Expected</th></tr></thead><tbody><tr><td>the landing table exists</td><td><code>SELECT data_tag, count() FROM lab.gNN_db_ingestion GROUP BY data_tag</code></td><td>one row per tag of the partner</td></tr><tr><td>the grain holds</td><td><code>SELECT count(), uniqExact(&lt;key&gt;) FROM lab.gNN_fact_…</code></td><td>the two numbers are equal</td></tr><tr><td>the cube has every level</td><td><code>SELECT grouping_id, count() FROM lab.gNN_agg_…_cube GROUP BY 1</code></td><td>2ⁿ levels for n dimensions</td></tr><tr><td>the objects belong to the group</td><td><code>SELECT name, engine FROM system.tables WHERE database = 'lab' AND name LIKE 'gNN_%'</code></td><td>views, materialized views and tables of the model</td></tr><tr><td>the questions are answered</td><td><code>docs/answers.md</code></td><td>five answers, each with its query and operation</td></tr></tbody></table></div>
+<p>The specification and the cube enter the Data Ingestion Structure artifact of the sprint as the analytical layer that the DataApp will read, and the five questions of the partner become the first indicators of its dashboard.</p>
+      </section>
+      <section class="mat-section" id="glossary">
+        <h2>19. Glossary</h2>
+<div class="table-wrap"><table><thead><tr><th>Term</th><th>Meaning in this lesson</th></tr></thead><tbody><tr><td>landing table</td><td><code>db_ingestion</code>: every record as it arrived, with the moment and the kind</td></tr><tr><td>grain</td><td>the exact meaning of one row of a fact table</td></tr><tr><td>periodic snapshot</td><td>a fact with one row per entity per period, recording a state</td></tr><tr><td>semi-additive</td><td>a measure that adds up across every dimension except time</td></tr><tr><td>data cube</td><td>a measure organised by several dimensions, with the totals of each one</td></tr><tr><td>summarised fact table</td><td>a fact table with a coarser grain, computed from the base fact</td></tr><tr><td>CUBE / ROLLUP / GROUPING SETS</td><td>extensions of GROUP BY that compute several groupings at once</td></tr><tr><td>grouping()</td><td>function that says which columns of a row were aggregated</td></tr><tr><td>data mart</td><td>the part of the warehouse that serves one area of the business</td></tr><tr><td>conformed dimension</td><td>a dimension with the same keys and meaning in every fact that uses it</td></tr><tr><td>natural key</td><td>an identifier that comes from the source, such as the code of a set</td></tr><tr><td>localStorage</td><td>the key-value storage of the browser, about 5 MB per site</td></tr></tbody></table></div>
+      </section>
+      <section class="mat-section" id="checklist">
+        <h2>20. Checklist</h2>
+<ul class="check-list" id="lesson-checklist">
+  <li>The grain is declared in one sentence before any SQL.</li>
+  <li>The dimensions are views over the landing table, and their hierarchies are written in the specification.</li>
+  <li>No natural key that repeats is used as an identity.</li>
+  <li>The grain test returns the same number of rows and of distinct keys.</li>
+  <li>Every measure is classified as additive, semi-additive or non-additive.</li>
+  <li>The cube keeps the time dimension in every grouping when a measure is semi-additive.</li>
+  <li>Distinct counts and averages are computed by the cube, never by summing finer cells.</li>
+  <li>The mart reads the gold layer and never the landing table.</li>
+  <li>Each of the five questions names its OLAP operation and its query.</li>
+</ul>
+      </section>
+      <section class="mat-section" id="references">
+        <h2>21. References and self-study</h2>
+<ul>
+  <li>KIMBALL, R.; ROSS, M. <em>The Data Warehouse Toolkit: The Definitive Guide to Dimensional Modeling</em>. 3. ed. Indianapolis: Wiley, 2013. Chapters 1 to 4: the four decisions, kinds of fact, additivity and conformed dimensions.</li>
+  <li>GRAY, J. et al. Data cube: a relational aggregation operator generalizing group-by, cross-tab, and sub-totals. <em>Data Mining and Knowledge Discovery</em>, v. 1, p. 29–53, 1997. The origin of the CUBE operator.</li>
+  <li>DuckDB. GROUPING SETS, CUBE and ROLLUP; PIVOT; JSON functions. Documentation at duckdb.org.</li>
+  <li>ClickHouse. GROUP BY modifiers (WITH CUBE, WITH ROLLUP, GROUPING SETS); refreshable materialized views. Documentation at clickhouse.com/docs.</li>
+  <li>tcgcsv.com. Daily mirror of the catalogue and the prices of TCGplayer, with archive of past prices.</li>
+  <li>Self-study 1: <a href="https://www.ibm.com/think/topics/olap" target="_blank" rel="noopener noreferrer">What is OLAP?</a> (IBM, 60 min).</li>
+  <li>Self-study 2: <a href="https://www.youtube.com/watch?v=s8UDqSRXgbg" target="_blank" rel="noopener noreferrer">OLAP Cubes: Unleashing Multi-Dimensional Data Insights</a> (video, 30 min).</li>
+  <li>Self-study 3: <a href="https://www.altexsoft.com/blog/what-is-data-mart/" target="_blank" rel="noopener noreferrer">What is a Data Mart?</a> (AltexSoft, 60 min).</li>
+</ul>
+      </section>
+
+    </article>
+  </div>
+
+  <footer class="inteli-footer">
+    <img src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli logo">
+    <p>Material created by Professor <strong>Afonso Brandão</strong> for <strong>Inteli</strong>.</p>
+    <small>🔓 Open reading licence</small>
+  </footer>
+
+  <script>
+    const progress = document.getElementById('progress-bar');
+    const floatNav = document.getElementById('float-nav');
+    const header = document.querySelector('.mat-header');
+    const tocLinks = Array.from(document.querySelectorAll('.mat-toc a'));
+    const sections = tocLinks.map((link) => document.querySelector(link.getAttribute('href'))).filter(Boolean);
+
+    // Reading time per section, estimated at 200 words per minute over the rendered text.
+    let totalMinutes = 0;
+    tocLinks.forEach((link) => {
+      const section = document.querySelector(link.getAttribute('href'));
+      if (!section) return;
+      const words = section.innerText.trim().split(/\s+/).length;
+      const minutes = Math.max(1, Math.round(words / 200));
+      totalMinutes += minutes;
+      const tag = document.createElement('span');
+      tag.textContent = `${minutes} min`;
+      link.appendChild(tag);
+    });
+    document.getElementById('toc-total').textContent = `Estimated reading time: ${totalMinutes} minutes.`;
+
+    function updateReadingState() {
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+      progress.style.width = `${scrollable > 0 ? (window.scrollY / scrollable) * 100 : 0}%`;
+      floatNav.classList.toggle('visible', header.getBoundingClientRect().bottom < 0);
+      let activeId = sections[0] ? sections[0].id : '';
+      sections.forEach((section) => { if (section.getBoundingClientRect().top <= 150) activeId = section.id; });
+      tocLinks.forEach((link) => link.classList.toggle('active', link.getAttribute('href') === `#${activeId}`));
+    }
+    document.addEventListener('scroll', updateReadingState, { passive:true });
+    updateReadingState();
+
+    const srObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) { entry.target.classList.add('vis'); srObserver.unobserve(entry.target); }
+      });
+    }, { threshold: 0.05 });
+    document.querySelectorAll('.sr').forEach((el) => srObserver.observe(el));
+
+    document.querySelectorAll('.code-copy').forEach((button) => {
+      button.addEventListener('click', () => {
+        const code = button.closest('.code-wrap').querySelector('code').innerText;
+        navigator.clipboard.writeText(code).then(() => {
+          button.textContent = 'Copied';
+          setTimeout(() => { button.textContent = 'Copy'; }, 1500);
+        });
+      });
+    });
+
+    document.querySelectorAll('#lesson-checklist li').forEach((item) => {
+      item.addEventListener('click', () => item.classList.toggle('done'));
+    });
+  </script>
+<!-- encontro:pdf:start -->
+<button type="button" class="pdf-export-btn" data-encontro-data="2026-11-10" data-encontro-docente="Afonso" data-encontro-seq="02" title="Export this page as a PDF with the standard file name">📄 Export PDF</button>
+<script src="../../../js/encontro-pdf.js" defer></script>
+<!-- encontro:pdf:end -->
+<!-- semana:js:start -->
+<script src="../../../js/semana-ano.js" defer></script>
+<!-- semana:js:end -->
+</body>
+</html>

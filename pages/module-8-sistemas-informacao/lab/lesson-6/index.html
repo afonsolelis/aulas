@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 6 Lab · Dimensional modelling in the browser · Module 8 · Inteli</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧊</text></svg>">
+  <link href="../../../../css/inteli-styles.css" rel="stylesheet">
+  <style>
+    body.tm { min-height: 100vh; }
+    .lab { max-width: 1440px; margin: 0 auto; padding: 20px 24px 0; }
+    .lab-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 16px; border-bottom: 1px solid var(--ds-borda); }
+    .lab-top nav { display: flex; flex-wrap: wrap; gap: 6px 18px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); }
+    .lab-top nav a { text-decoration: none; color: var(--ds-texto); }
+    .lab-top nav a span { color: var(--ds-texto-fraco); }
+    .lab-top nav a:hover { color: var(--ds-texto-forte); text-decoration: underline; }
+    .lab-top img { width: 64px; display: block; }
+    .lab-head { padding: 28px 0 20px; }
+    .lab-head .meta { margin: 0 0 10px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); color: var(--ds-texto-suave); }
+    .lab-head h1 { margin: 0; font-family: var(--ds-fonte-mono); font-weight: 500; font-size: clamp(1.6rem, 1rem + 2vw, 2.4rem); letter-spacing: -0.02em; color: var(--ds-texto-forte); }
+    .lab-head p { margin: 12px 0 0; max-width: 90ch; line-height: 1.6; color: var(--ds-texto); }
+    .status { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 14px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); }
+    .status b { color: var(--ds-texto-forte); font-weight: 500; }
+    .status .ok::before { content: "■ "; color: var(--inteli-verde); }
+    .status .wait::before { content: "■ "; color: var(--inteli-cinza-400); }
+    .status .err::before { content: "■ "; color: var(--inteli-coral); }
+
+    .steps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin: 8px 0 20px; }
+    .step { border: 1px solid var(--ds-borda-forte); padding: 14px 16px; background: var(--ds-fundo); display: flex; flex-direction: column; gap: 8px; }
+    .step .n { font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); }
+    .step h2 { margin: 0; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-ui); font-weight: 600; color: var(--ds-texto-forte); }
+    .step p { margin: 0; font-size: var(--ds-fs-meta); line-height: 1.5; color: var(--ds-texto-suave); }
+    .step .acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
+    .btn-lab { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border: 1px solid var(--ds-borda-forte); background: var(--ds-fundo); color: var(--ds-texto-forte); font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); font-weight: 500; cursor: pointer; white-space: nowrap; }
+    .btn-lab:hover { background: var(--ds-fundo-fraco); border-color: var(--inteli-cinza-400); }
+    .btn-lab.primary { background: var(--inteli-roxo); border-color: var(--inteli-roxo); color: var(--ds-texto-inverso); }
+    .btn-lab.primary:hover { background: var(--ds-roxo-hover); }
+    .btn-lab.danger { color: var(--ds-coral-texto); }
+    .btn-lab:disabled { opacity: 0.5; cursor: default; }
+
+    .work { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }
+    .editor-box { border: 1px solid var(--ds-texto-forte); }
+    .editor-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--ds-borda-forte); background: var(--ds-fundo-fraco); }
+    .editor-bar .hint { margin-left: auto; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); }
+    #sql { display: block; width: 100%; min-height: 300px; resize: vertical; border: 0; padding: 14px 16px; font-family: var(--ds-fonte-mono); font-size: 0.85rem; line-height: 1.55; color: var(--ds-texto-forte); background: var(--ds-fundo); outline: none; tab-size: 4; }
+    #results { margin-top: 16px; display: flex; flex-direction: column; gap: 14px; padding-bottom: 32px; }
+    .res { border: 1px solid var(--ds-borda-forte); }
+    .res-head { display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 7px 12px; border-bottom: 1px solid var(--ds-borda); font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); }
+    .res-head b { color: var(--ds-texto-forte); font-weight: 600; }
+    .res-head code { color: var(--ds-texto); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70ch; }
+    .res.error { border-color: var(--inteli-coral); }
+    .res.error pre { margin: 0; padding: 10px 12px; color: var(--ds-coral-texto); font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); white-space: pre-wrap; }
+    .table-wrap { overflow: auto; max-height: 420px; }
+    table.grid { border-collapse: collapse; width: 100%; font-size: 0.82rem; }
+    table.grid th { position: sticky; top: 0; background: var(--ds-fundo); text-align: left; padding: 7px 12px; font-family: var(--ds-fonte-mono); font-weight: 600; font-size: var(--ds-fs-micro); color: var(--ds-texto-forte); border-bottom: 2px solid var(--ds-texto-forte); white-space: nowrap; }
+    table.grid td { padding: 6px 12px; border-top: 1px solid var(--ds-borda); color: var(--ds-texto-forte); white-space: nowrap; max-width: 520px; overflow: hidden; text-overflow: ellipsis; }
+    table.grid td.num { text-align: right; font-family: var(--ds-fonte-mono); }
+    table.grid tr:nth-child(even) td { background: var(--ds-fundo-fraco); }
+
+    aside.side { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 16px; }
+    .panel { border: 1px solid var(--ds-borda-forte); padding: 12px 14px; }
+    .panel h3 { margin: 0 0 10px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); font-weight: 600; color: var(--ds-texto-forte); display: flex; justify-content: space-between; align-items: center; }
+    .panel h3 button { border: 0; background: none; font: inherit; font-weight: 400; color: var(--ds-texto-suave); cursor: pointer; }
+    .catalogue { list-style: none; margin: 0; padding: 0; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); max-height: 360px; overflow: auto; }
+    .catalogue li { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--ds-borda); cursor: pointer; }
+    .catalogue li:hover { color: var(--ds-texto-forte); }
+    .catalogue .kind { color: var(--ds-texto-fraco); }
+    .storage { font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); line-height: 1.7; }
+    .storage b { color: var(--ds-texto-forte); font-weight: 500; }
+
+    dialog#prompt-box { width: min(860px, 94vw); max-height: 88vh; padding: 0; border: 1px solid var(--ds-texto-forte); }
+    dialog#prompt-box::backdrop { background: rgba(46, 38, 64, 0.35); }
+    .dlg-bar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--ds-borda-forte); font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); }
+    .dlg-bar strong { margin-right: auto; color: var(--ds-texto-forte); }
+    #prompt-text { margin: 0; padding: 14px 16px; max-height: calc(88vh - 60px); overflow: auto; font-family: var(--ds-fonte-mono); font-size: 0.8rem; line-height: 1.55; white-space: pre-wrap; color: var(--ds-texto-forte); }
+
+    @media (max-width: 1100px) {
+      .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .work { grid-template-columns: 1fr; }
+      aside.side { position: static; }
+    }
+    @media (max-width: 600px) {
+      .lab { padding: 16px 16px 0; }
+      .steps { grid-template-columns: 1fr; }
+      .editor-bar .hint { margin-left: 0; width: 100%; }
+    }
+  </style>
+
+<!-- semana:css:start -->
+<link rel="stylesheet" href="../../../../css/semana-ano.css">
+<!-- semana:css:end -->
+<!-- ds:css -->
+<link rel="stylesheet" href="../../../../css/inteli-ds.css">
+</head>
+
+<body class="tm">
+  <div class="lab">
+    <header class="lab-top">
+      <a href="../../../home-module-8-sistemas-informacao.html"><img src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli Logo"></a>
+      <nav aria-label="Lesson 6">
+        <a href="../../../home-module-8-sistemas-informacao.html"><span>←</span> Module 8</a>
+        <a href="../../slides/slide-lesson-6.html"><span>[1]</span> Slides</a>
+        <a href="../../materials/lesson-6-material.html"><span>[2]</span> Material</a>
+        <a href="data/db_ingestion.json" download><span>[3]</span> db_ingestion (JSON)</a>
+      </nav>
+    </header>
+
+    <section class="lab-head">
+      <p class="meta">Module 8 · Information Systems · Lesson 6 · Lab</p>
+      <h1>Dimensional modelling in the browser</h1>
+      <p>DuckDB runs inside this page. The table <code>db_ingestion</code> holds what was captured from TCGplayer about the Pokémon TCG sets of 2026 and is kept in the localStorage of the browser, together with every statement that created an object, so the model survives a reload. Each step has a CREATE prompt for the coding agent and the reference SQL of the professor.</p>
+      <div class="status" id="status">
+        <span class="wait" id="st-engine">DuckDB: loading</span>
+        <span class="wait" id="st-data">db_ingestion: waiting</span>
+        <span class="wait" id="st-replay">model: waiting</span>
+      </div>
+    </section>
+
+    <section class="steps" aria-label="Steps">
+      <article class="step"><span class="n">Step 01 · 12 min</span><h2>Dimensions</h2><p>Set, product, variant and date, as views over the JSON of <code>db_ingestion</code>.</p><div class="acts"><button class="btn-lab" data-prompt="01_dimensions">Prompt</button><button class="btn-lab" data-sql="01_dimensions">Reference SQL</button></div></article>
+      <article class="step"><span class="n">Step 02 · 8 min</span><h2>Fact</h2><p>The periodic snapshot of prices and the test of the grain.</p><div class="acts"><button class="btn-lab" data-prompt="02_fact">Prompt</button><button class="btn-lab" data-sql="02_fact">Reference SQL</button></div></article>
+      <article class="step"><span class="n">Step 03 · 12 min</span><h2>Cube and mart</h2><p>CUBE of set, rarity and variant on every date, and the mart of the collectors.</p><div class="acts"><button class="btn-lab" data-prompt="03_cube_and_mart">Prompt</button><button class="btn-lab" data-sql="03_cube_and_mart">Reference SQL</button></div></article>
+      <article class="step"><span class="n">Step 04 · 10 min</span><h2>Five questions</h2><p>Roll-up, slice, pivot, dice and the cards that appreciated most.</p><div class="acts"><button class="btn-lab" data-prompt="04_questions">Prompt</button><button class="btn-lab" data-sql="04_questions">Reference SQL</button></div></article>
+      <article class="step"><span class="n">Second hour · groups</span><h2>Your data in ClickHouse</h2><p>The same steps over the partner data, in <code>lab.gNN_</code> on shrek2.</p><div class="acts"><button class="btn-lab" data-prompt="05_your_data_clickhouse">Prompt</button></div></article>
+    </section>
+
+    <div class="work">
+      <div>
+        <div class="editor-box">
+          <div class="editor-bar">
+            <button class="btn-lab primary" id="run" disabled>Run ▸</button>
+            <button class="btn-lab" id="clear">Clear editor</button>
+            <span class="hint">Ctrl+Enter runs every statement · results appear below</span>
+          </div>
+          <textarea id="sql" spellcheck="false" aria-label="SQL editor">-- Paste the SQL written by the agent, or load the reference of a step.
+SELECT data_tag, count(*) AS rows, min(timestamp) AS first, max(timestamp) AS last
+FROM db_ingestion
+GROUP BY data_tag
+ORDER BY data_tag;</textarea>
+        </div>
+        <div id="results" aria-live="polite"></div>
+      </div>
+
+      <aside class="side">
+        <div class="panel">
+          <h3>Objects <button id="refresh-cat" title="Refresh">refresh</button></h3>
+          <ul class="catalogue" id="catalogue"><li>loading…</li></ul>
+        </div>
+        <div class="panel">
+          <h3>localStorage</h3>
+          <div class="storage" id="storage">…</div>
+          <div class="acts" style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+            <button class="btn-lab danger" id="reset-model">Drop the model</button>
+            <button class="btn-lab danger" id="reset-all">Forget everything</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <dialog id="prompt-box">
+    <div class="dlg-bar"><strong id="prompt-title">Prompt</strong><button class="btn-lab" id="prompt-copy">Copy</button><button class="btn-lab" id="prompt-close">Close</button></div>
+    <pre id="prompt-text"></pre>
+  </dialog>
+
+  <footer class="inteli-footer tm-rodape">
+    <div>
+      <ul>
+        <li><a href="../../../home-module-8-sistemas-informacao.html">Module 8</a></li>
+        <li><a href="../../../design-system.html">Design system</a></li>
+      </ul>
+      <p>Material created by professor Afonso Brandão for Inteli. Open reading license. Data: TCGplayer, through the public mirror tcgcsv.com.</p>
+    </div>
+  </footer>
+
+  <script type="module">
+    import * as duckdb from 'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.32.0/+esm';
+
+    const KEY_DATA = 'm8si-l6.db_ingestion.gz.b64';
+    const KEY_LOG = 'm8si-l6.model.statements';
+    const KEY_DRAFT = 'm8si-l6.editor';
+    const WRITES = /^(CREATE|INSERT|UPDATE|DELETE|DROP|ALTER)\b/i;
+    const MAX_ROWS = 500;
+    const $ = (id) => document.getElementById(id);
+
+    let conn = null;
+
+    function setStatus(id, cls, text) { const el = $(id); el.className = cls; el.textContent = text; }
+
+    // Split a script into statements, ignoring ; inside strings and comments.
+    function splitStatements(sql) {
+      const out = []; let cur = ''; let i = 0; let mode = null;
+      while (i < sql.length) {
+        const c = sql[i], n = sql[i + 1];
+        if (mode === 'line') { cur += c; if (c === '\n') mode = null; i++; continue; }
+        if (mode === 'block') { cur += c; if (c === '*' && n === '/') { cur += n; i += 2; mode = null; continue; } i++; continue; }
+        if (mode === "'" || mode === '"') { cur += c; if (c === mode) { if (n === mode) { cur += n; i += 2; continue; } mode = null; } i++; continue; }
+        if (c === '-' && n === '-') { mode = 'line'; cur += c; i++; continue; }
+        if (c === '/' && n === '*') { mode = 'block'; cur += c; i++; continue; }
+        if (c === "'" || c === '"') { mode = c; cur += c; i++; continue; }
+        if (c === ';') { out.push(cur); cur = ''; i++; continue; }
+        cur += c; i++;
+      }
+      out.push(cur);
+      return out.map((s) => s.trim()).filter((s) => s.replace(/--[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '').trim());
+    }
+    const bare = (s) => s.replace(/--[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '').trim();
+
+    function toBase64(bytes) { let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000)); return btoa(s); }
+    function fromBase64(b64) { const s = atob(b64); const b = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return b; }
+    async function gunzip(bytes) { return await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text(); }
+
+    function readLog() { try { return JSON.parse(localStorage.getItem(KEY_LOG) || '[]'); } catch { return []; } }
+    function writeLog(list) { try { localStorage.setItem(KEY_LOG, JSON.stringify(list)); } catch (e) { console.warn('localStorage full', e); } }
+
+    function formatValue(v, typeId) {
+      if (v === null || v === undefined) return '';
+      if (typeId === 8 && typeof v === 'number') return new Date(v).toISOString().slice(0, 10);
+      if (typeId === 10 && typeof v === 'number') return new Date(v).toISOString().replace('T', ' ').slice(0, 19);
+      if (typeof v === 'bigint') return v.toString();
+      if (typeof v === 'number') return Number.isInteger(v) ? v.toLocaleString('en-US') : v.toLocaleString('en-US', { maximumFractionDigits: 4 });
+      if (typeof v === 'object') { try { return JSON.stringify(v.toJSON ? v.toJSON() : v, (k, x) => typeof x === 'bigint' ? x.toString() : x); } catch { return String(v); } }
+      return String(v);
+    }
+
+    function renderResult(index, statement, table, seconds) {
+      const box = document.createElement('div'); box.className = 'res';
+      const fields = table ? table.schema.fields : [];
+      const isCount = fields.length === 1 && fields[0].name === 'Count';
+      const rows = table && !isCount ? table.toArray() : [];
+      const head = document.createElement('div'); head.className = 'res-head';
+      const first = bare(statement).split('\n')[0];
+      head.innerHTML = `<b>#${index}</b><span>${isCount || !fields.length ? 'ok' : rows.length + ' row(s)'}</span><span>${seconds.toFixed(3)} s</span><code></code>`;
+      head.querySelector('code').textContent = first;
+      box.appendChild(head);
+      if (!isCount && fields.length) {
+        const wrap = document.createElement('div'); wrap.className = 'table-wrap';
+        const t = document.createElement('table'); t.className = 'grid';
+        const tr = document.createElement('tr');
+        fields.forEach((f) => { const th = document.createElement('th'); th.textContent = f.name; tr.appendChild(th); });
+        const thead = document.createElement('thead'); thead.appendChild(tr); t.appendChild(thead);
+        const tbody = document.createElement('tbody');
+        rows.slice(0, MAX_ROWS).forEach((row) => {
+          const r = document.createElement('tr');
+          fields.forEach((f) => {
+            const td = document.createElement('td'); const v = row[f.name];
+            td.textContent = formatValue(v, f.type.typeId);
+            if (typeof v === 'number' || typeof v === 'bigint') td.className = 'num';
+            td.title = td.textContent; r.appendChild(td);
+          });
+          tbody.appendChild(r);
+        });
+        t.appendChild(tbody); wrap.appendChild(t); box.appendChild(wrap);
+      }
+      return box;
+    }
+
+    function renderError(index, statement, error) {
+      const box = document.createElement('div'); box.className = 'res error';
+      const head = document.createElement('div'); head.className = 'res-head';
+      head.innerHTML = `<b>#${index}</b><span>error</span><code></code>`;
+      head.querySelector('code').textContent = bare(statement).split('\n')[0];
+      const pre = document.createElement('pre'); pre.textContent = String(error.message || error);
+      box.append(head, pre); return box;
+    }
+
+    async function runScript(sql) {
+      const out = $('results'); out.innerHTML = '';
+      const statements = splitStatements(sql);
+      const log = readLog();
+      for (let i = 0; i < statements.length; i++) {
+        const st = statements[i]; const t0 = performance.now();
+        try {
+          const table = await conn.query(st);
+          out.appendChild(renderResult(i + 1, st, table, (performance.now() - t0) / 1000));
+          if (WRITES.test(bare(st))) { log.push(st); writeLog(log); }
+        } catch (e) {
+          out.appendChild(renderError(i + 1, st, e));
+          break;
+        }
+      }
+      await refreshCatalogue(); refreshStorage();
+    }
+
+    async function refreshCatalogue() {
+      const ul = $('catalogue');
+      try {
+        const res = await conn.query(`
+          SELECT schema_name AS s, table_name AS name, 'table' AS kind, estimated_size AS n FROM duckdb_tables() WHERE NOT internal
+          UNION ALL SELECT schema_name, view_name, 'view', NULL FROM duckdb_views() WHERE NOT internal
+          UNION ALL SELECT schema_name, function_name, 'macro', NULL FROM duckdb_functions() WHERE NOT internal AND function_type IN ('macro','table_macro')
+          ORDER BY 1, 3, 2`);
+        const rows = res.toArray();
+        ul.innerHTML = '';
+        rows.forEach((r) => {
+          const li = document.createElement('li');
+          const full = (r.s === 'main' ? '' : r.s + '.') + r.name;
+          li.innerHTML = `<span></span><span class="kind"></span>`;
+          li.children[0].textContent = full;
+          li.children[1].textContent = r.kind + (r.n != null ? ' · ' + Number(r.n).toLocaleString('en-US') : '');
+          if (r.kind !== 'macro') li.onclick = () => { $('sql').value = `SELECT * FROM ${full} LIMIT 50;`; saveDraft(); };
+          ul.appendChild(li);
+        });
+      } catch (e) { ul.innerHTML = '<li>catalogue unavailable</li>'; }
+    }
+
+    function refreshStorage() {
+      const size = (k) => ((localStorage.getItem(k) || '').length * 2 / 1024).toFixed(0);
+      let total = 0; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); total += (k.length + (localStorage.getItem(k) || '').length) * 2; }
+      $('storage').innerHTML = `db_ingestion (gzip): <b>${size(KEY_DATA)} KB</b><br>model statements: <b>${readLog().length}</b> · ${size(KEY_LOG)} KB<br>whole site in this browser: <b>${(total / 1024).toFixed(0)} KB</b> of about 5,120 KB`;
+    }
+
+    function saveDraft() { try { localStorage.setItem(KEY_DRAFT, $('sql').value); } catch {} }
+
+    async function loadIngestion() {
+      let b64 = null; try { b64 = localStorage.getItem(KEY_DATA); } catch {}
+      let bytes;
+      if (b64) { bytes = fromBase64(b64); setStatus('st-data', 'wait', 'db_ingestion: from localStorage'); }
+      else {
+        setStatus('st-data', 'wait', 'db_ingestion: downloading');
+        bytes = new Uint8Array(await (await fetch('data/db_ingestion.json.gz')).arrayBuffer());
+        try { localStorage.setItem(KEY_DATA, toBase64(bytes)); } catch (e) { console.warn('could not keep db_ingestion in localStorage', e); }
+      }
+      await window.__db.registerFileText('db_ingestion.json', await gunzip(bytes));
+      await conn.query(`CREATE OR REPLACE TABLE db_ingestion AS
+        SELECT * FROM read_json('db_ingestion.json', columns = {'timestamp': 'TIMESTAMP', 'data_json': 'JSON', 'data_tag': 'VARCHAR'})`);
+      const n = (await conn.query('SELECT count(*) AS n FROM db_ingestion')).toArray()[0].n;
+      setStatus('st-data', 'ok', `db_ingestion: ${Number(n).toLocaleString('en-US')} rows`);
+    }
+
+    async function replayModel() {
+      const log = readLog(); let ok = 0; const kept = [];
+      for (const st of log) { try { await conn.query(st); ok++; kept.push(st); } catch (e) { console.warn('replay skipped', e.message); } }
+      writeLog(kept);
+      setStatus('st-replay', 'ok', `model: ${ok} statement(s) replayed`);
+    }
+
+    async function dropModel() {
+      const res = await conn.query("SELECT DISTINCT schema_name AS s FROM duckdb_schemas() WHERE NOT internal AND schema_name NOT IN ('main', 'pg_catalog', 'information_schema')");
+      for (const r of res.toArray()) await conn.query(`DROP SCHEMA IF EXISTS "${r.s}" CASCADE`);
+      const objs = (await conn.query("SELECT table_name AS n, 'TABLE' AS k FROM duckdb_tables() WHERE schema_name = 'main' AND table_name <> 'db_ingestion' UNION ALL SELECT view_name, 'VIEW' FROM duckdb_views() WHERE schema_name = 'main' AND NOT internal")).toArray();
+      for (const o of objs) await conn.query(`DROP ${o.k} IF EXISTS main."${o.n}"`);
+      writeLog([]);
+    }
+
+    async function main() {
+      const bundle = await duckdb.selectBundle(duckdb.getJsDelivrBundles());
+      const workerUrl = URL.createObjectURL(new Blob([`importScripts("${bundle.mainWorker}");`], { type: 'text/javascript' }));
+      const db = new duckdb.AsyncDuckDB(new duckdb.ConsoleLogger(duckdb.LogLevel.WARNING), new Worker(workerUrl));
+      await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+      URL.revokeObjectURL(workerUrl);
+      await db.open({ query: { castBigIntToDouble: true, castDecimalToDouble: true } });
+      window.__db = db; conn = await db.connect();
+      const v = (await conn.query('SELECT version() AS v')).toArray()[0].v;
+      setStatus('st-engine', 'ok', `DuckDB ${v} (WASM)`);
+      await loadIngestion();
+      await replayModel();
+      $('run').disabled = false;
+      await refreshCatalogue(); refreshStorage();
+    }
+
+    // UI ------------------------------------------------------------------
+    try { const d = localStorage.getItem(KEY_DRAFT); if (d) $('sql').value = d; } catch {}
+    $('sql').addEventListener('input', saveDraft);
+    $('sql').addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); if (conn) runScript($('sql').value); }
+      if (e.key === 'Tab') { e.preventDefault(); const t = e.target, s = t.selectionStart; t.value = t.value.slice(0, s) + '    ' + t.value.slice(t.selectionEnd); t.selectionStart = t.selectionEnd = s + 4; }
+    });
+    $('run').onclick = () => runScript($('sql').value);
+    $('clear').onclick = () => { $('sql').value = ''; saveDraft(); $('sql').focus(); };
+    $('refresh-cat').onclick = refreshCatalogue;
+    $('reset-model').onclick = async () => { await dropModel(); setStatus('st-replay', 'ok', 'model: empty'); $('results').innerHTML = ''; await refreshCatalogue(); refreshStorage(); };
+    $('reset-all').onclick = async () => { await dropModel(); try { localStorage.removeItem(KEY_DATA); localStorage.removeItem(KEY_DRAFT); } catch {} location.reload(); };
+
+    document.querySelectorAll('[data-sql]').forEach((b) => b.onclick = async () => {
+      $('sql').value = await (await fetch(`sql/${b.dataset.sql}.sql`)).text(); saveDraft(); $('sql').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    document.querySelectorAll('[data-prompt]').forEach((b) => b.onclick = async () => {
+      $('prompt-title').textContent = 'Prompt · ' + b.closest('.step').querySelector('h2').textContent;
+      $('prompt-text').textContent = await (await fetch(`prompts/${b.dataset.prompt}.md`)).text();
+      $('prompt-box').showModal();
+    });
+    $('prompt-close').onclick = () => $('prompt-box').close();
+    $('prompt-copy').onclick = async () => { try { await navigator.clipboard.writeText($('prompt-text').textContent); $('prompt-copy').textContent = 'Copied'; setTimeout(() => $('prompt-copy').textContent = 'Copy', 1500); } catch {} };
+
+    main().catch((e) => { console.error(e); setStatus('st-engine', 'err', 'DuckDB: ' + (e.message || e)); });
+  </script>
+<!-- semana:js:start -->
+<script src="../../../../js/semana-ano.js" defer></script>
+<!-- semana:js:end -->
+</body>
+</html>
