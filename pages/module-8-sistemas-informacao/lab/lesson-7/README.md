@@ -37,4 +37,4 @@ tcg-dataapp status
 
 ## The second hour
 
-The second hour is the graded DataApp Packaging activity, in which each student packages the DataApp of the group in the same three layers. Its statement and criteria are delivered in class and are not kept in this public repository.
+The second hour is the graded DataApp Packaging activity, in which each student packages the DataApp of the group in the same three layers. Its statement is the DataApp Packaging activity on Adalove: each student works on a branch `graded-activity-package/student-name`, documents the package in a pull request and submits only the link by Friday, 27/11/2026, the day of the session. The criteria are those listed in the activity on Adalove.
