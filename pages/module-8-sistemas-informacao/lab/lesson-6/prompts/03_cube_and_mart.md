@@ -5,7 +5,7 @@ friendly names that a dashboard can read.
 
 [R] Request
 sql/03_cube_and_mart.sql:
-1. table gold.agg_price_cube, the cube as a summarised fact table, only
+1. view gold.agg_price_cube, the cube as a summarised fact table, only
    for cards with a market price: GROUP BY date_key, CUBE (set_name,
    rarity, variant), with grouping_id (grouping() of the three), 'all' in
    place of the NULL of a total, and the measures prices (count),
@@ -35,6 +35,7 @@ GROUP BY f.date_key, CUBE (s.set_name, p.rarity, f.variant);
 - The date stays in every grouping, because the price is semi-additive.
 - Group by set_name, not set_code: the code 30C belongs to two sets.
 - grouping_id 0 is the finest cell and 7 the total of all cards.
+- The cube and the mart are views, like the rest of gold.
 - The mart reads gold and never db_ingestion.
 
 [T] Type of output

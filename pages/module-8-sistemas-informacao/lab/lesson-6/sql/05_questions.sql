@@ -1,6 +1,6 @@
--- Lesson 6 · Step 04 · Five questions, one OLAP operation each
+-- Lesson 6 · Step 05 · Five questions, one OLAP operation each
 --
--- Reference of the professor for prompt 04. Every question reads the cube or
+-- Reference of the professor for prompt 05. Every question reads the cube or
 -- the mart, never db_ingestion.
 
 -- Q1 · Roll-up: from the card to the rarity. On 07/11/2026, how much is

@@ -3,7 +3,7 @@ You are an analyst of the collectors area. The cube and the mart are
 ready, and five questions came from the business.
 
 [R] Request
-sql/04_questions.sql, one query per question, each reading the cube or the
+sql/05_questions.sql, one query per question, each reading the cube or the
 mart and never db_ingestion, with a comment naming the OLAP operation:
 Q1 roll-up: on 2026-11-07, the average and the maximum market price of a
    card of each rarity;

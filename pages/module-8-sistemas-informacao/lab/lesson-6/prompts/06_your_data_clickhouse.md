@@ -16,13 +16,16 @@ object of the group starts with gNN_.
    the command that loads our enriched data into it.
 3. sql/clickhouse/01_dimensions.sql: one view lab.gNN_dim_<name> per
    dimension, with JSONExtractString, JSONExtractFloat and JSONExtractInt.
-4. sql/clickhouse/02_fact.sql: the fact as a refreshable materialized view
-   lab.gNN_fact_<process> (REFRESH EVERY 1 HOUR, MergeTree), and the test
-   of the grain.
-5. sql/clickhouse/03_cube.sql: the cube as a refreshable materialized view
-   lab.gNN_agg_<process>_cube with GROUP BY ... WITH CUBE (or GROUPING
-   SETS) over at least three dimensions and grouping() of each one.
-6. sql/clickhouse/04_questions.sql and docs/answers.md: the five
+4. sql/clickhouse/02_fact.sql: the fact as a view lab.gNN_fact_<process>,
+   and the test of the grain.
+5. sql/clickhouse/03_cube.sql: the cube as a view lab.gNN_agg_<process>_cube
+   with GROUP BY ... WITH CUBE (or GROUPING SETS) over at least three
+   dimensions and grouping() of each one.
+6. sql/clickhouse/04_reports.sql: one report frozen in time, for a closed
+   month of the partner, materialized with CREATE TABLE ... ENGINE =
+   MergeTree ORDER BY ... AS SELECT; and the same report as a normal view
+   over the last period, always current.
+7. sql/clickhouse/05_questions.sql and docs/answers.md: the five
    questions, each answer with the number and the query that produced it.
 
 [E] Example
@@ -45,7 +48,8 @@ WHERE data_tag = 'partner.customer.v1';
   of the cube in the cube, never by summing finer cells.
 - If a measure is semi-additive, keep its time dimension in every grouping
   of the cube.
-- Run SYSTEM REFRESH VIEW and SYSTEM WAIT VIEW after the first load.
+- The whole gold layer of the group (dimensions, fact and cube) is views;
+  only the frozen report stores data.
 
 [T] Type of output
 The files, the rows of every object of the group and the five answers.

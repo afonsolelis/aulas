@@ -25,14 +25,17 @@ The lab is the page `index.html` of this folder, published with the module. It r
 
 ## Steps
 
+The whole gold layer (dimensions, fact and cube) and the mart are views. Only the reports of step 04 that are frozen in September store data, as tables built with `CREATE TABLE ... AS`, because DuckDB has no materialized view.
+
 | Step | Prompt | Reference | Checks |
 |---|---|---|---|
-| 01 · 12 min | `prompts/01_dimensions.md` | `sql/01_dimensions.sql` | 7 sets, 1,490 products (1,273 cards), 3 variants, 5 dates |
-| 02 · 8 min | `prompts/02_fact.md` | `sql/02_fact.sql` | 5,951 rows = 5,951 keys of the grain; 49 without market price |
-| 03 · 12 min | `prompts/03_cube_and_mart.md` | `sql/03_cube_and_mart.sql` | 524 cells in 8 levels; US$ 18,989.68 on 07/11 |
-| 04 · 10 min | `prompts/04_questions.md` | `sql/04_questions.sql` | only Pikachu ex 276/217 appreciated: +18.9 %, +US$ 90.59 |
-| second hour | `prompts/05_your_data_clickhouse.md` | — | the partner data in `lab.gNN_` on shrek2 (`http://10.8.8.10:8123/play`) |
+| 01 · 10 min | `prompts/01_dimensions.md` | `sql/01_dimensions.sql` | 7 sets, 1,490 products (1,273 cards), 3 variants, 5 dates |
+| 02 · 6 min | `prompts/02_fact.md` | `sql/02_fact.sql` | the fact is a view; 5,951 rows = 5,951 keys of the grain; 49 without market price |
+| 03 · 10 min | `prompts/03_cube_and_mart.md` | `sql/03_cube_and_mart.sql` | cube and mart are views; 524 cells in 8 levels; US$ 18,989.68 on 07/11 |
+| 04 · 7 min | `prompts/04_reports.md` | `sql/04_reports.sql` | Pikachu ex 276/217: 1,049.08 frozen in September; 571.17 live, 600.00 after a simulated capture |
+| 05 · 7 min | `prompts/05_questions.md` | `sql/05_questions.sql` | only Pikachu ex 276/217 appreciated: +18.9 %, +US$ 90.59 |
+| second hour | `prompts/06_your_data_clickhouse.md` | — | the partner data in `lab.gNN_` on shrek2 (`http://10.8.8.10:8123/play`) |
 
 ## Rehearsal
 
-Measured on 07/11/2026 in Chromium headless (DuckDB-WASM 1.32.0) and confirmed with the Python package `duckdb==1.4.3`: the four reference files run without error, in about 0.1 s each, and a reload replays the 11 statements of the model.
+Measured on 07/11/2026 in Chromium headless (DuckDB-WASM 1.32.0) and confirmed with the Python package `duckdb==1.4.3`: the five reference files run without error, and a reload replays the statements of the model in order, so the reports of September stay frozen.

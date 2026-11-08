@@ -4,7 +4,7 @@ the fact that measures the business process.
 
 [R] Request
 sql/02_fact.sql:
-1. table gold.fact_price, a periodic snapshot with one row per product,
+1. view gold.fact_price, a periodic snapshot with one row per product,
    variant and capture date: date_key, product_id, set_id, variant,
    market_price, low_price, mid_price, high_price (DECIMAL(10,2)) and
    days_since_release (days between released_on of the set and the
@@ -25,8 +25,8 @@ SELECT CAST(strftime(timestamp, '%Y%m%d') AS INTEGER) AS date_key,
 FROM db_ingestion WHERE data_tag = 'tcgplayer.price.v1';
 
 [A] Adjustments
-- The fact is a table, so the JSON is typed once; the dimensions stay
-  views.
+- The whole gold layer is views, the fact included: nothing is stored,
+  and the fact always shows the last capture of db_ingestion.
 - The price record has no set: take set_id from dim_product.
 - fact_price and dim_product both have set_id: join dim_set with ON, not
   with USING, to avoid an ambiguous column.

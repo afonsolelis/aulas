@@ -1,8 +1,10 @@
--- Lesson 6 · Step 03 · The cube and a data mart for collectors
+-- Lesson 6 · Step 03 · The cube and a data mart for collectors, all views
 --
 -- Reference of the professor for prompt 03.
 --
--- The cube crosses set, rarity and variant on every date. It groups by
+-- The cube is a view too: the whole gold layer is computed at query time
+-- from db_ingestion, so it is always current. The cube crosses set, rarity
+-- and variant on every date. It groups by
 -- set_name and not by set_code, because the code 30C belongs to two sets
 -- (ME: 30th Celebration and its Classic Collection): a natural key that
 -- repeats would merge them.
@@ -12,7 +14,7 @@
 -- CUBE of the other three. A cell answers "on this date, how much did the
 -- cards of this set, of this rarity, in this variant cost?".
 
-CREATE OR REPLACE TABLE gold.agg_price_cube AS
+CREATE OR REPLACE VIEW gold.agg_price_cube AS
 SELECT
     f.date_key,
     grouping(s.set_name, p.rarity, f.variant) AS grouping_id,

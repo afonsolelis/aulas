@@ -1,14 +1,15 @@
--- Lesson 6 · Step 02 · The fact and the test of the grain
+-- Lesson 6 · Step 02 · The fact, as a view, and the test of the grain
 --
 -- Reference of the professor for prompt 02.
 --
 -- gold.fact_price is a periodic snapshot: one product, in one variant, on
--- one date of capture. It is a table, so the JSON is read and typed once.
--- Its prices are semi-additive: the market price of all the cards of a set
--- on one date adds up to the cost of the set, but adding the same card over
--- several dates means nothing.
+-- one date of capture. Like every object of gold it is a view: it keeps no
+-- copy, reads db_ingestion at every query and always shows the last
+-- capture that arrived. Its prices are semi-additive: the market price of
+-- all the cards of a set on one date adds up to the cost of the set, but
+-- adding the same card over several dates means nothing.
 
-CREATE OR REPLACE TABLE gold.fact_price AS
+CREATE OR REPLACE VIEW gold.fact_price AS
 SELECT
     CAST(strftime(i.timestamp, '%Y%m%d') AS INTEGER)   AS date_key,
     CAST(i.data_json->>'productId' AS INTEGER)          AS product_id,
