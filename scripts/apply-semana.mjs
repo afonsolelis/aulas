@@ -66,12 +66,51 @@ function limpar(html) {
 function injetarCss(html, rel) {
   const link = `\n${MARK.cssStart}\n<link rel="stylesheet" href="${rel}css/semana-ano.css">\n${MARK.cssEnd}`;
   const head = html.lastIndexOf('</head>');
-  if (head >= 0) return html.slice(0, head) + link + '\n' + html.slice(head);
+  if (head >= 0) {
+    // css/inteli-ds.css tem de ser a última folha do <head> (specs/design-system.md,
+    // regra 2), então o indicador entra antes do bloco do design system quando ele existe.
+    const ds = ds_inicio(html.slice(0, head));
+    const at = ds >= 0 ? ds : head;
+    return html.slice(0, at) + link + '\n' + html.slice(at);
+  }
 
   const body = /<body[^>]*>/i.exec(html);
   if (!body) return null;
   const at = body.index + body[0].length;
   return html.slice(0, at) + link + html.slice(at);
+}
+
+/** Posição do bloco do design system no <head>: o marcador `<!-- ds:css -->` ou o link de inteli-ds.css. */
+function ds_inicio(head) {
+  const marcador = head.lastIndexOf('<!-- ds:css -->');
+  if (marcador >= 0) return marcador;
+  const link = /<link[^>]*inteli-ds\.css[^>]*>/g;
+  let m, ultimo = -1;
+  while ((m = link.exec(head))) ultimo = m.index;
+  return ultimo;
+}
+
+/**
+ * A página já tem o indicador completo e válido: a folha com o caminho certo,
+ * antes do bloco do design system quando ele existe, e o script com o caminho
+ * certo antes de `</body>`. Nesse caso o script não reescreve a página, para
+ * não mover blocos que já estão corretos.
+ */
+function jaCoberta(html, rel) {
+  const css = html.indexOf(MARK.cssStart);
+  const js = html.indexOf(MARK.jsStart);
+  if (css < 0 || js < 0) return false;
+  const blocoCss = html.slice(css, html.indexOf(MARK.cssEnd, css));
+  const blocoJs = html.slice(js, html.indexOf(MARK.jsEnd, js));
+  if (!blocoCss.includes(`href="${rel}css/semana-ano.css"`)) return false;
+  if (!blocoJs.includes(`${rel}js/semana-ano.js`)) return false;
+  const head = html.lastIndexOf('</head>');
+  if (head >= 0) {
+    if (css > head) return false;
+    const ds = ds_inicio(html.slice(0, head));
+    if (ds >= 0 && css > ds) return false;
+  }
+  return js < html.lastIndexOf('</body>');
 }
 
 /** Insere o script antes de `</body>`, depois do conteúdo da página. */
@@ -98,8 +137,9 @@ function main() {
     }
 
     const original = fs.readFileSync(abs, 'utf8');
-    const base = limpar(original);
     const raiz = toRoot(rel);
+    if (jaCoberta(original, raiz)) continue; // indicador presente, no lugar e com os caminhos certos
+    const base = limpar(original);
 
     const comCss = injetarCss(base, raiz);
     if (comCss === null) {
