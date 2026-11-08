@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 13 Lab · Data security in the browser · Module 8 · Inteli</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔐</text></svg>">
+  <link href="../../../../css/inteli-styles.css" rel="stylesheet">
+  <style>
+    body.tm { min-height: 100vh; }
+    /* A margem direita deixa livre a faixa dos botões flutuantes (início e semana), fixos a 14px da borda. */
+    .lab { max-width: 1440px; margin: 0 auto; padding: 20px 76px 0 24px; }
+    .lab-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 16px; border-bottom: 1px solid var(--ds-borda); }
+    .lab-top nav { display: flex; flex-wrap: wrap; gap: 6px 18px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); }
+    .lab-top nav a { text-decoration: none; color: var(--ds-texto); }
+    .lab-top nav a span { color: var(--ds-texto-fraco); }
+    .lab-top nav a:hover { color: var(--ds-texto-forte); text-decoration: underline; }
+    .lab-top img { width: 64px; display: block; }
+    .lab-head { padding: 28px 0 20px; }
+    .lab-head .meta { margin: 0 0 10px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); color: var(--ds-texto-suave); }
+    .lab-head h1 { margin: 0; font-family: var(--ds-fonte-mono); font-weight: 500; font-size: clamp(1.6rem, 1rem + 2vw, 2.4rem); letter-spacing: -0.02em; color: var(--ds-texto-forte); }
+    .lab-head p { margin: 12px 0 0; max-width: 90ch; line-height: 1.6; color: var(--ds-texto); }
+    .status { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 14px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); }
+    .status b { color: var(--ds-texto-forte); font-weight: 500; }
+    .status .ok::before { content: "■ "; color: var(--inteli-verde); }
+    .status .wait::before { content: "■ "; color: var(--inteli-cinza-400); }
+    .status .err::before { content: "■ "; color: var(--inteli-coral); }
+
+    .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 8px 0 20px; }
+    .step { border: 1px solid var(--ds-borda-forte); padding: 14px 16px; background: var(--ds-fundo); display: flex; flex-direction: column; gap: 8px; }
+    .step .n { font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); }
+    .step h2 { margin: 0; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-ui); font-weight: 600; color: var(--ds-texto-forte); }
+    .step p { margin: 0; font-size: var(--ds-fs-meta); line-height: 1.5; color: var(--ds-texto-suave); }
+    .step .acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
+    .btn-lab { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border: 1px solid var(--ds-borda-forte); background: var(--ds-fundo); color: var(--ds-texto-forte); font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); font-weight: 500; cursor: pointer; white-space: nowrap; }
+    .btn-lab:hover { background: var(--ds-fundo-fraco); border-color: var(--inteli-cinza-400); }
+    .btn-lab.primary { background: var(--inteli-roxo); border-color: var(--inteli-roxo); color: var(--ds-texto-inverso); }
+    .btn-lab.primary:hover { background: var(--ds-roxo-hover); }
+    .btn-lab.danger { color: var(--ds-coral-texto); }
+    .btn-lab:disabled { opacity: 0.5; cursor: default; }
+
+    .work { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }
+    .editor-box { border: 1px solid var(--ds-texto-forte); }
+    .editor-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--ds-borda-forte); background: var(--ds-fundo-fraco); }
+    .editor-bar .hint { margin-left: auto; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); }
+    #sql { display: block; width: 100%; min-height: 300px; resize: vertical; border: 0; padding: 14px 16px; font-family: var(--ds-fonte-mono); font-size: 0.85rem; line-height: 1.55; color: var(--ds-texto-forte); background: var(--ds-fundo); outline: none; tab-size: 4; }
+    #results { margin-top: 16px; display: flex; flex-direction: column; gap: 14px; padding-bottom: 32px; }
+    .res { border: 1px solid var(--ds-borda-forte); }
+    .res-head { display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 7px 12px; border-bottom: 1px solid var(--ds-borda); font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); }
+    .res-head b { color: var(--ds-texto-forte); font-weight: 600; }
+    .res-head code { color: var(--ds-texto); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70ch; }
+    .res.error { border-color: var(--inteli-coral); }
+    .res.error pre { margin: 0; padding: 10px 12px; color: var(--ds-coral-texto); font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); white-space: pre-wrap; }
+    .table-wrap { overflow: auto; max-height: 420px; }
+    table.grid { border-collapse: collapse; width: 100%; font-size: 0.82rem; }
+    table.grid th { position: sticky; top: 0; background: var(--ds-fundo); text-align: left; padding: 7px 12px; font-family: var(--ds-fonte-mono); font-weight: 600; font-size: var(--ds-fs-micro); color: var(--ds-texto-forte); border-bottom: 2px solid var(--ds-texto-forte); white-space: nowrap; }
+    table.grid td { padding: 6px 12px; border-top: 1px solid var(--ds-borda); color: var(--ds-texto-forte); white-space: nowrap; max-width: 520px; overflow: hidden; text-overflow: ellipsis; }
+    table.grid td.num { text-align: right; font-family: var(--ds-fonte-mono); }
+    table.grid tr:nth-child(even) td { background: var(--ds-fundo-fraco); }
+
+    aside.side { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 16px; }
+    .panel { border: 1px solid var(--ds-borda-forte); padding: 12px 14px; }
+    .panel h3 { margin: 0 0 10px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); font-weight: 600; color: var(--ds-texto-forte); display: flex; justify-content: space-between; align-items: center; }
+    .panel h3 button { border: 0; background: none; font: inherit; font-weight: 400; color: var(--ds-texto-suave); cursor: pointer; }
+    .catalogue { list-style: none; margin: 0; padding: 0; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); max-height: 360px; overflow: auto; }
+    .catalogue li { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--ds-borda); cursor: pointer; }
+    .catalogue li:hover { color: var(--ds-texto-forte); }
+    .catalogue .kind { color: var(--ds-texto-fraco); }
+    .storage { font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); line-height: 1.7; }
+    .storage b { color: var(--ds-texto-forte); font-weight: 500; }
+
+    dialog#prompt-box { width: min(860px, 94vw); max-height: 88vh; padding: 0; border: 1px solid var(--ds-texto-forte); }
+    dialog#prompt-box::backdrop { background: rgba(46, 38, 64, 0.35); }
+    .dlg-bar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--ds-borda-forte); font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); }
+    .dlg-bar strong { margin-right: auto; color: var(--ds-texto-forte); }
+    #prompt-text { margin: 0; padding: 14px 16px; max-height: calc(88vh - 60px); overflow: auto; font-family: var(--ds-fonte-mono); font-size: 0.8rem; line-height: 1.55; white-space: pre-wrap; color: var(--ds-texto-forte); }
+
+        .steps { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    #sql { box-sizing: border-box; }
+    .step select.btn-lab { border-radius: 0; min-width: 0; flex: 1 1 140px; max-width: 100%; }
+
+    /* Access matrix: a table of roles × probes; the outcome is text, the square says pass or fail. */
+    .matrix { margin: 8px 0 40px; border: 1px solid var(--ds-texto-forte); }
+    .matrix-head { padding: 14px 16px 12px; border-bottom: 1px solid var(--ds-borda-forte); }
+    .matrix-head h2 { margin: 0 0 4px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-lead); font-weight: 600; color: var(--ds-texto-forte); }
+    .matrix-head p { margin: 0; font-size: var(--ds-fs-meta); color: var(--ds-texto-suave); max-width: 110ch; line-height: 1.5; }
+    .mx-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; padding: 10px 16px; border-bottom: 1px solid var(--ds-borda); font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); }
+    .mx-verdict { color: var(--ds-texto-forte); font-weight: 600; }
+    .mx-verdict.all-ok::before { content: "■ "; color: var(--inteli-verde); }
+    .mx-verdict.some-bad::before { content: "■ "; color: var(--inteli-coral); }
+    .mx-legend { margin-left: auto; display: inline-flex; gap: 16px; color: var(--ds-texto-suave); font-size: var(--ds-fs-micro); }
+    .mx-ok::before { content: "■ "; color: var(--inteli-verde); }
+    .mx-bad::before { content: "■ "; color: var(--inteli-coral); }
+    .mx-missing { padding: 18px 16px; font-size: var(--ds-fs-ui); color: var(--ds-texto); }
+    .mx-wrap { overflow-x: auto; padding: 0 0 4px; }
+    table.mx { border-collapse: collapse; width: 100%; font-family: var(--ds-fonte-mono); font-size: 12px; }
+    table.mx caption { text-align: left; padding: 10px 16px 6px; font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); }
+    table.mx th { padding: 8px 10px; text-align: left; font-weight: 600; color: var(--ds-texto-forte); white-space: nowrap; }
+    table.mx thead th { border-bottom: 2px solid var(--ds-texto-forte); font-size: 11px; }
+    table.mx tbody th { border-top: 1px solid var(--ds-borda); padding-left: 16px; }
+    table.mx td { padding: 8px 10px; border-top: 1px solid var(--ds-borda); border-left: 1px solid var(--ds-borda); white-space: nowrap; color: var(--ds-texto); vertical-align: top; }
+    table.mx td .mk { display: inline-block; width: 8px; height: 8px; margin-right: 6px; background: var(--inteli-verde); }
+    table.mx td.fail { background: var(--ds-fundo-fraco); outline: 2px solid var(--inteli-coral); outline-offset: -2px; }
+    table.mx td.fail .mk { background: var(--inteli-coral); }
+    table.mx td small { display: block; margin-top: 2px; color: var(--ds-coral-texto); font-size: 10px; }
+    table.mx td.o-denied .ob { color: var(--ds-texto-suave); }
+    table.mx td.o-all .ob, table.mx td.o-some .ob { color: var(--ds-texto-forte); font-weight: 600; }
+
+    @media (max-width: 1100px) {
+      .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .work { grid-template-columns: minmax(0, 1fr); }
+      aside.side { position: static; }
+    }
+    @media (max-width: 600px) {
+      .lab { padding: 16px 16px 0; }
+      .steps { grid-template-columns: minmax(0, 1fr); }
+      .editor-bar .hint { margin-left: 0; width: 100%; }
+      .mx-legend { margin-left: 0; }
+    }
+  </style>
+
+<!-- semana:css:start -->
+<link rel="stylesheet" href="../../../../css/semana-ano.css">
+<!-- semana:css:end -->
+<!-- ds:css -->
+<link rel="stylesheet" href="../../../../css/inteli-ds.css">
+</head>
+
+<body class="tm">
+  <div class="lab">
+    <header class="lab-top">
+      <a href="../../../home-module-8-sistemas-informacao.html"><img src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli Logo"></a>
+      <nav aria-label="Lesson 13">
+        <a href="../../../home-module-8-sistemas-informacao.html"><span>←</span> Module 8</a>
+        <a href="../../slides/slide-lesson-13.html"><span>[1]</span> Slides</a>
+        <a href="../../materials/lesson-13-material.html"><span>[2]</span> Material</a>
+        <a href="#matrix"><span>[3]</span> Access matrix</a>
+        <a href="data/seed.sql" download><span>[4]</span> seed.sql</a>
+      </nav>
+    </header>
+
+    <section class="lab-head">
+      <p class="meta">Module 8 · Information Systems · Lesson 13 · Lab</p>
+      <h1>Data security in the browser</h1>
+      <p>PostgreSQL 18 runs inside this page (PGlite). The schema <code>shop</code> holds the customers and orders of a fictitious card shop with three stores; every person in it is synthetic. The session is the superuser <code>postgres</code>, and <code>SET ROLE</code> plays each job of the DataApp. Every statement that changes the database, a <code>SET ROLE</code> included, is kept in the localStorage and replayed in order on the next visit. Every date is Unix time, in seconds.</p>
+      <div class="status" id="status">
+        <span class="wait" id="st-engine">PostgreSQL: loading</span>
+        <span class="wait" id="st-data">shop: waiting</span>
+        <span class="wait" id="st-replay">policy: waiting</span>
+        <span class="wait" id="st-role">acting as: —</span>
+      </div>
+    </section>
+
+    <section class="steps" aria-label="Steps">
+      <article class="step"><span class="n">Step 01 · 6 min</span><h2>Classify</h2><p>Every column under LGPD art. 5: personal, sensitive or not, with purpose, legal basis and retention.</p><div class="acts"><button class="btn-lab" data-prompt="01_classify">Prompt</button><button class="btn-lab" data-sql="01_classify">Reference SQL</button></div></article>
+      <article class="step"><span class="n">Step 02 · 6 min</span><h2>Roles</h2><p>One role per job, nothing for PUBLIC, and the privilege matrix of least privilege.</p><div class="acts"><button class="btn-lab" data-prompt="02_roles">Prompt</button><button class="btn-lab" data-sql="02_roles">Reference SQL</button></div></article>
+      <article class="step"><span class="n">Step 03 · 7 min</span><h2>Row level security</h2><p>Each manager reads only the own store; FORCE makes the owner obey too.</p><div class="acts"><button class="btn-lab" data-prompt="03_row_security">Prompt</button><button class="btn-lab" data-sql="03_row_security">Reference SQL</button></div></article>
+      <article class="step"><span class="n">Step 04 · 7 min</span><h2>Masking</h2><p>A peppered key instead of the customer, generalised ages and an aggregate with k = 5.</p><div class="acts"><button class="btn-lab" data-prompt="04_masking">Prompt</button><button class="btn-lab" data-sql="04_masking">Reference SQL</button></div></article>
+      <article class="step"><span class="n">Step 05 · 7 min</span><h2>Audit log</h2><p>Who changed or read what, when and why, in an append-only log without personal data.</p><div class="acts"><button class="btn-lab" data-prompt="05_audit">Prompt</button><button class="btn-lab" data-sql="05_audit">Reference SQL</button></div></article>
+      <article class="step"><span class="n">Step 06 · 7 min</span><h2>Access tests</h2><p>Nine probes as seven roles, against the policy written before, and a regression on purpose.</p><div class="acts"><button class="btn-lab" data-prompt="06_access_tests">Prompt</button><button class="btn-lab" data-sql="06_access_tests">Reference SQL</button></div></article>
+      <article class="step"><span class="n">Second hour · groups</span><h2>Your DataApp in ClickHouse</h2><p>Inventory, roles, row policies and pseudonyms for the partner data in <code>lab.gNN_</code> on shrek2.</p><div class="acts"><button class="btn-lab" data-prompt="07_your_data_clickhouse">Prompt</button></div></article>
+      <article class="step"><span class="n">Shortcuts</span><h2>Roles of the session</h2><p>Run a query as a job without typing <code>SET ROLE</code>; the badge above shows who is acting.</p><div class="acts"><select class="btn-lab" id="as-role" aria-label="Role"><option value="">RESET ROLE</option></select><button class="btn-lab" id="apply-role" disabled>Apply</button></div></article>
+    </section>
+
+    <div class="work">
+      <div>
+        <div class="editor-box">
+          <div class="editor-bar">
+            <button class="btn-lab primary" id="run" disabled>Run ▸</button>
+            <button class="btn-lab" id="clear">Clear editor</button>
+            <span class="hint">Ctrl+Enter runs every statement · one result per statement</span>
+          </div>
+          <textarea id="sql" spellcheck="false" aria-label="SQL editor">-- Paste the SQL written by the agent, or load the reference of a step.
+-- The data is synthetic: e-mails at example.com, CPFs starting with 000.
+SELECT s.store_id, s.city,
+       (SELECT count(*) FROM shop.customers c WHERE c.store_id = s.store_id) AS customers,
+       (SELECT count(*) FROM shop.orders o WHERE o.store_id = s.store_id) AS orders
+FROM shop.stores s
+ORDER BY s.store_id;</textarea>
+        </div>
+        <div id="results" aria-live="polite"></div>
+      </div>
+
+      <aside class="side">
+        <div class="panel">
+          <h3>Objects <button id="refresh-cat" title="Refresh">refresh</button></h3>
+          <ul class="catalogue" id="catalogue"><li>loading…</li></ul>
+        </div>
+        <div class="panel">
+          <h3>Roles</h3>
+          <ul class="catalogue" id="roles"><li>none yet</li></ul>
+        </div>
+        <div class="panel">
+          <h3>localStorage</h3>
+          <div class="storage" id="storage">…</div>
+          <div class="acts" style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+            <button class="btn-lab danger" id="reset-model">Start over</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <section class="matrix" id="matrix" aria-label="Access matrix">
+      <div class="matrix-head">
+        <h2>Access matrix</h2>
+        <p>Each cell runs one probe as one role, inside a transaction that is rolled back, and compares the outcome with <code>gov.expected_access</code>: <b>denied</b> is an error, <b>none</b> is zero rows, <b>some</b> is fewer rows than the superuser sees and <b>all</b> is every row. A cell that disagrees with the policy is marked as a failure, which is how a careless <code>GRANT</code> shows up.</p>
+      </div>
+      <div class="mx-bar">
+        <button class="btn-lab primary" id="mx-run" disabled>Run the test</button>
+        <span id="mx-verdict" class="mx-verdict"></span>
+        <span class="mx-legend"><span class="mx-ok">matches the policy</span><span class="mx-bad">differs from the policy</span></span>
+      </div>
+      <div id="mx-missing" class="mx-missing" hidden>The test does not exist yet in this browser. Run steps 01 to 06, or <button class="btn-lab primary" id="mx-build">build them with the reference SQL</button>.</div>
+      <div class="mx-wrap" id="mx-wrap"></div>
+    </section>
+  </div>
+
+  <dialog id="prompt-box">
+    <div class="dlg-bar"><strong id="prompt-title">Prompt</strong><button class="btn-lab" id="prompt-copy">Copy</button><button class="btn-lab" id="prompt-close">Close</button></div>
+    <pre id="prompt-text"></pre>
+  </dialog>
+
+  <footer class="inteli-footer tm-rodape">
+    <div>
+      <ul>
+        <li><a href="../../../home-module-8-sistemas-informacao.html">Module 8</a></li>
+        <li><a href="../../../design-system.html">Design system</a></li>
+      </ul>
+      <p>Material created by professor Afonso Brandão for Inteli. Open reading license. Synthetic data; card names and prices from TCGplayer, through the public mirror tcgcsv.com.</p>
+    </div>
+  </footer>
+
+  <script type="module">
+    import { PGlite } from 'https://cdn.jsdelivr.net/npm/@electric-sql/pglite@0.5.10/dist/index.js';
+
+    const KEY_SEED = 'm8si-l13.v1.seed';
+    const KEY_LOG = 'm8si-l13.v1.statements';
+    const KEY_DRAFT = 'm8si-l13.v1.editor';
+    const WRITES = /^(CREATE|INSERT|UPDATE|DELETE|DROP|ALTER|GRANT|REVOKE|COMMENT|SET|RESET)\b/i;
+    const MAX_ROWS = 500;
+    const STEPS = ['01_classify', '02_roles', '03_row_security', '04_masking', '05_audit', '06_access_tests'];
+    const $ = (id) => document.getElementById(id);
+    let db = null;
+
+    function setStatus(id, cls, text) { const el = $(id); el.className = cls; el.textContent = text; }
+
+    // Split a script into statements, ignoring ; inside strings, comments and $tag$ bodies.
+    function splitStatements(sql) {
+      const out = []; let cur = ''; let i = 0; let mode = null; let tag = '';
+      while (i < sql.length) {
+        const c = sql[i], n = sql[i + 1];
+        if (mode === 'line') { cur += c; if (c === '\n') mode = null; i++; continue; }
+        if (mode === 'block') { cur += c; if (c === '*' && n === '/') { cur += n; i += 2; mode = null; continue; } i++; continue; }
+        if (mode === 'dollar') { if (sql.startsWith(tag, i)) { cur += tag; i += tag.length; mode = null; continue; } cur += c; i++; continue; }
+        if (mode === "'" || mode === '"') { cur += c; if (c === mode) { if (n === mode) { cur += n; i += 2; continue; } mode = null; } i++; continue; }
+        if (c === '-' && n === '-') { mode = 'line'; cur += c; i++; continue; }
+        if (c === '/' && n === '*') { mode = 'block'; cur += c; i++; continue; }
+        if (c === '$') { const m = /^\$[A-Za-z_]*\$/.exec(sql.slice(i)); if (m) { mode = 'dollar'; tag = m[0]; cur += tag; i += tag.length; continue; } }
+        if (c === "'" || c === '"') { mode = c; cur += c; i++; continue; }
+        if (c === ';') { out.push(cur); cur = ''; i++; continue; }
+        cur += c; i++;
+      }
+      out.push(cur);
+      return out.map((s) => s.trim()).filter((s) => bare(s));
+    }
+    function bare(s) { return s.replace(/--[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '').trim(); }
+
+    function readLog() { try { return JSON.parse(localStorage.getItem(KEY_LOG) || '[]'); } catch { return []; } }
+    function writeLog(list) { try { localStorage.setItem(KEY_LOG, JSON.stringify(list)); } catch (e) { console.warn('localStorage unavailable', e); } }
+    function saveDraft() { try { localStorage.setItem(KEY_DRAFT, $('sql').value); } catch {} }
+
+    function formatValue(v, name = '') {
+      if (v === null || v === undefined) return '';
+      if (Array.isArray(v)) return '{' + v.join(', ') + '}';
+      if (typeof v === 'number' && /(_unix|^unix)$/.test(name)) return String(v);
+      if (typeof v === 'bigint') return v.toString();
+      if (typeof v === 'number') return Number.isInteger(v) ? v.toLocaleString('en-US') : v.toLocaleString('en-US', { maximumFractionDigits: 4 });
+      if (typeof v === 'boolean') return v ? 'true' : 'false';
+      if (v instanceof Date) return v.toISOString();
+      if (typeof v === 'object') { try { return JSON.stringify(v); } catch { return String(v); } }
+      return String(v);
+    }
+
+    function renderResult(index, statement, res, seconds) {
+      const box = document.createElement('div'); box.className = 'res';
+      const fields = res.fields || [];
+      const rows = res.rows || [];
+      const head = document.createElement('div'); head.className = 'res-head';
+      const info = fields.length ? rows.length + ' row(s)' : (res.affectedRows ? res.affectedRows + ' row(s) affected' : 'ok');
+      head.innerHTML = `<b>#${index}</b><span></span><span>${seconds.toFixed(3)} s</span><code></code>`;
+      head.children[1].textContent = info;
+      head.querySelector('code').textContent = bare(statement).split('\n')[0];
+      box.appendChild(head);
+      if (fields.length) {
+        const wrap = document.createElement('div'); wrap.className = 'table-wrap';
+        const t = document.createElement('table'); t.className = 'grid';
+        const tr = document.createElement('tr');
+        fields.forEach((f) => { const th = document.createElement('th'); th.textContent = f.name; tr.appendChild(th); });
+        const thead = document.createElement('thead'); thead.appendChild(tr); t.appendChild(thead);
+        const tbody = document.createElement('tbody');
+        rows.slice(0, MAX_ROWS).forEach((row) => {
+          const r = document.createElement('tr');
+          fields.forEach((f) => {
+            const td = document.createElement('td'); const v = row[f.name];
+            td.textContent = formatValue(v, f.name);
+            if (typeof v === 'number' || typeof v === 'bigint') td.className = 'num';
+            td.title = td.textContent; r.appendChild(td);
+          });
+          tbody.appendChild(r);
+        });
+        t.appendChild(tbody); wrap.appendChild(t); box.appendChild(wrap);
+      }
+      return box;
+    }
+
+    function renderError(index, statement, error) {
+      const box = document.createElement('div'); box.className = 'res error';
+      const head = document.createElement('div'); head.className = 'res-head';
+      head.innerHTML = `<b>#${index}</b><span>error</span><code></code>`;
+      head.querySelector('code').textContent = bare(statement).split('\n')[0];
+      const pre = document.createElement('pre'); pre.textContent = String(error.message || error);
+      box.append(head, pre); return box;
+    }
+
+    async function actingRole() {
+      try { const r = (await db.query("SELECT current_user AS u")).rows[0].u; setStatus('st-role', r === 'postgres' ? 'ok' : 'wait', 'acting as: ' + r); return r; } catch { return null; }
+    }
+
+    async function runScript(sql, { clear = true } = {}) {
+      const out = $('results'); if (clear) out.innerHTML = '';
+      const statements = splitStatements(sql);
+      const log = readLog();
+      let failed = false;
+      for (let i = 0; i < statements.length; i++) {
+        const st = statements[i]; const t0 = performance.now();
+        try {
+          const res = await db.query(st);
+          out.appendChild(renderResult(i + 1, st, res, (performance.now() - t0) / 1000));
+          if (WRITES.test(bare(st))) { log.push(st); writeLog(log); }
+        } catch (e) {
+          out.appendChild(renderError(i + 1, st, e));
+          failed = true;
+          break;
+        }
+      }
+      await refreshSide(); await mxCheck();
+      return !failed;
+    }
+
+    async function refreshSide() {
+      await actingRole();
+      const ul = $('catalogue');
+      try {
+        const res = await db.query(`
+          SELECT n.nspname AS s, c.relname AS name,
+                 CASE c.relkind WHEN 'r' THEN 'table' WHEN 'v' THEN 'view' ELSE c.relkind::text END AS kind,
+                 c.relrowsecurity AS rls, c.relforcerowsecurity AS force, pg_get_userbyid(c.relowner) AS owner
+          FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+          WHERE c.relkind IN ('r', 'v') AND n.nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast')
+          UNION ALL
+          SELECT n.nspname, p.proname || '()', CASE WHEN p.prosecdef THEN 'function · definer' ELSE 'function' END, false, false, pg_get_userbyid(p.proowner)
+          FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+          WHERE n.nspname NOT IN ('pg_catalog', 'information_schema') AND n.nspname NOT LIKE 'pg_%'
+          ORDER BY 1, 3 DESC, 2`);
+        ul.innerHTML = '';
+        res.rows.forEach((r) => {
+          const li = document.createElement('li');
+          const full = r.s + '.' + r.name;
+          li.innerHTML = '<span></span><span class="kind"></span>';
+          li.children[0].textContent = full;
+          li.children[1].textContent = r.kind + (r.rls ? (r.force ? ' · rls forced' : ' · rls') : '') + ' · ' + r.owner;
+          if (r.kind === 'table' || r.kind === 'view') li.onclick = () => { $('sql').value = `SELECT * FROM ${full} LIMIT 50;`; saveDraft(); };
+          ul.appendChild(li);
+        });
+      } catch (e) { ul.innerHTML = '<li>catalogue unavailable</li>'; }
+      try {
+        const res = await db.query(`
+          SELECT r.rolname AS name, r.rolbypassrls AS bypass,
+                 coalesce((SELECT string_agg(g.rolname, ', ') FROM pg_auth_members m JOIN pg_roles g ON g.oid = m.roleid WHERE m.member = r.oid), '') AS member_of
+          FROM pg_roles r
+          WHERE r.rolname NOT LIKE 'pg\\_%' AND r.rolname <> 'postgres'
+          ORDER BY 1`);
+        const ul2 = $('roles'); ul2.innerHTML = '';
+        const sel = $('as-role'); const keep = sel.value; sel.innerHTML = '<option value="">RESET ROLE</option>';
+        if (!res.rows.length) ul2.innerHTML = '<li>none yet · step 02 creates them</li>';
+        res.rows.forEach((r) => {
+          const li = document.createElement('li'); li.innerHTML = '<span></span><span class="kind"></span>';
+          li.children[0].textContent = r.name;
+          li.children[1].textContent = [r.member_of && 'in ' + r.member_of, r.bypass && 'bypassrls'].filter(Boolean).join(' · ');
+          li.onclick = () => { $('sql').value = `SET ROLE ${r.name};\nSELECT current_user;\n`; saveDraft(); };
+          ul2.appendChild(li);
+          const o = document.createElement('option'); o.value = r.name; o.textContent = 'SET ROLE ' + r.name; sel.appendChild(o);
+        });
+        sel.value = keep;
+      } catch {}
+      const size = (k) => ((localStorage.getItem(k) || '').length * 2 / 1024).toFixed(0);
+      try { $('storage').innerHTML = `shop seed: <b>${size(KEY_SEED)} KB</b><br>statements kept: <b>${readLog().length}</b> · ${size(KEY_LOG)} KB`; } catch { $('storage').textContent = 'localStorage unavailable'; }
+    }
+
+    async function loadSeed() {
+      let seed = null; try { seed = localStorage.getItem(KEY_SEED); } catch {}
+      if (!seed) {
+        setStatus('st-data', 'wait', 'shop: downloading');
+        seed = await (await fetch('data/seed.sql')).text();
+        try { localStorage.setItem(KEY_SEED, seed); } catch {}
+      }
+      await db.exec(seed);
+      const n = (await db.query('SELECT (SELECT count(*) FROM shop.customers)::int AS c, (SELECT count(*) FROM shop.orders)::int AS o')).rows[0];
+      setStatus('st-data', 'ok', `shop: ${n.c} customers, ${n.o} orders`);
+    }
+
+    async function replay() {
+      const log = readLog(); let ok = 0; const kept = [];
+      for (const st of log) { try { await db.query(st); ok++; kept.push(st); } catch (e) { console.warn('replay skipped', e.message); } }
+      writeLog(kept);
+      await db.query('RESET ROLE');
+      setStatus('st-replay', 'ok', `policy: ${ok} statement(s) replayed`);
+    }
+
+    async function main() {
+      db = new PGlite();
+      await db.waitReady;
+      const v = (await db.query("SELECT split_part(version(), ' ', 2) AS v")).rows[0].v;
+      setStatus('st-engine', 'ok', `PostgreSQL ${v} (PGlite 0.5.10)`);
+      await loadSeed();
+      await replay();
+      $('run').disabled = false; $('apply-role').disabled = false;
+      await refreshSide(); await mxCheck();
+    }
+
+    // Access matrix --------------------------------------------------------
+    async function mxCheck() {
+      if (!db) return false;
+      let ok = false;
+      try { ok = (await db.query("SELECT to_regprocedure('gov.access_test()') IS NOT NULL AS ok")).rows[0].ok; } catch {}
+      $('mx-missing').hidden = ok; $('mx-run').disabled = !ok;
+      if (!ok) { $('mx-wrap').innerHTML = ''; $('mx-verdict').textContent = ''; }
+      return ok;
+    }
+
+    async function mxRun() {
+      if (!(await mxCheck())) return;
+      $('mx-run').disabled = true; $('mx-verdict').textContent = 'running…';
+      const prev = await actingRole();
+      let rows = [];
+      try {
+        await db.query('RESET ROLE');
+        rows = (await db.query('SELECT role, probe, ord, expected, observed, pass FROM gov.access_test() ORDER BY role, ord')).rows;
+      } catch (e) { $('mx-verdict').textContent = 'error: ' + (e.message || e); }
+      finally {
+        if (prev && prev !== 'postgres') { try { await db.query(`SET ROLE "${prev.replace(/"/g, '""')}"`); } catch {} }
+        $('mx-run').disabled = false; await actingRole();
+      }
+      if (!rows.length) return;
+      const probes = [...new Map(rows.map((r) => [r.ord, r.probe])).entries()].sort((a, b) => a[0] - b[0]);
+      const roles = [...new Set(rows.map((r) => r.role))];
+      const at = new Map(rows.map((r) => [r.role + '|' + r.ord, r]));
+      const t = document.createElement('table'); t.className = 'mx';
+      const cap = document.createElement('caption'); cap.textContent = 'Observed outcome of each probe, by role'; t.append(cap);
+      const hr = document.createElement('tr'); const corner = document.createElement('th'); corner.textContent = 'role \\ probe'; hr.append(corner);
+      probes.forEach(([, p]) => { const th = document.createElement('th'); th.scope = 'col'; th.textContent = p; hr.append(th); });
+      const thead = document.createElement('thead'); thead.append(hr); t.append(thead);
+      const tb = document.createElement('tbody');
+      roles.forEach((role) => {
+        const tr = document.createElement('tr'); const th = document.createElement('th'); th.scope = 'row'; th.textContent = role; tr.append(th);
+        probes.forEach(([ord]) => {
+          const r = at.get(role + '|' + ord); const td = document.createElement('td');
+          if (r) {
+            td.className = (r.pass ? 'pass' : 'fail') + ' o-' + r.observed;
+            td.innerHTML = '<span class="mk"></span><span class="ob"></span>';
+            td.children[1].textContent = r.observed;
+            if (!r.pass) { const ex = document.createElement('small'); ex.textContent = 'expected ' + r.expected; td.append(ex); }
+            td.title = `${role} · ${r.probe}: observed ${r.observed}, expected ${r.expected}`;
+          }
+          tr.append(td);
+        });
+        tb.append(tr);
+      });
+      t.append(tb);
+      $('mx-wrap').innerHTML = ''; $('mx-wrap').append(t);
+      const passed = rows.filter((r) => r.pass).length;
+      $('mx-verdict').textContent = `${passed} of ${rows.length} pairs match the policy` + (passed === rows.length ? '' : ` · ${rows.length - passed} failure(s)`);
+      $('mx-verdict').className = 'mx-verdict ' + (passed === rows.length ? 'all-ok' : 'some-bad');
+    }
+
+    $('mx-run').onclick = mxRun;
+    $('mx-build').onclick = async () => {
+      $('mx-build').disabled = true;
+      $('results').innerHTML = '';
+      for (const step of STEPS) {
+        const ok = await runScript(await (await fetch(`sql/${step}.sql`)).text(), { clear: false });
+        if (!ok) break;
+      }
+      $('mx-build').disabled = false;
+      if (await mxCheck()) await mxRun();
+    };
+
+    // UI ------------------------------------------------------------------
+    try { const d = localStorage.getItem(KEY_DRAFT); if (d) $('sql').value = d; } catch {}
+    $('sql').addEventListener('input', saveDraft);
+    $('sql').addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); if (db) runScript($('sql').value); }
+      if (e.key === 'Tab') { e.preventDefault(); const t = e.target, s = t.selectionStart; t.value = t.value.slice(0, s) + '    ' + t.value.slice(t.selectionEnd); t.selectionStart = t.selectionEnd = s + 4; }
+    });
+    $('run').onclick = () => runScript($('sql').value);
+    $('clear').onclick = () => { $('sql').value = ''; saveDraft(); $('sql').focus(); };
+    $('refresh-cat').onclick = refreshSide;
+    $('apply-role').onclick = async () => { const r = $('as-role').value; await runScript(r ? `SET ROLE ${r};\nSELECT current_user;` : 'RESET ROLE;\nSELECT current_user;'); };
+    $('reset-model').onclick = () => { try { localStorage.removeItem(KEY_LOG); localStorage.removeItem(KEY_SEED); } catch {} location.reload(); };
+
+    document.querySelectorAll('[data-sql]').forEach((b) => b.onclick = async () => {
+      $('sql').value = await (await fetch(`sql/${b.dataset.sql}.sql`)).text(); saveDraft(); $('sql').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    document.querySelectorAll('[data-prompt]').forEach((b) => b.onclick = async () => {
+      $('prompt-title').textContent = 'Prompt · ' + b.closest('.step').querySelector('h2').textContent;
+      $('prompt-text').textContent = await (await fetch(`prompts/${b.dataset.prompt}.md`)).text();
+      $('prompt-box').showModal();
+    });
+    $('prompt-close').onclick = () => $('prompt-box').close();
+    $('prompt-copy').onclick = async () => { try { await navigator.clipboard.writeText($('prompt-text').textContent); $('prompt-copy').textContent = 'Copied'; setTimeout(() => $('prompt-copy').textContent = 'Copy', 1500); } catch {} };
+
+    main().catch((e) => { console.error(e); setStatus('st-engine', 'err', 'PostgreSQL: ' + (e.message || e)); });
+  </script>
+<!-- semana:js:start -->
+<script src="../../../../js/semana-ano.js" defer></script>
+<!-- semana:js:end -->
+</body>
+</html>

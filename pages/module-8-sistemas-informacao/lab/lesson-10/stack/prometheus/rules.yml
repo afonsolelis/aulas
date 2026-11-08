@@ -1,0 +1,64 @@
+# Lesson 10 · recording and alerting rules of the DataApp.
+# Check with: promtool check rules rules.yml
+groups:
+  - name: tcg_dataapp_recording
+    rules:
+      # Seconds since the newest price was captured. Written once, reused by the
+      # dashboard and by the alert below. The prices of today are stored at noon
+      # UTC, which is in the future for a run in the morning, so the age is
+      # clamped at zero instead of going negative.
+      - record: tcg:price_freshness_seconds
+        expr: clamp_min(time() - tcg_ingestion_last_timestamp_seconds{data_tag="tcgplayer.price.v1"}, 0)
+      # 95th percentile of the requests to tcgcsv.com in the last pushed run, by endpoint.
+      # The histogram of a pushed run holds only that run, so there is no rate() here.
+      - record: tcg:source_request_duration_seconds:p95
+        expr: histogram_quantile(0.95, sum by (le, endpoint) (tcg_source_request_duration_seconds_bucket{job="tcg_dataapp"}))
+
+  - name: tcg_dataapp_alerts
+    rules:
+      - alert: TcgRunFailed
+        expr: tcg_run_success{job="tcg_dataapp"} == 0
+        labels:
+          severity: critical
+        annotations:
+          summary: "The last run of tcg-dataapp on {{ $labels.instance }} failed"
+          description: "tcg_run_failed_tasks counts the tasks that failed or were skipped; ops.pipeline_runs has the error of each attempt."
+
+      - alert: TcgNoSuccessfulRun
+        # the run is scheduled daily; two hours of tolerance
+        expr: time() - tcg_run_last_success_timestamp_seconds{job="tcg_dataapp"} > 26 * 3600
+        labels:
+          severity: critical
+        annotations:
+          summary: "No successful run of tcg-dataapp for more than 26 hours"
+
+      - alert: TcgRunTooSlow
+        # the reference run takes about 40 s; three times that is a symptom
+        expr: tcg_run_duration_seconds{job="tcg_dataapp"} > 120
+        labels:
+          severity: warning
+        annotations:
+          summary: "The last run took {{ $value | humanizeDuration }}"
+
+      - alert: TcgPricesStale
+        expr: tcg:price_freshness_seconds > 36 * 3600
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "The newest price in db_ingestion is {{ $value | humanizeDuration }} old"
+
+      - alert: TcgGrainBroken
+        expr: tcg_gold_fact_rows != tcg_gold_fact_grain_keys
+        labels:
+          severity: critical
+        annotations:
+          summary: "gold.fact_price has more rows than keys of its grain"
+
+      - alert: TcgExporterDown
+        expr: up{job="tcg_exporter"} == 0 or tcg_warehouse_readable == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Prometheus cannot read the state of the warehouse"

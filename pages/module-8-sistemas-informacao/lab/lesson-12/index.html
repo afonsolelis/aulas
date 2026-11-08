@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 12 Lab · Pricing the DataApp on AWS · Module 8 · Inteli</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💲</text></svg>">
+  <link href="../../../../css/inteli-styles.css" rel="stylesheet">
+  <style>
+    body.tm { min-height: 100vh; }
+    /* A margem direita deixa livre a faixa dos botões flutuantes (início e semana), fixos a 14px da borda. */
+    .lab { box-sizing: border-box; width: 100%; min-width: 0; max-width: 1440px; margin: 0 auto; padding: 20px 76px 0 24px; }
+    .lab-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 16px; border-bottom: 1px solid var(--ds-borda); }
+    .lab-top nav { display: flex; flex-wrap: wrap; gap: 6px 18px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); }
+    .lab-top nav a { text-decoration: none; color: var(--ds-texto); }
+    .lab-top nav a span { color: var(--ds-texto-fraco); }
+    .lab-top nav a:hover { color: var(--ds-texto-forte); text-decoration: underline; }
+    .lab-top img { width: 64px; display: block; }
+    .lab-head { padding: 28px 0 20px; }
+    .lab-head .meta { margin: 0 0 10px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); color: var(--ds-texto-suave); }
+    .lab-head h1 { margin: 0; font-family: var(--ds-fonte-mono); font-weight: 500; font-size: clamp(1.6rem, 1rem + 2vw, 2.4rem); letter-spacing: -0.02em; color: var(--ds-texto-forte); }
+    .lab-head p { margin: 12px 0 0; max-width: 90ch; line-height: 1.6; color: var(--ds-texto); }
+    .status { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 14px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); }
+    .status b { color: var(--ds-texto-forte); font-weight: 500; }
+    .status .ok::before { content: "■ "; color: var(--inteli-verde); }
+    .status .wait::before { content: "■ "; color: var(--inteli-cinza-400); }
+    .status .err::before { content: "■ "; color: var(--inteli-coral); }
+
+    .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 8px 0 24px; }
+    .step { border: 1px solid var(--ds-borda-forte); padding: 14px 16px; background: var(--ds-fundo); display: flex; flex-direction: column; gap: 8px; }
+    .step .n { font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); }
+    .step h2 { margin: 0; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-ui); font-weight: 600; color: var(--ds-texto-forte); }
+    .step p { margin: 0; font-size: var(--ds-fs-meta); line-height: 1.5; color: var(--ds-texto-suave); }
+    .step .acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
+    .btn-lab { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border: 1px solid var(--ds-borda-forte); background: var(--ds-fundo); color: var(--ds-texto-forte); font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); font-weight: 500; cursor: pointer; white-space: nowrap; text-decoration: none; }
+    .btn-lab:hover { background: var(--ds-fundo-fraco); border-color: var(--inteli-cinza-400); }
+    .btn-lab.primary { background: var(--inteli-roxo); border-color: var(--inteli-roxo); color: var(--ds-texto-inverso); }
+    .btn-lab.primary:hover { background: var(--ds-roxo-hover); }
+    .btn-lab.danger { color: var(--ds-coral-texto); }
+
+    .box { border: 1px solid var(--ds-texto-forte); margin: 0 0 24px; }
+    .box-head { padding: 14px 16px 12px; border-bottom: 1px solid var(--ds-borda-forte); }
+    .box-head h2 { margin: 0 0 4px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-lead); font-weight: 600; color: var(--ds-texto-forte); }
+    .box-head p { margin: 0; font-size: var(--ds-fs-meta); color: var(--ds-texto-suave); max-width: 110ch; line-height: 1.5; }
+
+    .calc { display: grid; grid-template-columns: 330px minmax(0, 1fr); }
+    .calc > * { min-width: 0; }
+    .controls { padding: 14px 16px; border-right: 1px solid var(--ds-borda); display: flex; flex-direction: column; gap: 16px; }
+    .controls fieldset { min-width: 0; margin: 0; padding: 0; border: 0; display: grid; grid-template-columns: minmax(0, 1fr) 112px; gap: 7px 10px; align-items: center; }
+    .controls legend { grid-column: 1 / -1; padding: 0 0 6px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); font-weight: 600; color: var(--ds-texto-forte); text-transform: uppercase; letter-spacing: 0.06em; }
+    .controls label { font-size: var(--ds-fs-meta); color: var(--ds-texto); line-height: 1.3; }
+    .controls label small { display: block; font-family: var(--ds-fonte-mono); font-size: 10px; color: var(--ds-texto-suave); }
+    .controls input[type="number"], .controls select { width: 100%; height: 30px; border: 1px solid var(--ds-borda-forte); border-radius: 0; background: var(--ds-fundo); color: var(--ds-texto-forte); font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); padding: 0 6px; }
+    .controls input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--inteli-roxo); margin: 0; justify-self: end; }
+    .presets { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
+    .presets button { height: 26px; padding: 0 8px; border: 1px solid var(--ds-borda-forte); background: var(--ds-fundo); color: var(--ds-texto-forte); font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); cursor: pointer; }
+    .presets button[aria-pressed="true"] { border-color: var(--ds-texto-forte); background: var(--ds-fundo-fraco); font-weight: 600; }
+
+    .out { min-width: 0; display: flex; flex-direction: column; }
+    .chart { position: relative; padding: 14px 16px 16px; border-bottom: 1px solid var(--ds-borda); }
+    .chart .caption { margin: 0 0 10px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); }
+    .chart svg { display: block; width: 100%; overflow: visible; }
+    .chart .bar { fill: var(--ds-verde-escuro); }
+    .chart .row { cursor: pointer; }
+    .chart .row:hover .bar, .chart .row:focus .bar { fill: var(--ds-verde-texto); }
+    .chart .row:focus { outline: none; }
+    .chart .row:focus .hit { stroke: var(--inteli-roxo); stroke-width: 2; }
+    .chart .hit { fill: transparent; }
+    .chart text { font-family: var(--ds-fonte); font-size: 12px; fill: var(--ds-texto-forte); }
+    .chart text.sel { font-weight: 700; }
+    .chart text.val { font-family: var(--ds-fonte-mono); font-size: 11px; fill: var(--ds-texto); }
+    .chart line.grid { stroke: var(--ds-borda); stroke-width: 1; }
+    .chart text.tick { font-family: var(--ds-fonte-mono); font-size: 10px; fill: var(--ds-texto-suave); }
+    .tip { position: absolute; pointer-events: none; padding: 7px 10px; background: var(--ds-texto-forte); color: var(--ds-texto-inverso); font-size: 12px; line-height: 1.4; max-width: 320px; display: none; z-index: 5; }
+    .tip b { display: block; font-family: var(--ds-fonte-mono); font-size: 13px; }
+
+    .detail { padding: 14px 16px 16px; }
+    .detail-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 22px; margin-bottom: 10px; }
+    .detail-head h3 { margin: 0; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-ui); font-weight: 600; color: var(--ds-texto-forte); }
+    .stat b { font-family: var(--ds-fonte-mono); font-size: 2rem; font-weight: 500; color: var(--ds-texto-forte); line-height: 1.1; }
+    .stat span { margin-left: 6px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); color: var(--ds-texto-suave); }
+    .detail-head .btn-lab { margin-left: auto; }
+    .table-wrap { overflow: auto; }
+    table.grid { border-collapse: collapse; width: 100%; font-size: 0.82rem; }
+    table.grid th { text-align: left; padding: 7px 10px; font-family: var(--ds-fonte-mono); font-weight: 600; font-size: var(--ds-fs-micro); color: var(--ds-texto-forte); border-bottom: 2px solid var(--ds-texto-forte); white-space: nowrap; }
+    table.grid td { padding: 6px 10px; border-top: 1px solid var(--ds-borda); color: var(--ds-texto-forte); vertical-align: top; }
+    table.grid td.num, table.grid th.num { text-align: right; font-family: var(--ds-fonte-mono); white-space: nowrap; }
+    table.grid td.note { color: var(--ds-texto-suave); font-size: var(--ds-fs-micro); }
+    table.grid tr:nth-child(even) td { background: var(--ds-fundo-fraco); }
+    table.grid tfoot td { border-top: 2px solid var(--ds-texto-forte); font-weight: 600; }
+    table.grid .low { font-weight: 700; }
+    table.grid .low::after { content: " · lowest"; font-weight: 400; color: var(--ds-texto-suave); }
+    table.grid input { width: 120px; height: 26px; border: 1px solid var(--ds-borda-forte); border-radius: 0; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); padding: 0 6px; text-align: right; background: var(--ds-fundo); color: var(--ds-texto-forte); }
+    table.grid input.edited { border-color: var(--inteli-roxo); border-width: 2px; }
+    table.grid code { font-size: 11px; }
+
+    .two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .two > div { padding: 14px 16px 16px; min-width: 0; }
+    .two > div + div { border-left: 1px solid var(--ds-borda); }
+    .two h3 { margin: 0 0 8px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); font-weight: 600; color: var(--ds-texto-forte); }
+    .two p { margin: 8px 0 0; font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); line-height: 1.5; }
+    .prices-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 10px 16px; border-bottom: 1px solid var(--ds-borda); font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); }
+    .prices-bar .btn-lab { margin-left: auto; }
+    .prices-body { padding: 0 16px 16px; max-height: 560px; overflow: auto; }
+
+    dialog#text-box { width: min(860px, 94vw); max-height: 88vh; padding: 0; border: 1px solid var(--ds-texto-forte); }
+    dialog#text-box::backdrop { background: rgba(46, 38, 64, 0.35); }
+    .dlg-bar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--ds-borda-forte); font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); }
+    .dlg-bar strong { margin-right: auto; color: var(--ds-texto-forte); }
+    #text-body { margin: 0; padding: 14px 16px; max-height: calc(88vh - 60px); overflow: auto; font-family: var(--ds-fonte-mono); font-size: 0.8rem; line-height: 1.55; white-space: pre-wrap; color: var(--ds-texto-forte); }
+
+    @media (max-width: 1100px) {
+      .calc { grid-template-columns: minmax(0, 1fr); }
+      .controls { border-right: 0; border-bottom: 1px solid var(--ds-borda); }
+      .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .two { grid-template-columns: minmax(0, 1fr); }
+      .two > div + div { border-left: 0; border-top: 1px solid var(--ds-borda); }
+    }
+    @media (max-width: 600px) {
+      .lab { padding: 16px 16px 0; }
+      .steps { grid-template-columns: 1fr; }
+      .detail-head .btn-lab { margin-left: 0; }
+    }
+  </style>
+
+<!-- semana:css:start -->
+<link rel="stylesheet" href="../../../../css/semana-ano.css">
+<!-- semana:css:end -->
+<!-- ds:css -->
+<link rel="stylesheet" href="../../../../css/inteli-ds.css">
+</head>
+
+<body class="tm">
+  <div class="lab">
+    <header class="lab-top">
+      <a href="../../../home-module-8-sistemas-informacao.html"><img src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli Logo"></a>
+      <nav aria-label="Lesson 12">
+        <a href="../../../home-module-8-sistemas-informacao.html"><span>←</span> Module 8</a>
+        <a href="../../slides/slide-lesson-12.html"><span>[1]</span> Slides</a>
+        <a href="../../materials/lesson-12-material.html"><span>[2]</span> Material</a>
+        <a href="#calculator"><span>[3]</span> Calculator</a>
+        <a href="#compare"><span>[4]</span> Regions and frequency</a>
+        <a href="#prices"><span>[5]</span> Unit prices</a>
+      </nav>
+    </header>
+
+    <section class="lab-head">
+      <p class="meta">Module 8 · Information Systems · Lesson 12 · Lab</p>
+      <h1>Pricing the DataApp on AWS</h1>
+      <p>Every line of a cloud bill is a quantity of the workload multiplied by a unit price. The workload is the run of <code>tcg-dataapp</code> measured on 08/11/2026, and the unit prices are a snapshot of the public AWS Price List taken on the same day, each one with the offer and the usage type it came from. The calculator below prices five architectures for that workload; every quantity and every price can be edited, and the changes stay in this browser.</p>
+      <div class="status" id="status">
+        <span class="wait" id="st-prices">prices: loading</span>
+        <span class="wait" id="st-saved">settings: default</span>
+      </div>
+    </section>
+
+    <section class="steps" aria-label="Steps">
+      <article class="step"><span class="n">Step 01 · 8 min</span><h2>Measure the workload</h2><p>Wall time, peak memory, data stored and written per run, runs per month and egress, each with its origin.</p><div class="acts"><button class="btn-lab" data-prompt="01_workload">Prompt</button></div></article>
+      <article class="step"><span class="n">Step 02 · 10 min</span><h2>Architectures and billing dimensions</h2><p>Five ways to run the same package, and what each service counts: hours, GB-seconds, GB-months, requests.</p><div class="acts"><button class="btn-lab" data-prompt="02_architectures">Prompt</button></div></article>
+      <article class="step"><span class="n">Step 03 · 12 min</span><h2>Estimate</h2><p>The AWS Pricing Calculator for B and D in two regions, and a cost model in code that the calculator below mirrors.</p><div class="acts"><button class="btn-lab" data-prompt="03_estimate">Prompt</button><button class="btn-lab" data-file="cost_model.py">cost_model.py</button><a class="btn-lab" href="https://calculator.aws/#/" target="_blank" rel="noopener noreferrer">calculator.aws ↗</a></div></article>
+      <article class="step"><span class="n">Step 04 · 10 min</span><h2>Optimise</h2><p>Right-sizing, schedules, commitments, Spot, region and sensitivity, closed by one recommendation with its total.</p><div class="acts"><button class="btn-lab" data-prompt="04_optimise">Prompt</button></div></article>
+      <article class="step"><span class="n">Second hour · groups</span><h2>Your architecture</h2><p>The same four steps over the DataApp of the group, with the estimates of the calculator exported to the repository.</p><div class="acts"><button class="btn-lab" data-prompt="05_your_architecture">Prompt</button></div></article>
+      <article class="step"><span class="n">Reference files</span><h2>Snapshot and checks</h2><p>The script that read the Price List, the prices it wrote and the check that the page and Python give the same totals.</p><div class="acts"><button class="btn-lab" data-file="capture/snapshot_prices.py">snapshot</button><a class="btn-lab" href="data/prices.json" download>prices.json</a><button class="btn-lab" data-file="test_cost_model.py">tests</button></div></article>
+    </section>
+
+    <section class="box" id="calculator" aria-label="Calculator">
+      <div class="box-head">
+        <h2>Monthly cost of the five architectures</h2>
+        <p>The bars are the monthly totals in USD, without taxes, for the workload and options on the left. Click a bar, or move the focus to it and press Enter, to see its lines below: each line is a quantity, a unit and a unit price.</p>
+      </div>
+      <div class="calc">
+        <form class="controls" id="controls" autocomplete="off" onsubmit="return false">
+          <fieldset>
+            <legend>Workload</legend>
+            <div class="presets" role="group" aria-label="Runs per month">
+              <button type="button" data-runs="30">daily · 30</button>
+              <button type="button" data-runs="720">hourly · 720</button>
+              <button type="button" data-runs="8640">every 5 min · 8,640</button>
+            </div>
+            <label for="w-runs_per_month">Runs per month</label><input type="number" id="w-runs_per_month" data-w="runs_per_month" min="0" step="1">
+            <label for="w-run_seconds">Duration of a run<small>s · measured 25.6, Lesson 7: 40</small></label><input type="number" id="w-run_seconds" data-w="run_seconds" min="1" step="1">
+            <label for="w-memory_gb">Lambda memory<small>GB · peak of the run 0.39</small></label><input type="number" id="w-memory_gb" data-w="memory_gb" min="0.125" step="0.125">
+            <label for="w-storage_gb">Data stored<small>GB · tcg.duckdb + out/ = 0.002</small></label><input type="number" id="w-storage_gb" data-w="storage_gb" min="0" step="0.001">
+            <label for="w-egress_gb">Egress to readers<small>GB per month · assumption</small></label><input type="number" id="w-egress_gb" data-w="egress_gb" min="0" step="1">
+            <label for="w-reader_downloads">Downloads by readers<small>GET requests per month</small></label><input type="number" id="w-reader_downloads" data-w="reader_downloads" min="0" step="10">
+          </fieldset>
+          <fieldset>
+            <legend>Pricing</legend>
+            <label for="o-region">Region</label><select id="o-region" data-o="region"><option value="us-east-1">us-east-1 · Virginia</option><option value="sa-east-1">sa-east-1 · São Paulo</option></select>
+            <label for="o-pricing">Pricing model</label><select id="o-pricing" data-o="pricing"><option value="on_demand">on-demand</option><option value="commit_1y">1-year commitment</option><option value="spot">Spot (EC2 only)</option></select>
+            <label for="o-free_tier">Free allowances<small>Lambda, Scheduler, 100 GB egress</small></label><input type="checkbox" id="o-free_tier" data-o="free_tier">
+          </fieldset>
+          <fieldset>
+            <legend>Sizes</legend>
+            <label for="o-ec2_type">EC2 instance<small>A and B</small></label><select id="o-ec2_type" data-o="ec2_type"></select>
+            <label for="o-ebs_gb">EBS gp3 volume<small>GB · A and B</small></label><input type="number" id="o-ebs_gb" data-o="ebs_gb" min="1" step="1">
+            <label for="o-boot_seconds">Start and stop of B<small>s per run · assumption</small></label><input type="number" id="o-boot_seconds" data-o="boot_seconds" min="0" step="5">
+            <label for="o-fargate_vcpu">Fargate vCPU<small>D and E</small></label><select id="o-fargate_vcpu" data-o="fargate_vcpu"><option value="0.25">0.25</option><option value="0.5">0.5</option><option value="1">1</option><option value="2">2</option></select>
+            <label for="o-fargate_gb">Fargate memory<small>GB · D and E</small></label><input type="number" id="o-fargate_gb" data-o="fargate_gb" min="0.5" step="0.5">
+            <label for="o-start_seconds">Start of the task<small>s per run · assumption</small></label><input type="number" id="o-start_seconds" data-o="start_seconds" min="0" step="5">
+            <label for="o-image_gb">Container image<small>GB in ECR · assumption</small></label><input type="number" id="o-image_gb" data-o="image_gb" min="0" step="0.1">
+            <label for="o-s3_class">S3 storage class<small>C, D and E</small></label><select id="o-s3_class" data-o="s3_class"><option value="standard">Standard</option><option value="ia">Standard-IA</option></select>
+            <label for="o-rds_storage_gb">RDS gp3 storage<small>GB · E, minimum 20</small></label><input type="number" id="o-rds_storage_gb" data-o="rds_storage_gb" min="20" step="1">
+          </fieldset>
+          <button type="button" class="btn-lab danger" id="reset-settings">Back to the measured defaults</button>
+        </form>
+
+        <div class="out">
+          <div class="chart" id="chart">
+            <p class="caption" id="caption"></p>
+            <div id="plot"></div>
+            <div class="tip" id="tip" role="tooltip"></div>
+          </div>
+          <div class="detail">
+            <div class="detail-head">
+              <h3 id="detail-title"></h3>
+              <span class="stat"><b id="detail-total"></b><span id="detail-year"></span></span>
+              <button type="button" class="btn-lab" id="copy-md">Copy as Markdown</button>
+            </div>
+            <div class="table-wrap"><table class="grid" id="detail-table"></table></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="box" id="compare" aria-label="Regions and frequency">
+      <div class="box-head">
+        <h2>The same workload in two regions and at three frequencies</h2>
+        <p>Both tables use every setting of the calculator except the one they vary: the first changes only the region, the second only the number of runs per month.</p>
+      </div>
+      <div class="two">
+        <div><h3>Virginia against São Paulo</h3><div class="table-wrap"><table class="grid" id="region-table"></table></div><p>The ratio is the São Paulo total divided by the Virginia total. Data residency or the latency of the readers can still require São Paulo; the ratio is the price of that requirement.</p></div>
+        <div><h3>Runs per month</h3><div class="table-wrap"><table class="grid" id="freq-table"></table></div><p>An instance always on costs the same at any frequency; a service billed per use grows with the runs. The ranking of the architectures depends on the workload, not on the services alone.</p></div>
+      </div>
+    </section>
+
+    <section class="box" id="prices" aria-label="Unit prices">
+      <div class="box-head">
+        <h2>Unit prices of the region</h2>
+        <p>Snapshot of the AWS Price List consulted on 08/11/2026, through the public Bulk API that needs no account. Each price shows its offer, its usage type and the date on which AWS published that offer. A value typed here replaces the snapshot in this browser only, and the field turns purple until it is reset.</p>
+      </div>
+      <div class="prices-bar"><span id="prices-meta"></span><button type="button" class="btn-lab danger" id="reset-prices">Reset the prices</button></div>
+      <div class="prices-body"><table class="grid" id="price-table"></table></div>
+    </section>
+  </div>
+
+  <dialog id="text-box">
+    <div class="dlg-bar"><strong id="text-title">Prompt</strong><button class="btn-lab" id="text-copy">Copy</button><button class="btn-lab" id="text-close">Close</button></div>
+    <pre id="text-body"></pre>
+  </dialog>
+
+  <footer class="inteli-footer tm-rodape">
+    <div>
+      <ul>
+        <li><a href="../../../home-module-8-sistemas-informacao.html">Module 8</a></li>
+        <li><a href="../../../design-system.html">Design system</a></li>
+      </ul>
+      <p>Material created by professor Afonso Brandão for Inteli. Open reading license. Prices: AWS Price List, consulted on 08/11/2026; they change, and the AWS Pricing Calculator is the reference for a real estimate.</p>
+    </div>
+  </footer>
+
+  <script type="module">
+    import { ARCHITECTURES, DEFAULT_WORKLOAD, DEFAULT_OPTIONS, estimate } from './cost_model.js';
+
+    const KEY = 'm8si-l12.v1.settings';
+    const KEY_PRICES = 'm8si-l12.v1.price-overrides';
+    const $ = (id) => document.getElementById(id);
+    const NS = 'http://www.w3.org/2000/svg';
+    const SHORT = { ec2_always_on: 'A · EC2 always on', ec2_scheduled: 'B · EC2 per run', lambda_s3: 'C · Lambda + S3', fargate_s3: 'D · Fargate + S3', fargate_rds: 'E · Fargate + RDS' };
+
+    let snapshot = null;
+    let state = { workload: { ...DEFAULT_WORKLOAD }, options: { ...DEFAULT_OPTIONS }, selected: 'ec2_scheduled' };
+    let overrides = {};
+
+    function load(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; } }
+    function save() {
+      try { localStorage.setItem(KEY, JSON.stringify(state)); localStorage.setItem(KEY_PRICES, JSON.stringify(overrides)); } catch {}
+      const changed = JSON.stringify(state.workload) !== JSON.stringify(DEFAULT_WORKLOAD) || JSON.stringify(state.options) !== JSON.stringify(DEFAULT_OPTIONS);
+      const n = Object.keys(overrides).length;
+      setStatus('st-saved', changed || n ? 'ok' : 'wait', `settings: ${changed ? 'edited' : 'default'} · prices edited: ${n}`);
+    }
+    function setStatus(id, cls, text) { const el = $(id); el.className = cls; el.textContent = text; }
+
+    const usd = (v) => {
+      if (v === 0) return '$0.00';
+      if (Math.abs(v) < 0.01) return '< $0.01';
+      return '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+    const usd4 = (v) => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+    const qty = (v) => v.toLocaleString('en-US', { maximumFractionDigits: 4 });
+    const unitPrice = (v) => '$' + (v >= 0.001 ? v.toLocaleString('en-US', { maximumFractionDigits: 6 }) : v.toPrecision(6).replace(/0+$/, ''));
+
+    // Every priced leaf of a region: objects with usd, plus the Spot savings of each instance type.
+    function priceLeaves(region) {
+      const out = [];
+      const walk = (node, path) => {
+        if (node && typeof node === 'object') {
+          if ('usd' in node) { out.push({ path, node, field: 'usd' }); return; }
+          if ('pct' in node) { out.push({ path, node, field: 'pct' }); return; }
+          for (const [k, v] of Object.entries(node)) walk(v, [...path, k]);
+        }
+      };
+      walk(snapshot.regions[region], []);
+      return out;
+    }
+
+    function pricesWithOverrides() {
+      const p = structuredClone(snapshot);
+      for (const [key, value] of Object.entries(overrides)) {
+        const [region, ...path] = key.split('/');
+        let node = p.regions[region];
+        for (const k of path.slice(0, -1)) node = node && node[k];
+        if (node && path.length) node[path[path.length - 1]] = value;
+      }
+      return p;
+    }
+
+    function readControls() {
+      document.querySelectorAll('[data-w]').forEach((el) => { const v = parseFloat(el.value); if (Number.isFinite(v)) state.workload[el.dataset.w] = v; });
+      document.querySelectorAll('[data-o]').forEach((el) => {
+        const k = el.dataset.o;
+        if (el.type === 'checkbox') state.options[k] = el.checked;
+        else if (el.tagName === 'SELECT' && typeof DEFAULT_OPTIONS[k] !== 'number') state.options[k] = el.value;
+        else { const v = parseFloat(el.value); if (Number.isFinite(v)) state.options[k] = v; }
+      });
+    }
+
+    function writeControls() {
+      document.querySelectorAll('[data-w]').forEach((el) => { el.value = state.workload[el.dataset.w]; });
+      document.querySelectorAll('[data-o]').forEach((el) => {
+        const v = state.options[el.dataset.o];
+        if (el.type === 'checkbox') el.checked = !!v; else el.value = String(v);
+      });
+      document.querySelectorAll('[data-runs]').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.runs) === state.workload.runs_per_month)));
+    }
+
+    function render(typing = false) {
+      const prices = pricesWithOverrides();
+      const results = Object.keys(ARCHITECTURES).map((a) => estimate(a, prices, state.workload, state.options));
+      drawBars(results);
+      drawDetail(results.find((r) => r.arch === state.selected) || results[0]);
+      drawRegionTable(prices);
+      drawFreqTable(prices);
+      drawPriceTable();
+      if (!typing) writeControls();
+      document.querySelectorAll('[data-runs]').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.runs) === state.workload.runs_per_month)));
+      save();
+    }
+
+    function drawBars(results) {
+      const o = state.options, w = state.workload;
+      $('caption').textContent = `USD per month · ${o.region} · ${$('o-pricing').selectedOptions[0].text} · ${w.runs_per_month.toLocaleString('en-US')} runs of ${w.run_seconds} s · free allowances ${o.free_tier ? 'on' : 'off'}`;
+      const plot = $('plot'); plot.innerHTML = '';
+      const W = Math.max(320, plot.clientWidth || 640), rowH = 34, barH = 18, valW = 84;
+      const labelW = W < 560 ? 140 : 250;
+      const H = results.length * rowH + 22;
+      const raw = Math.max(...results.map((r) => r.total), 0) || 1;
+      const mag = Math.pow(10, Math.floor(Math.log10(raw / 4)));
+      const most = W < 560 ? 2 : 4;
+      const step = [1, 2, 5, 10, 20].map((k) => k * mag).find((st) => raw / st <= most) || 20 * mag;
+      const max = Math.ceil(raw / step) * step;
+      const x = (v) => labelW + (W - labelW - valW) * (v / max);
+      const svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('height', H);
+      svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'Monthly cost of each architecture in USD');
+      for (let t = 0, i = 0; t <= max + step / 2; t += step, i++) {
+        const gx = x(t);
+        const l = document.createElementNS(NS, 'line'); l.setAttribute('class', 'grid'); l.setAttribute('x1', gx); l.setAttribute('x2', gx); l.setAttribute('y1', 0); l.setAttribute('y2', H - 18); svg.append(l);
+        const tk = document.createElementNS(NS, 'text'); tk.setAttribute('class', 'tick'); tk.setAttribute('x', gx); tk.setAttribute('y', H - 4); tk.setAttribute('text-anchor', i === 0 ? 'start' : 'middle');
+        tk.textContent = '$' + t.toLocaleString('en-US', { maximumFractionDigits: 2 }); svg.append(tk);
+      }
+      const tip = $('tip');
+      results.forEach((r, i) => {
+        const y = i * rowH + 6, w = Math.max(2, x(r.total) - labelW);
+        const g = document.createElementNS(NS, 'g'); g.setAttribute('class', 'row'); g.setAttribute('tabindex', '0');
+        const label = W < 560 ? SHORT[r.arch] : ARCHITECTURES[r.arch];
+        g.setAttribute('aria-label', `${ARCHITECTURES[r.arch]}: ${usd(r.total)} per month`);
+        const hit = document.createElementNS(NS, 'rect'); hit.setAttribute('class', 'hit'); hit.setAttribute('x', 0); hit.setAttribute('y', y - 6); hit.setAttribute('width', W); hit.setAttribute('height', rowH);
+        const t = document.createElementNS(NS, 'text'); t.setAttribute('x', labelW - 8); t.setAttribute('y', y + barH / 2 + 4); t.setAttribute('text-anchor', 'end');
+        if (r.arch === state.selected) t.setAttribute('class', 'sel');
+        t.textContent = (r.arch === state.selected ? '▸ ' : '') + label;
+        const r4 = Math.min(4, w / 2);
+        const path = document.createElementNS(NS, 'path'); path.setAttribute('class', 'bar');
+        path.setAttribute('d', `M${labelW},${y} h${w - r4} a${r4},${r4} 0 0 1 ${r4},${r4} v${barH - 2 * r4} a${r4},${r4} 0 0 1 -${r4},${r4} h-${w - r4} z`);
+        const val = document.createElementNS(NS, 'text'); val.setAttribute('class', 'val'); val.setAttribute('x', labelW + w + 6); val.setAttribute('y', y + barH / 2 + 4);
+        val.textContent = usd(r.total);
+        g.append(hit, t, path, val);
+        const top = [...r.lines].sort((a, b) => b.cost - a.cost)[0];
+        const show = (ev) => {
+          tip.innerHTML = '';
+          const b = document.createElement('b'); b.textContent = `${usd(r.total)} per month · ${usd(r.total * 12)} per year`;
+          const s = document.createElement('span'); s.textContent = `${ARCHITECTURES[r.arch]}. Largest line: ${top.item}, ${usd(top.cost)}. Click for every line.`;
+          tip.append(b, s); tip.style.display = 'block';
+          const box = $('chart').getBoundingClientRect();
+          const px = ev && ev.clientX ? ev.clientX - box.left + 12 : labelW; const py = ev && ev.clientY ? ev.clientY - box.top + 12 : y + 40;
+          tip.style.left = Math.min(px, box.width - 250) + 'px'; tip.style.top = py + 'px';
+        };
+        const pick = () => { state.selected = r.arch; render(); document.querySelector(`#plot g.row:nth-of-type(${i + 1})`)?.focus(); };
+        g.addEventListener('pointermove', show); g.addEventListener('focus', () => show(null));
+        g.addEventListener('pointerleave', () => { tip.style.display = 'none'; }); g.addEventListener('blur', () => { tip.style.display = 'none'; });
+        g.addEventListener('click', pick); g.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
+        svg.append(g);
+      });
+      plot.append(svg);
+    }
+
+    function cell(tr, text, cls) { const td = document.createElement('td'); td.textContent = text; if (cls) td.className = cls; tr.append(td); return td; }
+    function head(table, cols) {
+      table.innerHTML = '';
+      const thead = document.createElement('thead'); const tr = document.createElement('tr');
+      cols.forEach(([t, num]) => { const th = document.createElement('th'); th.textContent = t; if (num) th.className = 'num'; tr.append(th); });
+      thead.append(tr); table.append(thead);
+      const tbody = document.createElement('tbody'); table.append(tbody); return tbody;
+    }
+
+    function drawDetail(r) {
+      $('detail-title').textContent = ARCHITECTURES[r.arch];
+      $('detail-total').textContent = usd(r.total);
+      $('detail-year').textContent = `per month · ${usd(r.total * 12)} per year`;
+      const table = $('detail-table');
+      const body = head(table, [['Line'], ['Quantity', 1], ['Unit'], ['Unit price', 1], ['Cost', 1], ['Note']]);
+      r.lines.forEach((l) => {
+        const tr = document.createElement('tr');
+        cell(tr, l.item); cell(tr, qty(l.quantity), 'num'); cell(tr, l.unit); cell(tr, unitPrice(l.price), 'num'); cell(tr, usd4(l.cost), 'num'); cell(tr, l.note, 'note');
+        body.append(tr);
+      });
+      const tfoot = document.createElement('tfoot'); const tr = document.createElement('tr');
+      cell(tr, 'Total per month'); cell(tr, ''); cell(tr, ''); cell(tr, ''); cell(tr, usd4(r.total), 'num'); cell(tr, 'USD, without taxes', 'note');
+      tfoot.append(tr); table.append(tfoot);
+    }
+
+    function lowest(values) { const m = Math.min(...values); return values.map((v) => Math.abs(v - m) < 1e-12); }
+
+    function drawRegionTable(prices) {
+      const body = head($('region-table'), [['Architecture'], ['Virginia', 1], ['São Paulo', 1], ['Ratio', 1]]);
+      for (const a of Object.keys(ARCHITECTURES)) {
+        const us = estimate(a, prices, state.workload, { ...state.options, region: 'us-east-1' }).total;
+        const sp = estimate(a, prices, state.workload, { ...state.options, region: 'sa-east-1' }).total;
+        const tr = document.createElement('tr');
+        cell(tr, ARCHITECTURES[a]); cell(tr, usd(us), 'num'); cell(tr, usd(sp), 'num'); cell(tr, us >= 0.01 ? (sp / us).toFixed(2) + '×' : '–', 'num');
+        body.append(tr);
+      }
+    }
+
+    function drawFreqTable(prices) {
+      const runs = [30, 720, 8640];
+      const body = head($('freq-table'), [['Architecture'], ...runs.map((n) => [n.toLocaleString('en-US') + ' runs', 1])]);
+      const grid = Object.keys(ARCHITECTURES).map((a) => runs.map((n) => estimate(a, prices, { ...state.workload, runs_per_month: n }, state.options).total));
+      const low = runs.map((_, j) => lowest(grid.map((row) => row[j])));
+      Object.keys(ARCHITECTURES).forEach((a, i) => {
+        const tr = document.createElement('tr'); cell(tr, ARCHITECTURES[a]);
+        grid[i].forEach((v, j) => cell(tr, usd(v), 'num' + (low[j][i] ? ' low' : '')));
+        body.append(tr);
+      });
+    }
+
+    const PRICE_LABEL = {
+      ebs_gp3_gb_month: 'EBS gp3 storage', public_ipv4_hour: 'Public IPv4 address in use', lambda_arm_gb_second: 'Lambda compute, ARM',
+      lambda_request: 'Lambda requests', fargate_arm_vcpu_hour: 'Fargate vCPU, ARM', fargate_arm_gb_hour: 'Fargate memory, ARM',
+      s3_standard_gb_month: 'S3 Standard storage', s3_ia_gb_month: 'S3 Standard-IA storage', s3_put_request: 'S3 PUT, COPY, POST, LIST',
+      s3_get_request: 'S3 GET and other requests', scheduler_invocation: 'EventBridge Scheduler invocation', ecr_gb_month: 'ECR image storage',
+      egress_internet_gb: 'Data transfer out to the internet', rds_gp3_gb_month: 'RDS gp3 storage',
+      lambda_arm_gb_second_commit_1y: 'Lambda compute, ARM, Compute Savings Plan', fargate_arm_vcpu_hour_commit_1y: 'Fargate vCPU, ARM, Compute Savings Plan',
+      fargate_arm_gb_hour_commit_1y: 'Fargate memory, ARM, Compute Savings Plan',
+    };
+    function leafLabel(path) {
+      if (path[0] === 'ec2') return `EC2 ${path[1]} · ${{ on_demand: 'on-demand', commit_1y: 'reserved 1 yr, no upfront', spot_savings_pct: 'Spot saving (%)' }[path[2]]}`;
+      if (path[0] === 'rds_pg_t4g_micro') return `RDS PostgreSQL db.t4g.micro · ${path[1] === 'commit_1y' ? 'reserved 1 yr, no upfront' : 'on-demand'}`;
+      return PRICE_LABEL[path[0]] || path.join('.');
+    }
+
+    function drawPriceTable() {
+      const region = state.options.region;
+      $('prices-meta').textContent = `${region} · consulted ${snapshot.consulted} · ${snapshot.currency} · ${snapshot.source.split(', ')[1]}`;
+      const body = head($('price-table'), [['Price'], ['Value', 1], ['Unit'], ['Source: offer · usage type · published']]);
+      for (const leaf of priceLeaves(region)) {
+        const key = [region, ...leaf.path, leaf.field].join('/');
+        const tr = document.createElement('tr');
+        cell(tr, leafLabel(leaf.path));
+        const td = cell(tr, '', 'num');
+        const input = document.createElement('input'); input.type = 'number'; input.step = 'any'; input.min = '0';
+        input.setAttribute('aria-label', leafLabel(leaf.path));
+        const original = leaf.node[leaf.field];
+        input.value = key in overrides ? overrides[key] : original;
+        if (key in overrides) input.className = 'edited';
+        input.addEventListener('change', () => {
+          const v = parseFloat(input.value);
+          if (!Number.isFinite(v) || v === original) delete overrides[key]; else overrides[key] = v;
+          render();
+        });
+        td.append(input);
+        cell(tr, leaf.field === 'pct' ? '%' : leaf.node.unit);
+        const src = cell(tr, '', 'note');
+        if (leaf.field === 'pct') src.textContent = `Spot Instance Advisor · ${leaf.node.source}`;
+        else {
+          const c = document.createElement('code'); c.textContent = `${leaf.node.offer} · ${leaf.node.usagetype}`;
+          src.append(c, document.createTextNode(` · ${leaf.node.published.slice(0, 10)}${leaf.node.note ? ' · ' + leaf.node.note : ''}`));
+        }
+        body.append(tr);
+      }
+    }
+
+    function markdown() {
+      const prices = pricesWithOverrides();
+      const o = state.options, w = state.workload;
+      const r = estimate(state.selected, prices, w, o);
+      const rows = [`## ${ARCHITECTURES[r.arch]} · ${o.region} · ${o.pricing}`, '',
+        `Workload: ${w.runs_per_month} runs per month of ${w.run_seconds} s; prices of the AWS Price List consulted on ${snapshot.consulted}${Object.keys(overrides).length ? ', with prices edited by hand' : ''}.`, '',
+        '| line | quantity | unit | unit price (USD) | cost (USD) |', '|---|---:|---|---:|---:|'];
+      r.lines.forEach((l) => rows.push(`| ${l.item} | ${qty(l.quantity)} | ${l.unit} | ${l.price} | ${l.cost.toFixed(4)} |`));
+      rows.push(`| **total per month** | | | | **${r.total.toFixed(2)}** |`, '', '| architecture | USD per month |', '|---|---:|');
+      Object.keys(ARCHITECTURES).forEach((a) => rows.push(`| ${ARCHITECTURES[a]} | ${estimate(a, prices, w, o).total.toFixed(2)} |`));
+      return rows.join('\n') + '\n';
+    }
+
+    async function showText(title, url) {
+      $('text-title').textContent = title;
+      $('text-body').textContent = 'loading…';
+      $('text-box').showModal();
+      try { $('text-body').textContent = await (await fetch(url)).text(); } catch (e) { $('text-body').textContent = 'Could not load ' + url + ': ' + e.message; }
+    }
+
+    async function main() {
+      try {
+        snapshot = await (await fetch('data/prices.json')).json();
+      } catch (e) {
+        setStatus('st-prices', 'err', 'prices: could not load data/prices.json (' + e.message + '); serve the folder over HTTP');
+        return;
+      }
+      const types = Object.keys(snapshot.regions['us-east-1'].ec2);
+      $('o-ec2_type').innerHTML = types.map((t) => { const s = snapshot.regions['us-east-1'].ec2[t]; return `<option value="${t}">${t} · ${s.vcpu} vCPU · ${s.memory}</option>`; }).join('');
+      const saved = load(KEY, null);
+      if (saved && saved.workload && saved.options) state = { workload: { ...DEFAULT_WORKLOAD, ...saved.workload }, options: { ...DEFAULT_OPTIONS, ...saved.options }, selected: saved.selected in ARCHITECTURES ? saved.selected : state.selected };
+      overrides = load(KEY_PRICES, {}) || {};
+      const pubs = [...new Set(priceLeaves('us-east-1').filter((l) => l.field === 'usd').map((l) => l.node.published.slice(0, 10)))].sort();
+      setStatus('st-prices', 'ok', `prices: AWS Price List consulted on ${snapshot.consulted} · offers published between ${pubs[0]} and ${pubs[pubs.length - 1]}`);
+      writeControls();
+      render();
+    }
+
+    $('controls').addEventListener('input', (e) => { if (e.target.matches('input[data-w], input[data-o]')) { readControls(); render(true); } });
+    $('controls').addEventListener('change', (e) => { if (e.target.matches('select, [type="checkbox"]')) { readControls(); render(); } });
+    document.querySelectorAll('[data-runs]').forEach((b) => b.addEventListener('click', () => { state.workload.runs_per_month = Number(b.dataset.runs); render(); }));
+    $('reset-settings').onclick = () => { state = { workload: { ...DEFAULT_WORKLOAD }, options: { ...DEFAULT_OPTIONS }, selected: state.selected }; render(); };
+    $('reset-prices').onclick = () => { overrides = {}; render(); };
+    $('copy-md').onclick = async () => {
+      try { await navigator.clipboard.writeText(markdown()); $('copy-md').textContent = 'Copied'; }
+      catch { await showText('Estimate as Markdown', 'data:text/plain,' + encodeURIComponent(markdown())); }
+      setTimeout(() => { $('copy-md').textContent = 'Copy as Markdown'; }, 1500);
+    };
+    document.querySelectorAll('[data-prompt]').forEach((b) => b.onclick = () => showText('Prompt · ' + b.closest('.step').querySelector('h2').textContent, `prompts/${b.dataset.prompt}.md`));
+    document.querySelectorAll('[data-file]').forEach((b) => b.onclick = () => showText(b.dataset.file, b.dataset.file));
+    $('text-close').onclick = () => $('text-box').close();
+    $('text-copy').onclick = async () => { try { await navigator.clipboard.writeText($('text-body').textContent); $('text-copy').textContent = 'Copied'; setTimeout(() => $('text-copy').textContent = 'Copy', 1500); } catch {} };
+    window.addEventListener('resize', () => { clearTimeout(window.__rt); window.__rt = setTimeout(render, 200); });
+
+    main().catch((e) => { console.error(e); setStatus('st-prices', 'err', 'prices: ' + (e.message || e)); });
+  </script>
+<!-- semana:js:start -->
+<script src="../../../../js/semana-ano.js" defer></script>
+<!-- semana:js:end -->
+</body>
+</html>

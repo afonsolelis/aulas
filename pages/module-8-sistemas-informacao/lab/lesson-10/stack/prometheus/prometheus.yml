@@ -1,0 +1,29 @@
+# Lesson 10 · what Prometheus scrapes, and how often.
+global:
+  scrape_interval: 15s       # every target is read every 15 s
+  evaluation_interval: 15s   # every rule of rules.yml is evaluated every 15 s
+
+rule_files:
+  - rules.yml
+
+scrape_configs:
+  # The batch run lasts about 40 s and is gone before most scrapes: it pushes its
+  # metrics to the Pushgateway, and Prometheus scrapes the Pushgateway.
+  # honor_labels keeps job="tcg_dataapp" and instance="<machine>" of the push,
+  # instead of replacing them with the labels of the Pushgateway target.
+  - job_name: pushgateway
+    honor_labels: true
+    static_configs:
+      - targets: ["pushgateway:9091"]
+
+  # The exporter is a long-running process on the host (tcg-dataapp metrics):
+  # at each scrape it reads freshness, volume, grain and the last run from DuckDB.
+  - job_name: tcg_exporter
+    static_configs:
+      - targets: ["host.docker.internal:9108"]
+        labels:
+          service: tcg-dataapp
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]

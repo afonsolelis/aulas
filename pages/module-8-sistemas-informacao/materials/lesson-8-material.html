@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 8 - DAG Automation - Material - Inteli</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🕸️</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <link href="../../../css/inteli-styles.css" rel="stylesheet">
+  <style>
+    :root {
+      --si: var(--si-blue);
+      --ink: var(--inteli-dark-purple);
+      --coral: var(--inteli-coral);
+      --paper: var(--inteli-white);
+      --line: var(--inteli-light-gray);
+      --si-deep: color-mix(in srgb,var(--si) 42%,var(--ink));
+      --soft-si: color-mix(in srgb,var(--si) 18%,var(--paper));
+      --soft-ink: color-mix(in srgb,var(--ink) 6%,var(--paper));
+      --soft-coral: color-mix(in srgb,var(--coral) 10%,var(--paper));
+    }
+    *, *::before, *::after { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; font-family:'Inter',sans-serif; color:var(--ink); background:var(--soft-ink); }
+    a { color:var(--si-deep); }
+    #progress-bar { position:fixed; inset:0 auto auto 0; width:0; height:3px; z-index:9999; background:linear-gradient(var(--ink),var(--ink)); }
+    .mat-header { color:var(--paper); background:linear-gradient(var(--ink),var(--ink)); padding:42px 24px 34px; }
+    .head-inner { width:min(1160px,100%); margin:auto; display:flex; justify-content:space-between; align-items:end; gap:28px; }
+    .head-copy { max-width:780px; }
+    .badge { display:inline-block; margin-bottom:12px; padding:5px 11px; border:1px solid color-mix(in srgb,var(--paper) 36%,transparent); border-radius:4px; background:color-mix(in srgb,var(--paper) 12%,transparent); font-size:.72rem; font-weight:700; letter-spacing:.06em; }
+    .mat-header h1 { margin:0; font-size:2.45rem; line-height:1.12; letter-spacing:-.03em; }
+    .mat-header p { margin:10px 0 0; max-width:760px; color:color-mix(in srgb,var(--paper) 90%,var(--si)); line-height:1.6; }
+    .head-actions { display:flex; flex-wrap:wrap; gap:7px; justify-content:flex-end; }
+    .head-actions a { padding:8px 12px; border-radius:6px; color:var(--paper); border:1px solid color-mix(in srgb,var(--paper) 45%,transparent); text-decoration:none; font-size:.76rem; font-weight:700; white-space:nowrap; }
+    .head-actions a.primary { background:var(--paper); color:var(--ink); }
+    .mat-layout { display:grid; grid-template-columns:290px minmax(0,1fr); gap:34px; width:min(1240px,100%); margin:auto; padding:36px 24px 64px; }
+    .mat-sidebar { position:sticky; top:18px; align-self:start; max-height:calc(100vh - 36px); overflow:auto; }
+    .mat-toc { padding:18px; border:1px solid var(--line); border-radius:6px; background:var(--paper); box-shadow:var(--ds-sombra-1); }
+    .mat-toc h2 { margin:0 0 10px; font-size:.74rem; letter-spacing:.11em; text-transform:uppercase; }
+    .toc-part { margin:12px 0 4px; padding:0 8px; font-size:.64rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--si-deep); }
+    .mat-toc a { display:flex; justify-content:space-between; gap:8px; padding:5px 8px; border-left:3px solid transparent; color:color-mix(in srgb,var(--ink) 68%,var(--paper)); text-decoration:none; font-size:.76rem; line-height:1.32; }
+    .mat-toc a span { flex-shrink:0; font-size:.68rem; color:color-mix(in srgb,var(--ink) 50%,var(--paper)); }
+    .mat-toc a:hover, .mat-toc a.active { color:var(--ink); background:var(--soft-si); border-left-color:var(--si-deep); }
+    .toc-total { margin-top:10px; padding-top:10px; border-top:1px solid var(--line); color:color-mix(in srgb,var(--ink) 60%,var(--paper)); font-size:.7rem; }
+    .mat-article { min-width:0; }
+    .part-title { margin:8px 0 26px; padding:14px 18px; border-radius:6px; background:var(--ink); color:var(--paper); }
+    .part-title small { display:block; font-size:.68rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:color-mix(in srgb,var(--paper) 75%,var(--si)); }
+    .part-title strong { display:block; margin-top:3px; font-size:1.15rem; }
+    .mat-section { margin:0 0 52px; scroll-margin-top:26px; }
+    .mat-section h2 { margin:0 0 18px; padding-bottom:10px; border-bottom:2px solid var(--line); font-size:1.65rem; line-height:1.25; }
+    .mat-section h3 { margin:28px 0 9px; font-size:1.1rem; }
+    .mat-section h4 { margin:20px 0 6px; font-size:.95rem; }
+    .mat-section p, .mat-section li, .mat-section dd { font-size:.94rem; line-height:1.75; color:color-mix(in srgb,var(--ink) 84%,var(--paper)); }
+    .mat-section p { margin:0 0 14px; text-align:justify; text-justify:inter-word; hyphens:auto; }
+    .mat-section ul, .mat-section ol { margin:10px 0 16px; padding-left:1.35rem; }
+    .mat-section li { margin-bottom:5px; }
+    .lead { font-size:1.05rem!important; color:var(--ink)!important; }
+    .g2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin:16px 0; }
+    .g3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin:16px 0; }
+    .card { padding:17px 18px; border:1px solid var(--line); border-left:5px solid var(--si); border-radius:6px; background:var(--paper); box-shadow:var(--ds-sombra-1); }
+    .card.dark { border-left-color:var(--ink); }
+    .card.coral { border-left-color:var(--coral); }
+    .card h3, .card h4 { margin:0 0 7px; font-size:1rem; }
+    .card p { text-align:left!important; }
+    .card p:last-child { margin-bottom:0; }
+    .callout { margin:18px 0; padding:15px 18px; border:1px solid color-mix(in srgb,var(--si) 55%,var(--paper)); border-left:5px solid var(--si-deep); border-radius:6px; background:var(--soft-si); }
+    .callout-warn { border-color:color-mix(in srgb,var(--coral) 35%,var(--paper)); border-left-color:var(--coral); background:var(--soft-coral); }
+    .callout-tip { border-color:color-mix(in srgb,var(--ink) 20%,var(--paper)); border-left-color:var(--ink); background:var(--paper); }
+    .callout-label { margin-bottom:5px; color:var(--ink); font-size:.69rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; }
+    .callout p:last-child { margin:0; }
+    .table-wrap { margin:17px 0; overflow-x:auto; border:1px solid var(--line); border-radius:6px; background:var(--paper); }
+    table { width:100%; min-width:720px; border-collapse:collapse; font-size:.8rem; }
+    th { padding:10px 11px; background:var(--ink); color:var(--paper); text-align:left; font-weight:700; }
+    td { padding:10px 11px; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.5; }
+    tr:last-child td { border-bottom:0; }
+    tbody tr:nth-child(even) { background:var(--soft-ink); }
+    code { padding:2px 6px; border-radius:4px; background:var(--soft-si); color:var(--ink); font:600 .86em 'JetBrains Mono',monospace; }
+    .code-wrap { margin:16px 0; border:1px solid var(--line); border-radius:6px; overflow:hidden; background:var(--ink); }
+    .code-label { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:7px 12px; background:color-mix(in srgb,var(--ink) 82%,var(--si)); color:var(--paper); font-size:.7rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+    .code-actions { display:flex; gap:6px; flex-shrink:0; }
+    .code-copy, .code-src { padding:3px 9px; border:1px solid color-mix(in srgb,var(--paper) 40%,transparent); border-radius:6px; background:transparent; color:var(--paper); font:700 .68rem 'Inter',sans-serif; cursor:pointer; text-decoration:none; text-transform:none; letter-spacing:0; }
+    .code-block { margin:0; padding:14px 16px; overflow-x:auto; max-height:460px; color:var(--paper); }
+    .code-block code { padding:0; background:none; color:inherit; font-size:.78rem; line-height:1.6; }
+    .hl-kw { color:color-mix(in srgb,var(--si) 85%,var(--paper)); font-weight:700; }
+    .hl-fn { color:color-mix(in srgb,var(--coral) 55%,var(--paper)); }
+    .hl-str { color:color-mix(in srgb,var(--si) 45%,var(--paper)); }
+    .hl-num { color:color-mix(in srgb,var(--coral) 35%,var(--paper)); }
+    .hl-cmt { color:var(--inteli-dark-gray); font-style:italic; }
+    .uml-pair { margin:20px 0 26px; }
+    .uml-pair .code-wrap { margin-bottom:0; border-radius:6px 6px 0 0; }
+    .uml-fig { margin:0; padding:18px; border:1px solid var(--line); border-top:0; border-radius:0 0 6px 6px; background:var(--paper); text-align:center; }
+    .uml-fig img { display:block; max-width:100%; height:auto; margin:0 auto; }
+    .uml-fig figcaption { margin-top:12px; font-size:.76rem; color:color-mix(in srgb,var(--ink) 62%,var(--paper)); }
+    .vp-map { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; margin:20px 0 8px; }
+    .vp-map article { padding:14px 12px; border-radius:6px; background:var(--paper); border:1px solid var(--line); border-top:5px solid var(--ink); box-shadow:var(--ds-sombra-1); }
+    .vp-map article:nth-child(2) { border-top-color:var(--si-deep); }
+    .vp-map article:nth-child(3) { border-top-color:color-mix(in srgb,var(--coral) 72%,var(--ink)); }
+    .vp-map article:nth-child(4) { border-top-color:color-mix(in srgb,var(--inteli-dark-gray) 40%,var(--ink)); }
+    .vp-map article:nth-child(5) { border-top-color:var(--inteli-dark-gray); }
+    .vp-map strong { display:block; margin-bottom:3px; font-size:.86rem; }
+    .vp-map em { display:block; margin-bottom:6px; font-size:.72rem; font-style:normal; font-weight:700; color:var(--si-deep); }
+    .vp-map p { margin:0!important; font-size:.78rem!important; line-height:1.45!important; text-align:left!important; }
+    .vp-axis { margin:0 0 18px; padding:9px 12px; border-radius:6px; background:var(--paper); border:1px dashed color-mix(in srgb,var(--ink) 30%,var(--paper)); text-align:center; font-size:.78rem; font-weight:700; }
+    .layers { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:12px; margin:20px 0 10px; }
+    .layer { position:relative; padding:14px 12px; border-radius:6px; color:var(--paper); }
+    .layer b { display:block; font-size:.95rem; margin-bottom:4px; }
+    .layer span { display:block; font-size:.76rem; line-height:1.4; opacity:.92; }
+    .layer:not(:last-child)::after { content:''; position:absolute; right:-12px; top:50%; width:12px; height:2px; background:var(--ink); }
+    .l-src { background:color-mix(in srgb,var(--inteli-dark-gray) 40%,var(--ink)); }
+    .l-b { background:color-mix(in srgb,var(--coral) 55%,var(--ink)); }
+    .l-s { background:var(--si-deep); }
+    .l-g { background:var(--ink); }
+    .l-c { background:var(--paper); color:var(--ink); box-shadow:inset 0 0 0 2px var(--ink); }
+    .undercurrent { margin:0 0 20px; padding:10px 14px; border-radius:6px; background:var(--paper); border:1px dashed var(--si-deep); font-size:.78rem; line-height:1.5; }
+    .undercurrent b { color:var(--si-deep); }
+    .v-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; margin:18px 0; }
+    .v-grid article { padding:14px 12px; border-radius:6px; background:var(--paper); border:1px solid var(--line); border-top:5px solid var(--si-deep); }
+    .v-grid article:nth-child(2) { border-top-color:var(--coral); }
+    .v-grid article:nth-child(3) { border-top-color:var(--ink); }
+    .v-grid article:nth-child(4) { border-top-color:color-mix(in srgb,var(--coral) 60%,var(--ink)); }
+    .v-grid article:nth-child(5) { border-top-color:var(--si); }
+    .v-grid strong { display:block; font-size:1rem; }
+    .v-grid em { display:block; margin:2px 0 6px; font-size:.72rem; font-style:normal; font-weight:700; color:var(--si-deep); }
+    .v-grid p { margin:0!important; font-size:.78rem!important; line-height:1.45!important; text-align:left!important; }
+    .scenario { margin:16px 0; border:1px solid var(--line); border-radius:6px; overflow:hidden; background:var(--paper); }
+    .scenario-head { padding:9px 14px; background:var(--soft-si); font-size:.78rem; font-weight:700; }
+    .scenario dl { display:grid; grid-template-columns:170px 1fr; margin:0; }
+    .scenario dt, .scenario dd { margin:0; padding:8px 14px; border-top:1px solid var(--line); font-size:.82rem; line-height:1.5; }
+    .scenario dt { font-weight:700; background:var(--soft-ink); }
+    .glossary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:16px 0; }
+    .glossary div { padding:12px 14px; border:1px solid var(--line); border-radius:6px; background:var(--paper); }
+    .glossary dt { font-weight:700; font-size:.9rem; margin-bottom:3px; }
+    .glossary dd { margin:0; font-size:.84rem!important; line-height:1.55!important; }
+    .sr { opacity:0; transform:translateY(20px); transition:opacity .6s, transform .6s; }
+    .sr.vis { opacity:1; transform:none; }
+    .check-list { list-style:none; padding:0!important; display:grid; gap:7px; }
+    .check-list li { position:relative; margin:0!important; padding:9px 10px 9px 36px; border:1px solid var(--line); border-radius:6px; background:var(--paper); cursor:pointer; user-select:none; }
+    .check-list li::before { content:''; position:absolute; left:11px; top:11px; width:15px; height:15px; border:2px solid var(--si-deep); border-radius:4px; }
+    .check-list li.done { color:color-mix(in srgb,var(--ink) 55%,var(--paper)); text-decoration:line-through; background:var(--soft-si); }
+    .check-list li.done::before { background:var(--si-deep); }
+    .refs li { font-size:.86rem!important; }
+    #float-nav { position:fixed; right:24px; bottom:25px; z-index:9998; display:flex; flex-direction:column; gap:7px; opacity:0; transform:translateY(12px); pointer-events:none; transition:.25s ease; }
+    #float-nav.visible { opacity:1; transform:none; pointer-events:auto; }
+    .fn-btn { padding:9px 13px; border-radius:4px; text-decoration:none; box-shadow:var(--ds-sombra-1); font-size:.74rem; font-weight:700; text-align:center; }
+    .fn-btn-slides { background:var(--paper); color:var(--ink); border:2px solid var(--si-deep); }
+    .fn-btn-alt { background:var(--paper); color:var(--ink); border:2px solid var(--ink); }
+    .fn-btn-back { background:var(--ink); color:var(--paper); }
+    .dl-row { display:flex; flex-wrap:wrap; gap:8px; margin:16px 0 8px; }
+    .dl-btn { display:inline-block; padding:9px 14px; border-radius:6px; background:var(--ink); color:var(--paper); border:2px solid var(--ink); text-decoration:none; font-size:.8rem; font-weight:700; white-space:nowrap; }
+    .dl-btn.alt { background:var(--paper); color:var(--ink); border-color:var(--si-deep); }
+    .dl-btn:hover { background:var(--si-deep); border-color:var(--si-deep); color:var(--paper); }
+    .mat-section p.dl-note { font-size:.82rem; text-align:left; color:color-mix(in srgb,var(--ink) 70%,var(--paper)); }
+    .inteli-footer { padding:26px 20px; border-top:1px solid var(--line); background:var(--paper); text-align:center; font-size:.8rem; }
+    .inteli-footer img { height:40px; margin-bottom:8px; }
+    @media(max-width:1100px) { .v-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @media(max-width:960px) { .mat-layout { grid-template-columns:1fr; } .mat-sidebar { display:none; } .head-inner { display:block; } .head-actions { margin-top:20px; justify-content:flex-start; } .vp-map { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @media(max-width:700px) { .layers { grid-template-columns:1fr; } .layer::after { display:none; } .g2,.g3,.vp-map,.v-grid,.glossary { grid-template-columns:1fr; } .mat-header h1 { font-size:1.9rem; } .scenario dl { grid-template-columns:1fr; } }
+    @media print { .sr { opacity:1!important; transform:none!important; } .code-block { max-height:none; } }
+  </style>
+
+<!-- semana:css:start -->
+<link rel="stylesheet" href="../../../css/semana-ano.css">
+<!-- semana:css:end -->
+<!-- encontro:css:start -->
+<link rel="stylesheet" href="../../../css/encontro.css">
+<!-- encontro:css:end -->
+<!-- ds:css -->
+<link rel="stylesheet" href="../../../css/inteli-ds.css">
+</head>
+<body>
+  <div id="progress-bar" aria-hidden="true"></div>
+  <nav id="float-nav" aria-label="Quick navigation">
+    <a class="fn-btn fn-btn-slides" href="../slides/slide-lesson-8.html">▶ Slides</a>
+    <a class="fn-btn fn-btn-alt" href="https://github.com/afonsolelis/aulas/tree/main/pages/module-8-sistemas-informacao/lab/lesson-8" target="_blank" rel="noopener noreferrer">🧪 Lab</a>
+    <a class="fn-btn fn-btn-back" href="../../home-module-8-sistemas-informacao.html">← Module</a>
+  </nav>
+
+  <header class="mat-header">
+    <div class="head-inner">
+      <div class="head-copy">
+        <span class="badge">Module 8 · Information Systems · Lesson 8 · Week 8</span>
+        <h1>DAG Automation</h1>
+        <p>Reference material for the session in which the professor turns the hand-written runner of the package tcg-dataapp into a Prefect 3 flow, live and with a coding agent: the pipeline as a directed acyclic graph, tasks and futures, retries and their conditions, a cache for what never changes, tests on a temporary server, and a deployment with a schedule and a UI. In the second hour each group orchestrates the DataApp it packaged in Lesson 7.</p>
+      </div>
+      <div class="head-actions">
+        <a class="primary" href="../slides/slide-lesson-8.html">▶ Slides</a>
+        <a href="https://github.com/afonsolelis/aulas/tree/main/pages/module-8-sistemas-informacao/lab/lesson-8/tcg_dataapp" target="_blank" rel="noopener noreferrer">📦 Reference package</a>
+        <a href="../../home-module-8-sistemas-informacao.html">← Back to module</a>
+      </div>
+    </div>
+  </header>
+
+
+<!-- encontro:meta:start -->
+<div class="container" style="max-width:1100px;margin:24px auto 0;padding:0 16px;"><section class="encontro-meta" data-encontro-ficha><h2>About this session</h2><p class="encontro-ref">DAG Automation · 02/12/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Learning objective</h3><p>By the end of the session, students should be able to structure the pipeline of a DataApp as a DAG in Prefect, with tasks and flows whose dependencies are explicit, choose for each task its retries, retry condition and cache policy, test the flow without the network, and schedule it as a deployment monitored in the Prefect UI.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Session strategy</h3><p>Demonstration followed by group work. In the first hour the professor turns the hand-written runner of the tcg-dataapp package of Lesson 7 into a Prefect 3 flow, live and with a coding agent, in four steps guided by CREATE prompts (tasks and flow, failures and cache, tests, deployment), and compares each step with the reference package 0.2.0 and with the numbers measured in the rehearsal. In the second hour each group orchestrates the DataApp it packaged in Lesson 7 with the same method, writing the graph of its tasks, the options of each task with their reasons, tests with a fake source and a scheduled deployment.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Session structure</h3><ol><li>Daily — 15 min</li><li>From a runner to an orchestrator; the pipeline as a DAG — 7 min</li><li>Step 01: tasks, flow and futures; the downloads in parallel — 10 min</li><li>Step 02: retries, retry condition, cache and idempotency, state hooks — 10 min</li><li>Step 03: tests with prefect_test_harness — 6 min</li><li>Step 04: deployment with cron, local server and UI; comparison with Airflow — 12 min</li><li>Second hour: each group orchestrates its DataApp with Prefect (prompt 05) — 60 min</li></ol></div></section></div>
+<!-- encontro:meta:end -->
+<div class="mat-layout">
+    <aside class="mat-sidebar">
+      <nav class="mat-toc" aria-label="Table of contents">
+        <h2>In this material</h2>
+        <div class="toc-part">Part I · Foundations</div>
+        <a href="#reading">1. How to read this material</a>
+        <a href="#why">2. From a runner to an orchestrator</a>
+        <a href="#dag">3. The pipeline as a directed acyclic graph</a>
+        <div class="toc-part">Part II · Tasks and flow</div>
+        <a href="#model">4. Tasks, flows and futures in Prefect 3</a>
+        <a href="#flow">5. The flow of the reference package</a>
+        <a href="#first">6. The first run</a>
+        <div class="toc-part">Part III · Failures and cache</div>
+        <a href="#states">7. States of a task run</a>
+        <a href="#retries">8. Retries and the retry condition</a>
+        <a href="#cache">9. Cache and idempotency</a>
+        <a href="#hooks">10. State hooks and the run log</a>
+        <a href="#three">11. Three runs, three behaviours</a>
+        <div class="toc-part">Part IV · Tests</div>
+        <a href="#tests">12. Testing the flow without the network</a>
+        <div class="toc-part">Part V · Deployment and monitoring</div>
+        <a href="#deployment">13. Server, deployment and the serving process</a>
+        <a href="#cron">14. The schedule and its time zone</a>
+        <a href="#ui">15. Monitoring in the UI</a>
+        <a href="#airflow">16. Prefect, Airflow and the runner</a>
+        <div class="toc-part">Part VI · Lab</div>
+        <a href="#steps">17. The lab in four steps</a>
+        <a href="#groups">18. The second hour</a>
+        <a href="#numbers">19. Reference numbers</a>
+        <a href="#mistakes">20. Recurring mistakes of agents</a>
+        <a href="#glossary">21. Glossary</a>
+        <a href="#checklist">22. Checklist</a>
+        <a href="#references">23. References and self-study</a>
+        <div class="toc-total" id="toc-total"></div>
+      </nav>
+    </aside>
+
+    <article class="mat-article">
+
+      <div class="part-title"><small>Part I</small><strong>Foundations</strong></div>
+      <section class="mat-section" id="reading">
+        <h2>1. How to read this material</h2>
+<p class="lead">This material accompanies Lesson 8, which has two hours. In the first, the professor turns the hand-written runner of the package <code>tcg-dataapp</code>, built in Lesson 7, into a Prefect 3 flow, live and with a coding agent, in four CREATE prompts. In the second hour each group orchestrates in the same way the DataApp that it packaged in Lesson 7, in an activity that is not graded and that prepares the graded testing activity of Lesson 9.</p>
+<p>Part I explains why a pipeline that already runs needs an orchestrator and what a directed acyclic graph is. Parts II to V follow the four steps of the session: tasks and flow, failures and cache, tests, and the deployment. Part VI gathers the prompts, the reference numbers, the mistakes found in the rehearsal and the comparison with Airflow. Every number was measured on 08/11/2026 with the reference package of <code>lab/lesson-8/tcg_dataapp/</code> (version 0.2.0), Prefect 3.9.2, DuckDB 2.0.0 and Python 3.14; every date of the model is Unix time in seconds, as in Lessons 6 and 7.</p>
+      </section>
+      <section class="mat-section" id="why">
+        <h2>2. From a runner to an orchestrator</h2>
+<p>The runner of Lesson 7, in <code>pipeline.py</code>, did three jobs: it sorted the twelve tasks so that each one came after its dependencies, it retried a failed task with a growing pause, and it wrote every attempt to <code>ops.pipeline_runs</code>. These jobs are the same in every pipeline, which is why they are the core of the tools called orchestrators. An orchestrator does them for any graph of tasks and adds what a runner written in class does not have: tasks that run at the same time when nothing orders them, options of retry and cache chosen task by task, a schedule kept outside the code, and a server that keeps the history of every run and shows it in an interface.</p>
+<div class="table-wrap"><table><thead><tr><th>Job</th><th>Runner of Lesson 7</th><th>Prefect flow of Lesson 8</th></tr></thead><tbody><tr><td>order of the tasks</td><td><code>order()</code>, a topological sort written by hand</td><td>the futures passed between tasks build the graph as the flow runs</td></tr><tr><td>parallelism</td><td>none: one task at a time</td><td>independent tasks run at the same time, in threads</td></tr><tr><td>retries</td><td>one rule for every task</td><td><code>retries</code>, <code>retry_delay_seconds</code> and <code>retry_condition_fn</code> per task</td></tr><tr><td>what never changes</td><td>downloaded again at every run</td><td>cache by inputs, with the result persisted</td></tr><tr><td>history</td><td><code>ops.pipeline_runs</code></td><td>every state of every run in the server, and the same table through hooks</td></tr><tr><td>schedule</td><td>a line of crontab</td><td>a deployment with a cron, served by a process</td></tr><tr><td>monitoring</td><td><code>tcg-dataapp status</code></td><td>a UI with the graph, the states and the logs of each run</td></tr></tbody></table></div>
+<p>The three layers of the package do not change. The flow is a new module, <code>flows.py</code>, which calls the same functions of <code>etls/</code>, <code>processors/</code> and <code>views/</code> that the runner called, and the runner itself stays in the package so that the two can be compared on the same data.</p>
+      </section>
+      <section class="mat-section" id="dag">
+        <h2>3. The pipeline as a directed acyclic graph</h2>
+<p>A pipeline can be described as a graph in which each task is a node and each edge states that a task needs the output, or the effect, of another. The graph is directed, because a dependency has a sense: the gold layer needs the loaded prices, and no load needs the gold layer. It is acyclic, because a cycle would have no first task and could never start. These two properties are what allow a topological order to exist, and an orchestrator only needs that order and the states of the tasks to decide what to run next.</p>
+<p>The graph also says what may run at the same time: two tasks without a path between them do not depend on each other, and an orchestrator can run them in parallel. A false edge, which states a dependency that the data does not have, therefore costs time without adding safety. In Lesson 7 each extraction of prices waited for the extraction of the products, although a price archive does not need the catalogue; the only task that needs both is <code>build_gold</code>, which joins them. Removing that edge lets the five archives download at once, and the run falls from about forty seconds to about nine seconds of tasks.</p>
+<div class="code-wrap"><div class="code-label"><span>the flow of tcg-dataapp 0.2.0 · 17 task runs</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>extract_sets ─▶ extract_products ──────────────────────────┐
+fetch_prices_2026-03-01 ─▶ load_prices_2026-03-01 ─┐        │
+fetch_prices_2026-05-01 ─▶ load_prices_2026-05-01 ─┤        │
+fetch_prices_2026-07-01 ─▶ load_prices_2026-07-01 ─┼────────┴▶ build_gold ─▶ check_quality ─┬▶ freeze_reports ─┐
+fetch_prices_2026-09-01 ─▶ load_prices_2026-09-01 ─┤                                        └▶ export_marts ───┴▶ write_report
+fetch_prices_2026-11-07 ─▶ load_prices_2026-11-07 ─┘</code></pre></div>
+<p>The extraction of prices of Lesson 7 is split in two tasks in the flow, a download and a load. The split is not cosmetic: the download only reads from the network, while the load writes to the warehouse, and Part III shows that the two need opposite options of cache.</p>
+      </section>
+      <div class="part-title"><small>Part II</small><strong>Tasks and flow</strong></div>
+      <section class="mat-section" id="model">
+        <h2>4. Tasks, flows and futures in Prefect 3</h2>
+<p>In Prefect a flow is a Python function decorated with <code>@flow</code>, and a task is a function decorated with <code>@task</code>. A task called inside a flow becomes a task run, with its own state, retries, cache and logs. Calling <code>.submit()</code> on a task sends it to the task runner and returns a future at once; passing that future as an argument to another task makes the second wait for the first and receive its result, and passing it in <code>wait_for</code> makes the second wait without receiving anything. The graph is therefore not declared in a separate structure, as in the runner of Lesson 7: it is the trace of the calls that the flow makes, which also allows loops and conditions in ordinary Python, such as one download per capture date and one extra task when <code>with_today</code> is true.</p>
+<div class="table-wrap"><table><thead><tr><th>Piece</th><th>In flows.py</th><th>What it does</th></tr></thead><tbody><tr><td><code>@task</code></td><td>ten tasks, one per step</td><td>a unit with its own state, retries and cache</td></tr><tr><td><code>@flow</code></td><td><code>tcg_pipeline(with_today)</code></td><td>the run: parameters, logs, final state</td></tr><tr><td><code>.submit()</code></td><td>every task of the flow</td><td>sends the task to the task runner and returns a future</td></tr><tr><td>future as argument</td><td><code>load_prices.submit(s, day, raw)</code></td><td>the load waits for <code>raw</code> and receives its result</td></tr><tr><td><code>wait_for</code></td><td><code>build_gold</code>, <code>write_report</code></td><td>an edge without data</td></tr><tr><td><code>wait()</code></td><td>end of the flow</td><td>waits for every future before reading the states</td></tr><tr><td><code>.with_options()</code></td><td>the network tasks</td><td>a copy of the task with other retries, taken from the settings</td></tr></tbody></table></div>
+<p>The default task runner of Prefect 3 runs the submitted tasks in a pool of threads. A DuckDB connection must not be used by two threads at the same time, so each task opens its own connection through the context manager <code>warehouse(settings)</code> and closes it at the end. In one process, connections to the same file share one database instance, and the loads of different batches, which delete and insert different rows, do not conflict.</p>
+      </section>
+      <section class="mat-section" id="flow">
+        <h2>5. The flow of the reference package</h2>
+<p>The module below is the whole of the orchestration. Each task is a thin wrapper over a function of a layer; the options of each task, discussed in Part III, are in its decorator; and the flow reads the settings from the environment, because a deployment runs it in another process that receives only environment variables and the parameters of the deployment.</p>
+<div class="code-wrap"><div class="code-label"><span>src/tcg_dataapp/flows.py</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>&quot;&quot;&quot;The pipeline of Lesson 7 as a Prefect flow.
+
+The hand-written runner of pipeline.py ordered the tasks, retried them and
+logged them. Here Prefect does those three jobs: each step is a task, the
+dependencies are the futures passed from one task to the next (or wait_for),
+retries and their pauses are options of the task, and every state of every
+run goes to the Prefect server, which shows them in its UI. The layers below
+(etls, processors, views) are the same functions of Lesson 7.
+
+Two rules decide the options of each task:
+
+- a task that writes to the warehouse is never cached, because skipping it
+  would skip the write; it is idempotent instead, so a retry or a rerun is safe;
+- the download of a past day is cached by its inputs, because the archive of
+  a past day never changes, so a rerun does not download it again.
+&quot;&quot;&quot;
+from __future__ import annotations
+
+import datetime
+from contextlib import contextmanager
+
+import duckdb
+from prefect import flow, get_run_logger, task
+from prefect.cache_policies import INPUTS, NO_CACHE, TASK_SOURCE
+from prefect.futures import wait
+from prefect.runtime import flow_run
+
+from tcg_dataapp.config import Settings
+from tcg_dataapp.etls import extract
+from tcg_dataapp.etls.landing import load_batch
+from tcg_dataapp.etls.tcgcsv import TcgcsvClient
+from tcg_dataapp.pipeline import LOG_DDL
+from tcg_dataapp.processors import gold, quality
+from tcg_dataapp.views import report
+
+
+def make_client(settings: Settings) -&gt; TcgcsvClient:
+    &quot;&quot;&quot;The source; the tests replace this function with a fake TCGplayer.&quot;&quot;&quot;
+    return TcgcsvClient(settings.base_url, settings.category)
+
+
+@contextmanager
+def warehouse(settings: Settings):
+    &quot;&quot;&quot;One connection per task: tasks run in threads, and a DuckDB connection must not be shared between them.&quot;&quot;&quot;
+    settings.db_path.parent.mkdir(parents=True, exist_ok=True)
+    con = duckdb.connect(str(settings.db_path))
+    try:
+        yield con
+    finally:
+        con.close()
+
+
+def _unix(moment: datetime.datetime | None) -&gt; int | None:
+    return int(moment.timestamp()) if moment else None
+
+
+def log_state(tsk, task_run, state) -&gt; None:
+    &quot;&quot;&quot;State hook: one row of ops.pipeline_runs per task run, as the runner of Lesson 7 wrote.&quot;&quot;&quot;
+    settings = Settings()
+    with warehouse(settings) as con:
+        for statement in con.extract_statements(LOG_DDL):
+            con.execute(statement).fetchall()
+        con.execute(
+            &quot;INSERT INTO ops.pipeline_runs VALUES (?, ?, ?, ?, ?, ?, ?)&quot;,
+            [str(task_run.flow_run_id).replace(&quot;-&quot;, &quot;&quot;)[:12], task_run.name if tsk.task_run_name else tsk.name,
+             task_run.run_count, state.type.value.lower(), _unix(task_run.start_time),
+             extract.now_unix(), (state.message or &quot;&quot;)[:500]],
+        ).fetchall()
+
+
+def not_a_quality_error(tsk, task_run, state) -&gt; bool:
+    &quot;&quot;&quot;Retry condition: a wrong model does not become right by running again.&quot;&quot;&quot;
+    try:
+        state.result()
+    except quality.QualityError:
+        return False
+    except Exception:  # noqa: BLE001 - any other failure (network, timeout) is worth a retry
+        return True
+    return True
+
+
+WRITES = dict(cache_policy=NO_CACHE, on_completion=[log_state], on_failure=[log_state])
+
+
+@task(name=&quot;extract_sets&quot;, retries=3, retry_delay_seconds=[2, 4, 8], **WRITES)
+def extract_sets(settings: Settings, captured_at: int) -&gt; int:
+    with warehouse(settings) as con:
+        return extract.extract_sets(con, make_client(settings), settings.sets, captured_at)
+
+
+@task(name=&quot;extract_products&quot;, retries=3, retry_delay_seconds=[2, 4, 8], **WRITES)
+def extract_products(settings: Settings, captured_at: int) -&gt; int:
+    with warehouse(settings) as con:
+        return extract.extract_products(con, make_client(settings), settings.sets, captured_at)
+
+
+@task(name=&quot;fetch_prices_archive&quot;, task_run_name=&quot;fetch_prices_{day}&quot;, retries=3, retry_delay_seconds=[2, 4, 8],
+      cache_policy=INPUTS + TASK_SOURCE, persist_result=True)
+def fetch_prices_archive(base_url: str, category: int, sets: tuple, day: str) -&gt; list[dict]:
+    &quot;&quot;&quot;Download the archive of one past day and keep the prices of the sets; no write, so it can be cached.&quot;&quot;&quot;
+    client = make_client(Settings(base_url=base_url, category=category))
+    by_set = client.prices_archive(day, list(sets))
+    return [price for set_id in sets for price in by_set.get(set_id, [])]
+
+
+@task(name=&quot;load_prices&quot;, task_run_name=&quot;load_prices_{day}&quot;, retries=3, retry_delay_seconds=[1, 2, 4], **WRITES)
+def load_prices(settings: Settings, day: str, records: list[dict]) -&gt; int:
+    with warehouse(settings) as con:
+        return load_batch(con, &quot;tcgplayer.price.v1&quot;, extract.unix(day), records)
+
+
+@task(name=&quot;extract_prices_today&quot;, retries=3, retry_delay_seconds=[2, 4, 8], **WRITES)
+def extract_prices_today(settings: Settings) -&gt; int:
+    with warehouse(settings) as con:
+        return extract.extract_prices_today(con, make_client(settings), settings.sets, extract.today())
+
+
+@task(name=&quot;build_gold&quot;, **WRITES)
+def build_gold(settings: Settings) -&gt; str:
+    with warehouse(settings) as con:
+        return gold.build_gold(con)
+
+
+@task(name=&quot;check_quality&quot;, retries=2, retry_condition_fn=not_a_quality_error, **WRITES)
+def check_quality(settings: Settings) -&gt; dict:
+    with warehouse(settings) as con:
+        return quality.check_gold(con)
+
+
+@task(name=&quot;freeze_reports&quot;, **WRITES)
+def freeze_reports(settings: Settings) -&gt; dict:
+    with warehouse(settings) as con:
+        return gold.freeze_month(con, settings.frozen_month)
+
+
+@task(name=&quot;export_marts&quot;, retries=2, retry_delay_seconds=1, **WRITES)
+def export_marts(settings: Settings) -&gt; list[str]:
+    with warehouse(settings) as con:
+        return [p.as_posix() for p in report.export_marts(con, settings.out_dir)]
+
+
+@task(name=&quot;write_report&quot;, **WRITES)
+def write_report(settings: Settings, run_id: str) -&gt; str:
+    with warehouse(settings) as con:
+        return report.write_report(con, settings.out_dir, run_id).as_posix()
+
+
+@flow(name=&quot;tcg-dataapp&quot;, log_prints=True)
+def tcg_pipeline(with_today: bool = False) -&gt; dict:
+    &quot;&quot;&quot;Extract, load, build the gold layer, check it, freeze the month and write the reports.&quot;&quot;&quot;
+    logger = get_run_logger()
+    settings = Settings()
+    run_id = (flow_run.id or &quot;local&quot;).replace(&quot;-&quot;, &quot;&quot;)[:12]
+    captured_at = extract.now_unix()
+    with warehouse(settings) as con:
+        for statement in con.extract_statements(LOG_DDL):
+            con.execute(statement).fetchall()
+    logger.info(&quot;db %s · sets %d · dates %s&quot;, settings.db_path, len(settings.sets), &quot;, &quot;.join(settings.price_dates))
+
+    # the network tasks take their retries from the settings, with a pause that doubles: 2, 4, 8 s by default
+    net = dict(retries=settings.retries,
+               retry_delay_seconds=[settings.retry_delay * 2 ** i for i in range(max(settings.retries, 1))])
+
+    # the catalogue: products after sets, so a missing set stops the run before 1,490 products are loaded
+    sets_f = extract_sets.with_options(**net).submit(settings, captured_at)
+    products_f = extract_products.with_options(**net).submit(settings, captured_at, wait_for=[sets_f])
+
+    # the prices: the downloads depend on nothing and start at once, in parallel; each load waits for its download
+    loads = []
+    for day in settings.price_dates:
+        raw = fetch_prices_archive.with_options(**net).submit(
+            settings.base_url, settings.category, settings.sets, day)
+        loads.append(load_prices.submit(settings, day, raw))
+    if with_today:
+        loads.append(extract_prices_today.with_options(**net).submit(settings, wait_for=[products_f]))
+
+    # the model: one chain, and the two outputs of the checks in parallel
+    gold_f = build_gold.submit(settings, wait_for=[products_f, *loads])
+    quality_f = check_quality.submit(settings, wait_for=[gold_f])
+    freeze_f = freeze_reports.submit(settings, wait_for=[quality_f])
+    marts_f = export_marts.submit(settings, wait_for=[quality_f])
+    report_f = write_report.submit(settings, run_id, wait_for=[freeze_f, marts_f])
+
+    futures = {&quot;extract_sets&quot;: sets_f, &quot;extract_products&quot;: products_f, &quot;build_gold&quot;: gold_f,
+               &quot;check_quality&quot;: quality_f, &quot;freeze_reports&quot;: freeze_f, &quot;export_marts&quot;: marts_f,
+               &quot;write_report&quot;: report_f}
+    futures.update({f&quot;load_prices_{d}&quot;: f for d, f in zip(settings.price_dates, loads)})
+    if with_today:
+        futures[&quot;extract_prices_today&quot;] = loads[-1]
+    wait(list(futures.values()))
+
+    results, failed = {}, []
+    for name, future in futures.items():
+        if future.state.is_completed():
+            results[name] = future.result()
+        else:
+            failed.append(name)
+    if failed:
+        raise RuntimeError(f&quot;run {run_id} failed: {&#x27;, &#x27;.join(sorted(failed))}&quot;)
+    logger.info(&quot;run %s: OK · %s&quot;, run_id, results[&quot;check_quality&quot;])
+    return results
+
+
+def serve(cron: str = &quot;0 6 * * *&quot;) -&gt; None:
+    &quot;&quot;&quot;A deployment of the flow on a schedule; needs a Prefect server (prefect server start).&quot;&quot;&quot;
+    tcg_pipeline.serve(name=&quot;daily&quot;, cron=cron, parameters={&quot;with_today&quot;: True},
+                       description=&quot;TCGplayer prices of the 2026 sets, every day at 06:00 UTC&quot;,
+                       tags=[&quot;m8-si&quot;, &quot;lesson-8&quot;])</code></pre></div>
+<p>At the end, the flow waits for every future and reads its final state. When any task did not complete, the flow raises an error that names those tasks, so the flow run ends Failed and its message says where the run stopped; when all completed, it returns the results of the tasks, which the command <code>tcg-dataapp flow</code> prints.</p>
+      </section>
+      <section class="mat-section" id="first">
+        <h2>6. The first run</h2>
+<p>Without a server configured, <code>tcg-dataapp flow</code> starts a temporary Prefect server in the same process, runs the flow and stops the server, which is enough to run and to test the flow before step 04. The first run of the rehearsal reproduced the model of Lessons 6 and 7 exactly, in about a quarter of the time of the runner, because the five downloads ran at the same time and the slowest task became the extraction of the 1,490 products, which reads the catalogue of each set in turn.</p>
+<div class="table-wrap"><table><thead><tr><th>Measure</th><th>Runner (Lesson 7)</th><th>Flow (Lesson 8)</th></tr></thead><tbody><tr><td>tasks</td><td>12, one at a time</td><td>17 task runs, the downloads in parallel</td></tr><tr><td>first task to last</td><td>about 40 s</td><td>about 9 s</td></tr><tr><td>whole command</td><td>about 40 s</td><td>17.4 s, with the temporary server</td></tr><tr><td>model</td><td>7 sets · 1,490 products · 5,951 prices in 5 captures</td><td>the same</td></tr><tr><td>grain and cube</td><td>5,951 rows = 5,951 keys · 524 cells</td><td>the same</td></tr><tr><td>frozen report</td><td><code>mv_card_price_2026_09</code>, 1,226 rows, Pikachu ex 276/217 at US$ 1,049.08</td><td>the same</td></tr></tbody></table></div>
+      </section>
+      <div class="part-title"><small>Part III</small><strong>Failures and cache</strong></div>
+      <section class="mat-section" id="states">
+        <h2>7. States of a task run</h2>
+<p>Prefect records every change of state of every task run in its server, and the final state of a task decides what happens downstream. A task whose upstream tasks all ended in a Completed state runs; a task with an upstream in any other state does not run and ends Pending with the type NotReady, which the log shows as <em>Upstream task run did not reach a COMPLETED state</em>. Cached is a Completed state whose result came from an earlier run, so it counts as success for the tasks downstream.</p>
+<p>A task that raises an exception with retries left goes to AwaitingRetry and starts again after its pause, and the number of runs of the task grows by one at each attempt. Without retries left, it ends Failed. The distinction between Failed and NotReady matters when reading a failed run: the failed tasks are where the cause is, and the NotReady tasks are only its consequence.</p>
+      </section>
+      <section class="mat-section" id="retries">
+        <h2>8. Retries and the retry condition</h2>
+<p>A retry is worth its cost only when the cause of the failure can disappear by itself, as in a network that drops a connection or a source that answers with an error for a few seconds. The network tasks of the flow take their number of retries from <code>TCG_RETRIES</code> and a pause that doubles at each attempt from <code>TCG_RETRY_DELAY</code>, 2, 4 and 8 seconds by default, which gives a source that is restarting time to come back without delaying a run much when it does not. The tasks that build the model have no retries, because a wrong model does not become right by running again on the same data.</p>
+<p><code>check_quality</code> sits between the two cases. It can fail because the file of the warehouse is momentarily locked, which a retry solves, or because the grain broke, which a retry does not solve. The option <code>retry_condition_fn</code> receives the failed state and decides: the function <code>not_a_quality_error</code> refuses the retry when the exception is a <code>QualityError</code> and accepts it for any other.</p>
+<div class="code-wrap"><div class="code-label"><span>the retry condition of check_quality</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>def not_a_quality_error(tsk, task_run, state) -&gt; bool:
+    try:
+        state.result()
+    except quality.QualityError:
+        return False
+    except Exception:
+        return True
+    return True</code></pre></div>
+      </section>
+      <section class="mat-section" id="cache">
+        <h2>9. Cache and idempotency</h2>
+<p>A cached task does not run: Prefect computes a key from the cache policy, finds a result stored under that key and returns it. The policy <code>INPUTS + TASK_SOURCE</code> computes the key from the arguments of the task and from its source code, so the key changes when the date changes and also when someone edits the task, which avoids reusing a result produced by an older version of the code. The result must be persisted, with <code>persist_result=True</code>, for a later run to find it; by default Prefect writes it under <code>~/.prefect/storage</code>.</p>
+<p>The archive of a past day never changes, so its download is cached, and the second run of the rehearsal read the five archives from the cache instead of the network. A write is the opposite case. If the load of a day were cached, a run after the file of the warehouse was deleted would report the load as Cached and leave the table empty. Every task that writes therefore uses <code>NO_CACHE</code>, and what makes it safe to repeat is idempotency: <code>load_batch</code> replaces its batch, the dimensions keep the last version of each member, and the frozen report is created only once. Cache avoids repeating work; idempotency makes repeating a write harmless.</p>
+<div class="table-wrap"><table><thead><tr><th>Task</th><th>Writes?</th><th>Retries</th><th>Cache</th><th>Reason</th></tr></thead><tbody><tr><td><code>extract_sets</code>, <code>extract_products</code>, <code>extract_prices_today</code></td><td>yes</td><td><code>TCG_RETRIES</code>, 2, 4, 8 s</td><td>none</td><td>network; the prices of today change during the day</td></tr><tr><td><code>fetch_prices_&lt;day&gt;</code></td><td>no</td><td><code>TCG_RETRIES</code>, 2, 4, 8 s</td><td><code>INPUTS + TASK_SOURCE</code></td><td>the archive of a past day never changes</td></tr><tr><td><code>load_prices_&lt;day&gt;</code></td><td>yes</td><td>3</td><td>none</td><td>the batch is replaced</td></tr><tr><td><code>build_gold</code>, <code>freeze_reports</code>, <code>write_report</code></td><td>yes</td><td>0</td><td>none</td><td>a wrong model does not improve by running again</td></tr><tr><td><code>check_quality</code></td><td>no</td><td>2, except a <code>QualityError</code></td><td>none</td><td>retry condition</td></tr><tr><td><code>export_marts</code></td><td>yes</td><td>2</td><td>none</td><td>writes files that are overwritten</td></tr></tbody></table></div>
+      </section>
+      <section class="mat-section" id="hooks">
+        <h2>10. State hooks and the run log</h2>
+<p>The server of Prefect keeps the history of the runs, but the warehouse kept its own log in Lesson 7, and <code>tcg-dataapp status</code> reads it. The flow keeps that table through state hooks: the function <code>log_state</code>, attached to the tasks that write with <code>on_completion</code> and <code>on_failure</code>, receives the task, the task run and the final state, and writes one row with the identifier of the flow run, the name of the task, the number of runs of the task as the attempt, the state and the start and end in Unix time. A hook runs only on a final state, so the log has one row per task run instead of one per attempt, and a NotReady task, which never ran, has no row.</p>
+      </section>
+      <section class="mat-section" id="three">
+        <h2>11. Three runs, three behaviours</h2>
+<p>The rehearsal ran the flow three times on the same warehouse, to check each behaviour that the options promise.</p>
+<div class="table-wrap"><table><thead><tr><th>Run</th><th>What happens</th><th>Result</th></tr></thead><tbody><tr><td>first</td><td>17 task runs Completed</td><td>5,951 prices; September frozen with 1,226 rows; 12 rows in the log</td></tr><tr><td>second</td><td>the five <code>fetch_prices</code> end Cached; the loads write again</td><td>set records 14, product records 2,980, fact still 5,951; report kept; 13.1 s</td></tr><tr><td>source down, <code>TCG_RETRIES=2</code>, <code>TCG_RETRY_DELAY=1</code></td><td>six network tasks fail three times, with pauses of 1 s and 2 s</td><td>eleven tasks NotReady; flow Failed in about 3 s; nothing written</td></tr></tbody></table></div>
+<div class="code-wrap"><div class="code-label"><span>the log of the run with the source down (excerpt)</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>Task run &#x27;extract_sets-034&#x27; - Task run failed with exception: URLError(gaierror(-2, &#x27;Name or service not known&#x27;)) - Retry 1/2 will start 1.0 second(s) from now
+Task run &#x27;extract_sets-034&#x27; - Task run failed with exception: URLError(...) - Retry 2/2 will start 2.0 second(s) from now
+Task run &#x27;extract_sets-034&#x27; - Task run failed with exception: URLError(...) - Retries are exhausted
+Task run &#x27;extract_products-5fd&#x27; - Finished in state NotReady(&quot;Upstream task run &#x27;...&#x27; did not reach a &#x27;COMPLETED&#x27; state.&quot;, type=PENDING)
+Task run &#x27;build_gold-9de&#x27; - Finished in state NotReady(&quot;Upstream task run &#x27;...&#x27; did not reach a &#x27;COMPLETED&#x27; state.&quot;, type=PENDING)
+Flow run &#x27;lurking-eel&#x27; - Finished in state Failed(&#x27;Flow run encountered an exception: RuntimeError: run bcc1015e747b failed: build_gold, check_quality, ...&#x27;)</code></pre></div>
+      </section>
+      <div class="part-title"><small>Part IV</small><strong>Tests</strong></div>
+      <section class="mat-section" id="tests">
+        <h2>12. Testing the flow without the network</h2>
+<p>The nine tests of Lesson 7 test the layers and the runner, and they keep passing. The flow has five tests of its own, which run it over the same fake TCGplayer of two sets in <code>tests/conftest.py</code>. Three choices make these tests isolated and fast enough. The fixture <code>prefect_test_harness()</code>, with the scope of the session, starts one temporary Prefect server and database for all the tests, so nothing is written to the Prefect of the user. The settings are passed by environment variables with <code>monkeypatch.setenv</code>, as a deployment would pass them. And the result storage of Prefect points to a temporary folder in each test, because otherwise the cache of the downloads of one test would be found by the next.</p>
+<div class="table-wrap"><table><thead><tr><th>Test</th><th>What it proves</th></tr></thead><tbody><tr><td><code>test_the_flow_builds_gold_and_logs_every_task</code></td><td>the flow gives the same model as the runner and logs each task</td></tr><tr><td><code>test_a_second_run_reuses_the_downloads_and_keeps_the_grain</code></td><td>each archive is downloaded once in two runs; the grain and the frozen report hold</td></tr><tr><td><code>test_a_network_failure_is_retried_by_prefect</code></td><td>a source that fails once: <code>extract_sets</code> completed at attempt 2</td></tr><tr><td><code>test_a_task_that_keeps_failing_stops_everything_downstream</code></td><td>the flow fails, names the tasks and writes no report</td></tr><tr><td><code>test_a_quality_error_is_not_retried</code></td><td>the retry condition: <code>check_quality</code> runs once</td></tr></tbody></table></div>
+<p>The 14 tests pass in about 13 seconds, most of it the start of the temporary server.</p>
+<div class="code-wrap"><div class="code-label"><span>tests/test_flows.py</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>&quot;&quot;&quot;The Prefect flow over the fake TCGplayer: same results as the runner of Lesson 7, with Prefect doing the retries.&quot;&quot;&quot;
+import duckdb
+import pytest
+from prefect.settings import PREFECT_LOCAL_STORAGE_PATH, temporary_settings
+from prefect.testing.utilities import prefect_test_harness
+
+from tcg_dataapp import flows
+from tcg_dataapp.processors import quality
+
+from conftest import FakeClient
+
+
+@pytest.fixture(scope=&quot;session&quot;, autouse=True)
+def prefect_server():
+    &quot;&quot;&quot;A temporary Prefect server and database for the whole session.&quot;&quot;&quot;
+    with prefect_test_harness():
+        yield
+
+
+@pytest.fixture
+def env(settings, monkeypatch, tmp_path):
+    &quot;&quot;&quot;The flow reads its settings from the environment, as it does when a deployment runs it.&quot;&quot;&quot;
+    monkeypatch.setenv(&quot;TCG_DB_PATH&quot;, str(settings.db_path))
+    monkeypatch.setenv(&quot;TCG_OUT_DIR&quot;, str(settings.out_dir))
+    monkeypatch.setenv(&quot;TCG_SETS&quot;, &quot;1,2&quot;)
+    monkeypatch.setenv(&quot;TCG_PRICE_DATES&quot;, &quot;2026-08-01,2026-09-01&quot;)
+    monkeypatch.setenv(&quot;TCG_FROZEN_MONTH&quot;, &quot;2026-08&quot;)
+    monkeypatch.setenv(&quot;TCG_RETRIES&quot;, &quot;1&quot;)
+    monkeypatch.setenv(&quot;TCG_RETRY_DELAY&quot;, &quot;0&quot;)
+    with temporary_settings({PREFECT_LOCAL_STORAGE_PATH: tmp_path / &quot;prefect-results&quot;}):
+        yield settings
+
+
+def use(monkeypatch, client):
+    monkeypatch.setattr(flows, &quot;make_client&quot;, lambda _settings: client)
+    return client
+
+
+def log(settings, task=None):
+    con = duckdb.connect(str(settings.db_path), read_only=True)
+    sql = &quot;SELECT task, attempt, status FROM ops.pipeline_runs&quot;
+    rows = con.execute(sql + (&quot; WHERE task = ?&quot; if task else &quot;&quot;) + &quot; ORDER BY started_at, task&quot;, [task] if task else []).fetchall()
+    con.close()
+    return rows
+
+
+def test_the_flow_builds_gold_and_logs_every_task(env, monkeypatch):
+    use(monkeypatch, FakeClient())
+    state = flows.tcg_pipeline(return_state=True)
+    assert state.is_completed()
+    results = state.result()
+    assert results[&quot;check_quality&quot;][&quot;fact_rows&quot;] == results[&quot;check_quality&quot;][&quot;fact_grain_keys&quot;] == 6
+    assert results[&quot;freeze_reports&quot;][&quot;mv_card_price_2026_08&quot;].startswith(&quot;created&quot;)
+    assert (env.out_dir / &quot;report.md&quot;).exists()
+    assert {t for t, _, s in log(env) if s == &quot;completed&quot;} == {
+        &quot;extract_sets&quot;, &quot;extract_products&quot;, &quot;load_prices_2026-08-01&quot;, &quot;load_prices_2026-09-01&quot;,
+        &quot;build_gold&quot;, &quot;check_quality&quot;, &quot;freeze_reports&quot;, &quot;export_marts&quot;, &quot;write_report&quot;}
+
+
+def test_a_second_run_reuses_the_downloads_and_keeps_the_grain(env, monkeypatch):
+    client = use(monkeypatch, FakeClient())
+    calls = []
+    original = client.prices_archive
+    monkeypatch.setattr(client, &quot;prices_archive&quot;, lambda day, groups: calls.append(day) or original(day, groups))
+    flows.tcg_pipeline()
+    second = flows.tcg_pipeline()
+    assert sorted(calls) == [&quot;2026-08-01&quot;, &quot;2026-09-01&quot;]  # each archive downloaded once: the second run hit the cache
+    assert second[&quot;check_quality&quot;][&quot;fact_rows&quot;] == 6
+    assert second[&quot;freeze_reports&quot;][&quot;mv_card_price_2026_08&quot;] == &quot;kept&quot;
+
+
+def test_a_network_failure_is_retried_by_prefect(env, monkeypatch):
+    use(monkeypatch, FakeClient(fail_times=1))
+    assert flows.tcg_pipeline(return_state=True).is_completed()
+    assert log(env, &quot;extract_sets&quot;) == [(&quot;extract_sets&quot;, 2, &quot;completed&quot;)]
+
+
+def test_a_task_that_keeps_failing_stops_everything_downstream(env, monkeypatch):
+    use(monkeypatch, FakeClient(fail_times=99))
+    state = flows.tcg_pipeline(return_state=True)
+    assert state.is_failed()
+    assert &quot;extract_sets&quot; in state.message and &quot;write_report&quot; in state.message
+    assert log(env, &quot;extract_sets&quot;) == [(&quot;extract_sets&quot;, 2, &quot;failed&quot;)]
+    assert not (env.out_dir / &quot;report.md&quot;).exists()
+
+
+def test_a_quality_error_is_not_retried(env, monkeypatch):
+    use(monkeypatch, FakeClient())
+    calls = []
+
+    def broken(con):
+        calls.append(1)
+        raise quality.QualityError(&quot;grain broken&quot;)
+
+    monkeypatch.setattr(quality, &quot;check_gold&quot;, broken)
+    state = flows.tcg_pipeline(return_state=True)
+    assert state.is_failed()
+    assert len(calls) == 1
+    assert not (env.out_dir / &quot;report.md&quot;).exists()</code></pre></div>
+      </section>
+      <div class="part-title"><small>Part V</small><strong>Deployment and monitoring</strong></div>
+      <section class="mat-section" id="deployment">
+        <h2>13. Server, deployment and the serving process</h2>
+<p>Running every day without a person requires three pieces. The server keeps the state of every run in its database and serves the UI. The deployment is the record, in the server, of what to run, when and with which parameters: the deployment <code>daily</code> of the flow <code>tcg-dataapp</code> has the cron <code>0 6 * * *</code> and the parameter <code>with_today</code> set to true. The process started by <code>flow.serve()</code> registers the deployment, polls the server and runs each flow run that is due, and it is the only one of the three that executes code of the DataApp; when it stops, the scheduled runs wait.</p>
+<div class="code-wrap"><div class="code-label"><span>three terminals, in the folder of the project, with the virtual environment active</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code># 1 · the server and the UI at http://127.0.0.1:4200
+prefect server start
+
+# 2 · the deployment &#x27;daily&#x27;, served by this process (Ctrl+C stops it)
+prefect config set PREFECT_API_URL=http://127.0.0.1:4200/api
+tcg-dataapp serve                          # cron 0 6 * * *, with_today=True
+
+# 3 · a run now, without waiting for the schedule
+prefect deployment run &#x27;tcg-dataapp/daily&#x27;
+prefect flow-run ls --limit 5</code></pre></div>
+<p>In the rehearsal, the run triggered by hand had 18 task runs, the five downloads Cached and the prices of today added as a sixth capture: 7,782 prices, 697 cells in the cube, the same numbers as <code>tcg-dataapp run --with-today</code> in Lesson 7. The list of flow runs showed it Completed, followed by the next three runs of the deployment, Scheduled for 06:00 UTC of the following days.</p>
+      </section>
+      <section class="mat-section" id="cron">
+        <h2>14. The schedule and its time zone</h2>
+<p>A cron expression has five fields, minute, hour, day of the month, month and day of the week, and <code>0 6 * * *</code> means minute zero of hour six of every day. The schedule of the deployment has no time zone, so Prefect reads it in UTC, and the run starts at 03:00 in São Paulo. The choice of the hour follows the source: tcgcsv publishes the archive of each day after the end of that day, so a run in the early morning finds the data of the day before complete. For a group whose partner data changes once a week, a weekly cron such as <code>0 6 * * 1</code> fits better, because a daily run would only repeat the same work.</p>
+<p>For a demonstration in class, <code>tcg-dataapp serve --cron "*/15 * * * *"</code> serves the same deployment every fifteen minutes, which shows scheduled runs becoming running and completed runs in the UI during the session.</p>
+      </section>
+      <section class="mat-section" id="ui">
+        <h2>15. Monitoring in the UI</h2>
+<p>The UI of the local server, at <code>http://127.0.0.1:4200</code>, lists the flow runs with their states and durations, and the page of a flow run draws the graph of its task runs over a time axis, so the five downloads appear side by side and the chain of the model after them. Each task run shows its state, its number of runs and its logs, and a failed run shows the exception of the failed task and the NotReady tasks that followed it. The page of the deployment shows its schedule, its parameters and its next runs, and a run can be triggered from it with other parameters.</p>
+<p>The UI answers the questions that the log of Lesson 7 answered only with SQL: which run failed, at which task, after how many attempts, and how long each task took. It does not replace the quality gates, which check the data; the UI shows the execution, and the gates decide whether the result can be published.</p>
+      </section>
+      <section class="mat-section" id="airflow">
+        <h2>16. Prefect, Airflow and the runner</h2>
+<div class="table-wrap"><table><thead><tr><th></th><th>Runner of Lesson 7</th><th>Prefect 3</th><th>Apache Airflow</th></tr></thead><tbody><tr><td>the graph</td><td>a list of tasks with names of dependencies</td><td>Python calls; the graph appears as the flow runs, so loops and conditions are allowed</td><td>a DAG file parsed by the scheduler; operators or the TaskFlow API</td></tr><tr><td>to run once</td><td>the command</td><td>the function; a temporary server starts by itself</td><td>a scheduler, a metadata database and an executor</td></tr><tr><td>schedule</td><td>crontab, outside the code</td><td>the deployment, separate from the flow</td><td>part of the DAG definition</td></tr><tr><td>passing data</td><td>a shared context</td><td>results of futures, in memory or persisted</td><td>XCom, meant for small values</td></tr><tr><td>history and UI</td><td>a table and <code>status</code></td><td>server with UI; Prefect Cloud as a service</td><td>web server with UI; managed services in the clouds</td></tr></tbody></table></div>
+<p>The three run the same graph, and they differ in where the graph is declared, in what must be running before the first task and in where the history is kept. Airflow was built to run many pipelines of many teams on a shared platform, which justifies a scheduler and a database that are always running. The DataApp of this module is a Python package of one team that already runs on a laptop, and Prefect adds orchestration to it without a change in the layers and without infrastructure to install before the first run, which is why the module uses it.</p>
+      </section>
+      <div class="part-title"><small>Part VI</small><strong>Lab</strong></div>
+      <section class="mat-section" id="steps">
+        <h2>17. The lab in four steps</h2>
+<p>The professor starts from a copy of the package of Lesson 7 with Prefect installed, builds the flow with the four prompts below and compares each step with the reference package 0.2.0. Each prompt states the facts measured in the rehearsal, so that both the agent and the class can check the result.</p><h3>Step 01 · Tasks and flow</h3><div class="code-wrap"><div class="code-label"><span>Prompt 01 · CREATE</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>[C] Character
+You are the Python engineer who wrote tcg-dataapp in Lesson 7. Its
+pipeline.py orders the twelve tasks, retries them and logs them by hand.
+Now Prefect 3 does that work, and the three layers stay as they are.
+
+[R] Request
+1. pyproject.toml: version 0.2.0 and the dependency prefect&gt;=3.4,&lt;4.
+2. src/tcg_dataapp/flows.py with one Prefect task per step, each one a
+   thin wrapper over the functions of etls/, processors/ and views/:
+   extract_sets, extract_products, fetch_prices_archive (download only,
+   returns the prices of the seven sets of one day), load_prices (writes
+   one day with load_batch), extract_prices_today, build_gold,
+   check_quality, freeze_reports, export_marts and write_report.
+3. A flow tcg_pipeline(with_today: bool = False) that reads Settings()
+   from the environment and submits the tasks with .submit(), passing the
+   dependencies as futures or wait_for:
+   extract_sets -&gt; extract_products; each fetch_prices_&lt;day&gt; -&gt; its
+   load_prices_&lt;day&gt;; extract_products and every load -&gt; build_gold -&gt;
+   check_quality -&gt; freeze_reports and export_marts -&gt; write_report.
+   At the end, wait() on every future and fail the flow naming the tasks
+   that did not complete.
+4. A function make_client(settings) that returns the TcgcsvClient, so the
+   tests can replace it.
+5. cli.py: a subcommand flow [--with-today] that runs the flow once and
+   prints its final state; the subcommand run of Lesson 7 stays.
+
+Facts measured on 08/11/2026 (confirm before use):
+- tcg-dataapp run (Lesson 7 runner, sequential): 12 tasks in about 40 s.
+- tcg-dataapp flow: the five downloads run in parallel and the whole run
+  takes about 9 s of tasks (17 s with the temporary server).
+
+[E] Example
+@task(name=&quot;load_prices&quot;, task_run_name=&quot;load_prices_{day}&quot;, cache_policy=NO_CACHE)
+def load_prices(settings: Settings, day: str, records: list[dict]) -&gt; int:
+    with warehouse(settings) as con:
+        return load_batch(con, &quot;tcgplayer.price.v1&quot;, extract.unix(day), records)
+
+[A] Adjustments
+- Do not change etls/, processors/ or views/: the flow only calls them.
+- Tasks run in threads: open one DuckDB connection per task (a context
+  manager warehouse(settings)), never share one connection.
+- The downloads depend on nothing and must start at once; only the writes
+  wait for what they need.
+- Every date stays Unix time in seconds.
+
+[T] Type of output
+The files, the graph of the flow in text and the output of
+tcg-dataapp flow, with the final numbers of check_quality.
+
+[E] Extras
+Show the plan before editing. Record this prompt in docs/prompts.md.
+Stop at the end.</code></pre></div><p>Review before moving on:</p><ul><li>the five fetch_prices start in the same second</li><li>each task opens its own DuckDB connection</li><li>check_quality still gives 5,951 = 5,951 keys and 524 cells</li></ul><h3>Step 02 · Failures and cache</h3><div class="code-wrap"><div class="code-label"><span>Prompt 02 · CREATE</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>[C] Character
+You are the same engineer. The flow runs; now it must survive a source
+that fails, never retry what cannot improve, and not download again what
+never changes.
+
+[R] Request
+1. Retries: the tasks that use the network (extract_sets,
+   extract_products, fetch_prices_archive, extract_prices_today) take
+   retries from TCG_RETRIES and a pause that doubles from TCG_RETRY_DELAY
+   (2, 4, 8 s by default), applied in the flow with .with_options().
+2. A retry condition on check_quality: a QualityError is never retried;
+   any other exception is.
+3. Cache: fetch_prices_archive uses cache_policy=INPUTS + TASK_SOURCE and
+   persist_result=True, because the archive of a past day never changes.
+   Every task that writes to the warehouse uses cache_policy=NO_CACHE.
+4. State hooks: on_completion and on_failure write one row per task run
+   to ops.pipeline_runs (run_id, task, attempt = run_count, status,
+   started_at, ended_at in Unix time, detail), the same table as Lesson 7.
+5. Run it three times and show: the first run; a second run in which the
+   five downloads end Cached and the fact still has 5,951 rows; a run with
+   TCG_BASE_URL=https://tcgcsv.invalid and TCG_RETRIES=2, in which the
+   network tasks fail after two retries and every dependent ends NotReady.
+
+[E] Example
+@task(name=&quot;check_quality&quot;, retries=2, retry_condition_fn=not_a_quality_error,
+      cache_policy=NO_CACHE, on_completion=[log_state], on_failure=[log_state])
+
+[A] Adjustments
+- Caching a write would skip the write: idempotency, not cache, makes a
+  write safe to repeat.
+- Do not cache extract_prices_today: today&#x27;s prices change during the day.
+- A task that ends NotReady never ran; do not count it as failed in the log.
+
+[T] Type of output
+The diff of flows.py, the three runs (states of each task) and the rows
+of ops.pipeline_runs of each run.
+
+[E] Extras
+Show the plan before editing. Stop at the end.</code></pre></div><p>Review before moving on:</p><ul><li>second run: five Cached and the fact still 5,951 rows</li><li>source down: three attempts, eleven NotReady, nothing written</li><li>a QualityError runs check_quality once</li></ul><h3>Step 03 · Tests</h3><div class="code-wrap"><div class="code-label"><span>Prompt 03 · CREATE</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>[C] Character
+You are the same engineer. The nine tests of Lesson 7 test the runner;
+the flow needs its own tests, still without network.
+
+[R] Request
+tests/test_flows.py, reusing the FakeClient of tests/conftest.py:
+1. A session fixture with prefect_test_harness(), so the tests use a
+   temporary Prefect server and database.
+2. A fixture that sets TCG_DB_PATH, TCG_OUT_DIR, TCG_SETS=1,2,
+   TCG_PRICE_DATES=2026-08-01,2026-09-01, TCG_FROZEN_MONTH=2026-08,
+   TCG_RETRIES=1 and TCG_RETRY_DELAY=0 with monkeypatch, points
+   PREFECT_LOCAL_STORAGE_PATH to tmp_path, and replaces
+   flows.make_client with the fake.
+3. Five tests:
+   - the flow completes, the fact has 6 rows = 6 keys, August is frozen,
+     report.md exists, and ops.pipeline_runs has every task completed;
+   - a second run downloads each archive only once (cache) and keeps the
+     grain and the frozen report;
+   - a source that fails once is retried by Prefect: extract_sets logged
+     with attempt 2, completed;
+   - a source that keeps failing fails the flow, logs extract_sets with
+     attempt 2, failed, and writes no report;
+   - a QualityError runs check_quality once and writes no report.
+
+[E] Example
+state = flows.tcg_pipeline(return_state=True)
+assert state.is_failed()
+
+[A] Adjustments
+- The tests never touch the network, and the nine tests of Lesson 7 keep
+  passing.
+- The fake is injected by monkeypatch, never by a flag in the code.
+
+[T] Type of output
+The file and the output of pytest.
+
+[E] Extras
+Show the plan before editing. Stop at the end.</code></pre></div><p>Review before moving on:</p><ul><li>14 tests pass without network</li><li>the second run downloads each archive once</li><li>the fake is injected by monkeypatch</li></ul><h3>Step 04 · Deployment</h3><div class="code-wrap"><div class="code-label"><span>Prompt 04 · CREATE</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>[C] Character
+You are the same engineer. The flow runs and is tested; now it must run
+every day without anyone typing a command, and its runs must be visible.
+
+[R] Request
+1. flows.py: a function serve(cron=&quot;0 6 * * *&quot;) that calls
+   tcg_pipeline.serve(name=&quot;daily&quot;, cron=cron,
+   parameters={&quot;with_today&quot;: True}, tags=[&quot;m8-si&quot;, &quot;lesson-8&quot;]).
+2. cli.py: a subcommand serve [--cron].
+3. README.md: how to start the local server and the deployment in two
+   terminals, how to trigger a run by hand, and where to see the runs:
+     terminal 1: prefect server start
+     terminal 2: prefect config set PREFECT_API_URL=http://127.0.0.1:4200/api
+                 tcg-dataapp serve
+     terminal 3: prefect deployment run &#x27;tcg-dataapp/daily&#x27;
+     UI:         http://127.0.0.1:4200
+4. Run it: start the server, serve the deployment, trigger one run, and
+   show the scheduled runs of the next days and the states of the tasks of
+   the run you triggered.
+
+Facts measured on 08/11/2026 (confirm before use):
+- the triggered run of the deployment, with today&#x27;s prices: 18 task runs,
+  the five downloads Cached, 7,782 prices in 6 captures, 697 cells.
+- the cron has no timezone, so 06:00 is UTC (03:00 in Sao Paulo).
+
+[E] Example
+prefect deployment inspect &#x27;tcg-dataapp/daily&#x27;
+
+[A] Adjustments
+- serve() keeps the process alive: it is the worker of the deployment;
+  stop it with Ctrl+C.
+- Do not create an account on Prefect Cloud; the local server is enough.
+- The README replaces the crontab line of Lesson 7.
+
+[T] Type of output
+The files, the output of the three terminals and a description of what
+the UI shows on the page of the run (graph, states, logs).
+
+[E] Extras
+Show the plan before editing. Stop at the end.</code></pre></div><p>Review before moving on:</p><ul><li>prefect deployment inspect shows the cron 0 6 * * *</li><li>a run triggered by hand appears in the UI with 18 task runs</li><li>the next three runs are scheduled</li></ul>
+      </section>
+      <section class="mat-section" id="groups">
+        <h2>18. The second hour</h2>
+<p>In the second hour each group orchestrates the pipeline of the DataApp that it packaged in Lesson 7, with the prompt below adapted to the partner data. The first deliverable is the graph itself, in <code>docs/dag.md</code>, with the reason of each edge, because the false edges and the tasks that can run in parallel appear only when the graph is written down. The options of each task must come with their reasons, in the terms of Part III: what can fail for an external reason, what a retry cannot fix, and which tasks write. The activity is not graded; its tests and its graph are the starting point of Lesson 9, in which each student derives quality scenarios for the DataApp and turns them into test cases.</p>
+<div class="code-wrap"><div class="code-label"><span>Prompt 05 · CREATE · the DataApp of the group</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>[C] Character
+You are the orchestration engineer of our group. The DataApp of the group
+was packaged in three layers in Lesson 7; its pipeline still runs by
+hand or by a hand-written runner.
+
+[R] Request
+1. docs/dag.md: the tasks of our pipeline, the dependency of each one and
+   why it exists, drawn as a graph in text; which tasks can run in
+   parallel; which tasks write and which only read or download.
+2. src/&lt;package&gt;/flows.py: one Prefect task per step over the existing
+   functions, and one flow that submits them with their dependencies.
+3. For each task, its options with a reason: retries and the pause (only
+   for what can fail for an external reason), a retry condition where a
+   retry cannot help, a cache policy (NO_CACHE for every write), a timeout
+   for calls to the partner API or to ClickHouse.
+4. tests/test_flows.py with prefect_test_harness and a fake source: a run
+   that completes, a failure that is retried, a failure that stops the
+   dependents.
+5. A deployment served with a cron that fits the partner data (how often
+   does the source change?), and one run triggered and seen in the UI.
+
+[E] Example
+raw = fetch_orders.submit(day)            # download, no write
+loaded = load_orders.submit(day, raw)     # write, waits for raw
+
+[A] Adjustments
+- Keep the three layers: the flow only calls them.
+- Credentials of ClickHouse and of the partner API come from environment
+  variables and never enter the repository.
+- Every date stays Unix time in seconds.
+
+[T] Type of output
+The files, the output of one flow run and of pytest, and the cron chosen
+with its reason.</code></pre></div>
+      </section>
+      <section class="mat-section" id="numbers">
+        <h2>19. Reference numbers</h2>
+<div class="table-wrap"><table><thead><tr><th>Measure</th><th>Value</th></tr></thead><tbody><tr><td>first <code>tcg-dataapp flow</code></td><td>17 task runs Completed; about 9 s from the first task to the last; 17.4 s with the temporary server</td></tr><tr><td>model</td><td>7 sets, 1,490 products, 5,951 prices in 5 captures; 5,951 rows = 5,951 keys; 524 cells</td></tr><tr><td>frozen report</td><td><code>report.mv_card_price_2026_09</code> with 1,226 rows; Pikachu ex 276/217 at US$ 1,049.08</td></tr><tr><td>second run</td><td>five downloads Cached; fact 5,951 rows; frozen report kept; 13.1 s</td></tr><tr><td>source down</td><td>six network tasks Failed after 3 attempts; eleven NotReady; about 3 s; nothing written</td></tr><tr><td>deployment run with today</td><td>18 task runs; 7,782 prices in 6 captures; 697 cells; next three runs scheduled at 06:00 UTC</td></tr><tr><td>runner of Lesson 7</td><td>12 tasks in about 40 s</td></tr><tr><td>tests</td><td>14 passed in about 13 s, without network</td></tr></tbody></table></div>
+      </section>
+      <section class="mat-section" id="mistakes">
+        <h2>20. Recurring mistakes of agents</h2>
+<p>The traps below were met or avoided while the flow was rehearsed on 08/11/2026, and the prompts already carry the corresponding adjustments.</p>
+<h3>One connection for every task</h3>
+<p>An agent that opens one DuckDB connection in the flow and passes it to the tasks makes threads share it, which fails at random when two tasks run at the same time. Each task opens and closes its own connection.</p>
+<h3>Cache on a write</h3>
+<p>Agents tend to add a cache to every task to make the second run faster. A cached load reports success without writing, which is invisible while the warehouse exists and wrong as soon as it is rebuilt. Only the downloads are cached.</p>
+<h3>Settings as parameters</h3>
+<p>Agents tend to pass the object <code>Settings</code> as a parameter of the flow, which works when the flow is called from Python. The parameters of a deployment, however, are stored in the server as JSON and validated against the signature of the flow, so the flow of the reference package receives only <code>with_today</code> and reads the rest from the environment, as the process that serves the deployment does.</p>
+<h3>The cache between tests</h3>
+<p>The persisted result of a download is found by the next test with the same inputs, so a test that counts downloads passes or fails depending on the order of the tests. Each test points the result storage to its own temporary folder.</p>
+<h3>Reading a failed run</h3>
+<p>A NotReady task never ran and is not a cause. The tasks that need attention are the Failed ones, whose logs carry the exception. In the version of the rehearsal, a NotReady task does not show its custom run name, so the loads that waited for a failed download appear as <code>load_prices-c26</code> and not as <code>load_prices_2026-03-01</code>.</p>
+      </section>
+      <section class="mat-section" id="glossary">
+        <h2>21. Glossary</h2>
+<div class="table-wrap"><table><thead><tr><th>Term</th><th>Meaning in this lesson</th></tr></thead><tbody><tr><td>DAG</td><td>a directed acyclic graph of tasks and their dependencies</td></tr><tr><td>orchestrator</td><td>a tool that runs a graph of tasks in order, with retries, schedule and history</td></tr><tr><td>flow</td><td>a function decorated with <code>@flow</code>; one execution is a flow run</td></tr><tr><td>task</td><td>a function decorated with <code>@task</code>; one execution is a task run</td></tr><tr><td>future</td><td>the promise of the result of a submitted task, which creates an edge when passed on</td></tr><tr><td>state</td><td>the situation of a run: Completed, Cached, Failed, NotReady, Scheduled and others</td></tr><tr><td>retry condition</td><td>a function that decides whether a failed task is retried</td></tr><tr><td>cache policy</td><td>the rule that computes the key under which a result is reused</td></tr><tr><td>idempotent</td><td>giving the same result however many times it runs</td></tr><tr><td>deployment</td><td>the record of what to run, when and with which parameters</td></tr><tr><td>cron</td><td>a schedule in five fields: minute, hour, day of the month, month, day of the week</td></tr></tbody></table></div>
+      </section>
+      <section class="mat-section" id="checklist">
+        <h2>22. Checklist</h2>
+<ul class="check-list" id="lesson-checklist">
+  <li>The graph of the pipeline is written down, with the reason of each edge.</li>
+  <li>Tasks without a dependency between them run in parallel.</li>
+  <li>Each task opens its own connection to the warehouse.</li>
+  <li>Retries are set only where the cause of a failure can disappear by itself.</li>
+  <li>A retry condition refuses to retry a broken model.</li>
+  <li>Only what never changes is cached; every write is idempotent and not cached.</li>
+  <li>The tests run the flow on a temporary server, without network.</li>
+  <li>A deployment has a cron that fits the source, read in UTC.</li>
+  <li>A failed run can be read in the UI: the Failed task, its exception and the NotReady tasks after it.</li>
+</ul>
+      </section>
+      <section class="mat-section" id="references">
+        <h2>23. References and self-study</h2>
+<ul>
+  <li><a href="https://www.workflows.guru/workflow-types/dags-workflows" target="_blank" rel="noopener noreferrer">What Are Directed Acyclic Graphs (DAGs) in Workflow Automation?</a> (self-study 1, 30 min).</li>
+  <li><a href="https://www.youtube.com/watch?v=VR4UjPOADEQ" target="_blank" rel="noopener noreferrer">Prefect Python Tutorial: Build and Manage Data Pipelines with Ease</a> (self-study 2, video, optional, 30 min).</li>
+  <li>Prefect. <a href="https://www.prefect.io/blog/building-real-time-data-pipelines-a-guide-to-event-driven-workflows-in-prefect" target="_blank" rel="noopener noreferrer">Building Real-Time Data Pipelines: A Guide to Event-Driven Workflows in Prefect</a> (self-study 3, 40 min).</li>
+  <li>Prefect documentation, at docs.prefect.io: tasks, flows, states, caching, retries, deployments with <code>serve</code>, and testing with <code>prefect_test_harness</code>.</li>
+  <li>Apache Airflow documentation, at airflow.apache.org: DAGs, the TaskFlow API and XComs.</li>
+  <li>KLEPPMANN, M. <em>Designing Data-Intensive Applications</em>. O'Reilly, 2017. Chapter 10, on batch processing and workflow schedulers.</li>
+</ul>
+      </section>
+
+    </article>
+  </div>
+
+  <footer class="inteli-footer">
+    <img src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli logo">
+    <p>Material created by Professor <strong>Afonso Brandão</strong> for <strong>Inteli</strong>.</p>
+    <small>🔓 Open reading licence</small>
+  </footer>
+
+  <script>
+    const progress = document.getElementById('progress-bar');
+    const floatNav = document.getElementById('float-nav');
+    const header = document.querySelector('.mat-header');
+    const tocLinks = Array.from(document.querySelectorAll('.mat-toc a'));
+    const sections = tocLinks.map((link) => document.querySelector(link.getAttribute('href'))).filter(Boolean);
+
+    // Reading time per section, estimated at 200 words per minute over the rendered text.
+    let totalMinutes = 0;
+    tocLinks.forEach((link) => {
+      const section = document.querySelector(link.getAttribute('href'));
+      if (!section) return;
+      const words = section.innerText.trim().split(/\s+/).length;
+      const minutes = Math.max(1, Math.round(words / 200));
+      totalMinutes += minutes;
+      const tag = document.createElement('span');
+      tag.textContent = `${minutes} min`;
+      link.appendChild(tag);
+    });
+    document.getElementById('toc-total').textContent = `Estimated reading time: ${totalMinutes} minutes.`;
+
+    function updateReadingState() {
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+      progress.style.width = `${scrollable > 0 ? (window.scrollY / scrollable) * 100 : 0}%`;
+      floatNav.classList.toggle('visible', header.getBoundingClientRect().bottom < 0);
+      let activeId = sections[0] ? sections[0].id : '';
+      sections.forEach((section) => { if (section.getBoundingClientRect().top <= 150) activeId = section.id; });
+      tocLinks.forEach((link) => link.classList.toggle('active', link.getAttribute('href') === `#${activeId}`));
+    }
+    document.addEventListener('scroll', updateReadingState, { passive:true });
+    updateReadingState();
+
+    const srObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) { entry.target.classList.add('vis'); srObserver.unobserve(entry.target); }
+      });
+    }, { threshold: 0.05 });
+    document.querySelectorAll('.sr').forEach((el) => srObserver.observe(el));
+
+    document.querySelectorAll('.code-copy').forEach((button) => {
+      button.addEventListener('click', () => {
+        const code = button.closest('.code-wrap').querySelector('code').innerText;
+        navigator.clipboard.writeText(code).then(() => {
+          button.textContent = 'Copied';
+          setTimeout(() => { button.textContent = 'Copy'; }, 1500);
+        });
+      });
+    });
+
+    document.querySelectorAll('#lesson-checklist li').forEach((item) => {
+      item.addEventListener('click', () => item.classList.toggle('done'));
+    });
+  </script>
+<!-- semana:js:start -->
+<script src="../../../js/semana-ano.js" defer></script>
+<!-- semana:js:end -->
+<!-- encontro:pdf:start -->
+<button type="button" class="pdf-export-btn" data-encontro-data="2026-12-02" data-encontro-docente="Afonso" data-encontro-seq="02" title="Export this page as a PDF with the standard file name">📄 Export PDF</button>
+<script src="../../../js/encontro-pdf.js" defer></script>
+<!-- encontro:pdf:end -->
+</body>
+</html>

@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 10 - Metrics and Telemetry - Material - Inteli</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📈</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <link href="../../../css/inteli-styles.css" rel="stylesheet">
+  <style>
+    :root {
+      --si: var(--si-blue);
+      --ink: var(--inteli-dark-purple);
+      --coral: var(--inteli-coral);
+      --paper: var(--inteli-white);
+      --line: var(--inteli-light-gray);
+      --si-deep: color-mix(in srgb,var(--si) 42%,var(--ink));
+      --soft-si: color-mix(in srgb,var(--si) 18%,var(--paper));
+      --soft-ink: color-mix(in srgb,var(--ink) 6%,var(--paper));
+      --soft-coral: color-mix(in srgb,var(--coral) 10%,var(--paper));
+    }
+    *, *::before, *::after { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; font-family:'Inter',sans-serif; color:var(--ink); background:var(--soft-ink); }
+    a { color:var(--si-deep); }
+    #progress-bar { position:fixed; inset:0 auto auto 0; width:0; height:3px; z-index:9999; background:linear-gradient(var(--ink),var(--ink)); }
+    .mat-header { color:var(--paper); background:linear-gradient(var(--ink),var(--ink)); padding:42px 24px 34px; }
+    .head-inner { width:min(1160px,100%); margin:auto; display:flex; justify-content:space-between; align-items:end; gap:28px; }
+    .head-copy { max-width:780px; }
+    .badge { display:inline-block; margin-bottom:12px; padding:5px 11px; border:1px solid color-mix(in srgb,var(--paper) 36%,transparent); border-radius:4px; background:color-mix(in srgb,var(--paper) 12%,transparent); font-size:.72rem; font-weight:700; letter-spacing:.06em; }
+    .mat-header h1 { margin:0; font-size:2.45rem; line-height:1.12; letter-spacing:-.03em; }
+    .mat-header p { margin:10px 0 0; max-width:760px; color:color-mix(in srgb,var(--paper) 90%,var(--si)); line-height:1.6; }
+    .head-actions { display:flex; flex-wrap:wrap; gap:7px; justify-content:flex-end; }
+    .head-actions a { padding:8px 12px; border-radius:6px; color:var(--paper); border:1px solid color-mix(in srgb,var(--paper) 45%,transparent); text-decoration:none; font-size:.76rem; font-weight:700; white-space:nowrap; }
+    .head-actions a.primary { background:var(--paper); color:var(--ink); }
+    .mat-layout { display:grid; grid-template-columns:290px minmax(0,1fr); gap:34px; width:min(1240px,100%); margin:auto; padding:36px 24px 64px; }
+    .mat-sidebar { position:sticky; top:18px; align-self:start; max-height:calc(100vh - 36px); overflow:auto; }
+    .mat-toc { padding:18px; border:1px solid var(--line); border-radius:6px; background:var(--paper); box-shadow:var(--ds-sombra-1); }
+    .mat-toc h2 { margin:0 0 10px; font-size:.74rem; letter-spacing:.11em; text-transform:uppercase; }
+    .toc-part { margin:12px 0 4px; padding:0 8px; font-size:.64rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--si-deep); }
+    .mat-toc a { display:flex; justify-content:space-between; gap:8px; padding:5px 8px; border-left:3px solid transparent; color:color-mix(in srgb,var(--ink) 68%,var(--paper)); text-decoration:none; font-size:.76rem; line-height:1.32; }
+    .mat-toc a span { flex-shrink:0; font-size:.68rem; color:color-mix(in srgb,var(--ink) 50%,var(--paper)); }
+    .mat-toc a:hover, .mat-toc a.active { color:var(--ink); background:var(--soft-si); border-left-color:var(--si-deep); }
+    .toc-total { margin-top:10px; padding-top:10px; border-top:1px solid var(--line); color:color-mix(in srgb,var(--ink) 60%,var(--paper)); font-size:.7rem; }
+    .mat-article { min-width:0; }
+    .part-title { margin:8px 0 26px; padding:14px 18px; border-radius:6px; background:var(--ink); color:var(--paper); }
+    .part-title small { display:block; font-size:.68rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:color-mix(in srgb,var(--paper) 75%,var(--si)); }
+    .part-title strong { display:block; margin-top:3px; font-size:1.15rem; }
+    .mat-section { margin:0 0 52px; scroll-margin-top:26px; }
+    .mat-section h2 { margin:0 0 18px; padding-bottom:10px; border-bottom:2px solid var(--line); font-size:1.65rem; line-height:1.25; }
+    .mat-section h3 { margin:28px 0 9px; font-size:1.1rem; }
+    .mat-section h4 { margin:20px 0 6px; font-size:.95rem; }
+    .mat-section p, .mat-section li, .mat-section dd { font-size:.94rem; line-height:1.75; color:color-mix(in srgb,var(--ink) 84%,var(--paper)); }
+    .mat-section p { margin:0 0 14px; text-align:justify; text-justify:inter-word; hyphens:auto; }
+    .mat-section ul, .mat-section ol { margin:10px 0 16px; padding-left:1.35rem; }
+    .mat-section li { margin-bottom:5px; }
+    .lead { font-size:1.05rem!important; color:var(--ink)!important; }
+    .g2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin:16px 0; }
+    .g3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin:16px 0; }
+    .card { padding:17px 18px; border:1px solid var(--line); border-left:5px solid var(--si); border-radius:6px; background:var(--paper); box-shadow:var(--ds-sombra-1); }
+    .card.dark { border-left-color:var(--ink); }
+    .card.coral { border-left-color:var(--coral); }
+    .card h3, .card h4 { margin:0 0 7px; font-size:1rem; }
+    .card p { text-align:left!important; }
+    .card p:last-child { margin-bottom:0; }
+    .callout { margin:18px 0; padding:15px 18px; border:1px solid color-mix(in srgb,var(--si) 55%,var(--paper)); border-left:5px solid var(--si-deep); border-radius:6px; background:var(--soft-si); }
+    .callout-warn { border-color:color-mix(in srgb,var(--coral) 35%,var(--paper)); border-left-color:var(--coral); background:var(--soft-coral); }
+    .callout-tip { border-color:color-mix(in srgb,var(--ink) 20%,var(--paper)); border-left-color:var(--ink); background:var(--paper); }
+    .callout-label { margin-bottom:5px; color:var(--ink); font-size:.69rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; }
+    .callout p:last-child { margin:0; }
+    .table-wrap { margin:17px 0; overflow-x:auto; border:1px solid var(--line); border-radius:6px; background:var(--paper); }
+    table { width:100%; min-width:720px; border-collapse:collapse; font-size:.8rem; }
+    th { padding:10px 11px; background:var(--ink); color:var(--paper); text-align:left; font-weight:700; }
+    td { padding:10px 11px; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.5; }
+    tr:last-child td { border-bottom:0; }
+    tbody tr:nth-child(even) { background:var(--soft-ink); }
+    code { padding:2px 6px; border-radius:4px; background:var(--soft-si); color:var(--ink); font:600 .86em 'JetBrains Mono',monospace; }
+    .code-wrap { margin:16px 0; border:1px solid var(--line); border-radius:6px; overflow:hidden; background:var(--ink); }
+    .code-label { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:7px 12px; background:color-mix(in srgb,var(--ink) 82%,var(--si)); color:var(--paper); font-size:.7rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+    .code-actions { display:flex; gap:6px; flex-shrink:0; }
+    .code-copy, .code-src { padding:3px 9px; border:1px solid color-mix(in srgb,var(--paper) 40%,transparent); border-radius:6px; background:transparent; color:var(--paper); font:700 .68rem 'Inter',sans-serif; cursor:pointer; text-decoration:none; text-transform:none; letter-spacing:0; }
+    .code-block { margin:0; padding:14px 16px; overflow-x:auto; max-height:460px; color:var(--paper); }
+    .code-block code { padding:0; background:none; color:inherit; font-size:.78rem; line-height:1.6; }
+    .hl-kw { color:color-mix(in srgb,var(--si) 85%,var(--paper)); font-weight:700; }
+    .hl-fn { color:color-mix(in srgb,var(--coral) 55%,var(--paper)); }
+    .hl-str { color:color-mix(in srgb,var(--si) 45%,var(--paper)); }
+    .hl-num { color:color-mix(in srgb,var(--coral) 35%,var(--paper)); }
+    .hl-cmt { color:var(--inteli-dark-gray); font-style:italic; }
+    .uml-pair { margin:20px 0 26px; }
+    .uml-pair .code-wrap { margin-bottom:0; border-radius:6px 6px 0 0; }
+    .uml-fig { margin:0; padding:18px; border:1px solid var(--line); border-top:0; border-radius:0 0 6px 6px; background:var(--paper); text-align:center; }
+    .uml-fig img { display:block; max-width:100%; height:auto; margin:0 auto; }
+    .uml-fig figcaption { margin-top:12px; font-size:.76rem; color:color-mix(in srgb,var(--ink) 62%,var(--paper)); }
+    .vp-map { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; margin:20px 0 8px; }
+    .vp-map article { padding:14px 12px; border-radius:6px; background:var(--paper); border:1px solid var(--line); border-top:5px solid var(--ink); box-shadow:var(--ds-sombra-1); }
+    .vp-map article:nth-child(2) { border-top-color:var(--si-deep); }
+    .vp-map article:nth-child(3) { border-top-color:color-mix(in srgb,var(--coral) 72%,var(--ink)); }
+    .vp-map article:nth-child(4) { border-top-color:color-mix(in srgb,var(--inteli-dark-gray) 40%,var(--ink)); }
+    .vp-map article:nth-child(5) { border-top-color:var(--inteli-dark-gray); }
+    .vp-map strong { display:block; margin-bottom:3px; font-size:.86rem; }
+    .vp-map em { display:block; margin-bottom:6px; font-size:.72rem; font-style:normal; font-weight:700; color:var(--si-deep); }
+    .vp-map p { margin:0!important; font-size:.78rem!important; line-height:1.45!important; text-align:left!important; }
+    .vp-axis { margin:0 0 18px; padding:9px 12px; border-radius:6px; background:var(--paper); border:1px dashed color-mix(in srgb,var(--ink) 30%,var(--paper)); text-align:center; font-size:.78rem; font-weight:700; }
+    .layers { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:12px; margin:20px 0 10px; }
+    .layer { position:relative; padding:14px 12px; border-radius:6px; color:var(--paper); }
+    .layer b { display:block; font-size:.95rem; margin-bottom:4px; }
+    .layer span { display:block; font-size:.76rem; line-height:1.4; opacity:.92; }
+    .layer:not(:last-child)::after { content:''; position:absolute; right:-12px; top:50%; width:12px; height:2px; background:var(--ink); }
+    .l-src { background:color-mix(in srgb,var(--inteli-dark-gray) 40%,var(--ink)); }
+    .l-b { background:color-mix(in srgb,var(--coral) 55%,var(--ink)); }
+    .l-s { background:var(--si-deep); }
+    .l-g { background:var(--ink); }
+    .l-c { background:var(--paper); color:var(--ink); box-shadow:inset 0 0 0 2px var(--ink); }
+    .undercurrent { margin:0 0 20px; padding:10px 14px; border-radius:6px; background:var(--paper); border:1px dashed var(--si-deep); font-size:.78rem; line-height:1.5; }
+    .undercurrent b { color:var(--si-deep); }
+    .v-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; margin:18px 0; }
+    .v-grid article { padding:14px 12px; border-radius:6px; background:var(--paper); border:1px solid var(--line); border-top:5px solid var(--si-deep); }
+    .v-grid article:nth-child(2) { border-top-color:var(--coral); }
+    .v-grid article:nth-child(3) { border-top-color:var(--ink); }
+    .v-grid article:nth-child(4) { border-top-color:color-mix(in srgb,var(--coral) 60%,var(--ink)); }
+    .v-grid article:nth-child(5) { border-top-color:var(--si); }
+    .v-grid strong { display:block; font-size:1rem; }
+    .v-grid em { display:block; margin:2px 0 6px; font-size:.72rem; font-style:normal; font-weight:700; color:var(--si-deep); }
+    .v-grid p { margin:0!important; font-size:.78rem!important; line-height:1.45!important; text-align:left!important; }
+    .scenario { margin:16px 0; border:1px solid var(--line); border-radius:6px; overflow:hidden; background:var(--paper); }
+    .scenario-head { padding:9px 14px; background:var(--soft-si); font-size:.78rem; font-weight:700; }
+    .scenario dl { display:grid; grid-template-columns:170px 1fr; margin:0; }
+    .scenario dt, .scenario dd { margin:0; padding:8px 14px; border-top:1px solid var(--line); font-size:.82rem; line-height:1.5; }
+    .scenario dt { font-weight:700; background:var(--soft-ink); }
+    .glossary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:16px 0; }
+    .glossary div { padding:12px 14px; border:1px solid var(--line); border-radius:6px; background:var(--paper); }
+    .glossary dt { font-weight:700; font-size:.9rem; margin-bottom:3px; }
+    .glossary dd { margin:0; font-size:.84rem!important; line-height:1.55!important; }
+    .sr { opacity:0; transform:translateY(20px); transition:opacity .6s, transform .6s; }
+    .sr.vis { opacity:1; transform:none; }
+    .check-list { list-style:none; padding:0!important; display:grid; gap:7px; }
+    .check-list li { position:relative; margin:0!important; padding:9px 10px 9px 36px; border:1px solid var(--line); border-radius:6px; background:var(--paper); cursor:pointer; user-select:none; }
+    .check-list li::before { content:''; position:absolute; left:11px; top:11px; width:15px; height:15px; border:2px solid var(--si-deep); border-radius:4px; }
+    .check-list li.done { color:color-mix(in srgb,var(--ink) 55%,var(--paper)); text-decoration:line-through; background:var(--soft-si); }
+    .check-list li.done::before { background:var(--si-deep); }
+    .refs li { font-size:.86rem!important; }
+    #float-nav { position:fixed; right:24px; bottom:25px; z-index:9998; display:flex; flex-direction:column; gap:7px; opacity:0; transform:translateY(12px); pointer-events:none; transition:.25s ease; }
+    #float-nav.visible { opacity:1; transform:none; pointer-events:auto; }
+    .fn-btn { padding:9px 13px; border-radius:4px; text-decoration:none; box-shadow:var(--ds-sombra-1); font-size:.74rem; font-weight:700; text-align:center; }
+    .fn-btn-slides { background:var(--paper); color:var(--ink); border:2px solid var(--si-deep); }
+    .fn-btn-alt { background:var(--paper); color:var(--ink); border:2px solid var(--ink); }
+    .fn-btn-back { background:var(--ink); color:var(--paper); }
+    .dl-row { display:flex; flex-wrap:wrap; gap:8px; margin:16px 0 8px; }
+    .dl-btn { display:inline-block; padding:9px 14px; border-radius:6px; background:var(--ink); color:var(--paper); border:2px solid var(--ink); text-decoration:none; font-size:.8rem; font-weight:700; white-space:nowrap; }
+    .dl-btn.alt { background:var(--paper); color:var(--ink); border-color:var(--si-deep); }
+    .dl-btn:hover { background:var(--si-deep); border-color:var(--si-deep); color:var(--paper); }
+    .mat-section p.dl-note { font-size:.82rem; text-align:left; color:color-mix(in srgb,var(--ink) 70%,var(--paper)); }
+    .inteli-footer { padding:26px 20px; border-top:1px solid var(--line); background:var(--paper); text-align:center; font-size:.8rem; }
+    .inteli-footer img { height:40px; margin-bottom:8px; }
+    @media(max-width:1100px) { .v-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @media(max-width:960px) { .mat-layout { grid-template-columns:1fr; } .mat-sidebar { display:none; } .head-inner { display:block; } .head-actions { margin-top:20px; justify-content:flex-start; } .vp-map { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @media(max-width:700px) { .layers { grid-template-columns:1fr; } .layer::after { display:none; } .g2,.g3,.vp-map,.v-grid,.glossary { grid-template-columns:1fr; } .mat-header h1 { font-size:1.9rem; } .scenario dl { grid-template-columns:1fr; } }
+    @media print { .sr { opacity:1!important; transform:none!important; } .code-block { max-height:none; } }
+  </style>
+
+<!-- semana:css:start -->
+<link rel="stylesheet" href="../../../css/semana-ano.css">
+<!-- semana:css:end -->
+<!-- encontro:css:start -->
+<link rel="stylesheet" href="../../../css/encontro.css">
+<!-- encontro:css:end -->
+<!-- ds:css -->
+<link rel="stylesheet" href="../../../css/inteli-ds.css">
+</head>
+<body>
+  <div id="progress-bar" aria-hidden="true"></div>
+  <nav id="float-nav" aria-label="Quick navigation">
+    <a class="fn-btn fn-btn-slides" href="../slides/slide-lesson-10.html">▶ Slides</a>
+    <a class="fn-btn fn-btn-alt" href="https://github.com/afonsolelis/aulas/tree/main/pages/module-8-sistemas-informacao/lab/lesson-10" target="_blank" rel="noopener noreferrer">🧪 Lab</a>
+    <a class="fn-btn fn-btn-back" href="../../home-module-8-sistemas-informacao.html">← Module</a>
+  </nav>
+
+  <header class="mat-header">
+    <div class="head-inner">
+      <div class="head-copy">
+        <span class="badge">Module 8 · Information Systems · Lesson 10 · Week 9</span>
+        <h1>Metrics and Telemetry</h1>
+        <p>Reference material for the session in which the professor instruments, live and with a coding agent, the Python package of Lesson 7 with Prometheus metrics: the metrics of each run pushed to a Pushgateway, an exporter that reads the state of the warehouse, a stack with Prometheus and Grafana, questions answered in PromQL and alerting rules tested with promtool. In the second hour each group instruments a service of its own DataApp.</p>
+      </div>
+      <div class="head-actions">
+        <a class="primary" href="../slides/slide-lesson-10.html">▶ Slides</a>
+        <a href="https://github.com/afonsolelis/aulas/tree/main/pages/module-8-sistemas-informacao/lab/lesson-10/stack" target="_blank" rel="noopener noreferrer">📈 Reference stack</a>
+        <a href="../../home-module-8-sistemas-informacao.html">← Back to module</a>
+      </div>
+    </div>
+  </header>
+
+
+<!-- encontro:meta:start -->
+<div class="container" style="max-width:1100px;margin:24px auto 0;padding:0 16px;"><section class="encontro-meta" data-encontro-ficha><h2>About this session</h2><p class="encontro-ref">Metrics and Telemetry · 09/12/2026 · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Learning objective</h3><p>By the end of the session, students should be able to instrument a DataApp with Prometheus metrics of the appropriate types, collect them by push for batch runs and by an exporter for the state of the data, answer operational questions in PromQL, and build a Grafana dashboard and tested alerting rules for a service of the project.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Session strategy</h3><p>Demonstration followed by application. In the first hour the professor instruments the TCGplayer package of Lesson 7 live with a coding agent in four CREATE prompts (metrics of the run, push and exporter, the Prometheus stack with PromQL, dashboard and alerts), checking each step against the reference in lab/lesson-10 and making a run fail on purpose to watch an alert fire and resolve. In the second hour each group instruments a service of its own DataApp with the same prompts.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Session structure</h3><ol><li>Daily — 15 min</li><li>Why a DataApp needs metrics; targets, series and metric types (5 min)</li><li>Step 01 — metrics of the run: names, labels and cardinality (10 min)</li><li>Step 02 — Pushgateway for the batch run and an exporter of the warehouse (8 min)</li><li>Step 03 — the stack in Docker Compose and questions in PromQL (10 min)</li><li>Step 04 — alerting rules tested with promtool and the Grafana dashboard (12 min)</li><li>Second hour — each group instruments a service of its DataApp: metrics, dashboard and three tested alerts (60 min)</li></ol></div></section></div>
+<!-- encontro:meta:end -->
+<div class="mat-layout">
+    <aside class="mat-sidebar">
+      <nav class="mat-toc" aria-label="Table of contents">
+        <h2>In this material</h2>
+        <div class="toc-part">Part I · Foundations</div>
+        <a href="#reading">1. How to read this material</a>
+        <a href="#why">2. Why a DataApp needs metrics</a>
+        <a href="#signals">3. Metrics, logs and traces</a>
+        <div class="toc-part">Part II · Prometheus</div>
+        <a href="#model">4. Targets, scrapes and time series</a>
+        <a href="#types">5. Metric types</a>
+        <a href="#naming">6. Names, labels and cardinality</a>
+        <div class="toc-part">Part III · Metrics of the run</div>
+        <a href="#telemetry">7. The telemetry module</a>
+        <a href="#hooks">8. The pipeline calls the metrics</a>
+        <a href="#exposition">9. The text format</a>
+        <div class="toc-part">Part IV · Push and exporter</div>
+        <a href="#push">10. Why a batch job pushes</a>
+        <a href="#exporter">11. An exporter of the warehouse</a>
+        <a href="#lock">12. A finding of the rehearsal: one writer and no reader</a>
+        <div class="toc-part">Part V · Stack and PromQL</div>
+        <a href="#stack">13. The stack in Docker Compose</a>
+        <a href="#promql">14. Answering questions in PromQL</a>
+        <a href="#quantiles">15. Histograms, quantiles and recording rules</a>
+        <div class="toc-part">Part VI · Dashboard and alerts</div>
+        <a href="#alerts">16. Alerting rules</a>
+        <a href="#testing-alerts">17. Testing the alerts before they reach production</a>
+        <a href="#grafana">18. The dashboard in Grafana</a>
+        <a href="#rehearsal">19. A run that fails on purpose</a>
+        <div class="toc-part">Part VII · Lab</div>
+        <a href="#steps">20. The lab in four steps</a>
+        <a href="#tests">21. Tests of the package</a>
+        <a href="#numbers">22. Reference numbers</a>
+        <a href="#mistakes">23. What the rehearsal revealed</a>
+        <a href="#groups">24. The second hour</a>
+        <a href="#glossary">25. Glossary</a>
+        <a href="#checklist">26. Checklist</a>
+        <a href="#references">27. References and self-study</a>
+        <div class="toc-total" id="toc-total"></div>
+      </nav>
+    </aside>
+
+    <article class="mat-article">
+
+      <div class="part-title"><small>Part I</small><strong>Foundations</strong></div>
+      <section class="mat-section" id="reading">
+        <h2>1. How to read this material</h2>
+<p class="lead">This material accompanies Lesson 10, which has two hours. In the first, the professor instruments, live and with a coding agent and four CREATE prompts, the Python package of Lesson 7 with Prometheus metrics, brings up a monitoring stack and writes the alerts of the DataApp. In the second hour each group applies the same procedure to a service of its own DataApp.</p>
+<p>Part I explains why a DataApp that runs alone needs metrics and how metrics relate to the other signals of observability. Part II presents the data model of Prometheus. Parts III to VI follow the four steps of the session: the metrics of the run, the push and the exporter, the stack with PromQL, and the dashboard with the alerts. Part VII gathers the prompts, the tests, the reference numbers and what the rehearsal revealed. Every number was measured on 08/11/2026 with the reference of <code>lab/lesson-10/</code>: the package <code>tcg_dataapp</code> 0.4.0, prometheus-client 0.26.0, DuckDB 2.0.0, Prometheus 3.15.0, Pushgateway 1.11.2 and Grafana 13.2.4. Every date is Unix time in seconds, which is also the unit of time of Prometheus.</p>
+      </section>
+      <section class="mat-section" id="why">
+        <h2>2. Why a DataApp needs metrics</h2>
+<p>The package of Lesson 7 records every attempt of every task in <code>ops.pipeline_runs</code>, which explains a run once someone decides to look at it. A DataApp that runs every day at six in the morning, however, fails at a moment when nobody is looking, and the failure that matters most is often the one that leaves no record: a scheduler that stopped calling the run, or a source that answers but has not published new prices. Metrics address this gap because they are numbers kept over time and evaluated by a machine, so the question of whether the data is right is asked every fifteen seconds, and a person is called only when the answer is no.</p>
+<div class="table-wrap"><table><thead><tr><th>Question of the operator</th><th>With the package of Lesson 7</th><th>With the metrics of this session</th></tr></thead><tbody><tr><td>Did the run of last night succeed?</td><td>the terminal of the server, or a query on <code>ops.pipeline_runs</code></td><td><code>tcg_run_success</code> and the alert <code>TcgRunFailed</code></td></tr><tr><td>Are the prices of today in the warehouse?</td><td>a query by hand on <code>db_ingestion</code></td><td><code>tcg:price_freshness_seconds</code> and <code>TcgPricesStale</code></td></tr><tr><td>Is the source getting slower?</td><td>the seconds printed per task, lost after the run</td><td>the histogram <code>tcg_source_request_duration_seconds</code></td></tr><tr><td>Did the grain of the fact break?</td><td>the run stops at <code>check_quality</code>, silently</td><td><code>TcgGrainBroken</code> warns someone</td></tr><tr><td>Has the run stopped being called?</td><td>no record: a run that never starts leaves no log</td><td><code>TcgNoSuccessfulRun</code>, on the time of the last success</td></tr></tbody></table></div>
+      </section>
+      <section class="mat-section" id="signals">
+        <h2>3. Metrics, logs and traces</h2>
+<p>Telemetry is the data that a system emits about its own behaviour, and it is usually divided into three signals. Logs are records of events, each with its context, and the run log of Lesson 7 is one of them. Traces follow one request through the components that served it, and are most useful in systems of many services. Metrics are numeric measurements aggregated over time, cheap to store and to evaluate, which makes them the signal on which alerts are built. OpenTelemetry, the subject of the third self-study, standardises the three signals; Prometheus specialises in metrics and defines the format that most tools read.</p>
+<p>A DataApp has, besides the health of its processes, the health of its data, which the literature on data observability describes in five dimensions. This session measures three of them directly and leaves two for the next lessons.</p>
+<div class="table-wrap"><table><thead><tr><th>Dimension of data observability</th><th>Measured in this session by</th><th>Status</th></tr></thead><tbody><tr><td>freshness: how recent the data is</td><td><code>tcg_ingestion_last_timestamp_seconds</code>, <code>tcg:price_freshness_seconds</code></td><td>measured</td></tr><tr><td>volume: how much data arrived</td><td><code>tcg_task_rows</code>, <code>tcg_ingestion_rows</code>, <code>tcg_ingestion_batches</code></td><td>measured</td></tr><tr><td>quality of the model</td><td><code>tcg_quality_value</code>, <code>tcg_gold_fact_rows</code> against <code>tcg_gold_fact_grain_keys</code></td><td>measured</td></tr><tr><td>schema: whether the structure changed</td><td>not measured; the JSON of the landing table accepts any structure</td><td>Lesson 9, with tests of the data</td></tr><tr><td>lineage: what depends on what</td><td>the graph of tasks of the pipeline, not exported as metrics</td><td>Lesson 11, as an infographic</td></tr></tbody></table></div>
+      </section>
+      <div class="part-title"><small>Part II</small><strong>Prometheus</strong></div>
+      <section class="mat-section" id="model">
+        <h2>4. Targets, scrapes and time series</h2>
+<p>Prometheus collects by pulling. Every <code>scrape_interval</code>, fifteen seconds in this lab, it sends an HTTP request to the endpoint <code>/metrics</code> of each target and stores each line of the answer as a sample of a time series. A series is identified by a metric name and a set of labels, and a sample is a value with a timestamp. The same name with a different value of a label is another series, which is what makes the model dimensional: <code>tcg_task_rows{task="extract_sets"}</code> and <code>tcg_task_rows{task="extract_products"}</code> are two series of the same metric.</p>
+<p>Pulling has a property that pushing lacks. Because Prometheus initiates the scrape, it knows when a target did not answer, and it records that in the series <code>up</code>, which is 1 when the last scrape worked and 0 otherwise. A target that dies therefore produces a signal, whereas a process that pushes and dies simply stops sending, which looks the same as a process that has nothing to say.</p>
+<div class="code-wrap"><div class="code-label"><span>the path of a number in this session</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>tcg-dataapp run ──push──▶ Pushgateway :9091 ◀─┐
+                                               │ scrape every 15 s
+tcg-dataapp metrics :9108 (exporter) ◀─────────┤
+                                               │
+                           Prometheus :9090 ───┘──▶ rules.yml ──▶ alerts
+                                │
+                                └──▶ Grafana :3000 (PromQL in each panel)</code></pre></div>
+      </section>
+      <section class="mat-section" id="types">
+        <h2>5. Metric types</h2>
+<p>The type of a metric declares how its value may change, and therefore which operations make sense over it. A counter only grows and returns to zero when the process restarts, so its absolute value means little and it is read through its rate of growth with <code>rate()</code> or <code>increase()</code>. A gauge can go up and down and is read as it is. A histogram counts observations in cumulative buckets and also keeps their sum and their number, so that means and quantiles can be computed in the server. A summary computes quantiles in the process itself, which is precise for that process but cannot be combined across instances, because quantiles are not additive; for this reason the package uses histograms.</p>
+<div class="table-wrap"><table><thead><tr><th>Type</th><th>Behaviour</th><th>In tcg-dataapp</th></tr></thead><tbody><tr><td>Counter</td><td>only grows; restarts at zero with the process</td><td><code>tcg_task_attempts_total{task,status}</code>, <code>tcg_source_request_errors_total{endpoint}</code></td></tr><tr><td>Gauge</td><td>any value, up or down</td><td><code>tcg_task_rows</code>, <code>tcg_run_success</code>, the timestamps, everything the exporter reads</td></tr><tr><td>Histogram</td><td>observations per cumulative bucket, plus <code>_sum</code> and <code>_count</code></td><td><code>tcg_source_request_duration_seconds{endpoint}</code>, buckets 0.1, 0.25, 0.5, 1, 2, 4, 8 and 16 s</td></tr><tr><td>Summary</td><td>quantiles computed in the client</td><td>not used: its quantiles cannot be aggregated</td></tr></tbody></table></div>
+      </section>
+      <section class="mat-section" id="naming">
+        <h2>6. Names, labels and cardinality</h2>
+<p>The conventions of Prometheus make a metric readable without its documentation. The name starts with a prefix of the application, <code>tcg_</code>, so that it does not collide with metrics of other systems; it ends with the unit in base units, <code>_seconds</code> and never milliseconds; and the name of a counter ends in <code>_total</code>. Timestamps are gauges in Unix seconds whose names end in <code>_timestamp_seconds</code>, so that <code>time() - metric</code> gives an age in seconds.</p>
+<p>Labels are where a design usually fails. Each distinct combination of label values creates a series that Prometheus indexes and keeps in memory, so the number of series, the cardinality, is the product of the number of values of each label. The four labels of the package (<code>task</code>, <code>status</code>, <code>endpoint</code> and <code>measure</code>) have at most a dozen values each. A label with the identifier of the run would create a new series at every run, and a label with the product would create one series per card, 1,490 of them for one metric; both are kept out of the metrics and stay in the run log and in the gold layer, which are the right places for them.</p>
+      </section>
+      <div class="part-title"><small>Part III</small><strong>Metrics of the run</strong></div>
+      <section class="mat-section" id="telemetry">
+        <h2>7. The telemetry module</h2>
+<p>The first step adds one module to the package and leaves the three layers as they were. <code>telemetry.py</code> owns every metric, in a registry of its own instead of the global registry of the library, so that the tests can create as many runs as they need without the metrics of one leaking into the next. <code>RunMetrics</code> holds the metrics of one run; <code>InstrumentedClient</code> wraps the client of tcgcsv.com and times each call; <code>WarehouseCollector</code>, described in Part IV, reads the warehouse at each scrape.</p>
+<div class="code-wrap"><div class="code-label"><span>src/tcg_dataapp/telemetry.py</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>&quot;&quot;&quot;Metrics of the DataApp in the Prometheus format.
+
+Two ways of reaching Prometheus, because the DataApp has two kinds of process:
+
+    RunMetrics   the batch run (tcg-dataapp run) lives for about forty seconds,
+                 shorter than the scrape interval, so it records its metrics while
+                 it runs and pushes them to a Pushgateway at the end; it also writes
+                 them to out/metrics.prom, in the text format.
+    WarehouseCollector
+                 the exporter (tcg-dataapp metrics) is a long-running process that
+                 Prometheus scrapes; at every scrape it reads the state of the
+                 warehouse (freshness, volume, grain, last run) from the DuckDB file.
+
+Every timestamp is Unix time in seconds, which is also what Prometheus uses.
+Every metric lives in a registry of its own, never in the global one, so the
+tests can create as many as they need.
+&quot;&quot;&quot;
+from __future__ import annotations
+
+import time
+from pathlib import Path
+
+import duckdb
+from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram, disable_created_metrics, generate_latest
+from prometheus_client.exposition import pushadd_to_gateway
+from prometheus_client.core import GaugeMetricFamily
+
+# The *_created series (when each counter started) only add noise to a job that lives forty seconds.
+disable_created_metrics()
+
+JOB = &quot;tcg_dataapp&quot;
+SOURCE_BUCKETS = (0.1, 0.25, 0.5, 1, 2, 4, 8, 16)
+
+
+class RunMetrics:
+    &quot;&quot;&quot;The metrics of one run of the pipeline.&quot;&quot;&quot;
+
+    def __init__(self, run_id: str):
+        self.run_id = run_id
+        self.registry = CollectorRegistry()
+        r = self.registry
+        self.task_attempts = Counter(&quot;tcg_task_attempts&quot;, &quot;Attempts of each task in this run, by outcome&quot;,
+                                     [&quot;task&quot;, &quot;status&quot;], registry=r)
+        self.task_duration = Gauge(&quot;tcg_task_duration_seconds&quot;, &quot;Duration of the last attempt of each task&quot;,
+                                   [&quot;task&quot;], registry=r)
+        self.task_rows = Gauge(&quot;tcg_task_rows&quot;, &quot;Rows written to db_ingestion by each extraction task&quot;, [&quot;task&quot;], registry=r)
+        self.source_latency = Histogram(&quot;tcg_source_request_duration_seconds&quot;,
+                                        &quot;Duration of the requests to tcgcsv.com, by kind of request&quot;,
+                                        [&quot;endpoint&quot;], buckets=SOURCE_BUCKETS, registry=r)
+        self.source_errors = Counter(&quot;tcg_source_request_errors&quot;, &quot;Requests to tcgcsv.com that raised an error&quot;,
+                                     [&quot;endpoint&quot;], registry=r)
+        self.quality = Gauge(&quot;tcg_quality_value&quot;, &quot;Numbers measured by check_quality&quot;, [&quot;measure&quot;], registry=r)
+        self.run_success = Gauge(&quot;tcg_run_success&quot;, &quot;1 when every task of the run succeeded, 0 otherwise&quot;, registry=r)
+        self.run_duration = Gauge(&quot;tcg_run_duration_seconds&quot;, &quot;Duration of the whole run&quot;, registry=r)
+        self.run_failed_tasks = Gauge(&quot;tcg_run_failed_tasks&quot;, &quot;Tasks that failed or were skipped in the run&quot;, registry=r)
+        self.run_completion = Gauge(&quot;tcg_run_last_completion_timestamp_seconds&quot;,
+                                    &quot;Unix time at which the last run ended, successful or not&quot;, registry=r)
+        # Pushed only after a successful run, so a failure does not erase it.
+        self.success_registry = CollectorRegistry()
+        self.run_last_success = Gauge(&quot;tcg_run_last_success_timestamp_seconds&quot;,
+                                      &quot;Unix time at which the last successful run ended&quot;,
+                                      registry=self.success_registry)
+        self.succeeded = False
+        self._started = time.perf_counter()
+
+    # hooks called by the pipeline
+    def attempt(self, task: str, status: str, seconds: float | None = None, result: object = None) -&gt; None:
+        self.task_attempts.labels(task=task, status=status).inc()
+        if seconds is not None:
+            self.task_duration.labels(task=task).set(seconds)
+        if status == &quot;success&quot; and task.startswith(&quot;extract_&quot;) and isinstance(result, int):
+            self.task_rows.labels(task=task).set(result)
+        if status == &quot;success&quot; and task == &quot;check_quality&quot; and isinstance(result, dict):
+            for measure in (&quot;fact_rows&quot;, &quot;fact_grain_keys&quot;, &quot;fact_without_set&quot;, &quot;dates&quot;, &quot;cube_cells&quot;):
+                if measure in result:
+                    self.quality.labels(measure=measure).set(result[measure])
+
+    def finish(self, failed: list[str]) -&gt; None:
+        now = time.time()
+        self.run_duration.set(time.perf_counter() - self._started)
+        self.run_failed_tasks.set(len(failed))
+        self.run_success.set(0 if failed else 1)
+        self.run_completion.set(now)
+        self.succeeded = not failed
+        if self.succeeded:
+            self.run_last_success.set(now)
+
+    # the client of the source, wrapped so that every request is measured
+    def instrument(self, client):
+        return InstrumentedClient(client, self)
+
+    # exposition
+    def text(self) -&gt; str:
+        body = generate_latest(self.registry)
+        if self.succeeded:
+            body += generate_latest(self.success_registry)
+        return body.decode()
+
+    def write(self, path: Path) -&gt; Path:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(self.text(), encoding=&quot;utf-8&quot;)
+        return path
+
+    def push(self, gateway: str, instance: str = &quot;local&quot;) -&gt; None:
+        &quot;&quot;&quot;Push to a Pushgateway, in the group job=tcg_dataapp, instance=&lt;instance&gt;.
+
+        pushadd (HTTP POST) replaces only the metrics with the names being pushed, so
+        tcg_run_last_success_timestamp_seconds, pushed only after a success, keeps
+        the time of the last good run when a run fails.
+        &quot;&quot;&quot;
+        key = {&quot;instance&quot;: instance}
+        pushadd_to_gateway(gateway, job=JOB, registry=self.registry, grouping_key=key, timeout=10)
+        if self.succeeded:
+            pushadd_to_gateway(gateway, job=JOB, registry=self.success_registry, grouping_key=key, timeout=10)
+
+
+class InstrumentedClient:
+    &quot;&quot;&quot;Same methods as TcgcsvClient; times each call into tcg_source_request_duration_seconds.&quot;&quot;&quot;
+
+    METHODS = {&quot;groups&quot;: &quot;groups&quot;, &quot;products&quot;: &quot;products&quot;, &quot;prices_today&quot;: &quot;prices&quot;, &quot;prices_archive&quot;: &quot;archive&quot;}
+
+    def __init__(self, client, metrics: RunMetrics):
+        self._client = client
+        self._metrics = metrics
+
+    def __getattr__(self, name):
+        target = getattr(self._client, name)
+        endpoint = self.METHODS.get(name)
+        if endpoint is None or not callable(target):
+            return target
+
+        def call(*args, **kwargs):
+            t0 = time.perf_counter()
+            try:
+                return target(*args, **kwargs)
+            except Exception:
+                self._metrics.source_errors.labels(endpoint=endpoint).inc()
+                raise
+            finally:
+                self._metrics.source_latency.labels(endpoint=endpoint).observe(time.perf_counter() - t0)
+
+        return call
+
+
+class WarehouseCollector:
+    &quot;&quot;&quot;A custom collector: reads the warehouse at each scrape, as an exporter does.
+
+    The DuckDB file accepts one writer process at a time, so while a run is
+    writing the scrape cannot open it; the collector then reports
+    tcg_warehouse_readable 0 instead of failing the whole scrape. The same
+    happens when the file exists but the gold layer was never built.
+    &quot;&quot;&quot;
+
+    def __init__(self, db_path: Path):
+        self.db_path = Path(db_path)
+
+    def collect(self):
+        readable = GaugeMetricFamily(&quot;tcg_warehouse_readable&quot;, &quot;1 when the exporter could read the DuckDB file at this scrape&quot;)
+        if not self.db_path.exists():
+            readable.add_metric([], 0)
+            yield readable
+            return
+        try:
+            con = duckdb.connect(str(self.db_path), read_only=True)
+        except duckdb.Error:
+            readable.add_metric([], 0)
+            yield readable
+            return
+        try:
+            families = list(self._read(con))
+        except duckdb.Error:  # a warehouse without the gold layer yet, after a run that failed early
+            families = []
+        finally:
+            con.close()
+        yield from families
+        readable.add_metric([], 1 if families else 0)
+        yield readable
+
+    def _read(self, con):
+        rows = GaugeMetricFamily(&quot;tcg_ingestion_rows&quot;, &quot;Rows of db_ingestion, by data tag&quot;, labels=[&quot;data_tag&quot;])
+        last = GaugeMetricFamily(&quot;tcg_ingestion_last_timestamp_seconds&quot;,
+                                 &quot;Unix time of the newest record of db_ingestion, by data tag&quot;, labels=[&quot;data_tag&quot;])
+        batches = GaugeMetricFamily(&quot;tcg_ingestion_batches&quot;, &quot;Distinct capture timestamps, by data tag&quot;, labels=[&quot;data_tag&quot;])
+        for tag, n, newest, distinct in con.execute(
+                &quot;SELECT data_tag, count(*), max(timestamp), count(DISTINCT timestamp) FROM db_ingestion GROUP BY 1 ORDER BY 1&quot;).fetchall():
+            rows.add_metric([tag], n)
+            last.add_metric([tag], newest)
+            batches.add_metric([tag], distinct)
+        yield rows
+        yield last
+        yield batches
+
+        fact_rows, fact_keys = con.execute(
+            &quot;SELECT count(*), count(DISTINCT (date_unix, product_id, variant)) FROM gold.fact_price&quot;).fetchone()
+        g = GaugeMetricFamily(&quot;tcg_gold_fact_rows&quot;, &quot;Rows of gold.fact_price&quot;)
+        g.add_metric([], fact_rows)
+        yield g
+        g = GaugeMetricFamily(&quot;tcg_gold_fact_grain_keys&quot;, &quot;Distinct keys (date, product, variant) of gold.fact_price&quot;)
+        g.add_metric([], fact_keys)
+        yield g
+
+        status = GaugeMetricFamily(&quot;tcg_pipeline_last_run_tasks&quot;, &quot;Task attempts of the last run in ops.pipeline_runs, by status&quot;,
+                                   labels=[&quot;status&quot;])
+        ended = GaugeMetricFamily(&quot;tcg_pipeline_last_run_end_timestamp_seconds&quot;, &quot;Unix time of the end of the last run&quot;)
+        last_run = con.execute(&quot;SELECT run_id FROM ops.pipeline_runs ORDER BY started_at DESC, ended_at DESC LIMIT 1&quot;).fetchone()
+        if last_run:
+            for st, n in con.execute(&quot;SELECT status, count(*) FROM ops.pipeline_runs WHERE run_id = ? GROUP BY 1 ORDER BY 1&quot;,
+                                     [last_run[0]]).fetchall():
+                status.add_metric([st], n)
+            ended.add_metric([], con.execute(&quot;SELECT max(ended_at) FROM ops.pipeline_runs WHERE run_id = ?&quot;,
+                                             [last_run[0]]).fetchone()[0])
+        yield status
+        yield ended
+
+
+def exporter_registry(db_path: Path) -&gt; CollectorRegistry:
+    registry = CollectorRegistry()
+    registry.register(WarehouseCollector(db_path))
+    return registry
+
+
+def serve(db_path: Path, port: int, addr: str = &quot;0.0.0.0&quot;):
+    &quot;&quot;&quot;Start the HTTP endpoint /metrics of the exporter; returns the server and its thread.&quot;&quot;&quot;
+    from prometheus_client import start_http_server
+
+    return start_http_server(port, addr=addr, registry=exporter_registry(db_path))</code></pre></div>
+<p>The wrapper keeps the direction of the layers. The ETL layer does not import <code>prometheus_client</code>: the pipeline, which already sits above the layers, gives the extraction a client that has the same methods as <code>TcgcsvClient</code> and measures each call on the way. A test of the extraction can therefore still use the fake client of Lesson 7 without any metric.</p>
+      </section>
+      <section class="mat-section" id="hooks">
+        <h2>8. The pipeline calls the metrics</h2>
+<p>The pipeline creates a <code>RunMetrics</code> at the start of the run and calls it at three moments: after each attempt of a task, with its outcome, its duration and its result; when a task is skipped because a dependency failed; and at the end, with the list of failed tasks. The result of an extraction is the number of rows it wrote, which becomes <code>tcg_task_rows</code>, and the result of <code>check_quality</code> is the dictionary of measured numbers, which becomes <code>tcg_quality_value</code>.</p>
+<p>The time of the last success lives in a second registry, set only when the run succeeds. The separation matters at the moment of the push, described in Part IV: a failed run sends its failure without touching the time of the last good run, which is what the alert on a missing run needs.</p>
+<div class="code-wrap"><div class="code-label"><span>src/tcg_dataapp/pipeline.py</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>&quot;&quot;&quot;The pipeline: tasks with dependencies, run in order, with retries and a log of every run.
+
+Each task is a function of the run context. A task runs only after all the
+tasks it depends on succeeded; a failure is retried, and a task that still
+fails stops every task that depends on it. Every attempt is recorded in
+ops.pipeline_runs, with Unix times, so a run can be audited afterwards.
+
+Lesson 10: the run also records its metrics in a telemetry.RunMetrics object
+(attempts, durations, rows, requests to the source, the numbers of the quality
+check and the outcome of the run), which the command line pushes to a
+Pushgateway and writes to out/metrics.prom.
+&quot;&quot;&quot;
+from __future__ import annotations
+
+import time
+import uuid
+from dataclasses import dataclass, field
+from typing import Callable
+
+import duckdb
+
+from tcg_dataapp.config import Settings
+from tcg_dataapp.etls import extract
+from tcg_dataapp.etls.tcgcsv import TcgcsvClient
+from tcg_dataapp.processors import gold, quality
+from tcg_dataapp.telemetry import RunMetrics
+from tcg_dataapp.views import report
+
+LOG_DDL = &quot;&quot;&quot;
+CREATE SCHEMA IF NOT EXISTS ops;
+CREATE TABLE IF NOT EXISTS ops.pipeline_runs (
+    run_id     VARCHAR,
+    task       VARCHAR,
+    attempt    INTEGER,
+    status     VARCHAR,
+    started_at BIGINT,
+    ended_at   BIGINT,
+    detail     VARCHAR
+);
+&quot;&quot;&quot;
+
+
+@dataclass
+class Task:
+    name: str
+    run: Callable[[&quot;Context&quot;], object]
+    depends_on: tuple = ()
+    retries: int | None = None
+
+
+@dataclass
+class Context:
+    settings: Settings
+    con: duckdb.DuckDBPyConnection
+    client: TcgcsvClient
+    run_id: str
+    captured_at: int
+    metrics: RunMetrics | None = None
+    results: dict = field(default_factory=dict)
+
+
+def build_tasks(settings: Settings, with_today: bool = False) -&gt; list[Task]:
+    tasks = [
+        Task(&quot;extract_sets&quot;, lambda c: extract.extract_sets(c.con, c.client, c.settings.sets, c.captured_at)),
+        Task(&quot;extract_products&quot;, lambda c: extract.extract_products(c.con, c.client, c.settings.sets, c.captured_at),
+             depends_on=(&quot;extract_sets&quot;,)),
+    ]
+    price_tasks = []
+    for day in settings.price_dates:
+        name = f&quot;extract_prices_{day}&quot;
+        tasks.append(Task(name, lambda c, d=day: extract.extract_prices_archive(c.con, c.client, c.settings.sets, d),
+                          depends_on=(&quot;extract_products&quot;,)))
+        price_tasks.append(name)
+    if with_today:
+        tasks.append(Task(&quot;extract_prices_today&quot;,
+                          lambda c: extract.extract_prices_today(c.con, c.client, c.settings.sets, extract.today()),
+                          depends_on=(&quot;extract_products&quot;,)))
+        price_tasks.append(&quot;extract_prices_today&quot;)
+    tasks += [
+        Task(&quot;build_gold&quot;, lambda c: gold.build_gold(c.con), depends_on=tuple(price_tasks), retries=0),
+        Task(&quot;check_quality&quot;, lambda c: quality.check_gold(c.con), depends_on=(&quot;build_gold&quot;,), retries=0),
+        Task(&quot;freeze_reports&quot;, lambda c: gold.freeze_month(c.con, c.settings.frozen_month),
+             depends_on=(&quot;check_quality&quot;,), retries=0),
+        Task(&quot;export_marts&quot;, lambda c: [p.as_posix() for p in report.export_marts(c.con, c.settings.out_dir)],
+             depends_on=(&quot;check_quality&quot;,)),
+        Task(&quot;write_report&quot;, lambda c: report.write_report(c.con, c.settings.out_dir, c.run_id).as_posix(),
+             depends_on=(&quot;freeze_reports&quot;, &quot;export_marts&quot;)),
+    ]
+    return tasks
+
+
+def order(tasks: list[Task]) -&gt; list[Task]:
+    &quot;&quot;&quot;Topological order of the tasks; raises on an unknown dependency or a cycle.&quot;&quot;&quot;
+    by_name = {t.name: t for t in tasks}
+    for t in tasks:
+        for d in t.depends_on:
+            if d not in by_name:
+                raise ValueError(f&quot;task {t.name} depends on unknown task {d}&quot;)
+    done, ordered, visiting = set(), [], set()
+
+    def visit(t: Task):
+        if t.name in done:
+            return
+        if t.name in visiting:
+            raise ValueError(f&quot;cycle at task {t.name}&quot;)
+        visiting.add(t.name)
+        for d in t.depends_on:
+            visit(by_name[d])
+        visiting.discard(t.name)
+        done.add(t.name)
+        ordered.append(t)
+
+    for t in tasks:
+        visit(t)
+    return ordered
+
+
+def _log(con, run_id, task, attempt, status, started, ended, detail):
+    con.execute(&quot;INSERT INTO ops.pipeline_runs VALUES (?, ?, ?, ?, ?, ?, ?)&quot;,
+                [run_id, task, attempt, status, started, ended, str(detail)[:500]]).fetchall()
+
+
+def run(settings: Settings, tasks: list[Task] | None = None, client: TcgcsvClient | None = None,
+        con: duckdb.DuckDBPyConnection | None = None, with_today: bool = False,
+        echo: Callable[[str], None] = print, metrics: bool = True) -&gt; Context:
+    own = con is None
+    if own:
+        settings.db_path.parent.mkdir(parents=True, exist_ok=True)
+        con = duckdb.connect(str(settings.db_path))
+    for statement in con.extract_statements(LOG_DDL):
+        con.execute(statement).fetchall()
+    run_id = uuid.uuid4().hex[:12]
+    m = RunMetrics(run_id) if metrics else None
+    source = client or TcgcsvClient(settings.base_url, settings.category)
+    ctx = Context(settings=settings, con=con, client=m.instrument(source) if m else source,
+                  run_id=run_id, captured_at=extract.now_unix(), metrics=m)
+    failed: set[str] = set()
+    try:
+        for task in order(tasks or build_tasks(settings, with_today)):
+            if any(d in failed for d in task.depends_on):
+                failed.add(task.name)
+                _log(con, ctx.run_id, task.name, 0, &quot;skipped&quot;, extract.now_unix(), extract.now_unix(), &quot;a dependency failed&quot;)
+                echo(f&quot;  skip  {task.name}  (a dependency failed)&quot;)
+                if m:
+                    m.attempt(task.name, &quot;skipped&quot;)
+                continue
+            attempts = 1 + (settings.retries if task.retries is None else task.retries)
+            for attempt in range(1, attempts + 1):
+                started = extract.now_unix()
+                t0 = time.perf_counter()
+                try:
+                    result = task.run(ctx)
+                except Exception as error:  # noqa: BLE001 - every failure is logged and retried
+                    _log(con, ctx.run_id, task.name, attempt, &quot;failed&quot;, started, extract.now_unix(),
+                         f&quot;{type(error).__name__}: {error}&quot;)
+                    if m:
+                        m.attempt(task.name, &quot;failed&quot;, time.perf_counter() - t0)
+                    echo(f&quot;  fail  {task.name}  attempt {attempt}/{attempts}: {type(error).__name__}: {error}&quot;)
+                    if attempt == attempts:
+                        failed.add(task.name)
+                    else:
+                        time.sleep(settings.retry_delay * attempt)
+                    continue
+                ctx.results[task.name] = result
+                _log(con, ctx.run_id, task.name, attempt, &quot;success&quot;, started, extract.now_unix(), result)
+                if m:
+                    m.attempt(task.name, &quot;success&quot;, time.perf_counter() - t0, result)
+                echo(f&quot;  ok    {task.name}  {time.perf_counter() - t0:5.2f} s  {result}&quot;)
+                break
+    finally:
+        if own:
+            con.close()
+    ctx.results[&quot;_failed&quot;] = sorted(failed)
+    if m:
+        m.finish(ctx.results[&quot;_failed&quot;])
+    return ctx</code></pre></div>
+      </section>
+      <section class="mat-section" id="exposition">
+        <h2>9. The text format</h2>
+<p>A Prometheus endpoint answers in a text format of one sample per line, preceded by the help and the type of each metric. <code>tcg-dataapp run</code> writes the metrics of the run in this format to <code>out/metrics.prom</code>, which is useful to inspect a run without any server and is also the format read by the textfile collector of node_exporter. The excerpt below comes from the run of 08/11/2026; the buckets of the histogram are cumulative, so the five archives, all between 2 and 4 seconds, appear as 0 at <code>le="2.0"</code> and 5 at <code>le="4.0"</code>.</p>
+<div class="code-wrap"><div class="code-label"><span>out/metrics.prom of the run of 08/11/2026 (excerpt)</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code># HELP tcg_task_rows Rows written to db_ingestion by each extraction task
+# TYPE tcg_task_rows gauge
+tcg_task_rows{task=&quot;extract_sets&quot;} 7.0
+tcg_task_rows{task=&quot;extract_products&quot;} 1490.0
+tcg_task_rows{task=&quot;extract_prices_2026-03-01&quot;} 657.0
+tcg_task_rows{task=&quot;extract_prices_2026-05-01&quot;} 896.0
+tcg_task_rows{task=&quot;extract_prices_2026-07-01&quot;} 1153.0
+tcg_task_rows{task=&quot;extract_prices_2026-09-01&quot;} 1414.0
+tcg_task_rows{task=&quot;extract_prices_2026-11-07&quot;} 1831.0
+# TYPE tcg_source_request_duration_seconds histogram
+tcg_source_request_duration_seconds_bucket{endpoint=&quot;archive&quot;,le=&quot;2.0&quot;} 0.0
+tcg_source_request_duration_seconds_bucket{endpoint=&quot;archive&quot;,le=&quot;4.0&quot;} 5.0
+tcg_source_request_duration_seconds_count{endpoint=&quot;archive&quot;} 5.0
+tcg_source_request_duration_seconds_sum{endpoint=&quot;archive&quot;} 14.828340268002648
+tcg_quality_value{measure=&quot;fact_rows&quot;} 5951.0
+tcg_quality_value{measure=&quot;fact_grain_keys&quot;} 5951.0
+tcg_quality_value{measure=&quot;cube_cells&quot;} 524.0
+tcg_run_success 1.0
+tcg_run_duration_seconds 25.109792110000853
+tcg_run_failed_tasks 0.0
+tcg_run_last_success_timestamp_seconds 1.7941372409464831e+09</code></pre></div>
+<p>The library also emits, for each counter and histogram, a series <code>_created</code> with the moment the series was created. In a process that lives for half a minute this doubles the number of lines without adding information, and the module turns it off with <code>disable_created_metrics()</code>.</p>
+      </section>
+      <div class="part-title"><small>Part IV</small><strong>Push and exporter</strong></div>
+      <section class="mat-section" id="push">
+        <h2>10. Why a batch job pushes</h2>
+<p>The run lasted 25.1 seconds in the rehearsal and about 40 seconds in Lesson 7, while Prometheus scrapes every 15 seconds. A run that exposed an endpoint would be scraped once or twice, at random moments of its execution, and would disappear before the final numbers existed. The documentation of Prometheus prescribes, for this case of a batch job at the level of a service, a Pushgateway: the job sends its metrics when it ends, the Pushgateway keeps the last values of each group, and Prometheus scrapes the Pushgateway as an ordinary target.</p>
+<p>Two details of the configuration decide whether the result is correct. The push uses <code>pushadd</code>, an HTTP POST that replaces only the metrics with the names being sent, and not <code>push</code>, a PUT that replaces the whole group: with a PUT, a failed run would erase <code>tcg_run_last_success_timestamp_seconds</code>, and the alert on a missing run would lose its reference. On the side of Prometheus, the job of the Pushgateway declares <code>honor_labels: true</code>, which keeps the labels <code>job="tcg_dataapp"</code> and <code>instance</code> of the push instead of replacing them with the labels of the Pushgateway itself.</p>
+<div class="code-wrap"><div class="code-label"><span>tcg-dataapp run --push: what goes to the Pushgateway</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>POST /metrics/job/tcg_dataapp/instance/local   the metrics of the run (always)
+POST /metrics/job/tcg_dataapp/instance/local   tcg_run_last_success_timestamp_seconds (only after a success)</code></pre></div>
+<p>The Pushgateway has a known cost, which the alerts compensate. It keeps the last values indefinitely, so Prometheus cannot distinguish a job that died from a job that has not run yet; <code>up</code> refers to the Pushgateway, not to the job. The answer is to alert on the age of the last success, which grows whether the job failed, died or was never called. The Pushgateway also adds to each group the series <code>push_time_seconds</code>, the moment of the last push, successful or not.</p>
+      </section>
+      <section class="mat-section" id="exporter">
+        <h2>11. An exporter of the warehouse</h2>
+<p>Some numbers belong to the data and not to a run: the age of the newest price, the rows of the landing table, the agreement between the rows and the keys of the fact. They exist between runs and should be read whenever Prometheus asks. An exporter is a long-running process that translates the state of another system into metrics at each scrape, in the same way that postgres_exporter reads PostgreSQL. <code>tcg-dataapp metrics</code> is a small exporter of the DuckDB file: at each scrape, its custom collector opens the file read-only, reads <code>db_ingestion</code>, <code>gold.fact_price</code> and <code>ops.pipeline_runs</code>, and closes it.</p>
+<div class="code-wrap"><div class="code-label"><span>tcg-dataapp metrics --once, after the run of 08/11/2026</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>tcg_ingestion_rows{data_tag=&quot;tcgplayer.price.v1&quot;} 5951.0
+tcg_ingestion_rows{data_tag=&quot;tcgplayer.product.v1&quot;} 1490.0
+tcg_ingestion_rows{data_tag=&quot;tcgplayer.set.v1&quot;} 7.0
+tcg_ingestion_last_timestamp_seconds{data_tag=&quot;tcgplayer.price.v1&quot;} 1.7940528e+09
+tcg_ingestion_batches{data_tag=&quot;tcgplayer.price.v1&quot;} 5.0
+tcg_gold_fact_rows 5951.0
+tcg_gold_fact_grain_keys 5951.0
+tcg_pipeline_last_run_tasks{status=&quot;success&quot;} 12.0
+tcg_pipeline_last_run_end_timestamp_seconds 1.79413724e+09
+tcg_warehouse_readable 1.0</code></pre></div>
+<p>The newest price, <code>1794052800</code>, is 07/11/2026 at 12:00 UTC, the noon batch of the last archive. The exporter computes nothing that the pipeline and the gold layer do not already keep, which is deliberate: the numbers that an alert reads must be the same numbers that the model publishes.</p>
+      </section>
+      <section class="mat-section" id="lock">
+        <h2>12. A finding of the rehearsal: one writer and no reader</h2>
+<p>DuckDB allows one process to open a file for writing, and while that process holds it, no other process may open it, even for reading. The rehearsal made this visible: of three scrapes taken during a run, the first answered and the next two could not open the file. A collector that raised the error would make the whole scrape fail, and Prometheus would mark the exporter as down during every run. The collector instead reports <code>tcg_warehouse_readable 0</code> and no other metric, and does the same when the file exists but the gold layer was never built, which happened after the failed run of the rehearsal and made the first version of the exporter answer with an HTTP error.</p>
+<p>The alert <code>TcgExporterDown</code> waits two minutes before firing, longer than a run holds the file. In a production warehouse with concurrent readers, such as the ClickHouse of the class or a PostgreSQL, the restriction does not exist; it is a property of an embedded database, and it is the kind of constraint that only appears when monitoring and processing run at the same time.</p>
+      </section>
+      <div class="part-title"><small>Part V</small><strong>Stack and PromQL</strong></div>
+      <section class="mat-section" id="stack">
+        <h2>13. The stack in Docker Compose</h2>
+<p>The third step brings up three containers, each pinned to a version: Prometheus, the Pushgateway and Grafana. The DataApp runs on the host, as it would on a server, and Prometheus reaches the exporter at <code>host.docker.internal:9108</code>, a name that Compose maps to the host through <code>extra_hosts</code>. Grafana starts with its datasource and its dashboard provisioned from files, and with anonymous access as Viewer, so the class reads the dashboard without logging in.</p>
+<div class="code-wrap"><div class="code-label"><span>stack/compose.yaml</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code># Lesson 10 · the monitoring stack of the DataApp: Prometheus, Pushgateway and Grafana.
+#   docker compose up -d        Prometheus :9090 · Pushgateway :9091 · Grafana :3000
+#   docker compose down -v      stops and removes everything
+# The DataApp itself runs on the host: `tcg-dataapp run --push localhost:9091`
+# and `tcg-dataapp metrics` (port 9108), which Prometheus reaches as host.docker.internal.
+name: tcg-telemetry
+
+services:
+  prometheus:
+    image: prom/prometheus:v3.15.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-lifecycle          # POST /-/reload rereads prometheus.yml and rules.yml
+    ports: [&quot;9090:9090&quot;]
+    volumes:
+      - ./prometheus:/etc/prometheus:ro
+      - prometheus-data:/prometheus
+    extra_hosts: [&quot;host.docker.internal:host-gateway&quot;]
+
+  pushgateway:
+    image: prom/pushgateway:v1.11.2
+    ports: [&quot;9091:9091&quot;]
+
+  grafana:
+    image: grafana/grafana:13.2.4
+    ports: [&quot;${GRAFANA_PORT:-3000}:3000&quot;]
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: &quot;true&quot;        # the class reads the dashboard without logging in
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/tcg_dataapp.json
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on: [prometheus]
+
+volumes:
+  prometheus-data:</code></pre></div>
+<div class="code-wrap"><div class="code-label"><span>stack/prometheus/prometheus.yml</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code># Lesson 10 · what Prometheus scrapes, and how often.
+global:
+  scrape_interval: 15s       # every target is read every 15 s
+  evaluation_interval: 15s   # every rule of rules.yml is evaluated every 15 s
+
+rule_files:
+  - rules.yml
+
+scrape_configs:
+  # The batch run lasts about 40 s and is gone before most scrapes: it pushes its
+  # metrics to the Pushgateway, and Prometheus scrapes the Pushgateway.
+  # honor_labels keeps job=&quot;tcg_dataapp&quot; and instance=&quot;&lt;machine&gt;&quot; of the push,
+  # instead of replacing them with the labels of the Pushgateway target.
+  - job_name: pushgateway
+    honor_labels: true
+    static_configs:
+      - targets: [&quot;pushgateway:9091&quot;]
+
+  # The exporter is a long-running process on the host (tcg-dataapp metrics):
+  # at each scrape it reads freshness, volume, grain and the last run from DuckDB.
+  - job_name: tcg_exporter
+    static_configs:
+      - targets: [&quot;host.docker.internal:9108&quot;]
+        labels:
+          service: tcg-dataapp
+
+  - job_name: prometheus
+    static_configs:
+      - targets: [&quot;localhost:9090&quot;]</code></pre></div>
+<p><code>promtool</code>, the validator of Prometheus, ships inside its image, so the configuration is checked without installing anything: <code>promtool check config</code> reported a valid file, one rule file and eight rules. With the stack up, the exporter on and one run pushed, the page <code>/targets</code> showed the three targets up.</p>
+      </section>
+      <section class="mat-section" id="promql">
+        <h2>14. Answering questions in PromQL</h2>
+<p>PromQL selects series by name and labels and operates on whole vectors of series at once. A selector such as <code>tcg_task_rows{task=~"extract_prices_.*"}</code> returns one series per matching task; an aggregation such as <code>sum</code> or <code>topk</code> combines them; and an arithmetic operator between two vectors matches series with the same labels, which is how <code>tcg_gold_fact_rows - tcg_gold_fact_grain_keys</code> compares two metrics of the exporter. <code>time()</code> returns the moment of the evaluation, so subtracting a timestamp gives an age. The questions below were answered on 08/11/2026, about one minute after a run pushed at 11:27 UTC.</p>
+<div class="table-wrap"><table><thead><tr><th>Question</th><th>PromQL</th><th>Value</th></tr></thead><tbody><tr><td>Did the last run succeed?</td><td><code>tcg_run_success{job="tcg_dataapp"}</code></td><td>1</td></tr><tr><td>How long since the last success?</td><td><code>time() - tcg_run_last_success_timestamp_seconds{job="tcg_dataapp"}</code></td><td>62 s</td></tr><tr><td>When did the last push arrive?</td><td><code>time() - push_time_seconds{job="tcg_dataapp"}</code></td><td>62 s</td></tr><tr><td>How old is the newest price?</td><td><code>tcg:price_freshness_seconds</code></td><td>84,499 s (23.5 h); 0 after <code>--with-today</code></td></tr><tr><td>Is the grain intact?</td><td><code>tcg_gold_fact_rows - tcg_gold_fact_grain_keys</code></td><td>0</td></tr><tr><td>Which three tasks took longest?</td><td><code>topk(3, tcg_task_duration_seconds)</code></td><td>extract_products 7.25 s; prices of 07/11 3.47 s; prices of 01/07 3.43 s</td></tr><tr><td>How many prices were loaded?</td><td><code>sum(tcg_task_rows{task=~"extract_prices_.*"})</code></td><td>5,951</td></tr><tr><td>Mean time of each kind of request</td><td><code>tcg_source_request_duration_seconds_sum / tcg_source_request_duration_seconds_count</code></td><td>groups 0.70 s; products 0.95 s; archive 2.97 s</td></tr><tr><td>Could the exporter always read the warehouse?</td><td><code>min_over_time(tcg_warehouse_readable[5m])</code></td><td>0: a scrape fell during a run</td></tr></tbody></table></div>
+<p>The extraction of the products is the slowest task because it makes seven requests, one per set, and each request pauses 0.2 seconds as a courtesy to the public mirror. The gold layer, the checks and the reports together took less than half a second, which confirms what Lesson 7 had measured: the cost of the DataApp is the network, not the model.</p>
+      </section>
+      <section class="mat-section" id="quantiles">
+        <h2>15. Histograms, quantiles and recording rules</h2>
+<p>A histogram keeps only how many observations fell at or below each bound, so a quantile is estimated. <code>histogram_quantile</code> finds the bucket in which the quantile falls and interpolates linearly inside it. For the groups, a single request of 0.70 seconds lies in the bucket from 0.5 to 1 second, and the 95th percentile is placed at 95% of that bucket, 0.5 + 0.95 × 0.5 = 0.975 seconds; for the archives, five requests between 2 and 4 seconds give 3.9 seconds. The estimate is as precise as the buckets allow, which is why the bounds were chosen around the times observed in Lesson 7.</p>
+<p>A pushed histogram holds only the last run, since each push replaces it, so <code>rate()</code> over it has no meaning and the quantile is taken directly over the buckets. In a service that lives longer than the scrape the usual form is <code>histogram_quantile(0.95, sum by (le) (rate(..._bucket[5m])))</code>, which estimates the quantile of the last five minutes.</p>
+<p>A recording rule evaluates an expression at every interval and stores the result as a new series, named by the convention <code>level:metric:operation</code>. The lab records two: the freshness of the prices and the p95 of the requests. The freshness is clamped at zero because of a finding of the rehearsal: the prices of today are stored at 12:00 UTC of the day, so a run with <code>--with-today</code> before noon stores a price in the future, and the raw age measured was −1,841 seconds.</p>
+<div class="code-wrap"><div class="code-label"><span>the recording rules of stack/prometheus/rules.yml</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code># Lesson 10 · recording and alerting rules of the DataApp.
+# Check with: promtool check rules rules.yml
+groups:
+  - name: tcg_dataapp_recording
+    rules:
+      # Seconds since the newest price was captured. Written once, reused by the
+      # dashboard and by the alert below. The prices of today are stored at noon
+      # UTC, which is in the future for a run in the morning, so the age is
+      # clamped at zero instead of going negative.
+      - record: tcg:price_freshness_seconds
+        expr: clamp_min(time() - tcg_ingestion_last_timestamp_seconds{data_tag=&quot;tcgplayer.price.v1&quot;}, 0)
+      # 95th percentile of the requests to tcgcsv.com in the last pushed run, by endpoint.
+      # The histogram of a pushed run holds only that run, so there is no rate() here.
+      - record: tcg:source_request_duration_seconds:p95
+        expr: histogram_quantile(0.95, sum by (le, endpoint) (tcg_source_request_duration_seconds_bucket{job=&quot;tcg_dataapp&quot;}))</code></pre></div>
+      </section>
+      <div class="part-title"><small>Part VI</small><strong>Dashboard and alerts</strong></div>
+      <section class="mat-section" id="alerts">
+        <h2>16. Alerting rules</h2>
+<p>An alerting rule is a PromQL expression that, when it returns any series, creates an alert with the labels of that series. An alert calls a person, so each rule should describe a symptom that someone must act on, and each threshold should come from how the DataApp runs rather than from a round number. <code>for:</code> asks the condition to hold for a period before the alert fires, which filters a single bad scrape; an alert in that period is pending.</p>
+<div class="table-wrap"><table><thead><tr><th>Alert</th><th>Severity</th><th>Expression</th><th>Why this threshold</th></tr></thead><tbody><tr><td>TcgRunFailed</td><td>critical</td><td><code>tcg_run_success == 0</code></td><td>a failed run publishes nothing</td></tr><tr><td>TcgNoSuccessfulRun</td><td>critical</td><td>last success older than 26 h</td><td>a daily run plus two hours of tolerance</td></tr><tr><td>TcgRunTooSlow</td><td>warning</td><td><code>tcg_run_duration_seconds > 120</code></td><td>three times the reference run of about 40 s</td></tr><tr><td>TcgPricesStale</td><td>warning</td><td>freshness above 36 h for 5 min</td><td>a missed day and a half, which a daily source does not explain</td></tr><tr><td>TcgGrainBroken</td><td>critical</td><td><code>tcg_gold_fact_rows != tcg_gold_fact_grain_keys</code></td><td>every sum of the cube would be wrong</td></tr><tr><td>TcgExporterDown</td><td>warning</td><td><code>up == 0</code> or not readable, for 2 min</td><td>a run holds the file for about 30 s</td></tr></tbody></table></div>
+<div class="code-wrap"><div class="code-label"><span>the alerting rules of stack/prometheus/rules.yml</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>  - name: tcg_dataapp_alerts
+    rules:
+      - alert: TcgRunFailed
+        expr: tcg_run_success{job=&quot;tcg_dataapp&quot;} == 0
+        labels:
+          severity: critical
+        annotations:
+          summary: &quot;The last run of tcg-dataapp on {{ $labels.instance }} failed&quot;
+          description: &quot;tcg_run_failed_tasks counts the tasks that failed or were skipped; ops.pipeline_runs has the error of each attempt.&quot;
+
+      - alert: TcgNoSuccessfulRun
+        # the run is scheduled daily; two hours of tolerance
+        expr: time() - tcg_run_last_success_timestamp_seconds{job=&quot;tcg_dataapp&quot;} &gt; 26 * 3600
+        labels:
+          severity: critical
+        annotations:
+          summary: &quot;No successful run of tcg-dataapp for more than 26 hours&quot;
+
+      - alert: TcgRunTooSlow
+        # the reference run takes about 40 s; three times that is a symptom
+        expr: tcg_run_duration_seconds{job=&quot;tcg_dataapp&quot;} &gt; 120
+        labels:
+          severity: warning
+        annotations:
+          summary: &quot;The last run took {{ $value | humanizeDuration }}&quot;
+
+      - alert: TcgPricesStale
+        expr: tcg:price_freshness_seconds &gt; 36 * 3600
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: &quot;The newest price in db_ingestion is {{ $value | humanizeDuration }} old&quot;
+
+      - alert: TcgGrainBroken
+        expr: tcg_gold_fact_rows != tcg_gold_fact_grain_keys
+        labels:
+          severity: critical
+        annotations:
+          summary: &quot;gold.fact_price has more rows than keys of its grain&quot;
+
+      - alert: TcgExporterDown
+        expr: up{job=&quot;tcg_exporter&quot;} == 0 or tcg_warehouse_readable == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: &quot;Prometheus cannot read the state of the warehouse&quot;</code></pre></div>
+<p>Prometheus evaluates the rules and lists the alerts at <code>/alerts</code> and in its API. Delivering them to e-mail, chat or a pager, with grouping, silencing and routing by severity, is the job of Alertmanager, the next component of the stack, which is left out of this lab to keep it at three containers.</p>
+      </section>
+      <section class="mat-section" id="testing-alerts">
+        <h2>17. Testing the alerts before they reach production</h2>
+<p>An alert that never fires is indistinguishable from an alert with a wrong expression, and finding out during an incident is too late. <code>promtool test rules</code> runs the rules over series written in the test file, at simulated times, and compares the alerts at each moment with the expected ones. The file of the lab has three scenarios: a failed run fires <code>TcgRunFailed</code> and a good run resolves it; prices without news keep <code>TcgPricesStale</code> pending until 36 hours and five minutes; and one row above the grain fires <code>TcgGrainBroken</code>. The command printed SUCCESS. These tests are the same kind of artefact that Lesson 9 asks for the code: a scenario, a stimulus and an expected response, written down and run by a machine.</p>
+<div class="code-wrap"><div class="code-label"><span>stack/prometheus/rules_test.yml</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code># Lesson 10 · unit tests of the alerts, without any DataApp running.
+# Run with: promtool test rules rules_test.yml
+rule_files:
+  - rules.yml
+
+evaluation_interval: 1m
+
+tests:
+  # A run fails: TcgRunFailed fires at once; a good run afterwards resolves it.
+  - interval: 1m
+    input_series:
+      - series: &#x27;tcg_run_success{job=&quot;tcg_dataapp&quot;, instance=&quot;local&quot;}&#x27;
+        values: &#x27;1 0 0 1&#x27;
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: TcgRunFailed
+        exp_alerts:
+          - exp_labels: {severity: critical, job: tcg_dataapp, instance: local}
+            exp_annotations:
+              summary: &quot;The last run of tcg-dataapp on local failed&quot;
+              description: &quot;tcg_run_failed_tasks counts the tasks that failed or were skipped; ops.pipeline_runs has the error of each attempt.&quot;
+      - eval_time: 3m
+        alertname: TcgRunFailed
+        exp_alerts: []
+
+  # The newest price was captured at time 0 and nothing new arrives. The age crosses
+  # 36 h at minute 2160; with for: 5m the alert is pending until minute 2165.
+  - interval: 1m
+    input_series:
+      - series: &#x27;tcg_ingestion_last_timestamp_seconds{job=&quot;tcg_exporter&quot;, data_tag=&quot;tcgplayer.price.v1&quot;}&#x27;
+        values: &#x27;0+0x2200&#x27;
+    alert_rule_test:
+      - eval_time: 2163m
+        alertname: TcgPricesStale
+        exp_alerts: []
+      - eval_time: 2167m
+        alertname: TcgPricesStale
+        exp_alerts:
+          - exp_labels: {severity: warning, job: tcg_exporter, data_tag: tcgplayer.price.v1}
+            exp_annotations:
+              summary: &quot;The newest price in db_ingestion is 1d 12h 7m 0s old&quot;
+
+  # The grain breaks: one more row than keys.
+  - interval: 1m
+    input_series:
+      - series: &#x27;tcg_gold_fact_rows{job=&quot;tcg_exporter&quot;}&#x27;
+        values: &#x27;5951 5952&#x27;
+      - series: &#x27;tcg_gold_fact_grain_keys{job=&quot;tcg_exporter&quot;}&#x27;
+        values: &#x27;5951 5951&#x27;
+    alert_rule_test:
+      - eval_time: 0m
+        alertname: TcgGrainBroken
+        exp_alerts: []
+      - eval_time: 1m
+        alertname: TcgGrainBroken
+        exp_alerts:
+          - exp_labels: {severity: critical, job: tcg_exporter}
+            exp_annotations:
+              summary: &quot;gold.fact_price has more rows than keys of its grain&quot;</code></pre></div>
+      </section>
+      <section class="mat-section" id="grafana">
+        <h2>18. The dashboard in Grafana</h2>
+<p>Grafana reads Prometheus through a datasource and draws each panel from a PromQL expression. Both the datasource and the dashboard are provisioned from files of the repository, so the stack starts with the dashboard already in place and every change goes through version control. The dashboard "TCG DataApp" has nine panels arranged by the order in which an operator asks the questions: five stats at the top (whether the last run worked, the time since the last success, the freshness of the prices, the rows above the grain and the duration of the run), then the duration of each task and the rows of each extraction, and at the bottom the rows of the landing table over time and the p95 of the requests to the source.</p>
+<p>The stats change colour at the thresholds of the alerts, so the dashboard and the alerts tell the same story. The bars use the green of the palette of the course, and the colour carries no meaning beyond the thresholds. The first stat maps the values 1 and 0 to the words OK and FAILED, because a number without a word asks the reader to remember the convention.</p>
+<div class="code-wrap"><div class="code-label"><span>stack/grafana/provisioning/datasources/prometheus.yml</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>apiVersion: 1
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true</code></pre></div>
+      </section>
+      <section class="mat-section" id="rehearsal">
+        <h2>19. A run that fails on purpose</h2>
+<p>The last check of the session reproduces a failure. With the source replaced by a closed port, <code>TCG_BASE_URL=http://127.0.0.1:9</code>, the run failed twice at <code>extract_sets</code>, after the retry, and skipped the other eleven tasks; it wrote <code>tcg_run_success 0</code> and <code>tcg_run_failed_tasks 12</code>, pushed them, and Prometheus listed <code>TcgRunFailed</code> as firing at its next evaluation. The good run that followed, at 11:27 UTC, ended with twelve tasks in 25.1 seconds, pushed <code>tcg_run_success 1</code> and a new time of last success, and the alert was resolved.</p>
+<div class="code-wrap"><div class="code-label"><span>the rehearsal of 08/11/2026</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>$ TCG_BASE_URL=http://127.0.0.1:9 TCG_RETRIES=1 tcg-dataapp run --push localhost:9091
+  fail  extract_sets  attempt 1/2: URLError: &lt;urlopen error [Errno 111] Connection refused&gt;
+  fail  extract_sets  attempt 2/2: URLError: &lt;urlopen error [Errno 111] Connection refused&gt;
+  skip  extract_products  (a dependency failed)
+  ...
+run d0c7a0b7e3e8: FAILED (12 tasks)
+metrics pushed to localhost:9091 (job=tcg_dataapp, instance=local)
+
+GET /api/v1/alerts   TcgRunFailed  firing
+
+$ tcg-dataapp run --push localhost:9091
+run cf7aebca8ab9: OK
+GET /api/v1/alerts   (no alerts)</code></pre></div>
+      </section>
+      <div class="part-title"><small>Part VII</small><strong>Lab</strong></div>
+      <section class="mat-section" id="steps">
+        <h2>20. The lab in four steps</h2>
+<p>The professor starts from a copy of the package of Lesson 7 and builds the instrumentation with the four prompts below, comparing each step with the reference of <code>lab/lesson-10/</code>. Each prompt states the facts measured in the rehearsal, so that both the agent and the class can check the result.</p><h3>Step 01 · Metrics of the run</h3><div class="code-wrap"><div class="code-label"><span>Prompt 01 · CREATE</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>[C] Character
+You are a data engineer who operates pipelines in production. The package
+tcg-dataapp of Lesson 7 runs the whole model in one command, but nobody
+knows how a run went unless they read the terminal. Now every run must
+describe itself in numbers that Prometheus can read.
+
+[R] Request
+Instrument the package with prometheus_client (version 0.4.0):
+1. src/tcg_dataapp/telemetry.py with a class RunMetrics(run_id) that owns a
+   CollectorRegistry of its own (never the global one) and holds:
+   - tcg_task_attempts_total{task,status}: counter of attempts by outcome
+     (success, failed, skipped);
+   - tcg_task_duration_seconds{task} and tcg_task_rows{task}: gauges of the
+     last attempt and of the rows written by each extraction;
+   - tcg_source_request_duration_seconds{endpoint}: histogram of the
+     requests to tcgcsv.com (groups, products, prices, archive), buckets
+     0.1 to 16 s, and tcg_source_request_errors_total{endpoint};
+   - tcg_quality_value{measure}: the numbers of check_quality;
+   - tcg_run_success, tcg_run_duration_seconds, tcg_run_failed_tasks and
+     tcg_run_last_completion_timestamp_seconds;
+   - tcg_run_last_success_timestamp_seconds, in a second registry, set only
+     when the run succeeds.
+2. A wrapper InstrumentedClient with the same methods as TcgcsvClient that
+   times every call into the histogram, so the etls layer does not import
+   prometheus_client.
+3. pipeline.run creates a RunMetrics, wraps the client and calls
+   metrics.attempt(task, status, seconds, result) after each attempt and
+   metrics.finish(failed) at the end.
+4. tcg-dataapp run writes the metrics to out/metrics.prom in the text
+   format.
+5. tests/test_telemetry.py, with the FakeClient of Lesson 7: a good run
+   reports rows, requests, quality and success; a failed run reports the
+   failure and no success time.
+
+Facts measured on 08/11/2026 (confirm before use):
+- out/metrics.prom of a real run: tcg_task_rows 7, 1490, 657, 896, 1153,
+  1414 and 1831; tcg_quality_value fact_rows = fact_grain_keys = 5951;
+  13 requests (1 groups, 7 products, 5 archives); tcg_run_success 1.
+
+[E] Example
+tcg_task_rows{task=&quot;extract_prices_2026-11-07&quot;} 1831.0
+tcg_source_request_duration_seconds_count{endpoint=&quot;archive&quot;} 5.0
+tcg_run_success 1.0
+
+[A] Adjustments
+- Names in snake_case with the prefix tcg_ and the unit as suffix
+  (_seconds, _total); every timestamp in Unix seconds.
+- Labels with few values only: task, status, endpoint, measure. Never the
+  run_id or a product as a label, because each new value is a new series.
+- Call disable_created_metrics(): the *_created series are noise in a job
+  that lives forty seconds.
+
+[T] Type of output
+The files, the output of pytest and the lines of out/metrics.prom without
+the buckets.
+
+[E] Extras
+Show the plan before editing. Record this prompt in docs/prompts.md.
+Stop at the end.</code></pre></div><p>Review before moving on:</p><ul><li>out/metrics.prom shows the rows 7, 1490, 657, 896, 1153, 1414 and 1831</li><li>the 13 requests are in the histogram</li><li>the etls do not import prometheus_client</li></ul><h3>Step 02 · Push and exporter</h3><div class="code-wrap"><div class="code-label"><span>Prompt 02 · CREATE</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>[C] Character
+You are the same engineer. The run now measures itself, but Prometheus
+collects by pulling: it reads an HTTP endpoint every 15 seconds, and a
+run of forty seconds is gone before most scrapes.
+
+[R] Request
+1. RunMetrics.push(gateway, instance): pushadd_to_gateway in the group
+   job=tcg_dataapp, instance=&lt;instance&gt;; the registry of the last success is
+   pushed only after a successful run.
+2. tcg-dataapp run --push URL (or TCG_PUSHGATEWAY; TCG_INSTANCE, default
+   local). A push that fails prints a warning and does not change the exit
+   code of the run.
+3. A custom collector WarehouseCollector(db_path) that, at each scrape,
+   opens the DuckDB file read-only and reports:
+   - tcg_ingestion_rows, tcg_ingestion_last_timestamp_seconds and
+     tcg_ingestion_batches by data_tag;
+   - tcg_gold_fact_rows and tcg_gold_fact_grain_keys;
+   - tcg_pipeline_last_run_tasks{status} and
+     tcg_pipeline_last_run_end_timestamp_seconds from ops.pipeline_runs;
+   - tcg_warehouse_readable: 1, or 0 when the file is missing, locked by a
+     run or without the gold layer, instead of failing the scrape.
+4. tcg-dataapp metrics [--port 9108] [--once]: the exporter, serving
+   /metrics with start_http_server, or one scrape printed.
+5. Tests: the push sends two POSTs to /metrics/job/tcg_dataapp/instance/test
+   after a good run and one after a failed run (a fake Pushgateway with
+   http.server); the exporter reads freshness, volume and grain; an
+   unreadable warehouse gives tcg_warehouse_readable 0.
+
+Facts measured on 08/11/2026 (confirm before use):
+- The exporter after a real run: 5,951 prices in 5 batches, newest price
+  at 1794052800 (07/11/2026 12:00 UTC), fact 5,951 rows = 5,951 keys,
+  12 tasks ok in the last run.
+- A scrape during a run returned tcg_warehouse_readable 0: DuckDB accepts
+  one writer process and no reader while it writes.
+
+[E] Example
+pushadd_to_gateway(gateway, job=&quot;tcg_dataapp&quot;, registry=self.registry,
+                   grouping_key={&quot;instance&quot;: instance})
+
+[A] Adjustments
+- pushadd (POST), not push (PUT): PUT replaces the whole group and would
+  erase the time of the last success when a run fails.
+- The exporter computes nothing new: it reads what the pipeline and the
+  gold layer already keep.
+
+[T] Type of output
+The files, the output of pytest, of tcg-dataapp run --push and of
+tcg-dataapp metrics --once.
+
+[E] Extras
+Show the plan before editing. Record this prompt in docs/prompts.md.
+Stop at the end.</code></pre></div><p>Review before moving on:</p><ul><li>two POSTs after a good run and one after a failed run</li><li>tcg-dataapp metrics --once shows 5,951 rows = 5,951 keys</li><li>a scrape during a run returns tcg_warehouse_readable 0</li></ul><h3>Step 03 · Stack and PromQL</h3><div class="code-wrap"><div class="code-label"><span>Prompt 03 · CREATE</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>[C] Character
+You are the same engineer, now in the role of whoever operates the
+monitoring. The DataApp exposes its numbers; a Prometheus must collect
+them and answer questions about them.
+
+[R] Request
+Create the folder stack/ next to the package:
+1. compose.yaml with prom/prometheus:v3.15.0 (port 9090,
+   --web.enable-lifecycle), prom/pushgateway:v1.11.2 (port 9091) and
+   grafana/grafana:13.2.4 (port ${GRAFANA_PORT:-3000}, anonymous Viewer);
+   extra_hosts host.docker.internal:host-gateway so that Prometheus reaches
+   the exporter running on the host.
+2. prometheus/prometheus.yml: scrape and evaluation every 15 s; the jobs
+   pushgateway (honor_labels: true), tcg_exporter
+   (host.docker.internal:9108) and prometheus; rule_files: rules.yml.
+3. A recording rule tcg:price_freshness_seconds =
+   clamp_min(time() - tcg_ingestion_last_timestamp_seconds{data_tag=
+   &quot;tcgplayer.price.v1&quot;}, 0) and tcg:source_request_duration_seconds:p95
+   with histogram_quantile over the buckets of the last pushed run.
+4. Bring the stack up, run tcg-dataapp run --push localhost:9091 with the
+   exporter on, and answer in PromQL: did the last run succeed; how long
+   ago was the last success; how old is the newest price; is the grain
+   intact; which three tasks took longest; how many prices were loaded;
+   what is the mean and the p95 of each kind of request.
+
+Facts measured on 08/11/2026 (confirm before use):
+- promtool check config: valid, 1 rule file, 8 rules.
+- The three targets up; topk(3, tcg_task_duration_seconds):
+  extract_products 7.25 s, extract_prices_2026-11-07 3.47 s,
+  extract_prices_2026-07-01 3.43 s; sum(tcg_task_rows{task=~
+  &quot;extract_prices_.*&quot;}) = 5951; p95 of archive 3.9 s.
+
+[E] Example
+time() - tcg_run_last_success_timestamp_seconds{job=&quot;tcg_dataapp&quot;}
+
+[A] Adjustments
+- Without honor_labels the job of every pushed series would be pushgateway
+  and the instance would be the Pushgateway, not the machine of the run.
+- The histogram of a pushed run holds only that run: no rate() over it.
+- Pin every image to a version; no latest.
+
+[T] Type of output
+The files, the output of promtool check config and a table with each
+question, its PromQL and the value returned.
+
+[E] Extras
+Show the plan before editing. Record this prompt in docs/prompts.md.
+Stop at the end.</code></pre></div><p>Review before moving on:</p><ul><li>the three targets are up</li><li>sum(tcg_task_rows{task=~&quot;extract_prices_.*&quot;}) gives 5,951</li><li>promtool check config passes</li></ul><h3>Step 04 · Dashboard and alerts</h3><div class="code-wrap"><div class="code-label"><span>Prompt 04 · CREATE</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>[C] Character
+You are the same engineer. The numbers are in Prometheus; now a person
+must read them at a glance, and the system must warn when nobody is
+looking.
+
+[R] Request
+1. Alerting rules in prometheus/rules.yml, each with severity and summary:
+   - TcgRunFailed: tcg_run_success == 0 (critical);
+   - TcgNoSuccessfulRun: no success for more than 26 h (critical);
+   - TcgRunTooSlow: tcg_run_duration_seconds &gt; 120 (warning);
+   - TcgPricesStale: tcg:price_freshness_seconds &gt; 36 h for 5 m (warning);
+   - TcgGrainBroken: tcg_gold_fact_rows != tcg_gold_fact_grain_keys
+     (critical);
+   - TcgExporterDown: up == 0 or tcg_warehouse_readable == 0 for 2 m.
+2. prometheus/rules_test.yml for promtool test rules: a failed run fires
+   TcgRunFailed and a good run resolves it; prices without news fire
+   TcgPricesStale only after 36 h plus 5 m; one row above the grain fires
+   TcgGrainBroken.
+3. Grafana provisioned from files: the datasource Prometheus (uid
+   prometheus) and the dashboard &quot;TCG DataApp&quot; (uid tcg-dataapp), with five
+   stats (last run, since the last success, price freshness, rows above the
+   grain, run duration), the duration of each task, the rows of each
+   extraction, the rows of db_ingestion by tag and the p95 of the requests.
+4. Make a run fail on purpose (TCG_BASE_URL=http://127.0.0.1:9) with
+   --push, watch TcgRunFailed fire, then run again and watch it resolve.
+
+Facts measured on 08/11/2026 (confirm before use):
+- promtool test rules: SUCCESS.
+- The failed run (12 tasks failed or skipped) fired TcgRunFailed within
+  one evaluation; the good run afterwards resolved it.
+
+[E] Example
+- alert: TcgRunFailed
+  expr: tcg_run_success{job=&quot;tcg_dataapp&quot;} == 0
+  labels: {severity: critical}
+
+[A] Adjustments
+- Alert on symptoms that someone must act on, not on every number.
+- Each threshold says where it comes from: a daily run plus two hours; three
+  times the reference run of about 40 s.
+- Colours of the dashboard from the palette of the course.
+
+[T] Type of output
+The files, the output of promtool test rules, the list of alerts at
+/api/v1/alerts after each run and a screenshot of the dashboard.
+
+[E] Extras
+Show the plan before editing. Record this prompt in docs/prompts.md.
+Stop at the end.</code></pre></div><p>Review before moving on:</p><ul><li>promtool test rules prints SUCCESS</li><li>a run against a closed port fires TcgRunFailed</li><li>the next good run resolves it</li></ul>
+      </section>
+      <section class="mat-section" id="tests">
+        <h2>21. Tests of the package</h2>
+<p>The nine tests of Lesson 7 remain, and five new tests cover the telemetry with the same fake client of two sets, without the network. A fake Pushgateway, a small server of the standard library, records the requests it receives, so the test of the push checks the paths and the bodies without any container. The fourteen tests run in about three seconds.</p>
+<div class="table-wrap"><table><thead><tr><th>Test</th><th>What it proves</th></tr></thead><tbody><tr><td><code>test_a_good_run_reports_rows_requests_quality_and_success</code></td><td>the hooks of the pipeline fill every metric of a good run</td></tr><tr><td><code>test_a_failed_run_reports_the_failure_and_no_success_time</code></td><td>a failure is counted, and the time of the last success is not sent</td></tr><tr><td><code>test_the_push_keeps_the_last_success_when_a_run_fails</code></td><td>two POSTs after a success, one after a failure, in the right group</td></tr><tr><td><code>test_the_exporter_reads_freshness_volume_and_grain</code></td><td>the collector reads the warehouse as the model publishes it</td></tr><tr><td><code>test_the_exporter_reports_an_unreadable_warehouse_instead_of_failing</code></td><td>a missing file, a file without gold and a locked file give 0, not an error</td></tr></tbody></table></div>
+      </section>
+      <section class="mat-section" id="numbers">
+        <h2>22. Reference numbers</h2>
+<div class="table-wrap"><table><thead><tr><th>Measure</th><th>Value</th></tr></thead><tbody><tr><td>run with <code>--push</code></td><td>12 tasks ok; <code>tcg_run_duration_seconds</code> 25.1 s; 5,951 prices, 524 cells; September frozen with 1,226 rows</td></tr><tr><td>requests to the source</td><td>13 (1 groups, 7 products, 5 archives); mean of an archive 2.97 s, p95 3.9 s</td></tr><tr><td>slowest task</td><td><code>extract_products</code>, 7.25 s</td></tr><tr><td>exporter</td><td>5,951 prices in 5 batches; newest price at 1794052800 (07/11/2026 12:00 UTC); fact 5,951 = 5,951</td></tr><tr><td>second run with <code>--with-today</code></td><td>7,782 prices in 6 captures, 30.3 s; raw freshness −1,841 s before noon, 0 after <code>clamp_min</code></td></tr><tr><td>failed run</td><td>12 tasks failed or skipped; <code>TcgRunFailed</code> firing at the next evaluation, resolved by the next good run</td></tr><tr><td>promtool</td><td><code>check config</code>: valid, 8 rules; <code>test rules</code>: SUCCESS</td></tr><tr><td>tests</td><td>14 passed in about 3 s, without network</td></tr></tbody></table></div>
+      </section>
+      <section class="mat-section" id="mistakes">
+        <h2>23. What the rehearsal revealed</h2>
+<p>Three problems appeared only when the stack ran against real runs, and the prompts and the reference already carry their corrections.</p>
+<h3>An exporter that failed after a failed run</h3>
+<p>The run against a closed port created the DuckDB file and the run log, but no landing table and no gold layer. The first version of the collector queried <code>db_ingestion</code>, received an error and answered the scrape with an HTTP 500. The collector now reads everything inside one guarded block and reports <code>tcg_warehouse_readable 0</code> when any table is missing.</p>
+<h3>A price in the future</h3>
+<p>The run with <code>--with-today</code> at 11:29 UTC stored the prices of the day at 12:00 UTC, a decision of Lesson 7 that keeps one price per product per day. The age of the newest price came out at −1,841 seconds, about half an hour in the future. The recording rule clamps the age at zero, so that a run in the morning reads as fresh data instead of as an impossible value.</p>
+<h3>Labels, counters and the global registry</h3>
+<p>Agents tend to put the identifier of the run in a label, which creates a new series at every run, and to register metrics in the global registry of the library, which makes the second test fail with a duplicated metric. The prompts forbid both. Agents also tend to push with PUT, which erases the time of the last success when a run fails; the test of the push catches it.</p>
+      </section>
+      <section class="mat-section" id="groups">
+        <h2>24. The second hour</h2>
+<p>In the second hour each group instruments one service of its own DataApp, the pipeline packaged in Lesson 7 or the flow orchestrated in Lesson 8, with the four prompts adapted to the partner data. The result expected at the end of the session is the metrics of each run pushed to a Pushgateway, a measure of the freshness and the volume of the partner data, read by an exporter or by a query, a Grafana dashboard provisioned from files and at least three alerting rules, each with a <code>promtool</code> test. The stack of <code>lab/lesson-10/stack/</code> is the starting point, and the run log of Lesson 7 is the source of the numbers that already exist.</p>
+      </section>
+      <section class="mat-section" id="glossary">
+        <h2>25. Glossary</h2>
+<div class="table-wrap"><table><thead><tr><th>Term</th><th>Meaning in this lesson</th></tr></thead><tbody><tr><td>telemetry</td><td>the data a system emits about its own behaviour: metrics, logs and traces</td></tr><tr><td>target</td><td>an endpoint that Prometheus scrapes; <code>up</code> tells whether the last scrape worked</td></tr><tr><td>scrape</td><td>one HTTP request of Prometheus to <code>/metrics</code>, every 15 s in the lab</td></tr><tr><td>series</td><td>a metric name with one combination of label values, and its samples over time</td></tr><tr><td>cardinality</td><td>the number of series of a metric, the product of the values of its labels</td></tr><tr><td>counter, gauge, histogram, summary</td><td>the four metric types, chosen by how the value behaves</td></tr><tr><td>Pushgateway</td><td>a service that keeps the metrics pushed by batch jobs, for Prometheus to scrape</td></tr><tr><td>exporter</td><td>a process that translates the state of another system into metrics at each scrape</td></tr><tr><td>PromQL</td><td>the query language of Prometheus</td></tr><tr><td>recording rule</td><td>an expression evaluated periodically and stored as a new series</td></tr><tr><td>alerting rule</td><td>an expression that creates an alert while it returns series; <code>for:</code> delays it</td></tr><tr><td>freshness</td><td>the age of the newest data, in seconds</td></tr></tbody></table></div>
+      </section>
+      <section class="mat-section" id="checklist">
+        <h2>26. Checklist</h2>
+<ul class="check-list" id="lesson-checklist">
+  <li>Every metric has the prefix of the application and its unit in the name.</li>
+  <li>No label takes an identifier of run, product or user.</li>
+  <li>The batch run pushes with POST, and the time of the last success survives a failure.</li>
+  <li>The freshness and the volume of the data are measured outside the run.</li>
+  <li>Prometheus scrapes the Pushgateway with <code>honor_labels: true</code>.</li>
+  <li>Every alert describes a symptom, and every threshold has a reason.</li>
+  <li>Every alert has a <code>promtool</code> test.</li>
+  <li>The dashboard and the datasource are provisioned from files.</li>
+  <li>Every image of the stack is pinned to a version.</li>
+</ul>
+      </section>
+      <section class="mat-section" id="references">
+        <h2>27. References and self-study</h2>
+<ul>
+  <li>Prometheus. <a href="https://prometheus.io/docs/concepts/metric_types/" target="_blank" rel="noopener noreferrer">Metric types</a> (self-study 1, 30 min).</li>
+  <li><a href="https://www.youtube.com/watch?v=STVMGrYIlfg" target="_blank" rel="noopener noreferrer">Introduction to the Prometheus Monitoring System</a>, by a co-founder of Prometheus (self-study 2, video, 20 min).</li>
+  <li>Tiger Data. <a href="https://www.tigerdata.com/blog/prometheus-vs-opentelemetry-metrics-a-complete-guide" target="_blank" rel="noopener noreferrer">Prometheus vs OpenTelemetry Metrics: A Complete Guide</a> (self-study 3, 40 min).</li>
+  <li>Prometheus. <a href="https://prometheus.io/docs/practices/naming/" target="_blank" rel="noopener noreferrer">Metric and label naming</a>; <a href="https://prometheus.io/docs/practices/pushing/" target="_blank" rel="noopener noreferrer">When to use the Pushgateway</a>; <a href="https://prometheus.io/docs/practices/histograms/" target="_blank" rel="noopener noreferrer">Histograms and summaries</a>; <a href="https://prometheus.io/docs/practices/alerting/" target="_blank" rel="noopener noreferrer">Alerting</a>.</li>
+  <li>Prometheus. <a href="https://prometheus.io/docs/prometheus/latest/configuration/unit_testing_rules/" target="_blank" rel="noopener noreferrer">Unit testing for rules</a>.</li>
+  <li>Grafana Labs. <a href="https://grafana.com/docs/grafana/latest/administration/provisioning/" target="_blank" rel="noopener noreferrer">Provision Grafana</a>.</li>
+  <li>BEYER, B. et al. <em>Site Reliability Engineering</em>. O'Reilly, 2016. Chapter 6: monitoring distributed systems.</li>
+</ul>
+      </section>
+
+    </article>
+  </div>
+
+  <footer class="inteli-footer">
+    <img src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli logo">
+    <p>Material created by Professor <strong>Afonso Brandão</strong> for <strong>Inteli</strong>.</p>
+    <small>🔓 Open reading licence</small>
+  </footer>
+
+  <script>
+    const progress = document.getElementById('progress-bar');
+    const floatNav = document.getElementById('float-nav');
+    const header = document.querySelector('.mat-header');
+    const tocLinks = Array.from(document.querySelectorAll('.mat-toc a'));
+    const sections = tocLinks.map((link) => document.querySelector(link.getAttribute('href'))).filter(Boolean);
+
+    // Reading time per section, estimated at 200 words per minute over the rendered text.
+    let totalMinutes = 0;
+    tocLinks.forEach((link) => {
+      const section = document.querySelector(link.getAttribute('href'));
+      if (!section) return;
+      const words = section.innerText.trim().split(/\s+/).length;
+      const minutes = Math.max(1, Math.round(words / 200));
+      totalMinutes += minutes;
+      const tag = document.createElement('span');
+      tag.textContent = `${minutes} min`;
+      link.appendChild(tag);
+    });
+    document.getElementById('toc-total').textContent = `Estimated reading time: ${totalMinutes} minutes.`;
+
+    function updateReadingState() {
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+      progress.style.width = `${scrollable > 0 ? (window.scrollY / scrollable) * 100 : 0}%`;
+      floatNav.classList.toggle('visible', header.getBoundingClientRect().bottom < 0);
+      let activeId = sections[0] ? sections[0].id : '';
+      sections.forEach((section) => { if (section.getBoundingClientRect().top <= 150) activeId = section.id; });
+      tocLinks.forEach((link) => link.classList.toggle('active', link.getAttribute('href') === `#${activeId}`));
+    }
+    document.addEventListener('scroll', updateReadingState, { passive:true });
+    updateReadingState();
+
+    const srObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) { entry.target.classList.add('vis'); srObserver.unobserve(entry.target); }
+      });
+    }, { threshold: 0.05 });
+    document.querySelectorAll('.sr').forEach((el) => srObserver.observe(el));
+
+    document.querySelectorAll('.code-copy').forEach((button) => {
+      button.addEventListener('click', () => {
+        const code = button.closest('.code-wrap').querySelector('code').innerText;
+        navigator.clipboard.writeText(code).then(() => {
+          button.textContent = 'Copied';
+          setTimeout(() => { button.textContent = 'Copy'; }, 1500);
+        });
+      });
+    });
+
+    document.querySelectorAll('#lesson-checklist li').forEach((item) => {
+      item.addEventListener('click', () => item.classList.toggle('done'));
+    });
+  </script>
+<!-- semana:js:start -->
+<script src="../../../js/semana-ano.js" defer></script>
+<!-- semana:js:end -->
+<!-- encontro:pdf:start -->
+<button type="button" class="pdf-export-btn" data-encontro-data="2026-12-09" data-encontro-docente="Afonso" data-encontro-seq="02" title="Export this page as a PDF with the standard file name">📄 Export PDF</button>
+<script src="../../../js/encontro-pdf.js" defer></script>
+<!-- encontro:pdf:end -->
+</body>
+</html>

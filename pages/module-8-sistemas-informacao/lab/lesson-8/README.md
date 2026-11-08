@@ -1,0 +1,41 @@
+# Lesson 8 · Lab: the pipeline as a DAG in Prefect
+
+Module 8 · Information Systems · Inteli · Wednesday, 02/12/2026
+
+In Lesson 7 the package `tcg-dataapp` ran its twelve tasks with a runner written by hand, which ordered the tasks, retried them and wrote a log. In this lesson Prefect 3 takes over those three jobs and adds what the runner did not have: tasks in parallel, a cache for what never changes, a schedule, a server that keeps the history of every run and a UI to watch them. The three layers of the package stay as they were.
+
+The reference package is `tcg_dataapp/`, version 0.2.0 (its README has the details). In class the professor builds the flow live, over a copy of the package of Lesson 7, with the four CREATE prompts of `prompts/`, and compares each step with the reference.
+
+## Prepare
+
+```bash
+git clone --depth 1 https://github.com/afonsolelis/aulas.git
+cp -r aulas/pages/module-8-sistemas-informacao/lab/lesson-7/tcg_dataapp ~/lesson_08_dag
+cd ~/lesson_08_dag
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e '.[dev]' 'prefect>=3.4,<4'
+claude                                  # or the coding agent of your choice
+```
+
+## Steps
+
+| Step | Prompt | Builds | Checks |
+|---|---|---|---|
+| 01 | `prompts/01_flow.md` | `flows.py` with ten tasks and one flow; `tcg-dataapp flow` | the five downloads run at the same time; 5,951 = 5,951 keys; about 9 s against 40 s of the runner |
+| 02 | `prompts/02_failures_and_cache.md` | retries with a growing pause, a retry condition, cache of the downloads, state hooks to `ops.pipeline_runs` | second run: five `Cached`; source down: three attempts, eleven `NotReady`, nothing written |
+| 03 | `prompts/03_tests.md` | `tests/test_flows.py` with `prefect_test_harness` | 14 tests pass without network |
+| 04 | `prompts/04_deployment.md` | `tcg-dataapp serve`, the deployment `daily` at 06:00 UTC | a run triggered by hand appears in the UI with 18 task runs |
+
+## The reference package
+
+```bash
+cd tcg_dataapp
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e '.[dev]'
+pytest                      # 14 passed, without network
+tcg-dataapp flow            # warehouse/tcg.duckdb, out/report.md, out/marts/*.parquet
+```
+
+## The second hour
+
+Each group orchestrates the pipeline of its own DataApp, packaged in Lesson 7, with `prompts/05_your_dataapp.md`: the graph of its tasks in `docs/dag.md`, a flow over the existing layers, the options of each task with a reason, tests with a fake source, and a deployment with a cron that fits the partner data. The activity is not graded; it prepares Lesson 9, in which the tests of the DataApp are the graded activity.

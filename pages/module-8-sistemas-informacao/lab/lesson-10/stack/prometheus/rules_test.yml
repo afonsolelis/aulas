@@ -1,0 +1,59 @@
+# Lesson 10 · unit tests of the alerts, without any DataApp running.
+# Run with: promtool test rules rules_test.yml
+rule_files:
+  - rules.yml
+
+evaluation_interval: 1m
+
+tests:
+  # A run fails: TcgRunFailed fires at once; a good run afterwards resolves it.
+  - interval: 1m
+    input_series:
+      - series: 'tcg_run_success{job="tcg_dataapp", instance="local"}'
+        values: '1 0 0 1'
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: TcgRunFailed
+        exp_alerts:
+          - exp_labels: {severity: critical, job: tcg_dataapp, instance: local}
+            exp_annotations:
+              summary: "The last run of tcg-dataapp on local failed"
+              description: "tcg_run_failed_tasks counts the tasks that failed or were skipped; ops.pipeline_runs has the error of each attempt."
+      - eval_time: 3m
+        alertname: TcgRunFailed
+        exp_alerts: []
+
+  # The newest price was captured at time 0 and nothing new arrives. The age crosses
+  # 36 h at minute 2160; with for: 5m the alert is pending until minute 2165.
+  - interval: 1m
+    input_series:
+      - series: 'tcg_ingestion_last_timestamp_seconds{job="tcg_exporter", data_tag="tcgplayer.price.v1"}'
+        values: '0+0x2200'
+    alert_rule_test:
+      - eval_time: 2163m
+        alertname: TcgPricesStale
+        exp_alerts: []
+      - eval_time: 2167m
+        alertname: TcgPricesStale
+        exp_alerts:
+          - exp_labels: {severity: warning, job: tcg_exporter, data_tag: tcgplayer.price.v1}
+            exp_annotations:
+              summary: "The newest price in db_ingestion is 1d 12h 7m 0s old"
+
+  # The grain breaks: one more row than keys.
+  - interval: 1m
+    input_series:
+      - series: 'tcg_gold_fact_rows{job="tcg_exporter"}'
+        values: '5951 5952'
+      - series: 'tcg_gold_fact_grain_keys{job="tcg_exporter"}'
+        values: '5951 5951'
+    alert_rule_test:
+      - eval_time: 0m
+        alertname: TcgGrainBroken
+        exp_alerts: []
+      - eval_time: 1m
+        alertname: TcgGrainBroken
+        exp_alerts:
+          - exp_labels: {severity: critical, job: tcg_exporter}
+            exp_annotations:
+              summary: "gold.fact_price has more rows than keys of its grain"

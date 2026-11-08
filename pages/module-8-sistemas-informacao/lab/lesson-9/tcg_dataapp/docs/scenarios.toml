@@ -1,0 +1,217 @@
+# ATAM scenarios of tcg-dataapp: the single source of the utility tree,
+# the scenario table and the traceability report.
+#
+# importance: how much the business drivers depend on the scenario (H, M, L)
+# difficulty: how hard it is for the architecture to achieve it (H, M, L)
+# Each scenario has the six parts of a quality attribute scenario and the
+# test cases derived from it; a test declares @pytest.mark.scenario("Sxx").
+
+[[scenario]]
+id = "S01"
+attribute = "Correctness"
+refinement = "Idempotent runs"
+importance = "H"
+difficulty = "M"
+drivers = ["BD1", "BD4"]
+source = "the scheduler"
+stimulus = "runs the pipeline a second time on the same day, with the prices of today"
+artifact = "db_ingestion and gold.fact_price"
+environment = "normal operation; catalogue and prices unchanged since the first run"
+response = "every batch is replaced, the dimensions keep the last version of each member"
+measure = "the fact has the same rows as after the first run, and rows = keys of the grain"
+cases = ["TC01.1 second run of the archive dates keeps the fact", "TC01.2 two runs with the prices of today keep one price per product and day"]
+
+[[scenario]]
+id = "S02"
+attribute = "Correctness"
+refinement = "No wrong number published"
+importance = "H"
+difficulty = "M"
+drivers = ["BD1"]
+source = "a defect in an extraction"
+stimulus = "loads the prices of a day twice, with two timestamps"
+artifact = "processors/quality.py and the tasks that publish"
+environment = "a run after a successful run"
+response = "check_quality fails without retry and every task that publishes is skipped"
+measure = "the run ends FAILED naming check_quality; out/report.md is byte-identical to the previous one"
+cases = ["TC02.1 a broken grain stops the run and keeps the previous report", "TC02.2 the quality gate is attempted once"]
+
+[[scenario]]
+id = "S03"
+attribute = "Correctness"
+refinement = "Every price reaches the model"
+importance = "H"
+difficulty = "M"
+drivers = ["BD1", "BD3"]
+source = "TCGplayer through tcgcsv"
+stimulus = "publishes prices of a product that is not in the catalogue captured by the run"
+artifact = "gold.fact_price (inner join with dim_product)"
+environment = "normal operation"
+response = "the run measures the prices of the landing table that did not reach the fact and stops above a limit"
+measure = "the count is in the result of check_quality; more than 1 % of the prices of a capture stops the run"
+cases = ["TC03.1 prices without product are counted", "TC03.2 above 1 % of a capture the run stops"]
+
+[[scenario]]
+id = "S04"
+attribute = "Correctness"
+refinement = "Schema drift of the source"
+importance = "H"
+difficulty = "H"
+drivers = ["BD1", "BD3"]
+source = "TCGplayer through tcgcsv"
+stimulus = "renames the field marketPrice in the prices of one capture, or adds a new field"
+artifact = "db_ingestion (JSON as it arrived) and gold.fact_price"
+environment = "normal operation; nobody is told about the change"
+response = "a renamed field stops the run at the quality gate; a new field is ignored"
+measure = "more than 10 % of null market prices in a capture stops the run (real maximum 1.7 %); a new field changes no number"
+cases = ["TC04.1 a renamed price field stops the run", "TC04.2 a new field changes nothing"]
+
+[[scenario]]
+id = "S05"
+attribute = "Correctness"
+refinement = "Semi-additive measure"
+importance = "H"
+difficulty = "H"
+drivers = ["BD1", "BD2"]
+source = "the daily runs"
+stimulus = "bring a second capture of a month before the month is frozen"
+artifact = "processors/gold.py (freeze_month)"
+environment = "a month with two captures"
+response = "the frozen report takes only the last capture of the month"
+measure = "each card appears once in the frozen report, with the price of the last capture"
+cases = ["TC05.1 two captures of a month freeze only the last"]
+
+[[scenario]]
+id = "S06"
+attribute = "Reliability"
+refinement = "Transient failure of the source"
+importance = "H"
+difficulty = "L"
+drivers = ["BD3", "BD4"]
+source = "tcgcsv.com"
+stimulus = "fails the first request of the run"
+artifact = "pipeline.py (retries)"
+environment = "unattended daily run"
+response = "the task is retried with a pause and the run ends OK"
+measure = "one failed and one successful attempt in ops.pipeline_runs; the same rows as a run without failure"
+cases = ["TC06.1 one failure is absorbed by a retry"]
+
+[[scenario]]
+id = "S07"
+attribute = "Reliability"
+refinement = "Source down for the whole run"
+importance = "H"
+difficulty = "M"
+drivers = ["BD1", "BD3"]
+source = "tcgcsv.com"
+stimulus = "is down during the whole run"
+artifact = "pipeline.py and cli.py"
+environment = "unattended daily run after a successful run"
+response = "the run fails naming the task, skips its dependents and leaves what was published"
+measure = "exit code 1; no new row in db_ingestion; out/report.md byte-identical"
+cases = ["TC07.1 the run fails and publishes nothing", "TC07.2 the command returns exit code 1"]
+
+[[scenario]]
+id = "S08"
+attribute = "Auditability"
+refinement = "Frozen report never changes"
+importance = "H"
+difficulty = "L"
+drivers = ["BD2"]
+source = "a late capture"
+stimulus = "brings new prices of a month that is already frozen"
+artifact = "report.mv_card_price_<month>"
+environment = "after the month was frozen"
+response = "the frozen table is kept; the live views show the new prices"
+measure = "the rows of the frozen table are identical before and after"
+cases = ["TC08.1 late prices of a frozen month do not change it"]
+
+[[scenario]]
+id = "S09"
+attribute = "Auditability"
+refinement = "Every attempt is logged"
+importance = "M"
+difficulty = "L"
+drivers = ["BD4"]
+source = "the operator"
+stimulus = "audits a run that had a retry"
+artifact = "ops.pipeline_runs"
+environment = "after the run"
+response = "every attempt of every task is one row, in Unix time"
+measure = "one success per task; started_at <= ended_at, both BIGINT; status in success, failed, skipped"
+cases = ["TC09.1 the log of a run with a retry is complete"]
+
+[[scenario]]
+id = "S10"
+attribute = "Interoperability"
+refinement = "Contract of the marts"
+importance = "M"
+difficulty = "L"
+drivers = ["BD1"]
+source = "a dashboard of the partner"
+stimulus = "reads out/marts/*.parquet after a change in the model"
+artifact = "views/report.py (export_marts) and docs/contracts/marts.json"
+environment = "a new version of the package"
+response = "the files keep the published names and types of the columns"
+measure = "the schema of every Parquet file equals the contract; any difference fails the build"
+cases = ["TC10.1 the Parquet files follow the contract"]
+
+[[scenario]]
+id = "S11"
+attribute = "Timeliness"
+refinement = "Stale data is detected"
+importance = "M"
+difficulty = "L"
+drivers = ["BD1", "BD3"]
+source = "tcgcsv.com"
+stimulus = "stops publishing new prices while the runs keep succeeding"
+artifact = "the last capture of gold.dim_date"
+environment = "unattended daily runs"
+response = "tcg-dataapp freshness reports the age of the last capture and fails when it is too old"
+measure = "exit code 1 when the last capture is older than 2 days, detected at the first check after that"
+cases = ["TC11.1 fresh data passes", "TC11.2 data older than 2 days fails the check"]
+
+[[scenario]]
+id = "S12"
+attribute = "Performance"
+refinement = "Processing budget"
+importance = "M"
+difficulty = "M"
+drivers = ["BD4"]
+source = "a year of daily captures"
+stimulus = "the landing table grows to 100,000 prices"
+artifact = "processors and views"
+environment = "a student laptop"
+response = "gold, checks, frozen reports, marts and report run on the whole table"
+measure = "less than 10 s from build_gold to write_report"
+cases = ["TC12.1 100,000 prices processed within the budget"]
+
+[[scenario]]
+id = "S13"
+attribute = "Testability"
+refinement = "Tests without network"
+importance = "M"
+difficulty = "L"
+drivers = ["BD5"]
+source = "a developer"
+stimulus = "runs the whole suite on a laptop without network"
+artifact = "tests/"
+environment = "offline; the network is blocked by the suite"
+response = "every test runs against the fake source"
+measure = "no connection opened; the suite ends in less than 30 s on a student laptop"
+cases = ["TC13.1 the suite cannot open a connection"]
+
+[[scenario]]
+id = "S14"
+attribute = "Modifiability"
+refinement = "Sets by configuration"
+importance = "L"
+difficulty = "L"
+drivers = ["BD5"]
+source = "the team"
+stimulus = "changes the list of sets and dates"
+artifact = "config.py"
+environment = "deploy time"
+response = "the run follows TCG_SETS and TCG_PRICE_DATES without a change in the code"
+measure = "zero lines of code changed; only the configured sets reach gold.dim_set"
+cases = ["TC14.1 TCG_SETS and TCG_PRICE_DATES drive the run"]
