@@ -154,56 +154,6 @@
       });
     })();
 
-    // Quadradinhos da grade que acendem por onde o ponteiro passa e se apagam devagar.
-    (function () {
-      if (!window.matchMedia || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-      if (!matchMedia('(hover: hover) and (pointer: fine)').matches) return;
-      var PASSO = 14, MAX = 0.62, DECAI = 0.94;
-      document.querySelectorAll('.tm-lista > li > a').forEach(function (a) {
-        var cv = document.createElement('canvas');
-        cv.className = 'tm-brilho'; cv.setAttribute('aria-hidden', 'true');
-        a.appendChild(cv);
-        var ctx = cv.getContext('2d'), luz = new Map(), cor = '', anim = 0, ult = '';
-        function medir() {
-          var r = a.getBoundingClientRect(), d = window.devicePixelRatio || 1;
-          cv.width = Math.round(a.clientWidth * d); cv.height = Math.round(a.clientHeight * d);
-          ctx.setTransform(d, 0, 0, d, 0, 0);
-          cor = getComputedStyle(a.parentElement).getPropertyValue('--ds-curso').trim() ||
-            getComputedStyle(document.documentElement).getPropertyValue('--ds-borda-forte').trim();
-          return r;
-        }
-        function acender(cx, cy, v) {
-          var k = cx + ',' + cy;
-          if ((luz.get(k) || 0) < v) luz.set(k, v);
-        }
-        function quadro() {
-          ctx.clearRect(0, 0, cv.width, cv.height);
-          ctx.fillStyle = cor;
-          luz.forEach(function (v, k) {
-            var p = k.split(','), x = +p[0] * PASSO + 1, y = +p[1] * PASSO + 1;
-            ctx.globalAlpha = v * MAX;
-            ctx.fillRect(x, y, PASSO - 1, PASSO - 1);
-            v *= DECAI;
-            if (v < 0.03) luz.delete(k); else luz.set(k, v);
-          });
-          ctx.globalAlpha = 1;
-          anim = luz.size ? requestAnimationFrame(quadro) : 0;
-        }
-        a.addEventListener('pointerenter', medir);
-        a.addEventListener('pointermove', function (e) {
-          if (e.pointerType !== 'mouse') return;
-          var x = e.clientX - a.getBoundingClientRect().left - a.clientLeft;
-          var y = e.clientY - a.getBoundingClientRect().top - a.clientTop;
-          var cx = Math.floor(x / PASSO), cy = Math.floor(y / PASSO), k = cx + ',' + cy;
-          if (k === ult) return;
-          ult = k;
-          acender(cx, cy, 1);
-          [[1,0],[-1,0],[0,1],[0,-1]].forEach(function (d) { acender(cx + d[0], cy + d[1], 0.45); });
-          if (!anim) anim = requestAnimationFrame(quadro);
-        });
-        a.addEventListener('pointerleave', function () { ult = ''; });
-      });
-    })();
   </script>
 <!-- semana:js:start -->
 <script src="./js/semana-ano.js" defer></script>
