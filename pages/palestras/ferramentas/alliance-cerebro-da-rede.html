@@ -382,7 +382,7 @@
           <div class="entrada">
             <div class="sugest" id="sugest"></div>
             <form class="caixa" id="formChat" autocomplete="off">
-              <input id="pergunta" placeholder="Pergunte sobre alunos, orçamento, turmas, retenção ou a comparação com a rede" aria-label="Pergunta ao cérebro">
+              <input id="pergunta" placeholder="Pergunte sobre estratégia, marketing, alunos, orçamento, turmas ou a comparação com a rede" aria-label="Pergunta ao cérebro">
               <button class="bt ouro" type="submit">Perguntar</button>
             </form>
           </div>
@@ -530,9 +530,11 @@
       kret: { 'AU-SYD': 'aula experimental de kids com o responsável no tatame e contato do professor na segunda falta seguida' },
       part: { 'BR-SP-VO': 'pacote de quatro particulares oferecido na matrícula e particulares encaixadas nos horários de vale', 'UK-LON': 'pacote de particulares oferecido na matrícula para quem vem de outra arte marcial' },
       fem: { 'UK-LON': 'turma feminina às terças e quintas, conduzida por uma professora, com aula experimental em dupla' },
-      conv: { 'AU-SYD': 'experimental agendada em até 24 horas e mensagem do professor no dia seguinte', 'BR-SP-VO': 'retorno ao lead no mesmo dia, pelo WhatsApp' },
+      conv: { 'AU-SYD': 'experimental agendada em até 24 horas e mensagem do professor no dia seguinte', 'BR-SP-VO': 'retorno ao lead no mesmo dia, pelo WhatsApp', 'US-HUD': 'programa de indicação, em que o aluno que traz um amigo matriculado ganha uma aula particular' },
       ret: { 'BR-SP-VO': 'acompanhamento individual dos três primeiros meses, com meta de frequência por aluno', 'US-MSP': 'turma de fundamentos separada para os três primeiros meses' }
     };
+    // Nas respostas de estratégia o cérebro cita a região, e não a academia: a rede compartilha a prática e o resultado.
+    const REGIAO = { 'US-MSP': 'no Meio-Oeste dos EUA', 'US-MAD': 'no Meio-Oeste dos EUA', 'US-HUD': 'no Meio-Oeste dos EUA', 'US-ICY': 'no Meio-Oeste dos EUA', 'US-LAX': 'na Costa Oeste dos EUA', 'BR-SP-VO': 'em São Paulo', 'UK-LON': 'na Europa', 'AU-SYD': 'na Oceania' };
     const FX = { USD: 1, BRL: 5.4, GBP: 0.79, AUD: 1.52 };
     const NOMES = { en: ['Avery', 'Jordan', 'Riley', 'Casey', 'Quinn', 'Morgan', 'Rowan', 'Emerson', 'Noah', 'Olivia', 'Liam', 'Emma', 'Mason', 'Sophia', 'Ethan', 'Ava', 'Harper', 'Logan', 'Chloe', 'Lucas', 'Mia', 'Owen', 'Ella', 'Leo'], pt: ['Ana', 'Bruno', 'Carla', 'Diego', 'Elisa', 'Felipe', 'Gabriela', 'Heitor', 'Isabela', 'João', 'Larissa', 'Mateus', 'Natália', 'Otávio', 'Paula', 'Rafael', 'Sofia', 'Thiago', 'Vitória', 'Lucas'] };
     const FEM = new Set(['Avery', 'Riley', 'Casey', 'Morgan', 'Olivia', 'Emma', 'Sophia', 'Ava', 'Harper', 'Chloe', 'Mia', 'Ella', 'Ana', 'Carla', 'Elisa', 'Gabriela', 'Isabela', 'Larissa', 'Natália', 'Paula', 'Sofia', 'Vitória']);
@@ -877,6 +879,8 @@
     }
     const INTENCOES = [
       { id: 'aluno', teste: (t) => !!alunoNoTexto(t) },
+      { id: 'marketing', ch: ['marketing', 'divulga', 'divulgar', 'atrair', 'captar', 'captacao', 'anunci', 'propaganda', 'redes sociais', 'instagram', 'trazer mais alunos', 'conseguir mais alunos', 'mais alunos'] },
+      { id: 'estrategia', ch: ['estrategi', 'o que as outras', 'o que outras', 'outras regioes', 'outras unidades', 'boas praticas', 'melhores praticas', 'aprender com', 'crescer', 'crescimento', 'o que eu posso fazer', 'o que posso fazer', 'como melhorar', 'por onde comec', 'priorid', 'priorizar', 'ideia', 'ainda nao faco'] },
       { id: 'contratar', ch: ['contratar', 'contrato', 'novo professor', 'mais um professor', 'instrutor', 'contratacao'] },
       { id: 'reajuste', ch: ['reajuste', 'aumentar a mensalidade', 'aumentar o preco', 'preco', 'mensalidade', 'cobrar mais', 'ticket'] },
       { id: 'projecao', ch: ['proximos meses', 'projecao', 'previsao', 'vou ter', 'futuro', 'daqui a', 'fim do ano', 'tendencia'] },
@@ -896,7 +900,50 @@
       for (const i of INTENCOES) { if (i.teste ? i.teste(t) : i.ch.some((c) => t.includes(c))) return i.id; }
       return null;
     }
+    /* ================= cérebro: estratégias aprendidas com a rede ================= */
+    const ROT_EST = { conv: 'Conversão da experimental', fem: 'Público feminino', kret: 'Retenção kids', ret: 'Retenção adulto', part: 'Alunos com particular' };
+    function estrategias(acId, mids) {
+      const a = acPorId[acId], o = orcamento(acId), at = doAc(acId).filter((x) => x.ativo);
+      const adultos = at.filter((x) => !x.kid).length, kids = at.length - adultos;
+      const out = [], proprias = [];
+      for (const mid of mids) {
+        for (const [bid, pr] of Object.entries(PRATICAS[mid] || {})) {
+          if (bid === acId) { proprias.push(pr); continue; }
+          const va = valor(acId, mid), vb = valor(bid, mid), d = vb - va;
+          if (d <= 0) continue;
+          let n, efeito, mensal;
+          if (mid === 'conv') { const m = a.exp * d; n = Math.round(m * 12 * a.ret); mensal = n * o.ticket; efeito = `${d1(m)} matrículas a mais por mês, ${n} alunos a mais na base em um ano`; }
+          else if (mid === 'fem') { n = Math.round(adultos * d); mensal = n * o.ticket; efeito = `${n} ${n === 1 ? 'aluna' : 'alunas'} a mais`; }
+          else if (mid === 'kret') { n = Math.round(kids * d); mensal = n * o.ticket; efeito = `${n} ${n === 1 ? 'criança' : 'crianças'} a mais que permanecem a cada trimestre`; }
+          else if (mid === 'ret') { n = Math.round(adultos * d); mensal = n * o.ticket; efeito = `${n} ${n === 1 ? 'adulto' : 'adultos'} a mais que permanecem a cada trimestre`; }
+          else { n = Math.round(at.length * d); mensal = n * a.pp; efeito = `${n} ${n === 1 ? 'aluno' : 'alunos'} a mais com aula particular`; }
+          if (n < 1) continue;
+          out.push({ mid, bid, pr, va, vb, n, efeito, mensal, onde: `uma academia ${REGIAO[bid]}` });
+        }
+      }
+      out.sort((p, q) => q.mensal - p.mensal);
+      // práticas que mexem na mesma métrica não somam: conta só a melhor de cada uma
+      const total = Object.values(out.reduce((m, e) => { m[e.mid] = Math.max(m[e.mid] || 0, e.mensal); return m; }, {})).reduce((s, v) => s + v, 0);
+      return { lst: out, proprias, total, o, a };
+    }
+    function tabelaEst(lst, moeda) {
+      return '<table class="tab"><tr><th>Prática</th><th>Onde</th><th class="n">Lá</th><th class="n">Aqui</th><th class="n">Ganho/mês</th></tr>' +
+        lst.map((e) => `<tr><td>${esc(e.pr)}<br><small style="color:var(--al-txt-2)">${ROT_EST[e.mid]} · ${esc(e.efeito)}</small></td><td>${esc(e.onde.replace(/^uma academia /, ''))}</td><td class="n">${met(e.mid).fmt(e.vb)}</td><td class="n">${met(e.mid).fmt(e.va)}</td><td class="n"><b>${dinheiro(e.mensal, moeda)}</b></td></tr>`).join('') + '</table>';
+    }
+    const fonteEst = (mids) => ['práticas registradas pelas academias no cadastro da rede, citadas só pela região de origem']
+      .concat(mids.map((mid) => `${ROT_EST[mid]} por academia: <code>fato_evento</code> → <code>${mid}</code>`), ['ganho: diferença da métrica × base de alunos desta academia × plano médio']);
+    const custoMatricula = (id) => { const a = acPorId[id]; return a.desp.marketing / FX[a.moeda] / (a.exp * a.conv); };
+    function focoEst(t) {
+      if (/mulher|feminin|menina/.test(t)) return ['fem'];
+      if (/kids|crianca|infantil/.test(t)) return ['kret'];
+      if (/retenc|evasao|perder|cancel|reter|fideli/.test(t)) return ['ret', 'kret'];
+      if (/particular|receita|faturar|faturamento|ticket/.test(t)) return ['part'];
+      return null;
+    }
+
     const GENERICO = {
+      marketing: 'Invista em redes sociais com vídeos de treino, faça parcerias com empresas do bairro, ofereça a primeira aula grátis e incentive os alunos a indicar amigos.',
+      estrategia: 'Foque na experiência do aluno, invista em marketing digital, acompanhe seus indicadores e defina metas claras para a equipe.',
       aluno: 'Não tenho acesso aos dados dos seus alunos. De modo geral, vale acompanhar a frequência de cada um e conversar com quem começa a faltar.',
       contratar: 'Contratar um professor costuma valer a pena quando as turmas estão cheias e a receita cobre o novo custo com folga. Faça as contas considerando salário e encargos.',
       reajuste: 'Reajustes anuais entre 5% e 10% são comuns em academias. Comunique com antecedência e destaque o valor que o aluno recebe.',
@@ -917,6 +964,23 @@
       const a = acPorId[acSel], o = orcamento(acSel), L = doAc(acSel), at = L.filter((x) => x.ativo), nm = nomeCurto(acSel);
       const R = (txt, fontes, extra) => ({ txt, fontes: fontes || [], extra: extra || '' });
       switch (id) {
+        case 'marketing': case 'estrategia': {
+          const foco = focoEst(t), mids = foco || (id === 'marketing' ? ['conv', 'fem', 'kret'] : ['conv', 'fem', 'kret', 'ret', 'part']);
+          const { lst, proprias, total } = estrategias(acSel, mids);
+          const paises = new Set(ACADS.map((x) => x.pais)).size;
+          const ja = proprias.length ? ` A própria ${nm} já registrou na rede ${proprias.length === 1 ? 'a prática de' : 'as práticas de'} ${lista(proprias)}, que ficam disponíveis da mesma forma para as outras regiões.` : '';
+          const rede = ` Essa comparação só é possível porque ${ACADS.length} academias em ${paises} países mandam os eventos para o mesmo banco. O cérebro cita a região de origem de cada prática, sem identificar a academia, porque o que circula na rede são as práticas e os seus resultados.`;
+          let abre = '';
+          if (id === 'marketing') {
+            const cm = custoMatricula(acSel), cmd = (() => { const v = ACADS.map((x) => custoMatricula(x.id)).sort((p, q) => p - q), k = v.length >> 1; return v.length % 2 ? v[k] : (v[k - 1] + v[k]) / 2; })();
+            const gastao = ACADS.slice().sort((p, q) => q.desp.marketing / FX[q.moeda] - p.desp.marketing / FX[p.moeda])[0];
+            abre = `Hoje a ${nm} gasta ${dinheiro(a.desp.marketing, a.moeda)} por mês em marketing, cerca de ${dinheiro(cm, 'USD')} por matrícula, contra ${dinheiro(cmd, 'USD')} na mediana da rede (em dólar só para comparar). Nos últimos 30 dias chegaram ${a.leads} leads, e ${pc(a.exp / a.leads)} viraram aula experimental. ${posicao(gastao.id, 'conv') > 3 ? 'A academia que mais investe em anúncio na rede não está entre as que mais convertem, o que indica que a conversão depende mais do atendimento ao lead do que do volume de anúncio. ' : ''}`;
+          }
+          if (!lst.length) return R(`${abre}Nas práticas registradas pela rede${foco ? ' para esse tema' : ''}, a ${nm} já está no nível das melhores ou acima delas, então o cérebro não encontrou uma que renda mais do que o que ela faz hoje.${ja}${rede}`, fonteEst(mids));
+          const top = lst[0];
+          return R(`${abre}Cruzei as práticas que as academias registram na rede com o efeito medido no banco, e ${lst.length === 1 ? 'uma delas rende' : lst.length + ' delas rendem'} mais do que a ${nm} consegue hoje. A que mais rende é ${top.pr}, adotada por ${top.onde}: lá, o indicador de ${ROT_EST[top.mid].toLowerCase()} chega a ${met(top.mid).fmt(top.vb)}, contra ${met(top.mid).fmt(top.va)} aqui. Na ${nm}, isso daria ${top.efeito}, cerca de ${dinheiro(top.mensal, a.moeda)} por mês. ${lst.length > 1 ? `Somadas, sem contar duas vezes a mesma métrica, as práticas da tabela acrescentariam cerca de ${dinheiro(total, a.moeda)} por mês, ${pc(total / o.recebido)} da receita atual.` : `Isso equivale a ${pc(total / o.recebido)} da receita atual.`}${ja}${rede}`,
+            fonteEst(mids), tabelaEst(lst, a.moeda));
+        }
         case 'aluno': {
           const x = alunoNoTexto(t);
           if (!x.ativo) return R(`${x.nome} não está mais ativo: cancelou depois de ${Math.round(x.dm / 30)} meses na academia, na faixa ${x.faixa}. O último treino registrado foi há ${x.ult} dias.`, [`aluno_hash <code>${x.hash}</code> traduzido para o nome dentro do software da academia`]);
@@ -1013,6 +1077,7 @@
       return null;
     }
     const SUGESTOES = [
+      ['Estratégia', ['Quais estratégias de marketing eu posso fazer?', 'O que as outras regiões fazem que eu ainda não faço?', 'Por onde começo para crescer?', 'Que estratégias de retenção funcionam na rede?']],
       ['Alunos', ['Quem está sumindo?', 'Quem está com cobrança parada?', '__aluno__']],
       ['Orçamento', ['Como está o orçamento deste mês?', 'Posso contratar mais um professor?', 'Vale reajustar a mensalidade?', 'Como fico nos próximos meses?']],
       ['Rede', ['Como estou em relação à rede?', 'Minha retenção de kids está boa?', 'Por que a particular funciona em Vila Olímpia e não em Minneapolis?', 'Por que tenho poucas mulheres?']]
