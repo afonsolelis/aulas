@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alliance — Laboratório do cérebro da rede (simulado) — Inteli Exec</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🥋</text></svg>">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <link href="../../../css/inteli-styles.css" rel="stylesheet">
+  <style>
+    /* Laboratório com a linguagem visual do painel da rede Alliance: dourado, painéis translúcidos,
+       menu lateral e tema claro ou escuro. Todos os dados são sintéticos. */
+    :root {
+      --al-ouro: #d4a72c;
+      --al-ouro-forte: #b88c17;
+      --al-ouro-suave: rgba(212,167,44,.16);
+      --al-fundo: #eceae5;
+      --al-vidro: rgba(255,255,255,.72);
+      --al-vidro-2: rgba(255,255,255,.9);
+      --al-borda: rgba(30,28,24,.10);
+      --al-txt: #1b1a17;
+      --al-txt-2: #5d5a52;
+      --al-txt-3: #8a867c;
+      --al-ok: #2f7d55;
+      --al-alerta: #c0392b;
+      --al-term: #141311;
+      --al-agua: rgba(27,26,23,.05);
+    }
+    :root[data-tema="escuro"] {
+      --al-fundo: #0d0c0b;
+      --al-vidro: rgba(255,255,255,.055);
+      --al-vidro-2: rgba(255,255,255,.09);
+      --al-borda: rgba(255,255,255,.10);
+      --al-txt: #f1efe9;
+      --al-txt-2: #b6b1a6;
+      --al-txt-3: #858075;
+      --al-ok: #6cc196;
+      --al-alerta: #ff7a6b;
+      --al-term: #000;
+      --al-agua: rgba(255,255,255,.04);
+    }
+    html { font-size: clamp(13px, min(1.02vw, 1.9vh), 19px); }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Inter", sans-serif; background: var(--al-fundo); color: var(--al-txt); transition: background .3s, color .3s; }
+    .mono { font-family: "JetBrains Mono", monospace; }
+    button, input, select { font-family: inherit; }
+    :focus-visible { outline: 2px solid var(--al-ouro); outline-offset: 2px; }
+
+    /* marca d'água com a cidade da academia (white label) */
+    .agua { position: fixed; inset: auto 0 6vh 0; text-align: right; padding-right: 3vw; font-size: 15vw; font-weight: 700; letter-spacing: -0.04em; line-height: .9; color: var(--al-agua); pointer-events: none; user-select: none; white-space: nowrap; overflow: hidden; z-index: 0; }
+
+    .app { position: relative; z-index: 1; display: grid; grid-template-columns: 15.5rem 1fr; gap: 14px; padding: 14px; min-height: 100vh; }
+
+    /* ===== menu lateral ===== */
+    .lado { position: sticky; top: 14px; align-self: start; height: calc(100vh - 28px); display: flex; flex-direction: column; background: var(--al-vidro); border: 1px solid var(--al-borda); border-radius: 6px; padding: 16px 12px; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); overflow-y: auto; }
+    .marca { text-align: center; margin-bottom: 12px; }
+    .marca b { display: block; font-size: 1.05rem; letter-spacing: .22em; font-weight: 700; }
+    .marca span { font-size: .7rem; color: var(--al-txt-2); }
+    .sel-ac { width: 100%; padding: 8px 10px; border-radius: 4px; border: 1px solid var(--al-borda); background: var(--al-vidro-2); color: var(--al-txt); font-weight: 600; font-size: .86rem; margin-bottom: 4px; }
+    .status-ac { text-align: center; margin-bottom: 14px; }
+    .selo { display: inline-block; font-size: .64rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; border: 1px solid var(--al-ouro); color: var(--al-ouro-forte); padding: 2px 8px; border-radius: 4px; }
+    :root[data-tema="escuro"] .selo { color: var(--al-ouro); }
+    .grupo { font-size: .64rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--al-txt-3); margin: 12px 8px 4px; }
+    .nav { display: flex; align-items: center; gap: 9px; width: 100%; text-align: left; background: none; border: 1px solid transparent; border-radius: 6px; padding: 7px 10px; color: var(--al-txt); font-size: .88rem; cursor: pointer; }
+    .nav:hover { background: var(--al-vidro-2); }
+    .nav[aria-current="page"] { background: var(--al-ouro-suave); border-color: var(--al-ouro-suave); font-weight: 600; }
+    .nav .ic { width: 1.1rem; text-align: center; opacity: .75; }
+    .nav .bdg { margin-left: auto; background: var(--al-alerta); color: #fff; font-size: .62rem; font-weight: 700; padding: 1px 6px; border-radius: 4px; }
+    .lado-pe { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--al-borda); display: grid; gap: 8px; }
+    .bt { border-radius: 6px; padding: 8px 14px; font-size: .84rem; font-weight: 600; cursor: pointer; border: 1px solid var(--al-borda); background: var(--al-vidro-2); color: var(--al-txt); }
+    .bt:hover { border-color: var(--al-ouro); }
+    .bt.ouro { background: var(--al-ouro); border-color: var(--al-ouro); color: #1b1a17; }
+    .bt.ouro:hover { background: #e2b73a; }
+    .bt.peq { padding: 5px 11px; font-size: .78rem; }
+    .contadores { font-size: .7rem; color: var(--al-txt-2); line-height: 1.6; text-align: center; }
+    .contadores b { color: var(--al-txt); font-family: "JetBrains Mono", monospace; }
+
+    /* ===== área principal ===== */
+    .principal { min-width: 0; }
+    .cab { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+    .cab h1 { margin: 0; font-size: 1.55rem; letter-spacing: -0.02em; font-weight: 700; }
+    .cab h1 em { font-style: normal; color: var(--al-ouro-forte); }
+    :root[data-tema="escuro"] .cab h1 em { color: var(--al-ouro); }
+    .cab p { margin: 2px 0 0; font-size: .82rem; color: var(--al-txt-2); }
+    .cab-dir { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+    .vista { display: none; }
+    .vista.ativa { display: block; animation: entra .25s ease-out; }
+    @keyframes entra { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+    .cartao { background: var(--al-vidro); border: 1px solid var(--al-borda); border-radius: 6px; padding: 14px 16px; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+    .cartao h2 { margin: 0 0 10px; font-size: .95rem; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .cartao h2 small { margin-left: auto; font-weight: 500; font-size: .72rem; color: var(--al-txt-2); }
+    .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px; }
+    .kpi small { display: block; font-size: .66rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--al-txt-2); }
+    .kpi b { display: block; font-size: 1.85rem; font-weight: 700; letter-spacing: -0.02em; margin: 2px 0; }
+    .kpi span { font-size: .78rem; color: var(--al-txt-2); }
+    .g3 { display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: 12px; }
+    .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+    .g21 { display: grid; grid-template-columns: 1.6fr 1fr; gap: 12px; align-items: start; }
+    .lista { list-style: none; margin: 0; padding: 0; }
+    .lista li { display: flex; gap: 10px; align-items: baseline; padding: 7px 0; border-bottom: 1px solid var(--al-borda); font-size: .86rem; }
+    .lista li:last-child { border-bottom: none; }
+    .lista li .dir { margin-left: auto; color: var(--al-txt-2); font-size: .78rem; white-space: nowrap; }
+    .pt { width: 7px; height: 7px; border-radius: 50%; background: var(--al-txt-3); flex: none; transform: translateY(-1px); }
+    .pt.ouro { background: var(--al-ouro); }
+    .pt.ok { background: var(--al-ok); }
+    .pt.al { background: var(--al-alerta); }
+    .tag { display: inline-block; font-size: .66rem; font-weight: 600; border: 1px solid var(--al-borda); border-radius: 4px; padding: 1px 7px; color: var(--al-txt-2); white-space: nowrap; }
+    .tag.al { border-color: var(--al-alerta); color: var(--al-alerta); }
+    .tag.ok { border-color: var(--al-ok); color: var(--al-ok); }
+    .tag.ouro { border-color: var(--al-ouro); color: var(--al-ouro-forte); }
+    :root[data-tema="escuro"] .tag.ouro { color: var(--al-ouro); }
+    .vazio { color: var(--al-txt-2); font-size: .86rem; padding: 6px 0; }
+    .nota { font-size: .76rem; color: var(--al-txt-2); line-height: 1.5; margin: 8px 0 0; }
+    .flash { animation: flash .8s ease-out; }
+    @keyframes flash { from { background: var(--al-ouro-suave); } to { background: transparent; } }
+
+    /* decisão do dia */
+    .dec { padding: 10px 0; border-bottom: 1px solid var(--al-borda); }
+    .dec:last-child { border-bottom: none; }
+    .dec b { font-size: .95rem; }
+    .dec p { margin: 3px 0 8px; font-size: .84rem; color: var(--al-txt-2); line-height: 1.45; }
+    .dec .acoes { display: flex; gap: 6px; }
+    .dec.feita { opacity: .55; }
+    .num { display: inline-flex; width: 1.4rem; height: 1.4rem; border-radius: 50%; align-items: center; justify-content: center; background: var(--al-ouro-suave); color: var(--al-ouro-forte); font-size: .72rem; font-weight: 700; margin-right: 6px; }
+    .sw-acoes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+
+    /* tabela */
+    .tab { width: 100%; border-collapse: collapse; font-size: .84rem; }
+    .tab th { text-align: left; font-size: .64rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--al-txt-2); padding: 7px 8px; border-bottom: 1px solid var(--al-borda); }
+    .tab td { padding: 7px 8px; border-bottom: 1px solid var(--al-borda); }
+    .tab td.n, .tab th.n { text-align: right; font-family: "JetBrains Mono", monospace; }
+    .tab tr.clic { cursor: pointer; }
+    .tab tr.clic:hover td { background: var(--al-vidro-2); }
+    .tab td.alto { color: var(--al-ok); font-weight: 700; }
+    .tab td.baixo { color: var(--al-alerta); font-weight: 700; }
+    .tab tr.med td { color: var(--al-txt-2); font-weight: 600; }
+    .tab-wrap { overflow-x: auto; }
+    .filtros { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+    .filtros input { flex: 1; min-width: 12rem; padding: 7px 10px; border-radius: 6px; border: 1px solid var(--al-borda); background: var(--al-vidro-2); color: var(--al-txt); font-size: .86rem; }
+    .chip { border: 1px solid var(--al-borda); background: var(--al-vidro-2); color: var(--al-txt); border-radius: 4px; padding: 5px 10px; font-size: .78rem; cursor: pointer; }
+    .chip[aria-pressed="true"] { border-color: var(--al-ouro); background: var(--al-ouro-suave); font-weight: 600; }
+    .chip:hover { border-color: var(--al-ouro); }
+    .perfil dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0 0 12px; font-size: .86rem; }
+    .perfil dt { color: var(--al-txt-2); }
+    .perfil dd { margin: 0; font-weight: 600; }
+
+    /* orçamento */
+    .barra-orc { display: grid; grid-template-columns: 9rem 1fr 6.5rem; gap: 10px; align-items: center; font-size: .84rem; padding: 4px 0; }
+    .trilho { height: 12px; background: var(--al-vidro-2); border: 1px solid var(--al-borda); border-radius: 2px; position: relative; overflow: hidden; }
+    .enche { position: absolute; inset: 0 auto 0 0; background: var(--al-ouro); transition: width .6s ease; }
+    .enche.des { background: var(--al-txt-3); }
+    .enche.res { background: var(--al-ok); }
+    .med { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--al-alerta); }
+    .barra-orc b { font-family: "JetBrains Mono", monospace; font-size: .8rem; text-align: right; }
+    .proj { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center; }
+    .proj div { border: 1px solid var(--al-borda); border-radius: 4px; padding: 8px 4px; background: var(--al-vidro-2); }
+    .proj small { display: block; font-size: .66rem; color: var(--al-txt-2); text-transform: uppercase; letter-spacing: .06em; }
+    .proj b { font-family: "JetBrains Mono", monospace; font-size: .95rem; }
+
+    /* chat */
+    .chat { display: grid; grid-template-rows: 1fr auto; height: calc(100vh - 128px); min-height: 26rem; }
+    .msgs { overflow-y: auto; padding: 4px 4px 10px; display: flex; flex-direction: column; gap: 12px; }
+    .msg { max-width: 82%; line-height: 1.6; font-size: .93rem; }
+    .msg.eu { align-self: flex-end; background: var(--al-ouro); color: #1b1a17; padding: 9px 13px; border-radius: 6px; font-weight: 500; }
+    .msg.ce { align-self: flex-start; background: var(--al-vidro-2); border: 1px solid var(--al-borda); padding: 12px 14px; border-radius: 6px; }
+    .msg.ce .quem { font-size: .7rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--al-txt-2); margin-bottom: 4px; display: flex; gap: 8px; align-items: center; }
+    .msg.ce .quem i { width: 1.4rem; height: 1.4rem; border-radius: 50%; border: 1px solid var(--al-ouro); display: inline-flex; align-items: center; justify-content: center; font-style: normal; color: var(--al-ouro-forte); }
+    .msg ul.fontes { margin: 8px 0 0; padding: 8px 0 0 1.1rem; border-top: 1px solid var(--al-borda); font-size: .76rem; color: var(--al-txt-2); line-height: 1.5; }
+    .msg code { font-family: "JetBrains Mono", monospace; font-size: .72rem; background: var(--al-vidro); border: 1px solid var(--al-borda); padding: 0 4px; border-radius: 2px; }
+    .msg details { margin-top: 8px; font-size: .8rem; color: var(--al-txt-2); }
+    .msg details summary { cursor: pointer; font-weight: 600; }
+    .msg details p { margin: 6px 0 0; padding: 8px 10px; border-left: 2px solid var(--al-txt-3); font-style: italic; }
+    .msg .tab { margin-top: 8px; font-size: .8rem; }
+    .cursor::after { content: "▍"; color: var(--al-ouro); animation: pisca 1s steps(1) infinite; }
+    @keyframes pisca { 50% { opacity: 0; } }
+    .entrada { border-top: 1px solid var(--al-borda); padding-top: 10px; }
+    .sugest { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+    .sugest .rot { font-size: .64rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--al-txt-3); align-self: center; margin-right: 2px; }
+    .caixa { display: flex; gap: 8px; }
+    .caixa input { flex: 1; padding: 11px 14px; border-radius: 6px; border: 1px solid var(--al-borda); background: var(--al-vidro-2); color: var(--al-txt); font-size: .95rem; }
+
+    /* terminal e eventos */
+    .term { background: var(--al-term); color: #e9e6df; border-radius: 4px; padding: 12px 14px; font-family: "JetBrains Mono", monospace; font-size: .76rem; line-height: 1.55; white-space: pre-wrap; word-break: break-word; margin: 0; min-height: 9rem; }
+    .term .k { color: var(--al-ouro); }
+    .term .x { color: #ff8a7a; text-decoration: line-through; }
+    .term .c { color: #8a867c; }
+    .fluxo { list-style: none; margin: 0; padding: 0; max-height: 30rem; overflow-y: auto; font-family: "JetBrains Mono", monospace; font-size: .72rem; }
+    .fluxo li { display: grid; grid-template-columns: 5rem 6.4rem 9.4rem 1fr; gap: 10px; padding: 5px 2px; border-bottom: 1px solid var(--al-borda); }
+    .fluxo li .e { color: var(--al-ouro-forte); font-weight: 600; }
+    :root[data-tema="escuro"] .fluxo li .e { color: var(--al-ouro); }
+    .seta { text-align: center; font-size: .72rem; color: var(--al-txt-2); padding: 6px 0; font-family: "JetBrains Mono", monospace; }
+
+    /* regras CEP */
+    .regras { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px; }
+    .regra { border-left: 3px solid var(--al-ouro); }
+    .regra b { font-size: .9rem; }
+    .regra p { margin: 4px 0 6px; font-size: .78rem; color: var(--al-txt-2); line-height: 1.4; }
+    .regra span { font-family: "JetBrains Mono", monospace; font-size: .72rem; }
+
+    /* diagramas e mapa */
+    .diag svg { width: 100%; height: auto; display: block; }
+    .diag .bx { fill: var(--al-vidro-2); stroke: var(--al-borda); stroke-width: 1.2; }
+    :root[data-tema="escuro"] .diag .bx { fill: #1b1a18; stroke: rgba(255,255,255,.18); }
+    .diag .bx.ouro { stroke: var(--al-ouro); stroke-width: 1.6; }
+    .diag .bx.zona { fill: none; stroke: var(--al-txt-3); stroke-dasharray: 5 4; }
+    .diag .t1 { font: 600 15px Inter, sans-serif; fill: var(--al-txt); text-anchor: middle; }
+    .diag .t2 { font: 400 12px Inter, sans-serif; fill: var(--al-txt-2); text-anchor: middle; }
+    .diag .t3 { font: 600 11px "JetBrains Mono", monospace; fill: var(--al-ouro-forte); text-anchor: middle; letter-spacing: .04em; }
+    :root[data-tema="escuro"] .diag .t3 { fill: var(--al-ouro); }
+    .diag .tz { font: 600 11px "JetBrains Mono", monospace; fill: var(--al-txt-3); letter-spacing: .08em; }
+    .diag .fio { fill: none; stroke: var(--al-txt-3); stroke-width: 1.6; }
+    .diag .corre { fill: none; stroke: var(--al-ouro); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 2 16; animation: corre 1.2s linear infinite; }
+    @keyframes corre { to { stroke-dashoffset: -18; } }
+    .diag .seta-m { fill: var(--al-txt-3); }
+    .mapa svg { width: 100%; height: auto; display: block; border-radius: 4px; background: #0f0e0d; }
+    .mapa .gr { stroke: rgba(255,255,255,.06); stroke-width: 1; }
+    .mapa .outra { fill: rgba(255,255,255,.55); }
+    .mapa .ac { fill: var(--al-ouro); cursor: pointer; }
+    .mapa .ac.impl { fill: #e9e6df; }
+    .mapa .lbl { font: 600 13px Inter, sans-serif; fill: #f1efe9; }
+    .mapa .lbl small, .mapa .lbl2 { font: 400 11px Inter, sans-serif; fill: #b6b1a6; }
+    .mapa .liga { stroke: rgba(255,255,255,.4); stroke-width: 1; }
+    .mapa .onda { fill: none; stroke: var(--al-ouro); stroke-width: 2; animation: onda 1.2s ease-out forwards; }
+    @keyframes onda { from { r: 4; opacity: 1; } to { r: 26; opacity: 0; } }
+    .acs-lista { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+    .acs-lista button { text-align: left; border: 1px solid var(--al-borda); background: var(--al-vidro-2); color: var(--al-txt); border-radius: 6px; padding: 8px 10px; cursor: pointer; }
+    .acs-lista button:hover { border-color: var(--al-ouro); }
+    .acs-lista button[aria-pressed="true"] { border-color: var(--al-ouro); box-shadow: inset 0 0 0 1px var(--al-ouro); }
+    .acs-lista b { display: block; font-size: .84rem; }
+    .acs-lista span { font-size: .72rem; color: var(--al-txt-2); }
+
+    footer.rodape.inteli-footer { background: transparent !important; border-top: 0 !important; color: var(--al-txt-2); font-size: .74rem; }
+    .rodape { position: relative; z-index: 1; margin: 0 14px 14px; text-align: center; font-size: .74rem; color: var(--al-txt-2); }
+    .rodape a { color: inherit; }
+
+    @media (max-width: 1100px) {
+      .app { grid-template-columns: 1fr; }
+      .lado { position: static; height: auto; }
+      .kpis, .regras, .acs-lista { grid-template-columns: repeat(2, 1fr); }
+      .g3, .g2, .g21 { grid-template-columns: 1fr; }
+      .chat { height: 70vh; }
+    }
+    @media (max-width: 560px) {
+      .app { padding: 8px; }
+      .kpis, .regras, .acs-lista, .proj { grid-template-columns: 1fr 1fr; }
+      .msg { max-width: 100%; }
+      .fluxo li { grid-template-columns: 1fr; gap: 0; }
+      .barra-orc { grid-template-columns: 6rem 1fr 5.5rem; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .vista.ativa, .flash, .diag .corre, .mapa .onda { animation: none; }
+      .enche { transition: none; }
+    }
+  </style>
+
+<!-- semana:css:start -->
+<link rel="stylesheet" href="../../../css/semana-ano.css">
+<!-- semana:css:end -->
+<link rel="stylesheet" href="../../../css/inteli-ds.css">
+</head>
+<body>
+  <div class="agua" id="agua" aria-hidden="true">VILA OLÍMPIA</div>
+
+  <div class="app">
+    <aside class="lado" aria-label="Menu do laboratório">
+      <div class="marca"><b>ALLIANCE</b><span>laboratório do cérebro da rede</span></div>
+      <label class="grupo" for="selAc" style="display:block;margin-top:0;">Academia</label>
+      <select class="sel-ac" id="selAc"></select>
+      <div class="status-ac"><span class="selo" id="stAc">simulado</span></div>
+
+      <div class="grupo">Rede</div>
+      <button class="nav" data-v="mapa"><span class="ic">◍</span>Mapa da rede</button>
+      <div class="grupo">Academia</div>
+      <button class="nav" data-v="painel" aria-current="page"><span class="ic">▦</span>Painel e decisão<span class="bdg" id="bdgDec">3</span></button>
+      <button class="nav" data-v="alunos"><span class="ic">◎</span>Alunos</button>
+      <button class="nav" data-v="orc"><span class="ic">$</span>Orçamento</button>
+      <div class="grupo">Cérebro</div>
+      <button class="nav" data-v="chat"><span class="ic">✦</span>Pergunte ao cérebro</button>
+      <button class="nav" data-v="padroes"><span class="ic">⌁</span>Padrões detectados<span class="bdg" id="bdgPad" hidden>0</span></button>
+      <div class="grupo">Por dentro</div>
+      <button class="nav" data-v="arq"><span class="ic">◇</span>Como funciona</button>
+      <button class="nav" data-v="eventos"><span class="ic">≋</span>Eventos</button>
+      <button class="nav" data-v="olap"><span class="ic">▤</span>Banco OLAP</button>
+
+      <div class="lado-pe">
+        <button class="bt ouro" id="bSim" aria-pressed="false">▶ Simular a rede</button>
+        <button class="bt peq" id="bTema">Tema escuro</button>
+        <div class="contadores">eventos no banco <b id="cTot">0</b><br>por minuto <b id="cMin">0</b> · <span id="cUtc">UTC</span></div>
+      </div>
+    </aside>
+
+    <div class="principal">
+      <header class="cab">
+        <div>
+          <h1 id="saud">Boa tarde, <em>Professor</em></h1>
+          <p id="sub">—</p>
+        </div>
+        <div class="cab-dir"><span class="selo">dados simulados</span></div>
+      </header>
+
+      <!-- ============ MAPA ============ -->
+      <section class="vista" id="v-mapa">
+        <div class="cartao mapa">
+          <h2>A rede no mundo <small><span id="mapaResumo"></span></small></h2>
+          <svg viewBox="0 0 1000 500" id="mapaSvg" role="img" aria-label="Mapa com as academias da rede e a academia selecionada"></svg>
+          <div class="acs-lista" id="acsLista"></div>
+          <p class="nota">Pontos claros: outras academias da rede, em posição aproximada. Pontos dourados: academias conectadas ao laboratório. Clique para escolher a academia.</p>
+        </div>
+      </section>
+
+      <!-- ============ PAINEL ============ -->
+      <section class="vista ativa" id="v-painel">
+        <div class="kpis" id="kpis"></div>
+        <div class="g3">
+          <div class="cartao">
+            <h2>Decisão do dia <small>o cérebro sugere, o dono decide</small></h2>
+            <div id="decisoes"></div>
+          </div>
+          <div class="cartao">
+            <h2>Registrar na academia <small>cada ação vira evento</small></h2>
+            <div class="sw-acoes" id="swAcoes">
+              <button class="bt peq" data-ev="check_in">Check-in</button>
+              <button class="bt peq" data-ev="matricula">Matrícula</button>
+              <button class="bt peq" data-ev="graduacao">Graduação</button>
+              <button class="bt peq" data-ev="aula_particular">Particular</button>
+              <button class="bt peq" data-ev="cobranca_falhou">Cobrança falhou</button>
+              <button class="bt peq" data-ev="cancelamento">Cancelamento</button>
+            </div>
+            <h2 style="margin-top:14px;">Aulas de hoje</h2>
+            <ul class="lista" id="aulasHoje"></ul>
+          </div>
+          <div class="cartao">
+            <h2>Atividade recente</h2>
+            <ul class="lista" id="ativ"><li class="vazio">Sem atividade nesta sessão.</li></ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ ALUNOS ============ -->
+      <section class="vista" id="v-alunos">
+        <div class="g21">
+          <div class="cartao">
+            <h2>Alunos <small>nomes visíveis só dentro do software da academia</small></h2>
+            <div class="filtros">
+              <input type="search" id="busca" placeholder="Buscar aluno pelo nome" aria-label="Buscar aluno">
+              <button class="chip" data-f="todos" aria-pressed="true">Ativos</button>
+              <button class="chip" data-f="risco" aria-pressed="false">Sumindo</button>
+              <button class="chip" data-f="cobr" aria-pressed="false">Cobrança parada</button>
+              <button class="chip" data-f="kids" aria-pressed="false">Kids</button>
+              <button class="chip" data-f="branca" aria-pressed="false">Faixa branca</button>
+            </div>
+            <div class="tab-wrap"><table class="tab" id="tabAlunos"></table></div>
+            <p class="nota" id="notaAlunos"></p>
+          </div>
+          <div class="cartao perfil" id="perfil"><h2>Aluno</h2><p class="vazio">Escolha um aluno na lista.</p></div>
+        </div>
+      </section>
+
+      <!-- ============ ORÇAMENTO ============ -->
+      <section class="vista" id="v-orc">
+        <div class="kpis" id="kpisOrc"></div>
+        <div class="g2">
+          <div class="cartao">
+            <h2>Receitas e despesas do mês <small id="orcMoeda"></small></h2>
+            <div id="orcBarras"></div>
+            <p class="nota">Receitas a partir dos planos dos alunos ativos e das aulas particulares registradas; despesas cadastradas pela academia. A taxa de pagamento é de 3,5% sobre o recebido.</p>
+          </div>
+          <div class="cartao">
+            <h2>Projeção dos próximos meses</h2>
+            <div class="proj" id="orcProj"></div>
+            <p class="nota">A projeção aplica à academia a evasão mensal e a conversão de experimentais medidas nela nos últimos 90 dias.</p>
+            <h2 style="margin-top:14px;">Comparação com a rede <small>em proporção, sem câmbio</small></h2>
+            <div id="orcRede"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ CHAT ============ -->
+      <section class="vista" id="v-chat">
+        <div class="cartao chat">
+          <div class="msgs" id="msgs" aria-live="polite"></div>
+          <div class="entrada">
+            <div class="sugest" id="sugest"></div>
+            <form class="caixa" id="formChat" autocomplete="off">
+              <input id="pergunta" placeholder="Pergunte sobre alunos, orçamento, turmas, retenção ou a comparação com a rede" aria-label="Pergunta ao cérebro">
+              <button class="bt ouro" type="submit">Perguntar</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ PADRÕES ============ -->
+      <section class="vista" id="v-padroes">
+        <div class="regras" id="regras"></div>
+        <div class="cartao">
+          <h2>Alertas em tempo real <small>processamento de eventos complexos sobre o fluxo da rede</small></h2>
+          <ul class="lista" id="alertas"><li class="vazio">Nenhum padrão detectado ainda. Ligue a simulação da rede.</li></ul>
+        </div>
+      </section>
+
+      <!-- ============ COMO FUNCIONA ============ -->
+      <section class="vista" id="v-arq">
+        <div class="cartao diag" style="margin-bottom:12px;">
+          <h2>Arquitetura do cérebro da rede</h2>
+          <svg viewBox="0 0 1200 330" role="img" aria-label="Diagrama: o software de cada academia gera eventos, que saem anonimizados para a fila de ingestão, entram no banco OLAP central, passam pelas regras de padrões e chegam ao cérebro, que entrega a decisão do dia ao dono da academia; a decisão aprovada volta como evento.">
+            <defs><marker id="sm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="seta-m"/></marker></defs>
+            <rect class="bx zona" x="10" y="20" width="250" height="250" rx="6"/>
+            <text class="tz" x="22" y="40">NA ACADEMIA</text>
+            <rect class="bx zona" x="300" y="20" width="890" height="250" rx="6"/>
+            <text class="tz" x="312" y="40">NA REDE</text>
+            <rect class="bx ouro" x="30" y="58" width="210" height="58" rx="6"/><text class="t1" x="135" y="83">Minneapolis</text><text class="t2" x="135" y="101">software white label</text>
+            <rect class="bx ouro" x="30" y="128" width="210" height="58" rx="6"/><text class="t1" x="135" y="153">Vila Olímpia</text><text class="t2" x="135" y="171">software white label</text>
+            <rect class="bx ouro" x="30" y="198" width="210" height="58" rx="6"/><text class="t1" x="135" y="223">… e as demais</text><text class="t2" x="135" y="241">check-in, matrícula, cobrança</text>
+            <rect class="bx" x="330" y="110" width="150" height="90" rx="6"/><text class="t1" x="405" y="145">Ingestão</text><text class="t2" x="405" y="164">fila de eventos</text><text class="t2" x="405" y="180">sem nome do aluno</text>
+            <rect class="bx" x="520" y="95" width="170" height="120" rx="6"/><text class="t1" x="605" y="135">Banco OLAP</text><text class="t2" x="605" y="155">fato_evento</text><text class="t2" x="605" y="172">todas as academias</text><text class="t2" x="605" y="189">mesma definição de métrica</text>
+            <rect class="bx" x="730" y="110" width="150" height="90" rx="6"/><text class="t1" x="805" y="145">Padrões</text><text class="t2" x="805" y="164">regras sobre</text><text class="t2" x="805" y="180">sequências (CEP)</text>
+            <rect class="bx ouro" x="920" y="95" width="160" height="120" rx="6"/><text class="t1" x="1000" y="135">Cérebro</text><text class="t2" x="1000" y="155">IA que consulta</text><text class="t2" x="1000" y="172">o banco e cita</text><text class="t2" x="1000" y="189">a métrica</text>
+            <path class="fio" d="M240,87 H285 V155 H326" marker-end="url(#sm)"/><path class="fio" d="M240,157 H326" /><path class="fio" d="M240,227 H285 V155"/>
+            <path class="fio" d="M480,155 H516" marker-end="url(#sm)"/><path class="fio" d="M690,155 H726" marker-end="url(#sm)"/><path class="fio" d="M880,155 H916" marker-end="url(#sm)"/>
+            <path class="fio" d="M1080,155 H1150 V300 H135 V260" marker-end="url(#sm)"/>
+            <path class="corre" d="M240,157 H330 M480,155 H520 M690,155 H730 M880,155 H920 M1080,155 H1150 V300 H135 V262"/>
+                        <text class="t3" x="640" y="292">decisão do dia → o dono aprova → a ação volta como evento</text>
+          </svg>
+        </div>
+        <div class="g2">
+          <div class="cartao diag">
+            <h2>Do evento à decisão: o gêmeo digital da academia</h2>
+            <svg viewBox="0 0 560 330" role="img" aria-label="Ciclo: o processo da academia gera eventos; eventos isolados dão observabilidade; padrões entre eventos dão inteligência; a inteligência sugere uma decisão; a decisão muda o processo, que gera novos eventos.">
+              <defs><marker id="sm2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="seta-m"/></marker></defs>
+              <rect class="bx ouro" x="170" y="14" width="220" height="62" rx="6"/><text class="t1" x="280" y="40">Processo</text><text class="t2" x="280" y="59">aulas, matrículas, cobranças</text>
+              <rect class="bx" x="390" y="132" width="160" height="62" rx="6"/><text class="t1" x="470" y="158">Eventos</text><text class="t2" x="470" y="177">observabilidade</text>
+              <rect class="bx" x="200" y="250" width="160" height="62" rx="6"/><text class="t1" x="280" y="276">Padrões</text><text class="t2" x="280" y="295">inteligência</text>
+              <rect class="bx" x="10" y="132" width="160" height="62" rx="6"/><text class="t1" x="90" y="158">Decisão</text><text class="t2" x="90" y="177">aprovada pelo dono</text>
+              <path class="fio" d="M390,45 H470 V128" marker-end="url(#sm2)"/>
+              <path class="fio" d="M470,194 V281 H364" marker-end="url(#sm2)"/>
+              <path class="fio" d="M200,281 H90 V198" marker-end="url(#sm2)"/>
+              <path class="fio" d="M90,132 V45 H166" marker-end="url(#sm2)"/>
+              <path class="corre" d="M390,45 H470 V132 M470,194 V281 H360 M200,281 H90 V194 M90,132 V45 H170"/>
+              <text class="t3" x="280" y="170">malha fechada</text>
+            </svg>
+          </div>
+          <div class="cartao diag">
+            <h2>O que fica na academia e o que vai para a rede</h2>
+            <svg viewBox="0 0 560 372" role="img" aria-label="Fronteira de privacidade: na academia ficam nome, telefone, e-mail, documento, foto do check-in facial e dados do cartão; para a rede vão identificador cifrado, tipo de evento, instante, faixa, categoria, turma e valores agregados.">
+              <rect class="bx" x="10" y="14" width="250" height="300" rx="6"/>
+              <text class="tz" x="24" y="38">FICA NA ACADEMIA</text>
+              <text class="t2" x="135" y="80">nome e sobrenome</text><text class="t2" x="135" y="108">telefone e e-mail</text><text class="t2" x="135" y="136">documento e endereço</text><text class="t2" x="135" y="164">foto do check-in facial</text><text class="t2" x="135" y="192">consentimento (LGPD)</text><text class="t2" x="135" y="220">cartão: com o meio de pagamento</text><text class="t2" x="135" y="248">valor exato de cada mensalidade</text>
+              <rect class="bx ouro" x="300" y="14" width="250" height="300" rx="6"/>
+              <text class="tz" x="314" y="38">VAI PARA A REDE</text>
+              <text class="t2" x="425" y="80">identificador cifrado do aluno</text><text class="t2" x="425" y="108">tipo de evento e instante (UTC)</text><text class="t2" x="425" y="136">faixa e categoria</text><text class="t2" x="425" y="164">turma e horário</text><text class="t2" x="425" y="192">plano por faixa de valor</text><text class="t2" x="425" y="220">totais do mês por academia</text>
+              <path class="fio" d="M262,164 H296" marker-end="url(#sm)"/>
+              <text class="t3" x="280" y="344">a chave que traduz o identificador em nome</text><text class="t3" x="280" y="362">fica com a academia</text>
+            </svg>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ EVENTOS ============ -->
+      <section class="vista" id="v-eventos">
+        <div class="g2">
+          <div class="cartao">
+            <h2>No software da academia</h2>
+            <pre class="term" id="evLocal"><span class="c">// registre um evento no painel ou ligue a simulação da rede</span></pre>
+            <div class="seta">▼ anonimização na saída da academia ▼</div>
+            <h2>No banco da rede</h2>
+            <pre class="term" id="evRede"><span class="c">// aguardando evento</span></pre>
+          </div>
+          <div class="cartao">
+            <h2>Eventos chegando de todas as academias</h2>
+            <ul class="fluxo" id="fluxo"><li class="vazio">Sem eventos ainda.</li></ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ OLAP ============ -->
+      <section class="vista" id="v-olap">
+        <div class="g21">
+          <div class="cartao">
+            <h2>Cubo da rede <small>clique no cabeçalho para ver a consulta</small></h2>
+            <div class="tab-wrap"><table class="tab" id="cubo"></table></div>
+            <p class="nota">Verde: melhor que a mediana da rede por mais de 12%. Vermelho: pior.</p>
+          </div>
+          <div>
+            <div class="cartao" style="margin-bottom:12px;">
+              <h2>Tabela de fatos</h2>
+              <p class="nota" style="margin:0;font-family:'JetBrains Mono',monospace;"><b>fato_evento</b>(ts_utc, academia, evento, aluno_hash, faixa, categoria, turma, valor)<br>linhas: <b id="fLinhas">0</b> · partição por dia e academia</p>
+            </div>
+            <div class="cartao">
+              <h2 id="sqlTit">Consulta</h2>
+              <pre class="term" id="sql" style="min-height:0;"></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <footer class="rodape inteli-footer">
+    Laboratório com dados simulados para a masterclass da Alliance no Summit 2026 · Inteli Exec ·
+    <a href="../slides/slide_alliance-summit-ia-gestao.html">Slides</a> · <a href="../materials/alliance-summit-ia-gestao-material.html">Material</a>.
+    Nenhum número, nome ou valor representa academia ou aluno real.
+  </footer>
+
+  <script>
+  (function () {
+    'use strict';
+    /* ================= gerador determinístico ================= */
+    let semente = 20261113;
+    function rnd() { semente |= 0; semente = semente + 0x6D2B79F5 | 0; let t = Math.imul(semente ^ semente >>> 15, 1 | semente); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }
+    const pick = (a) => a[Math.floor(rnd() * a.length)];
+    function hash(s) { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); } return 'a_' + (h >>> 0).toString(16).padStart(8, '0'); }
+    const sem = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+    /* ================= academias sintéticas ================= */
+    // base: alunos na base; ret/kret: retenção 90d adulto/kids; freq: check-ins por semana; part: parcela com particular;
+    // pacote: particular oferecida na matrícula; inad: parcela com cobrança parada; ba: meses de branca a azul;
+    // ticket: plano médio; pp: preço da particular; desp: despesas mensais; leads/exp/conv: funil de 30 dias; fem: parcela feminina.
+    const ACADS = [
+      { id: 'US-MSP', nome: 'Alliance Minneapolis', cid: 'Minneapolis', uf: 'MN', pais: 'EUA', tz: 'America/Chicago', st: 'ativa', lat: 44.98, lon: -93.27, base: 148, kids: .32, ret: .84, kret: .80, freq: 2.6, part: .05, pacote: false, inad: .03, ba: 22, moeda: 'USD', ticket: 178, pp: 90, desp: { aluguel: 9000, professores: 21000, software: 400, marketing: 1200 }, profs: 5, leads: 28, exp: 8, conv: .55, fem: .18, pico: .88, vale: .42, lingua: 'en' },
+      { id: 'US-MAD', nome: 'Alliance Madison', cid: 'Madison', uf: 'WI', pais: 'EUA', tz: 'America/Chicago', st: 'em implementação', lat: 43.07, lon: -89.40, base: 118, kids: .41, ret: .80, kret: .61, freq: 2.3, part: .04, pacote: false, inad: .04, ba: 24, moeda: 'USD', ticket: 165, pp: 85, desp: { aluguel: 7500, professores: 16000, software: 400, marketing: 900 }, profs: 4, leads: 22, exp: 6, conv: .40, fem: .14, pico: .80, vale: .35, lingua: 'en' },
+      { id: 'US-HUD', nome: 'Alliance Hudson', cid: 'Hudson', uf: 'WI', pais: 'EUA', tz: 'America/Chicago', st: 'ativa', lat: 44.97, lon: -92.76, base: 96, kids: .38, ret: .82, kret: .77, freq: 2.4, part: .06, pacote: false, inad: .02, ba: 23, moeda: 'USD', ticket: 150, pp: 80, desp: { aluguel: 5200, professores: 11400, software: 400, marketing: 600 }, profs: 3, leads: 15, exp: 5, conv: .58, fem: .17, pico: .78, vale: .40, lingua: 'en' },
+      { id: 'US-ICY', nome: 'Alliance Iowa City', cid: 'Iowa City', uf: 'IA', pais: 'EUA', tz: 'America/Chicago', st: 'em implementação', lat: 41.66, lon: -91.53, base: 64, kids: .12, ret: .66, kret: .70, freq: 2.9, part: .03, pacote: false, inad: .05, ba: 20, moeda: 'USD', ticket: 120, pp: 70, desp: { aluguel: 3200, professores: 6000, software: 400, marketing: 300 }, profs: 2, leads: 18, exp: 6, conv: .45, fem: .21, pico: .74, vale: .30, lingua: 'en' },
+      { id: 'US-LAX', nome: 'Alliance Los Angeles', cid: 'Los Angeles', uf: 'CA', pais: 'EUA', tz: 'America/Los_Angeles', st: 'em implementação', lat: 34.05, lon: -118.24, base: 262, kids: .28, ret: .79, kret: .74, freq: 2.7, part: .14, pacote: false, inad: .06, ba: 21, moeda: 'USD', ticket: 195, pp: 110, desp: { aluguel: 26000, professores: 43200, software: 400, marketing: 2500 }, profs: 9, leads: 46, exp: 14, conv: .50, fem: .19, pico: .92, vale: .46, lingua: 'en' },
+      { id: 'BR-SP-VO', nome: 'Alliance Vila Olímpia', cid: 'Vila Olímpia', uf: 'São Paulo', pais: 'Brasil', tz: 'America/Sao_Paulo', st: 'em implementação', lat: -23.59, lon: -46.68, base: 132, kids: .18, ret: .86, kret: .79, freq: 3.1, part: .38, pacote: true, inad: .10, ba: 19, moeda: 'BRL', ticket: 298, pp: 220, desp: { aluguel: 28000, professores: 39000, software: 900, marketing: 3000 }, profs: 6, leads: 30, exp: 8, conv: .62, fem: .22, pico: .91, vale: .49, lingua: 'pt' },
+      { id: 'UK-LON', nome: 'Alliance London', cid: 'Londres', uf: 'Inglaterra', pais: 'Reino Unido', tz: 'Europe/London', st: 'em implementação', lat: 51.50, lon: -0.12, base: 176, kids: .26, ret: .81, kret: .75, freq: 2.5, part: .17, pacote: true, inad: .03, ba: 23, moeda: 'GBP', ticket: 120, pp: 65, desp: { aluguel: 9000, professores: 17400, software: 300, marketing: 900 }, profs: 6, leads: 31, exp: 10, conv: .57, fem: .27, pico: .86, vale: .44, lingua: 'en' },
+      { id: 'AU-SYD', nome: 'Alliance Sydney', cid: 'Sydney', uf: 'NSW', pais: 'Austrália', tz: 'Australia/Sydney', st: 'em implementação', lat: -33.87, lon: 151.21, base: 141, kids: .44, ret: .83, kret: .86, freq: 2.5, part: .09, pacote: false, inad: .03, ba: 22, moeda: 'AUD', ticket: 210, pp: 120, desp: { aluguel: 12000, professores: 24000, software: 500, marketing: 1200 }, profs: 5, leads: 26, exp: 9, conv: .66, fem: .24, pico: .84, vale: .45, lingua: 'en' }
+    ];
+    const PRATICAS = {
+      kret: { 'AU-SYD': 'aula experimental de kids com o responsável no tatame e contato do professor na segunda falta seguida' },
+      part: { 'BR-SP-VO': 'pacote de quatro particulares oferecido na matrícula e particulares encaixadas nos horários de vale', 'UK-LON': 'pacote de particulares oferecido na matrícula para quem vem de outra arte marcial' },
+      fem: { 'UK-LON': 'turma feminina às terças e quintas, conduzida por uma professora, com aula experimental em dupla' },
+      conv: { 'AU-SYD': 'experimental agendada em até 24 horas e mensagem do professor no dia seguinte', 'BR-SP-VO': 'retorno ao lead no mesmo dia, pelo WhatsApp' },
+      ret: { 'BR-SP-VO': 'acompanhamento individual dos três primeiros meses, com meta de frequência por aluno', 'US-MSP': 'turma de fundamentos separada para os três primeiros meses' }
+    };
+    const FX = { USD: 1, BRL: 5.4, GBP: 0.79, AUD: 1.52 };
+    const NOMES = { en: ['Avery', 'Jordan', 'Riley', 'Casey', 'Quinn', 'Morgan', 'Rowan', 'Emerson', 'Noah', 'Olivia', 'Liam', 'Emma', 'Mason', 'Sophia', 'Ethan', 'Ava', 'Harper', 'Logan', 'Chloe', 'Lucas', 'Mia', 'Owen', 'Ella', 'Leo'], pt: ['Ana', 'Bruno', 'Carla', 'Diego', 'Elisa', 'Felipe', 'Gabriela', 'Heitor', 'Isabela', 'João', 'Larissa', 'Mateus', 'Natália', 'Otávio', 'Paula', 'Rafael', 'Sofia', 'Thiago', 'Vitória', 'Lucas'] };
+    const FEM = new Set(['Avery', 'Riley', 'Casey', 'Morgan', 'Olivia', 'Emma', 'Sophia', 'Ava', 'Harper', 'Chloe', 'Mia', 'Ella', 'Ana', 'Carla', 'Elisa', 'Gabriela', 'Isabela', 'Larissa', 'Natália', 'Paula', 'Sofia', 'Vitória']);
+    const SOBRE = { en: ['Berg', 'Olson', 'Nguyen', 'Patel', 'Cho', 'North', 'Rivera', 'Foster', 'Green', 'Hall', 'Baker', 'Clark', 'Evans', 'Lindgren', 'Martin', 'Kelly'], pt: ['Silva', 'Souza', 'Oliveira', 'Lima', 'Costa', 'Pereira', 'Almeida', 'Ribeiro', 'Carvalho', 'Gomes', 'Rocha', 'Martins'] };
+    const FAIXAS_AD = ['azul', 'azul', 'roxa', 'roxa', 'marrom', 'preta'];
+    const FAIXAS_KD = ['branca', 'cinza', 'cinza', 'amarela', 'laranja', 'verde'];
+    const TURMAS = [
+      { h: '06:00', nome: 'Fundamentos', tipo: 'fundamentos', cap: 30, f: 'vale+' },
+      { h: '12:00', nome: 'No-Gi', tipo: 'no-gi', cap: 30, f: 'vale' },
+      { h: '16:30', nome: 'Kids 4–7', tipo: 'kids 4–7', cap: 24, f: 'kids' },
+      { h: '17:30', nome: 'Kids 8–13', tipo: 'kids 8–13', cap: 24, f: 'kids' },
+      { h: '18:30', nome: 'Fundamentos', tipo: 'fundamentos', cap: 36, f: 'pico' },
+      { h: '19:30', nome: 'Avançado', tipo: 'avançado', cap: 36, f: 'pico-' },
+      { h: '20:30', nome: 'Treino livre', tipo: 'treino livre', cap: 40, f: 'meio' }
+    ];
+
+    /* ================= alunos sintéticos ================= */
+    const alunos = []; let seq = 0;
+    const usados = new Set();
+    function nomeUnico(a, fem) {
+      for (let i = 0; i < 40; i++) {
+        let n = pick(NOMES[a.lingua]); if (fem !== FEM.has(n) && i < 30) continue;
+        const nm = n + ' ' + pick(SOBRE[a.lingua]); if (!usados.has(a.id + nm)) { usados.add(a.id + nm); return nm; }
+      }
+      return pick(NOMES[a.lingua]) + ' ' + pick(SOBRE[a.lingua]) + ' ' + (++seq);
+    }
+    function novoAluno(a, dm, opts = {}) {
+      const kid = opts.kid ?? (rnd() < a.kids);
+      const fem = rnd() < (kid ? .3 : a.fem);
+      const al = { id: ++seq, ac: a.id, kid, fem, nome: nomeUnico(a, fem), dm, ativo: true,
+        faixa: kid ? pick(FAIXAS_KD) : (dm < 400 ? 'branca' : pick(FAIXAS_AD)),
+        ult: Math.floor(rnd() * 8), c30: 0, part: rnd() < a.part, falhas: 0, ba: null,
+        plano: Math.round(a.ticket * (kid ? 0.8 : 1) * (0.8 + rnd() * 0.45)) };
+      al.c30 = Math.max(1, Math.round(a.freq * 4.3 * (0.55 + rnd() * 0.9)));
+      if (rnd() < a.inad) al.falhas = 1 + Math.floor(rnd() * 2);
+      al.hash = hash(a.id + ':' + al.id + ':chave-da-academia');
+      return al;
+    }
+    ACADS.forEach((a) => {
+      a.check = 0; a.ev = 0; a.decFeitas = {}; a.particularesMes = 0;
+      for (let i = 0; i < a.base; i++) alunos.push(novoAluno(a, Math.floor(rnd() * 900)));
+      const coorte = Math.round(a.base * 0.45);
+      for (let i = 0; i < coorte; i++) {
+        const al = novoAluno(a, 90 + Math.floor(rnd() * 275)); al.faixa = al.kid ? pick(['branca', 'cinza']) : 'branca';
+        al.ativo = rnd() < (al.kid ? a.kret : a.ret);
+        if (!al.ativo) { al.ult = 30 + Math.floor(rnd() * 200); al.c30 = 0; al.falhas = 0; }
+        alunos.push(al);
+      }
+      alunos.filter((x) => x.ac === a.id && x.ativo).forEach((x) => { if (rnd() < (1 - a.ret) * 0.4) { x.ult = 15 + Math.floor(rnd() * 22); x.c30 = 0; } });
+      for (let i = 0; i < 12; i++) { const al = novoAluno(a, 500 + Math.floor(rnd() * 400), { kid: false }); al.faixa = 'azul'; al.ba = Math.max(10, Math.round(a.ba + (rnd() - .5) * 8)); alunos.push(al); }
+      a.particularesMes = Math.round(alunos.filter((x) => x.ac === a.id && x.ativo && x.part).length * 2);
+      a.turmas = TURMAS.map((t) => {
+        const occ = t.f === 'pico' ? a.pico : t.f === 'pico-' ? a.pico - .06 : t.f === 'vale' ? a.vale : t.f === 'vale+' ? a.vale + .08 : t.f === 'kids' ? Math.min(.95, a.kids * 1.6 * (a.kret / .78)) : (a.pico + a.vale) / 2;
+        return { ...t, occ: Math.max(.15, Math.min(.98, occ + (rnd() - .5) * .06)) };
+      });
+    });
+    const acPorId = Object.fromEntries(ACADS.map((a) => [a.id, a]));
+    const doAc = (id) => alunos.filter((x) => x.ac === id);
+
+    /* ================= métricas (o que o banco OLAP devolve) ================= */
+    const pc = (v) => (v * 100).toFixed(0) + '%';
+    const d1 = (v) => v.toFixed(1).replace('.', ',');
+    const rel = (v, md) => pc(v) === pc(md) ? 'no nível' : v > md ? 'acima' : 'abaixo';
+    const METRICAS = [
+      { id: 'ativos', rot: 'Ativos', fmt: (v) => v.toFixed(0), alto: true, f: (L) => L.filter((x) => x.ativo).length,
+        sql: "SELECT academia, count(DISTINCT aluno_hash) AS ativos\nFROM fato_evento\nWHERE evento = 'check_in'\n  AND ts_utc >= now() - INTERVAL 30 DAY\nGROUP BY academia;" },
+      { id: 'ret', rot: 'Retenção 90d', fmt: pc, alto: true, f: (L) => { const c = L.filter((x) => !x.kid && x.dm >= 90 && x.dm <= 365); return c.length ? c.filter((x) => x.ativo).length / c.length : 0; },
+        sql: "WITH coorte AS (\n  SELECT academia, aluno_hash, min(ts_utc) AS entrada\n  FROM fato_evento WHERE evento = 'matricula'\n  GROUP BY academia, aluno_hash\n  HAVING entrada BETWEEN now() - INTERVAL 365 DAY\n                     AND now() - INTERVAL 90 DAY)\nSELECT c.academia,\n  avg(NOT EXISTS (SELECT 1 FROM fato_evento f\n    WHERE f.aluno_hash = c.aluno_hash\n      AND f.evento = 'cancelamento'\n      AND f.ts_utc < c.entrada + INTERVAL 90 DAY))\n  AS ret_90d\nFROM coorte c GROUP BY c.academia;" },
+      { id: 'kret', rot: 'Retenção kids', fmt: pc, alto: true, f: (L) => { const c = L.filter((x) => x.kid && x.dm >= 90 && x.dm <= 365); return c.length ? c.filter((x) => x.ativo).length / c.length : 0; },
+        sql: "-- mesma coorte da retenção 90d\nSELECT academia, ret_90d\nFROM metrica_retencao_90d\nWHERE categoria = 'kids';" },
+      { id: 'freq', rot: 'Treinos/semana', fmt: (v) => d1(v), alto: true, f: (L) => { const a = L.filter((x) => x.ativo); return a.length ? a.reduce((s, x) => s + x.c30, 0) / a.length / 4.3 : 0; },
+        sql: "SELECT academia,\n  count(*) / count(DISTINCT aluno_hash) / 4.3\n    AS treinos_semana\nFROM fato_evento\nWHERE evento = 'check_in'\n  AND ts_utc >= now() - INTERVAL 30 DAY\nGROUP BY academia;" },
+      { id: 'part', rot: 'Com particular', fmt: pc, alto: true, f: (L) => { const a = L.filter((x) => x.ativo); return a.length ? a.filter((x) => x.part).length / a.length : 0; },
+        sql: "SELECT academia,\n  count(DISTINCT aluno_hash)\n    FILTER (WHERE evento = 'aula_particular')\n  / count(DISTINCT aluno_hash) AS com_particular\nFROM fato_evento\nWHERE ts_utc >= now() - INTERVAL 90 DAY\nGROUP BY academia;" },
+      { id: 'sumindo', rot: 'Sumindo', fmt: pc, alto: false, f: (L) => { const a = L.filter((x) => x.ativo); return a.length ? a.filter((x) => x.ult > 14).length / a.length : 0; },
+        sql: "SELECT academia, avg(dias > 14) AS sumindo\nFROM (SELECT academia, aluno_hash,\n        date_diff('day', max(ts_utc), now()) AS dias\n      FROM fato_evento WHERE evento = 'check_in'\n      GROUP BY academia, aluno_hash)\nGROUP BY academia;" },
+      { id: 'inad', rot: 'Cobrança parada', fmt: pc, alto: false, f: (L) => { const a = L.filter((x) => x.ativo); return a.length ? a.filter((x) => x.falhas > 0).length / a.length : 0; },
+        sql: "SELECT academia,\n  count(DISTINCT aluno_hash)\n    FILTER (WHERE evento = 'cobranca_falhou')\n  - count(DISTINCT aluno_hash)\n    FILTER (WHERE evento = 'cobranca_recuperada')\n  AS sem_recuperacao\nFROM fato_evento\nWHERE ts_utc >= now() - INTERVAL 30 DAY\nGROUP BY academia;" },
+      { id: 'fem', rot: 'Público feminino', fmt: pc, alto: true, f: (L) => { const a = L.filter((x) => x.ativo && !x.kid); return a.length ? a.filter((x) => x.fem).length / a.length : 0; },
+        sql: "SELECT academia, avg(publico = 'feminino') AS feminino\nFROM dim_aluno_rede  -- só o campo declarado\nWHERE ativo AND categoria = 'adulto'\nGROUP BY academia;" },
+      { id: 'conv', rot: 'Conversão exp.', fmt: pc, alto: true, f: (L) => L.length ? acPorId[L[0].ac].conv : 0,
+        sql: "SELECT academia,\n  count(*) FILTER (WHERE evento = 'matricula'\n    AND origem = 'experimental')\n  / count(*) FILTER (WHERE evento = 'aula_experimental')\n  AS conversao\nFROM fato_evento\nWHERE ts_utc >= now() - INTERVAL 90 DAY\nGROUP BY academia;" },
+      { id: 'margem', rot: 'Margem', fmt: pc, alto: true, f: (L) => L.length ? orcamento(L[0].ac).margem : 0,
+        sql: "SELECT academia,\n  (sum(valor) FILTER (WHERE evento IN\n     ('pagamento','aula_particular'))\n   - sum(valor) FILTER (WHERE evento = 'despesa'))\n  / sum(valor) FILTER (WHERE evento IN\n     ('pagamento','aula_particular')) AS margem\nFROM fato_evento\nWHERE ts_utc >= date_trunc('month', now())\nGROUP BY academia;" },
+      { id: 'ba', rot: 'Branca→azul (meses)', fmt: (v) => v.toFixed(0), alto: false, f: (L) => { const g = L.filter((x) => x.ba != null).map((x) => x.ba).sort((p, q) => p - q); return g.length ? g[g.length >> 1] : 0; },
+        sql: "SELECT academia,\n  median(date_diff('month', m.ts_utc, g.ts_utc))\n    AS meses_branca_azul\nFROM fato_evento g JOIN fato_evento m USING (aluno_hash)\nWHERE g.evento = 'graduacao' AND g.faixa = 'azul'\n  AND m.evento = 'matricula'\nGROUP BY academia;" }
+    ];
+    const met = (id) => METRICAS.find((m) => m.id === id);
+    const valor = (acId, mid) => met(mid).f(doAc(acId));
+    function mediana(mid) { const v = ACADS.map((a) => valor(a.id, mid)).sort((p, q) => p - q); const k = v.length >> 1; return v.length % 2 ? v[k] : (v[k - 1] + v[k]) / 2; }
+    function posicao(acId, mid) { const m = met(mid); const v = ACADS.map((a) => ({ id: a.id, v: valor(a.id, mid) })).sort((p, q) => m.alto ? q.v - p.v : p.v - q.v); return v.findIndex((x) => x.id === acId) + 1; }
+    function melhor(mid, exceto) { const m = met(mid); return ACADS.filter((a) => a.id !== exceto).map((a) => ({ id: a.id, v: valor(a.id, mid) })).sort((p, q) => m.alto ? q.v - p.v : p.v - q.v)[0]; }
+
+    /* ================= orçamento ================= */
+    function dinheiro(v, moeda) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: moeda, maximumFractionDigits: 0 }).format(v); }
+    function orcamento(acId) {
+      const a = acPorId[acId], L = doAc(acId).filter((x) => x.ativo);
+      const planos = L.reduce((s, x) => s + x.plano, 0);
+      const parados = L.filter((x) => x.falhas > 0).reduce((s, x) => s + x.plano, 0);
+      const part = a.particularesMes * a.pp;
+      const recebido = planos - parados + part;
+      const taxas = Math.round(recebido * 0.035);
+      const desp = { ...a.desp, 'taxas de pagamento': taxas };
+      const totalDesp = Object.values(desp).reduce((s, v) => s + v, 0);
+      const resultado = recebido - totalDesp;
+      return { a, planos, parados, part, recebido, desp, totalDesp, resultado, margem: recebido ? resultado / recebido : 0, ticket: L.length ? planos / L.length : 0, ativos: L.length, folhaPct: a.desp.professores / recebido };
+    }
+    function projecao(acId) {
+      const a = acPorId[acId], o = orcamento(acId);
+      const evasao = (1 - (a.ret * (1 - a.kids) + a.kret * a.kids)) / 3; // mensal aproximada
+      const novos = a.exp * a.conv * (30 / 30) + a.leads * 0.08;
+      const meses = []; let ativos = o.ativos;
+      for (let i = 1; i <= 3; i++) { ativos = ativos * (1 - evasao) + novos; meses.push({ i, ativos: Math.round(ativos), receita: Math.round(ativos * o.ticket * (1 - valor(acId, 'inad')) + o.part) }); }
+      return { evasao, novos, meses, o };
+    }
+
+    /* ================= relógio ================= */
+    const horaLocal = (a) => new Intl.DateTimeFormat('pt-BR', { timeZone: a.tz, hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
+    const horaNum = (a) => parseInt(horaLocal(a).slice(0, 2), 10);
+    const emAula = (a) => { const h = horaNum(a); return h >= 6 && h < 22; };
+    function saudacao(a) { const h = horaNum(a); return h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite'; }
+
+    /* ================= estado e eventos ================= */
+    let acSel = 'BR-SP-VO', vista = 'painel', total = 0, alunoSel = null, filtro = 'todos';
+    const BASE_HIST = 1384210;
+    const marcas = [], fluxoEv = [], alertas = [];
+    const ROT = { check_in: 'Check-in', matricula: 'Matrícula', graduacao: 'Graduação', aula_particular: 'Aula particular', cobranca_falhou: 'Cobrança falhou', cobranca_recuperada: 'Cobrança recuperada', cancelamento: 'Cancelamento', decisao_aprovada: 'Decisão aprovada' };
+    const turmaDe = (al) => al.kid ? (rnd() < .5 ? 'kids 4–7' : 'kids 8–13') : pick(['fundamentos', 'avançado', 'no-gi', 'treino livre']);
+
+    function registrar(acId, tipo, extra) {
+      const a = acPorId[acId], L = doAc(acId), ativos = L.filter((x) => x.ativo);
+      let al;
+      if (tipo === 'matricula') { al = novoAluno(a, 0); al.faixa = al.kid ? 'branca' : 'branca'; al.c30 = 1; al.ult = 0; al.falhas = 0; al.part = a.pacote && rnd() < .4; alunos.push(al); }
+      else if (tipo === 'cobranca_falhou') { const c = ativos.filter((x) => x.falhas > 0); al = c.length && rnd() < .45 ? pick(c) : pick(ativos); al.falhas++; }
+      else if (tipo === 'cobranca_recuperada') { const c = ativos.filter((x) => x.falhas > 0); if (!c.length) return null; al = pick(c); al.falhas = 0; }
+      else if (tipo === 'cancelamento') { const nov = ativos.filter((x) => x.dm < 120); al = nov.length && rnd() < .5 ? pick(nov) : pick(ativos); al.ativo = false; }
+      else if (tipo === 'graduacao') { const c = ativos.filter((x) => x.faixa === 'branca' && x.dm > 300 && !x.kid); if (!c.length) return null; al = pick(c); al.faixa = 'azul'; al.ba = Math.round(al.dm / 30); }
+      else if (tipo === 'aula_particular') { al = pick(ativos); al.part = true; al.ult = 0; a.particularesMes++; }
+      else if (tipo === 'decisao_aprovada') { al = extra.al || pick(ativos); }
+      else { const sum = ativos.filter((x) => x.ult > 14); al = sum.length && rnd() < .08 ? pick(sum) : pick(ativos); al.ultAnt = al.ult; al.ult = 0; al.c30++; a.check++; }
+      const turma = extra && extra.turma || turmaDe(al);
+      const ev = { tipo, ac: acId, ts: new Date(), al, turma,
+        local: { evento: tipo, aluno: al.nome, telefone: (a.lingua === 'pt' ? '+55 11 9' : '+1 555 01') + String(al.id % 100).padStart(2, '0') + '-xxxx', faixa: al.faixa, turma, ...(extra && extra.desc ? { acao: extra.desc } : {}) },
+        rede: { evento: tipo, academia: acId, ts_utc: new Date().toISOString().slice(0, 19) + 'Z', aluno_hash: al.hash, faixa: al.faixa, categoria: al.kid ? 'kids' : 'adulto', turma, ...(extra && extra.desc ? { acao: extra.regra } : {}) } };
+      a.ev++; total++; marcas.push(Date.now()); fluxoEv.unshift(ev); if (fluxoEv.length > 80) fluxoEv.pop();
+      cep(ev); aoEvento(ev);
+      return ev;
+    }
+
+    /* ================= padrões (CEP) ================= */
+    const REGRAS = [
+      { id: 'caixa', nome: 'Risco de caixa', desc: 'Segunda cobrança falhada do mesmo aluno sem recuperação em 30 dias.', n: 0 },
+      { id: 'novatos', nome: 'Evasão no início', desc: 'Dois cancelamentos seguidos de alunos com menos de 120 dias na mesma academia.', n: 0 },
+      { id: 'volta', nome: 'Aluno voltou', desc: 'Check-in de quem estava mais de 14 dias sem treinar: hora de o professor falar com ele.', n: 0 },
+      { id: 'lotacao', nome: 'Turma no limite', desc: 'Sete check-ins na mesma turma em menos de um minuto e meio.', n: 0 }
+    ];
+    const ultNov = {}, janela = {};
+    function alertar(rid, ev, txt) {
+      const r = REGRAS.find((x) => x.id === rid); r.n++;
+      alertas.unshift({ r, ev, txt, ts: new Date() }); if (alertas.length > 50) alertas.pop();
+      const b = document.getElementById('bdgPad'); b.hidden = false; b.textContent = alertas.length;
+      if (vista === 'padroes') pintarPadroes(true);
+    }
+    function cep(ev) {
+      const a = acPorId[ev.ac], al = ev.al;
+      if (ev.tipo === 'cobranca_falhou' && al.falhas >= 2) alertar('caixa', ev, `${al.falhas} cobranças falhadas do aluno ${al.hash}; cobranças paradas em ${pc(valor(a.id, 'inad'))} dos ativos.`);
+      if (ev.tipo === 'cancelamento' && al.dm < 120) { if (ultNov[a.id]) alertar('novatos', ev, `Dois alunos com menos de 120 dias cancelaram em sequência (último: faixa ${al.faixa}, ${al.kid ? 'kids' : 'adulto'}).`); ultNov[a.id] = !ultNov[a.id]; }
+      if (ev.tipo === 'check_in' && al.ultAnt > 14) alertar('volta', ev, `O aluno ${al.hash} voltou depois de ${al.ultAnt} dias sem treinar, na turma ${ev.turma}.`);
+      if (ev.tipo === 'check_in') { const k = a.id + ev.turma, t = Date.now(); janela[k] = (janela[k] || []).filter((x) => t - x < 90000); janela[k].push(t); if (janela[k].length === 7) alertar('lotacao', ev, `Sete check-ins na turma ${ev.turma} em menos de um minuto e meio.`); }
+    }
+
+    /* ================= decisões do dia ================= */
+    function decisoes(acId) {
+      const a = acPorId[acId], o = orcamento(acId), L = doAc(acId).filter((x) => x.ativo);
+      const parados = L.filter((x) => x.falhas > 0), sumidos = L.filter((x) => x.ult > 14 && x.faixa === 'branca');
+      const vale = a.turmas.slice().sort((p, q) => p.occ - q.occ)[0], pico = a.turmas.slice().sort((p, q) => q.occ - p.occ)[0];
+      const kr = valor(acId, 'kret'), krm = mediana('kret');
+      const lista = [
+        { id: 'cobr', titulo: 'Cobranças paradas', txt: `${parados.length} alunos com cobrança falhada e sem recuperação, somando ${dinheiro(o.parados, a.moeda)} no mês.`, ap: 'mensagem amigável hoje para esses alunos', alvo: parados },
+        { id: 'brancas', titulo: 'Brancas sumindo', txt: `${sumidos.length} alunos de faixa branca sem check-in há mais de 14 dias. Na rede, ${pc(valor(acId, 'sumindo'))} dos ativos desta academia estão nessa situação, contra ${pc(mediana('sumindo'))} na mediana.`, ap: 'convite do professor para a aula desta semana', alvo: sumidos },
+        kr < krm - .05
+          ? { id: 'kids', titulo: 'Retenção de kids abaixo da rede', txt: `Retenção de kids em 90 dias de ${pc(kr)}, contra ${pc(krm)} na mediana da rede. ${nomeCurto(melhor('kret', acId).id)} tem ${pc(melhor('kret', acId).v)}.`, ap: 'adotar a prática de aula experimental com o responsável', alvo: [] }
+          : { id: 'vale', titulo: 'Salas no vale', txt: `Pico de ${pc(pico.occ)} às ${pico.h} e vale de ${pc(vale.occ)} às ${vale.h}. Horas livres no mês que podem receber particulares.`, ap: 'ofertar o horário do vale para a lista de espera', alvo: [] }
+      ];
+      return lista;
+    }
+    const nomeCurto = (id) => acPorId[id].nome.replace('Alliance ', '');
+
+    /* ================= pintura: geral ================= */
+    function pintarCab() {
+      const a = acPorId[acSel];
+      document.getElementById('saud').innerHTML = `${saudacao(a)}, <em>Professor</em>`;
+      const dia = new Intl.DateTimeFormat('pt-BR', { timeZone: a.tz, weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
+      document.getElementById('sub').textContent = `${dia} · ${horaLocal(a)} · ${a.nome} · ${a.cid}, ${a.pais} · ${a.st}`;
+      document.getElementById('agua').textContent = a.cid.toUpperCase();
+      document.getElementById('stAc').textContent = a.st;
+    }
+    const selAc = document.getElementById('selAc');
+    selAc.innerHTML = ACADS.map((a) => `<option value="${a.id}">${a.nome}</option>`).join('');
+    selAc.value = acSel;
+    selAc.addEventListener('change', () => escolherAc(selAc.value));
+    function escolherAc(id) { acSel = id; selAc.value = id; alunoSel = null; pintarCab(); pintarVista(); }
+
+    /* ================= mapa ================= */
+    const proj = (lat, lon) => [(lon + 180) / 360 * 1000, (90 - lat) / 180 * 500];
+    const OUTRAS = [];
+    (function gerarOutras() {
+      const centros = [[40, -100, 14, 22, 90], [-15, -48, 9, 8, 120], [48, 8, 6, 12, 40], [-30, 145, 6, 10, 18], [35, 135, 4, 6, 8], [25, 55, 3, 4, 6], [19, -99, 4, 5, 10], [-34, -64, 4, 4, 9], [55, -3, 3, 4, 10]];
+      centros.forEach(([la, lo, dla, dlo, n]) => { for (let i = 0; i < n; i++) OUTRAS.push(proj(la + (rnd() - .5) * 2 * dla, lo + (rnd() - .5) * 2 * dlo)); });
+    })();
+    function pintarMapa() {
+      const svg = document.getElementById('mapaSvg');
+      let g = '';
+      for (let x = 0; x <= 1000; x += 50) g += `<line class="gr" x1="${x}" y1="0" x2="${x}" y2="500"/>`;
+      for (let y = 0; y <= 500; y += 50) g += `<line class="gr" x1="0" y1="${y}" x2="1000" y2="${y}"/>`;
+      g += OUTRAS.map(([x, y]) => `<circle class="outra" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="1.8"/>`).join('');
+      const LBL = { 'US-MSP': [20, 70], 'US-HUD': [20, 100], 'US-LAX': [20, 215], 'US-MAD': [320, 92], 'US-ICY': [320, 180], 'BR-SP-VO': [410, 360], 'UK-LON': [530, 62], 'AU-SYD': [740, 420] };
+      g += ACADS.map((a) => {
+        const [x, y] = proj(a.lat, a.lon), [lx, ly] = LBL[a.id];
+        const larg = a.cid.length * 7.6, esq = lx > x;
+        const ax = esq ? lx - 4 : lx + larg + 4;
+        return `<line class="liga" x1="${x}" y1="${y}" x2="${ax}" y2="${ly - 4}"/>
+          <text class="lbl" x="${lx}" y="${ly}">${a.cid}</text><text class="lbl2" x="${lx}" y="${ly + 14}">${a.st}</text>
+          <circle class="ac ${a.st === 'ativa' ? '' : 'impl'}" data-ac="${a.id}" cx="${x}" cy="${y}" r="${a.id === acSel ? 7 : 5}" ${a.id === acSel ? 'stroke="#d4a72c" stroke-width="3"' : ''}/>
+          <g id="onda-${a.id}"></g>`;
+      }).join('');
+      svg.innerHTML = g;
+      const ativas = ACADS.filter((a) => a.st === 'ativa').length;
+      document.getElementById('mapaResumo').textContent = `${ativas} ativas · ${ACADS.length - ativas} em implementação · ${OUTRAS.length} outras academias da rede`;
+      document.getElementById('acsLista').innerHTML = ACADS.map((a) => `<button data-ac="${a.id}" aria-pressed="${a.id === acSel}"><b>${a.nome}</b><span>${a.cid} · ${horaLocal(a)} · ${valor(a.id, 'ativos')} ativos</span></button>`).join('');
+    }
+    document.getElementById('mapaSvg').addEventListener('click', (e) => { const c = e.target.closest('[data-ac]'); if (c) { escolherAc(c.dataset.ac); } });
+    document.getElementById('acsLista').addEventListener('click', (e) => { const c = e.target.closest('[data-ac]'); if (c) { escolherAc(c.dataset.ac); } });
+    function ondaMapa(acId) {
+      if (vista !== 'mapa') return;
+      const a = acPorId[acId], [x, y] = proj(a.lat, a.lon), g = document.getElementById('onda-' + acId);
+      if (!g) return; g.innerHTML = `<circle class="onda" cx="${x}" cy="${y}" r="4"/>`;
+    }
+
+    /* ================= painel ================= */
+    function pintarPainel() {
+      const a = acPorId[acSel], o = orcamento(acSel), L = doAc(acSel);
+      const novosMes = L.filter((x) => x.dm < 30).length;
+      document.getElementById('kpis').innerHTML = [
+        ['Alunos ativos', o.ativos, `+${novosMes} no mês`],
+        ['Check-ins hoje', a.check + Math.round(o.ativos * a.freq / 7 * Math.min(1, Math.max(0, (horaNum(a) - 6) / 16))), `última aula ${a.turmas[a.turmas.length - 1].h}`],
+        ['Receita recorrente', dinheiro(o.planos, a.moeda), `plano médio ${dinheiro(o.ticket, a.moeda)}`],
+        ['Leads (30 dias)', a.leads, `${a.exp} experimentais marcadas`]
+      ].map(([k, v, s]) => `<div class="cartao kpi"><small>${k}</small><b>${v}</b><span>${s}</span></div>`).join('');
+      const ds = decisoes(acSel);
+      const pend = ds.filter((d) => !a.decFeitas[d.id]).length;
+      document.getElementById('bdgDec').textContent = pend; document.getElementById('bdgDec').hidden = !pend;
+      document.getElementById('decisoes').innerHTML = ds.map((d, i) => `<div class="dec ${a.decFeitas[d.id] ? 'feita' : ''}">
+          <b><span class="num">${i + 1}</span>${d.titulo}</b><p>${d.txt}<br><span class="tag ouro">Se aprovar: ${d.ap}</span></p>
+          <div class="acoes">${a.decFeitas[d.id] ? `<span class="tag ok">${a.decFeitas[d.id]}</span>` : `<button class="bt ouro peq" data-d="${d.id}" data-r="aprovar">Aprovar</button><button class="bt peq" data-d="${d.id}" data-r="adiar">Adiar</button><button class="bt peq" data-d="${d.id}" data-r="ignorar">Ignorar</button>`}</div></div>`).join('');
+      document.getElementById('aulasHoje').innerHTML = a.turmas.map((t) => `<li><span class="mono">${t.h}</span><span>${t.nome}</span><span class="dir">${pc(t.occ)} · ${Math.round(t.cap * t.occ)}/${t.cap}</span></li>`).join('');
+      pintarAtiv();
+    }
+    function pintarAtiv() {
+      const meus = fluxoEv.filter((e) => e.ac === acSel).slice(0, 9);
+      const el = document.getElementById('ativ');
+      el.innerHTML = meus.length ? meus.map((e) => `<li><span class="pt ${e.tipo === 'cobranca_falhou' || e.tipo === 'cancelamento' ? 'al' : e.tipo === 'decisao_aprovada' ? 'ok' : 'ouro'}"></span><span>${esc(e.al.nome)} · ${ROT[e.tipo]}${e.tipo === 'check_in' ? ' · ' + e.turma : ''}</span><span class="dir">${e.ts.toLocaleTimeString('pt-BR', { timeZone: acPorId[acSel].tz, hour: '2-digit', minute: '2-digit' })}</span></li>`).join('') : '<li class="vazio">Sem atividade nesta sessão. Registre um evento ou ligue a simulação da rede.</li>';
+    }
+    document.getElementById('decisoes').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-d]'); if (!b) return;
+      const a = acPorId[acSel], d = decisoes(acSel).find((x) => x.id === b.dataset.d);
+      if (b.dataset.r === 'aprovar') {
+        a.decFeitas[d.id] = 'aprovada · ação registrada';
+        const alvo = d.alvo.slice(0, 3);
+        (alvo.length ? alvo : [null]).forEach((al) => registrar(acSel, 'decisao_aprovada', { al, desc: d.ap, regra: d.id }));
+      } else a.decFeitas[d.id] = b.dataset.r === 'adiar' ? 'adiada para amanhã' : 'ignorada · registrado';
+      pintarPainel();
+    });
+    document.getElementById('swAcoes').addEventListener('click', (e) => { const b = e.target.closest('[data-ev]'); if (b) registrar(acSel, b.dataset.ev); });
+
+    /* ================= alunos ================= */
+    function filtrarAlunos() {
+      const q = sem(document.getElementById('busca').value.trim());
+      return doAc(acSel).filter((x) => x.ativo)
+        .filter((x) => filtro === 'todos' || (filtro === 'risco' && x.ult > 14) || (filtro === 'cobr' && x.falhas > 0) || (filtro === 'kids' && x.kid) || (filtro === 'branca' && x.faixa === 'branca'))
+        .filter((x) => !q || sem(x.nome).includes(q))
+        .sort((p, q2) => (q2.ult > 14) - (p.ult > 14) || q2.falhas - p.falhas || p.nome.localeCompare(q2.nome));
+    }
+    function situacao(x) { return x.falhas > 0 ? '<span class="tag al">cobrança parada</span>' : x.ult > 14 ? '<span class="tag al">sumindo</span>' : x.dm < 30 ? '<span class="tag ouro">novo</span>' : '<span class="tag ok">em dia</span>'; }
+    function pintarAlunos() {
+      const a = acPorId[acSel], L = filtrarAlunos();
+      document.getElementById('tabAlunos').innerHTML = '<thead><tr><th>Nome</th><th>Faixa</th><th>Categoria</th><th class="n">Último treino</th><th class="n">Plano</th><th>Situação</th></tr></thead><tbody>' +
+        L.slice(0, 60).map((x) => `<tr class="clic" data-al="${x.id}"><td>${esc(x.nome)}</td><td>${x.faixa}</td><td>${x.kid ? 'kids' : 'adulto'}</td><td class="n">${x.ult === 0 ? 'hoje' : x.ult + ' dias'}</td><td class="n">${dinheiro(x.plano, a.moeda)}</td><td>${situacao(x)}</td></tr>`).join('') + '</tbody>';
+      document.getElementById('notaAlunos').textContent = `${L.length} alunos no filtro${L.length > 60 ? ', mostrando os 60 primeiros' : ''}. Clique em um aluno para ver o perfil e perguntar ao cérebro.`;
+      pintarPerfil();
+    }
+    function pintarPerfil() {
+      const el = document.getElementById('perfil');
+      const x = alunos.find((y) => y.id === alunoSel && y.ac === acSel);
+      if (!x) { el.innerHTML = '<h2>Aluno</h2><p class="vazio">Escolha um aluno na lista.</p>'; return; }
+      const a = acPorId[acSel];
+      el.innerHTML = `<h2>${esc(x.nome)} ${situacao(x)}</h2><dl>
+        <dt>Faixa</dt><dd>${x.faixa} · ${x.kid ? 'kids' : 'adulto'}</dd>
+        <dt>Na academia há</dt><dd>${x.dm < 60 ? x.dm + ' dias' : Math.round(x.dm / 30) + ' meses'}</dd>
+        <dt>Último treino</dt><dd>${x.ult === 0 ? 'hoje' : 'há ' + x.ult + ' dias'}</dd>
+        <dt>Treinos em 30 dias</dt><dd>${x.c30}</dd>
+        <dt>Plano</dt><dd>${dinheiro(x.plano, a.moeda)}${x.part ? ' + particulares' : ''}</dd>
+        <dt>Cobranças falhadas</dt><dd>${x.falhas}</dd>
+        <dt>Na rede aparece como</dt><dd class="mono">${x.hash}</dd></dl>
+        <button class="bt ouro peq" id="perguntarAluno">Perguntar ao cérebro sobre ${esc(x.nome.split(' ')[0])}</button>`;
+      document.getElementById('perguntarAluno').addEventListener('click', () => { irPara('chat'); perguntar(`Como está ${x.nome}?`); });
+    }
+    document.getElementById('busca').addEventListener('input', pintarAlunos);
+    document.querySelector('#v-alunos .filtros').addEventListener('click', (e) => { const b = e.target.closest('[data-f]'); if (!b) return; filtro = b.dataset.f; document.querySelectorAll('[data-f]').forEach((c) => c.setAttribute('aria-pressed', String(c === b))); pintarAlunos(); });
+    document.getElementById('tabAlunos').addEventListener('click', (e) => { const r = e.target.closest('[data-al]'); if (r) { alunoSel = +r.dataset.al; pintarPerfil(); } });
+
+    /* ================= orçamento ================= */
+    function pintarOrc() {
+      const o = orcamento(acSel), a = o.a, p = projecao(acSel);
+      document.getElementById('kpisOrc').innerHTML = [
+        ['Recebido no mês', dinheiro(o.recebido, a.moeda), `planos ${dinheiro(o.planos, a.moeda)} + particulares ${dinheiro(o.part, a.moeda)}`],
+        ['Despesas', dinheiro(o.totalDesp, a.moeda), `folha de professores ${pc(o.folhaPct)} do recebido`],
+        ['Resultado', dinheiro(o.resultado, a.moeda), `margem de ${pc(o.margem)}`],
+        ['Cobranças paradas', dinheiro(o.parados, a.moeda), `${doAc(acSel).filter((x) => x.ativo && x.falhas > 0).length} alunos`]
+      ].map(([k, v, s]) => `<div class="cartao kpi"><small>${k}</small><b>${v}</b><span>${s}</span></div>`).join('');
+      document.getElementById('orcMoeda').textContent = a.moeda;
+      const itens = [['Planos', o.planos, ''], ['Particulares', o.part, ''], ['Cobranças paradas', -o.parados, 'des'], ...Object.entries(o.desp).map(([k, v]) => [k[0].toUpperCase() + k.slice(1), -v, 'des']), ['Resultado', o.resultado, 'res']];
+      const max = Math.max(...itens.map((x) => Math.abs(x[1])));
+      document.getElementById('orcBarras').innerHTML = itens.map(([k, v, c]) => `<div class="barra-orc"><span>${k}</span><span class="trilho"><span class="enche ${c}" style="width:${(Math.abs(v) / max * 100).toFixed(1)}%"></span></span><b>${v < 0 ? '−' : ''}${dinheiro(Math.abs(v), a.moeda)}</b></div>`).join('');
+      document.getElementById('orcProj').innerHTML = `<div><small>Hoje</small><b>${o.ativos}</b><br><span class="tag">${dinheiro(o.recebido, a.moeda)}</span></div>` + p.meses.map((m) => `<div><small>+${m.i} ${m.i === 1 ? 'mês' : 'meses'}</small><b>${m.ativos}</b><br><span class="tag">${dinheiro(m.receita, a.moeda)}</span></div>`).join('');
+      const comp = [['margem', 'Margem'], ['inad', 'Cobrança parada'], ['conv', 'Conversão de experimentais']];
+      document.getElementById('orcRede').innerHTML = comp.map(([mid, rot]) => {
+        const v = valor(acSel, mid), md = mediana(mid), mx = Math.max(...ACADS.map((x) => valor(x.id, mid))) || 1;
+        return `<div class="barra-orc"><span>${rot}</span><span class="trilho"><span class="enche" style="width:${(v / mx * 100).toFixed(1)}%"></span><span class="med" style="left:${(md / mx * 100).toFixed(1)}%"></span></span><b>${pc(v)}</b></div>`;
+      }).join('') + '<p class="nota">A linha vermelha marca a mediana da rede.</p>';
+    }
+
+    /* ================= cérebro: perguntas livres ================= */
+    const lista = (arr) => arr.length <= 1 ? arr.join('') : arr.slice(0, -1).join(', ') + ' e ' + arr[arr.length - 1];
+    const fonte = (rot, mid, ac) => `${rot}: <b>${met(mid).fmt(ac ? valor(ac, mid) : mediana(mid))}</b> · <code>fato_evento</code> → <code>${mid}</code> · ${ac ? 'academia = <code>' + ac + '</code>' : 'mediana de todas as academias'}`;
+    function acNoTexto(t) { return ACADS.find((a) => a.id !== acSel && (t.includes(sem(a.cid)) || t.includes(sem(a.nome.replace('Alliance ', ''))))); }
+    function alunoNoTexto(t) {
+      const L = doAc(acSel);
+      let x = L.find((y) => t.includes(sem(y.nome)));
+      if (!x) { const cand = L.filter((y) => new RegExp('\\b' + sem(y.nome.split(' ')[0]) + '\\b').test(t)); if (cand.length) x = cand.sort((p, q) => q.ativo - p.ativo || (q.ult > 14) - (p.ult > 14))[0]; }
+      return x;
+    }
+    const INTENCOES = [
+      { id: 'aluno', teste: (t) => !!alunoNoTexto(t) },
+      { id: 'contratar', ch: ['contratar', 'contrato', 'novo professor', 'mais um professor', 'instrutor', 'contratacao'] },
+      { id: 'reajuste', ch: ['reajuste', 'aumentar a mensalidade', 'aumentar o preco', 'preco', 'mensalidade', 'cobrar mais', 'ticket'] },
+      { id: 'projecao', ch: ['proximos meses', 'projecao', 'previsao', 'vou ter', 'futuro', 'daqui a', 'fim do ano', 'tendencia'] },
+      { id: 'cobranca', ch: ['cobranca', 'inadimpl', 'pagamento', 'devendo', 'atrasad', 'caixa', 'parad'] },
+      { id: 'orcamento', ch: ['orcamento', 'margem', 'lucro', 'despesa', 'custo', 'gasto', 'sobra', 'resultado', 'faturamento', 'faturo', 'faturei', 'receita', 'dinheiro', 'ganho', 'aluguel', 'folha'] },
+      { id: 'risco', ch: ['risco', 'sumi', 'sumindo', 'evasao', 'cancelar', 'cancelamento', 'perder', 'faltando', 'parou de treinar', 'nao aparece', 'ligar para'] },
+      { id: 'kids', ch: ['kids', 'crianca', 'infantil', 'pais', 'filhos'] },
+      { id: 'particular', ch: ['particular', 'privada', 'private'] },
+      { id: 'feminino', ch: ['mulher', 'feminin', 'mulheres', 'menina'] },
+      { id: 'turmas', ch: ['turma', 'horario', 'lotad', 'cheia', 'ocupacao', 'vale', 'pico', 'grade', 'sala'] },
+      { id: 'graduacao', ch: ['faixa', 'graduac', 'azul', 'branca', 'promov'] },
+      { id: 'leads', ch: ['lead', 'experimental', 'conversao', 'matricula', 'novos alunos', 'captar', 'marketing'] },
+      { id: 'retencao', ch: ['retencao', 'reter', 'permanen', 'fidel'] },
+      { id: 'comparar', ch: ['rede', 'compar', 'outras academias', 'melhor academia', 'posicao', 'ranking', 'como estou', 'minha academia', 'diagnostico', 'saude'] }
+    ];
+    function intencao(t) {
+      for (const i of INTENCOES) { if (i.teste ? i.teste(t) : i.ch.some((c) => t.includes(c))) return i.id; }
+      return null;
+    }
+    const GENERICO = {
+      aluno: 'Não tenho acesso aos dados dos seus alunos. De modo geral, vale acompanhar a frequência de cada um e conversar com quem começa a faltar.',
+      contratar: 'Contratar um professor costuma valer a pena quando as turmas estão cheias e a receita cobre o novo custo com folga. Faça as contas considerando salário e encargos.',
+      reajuste: 'Reajustes anuais entre 5% e 10% são comuns em academias. Comunique com antecedência e destaque o valor que o aluno recebe.',
+      projecao: 'Academias costumam ter queda no fim do ano e retomada em janeiro. Mantenha uma reserva de três a seis meses de despesas.',
+      cobranca: 'A inadimplência em academias costuma ficar entre 5% e 10%. Automatizar a cobrança e oferecer pagamento recorrente ajuda a reduzi-la.',
+      orcamento: 'Academias de artes marciais costumam operar com margens entre 10% e 25%. Os maiores custos são aluguel e folha de professores.',
+      risco: 'Alunos que faltam por duas semanas têm mais chance de cancelar. Um contato pessoal do professor costuma ajudar.',
+      kids: 'Em geral, academias retêm entre 70% e 80% dos alunos kids nos primeiros meses. Aulas lúdicas e contato com os pais ajudam.',
+      particular: 'Aulas particulares funcionam melhor em grandes centros, com público de maior renda. Divulgue nas redes sociais e ofereça a primeira aula com desconto.',
+      feminino: 'O público feminino no jiu-jitsu vem crescendo. Turmas femininas e um ambiente acolhedor costumam atrair mais mulheres.',
+      turmas: 'Concentre as turmas nos horários de maior procura, normalmente no início da noite, e avalie cancelar as turmas vazias.',
+      graduacao: 'A faixa azul costuma levar de um a três anos, conforme a frequência e o critério do professor.',
+      leads: 'Responder rápido ao lead e marcar a aula experimental logo aumenta a conversão. Uma taxa de 50% é considerada boa.',
+      retencao: 'A retenção média de academias fica entre 70% e 80%. Acolhimento nas primeiras semanas é o fator mais citado.',
+      comparar: 'Não tenho como comparar a sua academia com outras sem dados. Benchmarks de mercado indicam retenção entre 70% e 80%.'
+    };
+    function responderIntencao(id, t) {
+      const a = acPorId[acSel], o = orcamento(acSel), L = doAc(acSel), at = L.filter((x) => x.ativo), nm = nomeCurto(acSel);
+      const R = (txt, fontes, extra) => ({ txt, fontes: fontes || [], extra: extra || '' });
+      switch (id) {
+        case 'aluno': {
+          const x = alunoNoTexto(t);
+          if (!x.ativo) return R(`${x.nome} não está mais ativo: cancelou depois de ${Math.round(x.dm / 30)} meses na academia, na faixa ${x.faixa}. O último treino registrado foi há ${x.ult} dias.`, [`aluno_hash <code>${x.hash}</code> traduzido para o nome dentro do software da academia`]);
+          const freqRede = mediana('freq');
+          let diag = x.falhas > 0 ? `Há ${x.falhas} ${x.falhas === 1 ? 'cobrança falhada' : 'cobranças falhadas'} sem recuperação, no valor de ${dinheiro(x.plano * x.falhas, a.moeda)}.` : 'As cobranças estão em dia.';
+          diag += x.ult > 14 ? ` O último treino foi há ${x.ult} dias. Na ${nm}, ${pc(valor(acSel, 'sumindo'))} dos ativos estão nessa situação, e esse é o grupo que mais cancela no mês seguinte. A sugestão é o professor falar com ${x.nome.split(' ')[0]} nesta semana.` : ` Treinou ${x.c30} vezes nos últimos 30 dias, o que dá ${d1(x.c30 / 4.3)} por semana, contra ${d1(freqRede)} na mediana da rede.`;
+          if (x.faixa === 'branca' && !x.kid && x.dm > 300) diag += ` Está há ${Math.round(x.dm / 30)} meses na faixa branca; na rede, a mediana até a azul é de ${mediana('ba').toFixed(0)} meses.`;
+          return R(`${x.nome}, faixa ${x.faixa}, ${x.kid ? 'kids' : 'adulto'}, está na academia há ${x.dm < 60 ? x.dm + ' dias' : Math.round(x.dm / 30) + ' meses'}. ${diag}`,
+            [`aluno_hash <code>${x.hash}</code> traduzido para o nome dentro do software da academia`, fonte('Treinos/semana · mediana da rede', 'freq', null), fonte('Sumindo · ' + nm, 'sumindo', acSel)]);
+        }
+        case 'risco': {
+          const s = at.filter((x) => x.ult > 14).sort((p, q) => q.ult - p.ult);
+          const valorRisco = s.reduce((v, x) => v + x.plano, 0);
+          const tab = '<table class="tab"><tr><th>Aluno</th><th>Faixa</th><th class="n">Sem treinar</th><th class="n">Plano</th></tr>' + s.slice(0, 6).map((x) => `<tr><td>${esc(x.nome)}</td><td>${x.faixa}${x.kid ? ' · kids' : ''}</td><td class="n">${x.ult} dias</td><td class="n">${dinheiro(x.plano, a.moeda)}</td></tr>`).join('') + '</table>';
+          return R(`${s.length} alunos ativos da ${nm} estão há mais de 14 dias sem treinar, ${pc(valor(acSel, 'sumindo'))} dos ativos, contra ${pc(mediana('sumindo'))} na mediana da rede. Juntos, pagam ${dinheiro(valorRisco, a.moeda)} por mês. ${s.filter((x) => x.faixa === 'branca').length} deles são faixa branca, o grupo que mais cancela. Os primeiros da lista são os que estão há mais tempo fora:`,
+            [fonte('Sumindo · ' + nm, 'sumindo', acSel), fonte('Sumindo · mediana da rede', 'sumindo', null)], tab);
+        }
+        case 'cobranca': {
+          const p = at.filter((x) => x.falhas > 0).sort((x, y) => y.falhas - x.falhas);
+          const tab = '<table class="tab"><tr><th>Aluno</th><th class="n">Falhas</th><th class="n">Plano</th></tr>' + p.slice(0, 6).map((x) => `<tr><td>${esc(x.nome)}</td><td class="n">${x.falhas}</td><td class="n">${dinheiro(x.plano, a.moeda)}</td></tr>`).join('') + '</table>';
+          return R(`A ${nm} tem ${p.length} alunos com cobrança falhada e sem recuperação, que somam ${dinheiro(o.parados, a.moeda)} neste mês, ${pc(o.parados / o.planos)} da receita de planos. Na rede, a mediana de alunos nessa situação é de ${pc(mediana('inad'))}, e a ${nm} está com ${pc(valor(acSel, 'inad'))}. ${p.filter((x) => x.falhas >= 2).length} alunos já têm duas falhas ou mais, e a regra de risco de caixa já disparou ${REGRAS[0].n} ${REGRAS[0].n === 1 ? 'vez' : 'vezes'} nesta sessão.`,
+            [fonte('Cobrança parada · ' + nm, 'inad', acSel), fonte('Cobrança parada · mediana da rede', 'inad', null)], tab);
+        }
+        case 'orcamento': {
+          const maior = Object.entries(o.desp).sort((p, q) => q[1] - p[1])[0];
+          return R(`Neste mês a ${nm} recebe ${dinheiro(o.recebido, a.moeda)}: ${dinheiro(o.planos - o.parados, a.moeda)} de planos efetivamente pagos e ${dinheiro(o.part, a.moeda)} de aulas particulares. As despesas somam ${dinheiro(o.totalDesp, a.moeda)}, e a maior é ${maior[0]}, com ${dinheiro(maior[1], a.moeda)}. O resultado é de ${dinheiro(o.resultado, a.moeda)}, margem de ${pc(o.margem)}, contra ${pc(mediana('margem'))} na mediana da rede, onde a ${nm} fica na posição ${posicao(acSel, 'margem')} de ${ACADS.length}. As cobranças paradas, de ${dinheiro(o.parados, a.moeda)}, são o item que a academia consegue recuperar mais rápido.`,
+            [fonte('Margem · ' + nm, 'margem', acSel), fonte('Margem · mediana da rede', 'margem', null), 'despesas cadastradas pela academia no software']);
+        }
+        case 'contratar': {
+          const sal = Math.round(a.desp.professores / a.profs), nova = o.resultado - sal, novaM = nova / o.recebido;
+          const pico = a.turmas.slice().sort((p, q) => q.occ - p.occ)[0];
+          return R(`Um professor a mais custaria cerca de ${dinheiro(sal, a.moeda)} por mês, a média da folha atual da ${nm} (${a.profs} professores). Com esse custo, o resultado do mês passaria de ${dinheiro(o.resultado, a.moeda)} para ${dinheiro(nova, a.moeda)}, margem de ${pc(novaM)}. ${novaM > .08 ? `A conta fecha. A turma mais cheia é a das ${pico.h}, com ${pc(pico.occ)} de ocupação; abrir uma turma a mais nesse horário é onde o novo professor gera receita mais rápido.` : `A conta fica apertada. Antes da contratação, recuperar as cobranças paradas (${dinheiro(o.parados, a.moeda)}) e ocupar os horários de vale daria a folga necessária.`}`,
+            [fonte('Margem · ' + nm, 'margem', acSel), 'folha e número de professores cadastrados pela academia', `ocupação da turma das ${pico.h}: check-ins ÷ capacidade`]);
+        }
+        case 'reajuste': {
+          const ganho = Math.round(o.planos * 0.05), perdaAlunos = Math.ceil(ganho / o.ticket), rv = valor(acSel, 'ret'), rm = mediana('ret');
+          return R(`O plano médio da ${nm} é de ${dinheiro(o.ticket, a.moeda)}. Um reajuste de 5% renderia ${dinheiro(ganho, a.moeda)} por mês e só deixaria de compensar se ${perdaAlunos} alunos cancelassem por causa dele, ${pc(perdaAlunos / o.ativos)} da base. A retenção de adultos em 90 dias está em ${pc(rv)}, ${rel(rv, rm)} da mediana da rede, de ${pc(rm)}, ${rv >= rm ? 'e por isso o risco do reajuste é baixo' : 'e por isso vale resolver a evasão antes de reajustar'}. A rede não compara preço entre países, porque o custo de vida muda de uma cidade para outra; compara a reação dos alunos ao preço, medida pela evasão.`,
+            [fonte('Retenção 90d · ' + nm, 'ret', acSel), fonte('Retenção 90d · mediana da rede', 'ret', null), 'plano médio: soma dos planos ativos ÷ alunos ativos']);
+        }
+        case 'projecao': {
+          const p = projecao(acSel), m3 = p.meses[2];
+          return R(`Mantido o ritmo dos últimos 90 dias, a ${nm} perde cerca de ${pc(p.evasao)} dos alunos por mês e ganha ${p.novos.toFixed(0)} novos alunos por mês entre experimentais convertidas e leads. Em três meses, ela teria ${m3.ativos} alunos ativos, contra ${o.ativos} hoje, e uma receita mensal de ${dinheiro(m3.receita, a.moeda)}. ${m3.ativos < o.ativos ? 'A base encolhe: a evasão supera a entrada, e o ponto de ação é a retenção dos três primeiros meses.' : 'A base cresce, e a capacidade das turmas de pico passa a ser o limite.'}`,
+            [fonte('Retenção 90d · ' + nm, 'ret', acSel), fonte('Conversão exp. · ' + nm, 'conv', acSel), 'projeção: ativos × (1 − evasão) + novos, mês a mês']);
+        }
+        case 'kids': {
+          const v = valor(acSel, 'kret'), md = mediana('kret'), b = melhor('kret', acSel), pr = PRATICAS.kret[b.id];
+          return R(`A retenção de kids em 90 dias da ${nm} é de ${pc(v)}, ${rel(v, md)} da mediana da rede, de ${pc(md)}, na posição ${posicao(acSel, 'kret')} de ${ACADS.length}. A melhor da rede é ${nomeCurto(b.id)}, com ${pc(b.v)}${pr ? `, e a prática registrada por ela é ${pr}` : ''}. ${(() => { const n = at.filter((x) => x.kid && x.ult > 14).length; return n === 0 ? 'Nenhum aluno kids está há mais de 14 dias sem treinar.' : n === 1 ? 'Um aluno kids está há mais de 14 dias sem treinar.' : n + ' alunos kids estão há mais de 14 dias sem treinar.'; })()}`,
+            [fonte('Retenção kids · ' + nm, 'kret', acSel), fonte('Retenção kids · mediana da rede', 'kret', null), fonte('Retenção kids · ' + nomeCurto(b.id), 'kret', b.id)]);
+        }
+        case 'particular': {
+          const v = valor(acSel, 'part'), md = mediana('part'), b = melhor('part', acSel), outra = acNoTexto(t);
+          const pac = ACADS.filter((x) => x.pacote).map((x) => nomeCurto(x.id));
+          let txt = `Na ${nm}, ${pc(v)} dos ativos fizeram aula particular nos últimos 90 dias; a mediana da rede é ${pc(md)}, e a maior parcela é a de ${nomeCurto(b.id)}, com ${pc(b.v)}. As academias que oferecem o pacote de particulares na matrícula são ${lista(pac)}, e são justamente as de maior parcela. `;
+          if (outra) txt += `${nomeCurto(outra.id)} tem ${pc(valor(outra.id, 'part'))} ${outra.pacote ? 'e oferece o pacote na matrícula' : 'e vende particular só sob demanda'}. `;
+          txt += a.pacote ? `Aqui as particulares rendem ${dinheiro(o.part, a.moeda)} no mês.` : `Na ${nm} a particular é vendida só sob demanda; o teste sugerido é oferecer o pacote aos novos alunos durante um mês e comparar a parcela no mês seguinte, usando os horários de vale, que estão com ${pc(a.vale)} de ocupação.`;
+          return R(txt, [fonte('Com particular · ' + nm, 'part', acSel), fonte('Com particular · ' + nomeCurto(b.id), 'part', b.id), 'atributo da academia: pacote oferecido na matrícula']);
+        }
+        case 'feminino': {
+          const v = valor(acSel, 'fem'), md = mediana('fem'), b = melhor('fem', acSel), pr = PRATICAS.fem[b.id];
+          return R(`Entre os adultos ativos da ${nm}, ${pc(v)} são mulheres, ${rel(v, md)} da mediana da rede, que é de ${pc(md)}. A academia com maior parcela é ${nomeCurto(b.id)}, com ${pc(b.v)}${pr ? `, e a prática registrada por ela é ${pr}` : ''}. O banco não guarda o motivo de uma mulher não se matricular, mas guarda a conversão das experimentais por público, e esse é o próximo dado a olhar.`,
+            [fonte('Público feminino · ' + nm, 'fem', acSel), fonte('Público feminino · ' + nomeCurto(b.id), 'fem', b.id), 'campo de público declarado no cadastro, enviado à rede só como categoria']);
+        }
+        case 'turmas': {
+          const ord = a.turmas.slice().sort((p, q) => q.occ - p.occ), pico = ord[0], vale = ord[ord.length - 1];
+          const tab = '<table class="tab"><tr><th>Horário</th><th>Turma</th><th class="n">Ocupação</th></tr>' + a.turmas.map((x) => `<tr><td class="mono">${x.h}</td><td>${x.nome}</td><td class="n">${pc(x.occ)}</td></tr>`).join('') + '</table>';
+          return R(`A turma mais cheia da ${nm} é a de ${pico.nome} das ${pico.h}, com ${pc(pico.occ)} de ocupação, e a mais vazia é a de ${vale.nome} das ${vale.h}, com ${pc(vale.occ)}. Turmas acima de 90% começam a perder aluno por desconforto no tatame. O vale pode receber particulares ou a turma de quem está na lista de espera do pico.`,
+            ['ocupação: check-ins da turma ÷ capacidade cadastrada, média de 30 dias', fonte('Com particular · ' + nm, 'part', acSel)], tab);
+        }
+        case 'graduacao': {
+          const ba = valor(acSel, 'ba'), md = mediana('ba'), fr = valor(acSel, 'freq'), fm = mediana('freq');
+          const antigos = at.filter((x) => !x.kid && x.faixa === 'branca' && x.dm > 365).length;
+          return R(`Na ${nm}, a mediana entre a matrícula e a faixa azul é de ${ba.toFixed(0)} meses; na rede, ${md.toFixed(0)}. A frequência média é de ${d1(fr)} treinos por semana, contra ${d1(fm)} na rede. ${ba > md && fr < fm ? 'Os alunos demoram mais porque treinam menos, e não por um critério de graduação diferente.' : ba > md ? 'A frequência está próxima da rede, então vale comparar o critério de graduação com a metodologia.' : 'O ritmo está dentro do padrão da rede.'} ${antigos} adultos estão há mais de um ano na faixa branca.`,
+            [fonte('Branca→azul · ' + nm, 'ba', acSel), fonte('Branca→azul · mediana da rede', 'ba', null), fonte('Treinos/semana · ' + nm, 'freq', acSel)]);
+        }
+        case 'leads': {
+          const v = a.conv, md = mediana('conv'), b = melhor('conv', acSel), pr = PRATICAS.conv[b.id];
+          return R(`Nos últimos 30 dias a ${nm} recebeu ${a.leads} leads e marcou ${a.exp} aulas experimentais. A conversão de experimental em matrícula é de ${pc(v)}, contra ${pc(md)} na mediana da rede. A melhor conversão é a de ${nomeCurto(b.id)}, com ${pc(b.v)}${pr ? `, e a prática registrada por ela é ${pr}` : ''}. Só ${pc(a.exp / a.leads)} dos leads chegam à experimental, e esse é o primeiro ponto do funil a melhorar.`,
+            [fonte('Conversão exp. · ' + nm, 'conv', acSel), fonte('Conversão exp. · mediana da rede', 'conv', null)]);
+        }
+        case 'retencao': {
+          const v = valor(acSel, 'ret'), md = mediana('ret'), b = melhor('ret', acSel), pr = PRATICAS.ret[b.id] || PRATICAS.ret[acSel];
+          return R(`A retenção de adultos em 90 dias da ${nm} é de ${pc(v)}, contra ${pc(md)} na mediana da rede, posição ${posicao(acSel, 'ret')} de ${ACADS.length}. A maior é a de ${nomeCurto(b.id)}, com ${pc(b.v)}${pr ? `. Prática registrada na rede: ${pr}` : ''}. Hoje ${at.filter((x) => x.ult > 14).length} alunos ativos estão há mais de 14 dias sem treinar.`,
+            [fonte('Retenção 90d · ' + nm, 'ret', acSel), fonte('Retenção 90d · mediana da rede', 'ret', null), fonte('Retenção 90d · ' + nomeCurto(b.id), 'ret', b.id)]);
+        }
+        case 'comparar': {
+          const ms = ['ret', 'kret', 'freq', 'inad', 'conv', 'margem'];
+          const linhas = ms.map((mid) => ({ mid, v: valor(acSel, mid), md: mediana(mid), pos: posicao(acSel, mid) }));
+          const fortes = linhas.filter((l) => l.pos <= 2).map((l) => met(l.mid).rot.toLowerCase()), fracos = linhas.filter((l) => l.pos >= ACADS.length - 1).map((l) => met(l.mid).rot.toLowerCase());
+          const tab = '<table class="tab"><tr><th>Métrica</th><th class="n">' + esc(nm) + '</th><th class="n">Rede</th><th class="n">Posição</th></tr>' + linhas.map((l) => `<tr><td>${met(l.mid).rot}</td><td class="n">${met(l.mid).fmt(l.v)}</td><td class="n">${met(l.mid).fmt(l.md)}</td><td class="n">${l.pos}º de ${ACADS.length}</td></tr>`).join('') + '</table>';
+          return R(`Comparada às ${ACADS.length - 1} outras academias conectadas, a ${nm} se destaca em ${fortes.length ? lista(fortes) : 'nenhuma métrica em particular'}${fracos.length ? ` e fica entre as últimas em ${lista(fracos)}` : ''}. A tabela mostra cada métrica ao lado da mediana da rede.`,
+            ms.slice(0, 3).map((mid) => fonte(met(mid).rot + ' · mediana da rede', mid, null)), tab);
+        }
+      }
+      return null;
+    }
+    const SUGESTOES = [
+      ['Alunos', ['Quem está sumindo?', 'Quem está com cobrança parada?', '__aluno__']],
+      ['Orçamento', ['Como está o orçamento deste mês?', 'Posso contratar mais um professor?', 'Vale reajustar a mensalidade?', 'Como fico nos próximos meses?']],
+      ['Rede', ['Como estou em relação à rede?', 'Minha retenção de kids está boa?', 'Por que a particular funciona em Vila Olímpia e não em Minneapolis?', 'Por que tenho poucas mulheres?']]
+    ];
+    function pintarSugestoes() {
+      const exemplo = doAc(acSel).filter((x) => x.ativo && x.ult > 14)[0] || doAc(acSel)[0];
+      document.getElementById('sugest').innerHTML = SUGESTOES.map(([g, qs]) => `<span class="rot">${g}</span>` + qs.map((q) => { const txt = q === '__aluno__' ? `Como está ${exemplo.nome}?` : q; return `<button class="chip" data-q="${esc(txt)}">${esc(txt)}</button>`; }).join('')).join('');
+    }
+    document.getElementById('sugest').addEventListener('click', (e) => { const b = e.target.closest('[data-q]'); if (b) perguntar(b.dataset.q); });
+    document.getElementById('formChat').addEventListener('submit', (e) => { e.preventDefault(); const i = document.getElementById('pergunta'); if (i.value.trim()) { perguntar(i.value.trim()); i.value = ''; } });
+    const msgs = document.getElementById('msgs');
+    let tDig = null;
+    function boasVindas() {
+      const a = acPorId[acSel];
+      msgs.innerHTML = `<div class="msg ce"><div class="quem"><i>✦</i>Cérebro da rede · ${esc(a.nome)}</div>Pergunte sobre os seus alunos, o orçamento, as turmas, a retenção ou a comparação com as outras academias da rede. Cada resposta vem de consultas ao banco da rede e mostra de onde veio cada número. Os dados são simulados.</div>`;
+    }
+    function perguntar(q) {
+      if (vista !== 'chat') irPara('chat');
+      const t = sem(q);
+      msgs.insertAdjacentHTML('beforeend', `<div class="msg eu">${esc(q)}</div>`);
+      const id = intencao(t);
+      const r = id ? responderIntencao(id, t) : null;
+      const div = document.createElement('div'); div.className = 'msg ce';
+      const a = acPorId[acSel];
+      if (!r) {
+        div.innerHTML = `<div class="quem"><i>✦</i>Cérebro da rede · ${esc(a.nome)}</div>O banco da rede não tem dados para responder isso com segurança, e o cérebro não responde sem um número que o sustente. Ele responde sobre alunos (pelo nome), cobranças, orçamento, contratação, reajuste, projeção, turmas, retenção, kids, particulares, público feminino, graduação, leads e a comparação com a rede.`;
+        msgs.appendChild(div); msgs.scrollTop = msgs.scrollHeight; return;
+      }
+      div.innerHTML = `<div class="quem"><i>✦</i>Cérebro da rede · ${esc(a.nome)} · consultou ${r.fontes.length} ${r.fontes.length === 1 ? 'fonte' : 'fontes'}</div><span class="corpo"></span><div class="extra"></div>${r.fontes.length ? `<ul class="fontes" hidden>${r.fontes.map((f) => `<li>${f}</li>`).join('')}</ul>` : ''}<details hidden><summary>Como um assistente genérico, sem os dados da rede, responderia</summary><p>${esc(GENERICO[id])}</p></details>`;
+      msgs.appendChild(div);
+      const corpo = div.querySelector('.corpo'), fim = () => { div.querySelector('.extra').innerHTML = r.extra; const ul = div.querySelector('.fontes'); if (ul) ul.hidden = false; div.querySelector('details').hidden = false; msgs.scrollTop = msgs.scrollHeight; };
+      if (tDig) { clearInterval(tDig.t); tDig.fim(); }
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) { corpo.textContent = r.txt; fim(); return; }
+      const pal = r.txt.split(' '); let i = 0; corpo.classList.add('cursor');
+      const t2 = setInterval(() => { corpo.textContent += (i ? ' ' : '') + pal[i++]; msgs.scrollTop = msgs.scrollHeight; if (i >= pal.length) { clearInterval(t2); corpo.classList.remove('cursor'); tDig = null; fim(); } }, 32);
+      tDig = { t: t2, fim: () => { corpo.textContent = r.txt; corpo.classList.remove('cursor'); fim(); } };
+    }
+
+    /* ================= padrões ================= */
+    function pintarPadroes(novo) {
+      document.getElementById('regras').innerHTML = REGRAS.map((r) => `<div class="cartao regra"><b>${r.nome}</b><p>${r.desc}</p><span>disparos: ${r.n}</span></div>`).join('');
+      if (!alertas.length) return;
+      document.getElementById('alertas').innerHTML = alertas.map((x, i) => `<li class="${novo && i === 0 ? 'flash' : ''}"><span class="pt al"></span><span class="mono" style="font-size:.74rem;color:var(--al-txt-2)">${x.ts.toLocaleTimeString('pt-BR')}</span><b style="white-space:nowrap">${nomeCurto(x.ev.ac)}</b><span><span class="tag al">${x.r.nome}</span> ${x.txt}</span></li>`).join('');
+    }
+
+    /* ================= eventos e OLAP ================= */
+    function json(o, riscar) { return '{\n' + Object.entries(o).map(([k, v]) => `  <span class="k">"${k}"</span>: <span class="${riscar && riscar.includes(k) ? 'x' : ''}">"${esc(v)}"</span>`).join(',\n') + '\n}'; }
+    function pintarEventos() {
+      const ev = fluxoEv[0];
+      if (ev) { document.getElementById('evLocal').innerHTML = json(ev.local, ['aluno', 'telefone']); document.getElementById('evRede').innerHTML = json(ev.rede); }
+      document.getElementById('fluxo').innerHTML = fluxoEv.length ? fluxoEv.slice(0, 45).map((e, i) => `<li class="${i === 0 ? 'flash' : ''}"><span>${e.rede.ts_utc.slice(11, 19)}Z</span><span>${e.ac}</span><span class="e">${e.tipo}</span><span>${e.al.hash} · ${e.al.faixa}</span></li>`).join('') : '<li class="vazio">Sem eventos ainda.</li>';
+    }
+    let sqlSel = 'ret';
+    function pintarOlap() {
+      const meds = Object.fromEntries(METRICAS.map((m) => [m.id, mediana(m.id)]));
+      const cols = METRICAS.filter((m) => m.id !== 'ba');
+      document.getElementById('cubo').innerHTML = '<thead><tr><th>Academia</th>' + cols.map((m) => `<th class="n" style="cursor:pointer" data-m="${m.id}">${m.rot}</th>`).join('') + '</tr></thead><tbody>' +
+        ACADS.map((a) => `<tr${a.id === acSel ? ' style="outline:1px solid var(--al-ouro)"' : ''}><td><b>${nomeCurto(a.id)}</b></td>` + cols.map((m) => { const v = valor(a.id, m.id), d = v - meds[m.id], rel = meds[m.id] ? Math.abs(d) / meds[m.id] : 0; return `<td class="n ${rel > .12 ? ((d > 0) === m.alto ? 'alto' : 'baixo') : ''}">${m.fmt(v)}</td>`; }).join('') + '</tr>').join('') +
+        '<tr class="med"><td>Mediana da rede</td>' + cols.map((m) => `<td class="n">${m.fmt(meds[m.id])}</td>`).join('') + '</tr></tbody>';
+      document.getElementById('fLinhas').textContent = (BASE_HIST + total).toLocaleString('pt-BR');
+      document.getElementById('sqlTit').textContent = 'Consulta · ' + met(sqlSel).rot;
+      document.getElementById('sql').textContent = met(sqlSel).sql;
+    }
+    document.getElementById('cubo').addEventListener('click', (e) => { const th = e.target.closest('[data-m]'); if (th) { sqlSel = th.dataset.m; pintarOlap(); } });
+
+    /* ================= navegação ================= */
+    function pintarVista() {
+      pintarCab();
+      if (vista === 'mapa') pintarMapa();
+      if (vista === 'painel') pintarPainel();
+      if (vista === 'alunos') pintarAlunos();
+      if (vista === 'orc') pintarOrc();
+      if (vista === 'chat') { pintarSugestoes(); if (!msgs.children.length || msgs.dataset.ac !== acSel) { boasVindas(); msgs.dataset.ac = acSel; } }
+      if (vista === 'padroes') pintarPadroes(false);
+      if (vista === 'eventos') pintarEventos();
+      if (vista === 'olap') pintarOlap();
+    }
+    function irPara(v) {
+      vista = v;
+      document.querySelectorAll('.nav').forEach((n) => { if (n.dataset.v === v) n.setAttribute('aria-current', 'page'); else n.removeAttribute('aria-current'); });
+      document.querySelectorAll('.vista').forEach((s) => s.classList.toggle('ativa', s.id === 'v-' + v));
+      pintarVista();
+      if (v === 'chat') setTimeout(() => document.getElementById('pergunta').focus(), 50);
+    }
+    document.querySelectorAll('.nav').forEach((n) => n.addEventListener('click', () => irPara(n.dataset.v)));
+
+    function aoEvento(ev) {
+      ondaMapa(ev.ac);
+      if (ev.ac === acSel && vista === 'painel') pintarAtiv();
+      if (vista === 'eventos') pintarEventos();
+    }
+
+    /* ================= simulação ================= */
+    let simId = null;
+    const bSim = document.getElementById('bSim');
+    function passoSim() {
+      const n = 1 + Math.floor(rnd() * 3);
+      for (let i = 0; i < n; i++) {
+        const pesos = ACADS.map((a) => a.base * (emAula(a) ? 1 : .06));
+        let s = rnd() * pesos.reduce((x, y) => x + y, 0), k = 0; while (s > pesos[k]) { s -= pesos[k]; k++; }
+        const r = rnd();
+        registrar(ACADS[k].id, r < .66 ? 'check_in' : r < .72 ? 'aula_particular' : r < .78 ? 'matricula' : r < .85 ? 'cobranca_falhou' : r < .89 ? 'cobranca_recuperada' : r < .93 ? 'graduacao' : 'cancelamento');
+      }
+    }
+    bSim.addEventListener('click', () => {
+      if (simId) { clearInterval(simId); simId = null; bSim.textContent = '▶ Simular a rede'; bSim.setAttribute('aria-pressed', 'false'); }
+      else { simId = setInterval(passoSim, 650); bSim.textContent = '⏸ Pausar a rede'; bSim.setAttribute('aria-pressed', 'true'); }
+    });
+
+    /* ================= tema ================= */
+    const bTema = document.getElementById('bTema');
+    function aplicarTema(t) { document.documentElement.dataset.tema = t; bTema.textContent = t === 'escuro' ? 'Tema claro' : 'Tema escuro'; try { localStorage.setItem('alliance-lab-tema', t); } catch (e) { /* sem armazenamento */ } }
+    bTema.addEventListener('click', () => aplicarTema(document.documentElement.dataset.tema === 'escuro' ? 'claro' : 'escuro'));
+    try { aplicarTema(localStorage.getItem('alliance-lab-tema') || 'claro'); } catch (e) { aplicarTema('claro'); }
+
+    /* ================= relógio ================= */
+    let ultimoRepinte = 0;
+    setInterval(() => {
+      const agora = Date.now(); while (marcas.length && agora - marcas[0] > 60000) marcas.shift();
+      document.getElementById('cTot').textContent = (BASE_HIST + total).toLocaleString('pt-BR');
+      document.getElementById('cMin').textContent = marcas.length;
+      document.getElementById('cUtc').textContent = 'UTC ' + new Date().toISOString().slice(11, 16);
+      if (agora - ultimoRepinte > 3000 && ['painel', 'orc', 'olap', 'mapa'].includes(vista)) { ultimoRepinte = agora; pintarVista(); }
+    }, 1000);
+
+    irPara('painel');
+  })();
+  </script>
+<!-- semana:js:start -->
+<script src="../../../js/semana-ano.js" defer></script>
+<!-- semana:js:end -->
+</body>
+</html>
