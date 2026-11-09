@@ -73,14 +73,30 @@ O sistema mantém a paleta Inteli e adota uma linguagem sóbria: pouca cor, tipo
 
 30. Decks com `<body class="tm-deck">` recebem a camada 5c de `css/inteli-ds.css`, que se sobrepõe ao CSS próprio do deck: fundo branco, títulos de seção e de capa em JetBrains Mono, cabeçalho de seção sem bloco colorido e com linha de base de 1 px, cards e etiquetas com contorno de 1 px e cantos retos, tabelas com cabeçalho sem preenchimento, daily com contorno e cronômetro em mono, rodapé branco com botões retos. Blocos de terminal (`.code-mini`, `.kpi`) continuam escuros, e o botão Material mantém `--ds-verde-escuro` (regra 23).
 31. A camada altera só cor, fonte, borda e raio; tamanhos e espaçamentos continuam os do deck. Depois de aplicá-la, o deck passa por `npm run validate:slides` sem nenhum `OVERFLOW`.
-32. Hoje usam a camada os 13 decks do Módulo 8 de Sistemas de Informação.
+32. O `<body>` do deck leva também a classe de curso (`ds-curso-si`, `ds-curso-eng-software`, `ds-curso-adm-tech` ou `ds-curso-comum`), que dá a cor do quadrado da capa e das etiquetas. Os 13 decks do Módulo 8 de Sistemas de Informação são a referência de estrutura para deck novo.
 
 ## Materiais em layout terminal (`.tm-material`)
 
 33. Todo material de leitura (`pages/**/materials/*.html`) usa `<body class="tm-material">`, acrescido da classe de curso (`ds-curso-si`, `ds-curso-eng-software`, `ds-curso-adm-tech` ou `ds-curso-comum`) quando o material pertence a um módulo de curso. Ficam de fora os materiais de `pages/palestras/`, que seguem a regra 10.
 34. A camada 5d de `css/inteli-ds.css` se sobrepõe ao CSS próprio de cada material: cabeçalho branco com linha de base de 1 px e título em JetBrains Mono, rótulo do cabeçalho com contorno e o quadrado na cor do curso, botões retos em mono (o de Slides primário), títulos de seção em mono com linha de base, cards e ficha do encontro com contorno de 1 px, destaques com fundo fraco e filete de 2 px (coral só no alerta), tabelas com cabeçalho sem preenchimento, sumário lateral em mono e cantos retos. Blocos de código, de terminal e diagramas cuja cor carrega significado continuam como estão.
-35. Como nos decks, a camada altera só cor, fonte, borda e raio; a grade e os espaçamentos de cada material continuam os da página.
+35. Como nos decks, a camada altera só cor, fonte, borda e raio; a grade e os espaçamentos de cada material continuam os da página. Os planos de ensino usam a mesma camada: ela reconhece os cabeçalhos `.mat-header`, `.plano-header` e `.plan-head`.
+
+## Padrão para páginas novas
+
+36. Toda página criada a partir de 09/11/2026 já nasce no layout terminal, conforme o tipo:
+
+    | Página | `<body>` | Estrutura de referência |
+    |--------|----------|-------------------------|
+    | Página inicial e homes (`index.html`, `pages/home-*.html`) | `class="tm"` | `pages/home-module-8-sistemas-informacao.html` |
+    | Deck (`slides/slide-lesson-*.html`) | `class="tm-deck ds-curso-<curso>"` | `pages/module-8-sistemas-informacao/slides/slide-lesson-1.html` |
+    | Material e plano (`materials/`, `planos/`, `lesson-*-material.html`) | `class="tm-material ds-curso-<curso>"` | `pages/module-8-sistemas-informacao/materials/lesson-1-material.html` |
+    | Demais páginas (ferramenta, referência, desafio, autoestudo) | uma das três classes, conforme a página se pareça com home, deck ou leitura | a mais próxima acima |
+
+    O deck novo parte da estrutura de referência e usa as classes que a camada 5c cobre (`.st`, `.sh`, `.card`, `.label`, `.callout`, `.tbl`, `.cover`, `.daily`). Classe de deck antigo com cor própria (`.sh.purple`, `.sh.blue`, `.box.amb`) não é usada em página nova.
+37. As páginas anteriores ao layout terminal estão listadas em `tests/design-system-legado.json`. A lista só diminui: página nova não entra nela, e página migrada sai dela no mesmo commit. As páginas de `pages/palestras/` seguem a regra 10 e ficam fora da regra 36.
 
 ## Validação
 
-`tests/design-system.spec.ts` confere as regras 2, 9, 12, 16 e 33 e a existência dos tokens da regra 5.
+## Validação
+
+`tests/design-system.spec.ts` confere as regras 2, 9, 12, 16, 33, 36 e 37 e a existência dos tokens da regra 5.

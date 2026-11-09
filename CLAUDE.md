@@ -154,6 +154,7 @@ Regras em `specs/design-system.md`; documentação completa em `docs/design-syst
 - Tipografia: Inter (texto e títulos) e JetBrains Mono (rótulos, botões, metadados, números, código). Pesos de 400 a 700.
 - Forma: raio de 0, 2, 4 ou 6 px; sem pílula. Contorno de 1 px no lugar de sombra difusa. Hover muda borda ou fundo, sem deslocar mais que 1 px.
 - Cor de curso: `.ds-curso-si`, `.ds-curso-eng-software`, `.ds-curso-adm-tech`, `.ds-curso-comum` (e as antigas `.card-header-*`, que definem `--ds-curso`).
+- **Layout terminal é o padrão de toda página nova:** home com `<body class="tm">`, deck com `<body class="tm-deck ds-curso-<curso>">` e material ou plano com `<body class="tm-material ds-curso-<curso>">`, tomando o Módulo 8 de SI como referência (`specs/design-system.md`, regra 36). As páginas ainda não migradas estão em `tests/design-system-legado.json`, lista que só diminui; página nova não entra nela.
 - Página nova ou colada de outro lugar: rode `node scripts/aplicar-design-system.mjs <arquivo>` antes do commit. `tests/design-system.spec.ts` barra fonte, raio, cor e carregamento fora do padrão.
 
 ### Module Config JSON Schema

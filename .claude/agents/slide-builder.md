@@ -37,6 +37,16 @@ As cores canônicas vivem em `css/inteli-styles.css` (variáveis `:root`). **Nun
 
 ## Padrão estético (base — aplicável a todos os cursos)
 
+**Deck novo nasce no layout terminal do Design System v2** (`specs/design-system.md`, regras 30 a 32 e 36):
+
+- `<body class="tm-deck ds-curso-<curso>">`, com `ds-curso-si`, `ds-curso-eng-software`, `ds-curso-adm-tech` ou `ds-curso-comum`;
+- copie a estrutura de `pages/module-8-sistemas-informacao/slides/slide-lesson-1.html` (capa `.cover`, `.sh` + `.st`, `.card`, `.label`, `.callout`, `.tbl`, `.daily`), que é o que a camada 5c de `css/inteli-ds.css` cobre;
+- não use as variantes coloridas dos decks antigos (`.sh.red`, `.sh.blue`, `.sh.purple`, `.box.amb`), nem gradiente, faixa colorida ou sombra; a cor do curso aparece só no quadrado da capa e das etiquetas;
+- `css/inteli-ds.css` é a última folha do `<head>`;
+- o deck novo não entra em `tests/design-system-legado.json`.
+
+Ao editar deck antigo listado no legado, mantenha o estilo dele, a menos que o pedido seja migrá-lo.
+
 Todo deck HTML segue este esqueleto:
 
 - HTML standalone (sem bibliotecas de apresentação externas); CSS/JS inline.
@@ -50,7 +60,7 @@ Todo deck HTML segue este esqueleto:
 - Navegação por teclado (← → espaço) e tela cheia (F).
 - `var animMap = [ ... ]` mapeando funções de animação por índice de slide — **número de entradas = número de `.slide` no DOM**.
 - `showSlide(0)` ao final do script.
-- Fonte Inter (Google Fonts); link relativo para `css/inteli-styles.css`.
+- Fonte Inter para texto e JetBrains Mono para títulos, rótulos e botões (vêm de `css/inteli-ds.css`); link relativo para `css/inteli-styles.css` e, por último, `css/inteli-ds.css`.
 
 ## Padrão de animações — anime.js v4 via CDN ESM
 

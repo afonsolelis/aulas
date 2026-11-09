@@ -110,6 +110,8 @@ else { floatNav.classList.remove('visible'); }
 
 ### 3. Header da Página
 
+O material nasce no layout terminal: `<body class="tm-material ds-curso-<curso>">` (`specs/design-system.md`, regras 33 a 36). A camada 5d de `css/inteli-ds.css` deixa o cabeçalho abaixo branco, com título em mono e o quadrado do curso no rótulo, sem que o CSS da página precise reproduzir isso.
+
 ```html
 <header class="mat-header">
   <div class="container">
@@ -287,6 +289,7 @@ Fontes obrigatórias:
 
 ## Checklist de Criação
 
+- [ ] `<body class="tm-material ds-curso-<curso>">` (layout terminal)
 - [ ] Barra de progresso de leitura
 - [ ] Floating nav (Slides + Módulo)
 - [ ] Header com badge, título, subtitle e botões

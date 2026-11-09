@@ -200,12 +200,12 @@ sozinho — não há segunda lista para esquecer.
 
 ## Ao criar uma aula nova
 
-1. Crie os arquivos da aula normalmente (slides, material, plano).
+1. Crie os arquivos da aula já no layout terminal do Design System: deck com `<body class="tm-deck ds-curso-<curso>">`, material e plano com `<body class="tm-material ds-curso-<curso>">`, tomando o Módulo 8 de SI como referência (`specs/design-system.md`, regra 36).
 2. Registre a aula em `config/module-<módulo>.json`, com `date` e `professor`.
 3. Acrescente o encontro e as páginas a `config/encontros.json`.
 4. Rode `node scripts/apply-encontro.mjs`.
 5. Em material e plano, confirme a navegação flutuante e o sumário lateral — no DOM renderizado, não no arquivo.
-6. Rode `npm test` — `encontro-compliance` reprova qualquer página de aula sem o padrão.
+6. Rode `npm test` — `encontro-compliance` reprova qualquer página de aula sem o padrão, e `design-system` reprova página nova fora do layout terminal.
 7. Sincronize `/index.json` conforme a Key Rule 7 do `CLAUDE.md`.
 
 ## Redação dos três itens

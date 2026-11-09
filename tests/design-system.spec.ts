@@ -114,4 +114,29 @@ test.describe('design-system.md: Design System Inteli v2', () => {
     const fora = materiais.filter((rel) => !/<body[^>]*class="[^"]*\btm-material\b/.test(readRepoFile(rel)));
     expect(fora, 'materiais sem <body class="tm-material">').toEqual([]);
   });
+  test('página nova nasce no layout terminal; só o legado listado fica de fora (regra 36)', () => {
+    const legado: string[] = JSON.parse(readRepoFile('tests/design-system-legado.json')).paginas;
+    const naLista = new Set(legado);
+    const classeDoBody = (rel: string) => (readRepoFile(rel).match(/<body[^>]*class="([^"]*)"/) || [, ''])[1];
+    const esperada = (rel: string) =>
+      /\/slides\/[^/]+\.html$/.test(rel) ? 'tm-deck'
+        : /\/(materials|planos)\/[^/]+\.html$/.test(rel) || /lesson-\d+-material\.html$/.test(rel) ? 'tm-material'
+        : /(^index\.html$|\/home-[^/]+\.html$)/.test(rel) ? 'tm'
+        : null;
+    const fora: string[] = [];
+    for (const rel of paginas) {
+      if (rel.startsWith('pages/palestras/') || naLista.has(rel)) continue;
+      const classes = classeDoBody(rel).split(/\s+/);
+      const alvo = esperada(rel);
+      const ok = alvo ? classes.includes(alvo) : classes.some((c) => ['tm', 'tm-deck', 'tm-material'].includes(c));
+      if (!ok) fora.push(`${rel} (esperado: ${alvo ?? 'tm, tm-deck ou tm-material'})`);
+    }
+    expect(fora, 'página fora do layout terminal e fora de tests/design-system-legado.json').toEqual([]);
+
+    const jaMigradas = legado.filter((rel) => fs.existsSync(resolveRepoPath(rel))
+      && /\btm(-deck|-material)?\b/.test(classeDoBody(rel)));
+    expect(jaMigradas, 'página migrada: remova-a de tests/design-system-legado.json').toEqual([]);
+    const inexistentes = legado.filter((rel) => !fs.existsSync(resolveRepoPath(rel)));
+    expect(inexistentes, 'página removida: remova-a de tests/design-system-legado.json').toEqual([]);
+  });
 });

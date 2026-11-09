@@ -16,6 +16,7 @@ Padronizar a estrutura dos arquivos de slides do portal.
 3. Cada deck deve existir como arquivo HTML estático versionado no repositório.
 4. Quando uma aula ainda não tiver conteúdo completo, o slide pode ser placeholder, mas deve existir e abrir normalmente.
 5. Slides placeholder devem deixar claro que o conteúdo ainda será refinado.
+6. Deck novo nasce no layout terminal: `<body class="tm-deck ds-curso-<curso>">`, com a estrutura de `pages/module-8-sistemas-informacao/slides/slide-lesson-1.html` como referência (`specs/design-system.md`, regras 30 a 32 e 36).
 
 ## Organização de arquivos
 
