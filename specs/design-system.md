@@ -75,6 +75,12 @@ O sistema mantém a paleta Inteli e adota uma linguagem sóbria: pouca cor, tipo
 31. A camada altera só cor, fonte, borda e raio; tamanhos e espaçamentos continuam os do deck. Depois de aplicá-la, o deck passa por `npm run validate:slides` sem nenhum `OVERFLOW`.
 32. Hoje usam a camada os 13 decks do Módulo 8 de Sistemas de Informação.
 
+## Materiais em layout terminal (`.tm-material`)
+
+33. Todo material de leitura (`pages/**/materials/*.html`) usa `<body class="tm-material">`, acrescido da classe de curso (`ds-curso-si`, `ds-curso-eng-software`, `ds-curso-adm-tech` ou `ds-curso-comum`) quando o material pertence a um módulo de curso. Ficam de fora os materiais de `pages/palestras/`, que seguem a regra 10.
+34. A camada 5d de `css/inteli-ds.css` se sobrepõe ao CSS próprio de cada material: cabeçalho branco com linha de base de 1 px e título em JetBrains Mono, rótulo do cabeçalho com contorno e o quadrado na cor do curso, botões retos em mono (o de Slides primário), títulos de seção em mono com linha de base, cards e ficha do encontro com contorno de 1 px, destaques com fundo fraco e filete de 2 px (coral só no alerta), tabelas com cabeçalho sem preenchimento, sumário lateral em mono e cantos retos. Blocos de código, de terminal e diagramas cuja cor carrega significado continuam como estão.
+35. Como nos decks, a camada altera só cor, fonte, borda e raio; a grade e os espaçamentos de cada material continuam os da página.
+
 ## Validação
 
-`tests/design-system.spec.ts` confere as regras 2, 9, 12, 16 e a existência dos tokens da regra 5.
+`tests/design-system.spec.ts` confere as regras 2, 9, 12, 16 e 33 e a existência dos tokens da regra 5.

@@ -5,7 +5,8 @@
  * código: o carregamento de css/inteli-ds.css (regra 2), a ausência das cores
  * convertidas (regra 9), das fontes antigas (regra 12) e de raio fora da escala
  * (regra 16), além dos tokens da paleta (regra 5). Por fim, confere que o
- * script de aplicação não teria mais nada a mudar.
+ * script de aplicação não teria mais nada a mudar, e que todo material de
+ * leitura fora de pages/palestras/ usa o layout terminal (regra 33).
  */
 import { test, expect } from '@playwright/test';
 import * as fs from 'fs';
@@ -106,5 +107,11 @@ test.describe('design-system.md: Design System Inteli v2', () => {
       return transformar(txt, resolveRepoPath(rel)) !== txt;
     });
     expect(pendentes).toEqual([]);
+  });
+  test('todo material de leitura fora de pages/palestras/ usa o layout terminal (regra 33)', () => {
+    const materiais = paginas.filter((p) => /\/materials\/[^/]+\.html$/.test(p) && !p.startsWith('pages/palestras/'));
+    expect(materiais.length).toBeGreaterThan(0);
+    const fora = materiais.filter((rel) => !/<body[^>]*class="[^"]*\btm-material\b/.test(readRepoFile(rel)));
+    expect(fora, 'materiais sem <body class="tm-material">').toEqual([]);
   });
 });
