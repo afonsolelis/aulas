@@ -2,7 +2,7 @@
 
 Documentação do sistema visual do portal de aulas. As regras obrigatórias, em forma curta e testável, estão em `specs/design-system.md`. Este documento explica cada decisão, lista todos os tokens e mostra como usar cada componente. A vitrine com os componentes renderizados está em `pages/design-system.html`.
 
-## Sumário
+## Sumário-
 
 1. [Princípios](#1-princípios)
 2. [Como usar](#2-como-usar)
