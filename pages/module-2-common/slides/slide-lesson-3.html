@@ -179,6 +179,16 @@
     .tm-deck .pill.green { background:var(--ds-fundo-fraco) !important; }
     .tm-deck .pill.amber { background:var(--ds-fundo-fraco) !important; }
     .tm-deck .rstbl th { background:var(--ds-fundo) !important; color:var(--ds-texto-forte) !important; outline:1px solid var(--ds-texto-forte); outline-offset:-1px; }
+    /* Slide 2 — daily de 15 min (Key Rule 8), mesmo padrão da Aula 1 */
+    .daily-timer { font-size:3.5rem; font-weight:700; font-family:monospace; border-radius:6px; padding:10px 28px; display:inline-block; margin-bottom:16px; letter-spacing:4px; }
+    .daily-rit { display:inline-block; padding:6px 16px; border-radius:6px; font-size:.85rem; margin:3px; border:1px solid var(--ds-borda-forte); color:var(--ds-texto-forte); font-family:var(--ds-fonte-mono); font-weight:500; }
+    /* Slide 5 (rastreabilidade + entrega) em 1280×720 */
+    @media (max-height:800px) {
+      .tm-deck .slide:has(.rstbl) .rstbl th, .tm-deck .slide:has(.rstbl) .rstbl td { padding:6px 14px; }
+      .tm-deck .slide:has(.rstbl) .box { padding:12px 20px; }
+      .tm-deck .slide:has(.rstbl) .box li { margin-bottom:3px; }
+      .tm-deck .slide:has(.rstbl) .box + .box { margin-top:10px !important; }
+    }
   </style>
 
 <!-- encontro:css:start -->
@@ -223,7 +233,28 @@
     </div>
   </div>
 
-  <!-- ====== SLIDE 2: DESCRIÇÃO / CONTEXTO ====== -->
+  <!-- ====== SLIDE 2: DAILY ====== -->
+  <div class="slide cover-bg">
+    <div class="sc" style="text-align:center;">
+      <div style="background:rgba(255,255,255,.12);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.22);border-radius:6px;padding:28px 32px;">
+        <div style="font-size:2rem;font-weight:700;color:white;margin-bottom:6px;">⏱️ Daily — 15 Minutos</div>
+        <div style="font-size:1rem;color:rgba(255,255,255,.85);margin-bottom:18px;">O que você fez? O que vai fazer? Algum impedimento?</div>
+        <div class="daily-timer" id="daily-timer">15:00</div>
+        <div style="margin-bottom:18px;">
+          <button id="daily-start-btn" onclick="startDaily()" style="background:rgba(255,255,255,.25);border:1px solid rgba(255,255,255,.4);color:white;padding:9px 22px;border-radius:6px;font-weight:700;font-size:.9rem;cursor:pointer;margin:0 6px;font-family:'Inter',sans-serif;">▶ Iniciar</button>
+          <button onclick="resetDaily()" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:white;padding:9px 22px;border-radius:6px;font-weight:700;font-size:.9rem;cursor:pointer;margin:0 6px;font-family:'Inter',sans-serif;">↺ Reset</button>
+        </div>
+        <div>
+          <span class="daily-rit" id="dd0">✅ O que fiz</span>
+          <span class="daily-rit" id="dd1">🎯 O que vou fazer</span>
+          <span class="daily-rit" id="dd2">🚧 Impedimentos</span>
+          <span class="daily-rit" id="dd3">📦 Progresso do projeto</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== SLIDE 3: DESCRIÇÃO / CONTEXTO ====== -->
   <div class="slide">
     <div class="sc body-wrap">
       <div class="sh dark">
@@ -255,7 +286,7 @@
     </div>
   </div>
 
-  <!-- ====== SLIDE 3: ENTREGA MÍNIMA ====== -->
+  <!-- ====== SLIDE 4: ENTREGA MÍNIMA ====== -->
   <div class="slide">
     <div class="sc body-wrap">
       <div class="sh amber">
@@ -292,7 +323,7 @@
     </div>
   </div>
 
-  <!-- ====== SLIDE 4: RASTREABILIDADE + FORMATO DE ENTREGA ====== -->
+  <!-- ====== SLIDE 5: RASTREABILIDADE + FORMATO DE ENTREGA ====== -->
   <div class="slide">
     <div class="sc body-wrap">
       <div class="sh green">
@@ -349,19 +380,33 @@
 </div>
 
 <script>
-// ── DAILY (atividade ponderada — sem timer visível; helpers presentes para compliance) ─
-// Esta aula é autoestudo e não usa o cronômetro daily das aulas presenciais,
-// mas mantemos os hooks `daily-timer` / `startDaily` / `resetDaily` / `dailyInterval`
-// para que o slide siga a mesma estrutura padrão do Módulo 2.
+// ── DAILY TIMER ───────────────────────────────────────────────────────────
 var dailyInterval = null;
-var dailySeconds = 0;
+var dailySeconds = 900;
 var dailyRunning = false;
 function updateDailyDisplay() {
+  var m = Math.floor(dailySeconds / 60);
+  var s = dailySeconds % 60;
   var el = document.getElementById('daily-timer');
-  if (el) el.textContent = '—';
+  if (el) el.textContent = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
 }
-function startDaily() { /* atividade ponderada não usa daily timer */ }
-function resetDaily() { clearInterval(dailyInterval); dailyRunning = false; dailyInterval = null; updateDailyDisplay(); }
+function startDaily() {
+  if (dailyRunning) { clearInterval(dailyInterval); dailyRunning = false; document.getElementById('daily-start-btn').textContent = '▶ Continuar'; return; }
+  dailyRunning = true;
+  document.getElementById('daily-start-btn').textContent = '⏸ Pausar';
+  dailyInterval = setInterval(function() {
+    if (dailySeconds <= 0) { clearInterval(dailyInterval); dailyRunning = false; document.getElementById('daily-start-btn').textContent = '✅ Fim!'; return; }
+    dailySeconds--;
+    updateDailyDisplay();
+  }, 1000);
+}
+function resetDaily() {
+  clearInterval(dailyInterval);
+  dailyRunning = false;
+  dailySeconds = 900;
+  updateDailyDisplay();
+  document.getElementById('daily-start-btn').textContent = '▶ Iniciar';
+}
 
 // ── NAVIGATION ────────────────────────────────────────────────────────────
 var currentSlide = 0;
@@ -405,7 +450,7 @@ function animCover() {
 }
 function animAgenda() {
   // Agenda da Aula 3 está integrada na própria cover (mini-daily de 4 marcos do autoestudo).
-  clearT(); _run = true;
+  _run = true; // sem clearT(): roda logo após animCover e não pode cancelar as tags da capa
   ['dt0','dt1','dt2','dt3'].forEach(function(id, i){
     var el = document.getElementById(id);
     if (!el) return;
@@ -418,9 +463,10 @@ function animContexto()       { clearT(); }
 function animEntrega()        { clearT(); }
 function animRastreabilidade(){ clearT(); }
 
-// animMap aligned with the 4 slides of this ponderada deck
+// animMap aligned with the slides of this ponderada deck (slide 2 = daily)
 var animMap = [
   function(){ animCover(); animAgenda(); },
+  function(){ clearT(); },
   animContexto,
   animEntrega,
   animRastreabilidade
