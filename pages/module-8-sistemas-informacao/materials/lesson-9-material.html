@@ -173,7 +173,7 @@
   <div id="progress-bar" aria-hidden="true"></div>
   <nav id="float-nav" aria-label="Quick navigation">
     <a class="fn-btn fn-btn-slides" href="../slides/slide-lesson-9.html">▶ Slides</a>
-    <a class="fn-btn fn-btn-alt" href="https://github.com/afonsolelis/aulas/tree/main/pages/module-8-sistemas-informacao/lab/lesson-9" target="_blank" rel="noopener noreferrer">🧪 Lab</a>
+    <a class="fn-btn fn-btn-alt" href="../lab/lesson-9/index.html">🧪 Lab</a>
     <a class="fn-btn fn-btn-back" href="../../home-module-8-sistemas-informacao.html">← Module</a>
   </nav>
 
@@ -221,7 +221,7 @@
         <a href="#run2">16. Second run and the real data</a>
         <a href="#results">17. Findings of the reference</a>
         <div class="toc-part">Part V · Lab</div>
-        <a href="#steps">18. The six steps, alone</a>
+        <a href="#steps">18. The seven steps, alone</a>
         <a href="#graded">19. The graded activity</a>
         <a href="#mistakes">20. Recurring mistakes</a>
         <a href="#glossary">21. Glossary</a>
@@ -609,8 +609,8 @@ def check_freshness(con: duckdb.DuckDBPyConnection, now: int, max_age_days: floa
       </section>
       <div class="part-title"><small>Part V</small><strong>Lab</strong></div>
       <section class="mat-section" id="steps">
-        <h2>18. The six steps, alone</h2>
-<p>From 0:40 on, each student applies the six steps to the DataApp of the group, packaged in Lesson 7, alone and with a coding agent. The starting point must be a green suite: <code>pip install -e '.[dev]'</code> and <code>pytest</code> pass before the first prompt. The reference package shows the form of each artefact; its content belongs to the TCGplayer DataApp and does not transfer to the data of the partner.</p><h3>Step 01 · Business drivers and quality attributes · from 0:40</h3><div class="code-wrap"><div class="code-label"><span>Prompt 01 · CREATE</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>[C] Character
+        <h2>18. The seven steps, alone</h2>
+<p>From 0:40 on, each student applies the six steps of the method to the DataApp of the group, packaged in Lesson 7, alone and with a coding agent, and in a seventh step puts the suite in a pipeline of the GitLab of Inteli. The starting point must be a green suite: <code>pip install -e '.[dev]'</code> and <code>pytest</code> pass before the first prompt. The reference package shows the form of each artefact; its content belongs to the TCGplayer DataApp and does not transfer to the data of the partner.</p><h3>Step 01 · Business drivers and quality attributes · from 0:40</h3><div class="code-wrap"><div class="code-label"><span>Prompt 01 · CREATE</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>[C] Character
 You are a software architect who runs the ATAM (Architecture Tradeoff
 Analysis Method) on a data application. The application is the DataApp of
 my group, packaged in Lesson 7 in three layers (views, processors, etls),
@@ -833,10 +833,66 @@ the second run of pytest.
 [E] Extras
 Show the classification before writing. Record this prompt in
 docs/prompts.md. Stop at the end.</code></pre></div><p>Done when:</p><ul><li>each finding cites its scenarios</li><li>the risks left open are marked as open, with the reason</li><li>every number comes from a run of this session</li></ul>
+<h3>Step 07 · The GitLab pipeline · from 1:55</h3><p>A suite that runs only when someone remembers to run it stops protecting the DataApp at the first change made in a hurry. Continuous integration removes that dependence: every push to git.inteli.edu.br starts a pipeline that installs the package in a clean container and runs the tests, so the result of each commit is known before anyone merges it. The file <code>.gitlab-ci.yml</code> of the reference divides the work in three stages. In <code>test</code>, two jobs run in parallel, one for the nine tests of the package and one for the twenty tests of the scenarios, and each publishes its JUnit report even when a test fails, because GitLab reads those reports to show the failed tests in the merge request. In <code>report</code>, the job <code>traceability</code> waits only for the scenarios (<code>needs</code>) and runs also after a failure (<code>when: always</code>), so the artifact of the utility tree says which leaves failed. In <code>smoke</code>, a job that runs only in a pipeline schedule collects the data of the day from tcgcsv.com and checks the freshness of S11, which turns the open risk of S11 into a check made every morning.</p><p>The pipeline protects the main branch only when the project requires it. With “Pipelines must succeed” turned on in the settings of merge requests, a red pipeline blocks the merge, and the fix of a failing scenario is a change of the code, never of the assertion. The recording of the reference, made on 12/11/2026 with the same image in Docker, shows the three situations. The merge request pipeline passed 29 tests in about 24 s. A commit that set <code>MAX_NULL_SHARE = 1.0</code>, the kind of change that makes a stopped run pass, failed the test case TC04.1, and the job of the tree still ran and marked S04 FAIL 1/2. The scheduled pipeline ran the DataApp on the real data in about 55 s. The project needs a runner available to it; without one, the pipeline stays pending.</p><div class="code-wrap"><div class="code-label"><span>Prompt 07 · CREATE</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code>[C] Character
+You are the same test engineer. The suite passes on your machine; now it
+must run on every push, without anyone remembering to run it, on the
+GitLab of Inteli (git.inteli.edu.br).
+
+[R] Request
+1. .gitlab-ci.yml at the root of the repository, with the image
+   python:3.12-slim, a pip cache keyed by pyproject.toml, and three stages:
+   - test: two jobs that install the package and run pytest with
+     --junitxml, one for the tests of the package (tests/test_*.py) and
+     one for tests/scenarios; both publish the JUnit report with
+     artifacts:reports:junit, even when a test fails (when: always), and
+     the job of the scenarios keeps out/traceability.json;
+   - report: a job traceability that needs test:scenarios, runs also
+     after a failure (when: always) and publishes the table of
+     tools/traceability.py --markdown as an artifact;
+   - smoke: a job that runs only in a pipeline schedule:
+     tcg-dataapp run --with-today, then the check of freshness of S11.
+2. workflow:rules so that a commit pushed to a branch with an open merge
+   request runs one pipeline (the merge request pipeline), not two.
+3. Push the branch, open a merge request to main and show the pipeline,
+   the test report of the merge request and the artifact of the tree.
+4. In Settings &gt; Merge requests, turn on &quot;Pipelines must succeed&quot;, and
+   in CI/CD &gt; Schedules create a schedule of main at 0 6 * * * (UTC).
+
+Facts measured on 12/11/2026 (confirm before use):
+- the merge request pipeline of version 0.3.0: 9 tests in test:unit and
+  20 in test:scenarios, all passed; the tree reports 14 of 14 PASS.
+- a commit that disables the gate of S04 (MAX_NULL_SHARE = 1.0) fails
+  test:scenarios with 1 test, TC04.1; traceability still runs and marks
+  S04 FAIL 1/2; with &quot;Pipelines must succeed&quot; the merge is blocked.
+
+[E] Example
+test:scenarios:
+  stage: test
+  script:
+    - pytest tests/scenarios --junitxml=out/junit-scenarios.xml
+  artifacts:
+    when: always
+    reports:
+      junit: out/junit-scenarios.xml
+
+[A] Adjustments
+- The pipeline has no secret and no network in the tests: the plugin of
+  conftest.py already blocks it. Only the smoke job uses the network.
+- A failed test is never retried in CI and never marked allow_failure:
+  the red pipeline is the result that the merge request must show.
+- Do not commit .venv/, out/ or warehouse/; .gitignore already lists them.
+
+[T] Type of output
+The file, the output of git push, and a description of what GitLab shows:
+the pipeline graph, the test report and the widget of the merge request.
+
+[E] Extras
+Show the plan before editing. Record this prompt in docs/prompts.md.
+Stop at the end.</code></pre></div><p>Done when:</p><ul><li>the merge request shows the test report of both test jobs</li><li>a failing scenario turns the pipeline red and blocks the merge</li><li>the job of the tree runs also after a failure, and the schedule of main exists</li></ul>
       </section>
       <section class="mat-section" id="graded">
         <h2>19. The graded activity</h2>
-<p>The work of this session is the in-class graded activity. Each student, alone, applies the six steps of the method to the DataApp of the group: the business drivers and quality attributes, the rated utility tree, the scenarios in six parts, the test cases traced to them, the tests implemented and run on the code as it is, and the findings read back into the tree. The statement is the DAG and Testing Activity on Adalove. The work is individual and is done on a branch of the project repository named <code>graded-activity/student-name</code>, which holds a Prefect pipeline, as built in Lesson 8, and the unit tests derived in the six steps. The implementation, the testing approach and the instructions of use are documented in a pull request, and only the link is submitted, by the Friday of the same week (04/12/2026). The criteria are those listed in the activity on Adalove.</p>
+<p>The work of this session is the in-class graded activity. Each student, alone, applies the six steps of the method to the DataApp of the group: the business drivers and quality attributes, the rated utility tree, the scenarios in six parts, the test cases traced to them, the tests implemented and run on the code as it is, and the findings read back into the tree. The statement is the DAG and Testing Activity on Adalove. The work is individual and is done on a branch of the project repository named <code>graded-activity/student-name</code>, which holds a Prefect pipeline, as built in Lesson 8, and the unit tests derived in the six steps. The implementation, the testing approach and the instructions of use are documented in a pull request, and only the link is submitted, by the Friday of the same week (04/12/2026). The criteria are those listed in the activity on Adalove. On git.inteli.edu.br the pull request is a merge request, and the pipeline of step 07 runs the tests of the branch on each push and shows their report in it.</p>
       </section>
       <section class="mat-section" id="mistakes">
         <h2>20. Recurring mistakes</h2>

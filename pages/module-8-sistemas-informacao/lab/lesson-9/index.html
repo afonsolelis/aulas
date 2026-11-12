@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 9 Lab · ATAM tests and the GitLab pipeline · Module 8 · Inteli</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧪</text></svg>">
+  <link href="../../../../css/inteli-styles.css" rel="stylesheet">
+  <style>
+    body.tm { min-height: 100vh; }
+    /* A margem direita deixa livre a faixa dos botões flutuantes (início e semana), fixos a 14px da borda. */
+    .lab { max-width: 1600px; min-width: 0; width: 100%; box-sizing: border-box; margin: 0 auto; padding: 20px 76px 0 24px; }
+    .lab-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 16px; border-bottom: 1px solid var(--ds-borda); }
+    .lab-top nav { display: flex; flex-wrap: wrap; gap: 6px 18px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); }
+    .lab-top nav a { text-decoration: none; color: var(--ds-texto); }
+    .lab-top nav a span { color: var(--ds-texto-fraco); }
+    .lab-top nav a:hover { color: var(--ds-texto-forte); text-decoration: underline; }
+    .lab-top img { width: 64px; display: block; }
+    .lab-head { padding: 24px 0 14px; }
+    .lab-head .meta { margin: 0 0 10px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); color: var(--ds-texto-suave); }
+    .lab-head h1 { margin: 0; font-family: var(--ds-fonte-mono); font-weight: 500; font-size: clamp(1.6rem, 1rem + 2vw, 2.4rem); letter-spacing: -0.02em; color: var(--ds-texto-forte); }
+    .lab-head p { margin: 12px 0 0; max-width: 100ch; line-height: 1.6; color: var(--ds-texto); }
+
+    /* Fluxo do DataApp: cada etapa acende o trecho que ela constrói. */
+    .flow { display: grid; grid-template-columns: repeat(11, auto); align-items: stretch; gap: 0; margin: 18px 0 6px; overflow-x: auto; }
+    .flow .node { border: 1px solid var(--ds-borda-forte); background: var(--ds-fundo); padding: 10px 12px; min-width: 120px; display: flex; flex-direction: column; gap: 4px; transition: border-color var(--ds-rapido), background var(--ds-rapido); }
+    .flow .node b { font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); font-weight: 600; color: var(--ds-texto-forte); }
+    .flow .node span { font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); line-height: 1.4; }
+    .flow .node code { font-size: var(--ds-fs-micro); }
+    .flow .node .st { font-family: var(--ds-fonte-mono); color: var(--ds-texto-fraco); }
+    .flow .arrow { display: flex; align-items: center; padding: 0 6px; font-family: var(--ds-fonte-mono); color: var(--ds-texto-fraco); }
+    .flow .node.on { border-color: var(--inteli-roxo); background: var(--ds-roxo-tinta); box-shadow: inset 3px 0 0 var(--inteli-verde); }
+    .flow .node.done .st { color: var(--ds-verde-texto); }
+    .flow-run { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; border: 1px dashed var(--ds-borda-forte); padding: 8px 12px; margin-bottom: 14px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); }
+    .flow-run b { color: var(--ds-texto-forte); font-weight: 600; }
+    .flow-run.on { border-style: solid; border-color: var(--inteli-roxo); background: var(--ds-roxo-tinta); }
+
+    .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 12px; }
+    .controls .lbl { font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); margin-right: 4px; }
+    .btn-lab { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border: 1px solid var(--ds-borda-forte); background: var(--ds-fundo); color: var(--ds-texto-forte); font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); font-weight: 500; cursor: pointer; white-space: nowrap; border-radius: var(--ds-raio-1); }
+    .btn-lab:hover { background: var(--ds-fundo-fraco); border-color: var(--inteli-cinza-400); }
+    .btn-lab.primary { background: var(--inteli-roxo); border-color: var(--inteli-roxo); color: var(--ds-texto-inverso); }
+    .btn-lab.primary:hover { background: var(--ds-roxo-hover); }
+    .btn-lab.step-done { border-color: var(--inteli-verde); }
+    .btn-lab.step-done::before { content: "✓"; color: var(--ds-verde-texto); }
+    .btn-lab:disabled { opacity: 0.5; cursor: default; }
+    .btn-lab[aria-pressed="true"] { background: var(--ds-roxo-tinta); border-color: var(--inteli-roxo); }
+    .btn-lab.primary[aria-pressed="true"] { background: var(--inteli-roxo); color: var(--ds-texto-inverso); }
+
+    /* ===== O editor simulado ===== */
+    .ide { --ide-bg: var(--ds-terminal); --ide-side: var(--inteli-roxo); --ide-line: rgba(255, 255, 255, 0.09); --ide-txt: var(--inteli-cinza-100); --ide-dim: var(--inteli-cinza-400);
+      height: clamp(640px, 82vh, 980px); display: grid; grid-template-rows: 30px minmax(0, 1fr) 24px; border: 1px solid var(--inteli-roxo); background: var(--ide-bg); color: var(--ide-txt); font-family: var(--ds-fonte-mono); font-variant-ligatures: none; font-size: 12.5px; margin-bottom: 28px; min-width: 0; }
+    .ide button { font-family: inherit; }
+    .ide-title { display: flex; align-items: center; gap: 10px; padding: 0 10px; background: var(--ide-side); border-bottom: 1px solid var(--ide-line); font-size: 12px; color: var(--ide-dim); }
+    .ide-title .dots { display: flex; gap: 6px; }
+    .ide-title .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--ide-line); display: block; }
+    .ide-title .t { flex: 1; text-align: center; }
+    .ide-title .sim { color: var(--inteli-verde); }
+    .ide-body { display: grid; grid-template-columns: 44px 230px minmax(0, 1fr) 340px; min-height: 0; }
+    .ide-act { background: var(--ide-side); border-right: 1px solid var(--ide-line); display: flex; flex-direction: column; align-items: center; padding-top: 6px; gap: 2px; }
+    .ide-act button { width: 44px; height: 42px; border: 0; background: transparent; color: var(--ide-dim); font-size: 17px; cursor: pointer; border-left: 2px solid transparent; position: relative; }
+    .ide-act button[aria-pressed="true"] { color: var(--inteli-branco); border-left-color: var(--inteli-verde); }
+    .ide-act button .badge { position: absolute; right: 6px; bottom: 6px; font-size: 9px; min-width: 14px; height: 14px; line-height: 14px; border-radius: 2px; background: var(--inteli-verde); color: var(--inteli-roxo); font-weight: 700; }
+    .ide-side { background: var(--ide-side); border-right: 1px solid var(--ide-line); display: flex; flex-direction: column; min-height: 0; }
+    .ide-side h2 { margin: 0; padding: 9px 12px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ide-dim); font-family: inherit; }
+    .tree { overflow: auto; flex: 1; padding-bottom: 12px; }
+    .tree .row { display: flex; align-items: center; gap: 5px; height: 22px; padding-right: 8px; white-space: nowrap; cursor: pointer; color: var(--ide-txt); }
+    .tree .row:hover { background: var(--ide-line); }
+    .tree .row.active { background: rgba(137, 206, 165, 0.16); }
+    .tree .row .ic { width: 14px; text-align: center; color: var(--ide-dim); font-size: 11px; flex: 0 0 auto; }
+    .tree .row .nm { overflow: hidden; text-overflow: ellipsis; }
+    .tree .row .g { margin-left: auto; font-size: 10px; font-weight: 700; }
+    .tree .row .g.U { color: var(--inteli-verde); }
+    .tree .row .g.M { color: var(--inteli-cinza-300); }
+    .tree .row.dir { color: var(--ide-dim); cursor: default; }
+    .tree .row.fresh { animation: fresh 1.2s ease-out; }
+    @keyframes fresh { from { background: rgba(137, 206, 165, 0.35); } to { background: transparent; } }
+    .tree .empty { padding: 8px 14px; color: var(--ide-dim); line-height: 1.5; }
+    .checklist { overflow: auto; flex: 1; padding: 0 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+    .checklist .ck { border: 1px solid var(--ide-line); padding: 7px 9px; display: grid; grid-template-columns: 16px 1fr; gap: 2px 6px; font-size: 11.5px; line-height: 1.4; }
+    .checklist .ck i { font-style: normal; color: var(--ide-dim); grid-row: span 2; }
+    .checklist .ck b { font-weight: 600; color: var(--inteli-branco); }
+    .checklist .ck span { color: var(--ide-dim); }
+    .checklist .ck.ok { border-color: rgba(137, 206, 165, 0.45); }
+    .checklist .ck.ok i { color: var(--inteli-verde); }
+    .checklist .ck.flash { animation: fresh 1.4s ease-out; }
+    .checklist p { margin: 0 0 4px; color: var(--ide-dim); font-size: 11.5px; line-height: 1.5; }
+
+    .ide-main { display: grid; grid-template-rows: 34px minmax(0, 1fr) 6px minmax(0, var(--panel-h, 48%)); min-width: 0; min-height: 0; }
+    .tabs { display: flex; background: var(--ide-side); overflow-x: auto; scrollbar-width: thin; }
+    .tabs .tab { display: flex; align-items: center; gap: 8px; padding: 0 10px 0 12px; border-right: 1px solid var(--ide-line); color: var(--ide-dim); cursor: pointer; white-space: nowrap; border-top: 2px solid transparent; background: transparent; }
+    .tabs .tab.active { background: var(--ide-bg); color: var(--inteli-branco); border-top-color: var(--inteli-verde); }
+    .tabs .tab .x { opacity: 0.6; font-size: 11px; }
+    .tabs .tab .x:hover { opacity: 1; }
+    .tabs .tab em { font-style: italic; }
+    .editor { overflow: auto; position: relative; min-height: 0; }
+    .editor .welcome { padding: 32px; color: var(--ide-dim); line-height: 1.7; max-width: 70ch; font-family: var(--ds-fonte); font-size: 14px; }
+    .editor .welcome b { color: var(--inteli-branco); }
+    .editor .welcome kbd { font-family: var(--ds-fonte-mono); border: 1px solid var(--ide-line); padding: 0 5px; }
+    .code { display: grid; grid-template-columns: max-content minmax(0, 1fr); padding: 8px 0 40px; line-height: 1.6; }
+    .code .ln { text-align: right; padding: 0 14px 0 10px; color: var(--ide-dim); user-select: none; opacity: 0.6; }
+    .code .tx { white-space: pre; padding-right: 24px; tab-size: 4; }
+    .code .tx.cur::after { content: ""; display: inline-block; width: 7px; height: 1.1em; vertical-align: text-bottom; background: var(--inteli-verde); animation: blink 1s steps(1) infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+    .code .tx.del { text-decoration: line-through; text-decoration-color: var(--inteli-coral); opacity: 0.55; }
+    .code .tx.keep { background: rgba(137, 206, 165, 0.10); }
+    .code .ln.del::before { content: "− "; color: var(--inteli-coral); }
+    .code .ln.keep::before { content: "+ "; color: var(--inteli-verde); }
+    .k { color: var(--inteli-verde); }
+    .s { color: var(--inteli-coral); }
+    .c { color: var(--ide-dim); font-style: italic; }
+    .n { color: var(--inteli-branco); font-weight: 600; }
+    .f { color: var(--inteli-cinza-300); text-decoration: underline; text-decoration-color: var(--ide-line); text-underline-offset: 3px; }
+    .h { color: var(--inteli-branco); font-weight: 700; }
+    .note-bar { position: sticky; top: 0; z-index: 1; padding: 8px 14px; background: var(--ide-side); border-bottom: 1px solid var(--ide-line); color: var(--ide-txt); font-family: var(--ds-fonte); font-size: 13px; line-height: 1.5; }
+    .note-bar b { color: var(--inteli-verde); font-weight: 600; }
+
+    .splitter { background: var(--ide-line); cursor: row-resize; }
+    .panel { display: grid; grid-template-rows: 30px minmax(0, 1fr); min-height: 0; background: var(--ide-bg); }
+    .ptabs { display: flex; gap: 2px; padding: 0 8px; border-bottom: 1px solid var(--ide-line); overflow-x: auto; }
+    .ptabs button { border: 0; background: transparent; color: var(--ide-dim); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; padding: 0 10px; cursor: pointer; border-bottom: 1px solid transparent; white-space: nowrap; }
+    .ptabs button[aria-selected="true"] { color: var(--inteli-branco); border-bottom-color: var(--inteli-verde); }
+    .ptabs button .cnt { margin-left: 4px; color: var(--inteli-verde); }
+    .pbody { overflow: auto; min-height: 0; }
+    .pview { display: none; min-height: 100%; }
+    .pview.on { display: block; }
+    .term { padding: 8px 14px 16px; white-space: pre-wrap; word-break: break-word; line-height: 1.5; }
+    .term .ps { color: var(--inteli-verde); }
+    .term .cmd { color: var(--inteli-branco); }
+    .term .err { color: var(--inteli-coral); }
+    .term .okl { color: var(--inteli-verde); }
+    .term .dim { color: var(--ide-dim); }
+    .term .cur::after { content: ""; display: inline-block; width: 7px; height: 1em; vertical-align: text-bottom; background: var(--ide-txt); animation: blink 1s steps(1) infinite; }
+    table.dt { border-collapse: collapse; width: 100%; font-size: 11.5px; }
+    table.dt th { position: sticky; top: 0; background: var(--ide-side); text-align: left; padding: 5px 10px; font-weight: 600; color: var(--inteli-branco); border-bottom: 1px solid var(--ide-line); white-space: nowrap; z-index: 1; }
+    table.dt td { padding: 4px 10px; border-bottom: 1px solid var(--ide-line); white-space: nowrap; max-width: 560px; overflow: hidden; text-overflow: ellipsis; vertical-align: top; }
+    table.dt td.num { text-align: right; }
+    table.dt tr.hl td { background: rgba(137, 206, 165, 0.14); }
+    table.dt tr.new td { animation: fresh 1.4s ease-out; }
+    table.dt tr.click { cursor: pointer; }
+    table.dt tr.click:hover td { background: var(--ide-line); }
+    .tag-set { color: var(--inteli-verde); }
+    .tag-product { color: var(--inteli-cinza-300); }
+    .tag-price { color: var(--inteli-coral); }
+    .pv-split { display: grid; grid-template-columns: minmax(260px, 0.9fr) minmax(0, 1.4fr); min-height: 100%; }
+    .pv-split > div { overflow: auto; border-right: 1px solid var(--ide-line); }
+    .pv-head { padding: 8px 12px; color: var(--ide-dim); line-height: 1.5; font-family: var(--ds-fonte); font-size: 12.5px; border-bottom: 1px solid var(--ide-line); }
+    .pv-head b { color: var(--inteli-branco); font-family: var(--ds-fonte-mono); font-weight: 600; }
+    .pv-head .flash { color: var(--inteli-verde); }
+    .schema { padding: 8px 12px; border-bottom: 1px solid var(--ide-line); display: flex; gap: 6px; flex-wrap: wrap; }
+    .schema span { border: 1px solid var(--ide-line); padding: 2px 7px; }
+    .schema span em { font-style: normal; color: var(--ide-dim); }
+    .gold-list button { display: flex; width: 100%; justify-content: space-between; gap: 10px; padding: 5px 12px; border: 0; background: transparent; color: var(--ide-txt); cursor: pointer; text-align: left; font-size: 12px; }
+    .gold-list button:hover { background: var(--ide-line); }
+    .gold-list button[aria-pressed="true"] { background: rgba(137, 206, 165, 0.16); }
+    .gold-list button span { color: var(--ide-dim); }
+    .gold-list button.new { animation: fresh 1.4s ease-out; }
+    .gold-list .grp { padding: 8px 12px 2px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ide-dim); }
+    .empty-p { padding: 18px; color: var(--ide-dim); font-family: var(--ds-fonte); font-size: 13px; line-height: 1.6; max-width: 80ch; }
+    .net-row td:first-child { color: var(--inteli-verde); }
+
+    /* Rastreio de uma carta: da linha de db_ingestion ao relatório. */
+    .trace { padding: 12px 14px 20px; display: flex; flex-direction: column; gap: 10px; }
+    .trace .stage { border: 1px solid var(--ide-line); }
+    .trace .stage > header { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; padding: 6px 10px; background: var(--ide-side); }
+    .trace .stage > header b { color: var(--inteli-branco); font-weight: 600; }
+    .trace .stage > header span { color: var(--ide-dim); font-family: var(--ds-fonte); font-size: 12px; }
+    .trace .stage .body { overflow-x: auto; }
+    .trace .down { text-align: center; color: var(--ide-dim); font-size: 11px; }
+    .trace .down code { color: var(--inteli-verde); }
+    .bars { display: flex; align-items: flex-end; gap: 14px; height: 150px; padding: 12px 14px 4px; }
+    .bars .bar { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; height: 100%; font-size: 11px; color: var(--ide-dim); }
+    .bars .bar i { display: block; width: 100%; max-width: 46px; background: var(--inteli-cinza-400); border-radius: 0 0 0 0; }
+    .bars .bar.frozen i { background: var(--inteli-verde); }
+    .bars .bar.last i { background: var(--inteli-cinza-100); }
+    .bars .bar b { color: var(--inteli-branco); font-weight: 600; }
+
+    /* Grafo do pipeline */
+    .dag { display: flex; gap: 22px; padding: 16px 14px 20px; align-items: center; overflow-x: auto; min-height: 100%; }
+    .dag .col { display: flex; flex-direction: column; gap: 6px; position: relative; }
+    .dag .col + .col::before { content: "▶"; position: absolute; left: -17px; top: 50%; transform: translateY(-50%); color: var(--ide-dim); font-size: 10px; }
+    .dag .t { border: 1px solid var(--ide-line); padding: 5px 8px; min-width: 150px; font-size: 11px; display: grid; gap: 1px; }
+    .dag .t small { color: var(--ide-dim); font-size: 10px; }
+    .dag .t.run { border-color: var(--inteli-cinza-100); animation: blink 0.8s steps(1) infinite; }
+    .dag .t.ok { border-color: var(--inteli-verde); }
+    .dag .t.ok small { color: var(--inteli-verde); }
+    .dag .t.fail { border-color: var(--inteli-coral); }
+    .dag .t.fail small { color: var(--inteli-coral); }
+    .dag .t.skip { border-style: dashed; opacity: 0.55; }
+    .dag-legend { padding: 0 14px 12px; color: var(--ide-dim); font-family: var(--ds-fonte); font-size: 12px; }
+
+    /* Painel do agente */
+    .ide-agent { background: var(--ide-side); border-left: 1px solid var(--ide-line); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-height: 0; }
+    .ide-agent h2 { margin: 0; padding: 9px 12px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ide-dim); font-family: inherit; border-bottom: 1px solid var(--ide-line); }
+    .chat { overflow: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 10px; }
+    .msg { font-family: var(--ds-fonte); font-size: 13px; line-height: 1.5; }
+    .msg .who { font-family: var(--ds-fonte-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ide-dim); margin-bottom: 3px; }
+    .msg.user .bubble { border: 1px solid var(--ide-line); background: var(--ide-bg); padding: 8px 10px; }
+    .msg.user details summary { cursor: pointer; font-family: var(--ds-fonte-mono); font-size: 12px; color: var(--inteli-branco); }
+    .msg.user pre { margin: 8px 0 0; white-space: pre-wrap; font-family: var(--ds-fonte-mono); font-size: 11px; line-height: 1.5; color: var(--ide-txt); max-height: 320px; overflow: auto; }
+    .msg.agent .bubble { color: var(--ide-txt); }
+    .msg.agent .bubble b { color: var(--inteli-branco); }
+    .msg.agent .bubble code { font-family: var(--ds-fonte-mono); font-size: 12px; color: var(--inteli-verde); }
+    .msg.agent ul { margin: 4px 0 0; padding-left: 18px; }
+    .act { font-family: var(--ds-fonte-mono); font-size: 11.5px; color: var(--ide-dim); display: flex; gap: 6px; align-items: baseline; }
+    .act b { color: var(--ide-txt); font-weight: 500; }
+    .act .ok { color: var(--inteli-verde); }
+    .act.running .ok { color: var(--inteli-cinza-100); animation: blink 0.8s steps(1) infinite; }
+    .compose { border-top: 1px solid var(--ide-line); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+    .compose .next { font-family: var(--ds-fonte); font-size: 12.5px; color: var(--ide-dim); line-height: 1.45; }
+    .compose .next b { color: var(--inteli-branco); }
+    .compose .row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .compose button { height: 30px; padding: 0 10px; border: 1px solid var(--inteli-verde); background: var(--inteli-verde); color: var(--inteli-roxo); font-weight: 600; cursor: pointer; font-size: 12px; border-radius: var(--ds-raio-1); }
+    .compose button.ghost { background: transparent; color: var(--ide-txt); border-color: var(--ide-line); font-weight: 500; }
+    .compose button:disabled { opacity: 0.45; cursor: default; }
+
+    .ide-status { display: flex; align-items: center; gap: 16px; padding: 0 10px; background: var(--inteli-roxo); border-top: 1px solid var(--ide-line); font-size: 11px; color: var(--ide-txt); white-space: nowrap; overflow: hidden; }
+    .ide-status .sp { flex: 1; }
+    .ide-status .busy { color: var(--inteli-verde); }
+
+    .notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 0 0 28px; }
+    .notes article { border: 1px solid var(--ds-borda-forte); padding: 14px 16px; }
+    .notes h2 { margin: 0 0 6px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-ui); font-weight: 600; color: var(--ds-texto-forte); }
+    .notes p, .notes li { margin: 0; font-size: var(--ds-fs-meta); line-height: 1.55; color: var(--ds-texto); }
+    .notes ul { margin: 0; padding-left: 18px; }
+
+
+    /* Tela cheia: a barra de etapas e o editor ocupam a tela inteira. */
+    .ide-full { margin-left: 10px; border: 1px solid var(--ide-line); background: transparent; color: var(--ide-txt); height: 22px; padding: 0 8px; cursor: pointer; border-radius: var(--ds-raio-1); }
+    .ide-full:hover { border-color: var(--inteli-verde); color: var(--inteli-verde); }
+    .stage.full { position: fixed; inset: 0; z-index: 1000; background: var(--ds-fundo); padding: 8px 10px; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 8px; }
+    .stage:fullscreen { background: var(--ds-fundo); padding: 8px 10px; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 8px; }
+    .stage.full .controls, .stage:fullscreen .controls { margin: 0; }
+    .stage.full .ide, .stage:fullscreen .ide { height: 100%; margin: 0; font-size: 14px; }
+    .stage.full .ide-body, .stage:fullscreen .ide-body { grid-template-columns: 44px 250px minmax(0, 1fr) 380px; grid-template-rows: none; }
+    .stage.full .ide-agent, .stage:fullscreen .ide-agent { grid-column: auto; border-left: 1px solid var(--ide-line); border-top: 0; max-height: none; }
+    .stage.full .msg, .stage:fullscreen .msg { font-size: 14px; }
+    body.no-scroll { overflow: hidden; }
+
+    /* Janela do prompt: leitura confortável, uma seção do CRAETE por bloco. */
+    dialog#prompt-dlg { width: min(1000px, 94vw); max-height: 90vh; padding: 0; border: 1px solid var(--ds-texto-forte); border-radius: var(--ds-raio-2); background: var(--ds-fundo); color: var(--ds-texto-forte); }
+    dialog#prompt-dlg[open] { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr) auto; }
+    dialog#prompt-dlg::backdrop { background: rgba(46, 38, 64, 0.55); }
+    .pd-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; padding: 14px 20px 10px; border-bottom: 1px solid var(--ds-borda); }
+    .pd-head h2 { margin: 0; font-family: var(--ds-fonte-mono); font-size: 1.15rem; font-weight: 600; }
+    .pd-head span { font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); }
+    .pd-head .x { margin-left: auto; }
+    .pd-nav { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 20px; border-bottom: 1px solid var(--ds-borda); background: var(--ds-fundo-fraco); }
+    .pd-nav .grp { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+    .pd-nav .sep { width: 1px; align-self: stretch; background: var(--ds-borda-forte); margin: 0 6px; }
+    .pd-nav .lbl { font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); margin-right: 2px; }
+    .pd-body { overflow: auto; padding: 8px 20px 20px; }
+    .pd-sec { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--ds-borda); }
+    .pd-sec:last-child { border-bottom: 0; }
+    .pd-sec h3 { margin: 0; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); font-weight: 600; color: var(--ds-texto-forte); }
+    .pd-sec h3 b { display: inline-block; min-width: 26px; padding: 1px 4px; margin-right: 6px; text-align: center; background: var(--inteli-roxo); color: var(--ds-texto-inverso); border-radius: var(--ds-raio-1); font-weight: 600; }
+    .pd-sec pre { margin: 0; white-space: pre-wrap; font-family: var(--ds-fonte-mono); font-size: 0.92rem; line-height: 1.6; color: var(--ds-texto-forte); font-variant-ligatures: none; }
+    .pd-sec.facts pre { color: var(--ds-texto); }
+    .pd-sec.flash { animation: pdflash 1.2s ease-out; }
+    @keyframes pdflash { from { background: var(--ds-roxo-tinta); } to { background: transparent; } }
+    .pd-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 20px; border-top: 1px solid var(--ds-borda); background: var(--ds-fundo-fraco); }
+    .pd-foot .hint { margin-right: auto; font-size: var(--ds-fs-meta); color: var(--ds-texto-suave); }
+    .msg.user .open-prompt { display: block; width: 100%; text-align: left; border: 0; background: transparent; color: var(--inteli-branco); font-family: var(--ds-fonte-mono); font-size: 12px; cursor: pointer; padding: 0; }
+    .msg.user .open-prompt span { color: var(--inteli-verde); }
+    .msg.user .open-prompt:hover span { text-decoration: underline; }
+    @media (max-width: 700px) { .pd-sec { grid-template-columns: minmax(0, 1fr); gap: 6px; } .pd-sec pre { font-size: 0.8rem; } .pd-nav .sep { display: none; } .pd-head, .pd-nav, .pd-body, .pd-foot { padding-left: 14px; padding-right: 14px; } }
+
+    @media (max-width: 1250px) {
+      .ide-body { grid-template-columns: 44px 200px minmax(0, 1fr); }
+      .ide-agent { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--ide-line); max-height: 380px; }
+      .ide { height: auto; grid-template-rows: 30px auto 24px; }
+      .ide-body { grid-template-rows: clamp(560px, 70vh, 820px) auto; }
+      .notes { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 760px) {
+      .lab { padding: 16px 16px 0; }
+      .ide-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: 200px clamp(520px, 75vh, 760px) auto; }
+      .ide-act { display: none; }
+      .ide-side { border-right: 0; border-bottom: 1px solid var(--ide-line); }
+      .pv-split { grid-template-columns: 1fr; }
+    }
+
+    /* ===== Aula 9: a árvore de utilidade, o relatório de testes e o pipeline do GitLab ===== */
+    .flow { grid-template-columns: repeat(13, auto); }
+    .flow .node { min-width: 118px; }
+    .ide-main { --panel-h: 56%; }
+    .st-badge { display: inline-block; padding: 0 6px; border: 1px solid var(--ide-line); border-radius: var(--ds-raio-1); font-size: 10.5px; line-height: 17px; color: var(--ide-txt); white-space: nowrap; }
+    .st-badge.PASS, .st-badge.passed, .st-badge.success { border-color: var(--inteli-verde); color: var(--inteli-verde); }
+    .st-badge.FAIL, .st-badge.failed { border-color: var(--inteli-coral); color: var(--inteli-coral); }
+    .st-badge.running { border-color: var(--inteli-cinza-100); color: var(--inteli-branco); }
+    .st-badge.skipped, .st-badge.created, .st-badge.pending, .st-badge.NOTRUN { border-style: dashed; color: var(--ide-dim); }
+    .st-badge.scheduled { color: var(--inteli-cinza-300); }
+
+    /* Árvore de utilidade */
+    .ut { padding: 10px 14px 18px; font-size: 12px; line-height: 1.55; }
+    .ut .ut-root { color: var(--inteli-branco); font-weight: 600; }
+    .ut .ut-a { margin: 6px 0 0 0; color: var(--inteli-branco); }
+    .ut .ut-r { margin: 2px 0 0 18px; color: var(--ide-txt); }
+    .ut .ut-l { margin: 2px 0 0 36px; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; cursor: pointer; padding: 1px 6px; border-left: 2px solid transparent; }
+    .ut .ut-l:hover { background: var(--ide-line); }
+    .ut .ut-l.FAIL { border-left-color: var(--inteli-coral); }
+    .ut .ut-l.PASS { border-left-color: var(--inteli-verde); }
+    .ut .ut-l b { color: var(--inteli-branco); font-weight: 600; }
+    .ut .ut-l .rate { color: var(--inteli-verde); }
+    .ut .ut-l .rate.H { color: var(--inteli-coral); }
+    .ut .ut-l em { font-style: normal; color: var(--ide-dim); font-family: var(--ds-fonte); }
+    .ut .ut-l.new { animation: fresh 1.4s ease-out; }
+    .ut-bar { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; padding: 7px 12px; border-bottom: 1px solid var(--ide-line); background: var(--ide-side); font-size: 11.5px; color: var(--ide-dim); }
+    .ut-bar button, .run-bar button { border: 1px solid var(--ide-line); background: transparent; color: var(--ide-txt); height: 24px; padding: 0 8px; cursor: pointer; font-size: 11.5px; border-radius: var(--ds-raio-1); }
+    .ut-bar button[aria-pressed="true"], .run-bar button[aria-pressed="true"] { border-color: var(--inteli-verde); color: var(--inteli-branco); background: rgba(137, 206, 165, 0.12); }
+    .ut-bar b { color: var(--inteli-branco); }
+
+    /* Pipeline no estilo do GitLab */
+    .run-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 7px 12px; border-bottom: 1px solid var(--ide-line); background: var(--ide-side); }
+    .run-bar .lbl { color: var(--ide-dim); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; }
+    .run-bar button.replay { margin-left: auto; border-color: var(--inteli-verde); color: var(--inteli-verde); }
+    .run-bar button:disabled { opacity: 0.45; cursor: default; }
+    .pl-head { display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 8px 12px; border-bottom: 1px solid var(--ide-line); font-size: 11.5px; color: var(--ide-dim); }
+    .pl-head b { color: var(--inteli-branco); font-weight: 600; }
+    .stages { display: flex; gap: 28px; padding: 14px 14px 12px; overflow-x: auto; }
+    .stage-col { min-width: 210px; display: flex; flex-direction: column; gap: 8px; }
+    .stage-col h4 { margin: 0 0 2px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ide-dim); font-weight: 600; font-family: inherit; }
+    .job { display: grid; grid-template-columns: 20px 1fr auto; gap: 2px 8px; align-items: center; border: 1px solid var(--ide-line); padding: 6px 10px; cursor: pointer; border-radius: 6px; font-size: 12px; }
+    .job:hover { border-color: var(--inteli-cinza-400); }
+    .job.sel { outline: 1px solid var(--inteli-branco); outline-offset: 1px; }
+    .job i { font-style: normal; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; border: 1px solid var(--ide-line); color: var(--ide-dim); }
+    .job.success i { border-color: var(--inteli-verde); color: var(--inteli-verde); }
+    .job.failed i { border-color: var(--inteli-coral); color: var(--inteli-coral); }
+    .job.running i { border-color: var(--inteli-cinza-100); color: var(--inteli-branco); animation: blink 0.8s steps(1) infinite; }
+    .job.skipped { opacity: 0.55; border-style: dashed; }
+    .job span { color: var(--ide-txt); }
+    .job small { color: var(--ide-dim); font-size: 10.5px; }
+    .job .need { grid-column: 2 / -1; font-size: 10px; color: var(--ide-dim); }
+    .pl-split { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); border-top: 1px solid var(--ide-line); }
+    .pl-split > div { min-width: 0; overflow: auto; max-height: 360px; }
+    .pl-split > div + div { border-left: 1px solid var(--ide-line); }
+    .sub-h { padding: 6px 12px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ide-dim); border-bottom: 1px solid var(--ide-line); position: sticky; top: 0; background: var(--ide-bg); z-index: 2; }
+    .joblog { padding: 6px 12px 14px; white-space: pre-wrap; word-break: break-word; font-size: 11.5px; line-height: 1.5; }
+    .joblog .cmd { color: var(--inteli-verde); }
+    .joblog .err { color: var(--inteli-coral); }
+    .joblog .okl { color: var(--inteli-verde); }
+    .joblog .dim { color: var(--ide-dim); }
+    .joblog .tbl { white-space: pre; }
+    .mr { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; font-size: 12px; }
+    .mr .box { border: 1px solid var(--ide-line); padding: 8px 10px; display: grid; gap: 4px; }
+    .mr .box b { color: var(--inteli-branco); font-weight: 600; }
+    .mr .box span { color: var(--ide-dim); font-family: var(--ds-fonte); font-size: 12.5px; line-height: 1.45; }
+    .mr .box.bad { border-color: var(--inteli-coral); }
+    .mr .box.ok { border-color: var(--inteli-verde); }
+    .mr .merge { justify-self: start; height: 26px; padding: 0 12px; border: 1px solid var(--inteli-verde); background: var(--inteli-verde); color: var(--inteli-roxo); font-weight: 600; border-radius: var(--ds-raio-1); font-family: var(--ds-fonte-mono); font-size: 12px; }
+    .mr .merge:disabled { background: transparent; color: var(--ide-dim); border-color: var(--ide-line); }
+    .mr ul { margin: 0; padding-left: 16px; color: var(--ide-txt); }
+    .mr li.f { color: var(--inteli-coral); }
+    table.dt td.wrap { white-space: normal; }
+    .term .tbl { white-space: pre; display: block; overflow-x: auto; }
+    .term .sec { color: var(--inteli-verde); border-top: 1px solid var(--ide-line); margin-top: 6px; padding-top: 4px; display: block; }
+    .tree .row.gone .nm { text-decoration: line-through; opacity: 0.6; }
+    @media (max-width: 760px) { .pl-split { grid-template-columns: minmax(0, 1fr); } .pl-split > div + div { border-left: 0; border-top: 1px solid var(--ide-line); } }
+  </style>
+
+<!-- semana:css:start -->
+<link rel="stylesheet" href="../../../../css/semana-ano.css">
+<!-- semana:css:end -->
+<!-- ds:css -->
+<link rel="stylesheet" href="../../../../css/inteli-ds.css">
+</head>
+
+<body class="tm">
+  <div class="lab">
+    <header class="lab-top">
+      <a href="../../../home-module-8-sistemas-informacao.html"><img src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli Logo"></a>
+      <nav aria-label="Lesson 9">
+        <a href="../../../home-module-8-sistemas-informacao.html"><span>←</span> Module 8</a>
+        <a href="../../slides/slide-lesson-9.html"><span>[1]</span> Slides</a>
+        <a href="../../materials/lesson-9-material.html"><span>[2]</span> Material</a>
+        <a href="https://github.com/afonsolelis/aulas/tree/main/pages/module-8-sistemas-informacao/lab/lesson-9/tcg_dataapp" target="_blank" rel="noopener noreferrer"><span>[3]</span> Reference package</a>
+        <a href="../lesson-8/index.html"><span>[4]</span> Lab of Lesson 8</a>
+      </nav>
+    </header>
+
+    <section class="lab-head">
+      <p class="meta">Module 8 · Information Systems · Lesson 9 · Lab</p>
+      <h1>ATAM tests and the GitLab pipeline</h1>
+      <p>This page reproduces, in the browser, the session in which a coding agent tests the package <code>tcg-dataapp</code> of Lesson 7 with the method of the ATAM, and then makes the tests run on every push to the GitLab of Inteli. Six prompts go from the business drivers to the utility tree, the scenarios in six parts, the test cases, the tests and the findings; the seventh writes <code>.gitlab-ci.yml</code>. The panels below the editor show the utility tree with the result of each leaf, the report of each test run, and the pipelines of the merge request and of the daily schedule as GitLab presents them. Nothing runs here: the files are those of the repository, pytest ran on 12/11/2026, and the jobs of the pipelines ran on the same day in Docker, with the image and the commands of <code>.gitlab-ci.yml</code>.</p>
+    </section>
+
+    <section aria-label="The six steps of the ATAM and the pipeline">
+      <div class="flow" id="flow">
+        <div class="node" data-stage="drivers"><b>drivers</b><span>what the partner needs, and which qualities follow</span><span class="st">step 01</span></div>
+        <div class="arrow">▶</div>
+        <div class="node" data-stage="tree"><b>utility tree</b><span>leaves rated by importance and difficulty</span><span class="st">step 02</span></div>
+        <div class="arrow">▶</div>
+        <div class="node" data-stage="scen"><b>scenarios</b><span>six parts, ending in a measure</span><span class="st">step 03</span></div>
+        <div class="arrow">▶</div>
+        <div class="node" data-stage="cases"><b>test cases</b><span>each traced to one scenario</span><span class="st">step 04</span></div>
+        <div class="arrow">▶</div>
+        <div class="node" data-stage="tests"><b>tests</b><span>pytest on the code as it is</span><span class="st">step 05</span></div>
+        <div class="arrow">▶</div>
+        <div class="node" data-stage="find"><b>findings</b><span>risks closed, suite green</span><span class="st">step 06</span></div>
+        <div class="arrow">▶</div>
+        <div class="node" data-stage="ci"><b>.gitlab-ci.yml</b><span>every push, every merge request, every day</span><span class="st">step 07</span></div>
+      </div>
+      <div class="flow-run" id="flow-run"><b>The ATAM</b> turns the needs of the business into scenarios with a measure · <b>pytest</b> checks each measure and prints the result of each leaf · <b>GitLab CI</b> repeats the check on every change, and a red pipeline blocks the merge</div>
+    </section>
+
+    <div class="stage" id="stage">
+    <div class="controls" aria-label="Steps">
+      <span class="lbl">Steps</span>
+      <button class="btn-lab" data-step="0">01 · Drivers</button>
+      <button class="btn-lab" data-step="1">02 · Tree</button>
+      <button class="btn-lab" data-step="2">03 · Scenarios</button>
+      <button class="btn-lab" data-step="3">04 · Test cases</button>
+      <button class="btn-lab" data-step="4">05 · Tests</button>
+      <button class="btn-lab" data-step="5">06 · Findings</button>
+      <button class="btn-lab" data-step="6">07 · Pipeline</button>
+      <span class="lbl" style="margin-left:12px">Speed</span>
+      <button class="btn-lab" data-speed="1" aria-pressed="true">1×</button>
+      <button class="btn-lab" data-speed="3" aria-pressed="false">3×</button>
+      <button class="btn-lab" id="btn-skip">Finish step</button>
+      <button class="btn-lab" id="btn-reset">Reset</button>
+      <button class="btn-lab" id="btn-prompts" style="margin-left:12px">Prompts ↗</button>
+      <button class="btn-lab primary" id="btn-full" type="button" aria-pressed="false" title="Full screen (F)">⛶ Full screen</button>
+    </div>
+
+    <div class="ide" id="ide">
+      <div class="ide-title"><span class="dots"><i></i><i></i><i></i></span><span class="t">tcg-dataapp — <span id="title-file">Welcome</span></span><span class="sim">simulation</span><button class="ide-full" id="ide-full" type="button" title="Full screen (F)">⛶</button></div>
+      <div class="ide-body">
+        <nav class="ide-act" aria-label="Views">
+          <button id="act-files" aria-pressed="true" title="Explorer">🗎</button>
+          <button id="act-auto" aria-pressed="false" title="What the session delivers">⚙<span class="badge" id="auto-badge">0</span></button>
+        </nav>
+        <aside class="ide-side">
+          <div id="side-files" style="display:flex;flex-direction:column;min-height:0;flex:1">
+            <h2>Explorer · tcg-dataapp</h2>
+            <div class="tree" id="tree"></div>
+          </div>
+          <div id="side-auto" style="display:none;flex-direction:column;min-height:0;flex:1">
+            <h2>What the session delivers</h2>
+            <div class="checklist" id="checklist"></div>
+          </div>
+        </aside>
+        <main class="ide-main" id="ide-main">
+          <div class="tabs" id="tabs"></div>
+          <div class="editor" id="editor"></div>
+          <div class="splitter" id="splitter" title="Drag to resize"></div>
+          <section class="panel">
+            <div class="ptabs" role="tablist" id="ptabs">
+              <button role="tab" data-pv="term" aria-selected="true">Terminal</button>
+              <button role="tab" data-pv="ut" aria-selected="false">Utility tree<span class="cnt" id="cnt-ut"></span></button>
+              <button role="tab" data-pv="tests" aria-selected="false">Tests<span class="cnt" id="cnt-tests"></span></button>
+              <button role="tab" data-pv="ci" aria-selected="false">GitLab · pipelines<span class="cnt" id="cnt-ci"></span></button>
+            </div>
+            <div class="pbody">
+              <div class="pview on" id="pv-term"><div class="term" id="term"></div></div>
+              <div class="pview" id="pv-ut"></div>
+              <div class="pview" id="pv-tests"></div>
+              <div class="pview" id="pv-ci"></div>
+            </div>
+          </section>
+        </main>
+        <aside class="ide-agent" aria-label="Coding agent">
+          <h2>Agent · chat</h2>
+          <div class="chat" id="chat" aria-live="polite"></div>
+          <div class="compose">
+            <div class="next" id="next"></div>
+            <div class="row"><button id="btn-send">Send prompt 01</button><button class="ghost" id="btn-view-prompt">Read the prompt</button></div>
+          </div>
+        </aside>
+      </div>
+      <div class="ide-status"><span id="st-branch">⎇ main</span><span id="st-step">step —</span><span class="sp"></span><span id="st-busy"></span><span id="st-ver"></span><span>UTF-8</span></div>
+    </div>
+    </div>
+
+    <section class="notes" aria-label="Notes">
+      <article>
+        <h2>What is real and what is simulated</h2>
+        <p>The files of the editor are those of <code>lab/lesson-9/tcg_dataapp/</code>, and the folder starts as the package of <code>lab/lesson-7/</code>. Both runs of pytest are real: the first ran the tests of Lesson 9 on the code of Lesson 7, the second on version 0.3.0. Each job of the three pipelines ran in Docker on 12/11/2026, with the image, the rules, the order of stages and needs, the artifacts and the pip cache of <code>.gitlab-ci.yml</code>; its log is the real output of its commands. The lines of the GitLab runner around them, the output of <code>git push</code> and the screens of GitLab are reproductions, because the jobs did not run on a runner of git.inteli.edu.br. The agent and its messages are a staging of the session.</p>
+      </article>
+      <article>
+        <h2>How to use it in class</h2>
+        <ul>
+          <li>Steps 01 to 04 write documents; the panel <code>Utility tree</code> grows with them, and a click on a leaf opens its six parts.</li>
+          <li>Step 05 keeps the first run, with its failures; the tree turns red where the architecture failed a scenario.</li>
+          <li>Step 07 shows three pipelines; click a job to read its log and press “Replay” to watch the pipeline run on its recorded clock.</li>
+        </ul>
+      </article>
+      <article>
+        <h2>Doing it for real</h2>
+        <p>The README of <code>lab/lesson-9/</code> lists the commands. On git.inteli.edu.br, the repository of the group needs a runner available to the project (Settings › CI/CD › Runners), the protection “Pipelines must succeed” (Settings › Merge requests) and a schedule of main (Build › Pipeline schedules). Without a runner the pipeline stays pending. The reference package passes its 29 tests in about 10 s without network.</p>
+      </article>
+    </section>
+  </div>
+
+  <footer class="inteli-footer tm-rodape">
+    <div>
+      <ul>
+        <li><a href="../../../home-module-8-sistemas-informacao.html">Module 8</a></li>
+        <li><a href="../../../design-system.html">Design system</a></li>
+      </ul>
+      <p>Material created by professor Afonso Brandão for Inteli. Open reading license. Data: TCGplayer, through the public mirror tcgcsv.com. Method: ATAM, Software Engineering Institute.</p>
+    </div>
+  </footer>
+
+  <dialog id="prompt-dlg" aria-labelledby="pd-title">
+    <div class="pd-head"><h2 id="pd-title">Prompt</h2><span id="pd-file"></span><button class="btn-lab x" id="pd-close" type="button">Close ✕</button></div>
+    <div class="pd-nav"><div class="grp" id="pd-prompts"><span class="lbl">Prompt</span></div><span class="sep"></span><div class="grp" id="pd-secs"><span class="lbl">Section</span></div></div>
+    <div class="pd-body" id="pd-body"></div>
+    <div class="pd-foot"><span class="hint" id="pd-hint"></span><button class="btn-lab" id="pd-copy" type="button">Copy</button><button class="btn-lab primary" id="pd-send" type="button">Send to the agent</button></div>
+  </dialog>
+
+  <script src="lab-data.js"></script>
+  <script>
+  (() => {
+    const D = window.LAB_DATA;
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const fmt = (n) => Number(n).toLocaleString('en-US');
+    const sec = (x) => (x == null ? '—' : (x < 10 ? x.toFixed(2) : x.toFixed(1)) + ' s');
+    $('st-ver').textContent = `Python 3.12 · pytest · DuckDB 2.0.0 · CI image python:3.12-slim (${D.versions.python})`;
+    const P = D.pipelines;
+    const BRANCH = P.green.env.CI_MERGE_REQUEST_SOURCE_BRANCH_NAME;
+    const PROJECT = 'git.inteli.edu.br/&lt;group&gt;/tcg-dataapp';
+
+    // ---------- Realce de sintaxe ----------
+    const KW = {
+      py: new Set('from import as def class return if elif else for in while try except finally raise with lambda yield not and or is None True False pass continue break global nonlocal assert del async await'.split(' ')),
+      sql: new Set('select from where group by order having limit as and or not in is null create replace view table schema if exists macro join left inner on over partition qualify row_number case when then else end distinct union all with insert into values delete begin transaction commit rollback cube rollup grouping sets bigint varchar json integer double date cast try_cast filter count sum avg max min any_value desc asc using strftime epoch to_timestamp'.split(' ')),
+      sh: new Set('if then else fi exit cd echo set exec mkdir tail tee date for do done in local return'.split(' ')),
+    };
+    const RX = {
+      py: /(#[^\n]*)|("""[\s\S]*?(?:"""|$)|'''[\s\S]*?(?:'''|$)|[fr]?"(?:\\.|[^"\\\n])*"|[fr]?'(?:\\.|[^'\\\n])*')|(\b\d[\d_]*(?:\.\d+)?\b)|(\b[A-Za-z_]\w*\b)/g,
+      sql: /(--[^\n]*)|('(?:''|[^'])*')|(\b\d+(?:\.\d+)?\b)|(\b[A-Za-z_]\w*\b)/g,
+      sh: /((?:^|\s)#[^\n]*)|("(?:\\.|[^"\\])*"|'[^']*')|(\$\{?\w+\}?|\$\(|\b\d+\b)|(\b[A-Za-z_][\w-]*\b)/g,
+      toml: /(#[^\n]*)|("(?:\\.|[^"\\\n])*")|(^\s*\[[^\]\n]*\])|(^\s*[\w."-]+(?=\s*=))/gm,
+      json: /("(?:\\.|[^"\\])*"(?=\s*:))|("(?:\\.|[^"\\])*")|(-?\b\d+(?:\.\d+)?\b)|(\b(?:true|false|null)\b)/g,
+      md: /(^#{1,6} [^\n]*)|(`[^`\n]+`)|(^```[^\n]*$)|(\|)/gm,
+      yml: /(#[^\n]*)|("(?:\\.|[^"\\\n])*"|'[^'\n]*')|(\$\w+)|(^\s*-?\s*[\w:.\[\]-]+(?=:(?:\s|$)))/gm,
+      cron: /(#[^\n]*)|(^[A-Z_]+=)|(^[\d*\/,-]+(?: [\d*\/,-]+){4})|()/gm,
+    };
+    function langOf(path) {
+      if (/\.py$/.test(path)) return 'py';
+      if (/\.sql$/.test(path)) return 'sql';
+      if (/\.sh$/.test(path)) return 'sh';
+      if (/\.toml$/.test(path)) return 'toml';
+      if (/\.ya?ml$/.test(path)) return 'yml';
+      if (/\.json$/.test(path) || path.startsWith('response')) return 'json';
+      if (/\.md$/.test(path)) return 'md';
+      if (/crontab$/.test(path)) return 'cron';
+      return 'txt';
+    }
+    function tokens(text, lang) {
+      const rx = RX[lang];
+      if (!rx) return [['', text]];
+      const out = [];
+      let last = 0, m;
+      rx.lastIndex = 0;
+      while ((m = rx.exec(text))) {
+        if (m[0] === '') { rx.lastIndex++; continue; }
+        if (m.index > last) out.push(['', text.slice(last, m.index)]);
+        let cls = '';
+        if (lang === 'py' || lang === 'sql' || lang === 'sh') {
+          if (m[1]) cls = 'c'; else if (m[2]) cls = 's'; else if (m[3]) cls = 'n';
+          else if (m[4]) {
+            const w = m[4];
+            const set = KW[lang];
+            if (set.has(lang === 'sql' ? w.toLowerCase() : w)) cls = 'k';
+            else if (lang === 'py' && /^[A-Z]\w*[a-z]/.test(w)) cls = 'f';
+            else if (lang === 'py' && text[rx.lastIndex] === '(') cls = 'f';
+          }
+        } else if (lang === 'toml' || lang === 'yml') { cls = m[1] ? 'c' : m[2] ? 's' : m[3] ? 'h' : 'k'; }
+        else if (lang === 'json') { cls = m[1] ? 'k' : m[2] ? 's' : m[3] ? 'n' : 'f'; }
+        else if (lang === 'md') { cls = m[1] ? 'h' : m[2] ? 's' : m[3] ? 'c' : 'c'; }
+        else if (lang === 'cron') { cls = m[1] ? 'c' : m[2] ? 'k' : 'n'; }
+        out.push([cls, m[0]]);
+        last = rx.lastIndex;
+      }
+      if (last < text.length) out.push(['', text.slice(last)]);
+      return out;
+    }
+    function highlightLines(text, lang) {
+      const lines = [''];
+      for (const [cls, t] of tokens(text, lang)) {
+        t.split('\n').forEach((piece, i) => {
+          if (i > 0) lines.push('');
+          if (piece) lines[lines.length - 1] += cls ? `<span class="${cls}">${esc(piece)}</span>` : esc(piece);
+        });
+      }
+      return lines;
+    }
+
+    // ---------- Estado ----------
+    let S;
+    function fresh() {
+      const files = {};
+      for (const p of D.tree) {
+        const text = D.before[p] ?? D.files[p] ?? `# ${p}\n# Unchanged from Lesson 7.\n`;
+        files[p] = { text, status: '' };
+      }
+      return {
+        files, virt: {}, tabs: [], active: null, branch: 'main',
+        ut: 0, utRun: null, testsRuns: [], testsSel: null, pls: [], plSel: null, jobSel: null, plT: null, mrBlocked: false, protectedMr: false,
+        checks: new Set(), done: 0, running: false, speed: 1, fast: false,
+      };
+    }
+
+    // ---------- Explorador ----------
+    function renderTree() { $('tree').innerHTML = treeHtml(Object.keys(S.files)); }
+    function treeHtml(paths) {
+      const root = {};
+      for (const p of paths) {
+        let node = root;
+        const parts = p.split('/');
+        parts.forEach((part, i) => {
+          if (i === parts.length - 1) node[part] = p;
+          else node = node[part + '/'] = node[part + '/'] || {};
+        });
+      }
+      const order = (o) => Object.keys(o).sort((a, b) => (b.endsWith('/') - a.endsWith('/')) || a.localeCompare(b));
+      let html = '';
+      const walk = (o, depth) => {
+        for (const k of order(o)) {
+          const pad = 8 + depth * 12;
+          if (k.endsWith('/')) {
+            html += `<div class="row dir" style="padding-left:${pad}px"><span class="ic">▾</span><span class="nm">${esc(k.slice(0, -1))}</span></div>`;
+            walk(o[k], depth + 1);
+          } else {
+            const key = o[k];
+            const f = S.files[key];
+            const g = f && f.status ? `<span class="g ${f.status}">${f.status}</span>` : '';
+            const cls = (S.active === key ? ' active' : '') + (f && f.fresh ? ' fresh' : '');
+            html += `<div class="row${cls}" style="padding-left:${pad}px" data-open="${esc(key)}"><span class="ic">${icon(k)}</span><span class="nm">${esc(k)}</span>${g}</div>`;
+          }
+        }
+      };
+      walk(root, 0);
+      return html;
+    }
+    function icon(name) {
+      if (/\.py$/.test(name)) return 'py';
+      if (/\.sql$/.test(name)) return '⛁';
+      if (/\.md$/.test(name)) return 'M';
+      if (/\.(toml|yml)$/.test(name)) return '⚙';
+      if (/\.json$/.test(name)) return '{}';
+      return '·';
+    }
+    $('tree').addEventListener('click', (e) => { const row = e.target.closest('[data-open]'); if (row) openTab(row.dataset.open); });
+
+    // ---------- Abas e editor ----------
+    function docOf(key) { return S.files[key] || S.virt[key]; }
+    function openTab(key) {
+      if (!docOf(key)) return;
+      if (!S.tabs.includes(key)) S.tabs.push(key);
+      if (S.tabs.length > 8) S.tabs = S.tabs.slice(-8);
+      S.active = key;
+      renderTabs(); renderEditor(); renderTree();
+    }
+    function openVirtual(key, text, lang, opts = {}) {
+      S.virt[key] = { text, lang, ...opts };
+      openTab(key);
+    }
+    function closeTab(key) {
+      S.tabs = S.tabs.filter((k) => k !== key);
+      if (S.active === key) S.active = S.tabs[S.tabs.length - 1] || null;
+      renderTabs(); renderEditor(); renderTree();
+    }
+    function renderTabs() {
+      $('tabs').innerHTML = S.tabs.map((k) => {
+        const virtual = !S.files[k];
+        const name = k.split('/').pop();
+        return `<div class="tab${k === S.active ? ' active' : ''}" data-tab="${esc(k)}" title="${esc(k)}">${virtual ? `<em>${esc(name)}</em>` : esc(name)}<span class="x" data-close="${esc(k)}">✕</span></div>`;
+      }).join('');
+      $('title-file').textContent = S.active || 'Welcome';
+    }
+    $('tabs').addEventListener('click', (e) => {
+      const x = e.target.closest('[data-close]');
+      if (x) { closeTab(x.dataset.close); return; }
+      const t = e.target.closest('[data-tab]');
+      if (t) { S.active = t.dataset.tab; renderTabs(); renderEditor(); renderTree(); }
+    });
+    function renderEditor(partial) {
+      const ed = $('editor');
+      const key = S.active;
+      if (!key) {
+        ed.innerHTML = `<div class="welcome"><p><b>tcg-dataapp</b> is the package of Lesson 7, with its three layers, the runner <code>pipeline.py</code> and nine tests, all green. The coding agent on the right applies the six steps of the ATAM to it and then puts the suite in a pipeline of the GitLab of Inteli.</p><p>Press <b>Send prompt 01</b>, or choose a step above the editor. Each file the agent writes opens here; the panels below show the terminal, the utility tree with the result of each leaf, the report of each test run and the pipelines on git.inteli.edu.br.</p></div>`;
+        return;
+      }
+      const doc = docOf(key);
+      const text = partial != null ? partial : doc.text;
+      const lang = doc.lang || langOf(key);
+      const lines = highlightLines(text, lang);
+      const marks = doc.marks || {};
+      let html = doc.note ? `<div class="note-bar">${doc.note}</div>` : '';
+      html += '<div class="code">';
+      lines.forEach((l, i) => {
+        const m = marks[i] ? ' ' + marks[i] : '';
+        const cur = partial != null && i === lines.length - 1 ? ' cur' : '';
+        html += `<div class="ln${m}">${i + 1}</div><div class="tx${m}${cur}">${l || ' '}</div>`;
+      });
+      ed.innerHTML = html + '</div>';
+      if (partial != null) ed.scrollTop = ed.scrollHeight;
+    }
+
+    // ---------- Terminal ----------
+    const term = $('term');
+    function termLine(html) {
+      const div = document.createElement('div');
+      div.innerHTML = html;
+      term.appendChild(div);
+      if ($('pv-term').classList.contains('on')) term.parentElement.parentElement.scrollTop = 1e9;
+      return div;
+    }
+    function showPanel(name) {
+      document.querySelectorAll('#ptabs button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.pv === name)));
+      document.querySelectorAll('.pview').forEach((v) => v.classList.toggle('on', v.id === 'pv-' + name));
+      $('pv-term').parentElement.scrollTop = name === 'term' ? 1e9 : 0;
+    }
+    $('ptabs').addEventListener('click', (e) => { const b = e.target.closest('[data-pv]'); if (b) showPanel(b.dataset.pv); });
+
+    // ---------- Árvore de utilidade ----------
+    // S.ut: 0 nada, 1 folhas avaliadas (etapa 02), 2 com as seis partes (03), 3 com os casos de teste (04)
+    function resultsOf(run) {
+      if (!run) return null;
+      const t = run === 'red' ? P.red.jobs.find((j) => j.name === 'test:scenarios').traceability : D[run].traceability;
+      return Object.fromEntries(t.scenarios.map((s) => [s.id, s]));
+    }
+    const UT_LABEL = { first: 'first run · code of Lesson 7', second: 'second run · version 0.3.0', red: 'pipeline · gate of S04 disabled' };
+    function renderUt() {
+      const sc = D.scenarios;
+      $('cnt-ut').textContent = S.ut ? sc.length : '';
+      if (!S.ut) { $('pv-ut').innerHTML = '<div class="empty-p">The utility tree appears in step 02. Its root is the utility of the system; each attribute of step 01 is refined into concrete situations, and each leaf is rated twice, from H to L: how much the business drivers depend on it and how hard it is for the architecture to achieve it.</div>'; return; }
+      const res = resultsOf(S.utRun);
+      const runs = ['first', 'second', 'red'].filter((r) => (r === 'red' ? S.pls.includes('red') : S.testsRuns.includes(r)));
+      const pass = res ? Object.values(res).filter((r) => r.status === 'PASS').length : 0;
+      let html = `<div class="ut-bar"><span>${sc.length} leaves · rated (importance, difficulty)</span>${runs.length ? '<span>results of</span>' : ''}${runs.map((r) => `<button type="button" data-ut="${r}" aria-pressed="${r === S.utRun}">${UT_LABEL[r]}</button>`).join('')}${res ? `<span><b>${pass} of ${sc.length}</b> scenarios PASS</span>` : ''}</div><div class="ut"><div class="ut-root">Utility</div>`;
+      const attrs = [...new Set(sc.map((s) => s.attribute))];
+      for (const a of attrs) {
+        html += `<div class="ut-a">├── ${esc(a)}</div>`;
+        const leaves = sc.filter((s) => s.attribute === a);
+        for (const r of [...new Set(leaves.map((s) => s.refinement))]) {
+          html += `<div class="ut-r">├── ${esc(r)}</div>`;
+          for (const s of leaves.filter((x) => x.refinement === r)) {
+            const x = res && res[s.id];
+            const st = x ? x.status : '';
+            html += `<div class="ut-l ${st}" data-scen="${s.id}"><b>${s.id}</b><span class="rate ${s.importance}">(${s.importance},${s.difficulty})</span>${x ? `<span class="st-badge ${st}">${st} ${x.passed}/${x.tests}</span>` : ''}<em>${esc(S.ut >= 2 ? s.measure : s.stimulus)}</em></div>`;
+          }
+        }
+      }
+      $('pv-ut').innerHTML = html + `</div><div class="g-legend" style="padding:0 14px 12px;font-family:var(--ds-fonte);font-size:12px;color:var(--ide-dim)">${S.ut >= 2 ? 'Under each leaf, its response measure: the part of the scenario that a test checks.' : 'Under each leaf, its stimulus.'} Click a leaf to open ${S.ut >= 2 ? 'its six parts' : 'it'}.</div>`;
+    }
+    $('pv-ut').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-ut]');
+      if (b) { S.utRun = b.dataset.ut; renderUt(); return; }
+      const l = e.target.closest('[data-scen]');
+      if (!l) return;
+      const s = D.scenarios.find((x) => x.id === l.dataset.scen);
+      const res = resultsOf(S.utRun);
+      const x = res && res[s.id];
+      const parts = S.ut >= 2 ? ['source', 'stimulus', 'artifact', 'environment', 'response', 'measure'] : ['stimulus'];
+      let text = `# ${s.id} (${s.importance},${s.difficulty}) · ${s.attribute} · ${s.refinement}\n# drivers: ${s.drivers.join(', ')}\n\n` + parts.map((p) => `${p.padEnd(12)} ${s[p]}`).join('\n');
+      if (S.ut >= 3) text += `\n\n# test cases\n` + s.cases.map((c) => `- ${c}`).join('\n');
+      if (x) text += `\n\n# result: ${x.status} ${x.passed}/${x.tests} (${UT_LABEL[S.utRun]})\n` + x.cases.map((c) => `${c.outcome.padEnd(7)} ${c.case} · ${c.test}`).join('\n');
+      openVirtual(`${s.id} · scenario`, text, 'md', { note: `Scenario <b>${s.id}</b> of <b>docs/scenarios.toml</b>${S.ut >= 2 ? ', in the six parts of a quality attribute scenario' : ''}.` });
+    });
+
+    // ---------- Relatório de testes ----------
+    const SCEN_OF = {};
+    for (const run of ['first', 'second']) for (const s of D[run].traceability.scenarios) for (const c of s.cases) SCEN_OF[c.test] = [s.id, c.case];
+    const TESTS_LABEL = { first: 'pytest · code of Lesson 7', second: 'pytest · version 0.3.0' };
+    function casesTable(j, highlightFailed = true) {
+      const rows = [...j.cases].sort((a, b) => (a.status === 'failed' ? 0 : 1) - (b.status === 'failed' ? 0 : 1) || a.file.localeCompare(b.file));
+      return `<table class="dt"><thead><tr><th>status</th><th>scenario</th><th>test case</th><th>test</th><th>time</th><th>message</th></tr></thead><tbody>${rows.map((c) => {
+        const sc = SCEN_OF[c.name] || ['—', ''];
+        return `<tr class="${highlightFailed && c.status === 'failed' ? 'hl' : ''}"><td><span class="st-badge ${c.status}">${c.status}</span></td><td>${sc[0]}</td><td>${esc(sc[1].split(' ')[0] || '—')}</td><td title="${esc(c.file)}">${esc(c.name)}</td><td class="num">${c.time.toFixed(2)}</td><td class="wrap">${esc(c.message.split('\n')[0])}</td></tr>`;
+      }).join('')}</tbody></table>`;
+    }
+    function renderTests() {
+      $('cnt-tests').textContent = S.testsRuns.length ? S.testsRuns.length : '';
+      if (!S.testsRuns.length) { $('pv-tests').innerHTML = '<div class="empty-p">No test run yet. In step 05 the tests run on the code as it is, and this panel reads the report that pytest writes with --junitxml, the same file that GitLab reads in step 07: one row per test, with its scenario, its test case, its time and, when it failed, the message.</div>'; return; }
+      const key = S.testsSel || S.testsRuns[S.testsRuns.length - 1];
+      const r = D[key];
+      const j = r.junit;
+      $('pv-tests').innerHTML = `<div class="ut-bar">${S.testsRuns.map((k) => `<button type="button" data-tr="${k}" aria-pressed="${k === key}">${TESTS_LABEL[k]}</button>`).join('')}<span><b>${j.tests - j.failures - j.errors} passed</b>, <b>${j.failures + j.errors} failed</b> of ${j.tests} · ${sec(r.seconds)}</span></div>${casesTable(j)}`;
+    }
+    $('pv-tests').addEventListener('click', (e) => { const b = e.target.closest('[data-tr]'); if (b) { S.testsSel = b.dataset.tr; renderTests(); } });
+
+    // ---------- Pipelines no estilo do GitLab ----------
+    const PL = {
+      green: { n: 1, title: 'test: the ATAM scenarios of Lesson 9 and the pipeline', source: 'merge request !1', ref: BRANCH, commit: 'a3f19c2' },
+      red: { n: 2, title: 'fix: disable the null gate of S04, it stopped the run of 2026-09-01', source: 'merge request !1', ref: BRANCH, commit: '7be04d1' },
+      nightly: { n: 3, title: 'schedule · every day at 06:00 UTC', source: 'schedule', ref: 'main', commit: 'a3f19c2' },
+    };
+    const ICON = { success: '✓', failed: '✕', running: '●', skipped: '⊘', created: '○', pending: '○' };
+    function jobState(job, t) {
+      if (t == null) return job.status;
+      if (job.start == null) return t >= Math.max(...P[S.plSel].jobs.map((j) => j.end || 0)) ? job.status : 'created';
+      if (t < job.start) return 'created';
+      if (t < job.end) return 'running';
+      return job.status;
+    }
+    function plState(key, t) {
+      if (t == null) return P[key].status === 'passed' ? 'success' : 'failed';
+      const st = P[key].jobs.map((j) => jobState(j, t));
+      return st.includes('running') || st.includes('created') ? 'running' : st.includes('failed') ? 'failed' : 'success';
+    }
+    function junitOf(key) {
+      const cases = P[key].jobs.filter((j) => j.junit).flatMap((j) => j.junit.cases);
+      return { tests: cases.length, failed: cases.filter((c) => c.status === 'failed').length, cases };
+    }
+    const logCls = (l) => /^\$ /.test(l) ? 'cmd' : /(FAILED|Error|error:|failed|FAIL\b|Traceback)/.test(l) && !/0 failed/.test(l) ? 'err' : /\bpassed\b|PASS|OK\b|Successfully installed/.test(l) ? 'okl' : /[┃│]|^\|/.test(l) ? 'tbl' : '';
+    function renderCi() {
+      $('cnt-ci').textContent = S.pls.length ? S.pls.length : '';
+      if (!S.pls.length) { $('pv-ci').innerHTML = '<div class="empty-p">No pipeline yet. In step 07 the agent writes .gitlab-ci.yml and pushes the branch to git.inteli.edu.br; from then on every push to the merge request runs the tests in a fresh container, and a schedule runs the real pipeline of the DataApp every day.</div>'; return; }
+      const key = S.plSel || S.pls[S.pls.length - 1];
+      const pl = P[key], meta = PL[key], t = S.plT;
+      const stages = [...new Set(pl.jobs.map((j) => j.stage))];
+      const job = pl.jobs.find((j) => j.name === S.jobSel) || (t != null && [...pl.jobs].reverse().find((j) => j.start != null && j.start <= t)) || pl.jobs.find((j) => j.status === 'failed') || pl.jobs[pl.jobs.length - 1];
+      const lines = job.lines.filter((l) => t == null || l[0] <= t);
+      const js = jobState(job, t);
+      const ju = junitOf(key);
+      const ps = plState(key, t);
+      const mr = key !== 'nightly';
+      const failedCases = ju.cases.filter((c) => c.status === 'failed');
+      const runnerHead = `Running on a runner of ${'git.inteli.edu.br'} with the docker executor (reproduced)\nUsing docker image python:3.12-slim\nGetting source from Git repository: ${meta.ref} @ ${meta.commit}\n${job.needs ? `Downloading artifacts of ${job.needs.join(', ')}\n` : ''}Restoring cache .cache/pip (key: pyproject.toml)\nExecuting "step_script" stage of the job script`;
+      const runnerTail = js === 'success' ? 'Uploading artifacts for successful job\nJob succeeded' : js === 'failed' ? 'Uploading artifacts for failed job\nERROR: Job failed: exit code ' + job.exit : '';
+      $('pv-ci').innerHTML = `<div class="run-bar"><span class="lbl">Pipelines</span>${S.pls.map((k) => `<button type="button" data-pl="${k}" aria-pressed="${k === key}">#${PL[k].n} · ${PL[k].source} · <span class="st-badge ${plState(k, k === key ? t : null)}">${plState(k, k === key ? t : null)}</span></button>`).join('')}<button type="button" class="replay" id="btn-replay"${S.running ? ' disabled' : ''}>▶ Replay</button></div>
+        <div class="pl-head"><span>pipeline <b>#${meta.n}</b> <span class="st-badge ${ps}">${ps}</span></span><span>${esc(meta.source)} · ref <b>${esc(meta.ref)}</b> · commit <b>${meta.commit}</b> “${esc(meta.title)}”</span><span>${t == null ? `duration <b>${sec(pl.seconds)}</b>` : `clock <b>${sec(Math.max(0, t))}</b>`}</span>${ju.tests && ps !== 'running' ? `<span>tests <b>${ju.tests - ju.failed} passed</b>${ju.failed ? `, <b>${ju.failed} failed</b>` : ''}</span>` : ''}</div>
+        <div class="stages">${stages.map((s) => `<div class="stage-col"><h4>${s}</h4>${pl.jobs.filter((j) => j.stage === s).map((j) => { const st = jobState(j, t); return `<div class="job ${st}${j.name === job.name ? ' sel' : ''}" data-job="${esc(j.name)}"><i>${ICON[st]}</i><span>${esc(j.name)}</span><small>${st === 'running' ? sec(t - j.start) : j.start == null || st === 'created' ? st : sec(j.end - j.start)}</small>${j.needs ? `<span class="need">needs ${j.needs.join(', ')}${j.when === 'always' ? ' · when: always' : ''}</span>` : ''}</div>`; }).join('')}</div>`).join('')}</div>
+        <div class="pl-split"><div>
+          <div class="sub-h">Job log · ${esc(job.name)} · <span class="st-badge ${js}">${js}</span></div>
+          <div class="joblog"><span class="dim">${esc(runnerHead)}</span>\n${lines.map((l) => `<span class="${logCls(l[1])}">${esc(l[1])}</span>`).join('\n')}${runnerTail && t == null || (runnerTail && js !== 'running' && js !== 'created') ? `\n<span class="${js === 'failed' ? 'err' : 'okl'}">${esc(runnerTail)}</span>` : ''}</div>
+        </div><div>
+          <div class="sub-h">${mr ? 'Merge request !1 · ' + esc(BRANCH) + ' → main' : 'Pipeline schedule · main'}</div>
+          ${mr ? `<div class="mr">
+            <div class="box ${ps === 'success' ? 'ok' : ps === 'failed' ? 'bad' : ''}"><b>Pipeline #${meta.n} ${ps === 'running' ? 'running' : ps === 'success' ? 'passed' : 'failed'}</b><span>${pl.jobs.length} jobs in ${stages.length} stages · ${t == null ? sec(pl.seconds) : 'running'}</span></div>
+            ${ju.tests && ps !== 'running' ? `<div class="box ${ju.failed ? 'bad' : 'ok'}"><b>Test summary: ${ju.failed ? `${ju.failed} failed, ` : ''}${ju.tests - ju.failed} passed, ${ju.tests} total</b><span>read from the JUnit reports of test:unit and test:scenarios</span>${failedCases.length ? `<ul>${failedCases.map((c) => `<li class="f">${esc(c.name)} · ${esc((SCEN_OF[c.name] || [''])[0])}</li>`).join('')}</ul>` : ''}</div>` : ''}
+            ${ps !== 'running' ? `<div class="box ${ps === 'failed' && S.protectedMr ? 'bad' : ''}"><b>${ps === 'failed' ? (S.protectedMr ? 'Merge blocked: the pipeline must succeed' : 'The pipeline failed') : 'Ready to merge'}</b><span>${S.protectedMr ? 'Settings › Merge requests › “Pipelines must succeed” is on: only a green pipeline of the last commit allows the merge.' : 'Without the protection “Pipelines must succeed”, a red pipeline is only a warning.'}</span><button class="merge" type="button" ${ps === 'failed' && S.protectedMr ? 'disabled' : ''}>Merge</button></div>` : ''}
+            ${ps !== 'running' && pl.jobs.find((j) => j.artifact_md) ? `<div class="box"><b>Artifact · utility tree</b><span>out/traceability.md, exposed by the job traceability, which ran ${ps === 'failed' ? 'even after the failure (when: always)' : 'after test:scenarios'}</span></div>` : ''}
+          </div>` : `<div class="mr"><div class="box"><b>main · 0 6 * * * · UTC</b><span>Build › Pipeline schedules. The rules of .gitlab-ci.yml leave only the job smoke:real-data in a scheduled pipeline: it collects the data of today from tcgcsv.com, builds the model and checks that the last capture is at most two days old (S11).</span></div><div class="box ${ps === 'success' ? 'ok' : ps === 'failed' ? 'bad' : ''}"><b>Last run: ${ps}</b><span>${ps === 'failed' ? 'The owner of the schedule receives an e-mail of the failed pipeline.' : 'A failure here, an empty source or stale data, sends an e-mail to the owner of the schedule.'}</span></div></div>`}
+        </div></div>`;
+      const box = $('pv-ci').querySelector('.pl-split > div');
+      if (box) box.scrollTop = box.scrollHeight;
+    }
+    $('pv-ci').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-pl]');
+      if (b) { S.plSel = b.dataset.pl; S.jobSel = null; if (!S.running) S.plT = null; renderCi(); return; }
+      const j = e.target.closest('[data-job]');
+      if (j) { S.jobSel = j.dataset.job; renderCi(); return; }
+      if (e.target.closest('#btn-replay')) replay(S.plSel || S.pls[S.pls.length - 1]);
+    });
+    let RP = 0;
+    async function replay(key) {
+      if (S.running) return;
+      const my = ++RP;
+      S.plSel = key; showPanel('ci');
+      const end = P[key].seconds + 0.3;
+      const step = Math.max(0.2, end / 120);
+      for (let t = 0; t <= end; t += step) {
+        if (my !== RP || S.running) return;
+        S.plT = t; renderCi();
+        await new Promise((r) => setTimeout(r, 100 / S.speed));
+      }
+      S.plT = null; renderCi();
+    }
+    // Toca um pipeline no relógio gravado, comprimido para caber na aula (o painel mostra o relógio real).
+    async function playPipeline(key) {
+      if (!S.pls.includes(key)) S.pls.push(key);
+      S.plSel = key; S.jobSel = null;
+      showPanel('ci');
+      const end = P[key].seconds + 0.3;
+      const step = Math.max(0.2, end / 90);
+      for (let t = 0; t <= end; t += step) {
+        S.plT = t; renderCi();
+        await sleep(100);
+      }
+      S.plT = null; renderCi();
+      await sleep(300);
+    }
+
+    // ---------- O que a sessão entrega ----------
+    const F = D.first.junit, F2 = D.second.junit;
+    const CHECKS = [
+      ['drivers', 'Business drivers and quality attributes', 'docs/business_drivers.md', 0],
+      ['tree', 'A utility tree, every leaf rated', 'docs/utility_tree.md · docs/scenarios.toml', 1],
+      ['six', 'Each leaf in six parts, ending in a measure', 'docs/scenarios.md', 2],
+      ['cases', 'Test cases traced to the scenarios', 'docs/test_cases.md · docs/contracts/', 3],
+      ['marker', 'The trace inside the code', '@pytest.mark.scenario · tests/conftest.py', 4],
+      ['nonet', 'A suite without network', 'conftest.py blocks every socket', 4],
+      ['firstrun', 'The first run kept, with its failures', `${F.tests - F.failures - F.errors} passed, ${F.failures + F.errors} failed`, 4],
+      ['findings', 'Findings classified', 'docs/results.md · risks, non-risks, sensitivity points, tradeoffs', 5],
+      ['fix', 'The risks of importance H closed', `processors/quality.py · cli.py · ${F2.tests} passed`, 5],
+      ['ci', 'The suite on every push', '.gitlab-ci.yml · test:unit, test:scenarios', 6],
+      ['gate', 'A red pipeline blocks the merge', 'Pipelines must succeed · JUnit in the merge request', 6],
+      ['daily', 'The real data checked every day', 'pipeline schedule · smoke:real-data', 6],
+    ];
+    function renderChecks(flash) {
+      $('auto-badge').textContent = `${S.checks.size}/${CHECKS.length}`;
+      $('checklist').innerHTML = '<p>Six steps of the ATAM turn the needs of the business into checked scenarios, and the pipeline repeats the check on every change. Each item names the file that delivers it.</p>' +
+        CHECKS.map(([id, t, w, step]) => `<div class="ck${S.checks.has(id) ? ' ok' : ''}${flash && flash.includes(id) ? ' flash' : ''}"><i>${S.checks.has(id) ? '✓' : '○'}</i><b>${t}</b><span>${esc(w)} · step 0${step + 1}</span></div>`).join('');
+    }
+    function tick(...ids) { ids.forEach((i) => S.checks.add(i)); renderChecks(ids); }
+    function sideView(which) {
+      $('side-files').style.display = which === 'files' ? 'flex' : 'none';
+      $('side-auto').style.display = which === 'auto' ? 'flex' : 'none';
+      $('act-files').setAttribute('aria-pressed', String(which === 'files'));
+      $('act-auto').setAttribute('aria-pressed', String(which === 'auto'));
+    }
+    $('act-files').onclick = () => sideView('files');
+    $('act-auto').onclick = () => sideView('auto');
+    function flow(stages, run) {
+      document.querySelectorAll('#flow .node').forEach((n) => n.classList.toggle('on', stages.includes(n.dataset.stage)));
+      $('flow-run').classList.toggle('on', !!run);
+    }
+    function flowDone(stages) { stages.forEach((s) => document.querySelector(`#flow .node[data-stage="${s}"]`).classList.add('done')); }
+
+    // ---------- Chat ----------
+    function chat(role, html) {
+      const div = document.createElement('div');
+      div.className = 'msg ' + role;
+      div.innerHTML = `<div class="who">${role === 'user' ? 'you' : 'agent'}</div><div class="bubble">${html}</div>`;
+      $('chat').appendChild(div);
+      $('chat').scrollTop = 1e9;
+      return div;
+    }
+    function action(text) {
+      const div = document.createElement('div');
+      div.className = 'act running';
+      div.innerHTML = `<span class="ok">●</span><b>${text}</b>`;
+      $('chat').appendChild(div);
+      $('chat').scrollTop = 1e9;
+      return () => { div.classList.remove('running'); div.querySelector('.ok').textContent = '✓'; };
+    }
+
+    // ---------- Motor da simulação ----------
+    class Stop extends Error {}
+    let GEN = 0, RUNGEN = -1;
+    const sleep = (ms) => new Promise((res, rej) => {
+      if (RUNGEN !== GEN) return rej(new Stop());
+      if (S.fast) return res();
+      setTimeout(() => (RUNGEN === GEN ? res() : rej(new Stop())), ms / S.speed);
+    });
+    async function write(path, text, status = 'U') {
+      const done = action(`${status === 'M' ? 'Edit' : 'Create'} ${path}`);
+      S.files[path] = { text: '', status, fresh: true };
+      openTab(path);
+      if (!S.fast) {
+        const step = Math.max(40, Math.ceil(text.length / 70));
+        for (let i = step; i < text.length; i += step) {
+          S.files[path].text = text.slice(0, i);
+          renderEditor(text.slice(0, i));
+          await sleep(16);
+        }
+      }
+      S.files[path].text = text;
+      S.files[path].fresh = false;
+      renderEditor(); renderTree();
+      done();
+    }
+    const real = (p) => D.files[p];
+    async function sh(cmd, out = [], opts = {}) {
+      const prompt = opts.repl ? '<span class="ps">&gt;&gt;&gt; </span>' : opts.cont ? '<span class="ps">... </span>' : '<span class="ps">student@lab:~/tcg-dataapp$ </span>';
+      const line = termLine(prompt + '<span class="cmd"></span>');
+      const span = line.querySelector('.cmd');
+      if (!S.fast) {
+        line.classList.add('cur');
+        for (let i = 1; i <= cmd.length; i += 3) { span.textContent = cmd.slice(0, i); await sleep(14); }
+        line.classList.remove('cur');
+      }
+      span.textContent = cmd;
+      await sleep(opts.pause ?? 250);
+      for (const o of out) {
+        if (typeof o === 'function') { await o(); continue; }
+        const [text, cls, wait] = Array.isArray(o) ? o : [o, '', 40];
+        termLine(`<span class="${cls}">${esc(text)}</span>`);
+        await sleep(wait ?? 40);
+      }
+    }
+    function marksAgainst(oldText, newText) {
+      const old = new Set(oldText.split('\n'));
+      const marks = {};
+      newText.split('\n').forEach((l, i) => { if (l.trim() && !old.has(l)) marks[i] = 'keep'; });
+      return marks;
+    }
+    async function edit(path, text, note) {
+      const before = S.files[path] ? S.files[path].text : '';
+      await write(path, text, S.files[path] ? 'M' : 'U');
+      if (before) S.files[path].marks = marksAgainst(before, text);
+      if (note) S.files[path].note = note;
+      renderEditor();
+    }
+    async function reading(paths) {
+      const done = action(`Read ${paths.join(', ')}`);
+      await sleep(500 + paths.length * 120);
+      done();
+    }
+    const section = (label) => termLine(`<span class="sec">── ${esc(label)} ──</span>`);
+    const tcls = (l) => /^FAILED|failed|Error|FAIL$|\bFAIL\b/.test(l) && !/ 0 failed/.test(l) ? 'err' : /passed|PASS$/.test(l) ? 'okl' : /^[├└│ ]/.test(l) ? '' : /^=+|^_+/.test(l) ? 'dim' : '';
+    const out = (lines, wait = 25) => lines.map((l) => [l, tcls(l), wait]);
+    function setBranch(b) { S.branch = b; $('st-branch').textContent = '⎇ ' + b; }
+    const DOC = (p) => D.files[p];
+    const SCEN_FILES = Object.keys(D.files).filter((p) => p.startsWith('tests/scenarios/')).sort();
+
+    // ---------- As sete etapas ----------
+    const STEPS = [
+      {
+        name: '01 · Drivers', prompt: '01_drivers_and_attributes', stages: ['drivers'],
+        next: '<b>Step 01 · business drivers.</b> What the partner needs from the DataApp, and which quality attributes follow from it.',
+        async play() {
+          chat('agent', 'Plan: read the README, the configuration, the runner and the checks of the package, then write <code>docs/business_drivers.md</code>: each driver states a need of the partner and its consequence for the architecture, and each quality attribute cites the drivers that ask for it and the code that answers today.');
+          await sleep(800);
+          await reading(['README.md', 'src/tcg_dataapp/config.py', 'src/tcg_dataapp/pipeline.py', 'src/tcg_dataapp/processors/quality.py']);
+          await write('docs/business_drivers.md', DOC('docs/business_drivers.md'));
+          tick('drivers'); flowDone(['drivers']);
+          const md = DOC('docs/business_drivers.md');
+          chat('agent', `Done: ${(md.match(/^\| BD\d/gm) || []).length || 5} drivers and the quality attributes that follow from them. Review: does each attribute name the code that answers it today, or the absence of that code?`);
+        },
+      },
+      {
+        name: '02 · Tree', prompt: '02_utility_tree', stages: ['tree'],
+        next: '<b>Step 02 · the utility tree.</b> Each attribute refined into situations, and each leaf rated (importance, difficulty).',
+        async play() {
+          chat('agent', 'Plan: refine each attribute until each leaf names a situation that can happen to this DataApp, rate each leaf twice from H to L, and keep the leaves in <code>docs/scenarios.toml</code>, the single source of the tree, the tables and the report.');
+          await sleep(800);
+          await write('docs/utility_tree.md', DOC('docs/utility_tree.md'));
+          await write('docs/scenarios.toml', DOC('docs/scenarios.toml'));
+          S.ut = 1; renderUt(); showPanel('ut');
+          tick('tree'); flowDone(['tree']);
+          const hh = D.scenarios.filter((s) => s.importance === 'H').length;
+          chat('agent', `${D.scenarios.length} leaves, ${hh} of them of importance H. The panel <b>Utility tree</b> shows them; the pairs (H,H), (H,M) and (M,H) become scenarios first. Review: is any leaf a wish instead of a situation?`);
+        },
+      },
+      {
+        name: '03 · Scenarios', prompt: '03_scenarios', stages: ['scen'],
+        next: '<b>Step 03 · scenarios.</b> Each leaf in six parts: source, stimulus, artifact, environment, response and measure.',
+        async play() {
+          chat('agent', 'Plan: complete each leaf with the six parts of a quality attribute scenario in <code>docs/scenarios.toml</code> and generate <code>docs/scenarios.md</code>. The measure is the part that matters most, because it is what a test will check: a number or a condition, never an adjective.');
+          await sleep(800);
+          await write('docs/scenarios.md', DOC('docs/scenarios.md'));
+          S.ut = 2; renderUt(); showPanel('ut');
+          tick('six'); flowDone(['scen']);
+          openVirtual('S04 · scenario', '', 'md');
+          document.querySelector('#pv-ut [data-scen="S04"]').click();
+          chat('agent', 'Each leaf now has its six parts; the editor shows S04, the drift of the schema of the source. Review: can each measure be checked by a program, without a person reading a result?');
+        },
+      },
+      {
+        name: '04 · Test cases', prompt: '04_test_cases', stages: ['cases'],
+        next: '<b>Step 04 · test cases.</b> From each scenario, the cases that a test can produce, and the contract of the marts.',
+        async play() {
+          chat('agent', 'Plan: turn each stimulus into data that a test can produce, each environment into a fixture and each measure into assertions, in <code>docs/test_cases.md</code>; the contract of the Parquet marts goes to <code>docs/contracts/marts.json</code>.');
+          await sleep(800);
+          await write('docs/test_cases.md', DOC('docs/test_cases.md'));
+          await write('docs/contracts/marts.json', DOC('docs/contracts/marts.json'));
+          S.ut = 3; renderUt();
+          tick('cases'); flowDone(['cases']);
+          const n = D.scenarios.reduce((a, s) => a + s.cases.length, 0);
+          chat('agent', `${n} test cases, each traced to one scenario and named with its id (TC04.1 is the first case of S04). Review: is the level of each case stated, and does any case need the network?`);
+        },
+      },
+      {
+        name: '05 · Tests', prompt: '05_implement_and_run', stages: ['tests'], run: true,
+        next: '<b>Step 05 · tests.</b> One pytest function per test case, marked with its scenario, run on the code as it is.',
+        async play() {
+          chat('agent', 'Plan: the traceability plugin and the fixture that blocks the network go to <code>tests/conftest.py</code>; the marker <code>scenario</code> is registered in <code>pyproject.toml</code> with <code>--strict-markers</code>; one file per group of attributes in <code>tests/scenarios/</code>. Then pytest on the code as it is, without fixing anything.');
+          await sleep(800);
+          await edit('pyproject.toml', D.before['pyproject.toml'].replace(/(\[tool\.pytest\.ini_options\]\ntestpaths = \["tests"\])/, '$1\naddopts = "--strict-markers"\nmarkers = ["scenario(id): the ATAM scenario of docs/scenarios.toml that the test covers"]'));
+          await edit('tests/conftest.py', DOC('tests/conftest.py'));
+          for (const f of SCEN_FILES) await write(f, DOC(f));
+          await write('tools/traceability.py', DOC('tools/traceability.py'));
+          showPanel('term');
+          const d = action('Run the suite on the code as it is');
+          await sh('pytest --junitxml=out/junit.xml', out(D.first.out, 18));
+          await sh('python tools/traceability.py', out(D.first.tree, 20));
+          d();
+          S.testsRuns = ['first']; S.testsSel = 'first'; renderTests();
+          S.utRun = 'first'; renderUt();
+          tick('marker', 'nonet', 'firstrun'); flowDone(['tests']);
+          const fail = D.first.traceability.scenarios.filter((s) => s.status === 'FAIL');
+          chat('agent', `${F.tests - F.failures - F.errors} passed and ${F.failures + F.errors} failed, in ${fail.length} scenarios: ${fail.map((s) => `<b>${s.id}</b> ${s.priority} ${s.passed}/${s.tests}`).join(', ')}. These failures are results about the architecture, not defects of the tests, so the assertions stay as they are. The panel <b>Tests</b> lists each failure with its message, and the tree marks the leaves that failed.`);
+          showPanel('ut');
+        },
+      },
+      {
+        name: '06 · Findings', prompt: '06_results_into_the_tree', stages: ['find'], run: true,
+        next: '<b>Step 06 · findings.</b> Classify what the results say, close the risks of importance H, and run again.',
+        async play() {
+          chat('agent', 'Plan: S03 shows prices lost in the join of the fact with nothing noticing; S04, a renamed field that publishes a report without prices; S11, stale data that no command reports. The smallest changes: two gates in <code>check_gold</code> and a command <code>freshness</code>. Then the second run, the findings in <code>docs/results.md</code> and the table of <code>docs/traceability.md</code>.');
+          await sleep(800);
+          await edit('src/tcg_dataapp/processors/quality.py', DOC('src/tcg_dataapp/processors/quality.py'), 'Lines marked <b>+</b> close S03 (prices that never reach the fact), S04 (null market prices above 10 %) and S11 (<b>check_freshness</b>).');
+          await edit('src/tcg_dataapp/cli.py', DOC('src/tcg_dataapp/cli.py'));
+          await edit('src/tcg_dataapp/__init__.py', DOC('src/tcg_dataapp/__init__.py'));
+          await edit('pyproject.toml', DOC('pyproject.toml'));
+          showPanel('term');
+          const d = action('Run the suite again');
+          await sh('pytest --junitxml=out/junit.xml', out(D.second.out, 18));
+          await sh('python tools/traceability.py', out(D.second.tree, 20));
+          d();
+          await write('docs/results.md', DOC('docs/results.md'));
+          await write('docs/traceability.md', DOC('docs/traceability.md'));
+          await edit('README.md', DOC('README.md'));
+          S.testsRuns = ['first', 'second']; S.testsSel = 'second'; renderTests();
+          S.utRun = 'second'; renderUt();
+          tick('findings', 'fix'); flowDone(['find']);
+          const ok = D.second.traceability.scenarios.filter((s) => s.status === 'PASS').length;
+          chat('agent', `${F2.tests} passed in ${sec(D.second.seconds)}, and ${ok} of ${D.scenarios.length} scenarios PASS. <code>docs/results.md</code> keeps both runs and classifies the findings: three risks closed, two left open with the reason, the non-risks, the sensitivity point of the timestamp of noon UTC and the tradeoffs. Review: does every number of the document come from one of the two runs?`);
+          showPanel('ut');
+        },
+      },
+      {
+        name: '07 · Pipeline', prompt: '07_gitlab_pipeline', stages: ['ci'], run: true,
+        next: '<b>Step 07 · the GitLab pipeline.</b> The suite on every push and every merge request on git.inteli.edu.br, and the real data every day.',
+        async play() {
+          chat('agent', 'Plan: <code>.gitlab-ci.yml</code> with the image <code>python:3.12-slim</code> and three stages. <b>test</b> runs the tests of the package and the scenarios in two parallel jobs, each publishing its JUnit report even when a test fails; <b>report</b> prints the utility tree after the scenarios, also after a failure; <b>smoke</b> runs only in the daily schedule, with the network, on the real data. The workflow rules avoid two pipelines for one commit of a merge request.');
+          await sleep(800);
+          await write('.gitlab-ci.yml', DOC('.gitlab-ci.yml'));
+          showPanel('term');
+          let d = action('Push the branch and open the merge request');
+          await sh(`git switch -c ${BRANCH}`, [[`Switched to a new branch '${BRANCH}'`, '', 100]]);
+          setBranch(BRANCH);
+          await sh('git add -A && git commit -q -m "test: the ATAM scenarios of Lesson 9 and the pipeline"', []);
+          await sh(`git push -u origin ${BRANCH} -o merge_request.create -o merge_request.target=main`, [
+            ['Enumerating objects: 61, done.', 'dim', 200], ['Writing objects: 100% (52/52), 41.30 KiB | 6.88 MiB/s, done.', 'dim', 200],
+            ['remote:', 'dim', 40], ['remote: View merge request for ' + BRANCH + ':', 'dim', 40],
+            ['remote:   https://git.inteli.edu.br/<group>/tcg-dataapp/-/merge_requests/1', 'dim', 40], ['remote:', 'dim', 40],
+            [`To git.inteli.edu.br:<group>/tcg-dataapp.git`, 'dim', 40], [` * [new branch]      ${BRANCH} -> ${BRANCH}`, 'okl', 200],
+          ]);
+          d();
+          chat('agent', 'The push with <code>-o merge_request.create</code> opened merge request !1, and the merge request started pipeline #1. The panel <b>GitLab · pipelines</b> follows it on its recorded clock: the two test jobs start together, and <code>traceability</code> starts as soon as <code>test:scenarios</code> ends, because of <code>needs</code>.');
+          await playPipeline('green');
+          tick('ci');
+          const g = junitOf('green');
+          chat('agent', `Pipeline #1 passed in ${sec(P.green.seconds)}: ${g.tests} tests read from the two JUnit reports, all passed, and the artifact of the tree. Now in Settings › Merge requests the option “Pipelines must succeed” is turned on. To see what it protects, a commit relaxes the gate of S04, as someone would do to unblock a run that stopped.`);
+          S.protectedMr = true;
+          d = action('Commit a regression and push it');
+          const R = D.regression;
+          await edit(R.path, DOC(R.path).replace(R.old, R.new), 'Line marked <b>+</b>: the gate of S04 disabled, the kind of change that makes a stopped run pass.');
+          await sh(`git commit -qam "${PL.red.title}" && git push`, [
+            ['remote:', 'dim', 40], ['remote: View merge request for ' + BRANCH + ':', 'dim', 40],
+            ['remote:   https://git.inteli.edu.br/<group>/tcg-dataapp/-/merge_requests/1', 'dim', 40],
+            [`   a3f19c2..7be04d1  ${BRANCH} -> ${BRANCH}`, 'okl', 200],
+          ]);
+          d();
+          await playPipeline('red');
+          tick('gate');
+          const r = junitOf('red');
+          S.utRun = 'red'; renderUt();
+          chat('agent', `Pipeline #2 failed: ${r.failed} of ${r.tests} tests, <b>${r.cases.filter((c) => c.status === 'failed').map((c) => esc(c.name)).join(', ')}</b>, the test case TC04.1 of S04. The job <code>traceability</code> ran anyway and marks S04 FAIL in the artifact of the tree, and the merge request shows the failed test and blocks the merge. The fix is to revert the commit, not to change the test.`);
+          await sh('git revert --no-edit HEAD && git push', [[`[${BRANCH} 5d2c8e0] Revert "${PL.red.title}"`, '', 120], [`   7be04d1..5d2c8e0  ${BRANCH} -> ${BRANCH}`, 'okl', 120]]);
+          await edit(R.path, DOC(R.path));
+          chat('agent', `Finally the schedule: in Build › Pipeline schedules, main at <code>0 6 * * *</code> (UTC). A scheduled pipeline keeps only the job <code>smoke:real-data</code>, which collects the prices of today and checks the freshness of S11. Here is the run of that schedule.`);
+          await playPipeline('nightly');
+          tick('daily'); flowDone(['ci']);
+          const n = P.nightly.jobs[0];
+          chat('agent', `Pipeline #3, the schedule, ${P.nightly.status} in ${sec(P.nightly.seconds)}: the real run of the DataApp and the check of freshness, on tcgcsv.com, in a fresh container. From now on a change that breaks a scenario turns the merge request red, and data that stops arriving fails the pipeline of the next morning.`);
+          S.plSel = 'red'; renderCi();
+        },
+      },
+    ];
+    const PLIST = STEPS;
+
+    // ---------- Controles ----------
+    function updateUi() {
+      document.querySelectorAll('[data-step]').forEach((b) => {
+        const i = +b.dataset.step;
+        b.classList.toggle('step-done', i < S.done);
+        b.disabled = S.running;
+      });
+      const nxt = STEPS[S.done];
+      $('btn-send').disabled = S.running || !nxt;
+      $('btn-send').textContent = nxt ? `Send prompt ${nxt.name.slice(0, 2)}` : 'All prompts sent';
+      $('btn-view-prompt').textContent = nxt ? `Read prompt ${nxt.name.slice(0, 2)}` : 'Read the prompts';
+      $('next').innerHTML = S.running ? '<b>The agent is working.</b> “Finish step” shows the end of the step at once.' : nxt ? nxt.next : '<b>The seven steps are done.</b> Every panel can be browsed and every pipeline replayed. “Reset” starts again from the package of Lesson 7.';
+      $('btn-skip').disabled = !S.running;
+      $('st-step').textContent = nxt ? `next: step ${nxt.name}` : 'all steps done';
+      $('st-busy').innerHTML = S.running ? '<span class="busy">● agent running</span>' : '';
+    }
+    async function playStep(i) {
+      const st = STEPS[i];
+      S.running = true; updateUi();
+      flow(st.stages, st.run);
+      const u = chat('user', `<button class="open-prompt" type="button" data-prompt="${st.prompt}">Prompt ${st.prompt.slice(0, 2)} · CREATE · ${esc(st.prompt.slice(3).replace(/_/g, ' '))} <span>open ↗</span></button>`);
+      u.scrollIntoView({ block: 'end' });
+      await sleep(600);
+      await st.play();
+      S.done = i + 1; S.running = false; S.fast = false;
+      updateUi(); renderCi();
+    }
+    async function runTo(target) {
+      if (S.running) return;
+      if (target < S.done) { reset(); }
+      RP++;
+      RUNGEN = GEN;
+      try {
+        while (S.done < target) { S.fast = true; await playStep(S.done); }
+        S.fast = false;
+        await playStep(target);
+      } catch (e) { if (!(e instanceof Stop)) console.error(e); }
+    }
+    function reset() {
+      GEN++; RP++;
+      const speed = S ? S.speed : 1;
+      S = fresh(); S.speed = speed;
+      setBranch('main');
+      term.innerHTML = '';
+      $('chat').innerHTML = '';
+      chat('agent', 'This is the package <code>tcg-dataapp</code> of Lesson 7, with its nine tests green. I will apply the six steps of the ATAM to it from your prompts, then put the suite in a GitLab pipeline, and stop at the end of each step so you can review it.');
+      document.querySelectorAll('#flow .node').forEach((n) => n.classList.remove('on', 'done'));
+      $('flow-run').classList.remove('on');
+      renderTree(); renderTabs(); renderEditor(); renderUt(); renderTests(); renderCi(); renderChecks(); sideView('files'); showPanel('term');
+      updateUi();
+    }
+    $('btn-send').onclick = () => runTo(S.done);
+    $('btn-prompts').onclick = () => openPrompt(Math.min(S.done, STEPS.length - 1));
+    // ---------- Janela do prompt ----------
+    const SEC_NAMES = { C: 'Character', R: 'Request', E: 'Example', A: 'Adjustments', T: 'Type of output' };
+    function parsePrompt(text) {
+      const secs = [];
+      let cur = null, seenE = false;
+      for (const line of text.split('\n')) {
+        const m = line.match(/^\[([A-Z])\]\s*(.*)$/);
+        if (m) {
+          let name = m[2] || SEC_NAMES[m[1]] || m[1];
+          if (m[1] === 'E') { name = seenE ? 'Extras' : (m[2] || 'Example'); seenE = true; }
+          cur = { letter: m[1], name, lines: [] };
+          secs.push(cur);
+        } else if (cur) cur.lines.push(line);
+      }
+      // Os fatos medidos ficam num bloco próprio dentro do Request.
+      const out = [];
+      for (const sec of secs) {
+        const i = sec.lines.findIndex((l) => /^Facts/.test(l));
+        if (sec.letter === 'R' && i > 0) {
+          out.push({ ...sec, lines: sec.lines.slice(0, i) });
+          out.push({ letter: 'R', name: 'Facts to confirm', lines: sec.lines.slice(i + 1), facts: true });
+        } else out.push(sec);
+      }
+      return out.map((s) => ({ ...s, body: s.lines.join('\n').replace(/^\n+|\s+$/g, '') }));
+    }
+    let PD = null;
+    function openPrompt(i) {
+      PD = i;
+      const st = PLIST[i];
+      const text = D.prompts[st.prompt];
+      const secs = parsePrompt(text);
+      $('pd-title').textContent = `Prompt ${st.prompt.slice(0, 2)} · CREATE · ${st.prompt.slice(3).replace(/_/g, ' ')}`;
+      $('pd-file').textContent = `lab/lesson-9/prompts/${st.prompt}.md · ${text.trim().split('\n').length} lines`;
+      $('pd-prompts').innerHTML = '<span class="lbl">Prompt</span>' + PLIST.map((s, j) => `<button class="btn-lab" type="button" data-pd="${j}" aria-pressed="${j === i}">${s.prompt.slice(0, 2)}</button>`).join('');
+      $('pd-secs').innerHTML = '<span class="lbl">Section</span>' + secs.map((s, j) => `<button class="btn-lab" type="button" data-sec="${j}" title="${esc(s.name)}">${s.facts ? 'Facts' : '[' + s.letter + ']'}</button>`).join('');
+      $('pd-body').innerHTML = secs.map((s, j) => `<section class="pd-sec${s.facts ? ' facts' : ''}" id="pd-sec-${j}"><h3>${s.facts ? '' : `<b>${s.letter}</b>`}${esc(s.name)}</h3><pre>${esc(s.body)}</pre></section>`).join('');
+      $('pd-body').scrollTop = 0;
+      const isNext = i === S.done && i < STEPS.length && !S.running;
+      $('pd-send').style.display = isNext ? '' : 'none';
+      $('pd-hint').textContent = i >= STEPS.length ? 'The prompt of the second hour, for the DataApp of each group; the simulation stops at step 04.' : i < S.done ? 'Already sent to the agent in this session.' : isNext ? 'This is the next prompt of the session.' : S.running && i === S.done ? 'The agent is working on this prompt.' : `Comes after prompt ${STEPS[S.done] ? STEPS[S.done].prompt.slice(0, 2) : ''}.`;
+      $('pd-copy').textContent = 'Copy';
+      if (!$('prompt-dlg').open) $('prompt-dlg').showModal();
+    }
+    $('pd-prompts').addEventListener('click', (e) => { const b = e.target.closest('[data-pd]'); if (b) openPrompt(+b.dataset.pd); });
+    $('pd-secs').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-sec]');
+      if (!b) return;
+      const sec = $('pd-sec-' + b.dataset.sec);
+      $('pd-body').scrollTo({ top: sec.offsetTop - $('pd-body').offsetTop - 4, behavior: 'smooth' });
+      sec.classList.remove('flash'); void sec.offsetWidth; sec.classList.add('flash');
+    });
+    $('pd-close').onclick = () => $('prompt-dlg').close();
+    $('prompt-dlg').addEventListener('click', (e) => { if (e.target === $('prompt-dlg')) $('prompt-dlg').close(); });
+    $('pd-copy').onclick = async () => {
+      try { await navigator.clipboard.writeText(D.prompts[PLIST[PD].prompt]); $('pd-copy').textContent = 'Copied'; }
+      catch { $('pd-copy').textContent = 'Copy failed'; }
+    };
+    $('pd-send').onclick = () => { $('prompt-dlg').close(); runTo(S.done); };
+    $('chat').addEventListener('click', (e) => { const b = e.target.closest('[data-prompt]'); if (b) openPrompt(PLIST.findIndex((s) => s.prompt === b.dataset.prompt)); });
+    $('btn-view-prompt').onclick = () => openPrompt(Math.min(S.done, STEPS.length - 1));
+    document.querySelectorAll('[data-step]').forEach((b) => b.onclick = () => runTo(+b.dataset.step));
+    document.querySelectorAll('[data-speed]').forEach((b) => b.onclick = () => {
+      S.speed = +b.dataset.speed;
+      document.querySelectorAll('[data-speed]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    });
+    $('btn-skip').onclick = () => { if (S.running) S.fast = true; };
+    $('btn-reset').onclick = () => { if (S.running) { GEN++; S.running = false; } reset(); };
+
+    // ---------- Tela cheia ----------
+    const stage = $('stage');
+    const isFull = () => document.fullscreenElement === stage || stage.classList.contains('full');
+    function setFullUi() {
+      const on = isFull();
+      $('btn-full').textContent = on ? '⛶ Exit full screen' : '⛶ Full screen';
+      $('btn-full').setAttribute('aria-pressed', String(on));
+      $('ide-full').title = on ? 'Exit full screen (F or Esc)' : 'Full screen (F)';
+      document.body.classList.toggle('no-scroll', stage.classList.contains('full'));
+    }
+    async function toggleFull() {
+      if (isFull()) {
+        if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
+        stage.classList.remove('full');
+      } else if (stage.requestFullscreen) {
+        try { await stage.requestFullscreen(); } catch { stage.classList.add('full'); }
+      } else stage.classList.add('full');
+      setFullUi();
+    }
+    document.addEventListener('fullscreenchange', setFullUi);
+    $('btn-full').onclick = toggleFull;
+    $('ide-full').onclick = toggleFull;
+    document.addEventListener('keydown', (e) => {
+      if (e.target.closest('input, textarea') || $('prompt-dlg').open || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === 'f' || e.key === 'F') { e.preventDefault(); toggleFull(); }
+      if (e.key === 'Escape' && stage.classList.contains('full')) { stage.classList.remove('full'); setFullUi(); }
+    });
+
+    // Divisória entre editor e painel
+    (() => {
+      const main = $('ide-main');
+      let drag = false;
+      $('splitter').addEventListener('pointerdown', (e) => { drag = true; e.target.setPointerCapture(e.pointerId); });
+      $('splitter').addEventListener('pointermove', (e) => {
+        if (!drag) return;
+        const r = main.getBoundingClientRect();
+        const pct = Math.min(80, Math.max(18, (r.bottom - e.clientY) / r.height * 100));
+        main.style.setProperty('--panel-h', pct + '%');
+      });
+      $('splitter').addEventListener('pointerup', () => { drag = false; });
+    })();
+
+    reset();
+  })();
+  </script>
+<!-- semana:js:start -->
+<script src="../../../../js/semana-ano.js" defer></script>
+<!-- semana:js:end -->
+</body>
+</html>
+

@@ -17,6 +17,19 @@ tcg-dataapp run                         # the pipeline of Lesson 7, now with the
 tcg-dataapp freshness --max-age-days 2  # S11: exit code 1 when the last capture is too old
 ```
 
+## The pipeline on git.inteli.edu.br
+
+`.gitlab-ci.yml` runs the suite in GitLab CI, in the image `python:3.12-slim`, with a pip cache keyed by `pyproject.toml`:
+
+| Stage | Job | Runs | Does |
+|---|---|---|---|
+| test | `test:unit` | every push, every merge request | the 9 tests of the package, with a JUnit report |
+| test | `test:scenarios` | every push, every merge request | the 20 tests of the scenarios, with a JUnit report and `out/traceability.json`, kept even when a test fails |
+| report | `traceability` | after `test:scenarios`, also after a failure | `tools/traceability.py --markdown`, exposed as the artifact "utility tree" |
+| smoke | `smoke:real-data` | only in a pipeline schedule | `tcg-dataapp run --with-today` and `tcg-dataapp freshness --max-age-days 2` against tcgcsv.com |
+
+The workflow rules run one pipeline per commit: the merge request pipeline when the branch has an open merge request, the branch pipeline otherwise. In the project, three settings complete it: a runner available to the project (Settings › CI/CD › Runners), "Pipelines must succeed" (Settings › Merge requests) and a schedule of `main` at `0 6 * * *` (Build › Pipeline schedules). Recorded on 12/11/2026 with the same image in Docker: the merge request pipeline passed 29 tests in about 24 s; a commit that sets `MAX_NULL_SHARE = 1.0` fails `test:scenarios` with TC04.1, and `traceability` still marks S04 FAIL 1/2; the scheduled pipeline ran the real data in about 55 s, with the last capture 0.2 days old.
+
 ## The ATAM documents
 
 | File | Step | Contents |

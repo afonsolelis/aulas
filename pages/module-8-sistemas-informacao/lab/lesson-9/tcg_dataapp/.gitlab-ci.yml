@@ -1,0 +1,80 @@
+# The pipeline of the tests of tcg-dataapp on git.inteli.edu.br (step 07 of Lesson 9).
+#
+# A push to a branch, or to a merge request, runs the two test jobs and reads
+# their results back into the utility tree. A pipeline schedule (CI/CD >
+# Schedules, every day at 06:00 UTC on main) runs only the smoke job, which
+# collects the real data and checks that the last capture is fresh (S11).
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
+      when: never                     # the merge request pipeline already runs for this commit
+    - if: $CI_COMMIT_BRANCH
+
+default:
+  image: python:3.12-slim
+  cache:
+    key:
+      files: [pyproject.toml]         # a new dependency invalidates the cache
+    paths: [.cache/pip]
+  before_script:
+    - python -m venv .venv
+    - . .venv/bin/activate
+    - pip install -e '.[dev]'
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+stages: [test, report, smoke]
+
+.tests:
+  stage: test
+  rules:
+    - if: $CI_PIPELINE_SOURCE != "schedule"
+
+test:unit:
+  extends: .tests
+  script:
+    - pytest tests/test_cli.py tests/test_landing.py tests/test_pipeline.py --junitxml=out/junit-unit.xml
+  artifacts:
+    when: always
+    reports:
+      junit: out/junit-unit.xml
+
+test:scenarios:
+  extends: .tests
+  script:
+    - pytest tests/scenarios --junitxml=out/junit-scenarios.xml
+  artifacts:
+    when: always                      # a failed scenario is a result, and the tree must show it
+    paths: [out/traceability.json]
+    reports:
+      junit: out/junit-scenarios.xml
+
+traceability:
+  stage: report
+  needs:
+    - job: test:scenarios
+      artifacts: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE != "schedule"
+      when: always                    # also after a failure: it says which leaves failed
+  before_script: []                   # the script reads two files with the standard library
+  script:
+    - python tools/traceability.py --markdown | tee out/traceability.md
+  artifacts:
+    expose_as: utility tree
+    paths: [out/traceability.md]
+
+smoke:real-data:
+  stage: smoke
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+  script:
+    - tcg-dataapp run --with-today
+    - tcg-dataapp freshness --max-age-days 2
+  artifacts:
+    when: always
+    paths: [out/report.md]
