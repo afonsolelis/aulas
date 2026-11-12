@@ -191,7 +191,7 @@
   <div id="progress-bar" aria-hidden="true"></div>
   <nav id="float-nav" aria-label="Quick navigation">
     <a class="fn-btn fn-btn-slides" href="../slides/slide-lesson-10.html">▶ Slides</a>
-    <a class="fn-btn fn-btn-alt" href="https://github.com/afonsolelis/aulas/tree/main/pages/module-8-sistemas-informacao/lab/lesson-10" target="_blank" rel="noopener noreferrer">🧪 Lab</a>
+    <a class="fn-btn fn-btn-alt" href="../lab/lesson-10/index.html">🧪 Lab</a>
     <a class="fn-btn fn-btn-back" href="../../home-module-8-sistemas-informacao.html">← Module</a>
   </nav>
 
@@ -1159,11 +1159,15 @@ datasources:
       </section>
       <section class="mat-section" id="alerts">
         <h2>15. Alerts on symptoms, tested</h2>
-<p>An alerting rule is a PromQL expression that creates an alert while it returns series. Each rule of the lab describes a symptom that someone must act on, with a threshold that comes from how the DataApp runs: a failed run, no success for 26 hours (a daily run plus two hours), prices older than 36 hours, a run over 120 seconds (three times the reference), rows above the grain, and an exporter that cannot read the warehouse for two minutes. The description of <code>TcgRunFailed</code> uses the template function <code>query</code> to read <code>tcg_run_info</code>, so the alert itself carries the run and the trace. Three more rules cover the controller of Part V: an escalation, a breaker open for two hours and a controller that stopped ticking.</p>
+<p>An alerting rule is a PromQL expression that creates an alert while it returns series. Each rule of the lab describes a symptom that someone must act on, with a threshold that comes from how the DataApp runs: a failed run, no success for 26 hours (a daily run plus two hours), prices older than 36 hours, a run over 120 seconds (three times the reference), rows above the grain, and an exporter that cannot read the warehouse for two minutes. The description of <code>TcgRunFailed</code> uses the template function <code>query</code> to read <code>tcg_run_info</code>, so the alert itself carries the run and the trace. Three more rules cover the controller of Part V: an escalation, a breaker open for two hours and a controller that stopped ticking. The recording rules sit in the same group as the alerts that read them, before them. The rules of one group are evaluated in order, so <code>TcgPricesStale</code> reads the freshness computed in the same evaluation; in separate groups the order is not fixed, and the test of the alert in <code>rules_test.yml</code> failed about one run in three, depending on which group Prometheus evaluated first.</p>
 <div class="code-wrap"><div class="code-label"><span>stack/prometheus/rules.yml</span><div class="code-actions"><button type="button" class="code-copy">Copy</button></div></div><pre class="code-block"><code># Lesson 10 · recording and alerting rules of the DataApp.
 # Check with: promtool check rules rules.yml
 groups:
-  - name: tcg_dataapp_recording
+  # The recording rules come first, in the same group as the alerts that read them:
+  # the rules of one group are evaluated in order, so TcgPricesStale reads the
+  # freshness of the same evaluation. In separate groups the order is not fixed,
+  # and the alert could read the value of the previous minute.
+  - name: tcg_dataapp
     rules:
       # Seconds since the newest price was captured. Written once, reused by the
       # dashboard and by the alert below. The prices of today are stored at noon
@@ -1176,8 +1180,6 @@ groups:
       - record: tcg:source_request_duration_seconds:p95
         expr: histogram_quantile(0.95, sum by (le, endpoint) (tcg_source_request_duration_seconds_bucket{job=&quot;tcg_dataapp&quot;}))
 
-  - name: tcg_dataapp_alerts
-    rules:
       - alert: TcgRunFailed
         expr: tcg_run_success{job=&quot;tcg_dataapp&quot;} == 0
         labels:

@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 10 Lab · OpenTelemetry and the closed loop · Module 8 · Inteli</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📈</text></svg>">
+  <link href="../../../../css/inteli-styles.css" rel="stylesheet">
+  <style>
+    body.tm { min-height: 100vh; }
+    /* A margem direita deixa livre a faixa dos botões flutuantes (início e semana), fixos a 14px da borda. */
+    .lab { max-width: 1600px; min-width: 0; width: 100%; box-sizing: border-box; margin: 0 auto; padding: 20px 76px 0 24px; }
+    .lab-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 16px; border-bottom: 1px solid var(--ds-borda); }
+    .lab-top nav { display: flex; flex-wrap: wrap; gap: 6px 18px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); }
+    .lab-top nav a { text-decoration: none; color: var(--ds-texto); }
+    .lab-top nav a span { color: var(--ds-texto-fraco); }
+    .lab-top nav a:hover { color: var(--ds-texto-forte); text-decoration: underline; }
+    .lab-top img { width: 64px; display: block; }
+    .lab-head { padding: 24px 0 14px; }
+    .lab-head .meta { margin: 0 0 10px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); color: var(--ds-texto-suave); }
+    .lab-head h1 { margin: 0; font-family: var(--ds-fonte-mono); font-weight: 500; font-size: clamp(1.6rem, 1rem + 2vw, 2.4rem); letter-spacing: -0.02em; color: var(--ds-texto-forte); }
+    .lab-head p { margin: 12px 0 0; max-width: 100ch; line-height: 1.6; color: var(--ds-texto); }
+
+    /* Fluxo do DataApp: cada etapa acende o trecho que ela constrói. */
+    .flow { display: grid; grid-template-columns: repeat(11, auto); align-items: stretch; gap: 0; margin: 18px 0 6px; overflow-x: auto; }
+    .flow .node { border: 1px solid var(--ds-borda-forte); background: var(--ds-fundo); padding: 10px 12px; min-width: 120px; display: flex; flex-direction: column; gap: 4px; transition: border-color var(--ds-rapido), background var(--ds-rapido); }
+    .flow .node b { font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); font-weight: 600; color: var(--ds-texto-forte); }
+    .flow .node span { font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); line-height: 1.4; }
+    .flow .node code { font-size: var(--ds-fs-micro); }
+    .flow .node .st { font-family: var(--ds-fonte-mono); color: var(--ds-texto-fraco); }
+    .flow .arrow { display: flex; align-items: center; padding: 0 6px; font-family: var(--ds-fonte-mono); color: var(--ds-texto-fraco); }
+    .flow .node.on { border-color: var(--inteli-roxo); background: var(--ds-roxo-tinta); box-shadow: inset 3px 0 0 var(--inteli-verde); }
+    .flow .node.done .st { color: var(--ds-verde-texto); }
+    .flow-run { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; border: 1px dashed var(--ds-borda-forte); padding: 8px 12px; margin-bottom: 14px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); }
+    .flow-run b { color: var(--ds-texto-forte); font-weight: 600; }
+    .flow-run.on { border-style: solid; border-color: var(--inteli-roxo); background: var(--ds-roxo-tinta); }
+
+    .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 12px; }
+    .controls .lbl { font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); margin-right: 4px; }
+    .btn-lab { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border: 1px solid var(--ds-borda-forte); background: var(--ds-fundo); color: var(--ds-texto-forte); font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); font-weight: 500; cursor: pointer; white-space: nowrap; border-radius: var(--ds-raio-1); }
+    .btn-lab:hover { background: var(--ds-fundo-fraco); border-color: var(--inteli-cinza-400); }
+    .btn-lab.primary { background: var(--inteli-roxo); border-color: var(--inteli-roxo); color: var(--ds-texto-inverso); }
+    .btn-lab.primary:hover { background: var(--ds-roxo-hover); }
+    .btn-lab.step-done { border-color: var(--inteli-verde); }
+    .btn-lab.step-done::before { content: "✓"; color: var(--ds-verde-texto); }
+    .btn-lab:disabled { opacity: 0.5; cursor: default; }
+    .btn-lab[aria-pressed="true"] { background: var(--ds-roxo-tinta); border-color: var(--inteli-roxo); }
+    .btn-lab.primary[aria-pressed="true"] { background: var(--inteli-roxo); color: var(--ds-texto-inverso); }
+
+    /* ===== O editor simulado ===== */
+    .ide { --ide-bg: var(--ds-terminal); --ide-side: var(--inteli-roxo); --ide-line: rgba(255, 255, 255, 0.09); --ide-txt: var(--inteli-cinza-100); --ide-dim: var(--inteli-cinza-400);
+      height: clamp(640px, 82vh, 980px); display: grid; grid-template-rows: 30px minmax(0, 1fr) 24px; border: 1px solid var(--inteli-roxo); background: var(--ide-bg); color: var(--ide-txt); font-family: var(--ds-fonte-mono); font-variant-ligatures: none; font-size: 12.5px; margin-bottom: 28px; min-width: 0; }
+    .ide button { font-family: inherit; }
+    .ide-title { display: flex; align-items: center; gap: 10px; padding: 0 10px; background: var(--ide-side); border-bottom: 1px solid var(--ide-line); font-size: 12px; color: var(--ide-dim); }
+    .ide-title .dots { display: flex; gap: 6px; }
+    .ide-title .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--ide-line); display: block; }
+    .ide-title .t { flex: 1; text-align: center; }
+    .ide-title .sim { color: var(--inteli-verde); }
+    .ide-body { display: grid; grid-template-columns: 44px 230px minmax(0, 1fr) 340px; min-height: 0; }
+    .ide-act { background: var(--ide-side); border-right: 1px solid var(--ide-line); display: flex; flex-direction: column; align-items: center; padding-top: 6px; gap: 2px; }
+    .ide-act button { width: 44px; height: 42px; border: 0; background: transparent; color: var(--ide-dim); font-size: 17px; cursor: pointer; border-left: 2px solid transparent; position: relative; }
+    .ide-act button[aria-pressed="true"] { color: var(--inteli-branco); border-left-color: var(--inteli-verde); }
+    .ide-act button .badge { position: absolute; right: 6px; bottom: 6px; font-size: 9px; min-width: 14px; height: 14px; line-height: 14px; border-radius: 2px; background: var(--inteli-verde); color: var(--inteli-roxo); font-weight: 700; }
+    .ide-side { background: var(--ide-side); border-right: 1px solid var(--ide-line); display: flex; flex-direction: column; min-height: 0; }
+    .ide-side h2 { margin: 0; padding: 9px 12px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ide-dim); font-family: inherit; }
+    .tree { overflow: auto; flex: 1; padding-bottom: 12px; }
+    .tree .row { display: flex; align-items: center; gap: 5px; height: 22px; padding-right: 8px; white-space: nowrap; cursor: pointer; color: var(--ide-txt); }
+    .tree .row:hover { background: var(--ide-line); }
+    .tree .row.active { background: rgba(137, 206, 165, 0.16); }
+    .tree .row .ic { width: 14px; text-align: center; color: var(--ide-dim); font-size: 11px; flex: 0 0 auto; }
+    .tree .row .nm { overflow: hidden; text-overflow: ellipsis; }
+    .tree .row .g { margin-left: auto; font-size: 10px; font-weight: 700; }
+    .tree .row .g.U { color: var(--inteli-verde); }
+    .tree .row .g.M { color: var(--inteli-cinza-300); }
+    .tree .row.dir { color: var(--ide-dim); cursor: default; }
+    .tree .row.fresh { animation: fresh 1.2s ease-out; }
+    @keyframes fresh { from { background: rgba(137, 206, 165, 0.35); } to { background: transparent; } }
+    .tree .empty { padding: 8px 14px; color: var(--ide-dim); line-height: 1.5; }
+    .checklist { overflow: auto; flex: 1; padding: 0 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+    .checklist .ck { border: 1px solid var(--ide-line); padding: 7px 9px; display: grid; grid-template-columns: 16px 1fr; gap: 2px 6px; font-size: 11.5px; line-height: 1.4; }
+    .checklist .ck i { font-style: normal; color: var(--ide-dim); grid-row: span 2; }
+    .checklist .ck b { font-weight: 600; color: var(--inteli-branco); }
+    .checklist .ck span { color: var(--ide-dim); }
+    .checklist .ck.ok { border-color: rgba(137, 206, 165, 0.45); }
+    .checklist .ck.ok i { color: var(--inteli-verde); }
+    .checklist .ck.flash { animation: fresh 1.4s ease-out; }
+    .checklist p { margin: 0 0 4px; color: var(--ide-dim); font-size: 11.5px; line-height: 1.5; }
+
+    .ide-main { display: grid; grid-template-rows: 34px minmax(0, 1fr) 6px minmax(0, var(--panel-h, 48%)); min-width: 0; min-height: 0; }
+    .tabs { display: flex; background: var(--ide-side); overflow-x: auto; scrollbar-width: thin; }
+    .tabs .tab { display: flex; align-items: center; gap: 8px; padding: 0 10px 0 12px; border-right: 1px solid var(--ide-line); color: var(--ide-dim); cursor: pointer; white-space: nowrap; border-top: 2px solid transparent; background: transparent; }
+    .tabs .tab.active { background: var(--ide-bg); color: var(--inteli-branco); border-top-color: var(--inteli-verde); }
+    .tabs .tab .x { opacity: 0.6; font-size: 11px; }
+    .tabs .tab .x:hover { opacity: 1; }
+    .tabs .tab em { font-style: italic; }
+    .editor { overflow: auto; position: relative; min-height: 0; }
+    .editor .welcome { padding: 32px; color: var(--ide-dim); line-height: 1.7; max-width: 70ch; font-family: var(--ds-fonte); font-size: 14px; }
+    .editor .welcome b { color: var(--inteli-branco); }
+    .editor .welcome kbd { font-family: var(--ds-fonte-mono); border: 1px solid var(--ide-line); padding: 0 5px; }
+    .code { display: grid; grid-template-columns: max-content minmax(0, 1fr); padding: 8px 0 40px; line-height: 1.6; }
+    .code .ln { text-align: right; padding: 0 14px 0 10px; color: var(--ide-dim); user-select: none; opacity: 0.6; }
+    .code .tx { white-space: pre; padding-right: 24px; tab-size: 4; }
+    .code .tx.cur::after { content: ""; display: inline-block; width: 7px; height: 1.1em; vertical-align: text-bottom; background: var(--inteli-verde); animation: blink 1s steps(1) infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+    .code .tx.del { text-decoration: line-through; text-decoration-color: var(--inteli-coral); opacity: 0.55; }
+    .code .tx.keep { background: rgba(137, 206, 165, 0.10); }
+    .code .ln.del::before { content: "− "; color: var(--inteli-coral); }
+    .code .ln.keep::before { content: "+ "; color: var(--inteli-verde); }
+    .k { color: var(--inteli-verde); }
+    .s { color: var(--inteli-coral); }
+    .c { color: var(--ide-dim); font-style: italic; }
+    .n { color: var(--inteli-branco); font-weight: 600; }
+    .f { color: var(--inteli-cinza-300); text-decoration: underline; text-decoration-color: var(--ide-line); text-underline-offset: 3px; }
+    .h { color: var(--inteli-branco); font-weight: 700; }
+    .note-bar { position: sticky; top: 0; z-index: 1; padding: 8px 14px; background: var(--ide-side); border-bottom: 1px solid var(--ide-line); color: var(--ide-txt); font-family: var(--ds-fonte); font-size: 13px; line-height: 1.5; }
+    .note-bar b { color: var(--inteli-verde); font-weight: 600; }
+
+    .splitter { background: var(--ide-line); cursor: row-resize; }
+    .panel { display: grid; grid-template-rows: 30px minmax(0, 1fr); min-height: 0; background: var(--ide-bg); }
+    .ptabs { display: flex; gap: 2px; padding: 0 8px; border-bottom: 1px solid var(--ide-line); overflow-x: auto; }
+    .ptabs button { border: 0; background: transparent; color: var(--ide-dim); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; padding: 0 10px; cursor: pointer; border-bottom: 1px solid transparent; white-space: nowrap; }
+    .ptabs button[aria-selected="true"] { color: var(--inteli-branco); border-bottom-color: var(--inteli-verde); }
+    .ptabs button .cnt { margin-left: 4px; color: var(--inteli-verde); }
+    .pbody { overflow: auto; min-height: 0; }
+    .pview { display: none; min-height: 100%; }
+    .pview.on { display: block; }
+    .term { padding: 8px 14px 16px; white-space: pre-wrap; word-break: break-word; line-height: 1.5; }
+    .term .ps { color: var(--inteli-verde); }
+    .term .cmd { color: var(--inteli-branco); }
+    .term .err { color: var(--inteli-coral); }
+    .term .okl { color: var(--inteli-verde); }
+    .term .dim { color: var(--ide-dim); }
+    .term .cur::after { content: ""; display: inline-block; width: 7px; height: 1em; vertical-align: text-bottom; background: var(--ide-txt); animation: blink 1s steps(1) infinite; }
+    table.dt { border-collapse: collapse; width: 100%; font-size: 11.5px; }
+    table.dt th { position: sticky; top: 0; background: var(--ide-side); text-align: left; padding: 5px 10px; font-weight: 600; color: var(--inteli-branco); border-bottom: 1px solid var(--ide-line); white-space: nowrap; z-index: 1; }
+    table.dt td { padding: 4px 10px; border-bottom: 1px solid var(--ide-line); white-space: nowrap; max-width: 560px; overflow: hidden; text-overflow: ellipsis; vertical-align: top; }
+    table.dt td.num { text-align: right; }
+    table.dt tr.hl td { background: rgba(137, 206, 165, 0.14); }
+    table.dt tr.new td { animation: fresh 1.4s ease-out; }
+    table.dt tr.click { cursor: pointer; }
+    table.dt tr.click:hover td { background: var(--ide-line); }
+    .tag-set { color: var(--inteli-verde); }
+    .tag-product { color: var(--inteli-cinza-300); }
+    .tag-price { color: var(--inteli-coral); }
+    .pv-split { display: grid; grid-template-columns: minmax(260px, 0.9fr) minmax(0, 1.4fr); min-height: 100%; }
+    .pv-split > div { overflow: auto; border-right: 1px solid var(--ide-line); }
+    .pv-head { padding: 8px 12px; color: var(--ide-dim); line-height: 1.5; font-family: var(--ds-fonte); font-size: 12.5px; border-bottom: 1px solid var(--ide-line); }
+    .pv-head b { color: var(--inteli-branco); font-family: var(--ds-fonte-mono); font-weight: 600; }
+    .pv-head .flash { color: var(--inteli-verde); }
+    .schema { padding: 8px 12px; border-bottom: 1px solid var(--ide-line); display: flex; gap: 6px; flex-wrap: wrap; }
+    .schema span { border: 1px solid var(--ide-line); padding: 2px 7px; }
+    .schema span em { font-style: normal; color: var(--ide-dim); }
+    .gold-list button { display: flex; width: 100%; justify-content: space-between; gap: 10px; padding: 5px 12px; border: 0; background: transparent; color: var(--ide-txt); cursor: pointer; text-align: left; font-size: 12px; }
+    .gold-list button:hover { background: var(--ide-line); }
+    .gold-list button[aria-pressed="true"] { background: rgba(137, 206, 165, 0.16); }
+    .gold-list button span { color: var(--ide-dim); }
+    .gold-list button.new { animation: fresh 1.4s ease-out; }
+    .gold-list .grp { padding: 8px 12px 2px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ide-dim); }
+    .empty-p { padding: 18px; color: var(--ide-dim); font-family: var(--ds-fonte); font-size: 13px; line-height: 1.6; max-width: 80ch; }
+    .net-row td:first-child { color: var(--inteli-verde); }
+
+    /* Rastreio de uma carta: da linha de db_ingestion ao relatório. */
+    .trace { padding: 12px 14px 20px; display: flex; flex-direction: column; gap: 10px; }
+    .trace .stage { border: 1px solid var(--ide-line); }
+    .trace .stage > header { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; padding: 6px 10px; background: var(--ide-side); }
+    .trace .stage > header b { color: var(--inteli-branco); font-weight: 600; }
+    .trace .stage > header span { color: var(--ide-dim); font-family: var(--ds-fonte); font-size: 12px; }
+    .trace .stage .body { overflow-x: auto; }
+    .trace .down { text-align: center; color: var(--ide-dim); font-size: 11px; }
+    .trace .down code { color: var(--inteli-verde); }
+    .bars { display: flex; align-items: flex-end; gap: 14px; height: 150px; padding: 12px 14px 4px; }
+    .bars .bar { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; height: 100%; font-size: 11px; color: var(--ide-dim); }
+    .bars .bar i { display: block; width: 100%; max-width: 46px; background: var(--inteli-cinza-400); border-radius: 0 0 0 0; }
+    .bars .bar.frozen i { background: var(--inteli-verde); }
+    .bars .bar.last i { background: var(--inteli-cinza-100); }
+    .bars .bar b { color: var(--inteli-branco); font-weight: 600; }
+
+    /* Grafo do pipeline */
+    .dag { display: flex; gap: 22px; padding: 16px 14px 20px; align-items: center; overflow-x: auto; min-height: 100%; }
+    .dag .col { display: flex; flex-direction: column; gap: 6px; position: relative; }
+    .dag .col + .col::before { content: "▶"; position: absolute; left: -17px; top: 50%; transform: translateY(-50%); color: var(--ide-dim); font-size: 10px; }
+    .dag .t { border: 1px solid var(--ide-line); padding: 5px 8px; min-width: 150px; font-size: 11px; display: grid; gap: 1px; }
+    .dag .t small { color: var(--ide-dim); font-size: 10px; }
+    .dag .t.run { border-color: var(--inteli-cinza-100); animation: blink 0.8s steps(1) infinite; }
+    .dag .t.ok { border-color: var(--inteli-verde); }
+    .dag .t.ok small { color: var(--inteli-verde); }
+    .dag .t.fail { border-color: var(--inteli-coral); }
+    .dag .t.fail small { color: var(--inteli-coral); }
+    .dag .t.skip { border-style: dashed; opacity: 0.55; }
+    .dag-legend { padding: 0 14px 12px; color: var(--ide-dim); font-family: var(--ds-fonte); font-size: 12px; }
+
+    /* Painel do agente */
+    .ide-agent { background: var(--ide-side); border-left: 1px solid var(--ide-line); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-height: 0; }
+    .ide-agent h2 { margin: 0; padding: 9px 12px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ide-dim); font-family: inherit; border-bottom: 1px solid var(--ide-line); }
+    .chat { overflow: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 10px; }
+    .msg { font-family: var(--ds-fonte); font-size: 13px; line-height: 1.5; }
+    .msg .who { font-family: var(--ds-fonte-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ide-dim); margin-bottom: 3px; }
+    .msg.user .bubble { border: 1px solid var(--ide-line); background: var(--ide-bg); padding: 8px 10px; }
+    .msg.user details summary { cursor: pointer; font-family: var(--ds-fonte-mono); font-size: 12px; color: var(--inteli-branco); }
+    .msg.user pre { margin: 8px 0 0; white-space: pre-wrap; font-family: var(--ds-fonte-mono); font-size: 11px; line-height: 1.5; color: var(--ide-txt); max-height: 320px; overflow: auto; }
+    .msg.agent .bubble { color: var(--ide-txt); }
+    .msg.agent .bubble b { color: var(--inteli-branco); }
+    .msg.agent .bubble code { font-family: var(--ds-fonte-mono); font-size: 12px; color: var(--inteli-verde); }
+    .msg.agent ul { margin: 4px 0 0; padding-left: 18px; }
+    .act { font-family: var(--ds-fonte-mono); font-size: 11.5px; color: var(--ide-dim); display: flex; gap: 6px; align-items: baseline; }
+    .act b { color: var(--ide-txt); font-weight: 500; }
+    .act .ok { color: var(--inteli-verde); }
+    .act.running .ok { color: var(--inteli-cinza-100); animation: blink 0.8s steps(1) infinite; }
+    .compose { border-top: 1px solid var(--ide-line); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+    .compose .next { font-family: var(--ds-fonte); font-size: 12.5px; color: var(--ide-dim); line-height: 1.45; }
+    .compose .next b { color: var(--inteli-branco); }
+    .compose .row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .compose button { height: 30px; padding: 0 10px; border: 1px solid var(--inteli-verde); background: var(--inteli-verde); color: var(--inteli-roxo); font-weight: 600; cursor: pointer; font-size: 12px; border-radius: var(--ds-raio-1); }
+    .compose button.ghost { background: transparent; color: var(--ide-txt); border-color: var(--ide-line); font-weight: 500; }
+    .compose button:disabled { opacity: 0.45; cursor: default; }
+
+    .ide-status { display: flex; align-items: center; gap: 16px; padding: 0 10px; background: var(--inteli-roxo); border-top: 1px solid var(--ide-line); font-size: 11px; color: var(--ide-txt); white-space: nowrap; overflow: hidden; }
+    .ide-status .sp { flex: 1; }
+    .ide-status .busy { color: var(--inteli-verde); }
+
+    .notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 0 0 28px; }
+    .notes article { border: 1px solid var(--ds-borda-forte); padding: 14px 16px; }
+    .notes h2 { margin: 0 0 6px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-ui); font-weight: 600; color: var(--ds-texto-forte); }
+    .notes p, .notes li { margin: 0; font-size: var(--ds-fs-meta); line-height: 1.55; color: var(--ds-texto); }
+    .notes ul { margin: 0; padding-left: 18px; }
+
+
+    /* Tela cheia: a barra de etapas e o editor ocupam a tela inteira. */
+    .ide-full { margin-left: 10px; border: 1px solid var(--ide-line); background: transparent; color: var(--ide-txt); height: 22px; padding: 0 8px; cursor: pointer; border-radius: var(--ds-raio-1); }
+    .ide-full:hover { border-color: var(--inteli-verde); color: var(--inteli-verde); }
+    .stage.full { position: fixed; inset: 0; z-index: 1000; background: var(--ds-fundo); padding: 8px 10px; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 8px; }
+    .stage:fullscreen { background: var(--ds-fundo); padding: 8px 10px; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 8px; }
+    .stage.full .controls, .stage:fullscreen .controls { margin: 0; }
+    .stage.full .ide, .stage:fullscreen .ide { height: 100%; margin: 0; font-size: 14px; }
+    .stage.full .ide-body, .stage:fullscreen .ide-body { grid-template-columns: 44px 250px minmax(0, 1fr) 380px; grid-template-rows: none; }
+    .stage.full .ide-agent, .stage:fullscreen .ide-agent { grid-column: auto; border-left: 1px solid var(--ide-line); border-top: 0; max-height: none; }
+    .stage.full .msg, .stage:fullscreen .msg { font-size: 14px; }
+    body.no-scroll { overflow: hidden; }
+
+    /* Janela do prompt: leitura confortável, uma seção do CRAETE por bloco. */
+    dialog#prompt-dlg { width: min(1000px, 94vw); max-height: 90vh; padding: 0; border: 1px solid var(--ds-texto-forte); border-radius: var(--ds-raio-2); background: var(--ds-fundo); color: var(--ds-texto-forte); }
+    dialog#prompt-dlg[open] { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr) auto; }
+    dialog#prompt-dlg::backdrop { background: rgba(46, 38, 64, 0.55); }
+    .pd-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; padding: 14px 20px 10px; border-bottom: 1px solid var(--ds-borda); }
+    .pd-head h2 { margin: 0; font-family: var(--ds-fonte-mono); font-size: 1.15rem; font-weight: 600; }
+    .pd-head span { font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); }
+    .pd-head .x { margin-left: auto; }
+    .pd-nav { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 20px; border-bottom: 1px solid var(--ds-borda); background: var(--ds-fundo-fraco); }
+    .pd-nav .grp { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+    .pd-nav .sep { width: 1px; align-self: stretch; background: var(--ds-borda-forte); margin: 0 6px; }
+    .pd-nav .lbl { font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); margin-right: 2px; }
+    .pd-body { overflow: auto; padding: 8px 20px 20px; }
+    .pd-sec { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--ds-borda); }
+    .pd-sec:last-child { border-bottom: 0; }
+    .pd-sec h3 { margin: 0; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); font-weight: 600; color: var(--ds-texto-forte); }
+    .pd-sec h3 b { display: inline-block; min-width: 26px; padding: 1px 4px; margin-right: 6px; text-align: center; background: var(--inteli-roxo); color: var(--ds-texto-inverso); border-radius: var(--ds-raio-1); font-weight: 600; }
+    .pd-sec pre { margin: 0; white-space: pre-wrap; font-family: var(--ds-fonte-mono); font-size: 0.92rem; line-height: 1.6; color: var(--ds-texto-forte); font-variant-ligatures: none; }
+    .pd-sec.facts pre { color: var(--ds-texto); }
+    .pd-sec.flash { animation: pdflash 1.2s ease-out; }
+    @keyframes pdflash { from { background: var(--ds-roxo-tinta); } to { background: transparent; } }
+    .pd-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 20px; border-top: 1px solid var(--ds-borda); background: var(--ds-fundo-fraco); }
+    .pd-foot .hint { margin-right: auto; font-size: var(--ds-fs-meta); color: var(--ds-texto-suave); }
+    .msg.user .open-prompt { display: block; width: 100%; text-align: left; border: 0; background: transparent; color: var(--inteli-branco); font-family: var(--ds-fonte-mono); font-size: 12px; cursor: pointer; padding: 0; }
+    .msg.user .open-prompt span { color: var(--inteli-verde); }
+    .msg.user .open-prompt:hover span { text-decoration: underline; }
+    @media (max-width: 700px) { .pd-sec { grid-template-columns: minmax(0, 1fr); gap: 6px; } .pd-sec pre { font-size: 0.8rem; } .pd-nav .sep { display: none; } .pd-head, .pd-nav, .pd-body, .pd-foot { padding-left: 14px; padding-right: 14px; } }
+
+    @media (max-width: 1250px) {
+      .ide-body { grid-template-columns: 44px 200px minmax(0, 1fr); }
+      .ide-agent { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--ide-line); max-height: 380px; }
+      .ide { height: auto; grid-template-rows: 30px auto 24px; }
+      .ide-body { grid-template-rows: clamp(560px, 70vh, 820px) auto; }
+      .notes { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 760px) {
+      .lab { padding: 16px 16px 0; }
+      .ide-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: 200px clamp(520px, 75vh, 760px) auto; }
+      .ide-act { display: none; }
+      .ide-side { border-right: 0; border-bottom: 1px solid var(--ide-line); }
+      .pv-split { grid-template-columns: 1fr; }
+    }
+
+    /* ===== Aula 10: as abas de observabilidade ===== */
+    .flow .node { min-width: 150px; }
+    .ide-main { --panel-h: 58%; }
+    .st-badge { display: inline-block; padding: 0 6px; border: 1px solid var(--ide-line); border-radius: var(--ds-raio-1); font-size: 10.5px; line-height: 17px; color: var(--ide-txt); white-space: nowrap; }
+    .st-badge.ok, .st-badge.OK, .st-badge.PASSED, .st-badge.inactive, .st-badge.closed, .st-badge.info { border-color: var(--inteli-verde); color: var(--inteli-verde); }
+    .st-badge.ERROR, .st-badge.FAILED, .st-badge.firing, .st-badge.error, .st-badge.open { border-color: var(--inteli-coral); color: var(--inteli-coral); }
+    .st-badge.pending, .st-badge.warning, .st-badge.half { border-style: dashed; border-color: var(--inteli-coral); color: var(--inteli-cinza-100); }
+    .bar-top { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; padding: 7px 12px; border-bottom: 1px solid var(--ide-line); background: var(--ide-side); font-size: 11.5px; color: var(--ide-dim); position: sticky; top: 0; z-index: 3; }
+    .bar-top .lbl { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; }
+    .bar-top button { border: 1px solid var(--ide-line); background: transparent; color: var(--ide-txt); height: 24px; padding: 0 8px; cursor: pointer; font-size: 11.5px; border-radius: var(--ds-raio-1); }
+    .bar-top button[aria-pressed="true"] { border-color: var(--inteli-verde); color: var(--inteli-branco); background: rgba(137, 206, 165, 0.12); }
+    .bar-top b { color: var(--inteli-branco); font-weight: 600; }
+    .bar-top input { height: 24px; border: 1px solid var(--ide-line); background: var(--ide-bg); color: var(--ide-txt); padding: 0 8px; font-family: inherit; font-size: 11.5px; min-width: 260px; border-radius: var(--ds-raio-1); }
+    .sub-h { padding: 6px 12px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ide-dim); border-bottom: 1px solid var(--ide-line); background: var(--ide-bg); }
+    .two { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); min-height: 100%; }
+    .two > div { min-width: 0; }
+    .two > div + div { border-left: 1px solid var(--ide-line); }
+    table.dt td.wrap { white-space: normal; }
+    .kv { padding: 8px 12px; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 3px 12px; font-size: 11.5px; }
+    .kv dt { color: var(--ide-dim); }
+    .kv dd { margin: 0; color: var(--ide-txt); word-break: break-all; }
+
+    /* OpenTelemetry: o caminho dos três sinais */
+    .otel { padding: 14px; display: grid; gap: 14px; }
+    .pipe { display: grid; grid-template-columns: 1.1fr auto 1.4fr auto 1fr; gap: 10px; align-items: stretch; }
+    .pipe .box { border: 1px solid var(--ide-line); padding: 8px 10px; display: grid; gap: 4px; align-content: start; }
+    .pipe .box h4 { margin: 0; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--inteli-verde); font-family: inherit; font-weight: 600; }
+    .pipe .box p { margin: 0; color: var(--ide-dim); font-family: var(--ds-fonte); font-size: 12px; line-height: 1.45; }
+    .pipe .box code { color: var(--inteli-branco); }
+    .pipe .box.on { border-color: var(--inteli-verde); }
+    .pipe .arr { display: grid; place-items: center; color: var(--ide-dim); font-size: 11px; text-align: center; }
+    .pipe .col { display: grid; gap: 8px; }
+    .gloss { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .gloss div { border: 1px solid var(--ide-line); padding: 7px 9px; font-family: var(--ds-fonte); font-size: 12px; line-height: 1.45; color: var(--ide-dim); }
+    .gloss b { display: block; font-family: var(--ds-fonte-mono); color: var(--inteli-branco); font-weight: 600; font-size: 11.5px; margin-bottom: 2px; }
+
+    /* Métricas */
+    .charts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 10px 12px; }
+    .chart { border: 1px solid var(--ide-line); padding: 6px 8px; }
+    .chart h5 { margin: 0 0 4px; font-size: 11px; font-weight: 500; color: var(--ide-txt); font-family: inherit; }
+    .chart h5 span { color: var(--ide-dim); }
+    .chart svg { width: 100%; height: 90px; display: block; }
+    .chart svg .ln { fill: none; stroke: var(--inteli-verde); stroke-width: 1.6; }
+    .chart svg .ln2 { fill: none; stroke: var(--inteli-coral); stroke-width: 1.6; stroke-dasharray: 4 3; }
+    .chart svg .ax { stroke: var(--ide-line); }
+    .chart svg text { fill: var(--ide-dim); font-size: 9px; font-family: var(--ds-fonte-mono); }
+    .alert { border: 1px solid var(--ide-line); margin: 0 12px 8px; padding: 6px 10px; display: grid; gap: 3px; font-size: 11.5px; }
+    .alert.firing { border-color: var(--inteli-coral); }
+    .alert b { color: var(--inteli-branco); font-weight: 600; }
+    .alert span { color: var(--ide-dim); font-family: var(--ds-fonte); font-size: 12px; }
+
+    /* Traces: cascata */
+    .wf { font-size: 11.5px; }
+    .wf .row { display: grid; grid-template-columns: minmax(220px, 34%) minmax(0, 1fr) 64px; gap: 8px; align-items: center; height: 21px; cursor: pointer; padding: 0 10px; }
+    .wf .row:hover { background: var(--ide-line); }
+    .wf .row.sel { background: rgba(137, 206, 165, 0.14); }
+    .wf .row .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ide-txt); }
+    .wf .row .nm i { font-style: normal; color: var(--ide-dim); }
+    .wf .row .tr { position: relative; height: 11px; background: repeating-linear-gradient(90deg, transparent 0 calc(10% - 1px), var(--ide-line) calc(10% - 1px) 10%); }
+    .wf .row .tr b { position: absolute; top: 0; bottom: 0; min-width: 2px; background: var(--inteli-verde); border-radius: 2px; }
+    .wf .row .tr b.k-task { background: var(--inteli-cinza-300); }
+    .wf .row .tr b.k-http { background: var(--inteli-cinza-400); }
+    .wf .row .tr b.k-sql { background: var(--inteli-verde); }
+    .wf .row .tr b.k-ctl { background: var(--inteli-cinza-100); }
+    .wf .row .tr b.ERROR { background: var(--inteli-coral); }
+    .wf .row .tr em { position: absolute; top: -1px; width: 2px; height: 13px; background: var(--inteli-coral); }
+    .wf .row .du { text-align: right; color: var(--ide-dim); }
+    .wf .row.err .nm { color: var(--inteli-coral); }
+    .wf-axis { display: grid; grid-template-columns: minmax(220px, 34%) minmax(0, 1fr) 64px; gap: 8px; padding: 4px 10px; font-size: 10px; color: var(--ide-dim); border-bottom: 1px solid var(--ide-line); }
+    .wf-axis div { display: flex; justify-content: space-between; }
+    .btn-mini { border: 1px solid var(--inteli-verde); background: transparent; color: var(--inteli-verde); height: 22px; padding: 0 8px; cursor: pointer; font-size: 11px; border-radius: var(--ds-raio-1); margin: 6px 12px; }
+
+    /* Logs */
+    .lg { font-size: 11.5px; }
+    .lg .l { display: grid; grid-template-columns: 74px 54px 110px minmax(0, 1fr); gap: 8px; padding: 2px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); cursor: pointer; }
+    .lg .l:hover { background: var(--ide-line); }
+    .lg .l.open { background: rgba(137, 206, 165, 0.10); }
+    .lg .l .lv-error, .lg .l .lv-warning { color: var(--inteli-coral); }
+    .lg .l .lv-info { color: var(--ide-dim); }
+    .lg .l em { font-style: normal; color: var(--ide-txt); word-break: break-word; }
+    .lg .l em b { color: var(--inteli-branco); font-weight: 600; }
+    .lg pre { grid-column: 1 / -1; margin: 4px 0 6px; white-space: pre-wrap; word-break: break-all; color: var(--ide-txt); font-size: 11px; }
+    .lg pre a, .kv a { color: var(--inteli-verde); cursor: pointer; text-decoration: underline; }
+
+    /* Malha fechada */
+    .loop { padding: 10px 12px 16px; display: grid; gap: 10px; }
+    .ctl-diagram { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 11px; }
+    .ctl-diagram span { border: 1px solid var(--ide-line); padding: 4px 8px; color: var(--ide-txt); }
+    .ctl-diagram span.on { border-color: var(--inteli-verde); color: var(--inteli-branco); }
+    .ctl-diagram i { font-style: normal; color: var(--ide-dim); }
+    .ticks { display: grid; gap: 4px; }
+    .tick { display: grid; grid-template-columns: 30px 110px minmax(0, 1fr); gap: 8px; align-items: baseline; border-left: 2px solid var(--ide-line); padding: 3px 8px; font-size: 11.5px; }
+    .tick b { color: var(--inteli-branco); font-weight: 600; }
+    .tick span { color: var(--ide-dim); font-family: var(--ds-fonte); font-size: 12px; }
+    .tick.act { border-left-color: var(--inteli-verde); }
+    .tick.esc { border-left-color: var(--inteli-coral); }
+    .tick.new { animation: fresh 1.2s ease-out; }
+
+    /* Testes e carga */
+    .tests-list .t { display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: 8px; padding: 2px 12px; font-size: 11.5px; }
+    .tests-list .t span:first-child { font-weight: 600; }
+    .tests-list .t.PASSED span:first-child { color: var(--inteli-verde); }
+    .tests-list .t.FAILED span:first-child { color: var(--inteli-coral); }
+    .tests-list .grp { padding: 8px 12px 2px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ide-dim); }
+    .ld { padding: 10px 12px 16px; display: grid; gap: 12px; }
+    .ld .charts { padding: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ld .chart svg { height: 150px; }
+    .ld .chart svg .bud { stroke: var(--inteli-coral); stroke-dasharray: 5 4; }
+    .ld .chart svg .pt { fill: var(--inteli-verde); }
+    .stack { display: flex; height: 14px; width: 100%; border: 1px solid var(--ide-line); }
+    .stack i { display: block; height: 100%; }
+    .term .tbl { white-space: pre; display: block; overflow-x: auto; }
+    .term .sec { color: var(--inteli-verde); border-top: 1px solid var(--ide-line); margin-top: 6px; padding-top: 4px; display: block; }
+    @media (max-width: 1100px) { .pipe { grid-template-columns: 1fr; } .pipe .arr { transform: rotate(90deg); } .gloss, .charts { grid-template-columns: 1fr; } .two { grid-template-columns: 1fr; } .two > div + div { border-left: 0; border-top: 1px solid var(--ide-line); } }
+  </style>
+
+<!-- semana:css:start -->
+<link rel="stylesheet" href="../../../../css/semana-ano.css">
+<!-- semana:css:end -->
+<!-- ds:css -->
+<link rel="stylesheet" href="../../../../css/inteli-ds.css">
+</head>
+
+<body class="tm">
+  <div class="lab">
+    <header class="lab-top">
+      <a href="../../../home-module-8-sistemas-informacao.html"><img src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli Logo"></a>
+      <nav aria-label="Lesson 10">
+        <a href="../../../home-module-8-sistemas-informacao.html"><span>←</span> Module 8</a>
+        <a href="../../slides/slide-lesson-10.html"><span>[1]</span> Slides</a>
+        <a href="../../materials/lesson-10-material.html"><span>[2]</span> Material</a>
+        <a href="https://github.com/afonsolelis/aulas/tree/main/pages/module-8-sistemas-informacao/lab/lesson-10" target="_blank" rel="noopener noreferrer"><span>[3]</span> Package and stack</a>
+        <a href="../lesson-9/index.html"><span>[4]</span> Lab of Lesson 9</a>
+      </nav>
+    </header>
+
+    <section class="lab-head">
+      <p class="meta">Module 8 · Information Systems · Lesson 10 · Lab</p>
+      <h1>OpenTelemetry and the closed loop</h1>
+      <p>This page reproduces, in the browser, the session in which a coding agent makes the DataApp of Lesson 7 observable and then controls it. Four prompts add the three signals (metrics in Prometheus, traces in Tempo and structured logs in Loki, sent through an OpenTelemetry collector), bring up the stack that reads them, and write a controller that compares the indicators with their objectives and acts on the DataApp. The tabs below the editor are the screens of that stack: the path of each signal through OpenTelemetry, the metrics and the alerts, the waterfall of each trace, the log lines linked to its spans, the ticks of the closed loop, the tests and a load test of the processing. Nothing runs here: the files are those of the repository, and every run, trace, log line, metric, alert and test was recorded on 12/11/2026 from the real stack, in Docker.</p>
+    </section>
+
+    <section aria-label="The three signals and the loop">
+      <div class="flow" id="flow">
+        <div class="node" data-stage="metrics"><b>metrics</b><span>numbers of each run, pushed; the warehouse, scraped</span><span class="st">step 01</span></div>
+        <div class="arrow">▶</div>
+        <div class="node" data-stage="traces"><b>traces · logs</b><span>OpenTelemetry: spans of run, task, request and SQL; JSON lines with their ids</span><span class="st">step 02</span></div>
+        <div class="arrow">▶</div>
+        <div class="node" data-stage="stack"><b>collector · stack</b><span>Prometheus, Tempo, Loki and Grafana, linked by run_id, trace_id and span_id</span><span class="st">step 03</span></div>
+        <div class="arrow">▶</div>
+        <div class="node" data-stage="loop"><b>closed loop</b><span>SLI − SLO → decide → act, within guardrails, and a person when it cannot</span><span class="st">step 04</span></div>
+      </div>
+      <div class="flow-run" id="flow-run"><b>Observe</b> metrics say that something changed, traces say where, logs say why · <b>Correlate</b> alert → trace → failing span → its log lines · <b>Control</b> the loop closes only when something compares with the objective and acts</div>
+    </section>
+
+    <div class="stage" id="stage">
+    <div class="controls" aria-label="Steps">
+      <span class="lbl">Steps</span>
+      <button class="btn-lab" data-step="0">01 · Metrics</button>
+      <button class="btn-lab" data-step="1">02 · Traces and logs</button>
+      <button class="btn-lab" data-step="2">03 · Stack</button>
+      <button class="btn-lab" data-step="3">04 · Closed loop</button>
+      <span class="lbl" style="margin-left:12px">Speed</span>
+      <button class="btn-lab" data-speed="1" aria-pressed="true">1×</button>
+      <button class="btn-lab" data-speed="3" aria-pressed="false">3×</button>
+      <button class="btn-lab" id="btn-skip">Finish step</button>
+      <button class="btn-lab" id="btn-reset">Reset</button>
+      <button class="btn-lab" id="btn-prompts" style="margin-left:12px">Prompts ↗</button>
+      <button class="btn-lab primary" id="btn-full" type="button" aria-pressed="false" title="Full screen (F)">⛶ Full screen</button>
+    </div>
+
+    <div class="ide" id="ide">
+      <div class="ide-title"><span class="dots"><i></i><i></i><i></i></span><span class="t">lesson_10_observability — <span id="title-file">Welcome</span></span><span class="sim">simulation</span><button class="ide-full" id="ide-full" type="button" title="Full screen (F)">⛶</button></div>
+      <div class="ide-body">
+        <nav class="ide-act" aria-label="Views">
+          <button id="act-files" aria-pressed="true" title="Explorer">🗎</button>
+          <button id="act-auto" aria-pressed="false" title="What the session delivers">⚙<span class="badge" id="auto-badge">0</span></button>
+        </nav>
+        <aside class="ide-side">
+          <div id="side-files" style="display:flex;flex-direction:column;min-height:0;flex:1">
+            <h2>Explorer · lesson_10_observability</h2>
+            <div class="tree" id="tree"></div>
+          </div>
+          <div id="side-auto" style="display:none;flex-direction:column;min-height:0;flex:1">
+            <h2>What the session delivers</h2>
+            <div class="checklist" id="checklist"></div>
+          </div>
+        </aside>
+        <main class="ide-main" id="ide-main">
+          <div class="tabs" id="tabs"></div>
+          <div class="editor" id="editor"></div>
+          <div class="splitter" id="splitter" title="Drag to resize"></div>
+          <section class="panel">
+            <div class="ptabs" role="tablist" id="ptabs">
+              <button role="tab" data-pv="term" aria-selected="true">Terminal</button>
+              <button role="tab" data-pv="otel" aria-selected="false">OpenTelemetry</button>
+              <button role="tab" data-pv="met" aria-selected="false">Metrics · alerts<span class="cnt" id="cnt-met"></span></button>
+              <button role="tab" data-pv="tr" aria-selected="false">Traces<span class="cnt" id="cnt-tr"></span></button>
+              <button role="tab" data-pv="lg" aria-selected="false">Logs<span class="cnt" id="cnt-lg"></span></button>
+              <button role="tab" data-pv="loop" aria-selected="false">Closed loop<span class="cnt" id="cnt-loop"></span></button>
+              <button role="tab" data-pv="tests" aria-selected="false">Tests<span class="cnt" id="cnt-tests"></span></button>
+              <button role="tab" data-pv="load" aria-selected="false">Load<span class="cnt" id="cnt-load"></span></button>
+            </div>
+            <div class="pbody">
+              <div class="pview on" id="pv-term"><div class="term" id="term"></div></div>
+              <div class="pview" id="pv-otel"></div>
+              <div class="pview" id="pv-met"></div>
+              <div class="pview" id="pv-tr"></div>
+              <div class="pview" id="pv-lg"></div>
+              <div class="pview" id="pv-loop"></div>
+              <div class="pview" id="pv-tests"></div>
+              <div class="pview" id="pv-load"></div>
+            </div>
+          </section>
+        </main>
+        <aside class="ide-agent" aria-label="Coding agent">
+          <h2>Agent · chat</h2>
+          <div class="chat" id="chat" aria-live="polite"></div>
+          <div class="compose">
+            <div class="next" id="next"></div>
+            <div class="row"><button id="btn-send">Send prompt 01</button><button class="ghost" id="btn-view-prompt">Read the prompt</button></div>
+          </div>
+        </aside>
+      </div>
+      <div class="ide-status"><span>⎇ main</span><span id="st-step">step —</span><span class="sp"></span><span id="st-busy"></span><span id="st-ver"></span><span>UTF-8</span></div>
+    </div>
+    </div>
+
+    <section class="notes" aria-label="Notes">
+      <article>
+        <h2>What is real and what is simulated</h2>
+        <p>The files of the editor are those of <code>lab/lesson-10/</code>, over the package of Lesson 7; <code>cli.py</code> and <code>config.py</code> appear in step 01 already in their final form, with the command and the settings of the loop of step 04. The runs, the traces read from Tempo, the alerts, rules and series read from Prometheus, the log lines, the ticks of the controller, the tests and the load test were recorded on 12/11/2026 by <code>build_lab_data.py</code>, with the six containers of <code>stack/</code> in Docker. Step 01 replays the good run without the lines that steps 02 and 03 add (the trace and the push). The agent and its messages are a staging of the session.</p>
+      </article>
+      <article>
+        <h2>How to use it in class</h2>
+        <ul>
+          <li>Open <code>OpenTelemetry</code> first: it shows the API, the SDK, the collector and the stores, and lights up as the steps build them.</li>
+          <li>After step 03, follow the path of the person on call: the alert in <code>Metrics · alerts</code>, its trace in <code>Traces</code>, the failing span, then “Logs for this span”.</li>
+          <li>In step 04, <code>Closed loop</code> shows each tick of the two rehearsals, and <code>Load</code> answers how far the SLO of duration holds.</li>
+        </ul>
+      </article>
+      <article>
+        <h2>Doing it for real</h2>
+        <p>The README of <code>lab/lesson-10/</code> lists the commands. Over a copy of the package of Lesson 7, the four prompts of <code>prompts/</code> go to the coding agent in this order; <code>docker compose up -d</code> in <code>stack/</code> brings up Prometheus on 9090, the Pushgateway on 9091, the collector on 4317 and 4318, Tempo on 3200, Loki on 3100 and Grafana on 3000. The reference passes its 25 tests without network. Prompt 05 is the work of the second hour, over the DataApp of each group.</p>
+      </article>
+    </section>
+  </div>
+
+  <footer class="inteli-footer tm-rodape">
+    <div>
+      <ul>
+        <li><a href="../../../home-module-8-sistemas-informacao.html">Module 8</a></li>
+        <li><a href="../../../design-system.html">Design system</a></li>
+      </ul>
+      <p>Material created by professor Afonso Brandão for Inteli. Open reading license. Data: TCGplayer, through the public mirror tcgcsv.com. OpenTelemetry, Prometheus, Grafana, Tempo and Loki are open-source projects.</p>
+    </div>
+  </footer>
+
+  <dialog id="prompt-dlg" aria-labelledby="pd-title">
+    <div class="pd-head"><h2 id="pd-title">Prompt</h2><span id="pd-file"></span><button class="btn-lab x" id="pd-close" type="button">Close ✕</button></div>
+    <div class="pd-nav"><div class="grp" id="pd-prompts"><span class="lbl">Prompt</span></div><span class="sep"></span><div class="grp" id="pd-secs"><span class="lbl">Section</span></div></div>
+    <div class="pd-body" id="pd-body"></div>
+    <div class="pd-foot"><span class="hint" id="pd-hint"></span><button class="btn-lab" id="pd-copy" type="button">Copy</button><button class="btn-lab primary" id="pd-send" type="button">Send to the agent</button></div>
+  </dialog>
+
+  <script src="lab-data.js"></script>
+  <script>
+  (() => {
+    const D = window.LAB_DATA;
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const fmt = (n) => Number(n).toLocaleString('en-US');
+    const ms = (x) => x >= 1000 ? (x / 1000).toFixed(x >= 10000 ? 1 : 2) + ' s' : x.toFixed(x < 10 ? 2 : 0) + ' ms';
+    $('st-ver').textContent = `Python 3.12 · OpenTelemetry SDK ${D.versions['opentelemetry-sdk']} · prometheus-client ${D.versions['prometheus-client']} · DuckDB ${D.versions.duckdb}`;
+    const R = D.runs;
+
+    // ---------- Realce de sintaxe ----------
+    const KW = {
+      py: new Set('from import as def class return if elif else for in while try except finally raise with lambda yield not and or is None True False pass continue break global nonlocal assert del async await'.split(' ')),
+      sql: new Set('select from where group by order having limit as and or not in is null create replace view table schema if exists macro join left inner on over partition qualify row_number case when then else end distinct union all with insert into values delete begin transaction commit rollback cube rollup grouping sets bigint varchar json integer double date cast try_cast filter count sum avg max min any_value desc asc using strftime epoch to_timestamp'.split(' ')),
+      sh: new Set('if then else fi exit cd echo set exec mkdir tail tee date for do done in local return'.split(' ')),
+    };
+    const RX = {
+      py: /(#[^\n]*)|("""[\s\S]*?(?:"""|$)|'''[\s\S]*?(?:'''|$)|[fr]?"(?:\\.|[^"\\\n])*"|[fr]?'(?:\\.|[^'\\\n])*')|(\b\d[\d_]*(?:\.\d+)?\b)|(\b[A-Za-z_]\w*\b)/g,
+      sql: /(--[^\n]*)|('(?:''|[^'])*')|(\b\d+(?:\.\d+)?\b)|(\b[A-Za-z_]\w*\b)/g,
+      sh: /((?:^|\s)#[^\n]*)|("(?:\\.|[^"\\])*"|'[^']*')|(\$\{?\w+\}?|\$\(|\b\d+\b)|(\b[A-Za-z_][\w-]*\b)/g,
+      toml: /(#[^\n]*)|("(?:\\.|[^"\\\n])*")|(^\s*\[[^\]\n]*\])|(^\s*[\w."-]+(?=\s*=))/gm,
+      json: /("(?:\\.|[^"\\])*"(?=\s*:))|("(?:\\.|[^"\\])*")|(-?\b\d+(?:\.\d+)?\b)|(\b(?:true|false|null)\b)/g,
+      md: /(^#{1,6} [^\n]*)|(`[^`\n]+`)|(^```[^\n]*$)|(\|)/gm,
+      yml: /(#[^\n]*)|("(?:\\.|[^"\\\n])*"|'[^'\n]*')|(\$\w+)|(^\s*-?\s*[\w:.\[\]-]+(?=:(?:\s|$)))/gm,
+      cron: /(#[^\n]*)|(^[A-Z_]+=)|(^[\d*\/,-]+(?: [\d*\/,-]+){4})|()/gm,
+    };
+    function langOf(path) {
+      if (/\.py$/.test(path)) return 'py';
+      if (/\.sql$/.test(path)) return 'sql';
+      if (/\.sh$/.test(path)) return 'sh';
+      if (/\.toml$/.test(path)) return 'toml';
+      if (/\.ya?ml$/.test(path)) return 'yml';
+      if (/\.json$/.test(path) || path.startsWith('response')) return 'json';
+      if (/\.md$/.test(path)) return 'md';
+      if (/crontab$/.test(path)) return 'cron';
+      return 'txt';
+    }
+    function tokens(text, lang) {
+      const rx = RX[lang];
+      if (!rx) return [['', text]];
+      const out = [];
+      let last = 0, m;
+      rx.lastIndex = 0;
+      while ((m = rx.exec(text))) {
+        if (m[0] === '') { rx.lastIndex++; continue; }
+        if (m.index > last) out.push(['', text.slice(last, m.index)]);
+        let cls = '';
+        if (lang === 'py' || lang === 'sql' || lang === 'sh') {
+          if (m[1]) cls = 'c'; else if (m[2]) cls = 's'; else if (m[3]) cls = 'n';
+          else if (m[4]) {
+            const w = m[4];
+            const set = KW[lang];
+            if (set.has(lang === 'sql' ? w.toLowerCase() : w)) cls = 'k';
+            else if (lang === 'py' && /^[A-Z]\w*[a-z]/.test(w)) cls = 'f';
+            else if (lang === 'py' && text[rx.lastIndex] === '(') cls = 'f';
+          }
+        } else if (lang === 'toml' || lang === 'yml') { cls = m[1] ? 'c' : m[2] ? 's' : m[3] ? 'h' : 'k'; }
+        else if (lang === 'json') { cls = m[1] ? 'k' : m[2] ? 's' : m[3] ? 'n' : 'f'; }
+        else if (lang === 'md') { cls = m[1] ? 'h' : m[2] ? 's' : m[3] ? 'c' : 'c'; }
+        else if (lang === 'cron') { cls = m[1] ? 'c' : m[2] ? 'k' : 'n'; }
+        out.push([cls, m[0]]);
+        last = rx.lastIndex;
+      }
+      if (last < text.length) out.push(['', text.slice(last)]);
+      return out;
+    }
+    function highlightLines(text, lang) {
+      const lines = [''];
+      for (const [cls, t] of tokens(text, lang)) {
+        t.split('\n').forEach((piece, i) => {
+          if (i > 0) lines.push('');
+          if (piece) lines[lines.length - 1] += cls ? `<span class="${cls}">${esc(piece)}</span>` : esc(piece);
+        });
+      }
+      return lines;
+    }
+
+    // ---------- Estado ----------
+    let S;
+    function fresh() {
+      const files = {};
+      for (const p of D.tree) files[p] = { text: D.before[p] ?? D.files[p] ?? `# ${p}\n# Unchanged from Lesson 7.\n`, status: '' };
+      return {
+        files, virt: {}, tabs: [], active: null,
+        otel: 0, met: 0, alerts: null, traces: [], trSel: null, spanSel: null, logs: 0, logFilter: '', logOpen: -1,
+        loop: [], tests: [], load: false,
+        checks: new Set(), done: 0, running: false, speed: 1, fast: false,
+      };
+    }
+
+    // ---------- Explorador ----------
+    function renderTree() { $('tree').innerHTML = treeHtml(Object.keys(S.files)); }
+    function treeHtml(paths) {
+      const root = {};
+      for (const p of paths) {
+        let node = root;
+        const parts = p.split('/');
+        parts.forEach((part, i) => { if (i === parts.length - 1) node[part] = p; else node = node[part + '/'] = node[part + '/'] || {}; });
+      }
+      const order = (o) => Object.keys(o).sort((a, b) => (b.endsWith('/') - a.endsWith('/')) || a.localeCompare(b));
+      let html = '';
+      const walk = (o, depth) => {
+        for (const k of order(o)) {
+          const pad = 8 + depth * 12;
+          if (k.endsWith('/')) { html += `<div class="row dir" style="padding-left:${pad}px"><span class="ic">▾</span><span class="nm">${esc(k.slice(0, -1))}</span></div>`; walk(o[k], depth + 1); }
+          else {
+            const key = o[k], f = S.files[key];
+            const g = f && f.status ? `<span class="g ${f.status}">${f.status}</span>` : '';
+            html += `<div class="row${S.active === key ? ' active' : ''}${f && f.fresh ? ' fresh' : ''}" style="padding-left:${pad}px" data-open="${esc(key)}"><span class="ic">${icon(k)}</span><span class="nm">${esc(k)}</span>${g}</div>`;
+          }
+        }
+      };
+      walk(root, 0);
+      return html;
+    }
+    function icon(name) {
+      if (/\.py$/.test(name)) return 'py';
+      if (/\.sql$/.test(name)) return '⛁';
+      if (/\.md$/.test(name)) return 'M';
+      if (/\.(toml|ya?ml)$/.test(name)) return '⚙';
+      if (/\.json$/.test(name)) return '{}';
+      return '·';
+    }
+    $('tree').addEventListener('click', (e) => { const row = e.target.closest('[data-open]'); if (row) openTab(row.dataset.open); });
+
+    // ---------- Abas e editor ----------
+    function docOf(key) { return S.files[key] || S.virt[key]; }
+    function openTab(key) {
+      if (!docOf(key)) return;
+      if (!S.tabs.includes(key)) S.tabs.push(key);
+      if (S.tabs.length > 8) S.tabs = S.tabs.slice(-8);
+      S.active = key;
+      renderTabs(); renderEditor(); renderTree();
+    }
+    function openVirtual(key, text, lang, opts = {}) {
+      S.virt[key] = { text, lang, ...opts };
+      openTab(key);
+    }
+    function closeTab(key) {
+      S.tabs = S.tabs.filter((k) => k !== key);
+      if (S.active === key) S.active = S.tabs[S.tabs.length - 1] || null;
+      renderTabs(); renderEditor(); renderTree();
+    }
+    function renderTabs() {
+      $('tabs').innerHTML = S.tabs.map((k) => {
+        const virtual = !S.files[k];
+        const name = k.split('/').pop();
+        return `<div class="tab${k === S.active ? ' active' : ''}" data-tab="${esc(k)}" title="${esc(k)}">${virtual ? `<em>${esc(name)}</em>` : esc(name)}<span class="x" data-close="${esc(k)}">✕</span></div>`;
+      }).join('');
+      $('title-file').textContent = S.active || 'Welcome';
+    }
+    $('tabs').addEventListener('click', (e) => {
+      const x = e.target.closest('[data-close]');
+      if (x) { closeTab(x.dataset.close); return; }
+      const t = e.target.closest('[data-tab]');
+      if (t) { S.active = t.dataset.tab; renderTabs(); renderEditor(); renderTree(); }
+    });
+    function renderEditor(partial) {
+      const ed = $('editor');
+      const key = S.active;
+      if (!key) {
+        ed.innerHTML = `<div class="welcome"><p><b>lesson_10_observability</b> is a copy of the package <code>tcg-dataapp</code> of Lesson 7, which describes a run only by what it prints. The coding agent on the right adds the three signals with Prometheus and OpenTelemetry, brings up the stack that reads them and closes the loop on the objectives of the DataApp, in four steps.</p><p>Press <b>Send prompt 01</b>, or choose a step above the editor. The tabs below the editor are the screens of the stack: OpenTelemetry, metrics and alerts, traces, logs, the closed loop, the tests and a load test.</p></div>`;
+        return;
+      }
+      const doc = docOf(key);
+      const text = partial != null ? partial : doc.text;
+      const lang = doc.lang || langOf(key);
+      const lines = highlightLines(text, lang);
+      const marks = doc.marks || {};
+      let html = doc.note ? `<div class="note-bar">${doc.note}</div>` : '';
+      html += '<div class="code">';
+      lines.forEach((l, i) => {
+        const m = marks[i] ? ' ' + marks[i] : '';
+        const cur = partial != null && i === lines.length - 1 ? ' cur' : '';
+        html += `<div class="ln${m}">${i + 1}</div><div class="tx${m}${cur}">${l || ' '}</div>`;
+      });
+      ed.innerHTML = html + '</div>';
+      if (partial != null) ed.scrollTop = ed.scrollHeight;
+    }
+
+    // ---------- Terminal ----------
+    const term = $('term');
+    function termLine(html) {
+      const div = document.createElement('div');
+      div.innerHTML = html;
+      term.appendChild(div);
+      if ($('pv-term').classList.contains('on')) term.parentElement.parentElement.scrollTop = 1e9;
+      return div;
+    }
+    function showPanel(name) {
+      document.querySelectorAll('#ptabs button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.pv === name)));
+      document.querySelectorAll('.pview').forEach((v) => v.classList.toggle('on', v.id === 'pv-' + name));
+      $('pv-term').parentElement.scrollTop = name === 'term' ? 1e9 : 0;
+    }
+    $('ptabs').addEventListener('click', (e) => { const b = e.target.closest('[data-pv]'); if (b) showPanel(b.dataset.pv); });
+
+    // ---------- OpenTelemetry ----------
+    function renderOtel() {
+      const on = (n) => (S.otel >= n ? ' on' : '');
+      const res = D.traces.good.resource;
+      $('pv-otel').innerHTML = `<div class="otel">
+        <div class="pipe">
+          <div class="col">
+            <div class="box${on(1)}"><h4>Metrics · prometheus_client</h4><p><code>telemetry.py</code>: counters, gauges and histograms in a registry of the run, pushed to the Pushgateway at the end; the exporter on :9108 is scraped.</p></div>
+            <div class="box${on(2)}"><h4>API · opentelemetry</h4><p>The package calls only <code>trace.get_tracer()</code> and <code>logging</code>. Without a provider the API does nothing, so the tests and a run without collector work the same.</p></div>
+            <div class="box${on(2)}"><h4>SDK · provider</h4><p><code>observability.setup()</code> installs a <code>TracerProvider</code> and a <code>LoggerProvider</code> with the Resource below, a <code>BatchSpanProcessor</code> and the OTLP exporters over HTTP.</p></div>
+          </div>
+          <div class="arr">OTLP<br>HTTP :4318<br>──▶<br><br>push<br>──▶</div>
+          <div class="col">
+            <div class="box${on(3)}"><h4>Collector · contrib 0.141.0</h4><p><b>receivers</b> <code>otlp</code> (gRPC :4317, HTTP :4318) → <b>processors</b> <code>batch</code> → <b>exporters</b> <code>otlp/tempo</code> for traces and <code>otlphttp/loki</code> for logs. The DataApp knows one address; the collector routes each signal.</p></div>
+            <div class="box${on(3)}"><h4>Pushgateway · Prometheus</h4><p>A run of 40 s ends before most scrapes, so it pushes; Prometheus scrapes the Pushgateway with <code>honor_labels</code>, scrapes the exporter, evaluates the rules every 15 s and fires the alerts.</p></div>
+          </div>
+          <div class="arr">──▶</div>
+          <div class="col">
+            <div class="box${on(3)}"><h4>Tempo :3200</h4><p>traces, by <code>trace_id</code>; TraceQL</p></div>
+            <div class="box${on(3)}"><h4>Loki :3100</h4><p>logs with <code>trace_id</code> and <code>span_id</code> as structured metadata; LogQL</p></div>
+            <div class="box${on(3)}"><h4>Prometheus :9090</h4><p>series and alerts; PromQL</p></div>
+            <div class="box${on(3)}"><h4>Grafana</h4><p>one screen over the three, with links metric → trace → span → log line</p></div>
+          </div>
+        </div>
+        <div class="two" style="border:1px solid var(--ide-line)"><div>
+          <div class="sub-h">Resource of the service · attached to every span and log record</div>
+          <dl class="kv">${Object.entries(res).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
+        </div><div>
+          <div class="sub-h">Context propagation</div>
+          <p style="padding:8px 12px;margin:0;font-family:var(--ds-fonte);font-size:12.5px;line-height:1.55;color:var(--ide-txt)">The active span lives in a context variable. Every span opened inside it becomes its child, and every log line written inside it takes its <code>trace_id</code> and <code>span_id</code>. That is how a request to tcgcsv.com, issued deep in the ETL layer, lands under the span of its task without any parameter passed through the layers.</p>
+        </div></div>
+        <div class="gloss">
+          <div><b>signal</b>metric, trace or log: three kinds of telemetry, each with its store and its query language</div>
+          <div><b>trace · span</b>a trace is the tree of the spans of one operation; a span has a name, a start, an end, a parent, attributes, events and a status</div>
+          <div><b>OTLP</b>the protocol of OpenTelemetry, over gRPC or HTTP with protobuf, for traces, logs and metrics</div>
+          <div><b>resource</b>who emitted the signal: service.name, its version and instance; the same for the three signals</div>
+          <div><b>exporter · processor</b>the SDK batches the spans and exports them; the collector receives, processes and exports again</div>
+          <div><b>instrumentation</b>the code that creates spans and metrics: manual here; automatic libraries exist for HTTP clients, web frameworks and databases</div>
+        </div>
+      </div>`;
+    }
+
+    // ---------- Métricas e alertas ----------
+    function spark(series, opts = {}) {
+      const W = 300, H = 90, P = 16;
+      const all = series.flatMap((s) => s.values);
+      if (!all.length) return '<svg viewBox="0 0 300 90"><text x="8" y="48">no data</text></svg>';
+      const tmax = Math.max(...all.map((v) => v[0]), 1);
+      const vmax = Math.max(...all.map((v) => v[1]), opts.min ?? 0) * 1.1 || 1;
+      const x = (t) => P + (t / tmax) * (W - P * 2), y = (v) => H - P - (v / vmax) * (H - P * 2);
+      const paths = series.map((s, i) => `<path class="${i ? 'ln2' : 'ln'}" d="${s.values.map((v, j) => `${j ? 'L' : 'M'}${x(v[0]).toFixed(1)},${y(v[1]).toFixed(1)}`).join('')}"/>`).join('');
+      return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><line class="ax" x1="${P}" y1="${H - P}" x2="${W - P}" y2="${H - P}"/><text x="${P}" y="10">${opts.fmt ? opts.fmt(vmax / 1.1) : fmt(Math.round(vmax / 1.1))}</text><text x="${W - P - 40}" y="${H - 3}">${Math.round(tmax / 60)} min</text>${paths}</svg>`;
+    }
+    function metricsTable(list) {
+      const rows = list.filter((m) => !/^(push_|scrape_|up$)/.test(m.metric.__name__)).sort((a, b) => a.metric.__name__.localeCompare(b.metric.__name__));
+      return `<table class="dt"><thead><tr><th>metric</th><th>labels</th><th>value</th></tr></thead><tbody>${rows.map((m) => {
+        const { __name__: n, job, instance, ...lb } = m.metric;
+        return `<tr><td>${esc(n)}</td><td class="wrap">${esc(Object.entries(lb).map(([k, v]) => `${k}="${v}"`).join(', '))}</td><td class="num">${esc(m.value[1])}</td></tr>`;
+      }).join('')}</tbody></table>`;
+    }
+    function renderMet() {
+      $('cnt-met').textContent = S.alerts ? D[S.alerts].filter((a) => a.state === 'firing').length + ' firing' : '';
+      if (!S.met) { $('pv-met').innerHTML = '<div class="empty-p">No metric yet. Step 01 gives every run a registry of its own, written to out/metrics.prom and pushed to the Pushgateway; step 03 brings up Prometheus, which keeps the series, evaluates the rules every 15 s and fires the alerts.</div>'; return; }
+      if (S.met === 1) {
+        const lines = D.metrics_prom.split('\n');
+        $('pv-met').innerHTML = `<div class="bar-top"><span class="lbl">out/metrics.prom</span><span>the text format of Prometheus, written by the run; no Prometheus yet</span></div><div class="term">${lines.map((l) => `<span class="${l.startsWith('#') ? 'dim' : ''}">${esc(l)}</span>`).join('\n')}</div>`;
+        return;
+      }
+      const sr = D.series;
+      const fired = S.alerts ? D[S.alerts] : [];
+      const charts = [
+        ['tcg_run_success', 'pushed by each run', [sr.run_success[0] || { values: [] }]],
+        ['tcg_run_duration_seconds', 'SLO 120 s', [sr.run_duration[0] || { values: [] }]],
+        ['tcg_gold_fact_rows · grain keys', 'exporter, scraped every 15 s', [sr.fact_rows[0] || { values: [] }, sr.grain_keys[0] || { values: [] }]],
+        ['tcg:price_freshness_seconds', 'recording rule; SLO 36 h', [sr.freshness[0] || { values: [] }]],
+        ['tcg_controller_breaker_open', 'step 04', [sr.breaker_open[0] || { values: [] }]],
+        ['ALERTS{alertstate="firing"}', 'one line per alert', sr.alerts.slice(0, 2)],
+      ].filter((c, i) => S.met >= 3 || i < 4);
+      $('pv-met').innerHTML = `<div class="bar-top"><span class="lbl">Prometheus · :9090</span><span>series over the ${Math.round((D.t_end - D.t_start) / 60)} minutes of the recording</span>${['alerts_down', 'alerts_escalated'].filter((k) => S.met >= (k === 'alerts_down' ? 2 : 3)).map((k) => `<button type="button" data-al="${k}" aria-pressed="${S.alerts === k}">${k === 'alerts_down' ? 'alerts after the failed run' : 'alerts after the escalation'}</button>`).join('')}</div>
+        <div class="charts">${charts.map(([t, s, ser]) => `<div class="chart"><h5>${esc(t)} <span>· ${esc(s)}</span></h5>${spark(ser)}</div>`).join('')}</div>
+        ${fired.length ? `<div class="sub-h">Alerts · ${fired.length}</div>${fired.map((a) => `<div class="alert ${a.state}"><div><b>${esc(a.labels.alertname)}</b> <span class="st-badge ${a.state}">${a.state}</span> <span class="st-badge">${esc(a.labels.severity || '')}</span></div><span>${esc(a.annotations.summary || '')}</span><span>${esc(a.annotations.description || '')}</span></div>`).join('')}` : ''}
+        <div class="sub-h">The series of the good run · {job="tcg_dataapp"}</div>${metricsTable(D.metrics_good)}`;
+    }
+    $('pv-met').addEventListener('click', (e) => { const b = e.target.closest('[data-al]'); if (b) { S.alerts = b.dataset.al; renderMet(); } });
+
+    // ---------- Traces ----------
+    const TR_LABEL = { good: 'good run', down: 'source down', probe: 'controller · probe', rerun: 'controller · rerun' };
+    const kind = (n) => n.startsWith('task ') ? 'k-task' : n.startsWith('tcgcsv') ? 'k-http' : n.startsWith('sql ') ? 'k-sql' : n.startsWith('control') ? 'k-ctl' : '';
+    function treeOrder(spans) {
+      const kids = {};
+      spans.forEach((s) => (kids[s.parent] = kids[s.parent] || []).push(s));
+      const ids = new Set(spans.map((s) => s.id));
+      const roots = spans.filter((s) => !ids.has(s.parent));
+      const out = [];
+      const walk = (s, d) => { out.push([s, d]); (kids[s.id] || []).sort((a, b) => a.start - b.start).forEach((c) => walk(c, d + 1)); };
+      roots.forEach((r) => walk(r, 0));
+      return out;
+    }
+    function renderTr() {
+      $('cnt-tr').textContent = S.traces.length ? S.traces.length : '';
+      if (!S.traces.length) { $('pv-tr').innerHTML = '<div class="empty-p">No trace yet. Step 02 makes every run a trace: one span for the run, one per task, one per request to tcgcsv.com and one per SQL file; step 03 sends them to Tempo through the collector. Each trace then opens here as a waterfall.</div>'; return; }
+      const key = S.trSel || S.traces[S.traces.length - 1];
+      const tr = D.traces[key];
+      const order = treeOrder(tr.spans);
+      const total = tr.duration_ms;
+      const sel = tr.spans.find((s) => s.id === S.spanSel) || order[0][0];
+      const pct = (x) => (x / total * 100).toFixed(2) + '%';
+      const errs = tr.spans.filter((s) => s.status === 'ERROR').length;
+      $('pv-tr').innerHTML = `<div class="bar-top"><span class="lbl">Tempo · traces</span>${S.traces.map((k) => `<button type="button" data-tr="${k}" aria-pressed="${k === key}">${TR_LABEL[k]}</button>`).join('')}<span>trace <b>${tr.trace_id.slice(0, 16)}…</b> · ${tr.spans.length} spans · ${ms(total)}${errs ? ` · <b style="color:var(--inteli-coral)">${errs} with status ERROR</b>` : ''}</span></div>
+        <div class="two"><div class="wf">
+          <div class="wf-axis"><span>span</span><div>${[0, 0.25, 0.5, 0.75, 1].map((f) => `<span>${ms(total * f)}</span>`).join('')}</div><span></span></div>
+          ${order.map(([s, d]) => `<div class="row${s.id === sel.id ? ' sel' : ''}${s.status === 'ERROR' ? ' err' : ''}" data-span="${s.id}"><span class="nm" style="padding-left:${d * 12}px">${d ? '<i>└ </i>' : ''}${esc(s.name)}</span><span class="tr"><b class="${kind(s.name)} ${s.status}" style="left:${pct(s.start)};width:${pct(Math.max(s.end - s.start, total / 600))}"></b>${s.events.map((e) => `<em style="left:${pct(e.t)}" title="${esc(e.name)}"></em>`).join('')}</span><span class="du">${ms(s.end - s.start)}</span></div>`).join('')}
+        </div><div>
+          <div class="sub-h">span · ${esc(sel.name)}</div>
+          <dl class="kv"><dt>span_id</dt><dd>${sel.id}</dd><dt>parent</dt><dd>${sel.parent || '(root)'}</dd><dt>start · duration</dt><dd>+${ms(sel.start)} · ${ms(sel.end - sel.start)}</dd><dt>status</dt><dd><span class="st-badge ${sel.status === 'ERROR' ? 'ERROR' : 'ok'}">${sel.status}</span> ${esc(sel.message)}</dd><dt>scope</dt><dd>${esc(sel.scope)}</dd>
+          ${Object.entries(sel.attrs).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
+          ${sel.events.length ? `<div class="sub-h">events · ${sel.events.length}</div><dl class="kv">${sel.events.map((e) => `<dt>+${ms(e.t)}</dt><dd><b>${esc(e.name)}</b> ${esc(Object.entries(e.attrs).map(([k, v]) => `${k}=${v}`).join(' · ')).slice(0, 400)}</dd>`).join('')}</dl>` : ''}
+          ${S.logs ? `<button class="btn-mini" type="button" data-logspan="${sel.id}">Logs for this span ↗</button><button class="btn-mini" type="button" data-logtrace="${tr.trace_id}">Logs of this trace ↗</button>` : ''}
+        </div></div>`;
+    }
+    $('pv-tr').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-tr]'); if (b) { S.trSel = b.dataset.tr; S.spanSel = null; renderTr(); return; }
+      const r = e.target.closest('[data-span]'); if (r) { S.spanSel = r.dataset.span; renderTr(); return; }
+      const ls = e.target.closest('[data-logspan]'); if (ls) { S.logFilter = `span_id="${ls.dataset.logspan}"`; renderLg(); showPanel('lg'); return; }
+      const lt = e.target.closest('[data-logtrace]'); if (lt) { S.logFilter = `trace_id="${lt.dataset.logtrace}"`; renderLg(); showPanel('lg'); }
+    });
+
+    // ---------- Logs ----------
+    const LOGS = D.logs;
+    function logsVisible() {
+      const runIds = new Set();
+      const limit = S.logs === 1 ? 'good' : S.logs === 2 ? 'down' : 'all';
+      const goodRun = (R.good.out.join('\n').match(/run ([0-9a-f]{12}):/) || [])[1];
+      const downRun = (R.down.out.join('\n').match(/run ([0-9a-f]{12}):/) || [])[1];
+      let rows = LOGS;
+      if (limit === 'good') rows = LOGS.filter((l) => l.run_id === goodRun);
+      if (limit === 'down') rows = LOGS.filter((l) => l.run_id === goodRun || l.run_id === downRun);
+      const f = S.logFilter.trim();
+      const m = f.match(/^(\w+)="?([^"]*)"?$/);
+      if (m) rows = rows.filter((l) => String(l[m[1]] ?? '') === m[2]);
+      else if (f) rows = rows.filter((l) => JSON.stringify(l).includes(f));
+      return rows;
+    }
+    function renderLg() {
+      $('cnt-lg').textContent = S.logs ? logsVisible().length : '';
+      if (!S.logs) { $('pv-lg').innerHTML = '<div class="empty-p">No log line yet. Step 02 writes one JSON object per line, with the run_id, the trace_id and the span_id of the active span; step 03 sends the same records to Loki through the collector.</div>'; return; }
+      const rows = logsVisible();
+      const t0 = LOGS[0].ts;
+      $('pv-lg').innerHTML = `<div class="bar-top"><span class="lbl">${S.logs >= 2 ? `Loki · {service_name="tcg-dataapp"} · ${fmt(D.loki_lines)} lines received` : 'out/logs/tcg-dataapp.jsonl'}</span><input id="lg-filter" placeholder='filter: span_id="…", trace_id="…", event="task.fail" or text' value="${esc(S.logFilter).replace(/"/g, '&quot;')}">${S.logFilter ? '<button type="button" data-clear="1">clear</button>' : ''}<span><b>${rows.length}</b> lines</span></div>
+        <div class="lg">${rows.slice(0, 400).map((l, i) => `<div class="l${S.logOpen === i ? ' open' : ''}" data-li="${i}"><span>${new Date(l.ts * 1000).toISOString().slice(11, 19)}</span><span class="lv-${l.level}">${l.level}</span><span>${esc(l.event || '')}</span><em>${l.task ? `<b>${esc(l.task)}</b> · ` : ''}${l.action ? `<b>${esc(l.action)}</b> · ` : ''}${esc(l.msg)}${l.reason ? ' · ' + esc(l.reason) : ''}${l.error ? ' · ' + esc(String(l.error).slice(0, 140)) : ''}</em>${S.logOpen === i ? `<pre>${esc(JSON.stringify(l, null, 2)).replace(/"trace_id": "([0-9a-f]{32})"/, (m0, id) => (D.traces && Object.values(D.traces).some((t) => t.trace_id === id) ? `"trace_id": "<a data-totrace="${id}">${id}</a>"` : m0))}</pre>` : ''}</div>`).join('')}</div>`;
+      const inp = $('lg-filter');
+      inp.addEventListener('change', () => { S.logFilter = inp.value; S.logOpen = -1; renderLg(); });
+    }
+    $('pv-lg').addEventListener('click', (e) => {
+      if (e.target.closest('[data-clear]')) { S.logFilter = ''; S.logOpen = -1; renderLg(); return; }
+      const t = e.target.closest('[data-totrace]');
+      if (t) { const k = Object.keys(D.traces).find((x) => D.traces[x].trace_id === t.dataset.totrace); if (!S.traces.includes(k)) S.traces.push(k); S.trSel = k; S.spanSel = null; renderTr(); showPanel('tr'); return; }
+      const l = e.target.closest('[data-li]'); if (l && !e.target.closest('pre')) { S.logOpen = +l.dataset.li === S.logOpen ? -1 : +l.dataset.li; renderLg(); }
+    });
+
+    // ---------- Malha fechada ----------
+    const TICK = /^tick ([0-9a-f]{12})\s+(\S+)\s+(.*?)\s+→\s+(.*)$/;
+    const LOOPS = [
+      ['loop_a', 'source down · breaker and escalation'], ['loop_a2', 'after a person took over'], ['loop_b', 'bad batch · quarantine and rerun'],
+    ];
+    function ticksOf(key) { return R[key].out.map((l) => l.match(TICK)).filter(Boolean).map((m) => ({ id: m[1], action: m[2], reason: m[3], outcome: m[4] })); }
+    function renderLoop() {
+      const n = S.loop.reduce((a, k) => a + ticksOf(k).length, 0);
+      $('cnt-loop').textContent = n || '';
+      if (!S.loop.length) { $('pv-loop').innerHTML = '<div class="empty-p">The loop appears in step 04. Each tick reads the SLIs from the warehouse, compares them with the SLOs and chooses one action: rerun, open or probe the circuit breaker on the source, quarantine a bad batch, escalate to a person, hold or do nothing.</div>'; return; }
+      const acts = Object.values(D.tables).flatMap((t) => t['ops.controller_actions'].rows.map((r) => Object.fromEntries(t['ops.controller_actions'].cols.map((c, i) => [c, r[i]]))));
+      $('pv-loop').innerHTML = `<div class="loop">
+        <div class="ctl-diagram"><span class="on">setpoint · SLOs</span><i>→</i><span class="on">comparator · SLI − SLO</span><i>→</i><span class="on">controller · decide()</span><i>→</i><span class="on">actuators · rerun, breaker, quarantine, escalate</span><i>→</i><span>plant · DataApp + tcgcsv.com</span><i>→</i><span class="on">sensor · sense()</span><i>↺</i></div>
+        ${S.loop.map((k) => `<div><div class="sub-h">${esc(LOOPS.find((x) => x[0] === k)[1])} · <span style="text-transform:none;letter-spacing:0">${esc(R[k].cmd)}</span></div><div class="ticks">${ticksOf(k).map((t, i) => {
+          const a = acts.find((x) => x.tick_id === t.id);
+          return `<div class="tick ${t.action === 'escalate' || /escalat/.test(t.outcome) ? 'esc' : ['none', 'hold'].includes(t.action) ? '' : 'act'}"><b>${i + 1}</b><b>${esc(t.action)}</b><span>${esc(t.reason)} → ${esc(t.outcome)}${a && a.trace_id ? ` · trace ${a.trace_id.slice(0, 12)}…` : ''}</span></div>`;
+        }).join('')}</div></div>`).join('')}
+        <div><div class="sub-h">ops.controller_actions · ${acts.length} rows (a tick that does nothing writes no row)</div><table class="dt"><thead><tr><th>tick</th><th>action</th><th>reason</th><th>outcome</th></tr></thead><tbody>${acts.map((a) => `<tr><td>${esc(a.tick_id)}</td><td>${esc(a.action)}</td><td class="wrap">${esc(a.reason)}</td><td class="wrap">${esc(a.outcome)}</td></tr>`).join('')}</tbody></table></div>
+      </div>`;
+    }
+
+    // ---------- Testes ----------
+    const TESTFILES = { 'test_telemetry.py': 'step 01 · metrics', 'test_signals.py': 'step 02 · traces and logs', 'test_control.py': 'step 04 · closed loop', all: 'the whole suite' };
+    function renderTests() {
+      $('cnt-tests').textContent = S.tests.length || '';
+      if (!S.tests.length) { $('pv-tests').innerHTML = '<div class="empty-p">Each step ends with its tests, and none of them needs the network or the stack: the metrics are read from the registry of the run, the spans from an in-memory exporter of OpenTelemetry, and the loop runs against a fake source and a fake clock.</div>'; return; }
+      $('pv-tests').innerHTML = `<div class="tests-list">${S.tests.map((k) => {
+        const t = D.tests[k];
+        const rows = t.out.map((l) => l.match(/^(tests\/\S+::(\S+))\s+(PASSED|FAILED)/)).filter(Boolean);
+        const sum = t.out.find((l) => /passed|failed/.test(l) && /=|in \d/.test(l)) || '';
+        const dur = k === 'all' ? t.out.filter((l) => /^\d+\.\d+s (call|setup)/.test(l)) : [];
+        return `<div class="grp">${esc(TESTFILES[k])} · ${esc(t.cmd.replace(/^pytest -p no:cacheprovider /, 'pytest '))} · ${esc(sum.replace(/=/g, '').trim())}</div>${rows.map((m) => `<div class="t ${m[3]}"><span>${m[3]}</span><span>${esc(m[2])}</span></div>`).join('')}${dur.length ? `<div class="grp">slowest tests</div>${dur.map((l) => `<div class="t"><span></span><span>${esc(l)}</span></div>`).join('')}` : ''}`;
+      }).join('')}</div>`;
+    }
+
+    // ---------- Carga ----------
+    function renderLoad() {
+      $('cnt-load').textContent = S.load ? D.load.results.length : '';
+      if (!S.load) { $('pv-load').innerHTML = '<div class="empty-p">The load test runs at the end of step 04. A real run spends about 30 s on the network, which a test cannot grow; what grows with the data is the processing. tools/load_test.py builds synthetic landing tables of increasing size and measures each span, to see how far the SLO of 120 s holds.</div>'; return; }
+      const L = D.load.results, B = D.load.budget_s;
+      const W = 420, H = 150, P = 28;
+      const xmax = Math.max(...L.map((r) => r.prices)), ymax = Math.max(B, ...L.map((r) => r.processing_s)) * 1.05;
+      const x = (v) => P + v / xmax * (W - P * 1.5), y = (v) => H - P + 6 - v / ymax * (H - P);
+      const pts = L.map((r) => `${x(r.prices).toFixed(1)},${y(r.processing_s).toFixed(1)}`);
+      const rmax = Math.max(...L.map((r) => r.peak_rss_mb)) * 1.1;
+      const y2 = (v) => H - P + 6 - v / rmax * (H - P);
+      const spanNames = ['task build_gold', 'task check_quality', 'task freeze_reports', 'task export_marts', 'task write_report'];
+      const colors = ['var(--inteli-verde)', 'var(--inteli-cinza-300)', 'var(--inteli-cinza-400)', 'var(--inteli-cinza-100)', 'var(--inteli-coral)'];
+      $('pv-load').innerHTML = `<div class="ld">
+        <div class="charts">
+          <div class="chart"><h5>processing time <span>· budget ${B} s of the SLO of 120 s</span></h5><svg viewBox="0 0 ${W} ${H}"><line class="ax" x1="${P}" y1="${H - P + 6}" x2="${W - 8}" y2="${H - P + 6}"/><line class="bud" x1="${P}" y1="${y(B)}" x2="${W - 8}" y2="${y(B)}"/><text x="${W - 70}" y="${y(B) - 4}">budget ${B} s</text><path class="ln" d="M${pts.join('L')}"/>${L.map((r) => `<circle class="pt" cx="${x(r.prices)}" cy="${y(r.processing_s)}" r="3"/><text x="${x(r.prices) - 14}" y="${y(r.processing_s) - 7}">${r.processing_s.toFixed(1)} s</text>`).join('')}${L.map((r) => `<text x="${x(r.prices) - 12}" y="${H - 4}">${r.prices >= 1e6 ? r.prices / 1e6 + 'M' : r.prices / 1e3 + 'k'}</text>`).join('')}</svg></div>
+          <div class="chart"><h5>peak memory <span>· RSS of the process</span></h5><svg viewBox="0 0 ${W} ${H}"><line class="ax" x1="${P}" y1="${H - P + 6}" x2="${W - 8}" y2="${H - P + 6}"/><path class="ln2" d="M${L.map((r) => `${x(r.prices).toFixed(1)},${y2(r.peak_rss_mb).toFixed(1)}`).join('L')}"/>${L.map((r) => `<text x="${x(r.prices) - 16}" y="${y2(r.peak_rss_mb) - 7}">${fmt(Math.round(r.peak_rss_mb))} MB</text>`).join('')}${L.map((r) => `<text x="${x(r.prices) - 12}" y="${H - 4}">${r.prices >= 1e6 ? r.prices / 1e6 + 'M' : r.prices / 1e3 + 'k'}</text>`).join('')}</svg></div>
+        </div>
+        <div><div class="sub-h">time of each task span, in share of the processing · ${spanNames.map((n, i) => `<span style="color:${colors[i]};text-transform:none;letter-spacing:0">■ ${n.slice(5)}</span>`).join(' ')}</div>
+        <table class="dt"><thead><tr><th>prices</th><th>products × captures</th><th>processing</th><th>prices/s</th><th>peak RSS</th><th>file</th><th style="width:38%">spans</th></tr></thead><tbody>${L.map((r) => {
+          const tot = spanNames.reduce((a, n) => a + (r.spans[n] || 0), 0);
+          return `<tr><td class="num">${fmt(r.prices)}</td><td class="num">${fmt(r.products)} × ${r.captures}</td><td class="num">${r.processing_s.toFixed(2)} s</td><td class="num">${fmt(r.prices_per_s)}</td><td class="num">${fmt(Math.round(r.peak_rss_mb))} MB</td><td class="num">${r.db_mb} MB</td><td><div class="stack">${spanNames.map((n, i) => `<i style="width:${((r.spans[n] || 0) / tot * 100).toFixed(1)}%;background:${colors[i]}" title="${n} ${r.spans[n]} s"></i>`).join('')}</div></td></tr>`;
+        }).join('')}</tbody></table></div>
+        <div class="sub-h">sql spans of the largest size</div>
+        <table class="dt"><tbody>${Object.entries(L[L.length - 1].spans).filter(([k]) => k.startsWith('sql ')).map(([k, v]) => `<tr><td>${esc(k)}</td><td class="num">${v.toFixed(2)} s</td></tr>`).join('')}</tbody></table>
+      </div>`;
+    }
+
+    // ---------- O que a sessão entrega ----------
+    const CHECKS = [
+      ['m-run', 'Each run describes itself in numbers', 'telemetry.py · RunMetrics, out/metrics.prom', 0],
+      ['m-push', 'A batch job pushes, a service is scraped', 'run --push · tcg-dataapp metrics :9108', 0],
+      ['t-span', 'Each run is one trace', 'observability.py · spans of run, task, request, SQL', 1],
+      ['t-log', 'Logs carry the ids of their span', 'JSON lines with run_id, trace_id, span_id', 1],
+      ['s-otel', 'One collector routes the signals', 'stack/otel/config.yaml · traces → Tempo, logs → Loki', 2],
+      ['s-alert', 'Alerts tested before they fire', 'rules.yml · promtool test rules', 2],
+      ['s-corr', 'From the alert to the log line', 'tcg_run_info → trace → span → Loki', 2],
+      ['c-loop', 'A controller compares with the SLOs and acts', 'control.py · sense, decide, act', 3],
+      ['c-guard', 'Guardrails against oscillation', 'cooldown, budget, backoff, one escalation', 3],
+      ['c-fault', 'Faults injected on purpose', 'faults.py · source_down, duplicate_prices', 3],
+      ['c-load', 'The SLO of duration measured under load', 'tools/load_test.py', 3],
+    ];
+    function renderChecks(flash) {
+      $('auto-badge').textContent = `${S.checks.size}/${CHECKS.length}`;
+      $('checklist').innerHTML = '<p>Observability gives the DataApp a sensor and a display; the loop adds the comparison with the objective and the action. Each item names the file that delivers it.</p>' +
+        CHECKS.map(([id, t, w, step]) => `<div class="ck${S.checks.has(id) ? ' ok' : ''}${flash && flash.includes(id) ? ' flash' : ''}"><i>${S.checks.has(id) ? '✓' : '○'}</i><b>${t}</b><span>${esc(w)} · step 0${step + 1}</span></div>`).join('');
+    }
+    function tick(...ids) { ids.forEach((i) => S.checks.add(i)); renderChecks(ids); }
+    function sideView(which) {
+      $('side-files').style.display = which === 'files' ? 'flex' : 'none';
+      $('side-auto').style.display = which === 'auto' ? 'flex' : 'none';
+      $('act-files').setAttribute('aria-pressed', String(which === 'files'));
+      $('act-auto').setAttribute('aria-pressed', String(which === 'auto'));
+    }
+    $('act-files').onclick = () => sideView('files');
+    $('act-auto').onclick = () => sideView('auto');
+    function flow(stages, run) {
+      document.querySelectorAll('#flow .node').forEach((n) => n.classList.toggle('on', stages.includes(n.dataset.stage)));
+      $('flow-run').classList.toggle('on', !!run);
+    }
+    function flowDone(stages) { stages.forEach((s) => document.querySelector(`#flow .node[data-stage="${s}"]`).classList.add('done')); }
+
+    // ---------- Chat ----------
+    function chat(role, html) {
+      const div = document.createElement('div');
+      div.className = 'msg ' + role;
+      div.innerHTML = `<div class="who">${role === 'user' ? 'you' : 'agent'}</div><div class="bubble">${html}</div>`;
+      $('chat').appendChild(div);
+      $('chat').scrollTop = 1e9;
+      return div;
+    }
+    function action(text) {
+      const div = document.createElement('div');
+      div.className = 'act running';
+      div.innerHTML = `<span class="ok">●</span><b>${text}</b>`;
+      $('chat').appendChild(div);
+      $('chat').scrollTop = 1e9;
+      return () => { div.classList.remove('running'); div.querySelector('.ok').textContent = '✓'; };
+    }
+
+    // ---------- Motor da simulação ----------
+    class Stop extends Error {}
+    let GEN = 0, RUNGEN = -1;
+    const sleep = (ms) => new Promise((res, rej) => {
+      if (RUNGEN !== GEN) return rej(new Stop());
+      if (S.fast) return res();
+      setTimeout(() => (RUNGEN === GEN ? res() : rej(new Stop())), ms / S.speed);
+    });
+    async function write(path, text, status = 'U') {
+      const done = action(`${status === 'M' ? 'Edit' : 'Create'} ${path}`);
+      S.files[path] = { text: '', status, fresh: true };
+      openTab(path);
+      if (!S.fast) {
+        const step = Math.max(40, Math.ceil(text.length / 70));
+        for (let i = step; i < text.length; i += step) {
+          S.files[path].text = text.slice(0, i);
+          renderEditor(text.slice(0, i));
+          await sleep(16);
+        }
+      }
+      S.files[path].text = text;
+      S.files[path].fresh = false;
+      renderEditor(); renderTree();
+      done();
+    }
+    const real = (p) => D.files[p];
+    async function sh(cmd, out = [], opts = {}) {
+      const prompt = opts.repl ? '<span class="ps">&gt;&gt;&gt; </span>' : opts.cont ? '<span class="ps">... </span>' : '<span class="ps">student@lab:~/lesson_10_observability$ </span>';
+      const line = termLine(prompt + '<span class="cmd"></span>');
+      const span = line.querySelector('.cmd');
+      if (!S.fast) {
+        line.classList.add('cur');
+        for (let i = 1; i <= cmd.length; i += 3) { span.textContent = cmd.slice(0, i); await sleep(14); }
+        line.classList.remove('cur');
+      }
+      span.textContent = cmd;
+      await sleep(opts.pause ?? 250);
+      for (const o of out) {
+        if (typeof o === 'function') { await o(); continue; }
+        const [text, cls, wait] = Array.isArray(o) ? o : [o, '', 40];
+        termLine(`<span class="${cls}">${esc(text)}</span>`);
+        await sleep(wait ?? 40);
+      }
+    }
+    function marksAgainst(oldText, newText) {
+      const old = new Set(oldText.split('\n'));
+      const marks = {};
+      newText.split('\n').forEach((l, i) => { if (l.trim() && !old.has(l)) marks[i] = 'keep'; });
+      return marks;
+    }
+    async function edit(path, text, note) {
+      const before = S.files[path] ? S.files[path].text : '';
+      await write(path, text, S.files[path] ? 'M' : 'U');
+      if (before) S.files[path].marks = marksAgainst(before, text);
+      if (note) S.files[path].note = note;
+      renderEditor();
+    }
+    const section = (label) => termLine(`<span class="sec">── ${esc(label)} ──</span>`);
+    const tcls = (l) => /FAILED|failed|ERROR|error:|warning|Traceback/.test(l) && !/ 0 failed/.test(l) ? 'err' : /PASSED|passed|SUCCESS| OK|ok  |Started|Running|healthy/.test(l) ? 'okl' : /^#|^=+|^-+/.test(l) ? 'dim' : '';
+    const out = (lines, wait = 30) => lines.map((l) => [l, /\t|  {3,}\S+\s{3,}/.test(l) && /SERVICE|prometheus|tempo|loki|grafana|otel|pushgateway/.test(l) ? 'tbl' : tcls(l), wait]);
+    const F = (p) => D.files[p] ?? D.stack[p];
+    const runOut = (key, drop = []) => R[key].out.filter((l) => !drop.some((rx) => rx.test(l)));
+
+    // ---------- As quatro etapas ----------
+    const STEPS = [
+      {
+        name: '01 · Metrics', prompt: '01_metrics', stages: ['metrics'], run: true,
+        next: '<b>Step 01 · metrics.</b> Numbers of each run, kept over time, and an exporter of the state of the warehouse.',
+        async play() {
+          chat('agent', 'Plan: a module <code>telemetry.py</code> owns the metrics, so the layers do not import <code>prometheus_client</code>. Each run gets a registry of its own with attempts, durations and rows per task, a histogram of the requests to the source, the quality measures, the outcome of the run and <code>tcg_run_info{run_id,trace_id}</code>. The run writes them to <code>out/metrics.prom</code> and pushes them, because a batch job ends before most scrapes; <code>tcg-dataapp metrics</code> serves the state of the warehouse on :9108.');
+          await sleep(800);
+          await write('src/tcg_dataapp/telemetry.py', F('src/tcg_dataapp/telemetry.py'));
+          await edit('src/tcg_dataapp/config.py', F('src/tcg_dataapp/config.py'));
+          await edit('src/tcg_dataapp/cli.py', F('src/tcg_dataapp/cli.py'));
+          await edit('pyproject.toml', F('pyproject.toml'));
+          await edit('tests/conftest.py', F('tests/conftest.py'));
+          await write('tests/test_telemetry.py', F('tests/test_telemetry.py'));
+          showPanel('term');
+          const d = action('Run the tests and the DataApp');
+          await sh('pytest -v tests/test_telemetry.py', out(D.tests['test_telemetry.py'].out));
+          S.tests = ['test_telemetry.py']; renderTests();
+          await sh('tcg-dataapp run --with-today', out(runOut('good', [/metrics pushed/]).map((l) => l.replace(/ · trace [0-9a-f]{32}$/, '')), 60));
+          await sh('head -n 24 out/metrics.prom', out(D.metrics_prom.split('\n').slice(0, 24), 12));
+          await sh('tcg-dataapp metrics --once | grep -v "^#" | head -n 14', out(D.exporter_once.out.filter((l) => !l.startsWith('#')).slice(0, 14), 12));
+          d();
+          S.met = 1; renderMet(); S.otel = 1; renderOtel();
+          tick('m-run', 'm-push'); flowDone(['metrics']);
+          const rows = (D.metrics_prom.match(/^tcg_task_rows\{[^}]*\} \S+$/gm) || []).map((l) => fmt(+l.split(' ').pop()));
+          chat('agent', `The tests pass, and the run wrote its numbers: <code>tcg_task_rows</code> ${rows.slice(0, 8).join(', ')}… The panel <b>Metrics · alerts</b> shows <code>out/metrics.prom</code> in the text format of Prometheus. Review: which of these metrics is a counter, which a gauge and which a histogram, and why does the run push instead of being scraped?`);
+          showPanel('met');
+        },
+      },
+      {
+        name: '02 · Traces and logs', prompt: '02_traces_and_logs', stages: ['traces'], run: true,
+        next: '<b>Step 02 · traces and logs.</b> OpenTelemetry: the path of one run as a tree of spans, and log lines that know their span.',
+        async play() {
+          chat('agent', 'Plan: <code>observability.py</code> installs the SDK of OpenTelemetry once per process: a <code>TracerProvider</code> and a <code>LoggerProvider</code>, with the OTLP exporters when there is an endpoint and a JSON log file always. The rest of the package calls only the API: <code>pipeline.py</code> opens the span of the run and one per task, the client of the source one per request, <code>gold.py</code> one per SQL file. A failure becomes status ERROR, an event per attempt and the exception.');
+          await sleep(800);
+          await write('src/tcg_dataapp/observability.py', F('src/tcg_dataapp/observability.py'));
+          await edit('src/tcg_dataapp/pipeline.py', F('src/tcg_dataapp/pipeline.py'), 'Lines marked <b>+</b>: the span of the run and of each task, the events of each failed attempt, the log lines with run_id and the metrics of the run.');
+          await edit('src/tcg_dataapp/processors/gold.py', F('src/tcg_dataapp/processors/gold.py'));
+          await edit('src/tcg_dataapp/etls/tcgcsv.py', F('src/tcg_dataapp/etls/tcgcsv.py'));
+          await edit('src/tcg_dataapp/__init__.py', F('src/tcg_dataapp/__init__.py'));
+          await write('tests/test_signals.py', F('tests/test_signals.py'));
+          showPanel('term');
+          const d = action('Run the tests and read the log');
+          await sh('pytest -v tests/test_signals.py', out(D.tests['test_signals.py'].out));
+          S.tests.push('test_signals.py'); renderTests();
+          const goodRun = (R.good.out.join('\n').match(/run ([0-9a-f]{12}):/) || [])[1];
+          const lines = D.logs.filter((l) => l.run_id === goodRun);
+          await sh('tail -n 3 out/logs/tcg-dataapp.jsonl', out(lines.slice(-3).map((l) => JSON.stringify(l)), 30));
+          d();
+          S.logs = 1; renderLg(); S.otel = 2; renderOtel();
+          tick('t-span', 't-log'); flowDone(['traces']);
+          chat('agent', `${D.tests['test_signals.py'].out.slice(-1)[0].replace(/=/g, '').trim()}. The tests read the spans from an in-memory exporter, so they need no collector. Every line of the log carries <code>run_id</code>, <code>trace_id</code> and <code>span_id</code>: ${lines.length} lines in the good run. The panel <b>Logs</b> shows them; the trace itself needs a place to go, which is step 03.`);
+          showPanel('otel');
+        },
+      },
+      {
+        name: '03 · Stack', prompt: '03_stack_and_correlation', stages: ['stack'], run: true,
+        next: '<b>Step 03 · stack and correlation.</b> Six containers, one collector, and the path from an alert to the log line that explains it.',
+        async play() {
+          chat('agent', 'Plan: <code>stack/compose.yaml</code> with Prometheus, the Pushgateway, the OpenTelemetry collector, Tempo, Loki and Grafana; the collector receives OTLP and routes traces to Tempo and logs to Loki; Prometheus scrapes the Pushgateway and the exporter and evaluates the rules, tested first with <code>promtool</code>; Grafana links the three. Then a good run and a failure on purpose, to follow the path of the person on call.');
+          await sleep(800);
+          for (const p of Object.keys(D.stack).sort()) await write(p, D.stack[p]);
+          showPanel('term');
+          let d = action('Test the rules and bring up the stack');
+          for (const p of D.promtool) await sh(p.cmd, out(p.out));
+          await sh('cd stack && docker compose up -d', out(D.compose_up.out, 50));
+          await sh('docker compose ps', out(D.compose_ps.out, 30));
+          await sh('cd .. && tcg-dataapp metrics &', [['exporter of warehouse/tcg.duckdb on http://0.0.0.0:9108/metrics', 'dim', 200]]);
+          d();
+          S.otel = 3; renderOtel(); showPanel('otel');
+          await sleep(1400);
+          showPanel('term');
+          d = action('A good run and a failure on purpose');
+          section('export TCG_OTLP_ENDPOINT=http://localhost:4318 TCG_PUSHGATEWAY=localhost:9091');
+          await sh('tcg-dataapp run --with-today', out(R.good.out, 50));
+          S.traces = ['good']; S.trSel = 'good'; renderTr(); S.met = 2; renderMet();
+          await sh(R.down.cmd, out(R.down.out, 50));
+          d();
+          S.traces = ['good', 'down']; S.trSel = 'down'; S.spanSel = (D.traces.down.spans.find((s) => s.status === 'ERROR' && s.name.startsWith('task')) || {}).id; renderTr();
+          S.alerts = 'alerts_down'; S.logs = 2; renderMet(); renderLg();
+          tick('s-otel', 's-alert', 's-corr'); flowDone(['stack']);
+          const al = D.alerts_down.find((a) => a.labels.alertname === 'TcgRunFailed');
+          const g = D.traces.good, dn = D.traces.down;
+          chat('agent', `Tempo received the good run as one trace of <b>${g.spans.length} spans</b> in ${ms(g.duration_ms)}, and the failure as one of <b>${dn.spans.length}</b>, with ${dn.spans.filter((s) => s.status === 'ERROR').length} spans in ERROR. ${al ? `In Prometheus, <b>TcgRunFailed</b> is ${al.state}: “${esc(al.annotations.description || al.annotations.summary || '')}”.` : ''} The path of the person on call: the alert names the trace; the panel <b>Traces</b> opens it on the span that failed, with its events; “Logs for this span” filters the ${fmt(D.loki_lines)} lines that Loki received down to those of that span.`);
+          showPanel('tr');
+        },
+      },
+      {
+        name: '04 · Closed loop', prompt: '04_closed_loop', stages: ['loop'], run: true,
+        next: '<b>Step 04 · closed loop.</b> A controller that compares the SLIs with the SLOs and acts, within guardrails, and a load test of the SLO of duration.',
+        async play() {
+          chat('agent', 'Plan: <code>control.py</code> in the vocabulary of control theory. The sensor reads the SLIs from the warehouse; the comparator subtracts the SLOs, with a dead band on the freshness; <code>decide()</code> is a pure function of the SLIs, the state and the clock; the actuators rerun the DataApp, open and probe a circuit breaker on the source, quarantine a bad batch, or escalate to a person. <code>faults.py</code> injects the failures that rehearse it.');
+          await sleep(800);
+          await write('src/tcg_dataapp/control.py', F('src/tcg_dataapp/control.py'));
+          await write('src/tcg_dataapp/faults.py', F('src/tcg_dataapp/faults.py'));
+          await write('tests/test_control.py', F('tests/test_control.py'));
+          await edit('README.md', F('README.md'));
+          showPanel('term');
+          let d = action('Test the loop');
+          await sh('pytest -v tests/test_control.py', out(D.tests['test_control.py'].out));
+          S.tests.push('test_control.py'); renderTests();
+          d();
+          d = action('Rehearsal 1: the source is down');
+          await sh(R.loop_a.cmd, out(R.loop_a.out, 120));
+          S.loop = ['loop_a']; renderLoop(); showPanel('loop');
+          S.alerts = 'alerts_escalated'; S.met = 3; renderMet();
+          await sh('tcg-dataapp control --acknowledge', out(R.ack.out));
+          await sh('tcg-dataapp run --with-today', out(R.good2.out, 30));
+          await sh(R.loop_a2.cmd, out(R.loop_a2.out, 120));
+          S.loop.push('loop_a2'); renderLoop();
+          d();
+          d = action('Rehearsal 2: a bad batch');
+          await sh(R.dup.cmd, out(R.dup.out, 30));
+          await sh(R.loop_b.cmd, out(R.loop_b.out, 120));
+          S.loop.push('loop_b'); renderLoop();
+          for (const k of ['probe', 'rerun']) if (D.traces[k] && !S.traces.includes(k)) S.traces.push(k);
+          S.logs = 3; renderTr(); renderLg();
+          d();
+          tick('c-loop', 'c-guard', 'c-fault');
+          d = action('A load test of the processing');
+          await sh('python tools/load_test.py', out(D.load.out, 300));
+          S.load = true; renderLoad();
+          await sh('pytest -q --durations=8', out(D.tests.all.out, 20));
+          S.tests.push('all'); renderTests();
+          d();
+          tick('c-load'); flowDone(['loop']);
+          const ta = ticksOf('loop_a'), tb = ticksOf('loop_b');
+          const L = D.load.results, last = L[L.length - 1];
+          chat('agent', `First rehearsal, ${ta.length} ticks against a source that is down: ${ta.map((t) => `<b>${esc(t.action)}</b>`).join(', ')}. The breaker held every rerun while the source was down, the backoff doubled at each failed probe, and the controller escalated to a person once, which fired <b>TcgControllerEscalated</b>. Second rehearsal, a batch that breaks the grain: ${tb.map((t) => `<b>${esc(t.action)}</b>`).join(', ')}. Under load, the processing of ${fmt(last.prices)} prices took ${last.processing_s.toFixed(1)} s and ${fmt(Math.round(last.peak_rss_mb))} MB: the time stays far inside the budget, and memory is the resource that grows first. The tabs <b>Closed loop</b>, <b>Traces</b> (the tick that reruns is one trace) and <b>Load</b> hold the details.`);
+          showPanel('load');
+        },
+      },
+    ];
+    const PLIST = [...STEPS, { prompt: '05_your_dataapp', name: '05 · Your DataApp' }];
+
+    // ---------- Controles ----------
+    function updateUi() {
+      document.querySelectorAll('[data-step]').forEach((b) => { const i = +b.dataset.step; b.classList.toggle('step-done', i < S.done); b.disabled = S.running; });
+      const nxt = STEPS[S.done];
+      $('btn-send').disabled = S.running || !nxt;
+      $('btn-send').textContent = nxt ? `Send prompt ${nxt.name.slice(0, 2)}` : 'All prompts sent';
+      $('btn-view-prompt').textContent = nxt ? `Read prompt ${nxt.name.slice(0, 2)}` : 'Read the prompts';
+      $('next').innerHTML = S.running ? '<b>The agent is working.</b> “Finish step” shows the end of the step at once.' : nxt ? nxt.next : '<b>The four steps are done.</b> Every tab can be browsed: follow an alert to its trace and its log lines. Prompt 05, for the second hour, is in “Prompts”.';
+      $('btn-skip').disabled = !S.running;
+      $('st-step').textContent = nxt ? `next: step ${nxt.name}` : 'all steps done';
+      $('st-busy').innerHTML = S.running ? '<span class="busy">● agent running</span>' : '';
+    }
+    async function playStep(i) {
+      const st = STEPS[i];
+      S.running = true; updateUi();
+      flow(st.stages, st.run);
+      const u = chat('user', `<button class="open-prompt" type="button" data-prompt="${st.prompt}">Prompt ${st.prompt.slice(0, 2)} · CREATE · ${esc(st.prompt.slice(3).replace(/_/g, ' '))} <span>open ↗</span></button>`);
+      u.scrollIntoView({ block: 'end' });
+      await sleep(600);
+      await st.play();
+      S.done = i + 1; S.running = false; S.fast = false;
+      updateUi();
+    }
+    async function runTo(target) {
+      if (S.running) return;
+      if (target < S.done) reset();
+      RUNGEN = GEN;
+      try {
+        while (S.done < target) { S.fast = true; await playStep(S.done); }
+        S.fast = false;
+        await playStep(target);
+      } catch (e) { if (!(e instanceof Stop)) console.error(e); }
+    }
+    function reset() {
+      GEN++;
+      const speed = S ? S.speed : 1;
+      S = fresh(); S.speed = speed;
+      term.innerHTML = '';
+      $('chat').innerHTML = '';
+      chat('agent', 'This folder is a copy of the package <code>tcg-dataapp</code> of Lesson 7: it runs the whole model in one command, but a run is described only by what it prints. I will add the three signals, bring up the stack that reads them and close the loop, from your prompts, stopping at the end of each step.');
+      document.querySelectorAll('#flow .node').forEach((n) => n.classList.remove('on', 'done'));
+      $('flow-run').classList.remove('on');
+      renderTree(); renderTabs(); renderEditor(); renderOtel(); renderMet(); renderTr(); renderLg(); renderLoop(); renderTests(); renderLoad(); renderChecks(); sideView('files'); showPanel('term');
+      updateUi();
+    }
+    $('btn-send').onclick = () => runTo(S.done);
+    $('btn-prompts').onclick = () => openPrompt(Math.min(S.done, STEPS.length - 1));
+    // ---------- Janela do prompt ----------
+    const SEC_NAMES = { C: 'Character', R: 'Request', E: 'Example', A: 'Adjustments', T: 'Type of output' };
+    function parsePrompt(text) {
+      const secs = [];
+      let cur = null, seenE = false;
+      for (const line of text.split('\n')) {
+        const m = line.match(/^\[([A-Z])\]\s*(.*)$/);
+        if (m) {
+          let name = m[2] || SEC_NAMES[m[1]] || m[1];
+          if (m[1] === 'E') { name = seenE ? 'Extras' : (m[2] || 'Example'); seenE = true; }
+          cur = { letter: m[1], name, lines: [] };
+          secs.push(cur);
+        } else if (cur) cur.lines.push(line);
+      }
+      // Os fatos medidos ficam num bloco próprio dentro do Request.
+      const out = [];
+      for (const sec of secs) {
+        const i = sec.lines.findIndex((l) => /^Facts/.test(l));
+        if (sec.letter === 'R' && i > 0) {
+          out.push({ ...sec, lines: sec.lines.slice(0, i) });
+          out.push({ letter: 'R', name: 'Facts to confirm', lines: sec.lines.slice(i + 1), facts: true });
+        } else out.push(sec);
+      }
+      return out.map((s) => ({ ...s, body: s.lines.join('\n').replace(/^\n+|\s+$/g, '') }));
+    }
+    let PD = null;
+    function openPrompt(i) {
+      PD = i;
+      const st = PLIST[i];
+      const text = D.prompts[st.prompt];
+      const secs = parsePrompt(text);
+      $('pd-title').textContent = `Prompt ${st.prompt.slice(0, 2)} · CREATE · ${st.prompt.slice(3).replace(/_/g, ' ')}`;
+      $('pd-file').textContent = `lab/lesson-10/prompts/${st.prompt}.md · ${text.trim().split('\n').length} lines`;
+      $('pd-prompts').innerHTML = '<span class="lbl">Prompt</span>' + PLIST.map((s, j) => `<button class="btn-lab" type="button" data-pd="${j}" aria-pressed="${j === i}">${s.prompt.slice(0, 2)}</button>`).join('');
+      $('pd-secs').innerHTML = '<span class="lbl">Section</span>' + secs.map((s, j) => `<button class="btn-lab" type="button" data-sec="${j}" title="${esc(s.name)}">${s.facts ? 'Facts' : '[' + s.letter + ']'}</button>`).join('');
+      $('pd-body').innerHTML = secs.map((s, j) => `<section class="pd-sec${s.facts ? ' facts' : ''}" id="pd-sec-${j}"><h3>${s.facts ? '' : `<b>${s.letter}</b>`}${esc(s.name)}</h3><pre>${esc(s.body)}</pre></section>`).join('');
+      $('pd-body').scrollTop = 0;
+      const isNext = i === S.done && i < STEPS.length && !S.running;
+      $('pd-send').style.display = isNext ? '' : 'none';
+      $('pd-hint').textContent = i >= STEPS.length ? 'The prompt of the second hour, for the DataApp of each group; the simulation stops at step 04.' : i < S.done ? 'Already sent to the agent in this session.' : isNext ? 'This is the next prompt of the session.' : S.running && i === S.done ? 'The agent is working on this prompt.' : `Comes after prompt ${STEPS[S.done] ? STEPS[S.done].prompt.slice(0, 2) : ''}.`;
+      $('pd-copy').textContent = 'Copy';
+      if (!$('prompt-dlg').open) $('prompt-dlg').showModal();
+    }
+    $('pd-prompts').addEventListener('click', (e) => { const b = e.target.closest('[data-pd]'); if (b) openPrompt(+b.dataset.pd); });
+    $('pd-secs').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-sec]');
+      if (!b) return;
+      const sec = $('pd-sec-' + b.dataset.sec);
+      $('pd-body').scrollTo({ top: sec.offsetTop - $('pd-body').offsetTop - 4, behavior: 'smooth' });
+      sec.classList.remove('flash'); void sec.offsetWidth; sec.classList.add('flash');
+    });
+    $('pd-close').onclick = () => $('prompt-dlg').close();
+    $('prompt-dlg').addEventListener('click', (e) => { if (e.target === $('prompt-dlg')) $('prompt-dlg').close(); });
+    $('pd-copy').onclick = async () => {
+      try { await navigator.clipboard.writeText(D.prompts[PLIST[PD].prompt]); $('pd-copy').textContent = 'Copied'; }
+      catch { $('pd-copy').textContent = 'Copy failed'; }
+    };
+    $('pd-send').onclick = () => { $('prompt-dlg').close(); runTo(S.done); };
+    $('chat').addEventListener('click', (e) => { const b = e.target.closest('[data-prompt]'); if (b) openPrompt(PLIST.findIndex((s) => s.prompt === b.dataset.prompt)); });
+    $('btn-view-prompt').onclick = () => openPrompt(Math.min(S.done, STEPS.length - 1));
+    document.querySelectorAll('[data-step]').forEach((b) => b.onclick = () => runTo(+b.dataset.step));
+    document.querySelectorAll('[data-speed]').forEach((b) => b.onclick = () => {
+      S.speed = +b.dataset.speed;
+      document.querySelectorAll('[data-speed]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    });
+    $('btn-skip').onclick = () => { if (S.running) S.fast = true; };
+    $('btn-reset').onclick = () => { if (S.running) { GEN++; S.running = false; } reset(); };
+
+    // ---------- Tela cheia ----------
+    const stage = $('stage');
+    const isFull = () => document.fullscreenElement === stage || stage.classList.contains('full');
+    function setFullUi() {
+      const on = isFull();
+      $('btn-full').textContent = on ? '⛶ Exit full screen' : '⛶ Full screen';
+      $('btn-full').setAttribute('aria-pressed', String(on));
+      $('ide-full').title = on ? 'Exit full screen (F or Esc)' : 'Full screen (F)';
+      document.body.classList.toggle('no-scroll', stage.classList.contains('full'));
+    }
+    async function toggleFull() {
+      if (isFull()) {
+        if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
+        stage.classList.remove('full');
+      } else if (stage.requestFullscreen) {
+        try { await stage.requestFullscreen(); } catch { stage.classList.add('full'); }
+      } else stage.classList.add('full');
+      setFullUi();
+    }
+    document.addEventListener('fullscreenchange', setFullUi);
+    $('btn-full').onclick = toggleFull;
+    $('ide-full').onclick = toggleFull;
+    document.addEventListener('keydown', (e) => {
+      if (e.target.closest('input, textarea') || $('prompt-dlg').open || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === 'f' || e.key === 'F') { e.preventDefault(); toggleFull(); }
+      if (e.key === 'Escape' && stage.classList.contains('full')) { stage.classList.remove('full'); setFullUi(); }
+    });
+
+    // Divisória entre editor e painel
+    (() => {
+      const main = $('ide-main');
+      let drag = false;
+      $('splitter').addEventListener('pointerdown', (e) => { drag = true; e.target.setPointerCapture(e.pointerId); });
+      $('splitter').addEventListener('pointermove', (e) => {
+        if (!drag) return;
+        const r = main.getBoundingClientRect();
+        const pct = Math.min(80, Math.max(18, (r.bottom - e.clientY) / r.height * 100));
+        main.style.setProperty('--panel-h', pct + '%');
+      });
+      $('splitter').addEventListener('pointerup', () => { drag = false; });
+    })();
+
+    reset();
+  })();
+  </script>
+<!-- semana:js:start -->
+<script src="../../../../js/semana-ano.js" defer></script>
+<!-- semana:js:end -->
+</body>
+</html>
+

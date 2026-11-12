@@ -1,7 +1,11 @@
 # Lesson 10 · recording and alerting rules of the DataApp.
 # Check with: promtool check rules rules.yml
 groups:
-  - name: tcg_dataapp_recording
+  # The recording rules come first, in the same group as the alerts that read them:
+  # the rules of one group are evaluated in order, so TcgPricesStale reads the
+  # freshness of the same evaluation. In separate groups the order is not fixed,
+  # and the alert could read the value of the previous minute.
+  - name: tcg_dataapp
     rules:
       # Seconds since the newest price was captured. Written once, reused by the
       # dashboard and by the alert below. The prices of today are stored at noon
@@ -14,8 +18,6 @@ groups:
       - record: tcg:source_request_duration_seconds:p95
         expr: histogram_quantile(0.95, sum by (le, endpoint) (tcg_source_request_duration_seconds_bucket{job="tcg_dataapp"}))
 
-  - name: tcg_dataapp_alerts
-    rules:
       - alert: TcgRunFailed
         expr: tcg_run_success{job="tcg_dataapp"} == 0
         labels:

@@ -55,6 +55,17 @@ The signals meet in their identifiers. The alert `TcgRunFailed` reads the `trace
 
 An escalation happens once and holds every automatic action until the SLIs are back within the SLOs or a person runs `tcg-dataapp control --acknowledge`. Each tick is a span `control.tick` (the rerun that it starts is its child), one JSON log line, one row of `ops.controller_actions` with its `trace_id`, and the metrics `tcg_controller_*`, pushed as `job=tcg_controller`.
 
+## Load test
+
+`tools/load_test.py` measures the processing under load. The network part of a run cannot grow in a test; what grows with the data is the gold layer, the quality gate, the frozen reports, the marts and the report. The script builds synthetic landing tables of increasing size, runs those functions inside spans and reads each span from an in-memory exporter of OpenTelemetry, one process per size so that the peak memory is its own.
+
+```bash
+python tools/load_test.py                        # 100k, 500k, 1M, 2.5M and 5M prices
+python tools/load_test.py --sizes 1000000 --json out/load.json
+```
+
+Measured on 12/11/2026 (DuckDB 2.0.0): about 220,000 prices per second from 1M prices on, 22 s for 5,000,000 prices, against a budget of 90 s of processing inside the SLO of 120 s. The time grows linearly; the peak memory grows faster, to about 2.8 GB at 5M prices, and `write_report` becomes the slowest span.
+
 ## Layers
 
 | Layer | Module | Does |
