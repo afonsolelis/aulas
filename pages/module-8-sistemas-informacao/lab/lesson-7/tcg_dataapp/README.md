@@ -17,11 +17,16 @@ pytest                       # 9 tests, without network
 
 The run writes `warehouse/tcg.duckdb`, `out/report.md` and `out/marts/*.parquet`. The settings come from environment variables: `TCG_DB_PATH`, `TCG_OUT_DIR`, `TCG_SETS`, `TCG_PRICE_DATES`, `TCG_FROZEN_MONTH`, `TCG_RETRIES`, `TCG_RETRY_DELAY` (see `src/tcg_dataapp/config.py`).
 
-To run every day at 06:00 UTC without an orchestrator, a line of crontab is enough; Lesson 8 replaces it with Prefect:
+## Run every day
 
-```cron
-0 6 * * * cd /path/to/project && .venv/bin/tcg-dataapp run --with-today >> out/cron.log 2>&1
+`ops/run_daily.sh` is what the scheduler calls: it takes a lock on `out/run.lock`, so two runs never overlap, runs `tcg-dataapp run --with-today`, writes the whole output to `out/logs/run-<day>.log`, appends one line to `out/runs.log` on success or to `out/alerts.log` on failure, and exits with the code of the run. `ops/crontab` calls it every day at 06:00 UTC; adjust the path of the project and install it:
+
+```bash
+crontab ops/crontab
+crontab -l
 ```
+
+After a run, look at `out/runs.log`, `out/alerts.log`, the log of the day and `tcg-dataapp status`. Lesson 8 replaces the line of crontab with Prefect.
 
 ## Layers
 

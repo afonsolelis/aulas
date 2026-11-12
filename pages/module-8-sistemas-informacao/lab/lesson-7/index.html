@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 7 Lab · The DataApp in a simulated editor · Module 8 · Inteli</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📦</text></svg>">
+  <link href="../../../../css/inteli-styles.css" rel="stylesheet">
+  <style>
+    body.tm { min-height: 100vh; }
+    /* A margem direita deixa livre a faixa dos botões flutuantes (início e semana), fixos a 14px da borda. */
+    .lab { max-width: 1600px; min-width: 0; width: 100%; box-sizing: border-box; margin: 0 auto; padding: 20px 76px 0 24px; }
+    .lab-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 16px; border-bottom: 1px solid var(--ds-borda); }
+    .lab-top nav { display: flex; flex-wrap: wrap; gap: 6px 18px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); }
+    .lab-top nav a { text-decoration: none; color: var(--ds-texto); }
+    .lab-top nav a span { color: var(--ds-texto-fraco); }
+    .lab-top nav a:hover { color: var(--ds-texto-forte); text-decoration: underline; }
+    .lab-top img { width: 64px; display: block; }
+    .lab-head { padding: 24px 0 14px; }
+    .lab-head .meta { margin: 0 0 10px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); color: var(--ds-texto-suave); }
+    .lab-head h1 { margin: 0; font-family: var(--ds-fonte-mono); font-weight: 500; font-size: clamp(1.6rem, 1rem + 2vw, 2.4rem); letter-spacing: -0.02em; color: var(--ds-texto-forte); }
+    .lab-head p { margin: 12px 0 0; max-width: 100ch; line-height: 1.6; color: var(--ds-texto); }
+
+    /* Fluxo do DataApp: cada etapa acende o trecho que ela constrói. */
+    .flow { display: grid; grid-template-columns: repeat(11, auto); align-items: stretch; gap: 0; margin: 18px 0 6px; overflow-x: auto; }
+    .flow .node { border: 1px solid var(--ds-borda-forte); background: var(--ds-fundo); padding: 10px 12px; min-width: 120px; display: flex; flex-direction: column; gap: 4px; transition: border-color var(--ds-rapido), background var(--ds-rapido); }
+    .flow .node b { font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); font-weight: 600; color: var(--ds-texto-forte); }
+    .flow .node span { font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); line-height: 1.4; }
+    .flow .node code { font-size: var(--ds-fs-micro); }
+    .flow .node .st { font-family: var(--ds-fonte-mono); color: var(--ds-texto-fraco); }
+    .flow .arrow { display: flex; align-items: center; padding: 0 6px; font-family: var(--ds-fonte-mono); color: var(--ds-texto-fraco); }
+    .flow .node.on { border-color: var(--inteli-roxo); background: var(--ds-roxo-tinta); box-shadow: inset 3px 0 0 var(--inteli-verde); }
+    .flow .node.done .st { color: var(--ds-verde-texto); }
+    .flow-run { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; border: 1px dashed var(--ds-borda-forte); padding: 8px 12px; margin-bottom: 14px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); }
+    .flow-run b { color: var(--ds-texto-forte); font-weight: 600; }
+    .flow-run.on { border-style: solid; border-color: var(--inteli-roxo); background: var(--ds-roxo-tinta); }
+
+    .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 12px; }
+    .controls .lbl { font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); margin-right: 4px; }
+    .btn-lab { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border: 1px solid var(--ds-borda-forte); background: var(--ds-fundo); color: var(--ds-texto-forte); font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); font-weight: 500; cursor: pointer; white-space: nowrap; border-radius: var(--ds-raio-1); }
+    .btn-lab:hover { background: var(--ds-fundo-fraco); border-color: var(--inteli-cinza-400); }
+    .btn-lab.primary { background: var(--inteli-roxo); border-color: var(--inteli-roxo); color: var(--ds-texto-inverso); }
+    .btn-lab.primary:hover { background: var(--ds-roxo-hover); }
+    .btn-lab.step-done { border-color: var(--inteli-verde); }
+    .btn-lab.step-done::before { content: "✓"; color: var(--ds-verde-texto); }
+    .btn-lab:disabled { opacity: 0.5; cursor: default; }
+    .btn-lab[aria-pressed="true"] { background: var(--ds-roxo-tinta); border-color: var(--inteli-roxo); }
+
+    /* ===== O editor simulado ===== */
+    .ide { --ide-bg: var(--ds-terminal); --ide-side: var(--inteli-roxo); --ide-line: rgba(255, 255, 255, 0.09); --ide-txt: var(--inteli-cinza-100); --ide-dim: var(--inteli-cinza-400);
+      height: clamp(640px, 82vh, 980px); display: grid; grid-template-rows: 30px minmax(0, 1fr) 24px; border: 1px solid var(--inteli-roxo); background: var(--ide-bg); color: var(--ide-txt); font-family: var(--ds-fonte-mono); font-variant-ligatures: none; font-size: 12.5px; margin-bottom: 28px; min-width: 0; }
+    .ide button { font-family: inherit; }
+    .ide-title { display: flex; align-items: center; gap: 10px; padding: 0 10px; background: var(--ide-side); border-bottom: 1px solid var(--ide-line); font-size: 12px; color: var(--ide-dim); }
+    .ide-title .dots { display: flex; gap: 6px; }
+    .ide-title .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--ide-line); display: block; }
+    .ide-title .t { flex: 1; text-align: center; }
+    .ide-title .sim { color: var(--inteli-verde); }
+    .ide-body { display: grid; grid-template-columns: 44px 230px minmax(0, 1fr) 340px; min-height: 0; }
+    .ide-act { background: var(--ide-side); border-right: 1px solid var(--ide-line); display: flex; flex-direction: column; align-items: center; padding-top: 6px; gap: 2px; }
+    .ide-act button { width: 44px; height: 42px; border: 0; background: transparent; color: var(--ide-dim); font-size: 17px; cursor: pointer; border-left: 2px solid transparent; position: relative; }
+    .ide-act button[aria-pressed="true"] { color: var(--inteli-branco); border-left-color: var(--inteli-verde); }
+    .ide-act button .badge { position: absolute; right: 6px; bottom: 6px; font-size: 9px; min-width: 14px; height: 14px; line-height: 14px; border-radius: 2px; background: var(--inteli-verde); color: var(--inteli-roxo); font-weight: 700; }
+    .ide-side { background: var(--ide-side); border-right: 1px solid var(--ide-line); display: flex; flex-direction: column; min-height: 0; }
+    .ide-side h2 { margin: 0; padding: 9px 12px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ide-dim); font-family: inherit; }
+    .tree { overflow: auto; flex: 1; padding-bottom: 12px; }
+    .tree .row { display: flex; align-items: center; gap: 5px; height: 22px; padding-right: 8px; white-space: nowrap; cursor: pointer; color: var(--ide-txt); }
+    .tree .row:hover { background: var(--ide-line); }
+    .tree .row.active { background: rgba(137, 206, 165, 0.16); }
+    .tree .row .ic { width: 14px; text-align: center; color: var(--ide-dim); font-size: 11px; flex: 0 0 auto; }
+    .tree .row .nm { overflow: hidden; text-overflow: ellipsis; }
+    .tree .row .g { margin-left: auto; font-size: 10px; font-weight: 700; }
+    .tree .row .g.U { color: var(--inteli-verde); }
+    .tree .row .g.M { color: var(--inteli-cinza-300); }
+    .tree .row.dir { color: var(--ide-dim); cursor: default; }
+    .tree .row.fresh { animation: fresh 1.2s ease-out; }
+    @keyframes fresh { from { background: rgba(137, 206, 165, 0.35); } to { background: transparent; } }
+    .tree .empty { padding: 8px 14px; color: var(--ide-dim); line-height: 1.5; }
+    .checklist { overflow: auto; flex: 1; padding: 0 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+    .checklist .ck { border: 1px solid var(--ide-line); padding: 7px 9px; display: grid; grid-template-columns: 16px 1fr; gap: 2px 6px; font-size: 11.5px; line-height: 1.4; }
+    .checklist .ck i { font-style: normal; color: var(--ide-dim); grid-row: span 2; }
+    .checklist .ck b { font-weight: 600; color: var(--inteli-branco); }
+    .checklist .ck span { color: var(--ide-dim); }
+    .checklist .ck.ok { border-color: rgba(137, 206, 165, 0.45); }
+    .checklist .ck.ok i { color: var(--inteli-verde); }
+    .checklist .ck.flash { animation: fresh 1.4s ease-out; }
+    .checklist p { margin: 0 0 4px; color: var(--ide-dim); font-size: 11.5px; line-height: 1.5; }
+
+    .ide-main { display: grid; grid-template-rows: 34px minmax(0, 1fr) 6px minmax(0, var(--panel-h, 48%)); min-width: 0; min-height: 0; }
+    .tabs { display: flex; background: var(--ide-side); overflow-x: auto; scrollbar-width: thin; }
+    .tabs .tab { display: flex; align-items: center; gap: 8px; padding: 0 10px 0 12px; border-right: 1px solid var(--ide-line); color: var(--ide-dim); cursor: pointer; white-space: nowrap; border-top: 2px solid transparent; background: transparent; }
+    .tabs .tab.active { background: var(--ide-bg); color: var(--inteli-branco); border-top-color: var(--inteli-verde); }
+    .tabs .tab .x { opacity: 0.6; font-size: 11px; }
+    .tabs .tab .x:hover { opacity: 1; }
+    .tabs .tab em { font-style: italic; }
+    .editor { overflow: auto; position: relative; min-height: 0; }
+    .editor .welcome { padding: 32px; color: var(--ide-dim); line-height: 1.7; max-width: 70ch; font-family: var(--ds-fonte); font-size: 14px; }
+    .editor .welcome b { color: var(--inteli-branco); }
+    .editor .welcome kbd { font-family: var(--ds-fonte-mono); border: 1px solid var(--ide-line); padding: 0 5px; }
+    .code { display: grid; grid-template-columns: max-content minmax(0, 1fr); padding: 8px 0 40px; line-height: 1.6; }
+    .code .ln { text-align: right; padding: 0 14px 0 10px; color: var(--ide-dim); user-select: none; opacity: 0.6; }
+    .code .tx { white-space: pre; padding-right: 24px; tab-size: 4; }
+    .code .tx.cur::after { content: ""; display: inline-block; width: 7px; height: 1.1em; vertical-align: text-bottom; background: var(--inteli-verde); animation: blink 1s steps(1) infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+    .code .tx.del { text-decoration: line-through; text-decoration-color: var(--inteli-coral); opacity: 0.55; }
+    .code .tx.keep { background: rgba(137, 206, 165, 0.10); }
+    .code .ln.del::before { content: "− "; color: var(--inteli-coral); }
+    .code .ln.keep::before { content: "+ "; color: var(--inteli-verde); }
+    .k { color: var(--inteli-verde); }
+    .s { color: var(--inteli-coral); }
+    .c { color: var(--ide-dim); font-style: italic; }
+    .n { color: var(--inteli-branco); font-weight: 600; }
+    .f { color: var(--inteli-cinza-300); text-decoration: underline; text-decoration-color: var(--ide-line); text-underline-offset: 3px; }
+    .h { color: var(--inteli-branco); font-weight: 700; }
+    .note-bar { position: sticky; top: 0; z-index: 1; padding: 8px 14px; background: var(--ide-side); border-bottom: 1px solid var(--ide-line); color: var(--ide-txt); font-family: var(--ds-fonte); font-size: 13px; line-height: 1.5; }
+    .note-bar b { color: var(--inteli-verde); font-weight: 600; }
+
+    .splitter { background: var(--ide-line); cursor: row-resize; }
+    .panel { display: grid; grid-template-rows: 30px minmax(0, 1fr); min-height: 0; background: var(--ide-bg); }
+    .ptabs { display: flex; gap: 2px; padding: 0 8px; border-bottom: 1px solid var(--ide-line); overflow-x: auto; }
+    .ptabs button { border: 0; background: transparent; color: var(--ide-dim); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; padding: 0 10px; cursor: pointer; border-bottom: 1px solid transparent; white-space: nowrap; }
+    .ptabs button[aria-selected="true"] { color: var(--inteli-branco); border-bottom-color: var(--inteli-verde); }
+    .ptabs button .cnt { margin-left: 4px; color: var(--inteli-verde); }
+    .pbody { overflow: auto; min-height: 0; }
+    .pview { display: none; min-height: 100%; }
+    .pview.on { display: block; }
+    .term { padding: 8px 14px 16px; white-space: pre-wrap; word-break: break-word; line-height: 1.5; }
+    .term .ps { color: var(--inteli-verde); }
+    .term .cmd { color: var(--inteli-branco); }
+    .term .err { color: var(--inteli-coral); }
+    .term .okl { color: var(--inteli-verde); }
+    .term .dim { color: var(--ide-dim); }
+    .term .cur::after { content: ""; display: inline-block; width: 7px; height: 1em; vertical-align: text-bottom; background: var(--ide-txt); animation: blink 1s steps(1) infinite; }
+    table.dt { border-collapse: collapse; width: 100%; font-size: 11.5px; }
+    table.dt th { position: sticky; top: 0; background: var(--ide-side); text-align: left; padding: 5px 10px; font-weight: 600; color: var(--inteli-branco); border-bottom: 1px solid var(--ide-line); white-space: nowrap; z-index: 1; }
+    table.dt td { padding: 4px 10px; border-bottom: 1px solid var(--ide-line); white-space: nowrap; max-width: 560px; overflow: hidden; text-overflow: ellipsis; vertical-align: top; }
+    table.dt td.num { text-align: right; }
+    table.dt tr.hl td { background: rgba(137, 206, 165, 0.14); }
+    table.dt tr.new td { animation: fresh 1.4s ease-out; }
+    table.dt tr.click { cursor: pointer; }
+    table.dt tr.click:hover td { background: var(--ide-line); }
+    .tag-set { color: var(--inteli-verde); }
+    .tag-product { color: var(--inteli-cinza-300); }
+    .tag-price { color: var(--inteli-coral); }
+    .pv-split { display: grid; grid-template-columns: minmax(260px, 0.9fr) minmax(0, 1.4fr); min-height: 100%; }
+    .pv-split > div { overflow: auto; border-right: 1px solid var(--ide-line); }
+    .pv-head { padding: 8px 12px; color: var(--ide-dim); line-height: 1.5; font-family: var(--ds-fonte); font-size: 12.5px; border-bottom: 1px solid var(--ide-line); }
+    .pv-head b { color: var(--inteli-branco); font-family: var(--ds-fonte-mono); font-weight: 600; }
+    .pv-head .flash { color: var(--inteli-verde); }
+    .schema { padding: 8px 12px; border-bottom: 1px solid var(--ide-line); display: flex; gap: 6px; flex-wrap: wrap; }
+    .schema span { border: 1px solid var(--ide-line); padding: 2px 7px; }
+    .schema span em { font-style: normal; color: var(--ide-dim); }
+    .gold-list button { display: flex; width: 100%; justify-content: space-between; gap: 10px; padding: 5px 12px; border: 0; background: transparent; color: var(--ide-txt); cursor: pointer; text-align: left; font-size: 12px; }
+    .gold-list button:hover { background: var(--ide-line); }
+    .gold-list button[aria-pressed="true"] { background: rgba(137, 206, 165, 0.16); }
+    .gold-list button span { color: var(--ide-dim); }
+    .gold-list button.new { animation: fresh 1.4s ease-out; }
+    .gold-list .grp { padding: 8px 12px 2px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ide-dim); }
+    .empty-p { padding: 18px; color: var(--ide-dim); font-family: var(--ds-fonte); font-size: 13px; line-height: 1.6; max-width: 80ch; }
+    .net-row td:first-child { color: var(--inteli-verde); }
+
+    /* Rastreio de uma carta: da linha de db_ingestion ao relatório. */
+    .trace { padding: 12px 14px 20px; display: flex; flex-direction: column; gap: 10px; }
+    .trace .stage { border: 1px solid var(--ide-line); }
+    .trace .stage > header { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; padding: 6px 10px; background: var(--ide-side); }
+    .trace .stage > header b { color: var(--inteli-branco); font-weight: 600; }
+    .trace .stage > header span { color: var(--ide-dim); font-family: var(--ds-fonte); font-size: 12px; }
+    .trace .stage .body { overflow-x: auto; }
+    .trace .down { text-align: center; color: var(--ide-dim); font-size: 11px; }
+    .trace .down code { color: var(--inteli-verde); }
+    .bars { display: flex; align-items: flex-end; gap: 14px; height: 150px; padding: 12px 14px 4px; }
+    .bars .bar { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; height: 100%; font-size: 11px; color: var(--ide-dim); }
+    .bars .bar i { display: block; width: 100%; max-width: 46px; background: var(--inteli-cinza-400); border-radius: 0 0 0 0; }
+    .bars .bar.frozen i { background: var(--inteli-verde); }
+    .bars .bar.last i { background: var(--inteli-cinza-100); }
+    .bars .bar b { color: var(--inteli-branco); font-weight: 600; }
+
+    /* Grafo do pipeline */
+    .dag { display: flex; gap: 22px; padding: 16px 14px 20px; align-items: center; overflow-x: auto; min-height: 100%; }
+    .dag .col { display: flex; flex-direction: column; gap: 6px; position: relative; }
+    .dag .col + .col::before { content: "▶"; position: absolute; left: -17px; top: 50%; transform: translateY(-50%); color: var(--ide-dim); font-size: 10px; }
+    .dag .t { border: 1px solid var(--ide-line); padding: 5px 8px; min-width: 150px; font-size: 11px; display: grid; gap: 1px; }
+    .dag .t small { color: var(--ide-dim); font-size: 10px; }
+    .dag .t.run { border-color: var(--inteli-cinza-100); animation: blink 0.8s steps(1) infinite; }
+    .dag .t.ok { border-color: var(--inteli-verde); }
+    .dag .t.ok small { color: var(--inteli-verde); }
+    .dag .t.fail { border-color: var(--inteli-coral); }
+    .dag .t.fail small { color: var(--inteli-coral); }
+    .dag .t.skip { border-style: dashed; opacity: 0.55; }
+    .dag-legend { padding: 0 14px 12px; color: var(--ide-dim); font-family: var(--ds-fonte); font-size: 12px; }
+
+    /* Painel do agente */
+    .ide-agent { background: var(--ide-side); border-left: 1px solid var(--ide-line); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-height: 0; }
+    .ide-agent h2 { margin: 0; padding: 9px 12px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ide-dim); font-family: inherit; border-bottom: 1px solid var(--ide-line); }
+    .chat { overflow: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 10px; }
+    .msg { font-family: var(--ds-fonte); font-size: 13px; line-height: 1.5; }
+    .msg .who { font-family: var(--ds-fonte-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ide-dim); margin-bottom: 3px; }
+    .msg.user .bubble { border: 1px solid var(--ide-line); background: var(--ide-bg); padding: 8px 10px; }
+    .msg.user details summary { cursor: pointer; font-family: var(--ds-fonte-mono); font-size: 12px; color: var(--inteli-branco); }
+    .msg.user pre { margin: 8px 0 0; white-space: pre-wrap; font-family: var(--ds-fonte-mono); font-size: 11px; line-height: 1.5; color: var(--ide-txt); max-height: 320px; overflow: auto; }
+    .msg.agent .bubble { color: var(--ide-txt); }
+    .msg.agent .bubble b { color: var(--inteli-branco); }
+    .msg.agent .bubble code { font-family: var(--ds-fonte-mono); font-size: 12px; color: var(--inteli-verde); }
+    .msg.agent ul { margin: 4px 0 0; padding-left: 18px; }
+    .act { font-family: var(--ds-fonte-mono); font-size: 11.5px; color: var(--ide-dim); display: flex; gap: 6px; align-items: baseline; }
+    .act b { color: var(--ide-txt); font-weight: 500; }
+    .act .ok { color: var(--inteli-verde); }
+    .act.running .ok { color: var(--inteli-cinza-100); animation: blink 0.8s steps(1) infinite; }
+    .compose { border-top: 1px solid var(--ide-line); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+    .compose .next { font-family: var(--ds-fonte); font-size: 12.5px; color: var(--ide-dim); line-height: 1.45; }
+    .compose .next b { color: var(--inteli-branco); }
+    .compose .row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .compose button { height: 30px; padding: 0 10px; border: 1px solid var(--inteli-verde); background: var(--inteli-verde); color: var(--inteli-roxo); font-weight: 600; cursor: pointer; font-size: 12px; border-radius: var(--ds-raio-1); }
+    .compose button.ghost { background: transparent; color: var(--ide-txt); border-color: var(--ide-line); font-weight: 500; }
+    .compose button:disabled { opacity: 0.45; cursor: default; }
+
+    .ide-status { display: flex; align-items: center; gap: 16px; padding: 0 10px; background: var(--inteli-roxo); border-top: 1px solid var(--ide-line); font-size: 11px; color: var(--ide-txt); white-space: nowrap; overflow: hidden; }
+    .ide-status .sp { flex: 1; }
+    .ide-status .busy { color: var(--inteli-verde); }
+
+    .notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 0 0 28px; }
+    .notes article { border: 1px solid var(--ds-borda-forte); padding: 14px 16px; }
+    .notes h2 { margin: 0 0 6px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-ui); font-weight: 600; color: var(--ds-texto-forte); }
+    .notes p, .notes li { margin: 0; font-size: var(--ds-fs-meta); line-height: 1.55; color: var(--ds-texto); }
+    .notes ul { margin: 0; padding-left: 18px; }
+
+    @media (max-width: 1250px) {
+      .ide-body { grid-template-columns: 44px 200px minmax(0, 1fr); }
+      .ide-agent { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--ide-line); max-height: 380px; }
+      .ide { height: auto; grid-template-rows: 30px auto 24px; }
+      .ide-body { grid-template-rows: clamp(560px, 70vh, 820px) auto; }
+      .notes { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 760px) {
+      .lab { padding: 16px 16px 0; }
+      .ide-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: 200px clamp(520px, 75vh, 760px) auto; }
+      .ide-act { display: none; }
+      .ide-side { border-right: 0; border-bottom: 1px solid var(--ide-line); }
+      .pv-split { grid-template-columns: 1fr; }
+    }
+  </style>
+
+<!-- semana:css:start -->
+<link rel="stylesheet" href="../../../../css/semana-ano.css">
+<!-- semana:css:end -->
+<!-- ds:css -->
+<link rel="stylesheet" href="../../../../css/inteli-ds.css">
+</head>
+
+<body class="tm">
+  <div class="lab">
+    <header class="lab-top">
+      <a href="../../../home-module-8-sistemas-informacao.html"><img src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli Logo"></a>
+      <nav aria-label="Lesson 7">
+        <a href="../../../home-module-8-sistemas-informacao.html"><span>←</span> Module 8</a>
+        <a href="../../slides/slide-lesson-7.html"><span>[1]</span> Slides</a>
+        <a href="../../materials/lesson-7-material.html"><span>[2]</span> Material</a>
+        <a href="https://github.com/afonsolelis/aulas/tree/main/pages/module-8-sistemas-informacao/lab/lesson-7/tcg_dataapp" target="_blank" rel="noopener noreferrer"><span>[3]</span> Reference package</a>
+        <a href="../lesson-6/index.html"><span>[4]</span> Lab of Lesson 6</a>
+      </nav>
+    </header>
+
+    <section class="lab-head">
+      <p class="meta">Module 8 · Information Systems · Lesson 7 · Lab</p>
+      <h1>The DataApp in a simulated editor</h1>
+      <p>This page reproduces, in the browser, the session in which a coding agent builds the package <code>tcg-dataapp</code>. Each prompt is sent to the agent, which writes the files of the reference package and runs them in the terminal. The panels below the editor show the requests to the TCGplayer API, the rows that enter <code>db_ingestion</code>, the objects of the gold layer and the twelve tasks of the pipeline. The fifth step adds what the package still needs in order to run every day without anyone at the keyboard. Nothing runs here: the code is the code of the repository, the data are samples of a DuckDB file built by the package and the terminal shows output recorded on 12/11/2026.</p>
+    </section>
+
+    <section aria-label="What the DataApp does">
+      <div class="flow" id="flow">
+        <div class="node" data-stage="api"><b>tcgcsv.com</b><span>groups, products, prices and the daily 7z archives</span><span class="st">step 02</span></div>
+        <div class="arrow">▶</div>
+        <div class="node" data-stage="etls"><b>etls/</b><span><code>TcgcsvClient</code>, <code>extract</code>, <code>load_batch</code></span><span class="st">step 02</span></div>
+        <div class="arrow">▶</div>
+        <div class="node" data-stage="landing"><b>db_ingestion</b><span>timestamp · data_json · data_tag, one batch per tag and time</span><span class="st">step 02</span></div>
+        <div class="arrow">▶</div>
+        <div class="node" data-stage="processors"><b>processors/</b><span>SQL 01–04, <code>build_gold</code>, <code>check_gold</code>, <code>freeze_month</code></span><span class="st">step 03</span></div>
+        <div class="arrow">▶</div>
+        <div class="node" data-stage="gold"><b>gold · mart · report</b><span>dimensions, fact, cube, mart, frozen September</span><span class="st">step 03</span></div>
+        <div class="arrow">▶</div>
+        <div class="node" data-stage="views"><b>views/</b><span>five questions, <code>out/report.md</code>, Parquet</span><span class="st">step 04</span></div>
+      </div>
+      <div class="flow-run" id="flow-run"><b>pipeline.py</b> runs the boxes above as 12 tasks with dependencies, retries and a log · <b>tcg-dataapp run</b> one command (step 04) · <b>ops/run_daily.sh + cron</b> every day at 06:00 UTC, one run at a time, an alert on failure (step 05)</div>
+    </section>
+
+    <div class="controls" aria-label="Steps">
+      <span class="lbl">Steps</span>
+      <button class="btn-lab" data-step="0">01 · Package</button>
+      <button class="btn-lab" data-step="1">02 · Collect and load</button>
+      <button class="btn-lab" data-step="2">03 · Transform</button>
+      <button class="btn-lab" data-step="3">04 · Pipeline</button>
+      <button class="btn-lab" data-step="4">05 · Automate</button>
+      <span class="lbl" style="margin-left:12px">Speed</span>
+      <button class="btn-lab" data-speed="1" aria-pressed="true">1×</button>
+      <button class="btn-lab" data-speed="3" aria-pressed="false">3×</button>
+      <button class="btn-lab" id="btn-skip">Finish step</button>
+      <button class="btn-lab" id="btn-reset">Reset</button>
+    </div>
+
+    <div class="ide" id="ide">
+      <div class="ide-title"><span class="dots"><i></i><i></i><i></i></span><span class="t">lesson_07_dataapp — <span id="title-file">Welcome</span></span><span class="sim">simulation</span></div>
+      <div class="ide-body">
+        <nav class="ide-act" aria-label="Views">
+          <button id="act-files" aria-pressed="true" title="Explorer">🗎</button>
+          <button id="act-auto" aria-pressed="false" title="What automation needs">⚙<span class="badge" id="auto-badge">0</span></button>
+        </nav>
+        <aside class="ide-side">
+          <div id="side-files" style="display:flex;flex-direction:column;min-height:0;flex:1">
+            <h2>Explorer · lesson_07_dataapp</h2>
+            <div class="tree" id="tree"></div>
+          </div>
+          <div id="side-auto" style="display:none;flex-direction:column;min-height:0;flex:1">
+            <h2>What automation needs</h2>
+            <div class="checklist" id="checklist"></div>
+          </div>
+        </aside>
+        <main class="ide-main" id="ide-main">
+          <div class="tabs" id="tabs"></div>
+          <div class="editor" id="editor"></div>
+          <div class="splitter" id="splitter" title="Drag to resize"></div>
+          <section class="panel">
+            <div class="ptabs" role="tablist" id="ptabs">
+              <button role="tab" data-pv="term" aria-selected="true">Terminal</button>
+              <button role="tab" data-pv="net" aria-selected="false">Network<span class="cnt" id="cnt-net"></span></button>
+              <button role="tab" data-pv="ing" aria-selected="false">db_ingestion<span class="cnt" id="cnt-ing"></span></button>
+              <button role="tab" data-pv="gold" aria-selected="false">Gold<span class="cnt" id="cnt-gold"></span></button>
+              <button role="tab" data-pv="trace" aria-selected="false">Trace one card</button>
+              <button role="tab" data-pv="dag" aria-selected="false">Pipeline</button>
+            </div>
+            <div class="pbody">
+              <div class="pview on" id="pv-term"><div class="term" id="term"></div></div>
+              <div class="pview" id="pv-net"></div>
+              <div class="pview" id="pv-ing"></div>
+              <div class="pview" id="pv-gold"></div>
+              <div class="pview" id="pv-trace"></div>
+              <div class="pview" id="pv-dag"></div>
+            </div>
+          </section>
+        </main>
+        <aside class="ide-agent" aria-label="Coding agent">
+          <h2>Agent · chat</h2>
+          <div class="chat" id="chat" aria-live="polite"></div>
+          <div class="compose">
+            <div class="next" id="next"></div>
+            <div class="row"><button id="btn-send">Send prompt 01</button><button class="ghost" id="btn-view-prompt">Read the prompt</button></div>
+          </div>
+        </aside>
+      </div>
+      <div class="ide-status"><span>⎇ main</span><span id="st-step">step —</span><span class="sp"></span><span id="st-busy"></span><span>Python 3.12 · DuckDB 2.0.0</span><span>UTF-8</span></div>
+    </div>
+
+    <section class="notes" aria-label="Notes">
+      <article>
+        <h2>What is real and what is simulated</h2>
+        <p>The files that appear in the editor are the files of <code>lab/lesson-7/tcg_dataapp/</code>, except <code>cli.py</code> and <code>README.md</code> of step 01, which are the first versions that steps 04 and 05 replace. The answers of the API, the rows of <code>db_ingestion</code> and the samples of the gold layer come from a capture made by the package itself on 12/11/2026, and the output of the terminal was recorded on the same day. The agent, its messages and the timing are a staging of the session.</p>
+      </article>
+      <article>
+        <h2>How to use it in class</h2>
+        <ul>
+          <li>Send each prompt and stop at the end of the step to compare the files with the review checklist of the slides.</li>
+          <li>Open the panels <code>Network</code> and <code>db_ingestion</code> during step 02 and <code>Gold</code> and <code>Trace one card</code> during step 03.</li>
+          <li>In step 05, the icon ⚙ shows the nine conditions for a run without anyone and which file meets each one.</li>
+        </ul>
+      </article>
+      <article>
+        <h2>Doing it for real</h2>
+        <p>The README of <code>lab/lesson-7/</code> lists the commands. In a new folder, the five prompts of <code>prompts/</code> are pasted into the coding agent in this order; the reference package installs with <code>pip install -e '.[dev]'</code>, runs with <code>tcg-dataapp run</code> in about 40 s and passes its 9 tests without network.</p>
+      </article>
+    </section>
+  </div>
+
+  <footer class="inteli-footer tm-rodape">
+    <div>
+      <ul>
+        <li><a href="../../../home-module-8-sistemas-informacao.html">Module 8</a></li>
+        <li><a href="../../../design-system.html">Design system</a></li>
+      </ul>
+      <p>Material created by professor Afonso Brandão for Inteli. Open reading license. Data: TCGplayer, through the public mirror tcgcsv.com.</p>
+    </div>
+  </footer>
+
+  <script src="lab-data.js"></script>
+  <script>
+  (() => {
+    const D = window.LAB_DATA;
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const fmt = (n) => Number(n).toLocaleString('en-US');
+    const kb = (b) => b >= 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.round(b / 1024) + ' KB';
+    const PKG = 'tcg_dataapp/';
+
+    // ---------- Primeiras versões que as etapas seguintes substituem ----------
+    const FIRST = {
+      'src/tcg_dataapp/cli.py': `"""Command line of the DataApp: tcg-dataapp run | status | report."""
+from __future__ import annotations
+
+import argparse
+
+from tcg_dataapp import __version__
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="tcg-dataapp", description="TCGplayer prices, from extraction to the gold layer.")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+    sub = parser.add_subparsers(dest="command", required=True)
+    for name in ("run", "status", "report"):
+        sub.add_parser(name)
+    args = parser.parse_args(argv)
+    print(f"{args.command}: not implemented")
+    return 0
+`,
+      'README.md': `# tcg-dataapp
+
+The model of Lesson 6, as an installable Python package. Every date is Unix time in seconds (UTC).
+
+\`\`\`bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e '.[dev]'
+tcg-dataapp --version
+pytest
+\`\`\`
+`,
+    };
+    const LESSON6 = ['lesson6_sql/01_dimensions.sql', 'lesson6_sql/02_fact.sql', 'lesson6_sql/03_cube_and_mart.sql', 'lesson6_sql/04_reports.sql', 'lesson6_sql/05_questions.sql'];
+
+    // ---------- Realce de sintaxe ----------
+    const KW = {
+      py: new Set('from import as def class return if elif else for in while try except finally raise with lambda yield not and or is None True False pass continue break global nonlocal assert del async await'.split(' ')),
+      sql: new Set('select from where group by order having limit as and or not in is null create replace view table schema if exists macro join left inner on over partition qualify row_number case when then else end distinct union all with insert into values delete begin transaction commit rollback cube rollup grouping sets bigint varchar json integer double date cast try_cast filter count sum avg max min any_value desc asc using strftime epoch to_timestamp'.split(' ')),
+      sh: new Set('if then else fi exit cd echo set exec mkdir tail tee date for do done in local return'.split(' ')),
+    };
+    const RX = {
+      py: /(#[^\n]*)|("""[\s\S]*?(?:"""|$)|'''[\s\S]*?(?:'''|$)|[fr]?"(?:\\.|[^"\\\n])*"|[fr]?'(?:\\.|[^'\\\n])*')|(\b\d[\d_]*(?:\.\d+)?\b)|(\b[A-Za-z_]\w*\b)/g,
+      sql: /(--[^\n]*)|('(?:''|[^'])*')|(\b\d+(?:\.\d+)?\b)|(\b[A-Za-z_]\w*\b)/g,
+      sh: /((?:^|\s)#[^\n]*)|("(?:\\.|[^"\\])*"|'[^']*')|(\$\{?\w+\}?|\$\(|\b\d+\b)|(\b[A-Za-z_][\w-]*\b)/g,
+      toml: /(#[^\n]*)|("(?:\\.|[^"\\\n])*")|(^\s*\[[^\]\n]*\])|(^\s*[\w."-]+(?=\s*=))/gm,
+      json: /("(?:\\.|[^"\\])*"(?=\s*:))|("(?:\\.|[^"\\])*")|(-?\b\d+(?:\.\d+)?\b)|(\b(?:true|false|null)\b)/g,
+      md: /(^#{1,6} [^\n]*)|(`[^`\n]+`)|(^```[^\n]*$)|(\|)/gm,
+      cron: /(#[^\n]*)|(^[A-Z_]+=)|(^[\d*\/,-]+(?: [\d*\/,-]+){4})|()/gm,
+    };
+    function langOf(path) {
+      if (/\.py$/.test(path)) return 'py';
+      if (/\.sql$/.test(path)) return 'sql';
+      if (/\.sh$/.test(path)) return 'sh';
+      if (/\.toml$/.test(path)) return 'toml';
+      if (/\.json$/.test(path) || path.startsWith('response')) return 'json';
+      if (/\.md$/.test(path)) return 'md';
+      if (/crontab$/.test(path)) return 'cron';
+      return 'txt';
+    }
+    function tokens(text, lang) {
+      const rx = RX[lang];
+      if (!rx) return [['', text]];
+      const out = [];
+      let last = 0, m;
+      rx.lastIndex = 0;
+      while ((m = rx.exec(text))) {
+        if (m[0] === '') { rx.lastIndex++; continue; }
+        if (m.index > last) out.push(['', text.slice(last, m.index)]);
+        let cls = '';
+        if (lang === 'py' || lang === 'sql' || lang === 'sh') {
+          if (m[1]) cls = 'c'; else if (m[2]) cls = 's'; else if (m[3]) cls = 'n';
+          else if (m[4]) {
+            const w = m[4];
+            const set = KW[lang];
+            if (set.has(lang === 'sql' ? w.toLowerCase() : w)) cls = 'k';
+            else if (lang === 'py' && /^[A-Z]\w*[a-z]/.test(w)) cls = 'f';
+            else if (lang === 'py' && text[rx.lastIndex] === '(') cls = 'f';
+          }
+        } else if (lang === 'toml') { cls = m[1] ? 'c' : m[2] ? 's' : m[3] ? 'h' : 'k'; }
+        else if (lang === 'json') { cls = m[1] ? 'k' : m[2] ? 's' : m[3] ? 'n' : 'f'; }
+        else if (lang === 'md') { cls = m[1] ? 'h' : m[2] ? 's' : m[3] ? 'c' : 'c'; }
+        else if (lang === 'cron') { cls = m[1] ? 'c' : m[2] ? 'k' : 'n'; }
+        out.push([cls, m[0]]);
+        last = rx.lastIndex;
+      }
+      if (last < text.length) out.push(['', text.slice(last)]);
+      return out;
+    }
+    function highlightLines(text, lang) {
+      const lines = [''];
+      for (const [cls, t] of tokens(text, lang)) {
+        t.split('\n').forEach((piece, i) => {
+          if (i > 0) lines.push('');
+          if (piece) lines[lines.length - 1] += cls ? `<span class="${cls}">${esc(piece)}</span>` : esc(piece);
+        });
+      }
+      return lines;
+    }
+
+    // ---------- Estado ----------
+    let S;
+    function fresh() {
+      return {
+        files: {},          // path -> {text, status: 'U' | 'M' | '', lang}
+        virt: {},           // abas que não são arquivos (respostas da API, diff)
+        tabs: [], active: null, typing: null,
+        net: [], batches: [], ingNote: '', goldShown: [], goldSel: null, trace: false, dag: null,
+        checks: new Set(), done: 0, running: false, speed: 1, fast: false, gen: 0,
+      };
+    }
+
+    // ---------- Explorador ----------
+    function renderTree() {
+      const paths = [...LESSON6, ...Object.keys(S.files).map((p) => PKG + p)];
+      if (!Object.keys(S.files).length) {
+        $('tree').innerHTML = treeHtml(LESSON6) + '<div class="empty">The folder of the package is still empty. Send prompt 01 in the chat on the right.</div>';
+        return;
+      }
+      $('tree').innerHTML = treeHtml(paths);
+    }
+    function treeHtml(paths) {
+      const root = {};
+      for (const p of paths) {
+        let node = root;
+        const parts = p.split('/');
+        parts.forEach((part, i) => {
+          if (i === parts.length - 1) node[part] = p;
+          else node = node[part + '/'] = node[part + '/'] || {};
+        });
+      }
+      const order = (o) => Object.keys(o).sort((a, b) => (b.endsWith('/') - a.endsWith('/')) || a.localeCompare(b));
+      let html = '';
+      const walk = (o, depth) => {
+        for (const k of order(o)) {
+          const pad = 8 + depth * 12;
+          if (k.endsWith('/')) {
+            html += `<div class="row dir" style="padding-left:${pad}px"><span class="ic">▾</span><span class="nm">${esc(k.slice(0, -1))}</span></div>`;
+            walk(o[k], depth + 1);
+          } else {
+            const full = o[k];
+            const key = full.startsWith(PKG) ? full.slice(PKG.length) : full;
+            const f = S.files[key];
+            const g = f && f.status ? `<span class="g ${f.status}">${f.status}</span>` : '';
+            const act = S.active === key ? ' active' : '';
+            const fr = f && f.fresh ? ' fresh' : '';
+            html += `<div class="row${act}${fr}" style="padding-left:${pad}px" data-open="${esc(key)}"><span class="ic">${icon(k)}</span><span class="nm">${esc(k)}</span>${g}</div>`;
+          }
+        }
+      };
+      walk(root, 0);
+      return html;
+    }
+    function icon(name) {
+      if (/\.py$/.test(name)) return 'py';
+      if (/\.sql$/.test(name)) return '⛁';
+      if (/\.md$/.test(name)) return 'M';
+      if (/\.toml$/.test(name)) return '⚙';
+      if (/\.sh$/.test(name)) return '$';
+      if (/\.(duckdb|parquet)$/.test(name)) return '▦';
+      return '·';
+    }
+    $('tree').addEventListener('click', (e) => {
+      const row = e.target.closest('[data-open]');
+      if (!row) return;
+      const key = row.dataset.open;
+      if (key.startsWith('lesson6_sql/')) {
+        openVirtual(key, `-- ${key}\n-- The SQL of the lab of Lesson 6 (lab/lesson-6/sql/), copied into the folder\n-- before the session. Step 03 turns it into the processors of the package.\n`, 'sql');
+      } else openTab(key);
+    });
+
+    // ---------- Abas e editor ----------
+    function docOf(key) { return S.files[key] || S.virt[key]; }
+    function openTab(key) {
+      if (!docOf(key)) return;
+      if (!S.tabs.includes(key)) S.tabs.push(key);
+      if (S.tabs.length > 8) S.tabs = S.tabs.slice(-8);
+      S.active = key;
+      renderTabs(); renderEditor(); renderTree();
+    }
+    function openVirtual(key, text, lang, opts = {}) {
+      S.virt[key] = { text, lang, ...opts };
+      openTab(key);
+    }
+    function closeTab(key) {
+      S.tabs = S.tabs.filter((k) => k !== key);
+      if (S.active === key) S.active = S.tabs[S.tabs.length - 1] || null;
+      renderTabs(); renderEditor(); renderTree();
+    }
+    function renderTabs() {
+      $('tabs').innerHTML = S.tabs.map((k) => {
+        const virtual = !S.files[k];
+        const name = k.split('/').pop();
+        return `<div class="tab${k === S.active ? ' active' : ''}" data-tab="${esc(k)}" title="${esc(k)}">${virtual ? `<em>${esc(name)}</em>` : esc(name)}<span class="x" data-close="${esc(k)}">✕</span></div>`;
+      }).join('');
+      $('title-file').textContent = S.active || 'Welcome';
+    }
+    $('tabs').addEventListener('click', (e) => {
+      const x = e.target.closest('[data-close]');
+      if (x) { closeTab(x.dataset.close); return; }
+      const t = e.target.closest('[data-tab]');
+      if (t) { S.active = t.dataset.tab; renderTabs(); renderEditor(); renderTree(); }
+    });
+    function renderEditor(partial) {
+      const ed = $('editor');
+      const key = S.active;
+      if (!key) {
+        ed.innerHTML = `<div class="welcome"><p><b>lesson_07_dataapp</b> is a new folder with a copy of the SQL of Lesson 6 in <code>lesson6_sql/</code>. The coding agent on the right builds the package <code>tcg_dataapp/</code> in five steps.</p><p>Press <b>Send prompt 01</b>, or choose a step above the editor. Each file the agent writes opens here; the panels below show the terminal, the requests to the API, the table <code>db_ingestion</code>, the gold layer and the pipeline.</p></div>`;
+        return;
+      }
+      const doc = docOf(key);
+      const text = partial != null ? partial : doc.text;
+      const lang = doc.lang || langOf(key);
+      const lines = highlightLines(text, lang);
+      const marks = doc.marks || {};
+      let html = doc.note ? `<div class="note-bar">${doc.note}</div>` : '';
+      html += '<div class="code">';
+      lines.forEach((l, i) => {
+        const m = marks[i] ? ' ' + marks[i] : '';
+        const cur = partial != null && i === lines.length - 1 ? ' cur' : '';
+        html += `<div class="ln${m}">${i + 1}</div><div class="tx${m}${cur}">${l || ' '}</div>`;
+      });
+      ed.innerHTML = html + '</div>';
+      if (partial != null) ed.scrollTop = ed.scrollHeight;
+    }
+
+    // ---------- Terminal ----------
+    const term = $('term');
+    function termLine(html) {
+      const div = document.createElement('div');
+      div.innerHTML = html;
+      term.appendChild(div);
+      term.parentElement.parentElement.scrollTop = 1e9;
+      return div;
+    }
+    function showPanel(name) {
+      document.querySelectorAll('#ptabs button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.pv === name)));
+      document.querySelectorAll('.pview').forEach((v) => v.classList.toggle('on', v.id === 'pv-' + name));
+      if (name === 'term') $('pv-term').parentElement.scrollTop = 1e9;
+    }
+    $('ptabs').addEventListener('click', (e) => { const b = e.target.closest('[data-pv]'); if (b) showPanel(b.dataset.pv); });
+
+    // ---------- Rede ----------
+    function renderNet() {
+      $('cnt-net').textContent = S.net.length ? S.net.length : '';
+      if (!S.net.length) { $('pv-net').innerHTML = '<div class="empty-p">No request yet. The ETL layer of step 02 calls tcgcsv.com, the public daily mirror of the TCGplayer catalogue: one request for the sets, one per set for the products and one 7z archive per date for the prices.</div>'; return; }
+      $('pv-net').innerHTML = `<div class="pv-head">Every request sends the header <b>User-Agent: tcg-dataapp/0.1 (Inteli, Module 8)</b> and pauses 0.2 s. The API has no key; the archives hold every category of TCGplayer, and only the files of the seven sets are extracted.</div>
+      <table class="dt"><thead><tr><th>status</th><th>method</th><th>url</th><th>answer</th><th>size</th><th>called by</th></tr></thead><tbody>${S.net.map((r, i) => `<tr class="net-row${i === S.net.length - 1 ? ' new' : ''}"><td>${r[0]}</td><td>GET</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td><td class="num">${r[3] ? kb(r[3]) : '—'}</td><td>${esc(r[4])}</td></tr>`).join('')}</tbody></table>`;
+    }
+
+    // ---------- db_ingestion ----------
+    const TAGCLS = (t) => t.includes('.set.') ? 'tag-set' : t.includes('.product.') ? 'tag-product' : 'tag-price';
+    function renderIng(highlight) {
+      const total = S.batches.reduce((a, b) => a + b[2], 0);
+      $('cnt-ing').textContent = total ? fmt(total) : '';
+      if (!S.batches.length) { $('pv-ing').innerHTML = '<div class="empty-p">The landing table does not exist yet. Step 02 creates it with three columns and loads every record of the API exactly as it arrived, as JSON, under a tag that says what the record is.</div>'; return; }
+      const rows = D.ingestion.rows;
+      const sample = ['tcgplayer.set.v1', 'tcgplayer.product.v1', 'tcgplayer.price.v1']
+        .filter((t) => S.batches.some((b) => b[0] === t))
+        .flatMap((t) => rows[t].rows.slice(0, t.includes('price') ? 4 : 3));
+      $('pv-ing').innerHTML = `<div class="pv-split"><div>
+        <div class="pv-head"><b>db_ingestion</b> holds ${fmt(total)} rows in ${S.batches.length} batches. A batch is one tag at one timestamp, and <b>load_batch</b> deletes it and inserts it again inside one transaction. ${S.ingNote ? `<span class="flash">${S.ingNote}</span>` : ''}</div>
+        <table class="dt"><thead><tr><th>data_tag</th><th>timestamp</th><th>rows</th></tr></thead><tbody>${S.batches.map((b) => `<tr class="${highlight === b[0] + b[1] ? 'hl new' : ''}"><td class="${TAGCLS(b[0])}">${b[0]}</td><td class="num">${b[1]}</td><td class="num">${fmt(b[2])}</td></tr>`).join('')}</tbody></table>
+      </div><div>
+        <div class="schema"><span>timestamp <em>BIGINT · Unix time, UTC</em></span><span>data_json <em>JSON · the record as it arrived</em></span><span>data_tag <em>VARCHAR · source.entity.version</em></span></div>
+        <table class="dt"><thead><tr><th>timestamp</th><th>data_tag</th><th>data_json (click a row)</th></tr></thead><tbody>${sample.map((r, i) => `<tr class="click" data-row="${i}"><td class="num">${r[0]}</td><td class="${TAGCLS(r[1])}">${r[1]}</td><td>${esc(r[2])}</td></tr>`).join('')}</tbody></table>
+      </div></div>`;
+      $('pv-ing').querySelectorAll('[data-row]').forEach((tr) => tr.addEventListener('click', () => {
+        const r = sample[+tr.dataset.row];
+        openVirtual(`db_ingestion · ${r[1]} · ${r[0]}`, JSON.stringify(JSON.parse(r[2]), null, 2), 'json',
+          { note: `One row of <b>db_ingestion</b>: timestamp <b>${r[0]}</b>, data_tag <b>${r[1]}</b>. The JSON below is the column data_json.` });
+      }));
+    }
+
+    // ---------- Gold ----------
+    const GOLD_GROUPS = [['Dimensions', ['gold.dim_set', 'gold.dim_product', 'gold.dim_variant', 'gold.dim_date']], ['Fact and cube', ['gold.fact_price', 'gold.agg_price_cube']], ['Mart', ['mart_collectors.card_price', 'mart_collectors.set_value']], ['Reports', ['report.mv_card_price_2026_09', 'report.mv_set_value_2026_09', 'report.v_card_price_latest']]];
+    const GOLD_NOTE = {
+      'gold.dim_set': 'One row per set, the last version captured (QUALIFY row_number() … = 1).',
+      'gold.dim_product': 'Cards and sealed products; number, rarity, card type, HP and stage come from extendedData.',
+      'gold.dim_variant': 'The subTypeName of the prices: Normal, Holofoil and Reverse Holofoil.',
+      'gold.dim_date': 'One row per capture of prices, at midnight UTC of the day.',
+      'gold.fact_price': 'Grain: one price per date, product and variant. 5,951 rows = 5,951 keys of the grain.',
+      'gold.agg_price_cube': 'GROUPING SETS over date, set, rarity and variant: 524 cells.',
+      'mart_collectors.card_price': 'The mart of the collectors: one row per card price, with names instead of keys.',
+      'mart_collectors.set_value': 'Market value of each set on the last capture of each month (semi-additive).',
+      'report.mv_card_price_2026_09': 'A table, not a view: created once from the last capture of September and never rebuilt.',
+      'report.mv_set_value_2026_09': 'The value of each set frozen in September.',
+      'report.v_card_price_latest': 'A view: always the last capture, recomputed at every read.',
+    };
+    function renderGold() {
+      $('cnt-gold').textContent = S.goldShown.length ? S.goldShown.length : '';
+      if (!S.goldShown.length) { $('pv-gold').innerHTML = '<div class="empty-p">The gold layer does not exist yet. In step 03, build_gold runs the four SQL files of the package; every object is a view over db_ingestion, except the frozen reports of September, which are tables.</div>'; return; }
+      const sel = S.goldSel || S.goldShown[S.goldShown.length - 1];
+      const t = D.gold[sel];
+      const list = GOLD_GROUPS.map(([g, names]) => {
+        const shown = names.filter((n) => S.goldShown.includes(n));
+        if (!shown.length) return '';
+        return `<div class="grp">${g}</div>` + shown.map((n) => `<button data-gold="${n}" aria-pressed="${n === sel}" class="${n === S.goldNew ? 'new' : ''}">${n}<span>${fmt(D.gold[n].count)}</span></button>`).join('');
+      }).join('');
+      $('pv-gold').innerHTML = `<div class="pv-split" style="grid-template-columns:minmax(220px,0.5fr) minmax(0,1.6fr)"><div class="gold-list">${list}</div><div>
+        <div class="pv-head"><b>${sel}</b> · ${fmt(t.count)} rows · ${GOLD_NOTE[sel] || ''}</div>
+        <table class="dt"><thead><tr>${t.cols.map((c) => `<th>${c}</th>`).join('')}</tr></thead><tbody>${t.rows.map((r) => `<tr>${r.map((v) => `<td class="${typeof v === 'number' || /^-?\d+(\.\d+)?$/.test(v) ? 'num' : ''}">${v == null ? '<span class="c">NULL</span>' : esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table>
+      </div></div>`;
+      $('pv-gold').querySelectorAll('[data-gold]').forEach((b) => b.addEventListener('click', () => { S.goldSel = b.dataset.gold; S.goldNew = null; renderGold(); }));
+    }
+
+    // ---------- Rastreio do Pikachu ex 276/217 ----------
+    function tableHtml(t, hlCol) {
+      return `<table class="dt"><thead><tr>${t.cols.map((c) => `<th>${c}</th>`).join('')}</tr></thead><tbody>${t.rows.map((r) => `<tr>${r.map((v, i) => `<td class="${t.cols[i] === hlCol ? 'n' : ''}">${v == null ? 'NULL' : esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+    }
+    function renderTrace() {
+      if (!S.trace) { $('pv-trace').innerHTML = '<div class="empty-p">After step 03 this panel follows one card, the Pikachu ex 276/217 of Ascended Heroes (productId 676088), from its rows in db_ingestion to the frozen report of September and to the live view.</div>'; return; }
+      const L = D.lineage;
+      const ing = D.ingestion.pikachu;
+      const fact = L.fact_price.rows;
+      const max = Math.max(...fact.map((r) => +r[4]));
+      const frozenDate = L.mv_card_price_2026_09.rows[0][0];
+      const lastDate = L.v_card_price_latest.rows[0][0];
+      const bars = fact.map((r) => {
+        const d = new Date(r[0] * 1000).toISOString().slice(0, 10);
+        const cls = r[0] === frozenDate ? 'frozen' : r[0] === lastDate ? 'last' : '';
+        return `<div class="bar ${cls}"><b>${(+r[4]).toFixed(2)}</b><i style="height:${Math.round(+r[4] / max * 80)}px"></i><span>${d}</span></div>`;
+      }).join('');
+      $('pv-trace').innerHTML = `<div class="trace">
+        <div class="stage"><header><b>db_ingestion</b><span>${ing.rows.length} rows of this product: one record of the catalogue and one price per capture, each at noon UTC of its day.</span></header><div class="body"><table class="dt"><thead><tr><th>timestamp</th><th>data_tag</th><th>data_json</th></tr></thead><tbody>${ing.rows.map((r) => `<tr><td>${r[0]}</td><td class="${TAGCLS(r[1])}">${r[1]}</td><td>${esc(r[2])}</td></tr>`).join('')}</tbody></table></div></div>
+        <div class="down">▼ <code>01_dimensions.sql</code> · the product record of the last capture, with gold.attr(extendedData, 'Rarity') and the other attributes</div>
+        <div class="stage"><header><b>gold.dim_product</b><span>one row, the last version of the product</span></header><div class="body">${tableHtml(L.dim_product)}</div></div>
+        <div class="down">▼ <code>02_fact.sql</code> · data_json-&gt;&gt;'marketPrice' becomes market_price; the timestamp is truncated to the day; subTypeName becomes the variant</div>
+        <div class="stage"><header><b>gold.fact_price</b><span>one row per date and variant</span></header><div class="body">${tableHtml(L.fact_price, 'market_price')}</div><div class="bars">${bars}</div></div>
+        <div class="down">▼ <code>gold.freeze_month(con, "2026-09")</code> and <code>04_live_reports.sql</code></div>
+        <div class="stage"><header><b>report.mv_card_price_2026_09</b><span>frozen table: the price of September stays US$ ${L.mv_card_price_2026_09.rows[0][5]} whatever happens later</span></header><div class="body">${tableHtml(L.mv_card_price_2026_09, 'market_price')}</div></div>
+        <div class="stage"><header><b>report.v_card_price_latest</b><span>live view: the last capture, US$ ${L.v_card_price_latest.rows[0][5]} on 07/11/2026</span></header><div class="body">${tableHtml(L.v_card_price_latest, 'market_price')}</div></div>
+      </div>`;
+    }
+
+    // ---------- Grafo do pipeline ----------
+    const DATES = ['2026-03-01', '2026-05-01', '2026-07-01', '2026-09-01', '2026-11-07'];
+    function dagCols(withToday) {
+      const prices = DATES.map((d) => 'extract_prices_' + d);
+      if (withToday) prices.push('extract_prices_today');
+      return [['extract_sets'], ['extract_products'], prices, ['build_gold'], ['check_quality'], ['freeze_reports', 'export_marts'], ['write_report']];
+    }
+    function renderDag() {
+      if (!S.dag) { $('pv-dag').innerHTML = '<div class="empty-p">Step 04 writes pipeline.py: twelve tasks, each declaring the tasks it depends on. The runner orders them, retries a failure with a growing pause, skips the dependents of a task that still fails and logs every attempt in ops.pipeline_runs.</div>'; return; }
+      const st = S.dag.state;
+      $('pv-dag').innerHTML = `<div class="dag">${dagCols(S.dag.today).map((col) => `<div class="col">${col.map((t) => {
+        const s = st[t] || {};
+        return `<div class="t ${s.cls || ''}">${t}<small>${s.txt || 'waiting'}</small></div>`;
+      }).join('')}</div>`).join('')}</div><div class="dag-legend">${S.dag.legend || ''}</div>`;
+    }
+
+    // ---------- Lista do que a automação exige ----------
+    const CHECKS = [
+      ['cmd', 'One command that runs alone', 'cli.py · tcg-dataapp run, no question, no browser', 3],
+      ['cfg', 'Settings outside the code', 'config.py · TCG_DB_PATH, TCG_SETS, TCG_RETRIES …', 0],
+      ['idem', 'A load that can run twice', 'etls/landing.py · load_batch replaces the batch', 1],
+      ['qa', 'Checks that stop a wrong model', 'processors/quality.py · check_gold raises QualityError', 2],
+      ['retry', 'Retries, skips and a run log', 'pipeline.py · ops.pipeline_runs', 3],
+      ['exit', 'An exit code', 'cli.py · returns 1 when a task failed', 3],
+      ['clock', 'A clock', 'ops/crontab · every day at 06:00 UTC', 4],
+      ['lock', 'One run at a time', 'ops/run_daily.sh · flock on out/run.lock', 4],
+      ['alert', 'Someone finds out when it fails', 'ops/run_daily.sh · out/alerts.log; Lesson 8: Prefect', 4],
+    ];
+    function renderChecks(flash) {
+      $('auto-badge').textContent = `${S.checks.size}/9`;
+      $('checklist').innerHTML = '<p>A run without anyone at the keyboard needs nine things. Steps 01 to 04 deliver six of them inside the package; step 05 adds the last three around it.</p>' +
+        CHECKS.map(([id, t, w, step]) => `<div class="ck${S.checks.has(id) ? ' ok' : ''}${flash && flash.includes(id) ? ' flash' : ''}"><i>${S.checks.has(id) ? '✓' : '○'}</i><b>${t}</b><span>${w} · step 0${step + 1}</span></div>`).join('');
+    }
+    function tick(...ids) { ids.forEach((i) => S.checks.add(i)); renderChecks(ids); }
+    function sideView(which) {
+      $('side-files').style.display = which === 'files' ? 'flex' : 'none';
+      $('side-auto').style.display = which === 'auto' ? 'flex' : 'none';
+      $('act-files').setAttribute('aria-pressed', String(which === 'files'));
+      $('act-auto').setAttribute('aria-pressed', String(which === 'auto'));
+    }
+    $('act-files').onclick = () => sideView('files');
+    $('act-auto').onclick = () => sideView('auto');
+
+    // ---------- Fluxo no topo ----------
+    function flow(stages, run) {
+      document.querySelectorAll('#flow .node').forEach((n) => n.classList.toggle('on', stages.includes(n.dataset.stage)));
+      $('flow-run').classList.toggle('on', !!run);
+    }
+    function flowDone(stages) { stages.forEach((s) => document.querySelector(`#flow .node[data-stage="${s}"]`).classList.add('done')); }
+
+    // ---------- Chat ----------
+    function chat(role, html) {
+      const div = document.createElement('div');
+      div.className = 'msg ' + role;
+      div.innerHTML = `<div class="who">${role === 'user' ? 'you' : 'agent'}</div><div class="bubble">${html}</div>`;
+      $('chat').appendChild(div);
+      $('chat').scrollTop = 1e9;
+      return div;
+    }
+    function action(text) {
+      const div = document.createElement('div');
+      div.className = 'act running';
+      div.innerHTML = `<span class="ok">●</span><b>${text}</b>`;
+      $('chat').appendChild(div);
+      $('chat').scrollTop = 1e9;
+      return () => { div.classList.remove('running'); div.querySelector('.ok').textContent = '✓'; };
+    }
+
+    // ---------- Motor da simulação ----------
+    class Stop extends Error {}
+    let GEN = 0, RUNGEN = -1;
+    const sleep = (ms) => new Promise((res, rej) => {
+      if (RUNGEN !== GEN) return rej(new Stop());
+      if (S.fast) return res();
+      setTimeout(() => (RUNGEN === GEN ? res() : rej(new Stop())), ms / S.speed);
+    });
+    async function write(path, text, status = 'U') {
+      const done = action(`${status === 'M' ? 'Edit' : 'Create'} ${path}`);
+      S.files[path] = { text: '', status, fresh: true };
+      openTab(path);
+      if (!S.fast) {
+        const step = Math.max(40, Math.ceil(text.length / 70));
+        for (let i = step; i < text.length; i += step) {
+          S.files[path].text = text.slice(0, i);
+          renderEditor(text.slice(0, i));
+          await sleep(16);
+        }
+      }
+      S.files[path].text = text;
+      S.files[path].fresh = false;
+      renderEditor(); renderTree();
+      done();
+    }
+    const real = (p) => D.files[p];
+    async function sh(cmd, out = [], opts = {}) {
+      const prompt = opts.repl ? '<span class="ps">&gt;&gt;&gt; </span>' : opts.cont ? '<span class="ps">... </span>' : '<span class="ps">student@lab:~/lesson_07_dataapp/tcg_dataapp$ </span>';
+      const line = termLine(prompt + '<span class="cmd"></span>');
+      const span = line.querySelector('.cmd');
+      if (!S.fast) {
+        line.classList.add('cur');
+        for (let i = 1; i <= cmd.length; i += 3) { span.textContent = cmd.slice(0, i); await sleep(14); }
+        line.classList.remove('cur');
+      }
+      span.textContent = cmd;
+      await sleep(opts.pause ?? 250);
+      for (const o of out) {
+        if (typeof o === 'function') { await o(); continue; }
+        const [text, cls, wait] = Array.isArray(o) ? o : [o, '', 40];
+        termLine(`<span class="${cls}">${esc(text)}</span>`);
+        await sleep(wait ?? 40);
+      }
+    }
+    function net(status, url, answer, bytes, by) { S.net.push([status, url, answer, bytes, by]); renderNet(); }
+    function batch(tag, ts, rows, note) {
+      const i = S.batches.findIndex((b) => b[0] === tag && b[1] === ts);
+      if (i >= 0) S.batches[i] = [tag, ts, rows]; else S.batches.push([tag, ts, rows]);
+      S.batches.sort((a, b) => a[0].localeCompare(b[0]) || a[1] - b[1]);
+      S.ingNote = note || '';
+      renderIng(tag + ts);
+    }
+
+    // ---------- As cinco etapas ----------
+    const T0 = D.loads[0][2];
+    const STEPS = [
+      {
+        name: '01 · Package', prompt: '01_package', stages: [], run: false,
+        next: '<b>Step 01 · the skeleton.</b> A project that installs, a command that answers and three empty layers.',
+        async play() {
+          chat('agent', 'Plan: <b>pyproject.toml</b> with the src layout, the package data of the SQL and the console script; three subpackages <code>etls</code>, <code>processors</code> and <code>views</code> with a docstring saying what each one may import; <code>config.py</code> read from environment variables; <code>cli.py</code> with three subcommands that are not implemented yet. No extraction and no SQL in this step.');
+          await sleep(900);
+          await write('pyproject.toml', real('pyproject.toml'));
+          await write('src/tcg_dataapp/__init__.py', real('src/tcg_dataapp/__init__.py'));
+          await write('src/tcg_dataapp/__main__.py', real('src/tcg_dataapp/__main__.py'));
+          await write('src/tcg_dataapp/etls/__init__.py', real('src/tcg_dataapp/etls/__init__.py'));
+          await write('src/tcg_dataapp/processors/__init__.py', real('src/tcg_dataapp/processors/__init__.py'));
+          await write('src/tcg_dataapp/views/__init__.py', real('src/tcg_dataapp/views/__init__.py'));
+          await write('src/tcg_dataapp/config.py', real('src/tcg_dataapp/config.py'));
+          await write('src/tcg_dataapp/cli.py', FIRST['src/tcg_dataapp/cli.py']);
+          await write('tests/test_cli.py', real('tests/test_cli.py'));
+          await write('README.md', FIRST['README.md']);
+          showPanel('term');
+          const d = action('Run in the terminal');
+          await sh('python3 -m venv .venv && source .venv/bin/activate', [], { pause: 400 });
+          await sh("pip install -e '.[dev]'", [
+            ['Obtaining file:///home/student/lesson_07_dataapp/tcg_dataapp', 'dim', 300],
+            ['  Installing build dependencies ... done', 'dim', 500], ['  Checking if build backend supports build_editable ... done', 'dim', 200],
+            ['  Getting requirements to build editable ... done', 'dim', 200], ['  Preparing editable metadata (pyproject.toml) ... done', 'dim', 300],
+            ['Collecting duckdb<3,>=1.4', 'dim', 300], ['Collecting py7zr>=0.22', 'dim', 300], ['Collecting pytest>=8', 'dim', 300],
+            ['Building wheels for collected packages: tcg-dataapp', 'dim', 400],
+            ['Successfully installed duckdb-2.0.0 py7zr-1.1.4 pytest-9.2.0 tcg-dataapp-0.1.0 (and their dependencies)', 'okl', 200],
+          ]);
+          await sh('tcg-dataapp --version', ['tcg-dataapp 0.1.0']);
+          await sh('tcg-dataapp run', ['run: not implemented']);
+          await sh('pytest -q', ['.                                                                        [100%]', ['1 passed in 0.04s', 'okl']]);
+          d();
+          tick('cfg');
+          chat('agent', 'Done. The package installs in a new virtual environment, <code>tcg-dataapp --version</code> answers 0.1.0 and the first test passes. Review: does each layer say in its docstring what it may import? The dependency points one way, <code>views → processors → etls</code>.');
+        },
+      },
+      {
+        name: '02 · Collect and load', prompt: '02_etls', stages: ['api', 'etls', 'landing'], run: false,
+        next: '<b>Step 02 · the API and db_ingestion.</b> The client of tcgcsv.com, the extraction and the idempotent load.',
+        async play() {
+          chat('agent', 'Plan: <code>etls/tcgcsv.py</code> is the client of the API, with only the standard library and py7zr; <code>etls/landing.py</code> creates <b>db_ingestion</b> (timestamp BIGINT, data_json JSON, data_tag VARCHAR) and loads one batch inside a transaction, replacing it if it exists; <code>etls/extract.py</code> calls the client and loads each entity under its tag. Every result of DuckDB 2.0 is consumed before the next statement.');
+          await sleep(900);
+          await write('src/tcg_dataapp/etls/tcgcsv.py', real('src/tcg_dataapp/etls/tcgcsv.py'));
+          await write('src/tcg_dataapp/etls/landing.py', real('src/tcg_dataapp/etls/landing.py'));
+          await write('src/tcg_dataapp/etls/extract.py', real('src/tcg_dataapp/etls/extract.py'));
+          await write('tests/test_landing.py', real('tests/test_landing.py'));
+          showPanel('term');
+          await sh('pytest -q', ['...                                                                      [100%]', ['3 passed in 0.31s', 'okl']]);
+          chat('agent', 'The tests pass without network. Now a first collection by hand, in Python, to watch the layer work before there is a pipeline: the sets, the products, the five archives of prices, and the same archive twice.');
+          await sleep(700);
+          const d = action('Collect from tcgcsv.com into db_ingestion');
+          await sh('mkdir -p warehouse && python', [['Python 3.12.3 · DuckDB 2.0.0', 'dim']]);
+          await sh('import duckdb', [], { repl: true, pause: 60 });
+          await sh('from tcg_dataapp.config import Settings', [], { repl: true, pause: 60 });
+          await sh('from tcg_dataapp.etls import extract', [], { repl: true, pause: 60 });
+          await sh('from tcg_dataapp.etls.tcgcsv import TcgcsvClient', [], { repl: true, pause: 60 });
+          await sh('s = Settings(); con = duckdb.connect(str(s.db_path)); client = TcgcsvClient(s.base_url, s.category)', [async () => {
+            S.files['warehouse/tcg.duckdb'] = { text: 'warehouse/tcg.duckdb is a binary file: the DuckDB database with db_ingestion, the views of gold, mart and report and ops.pipeline_runs.', status: '', lang: 'txt', fresh: true };
+            renderTree();
+          }], { repl: true });
+          await sh('t = extract.now_unix(); t', [String(T0)], { repl: true });
+          // conjuntos
+          const G = D.api.groups;
+          await sh('extract.extract_sets(con, client, s.sets, t)', [async () => {
+            net(200, '/tcgplayer/3/groups', `${G.totalItems} groups; 7 kept`, G.bytes, 'extract_sets');
+            showPanel('net'); await sleep(900);
+            openVirtual('response · /tcgplayer/3/groups', JSON.stringify(G.sample, null, 2), 'json', { note: `<b>GET https://tcgcsv.com/tcgplayer/3/groups</b> · ${G.totalItems} groups of Pokémon TCG (category 3). <b>extract_sets</b> keeps the seven sets of TCG_SETS and loads each one, unchanged, as a row of the tag tcgplayer.set.v1. Only those seven are shown.` });
+            await sleep(1600);
+            batch('tcgplayer.set.v1', T0, 7, 'New batch: tcgplayer.set.v1 at the moment of the run, 7 rows.');
+            showPanel('ing'); await sleep(1400);
+          }, '7'], { repl: true });
+          // produtos
+          const P = D.api.products;
+          await sh('extract.extract_products(con, client, s.sets, t)', [async () => {
+            showPanel('net');
+            for (const [gid, name, n] of D.products_by_set) {
+              net(200, `/tcgplayer/3/${gid}/products`, `${n} products · ${name}`, gid === 24541 ? P.bytes : 0, 'extract_products');
+              await sleep(380);
+            }
+            await sleep(500);
+            const raw = JSON.stringify(P.sample, null, 2).split('\n');
+            const marks = {};
+            const KEEP = ['Number', 'Rarity', 'Card Type', 'HP', 'Stage'];
+            let inExt = false, cur = [];
+            raw.forEach((l, i) => {
+              if (/^\s+"imageUrl"/.test(l)) marks[i] = 'del';
+              if (/"extendedData"/.test(l)) inExt = true;
+              if (inExt) {
+                if (/^\s{4}\{/.test(l)) cur = [i];
+                else if (cur.length) cur.push(i);
+                if (/^\s{4}\}/.test(l) && cur.length) {
+                  const block = cur.map((j) => raw[j]).join('');
+                  const name = (block.match(/"name": "([^"]+)"/) || [])[1];
+                  cur.forEach((j) => { marks[j] = KEEP.includes(name) ? 'keep' : 'del'; });
+                  cur = [];
+                }
+              }
+            });
+            openVirtual('response · /tcgplayer/3/24541/products · 676088', raw.join('\n'), 'json', { marks, note: `<b>GET /tcgplayer/3/24541/products</b> returns ${P.count} products of Ascended Heroes; this is one of them. Before the load, <b>extract_products</b> removes imageUrl and keeps in extendedData only <b>Number, Rarity, Card Type, HP and Stage</b> (marked +). Nothing else is cleaned: the rest of the record enters data_json as it arrived.` });
+            await sleep(2600);
+            batch('tcgplayer.product.v1', T0, 1492, 'New batch: tcgplayer.product.v1, 1,492 rows, one per product of the seven sets.');
+            showPanel('ing'); await sleep(1400);
+          }, '1492'], { repl: true });
+          // preços
+          await sh('for day in s.price_dates:', [], { repl: true, pause: 60 });
+          await sh('    print(day, extract.unix(day), extract.extract_prices_archive(con, client, s.sets, day))', [], { cont: true, pause: 60 });
+          await sh('', [async () => {
+            const pr = D.api.prices;
+            openVirtual('response · /tcgplayer/3/24541/prices', JSON.stringify(pr.sample, null, 2), 'json', { note: `<b>Prices.</b> The live endpoint /tcgplayer/3/24541/prices gives only today (${pr.count} prices of Ascended Heroes). Past days come from <b>/archive/tcgplayer/prices-&lt;day&gt;.ppmd.7z</b>, a file with every category, from which only <b>&lt;day&gt;/3/&lt;groupId&gt;/prices</b> of the seven sets is extracted. Each price enters db_ingestion as one row of tcgplayer.price.v1, at noon UTC of its day.` });
+            await sleep(1800);
+          }, ...D.loads.slice(2).map((l, i) => async () => {
+            const day = DATES[i];
+            showPanel('net');
+            net(200, `/archive/tcgplayer/prices-${day}.ppmd.7z`, `${fmt(l[3])} prices of the 7 sets`, D.archives[i][1], 'extract_prices_archive');
+            await sleep(1100);
+            batch('tcgplayer.price.v1', l[2], l[3], `New batch: prices of ${day}, at noon UTC (${l[2]}).`);
+            showPanel('ing');
+            termLine(esc(`${day} ${l[2]} ${l[3]}`));
+            await sleep(1000);
+          })], { cont: true, pause: 60 });
+          // idempotência
+          chat('agent', 'Now the same archive of 2026-09-01 again. If the load appended, the table would have 1,414 prices more.');
+          await sleep(800);
+          await sh('extract.extract_prices_archive(con, client, s.sets, "2026-09-01")', [async () => {
+            net(200, '/archive/tcgplayer/prices-2026-09-01.ppmd.7z', '1,414 prices of the 7 sets', D.archives[3][1], 'extract_prices_archive');
+            await sleep(900);
+            batch('tcgplayer.price.v1', 1788264000, 1414, 'The batch of 2026-09-01 was deleted and inserted again: still 1,414 rows, 5,951 prices in total.');
+            showPanel('ing'); await sleep(1600);
+          }, '1414'], { repl: true });
+          await sh('from tcg_dataapp.etls.landing import counts; counts(con)', [
+            "[('tcgplayer.price.v1', 5951, 1772366400, 1794052800), ('tcgplayer.product.v1', 1492, " + T0 + ', ' + T0 + "), ('tcgplayer.set.v1', 7, " + T0 + ', ' + T0 + ')]',
+          ], { repl: true });
+          d();
+          tick('idem');
+          flowDone(['api', 'etls', 'landing']);
+          chat('agent', 'The landing table holds <b>7 sets, 1,492 products and 5,951 prices in 5 captures</b>, every record as it arrived. Loading a batch twice replaced it. The catalogue is captured at the moment of the run; a price is captured at noon UTC of its day, so the timestamp says which day the price belongs to.');
+        },
+      },
+      {
+        name: '03 · Transform', prompt: '03_processors', stages: ['processors', 'gold'], run: false,
+        next: '<b>Step 03 · the gold layer.</b> The SQL of Lesson 6 inside the package, with quality gates and the frozen month.',
+        async play() {
+          chat('agent', 'Plan: the SQL of <code>lesson6_sql/</code> becomes four files of package data, read with importlib.resources; the dimensions keep only the last version of each set and product, because every run captures the catalogue again; <code>quality.py</code> stops the run when the model is wrong; <code>freeze_month</code> creates the tables of September only once.');
+          await sleep(900);
+          for (const f of ['01_dimensions.sql', '02_fact.sql', '03_cube_and_mart.sql', '04_live_reports.sql']) await write('src/tcg_dataapp/processors/sql/' + f, real('src/tcg_dataapp/processors/sql/' + f));
+          await write('src/tcg_dataapp/processors/gold.py', real('src/tcg_dataapp/processors/gold.py'));
+          await write('src/tcg_dataapp/processors/quality.py', real('src/tcg_dataapp/processors/quality.py'));
+          showPanel('term');
+          const d = action('Build the gold layer over db_ingestion');
+          await sh('from tcg_dataapp.processors import gold, quality', [], { repl: true, pause: 60 });
+          await sh('gold.build_gold(con)', [async () => {
+            showPanel('gold');
+            for (const [, names] of GOLD_GROUPS) for (const n of names) {
+              if (n.startsWith('report.mv_')) continue;
+              S.goldShown.push(n); S.goldSel = n; S.goldNew = n; renderGold(); await sleep(650);
+            }
+            showPanel('term');
+          }, "['01_dimensions.sql', '02_fact.sql', '03_cube_and_mart.sql', '04_live_reports.sql']"], { repl: true });
+          await sh('quality.check_gold(con)', ["{'tcgplayer.set.v1': 7, 'tcgplayer.product.v1': 1492, 'tcgplayer.price.v1': 5951, 'fact_rows': 5951, 'fact_grain_keys': 5951, 'fact_without_set': 0, 'dates': 5, 'cube_cells': 524}"], { repl: true });
+          await sh('gold.freeze_month(con, "2026-09")', [async () => {
+            for (const n of ['report.mv_card_price_2026_09', 'report.mv_set_value_2026_09']) { S.goldShown.push(n); S.goldSel = n; S.goldNew = n; }
+            S.goldSel = 'report.mv_card_price_2026_09'; renderGold();
+          }, "{'mv_card_price_2026_09': 'created (1226 rows)', 'mv_set_value_2026_09': 'created (5 rows)'}"], { repl: true });
+          showPanel('gold'); await sleep(1800);
+          S.goldSel = 'gold.fact_price'; renderGold(); await sleep(1600);
+          S.trace = true; renderTrace(); showPanel('trace');
+          d();
+          tick('qa');
+          flowDone(['processors', 'gold']);
+          chat('agent', 'The gold layer is a set of views over <b>db_ingestion</b>: <b>5,951 rows in the fact = 5,951 keys of the grain</b>, 524 cells in the cube and September frozen with 1,226 rows. The panel <b>Trace one card</b> follows the Pikachu ex 276/217 from its six rows of JSON to US$ 1,049.08 frozen in September and US$ 571.17 on the last capture.');
+        },
+      },
+      {
+        name: '04 · Pipeline', prompt: '04_pipeline_and_views', stages: ['views'], run: true,
+        next: '<b>Step 04 · one command.</b> The views, the pipeline of twelve tasks and the tests without network.',
+        async play() {
+          chat('agent', 'Plan: <code>views/</code> reads only the gold layer; <code>pipeline.py</code> declares twelve tasks with their dependencies, retries a failure with a growing pause, skips the dependents of a task that still fails and logs every attempt in <code>ops.pipeline_runs</code>; <code>cli.py</code> gets <code>run</code>, <code>status</code> and <code>report</code>; the tests use a fake client of two sets.');
+          await sleep(900);
+          await write('src/tcg_dataapp/views/questions.py', real('src/tcg_dataapp/views/questions.py'));
+          await write('src/tcg_dataapp/views/report.py', real('src/tcg_dataapp/views/report.py'));
+          await write('src/tcg_dataapp/pipeline.py', real('src/tcg_dataapp/pipeline.py'));
+          await write('src/tcg_dataapp/cli.py', real('src/tcg_dataapp/cli.py'), 'M');
+          await write('tests/conftest.py', real('tests/conftest.py'));
+          await write('tests/test_pipeline.py', real('tests/test_pipeline.py'));
+          showPanel('term');
+          const d = action('Run the whole pipeline');
+          await sh('exit()', [], { repl: true, pause: 100 });
+          await sh('rm -rf warehouse out && tcg-dataapp run', await runOut(false));
+          await sh('tcg-dataapp run | tail -5', [async () => {
+            batch('tcgplayer.set.v1', 1794489322, 7, '');
+            batch('tcgplayer.product.v1', 1794489322, 1492, 'The second run captured the catalogue again (a new batch per tag); the batches of prices were replaced, not added.');
+          },
+            "  ok    check_quality   0.08 s  {'tcgplayer.set.v1': 14, 'tcgplayer.product.v1': 2984, 'tcgplayer.price.v1': 5951, 'fact_rows': 5951, 'fact_grain_keys': 5951, 'fact_without_set': 0, 'dates': 5, 'cube_cells': 524}",
+            "  ok    freeze_reports   0.01 s  {'mv_card_price_2026_09': 'kept', 'mv_set_value_2026_09': 'kept'}",
+            "  ok    export_marts   0.09 s  ['out/marts/card_price.parquet', 'out/marts/set_value.parquet', 'out/marts/card_price_latest.parquet']",
+            '  ok    write_report   0.17 s  out/report.md', ['run 8ed25a61eb82: OK', 'okl'],
+          ]);
+          await sh('tcg-dataapp status', [
+            'tcgplayer.price.v1       5,951 rows  1772366400 .. 1794052800',
+            'tcgplayer.product.v1     2,984 rows  1794489285 .. 1794489322',
+            'tcgplayer.set.v1            14 rows  1794489285 .. 1794489322',
+            'last run 8ed25a61eb82: 12 task attempts ok, 0 not ok, 1794489322 .. 1794489356',
+          ]);
+          await sh('pytest -v', [
+            ['collecting ... collected 9 items', 'dim'],
+            ...['test_cli.py::test_version', 'test_landing.py::test_a_batch_loaded_twice_is_replaced_not_duplicated', 'test_landing.py::test_timestamps_are_unix_integers', 'test_pipeline.py::test_order_respects_dependencies_and_rejects_cycles', 'test_pipeline.py::test_full_run_builds_gold_and_freezes_the_month', 'test_pipeline.py::test_second_run_keeps_the_frozen_report_and_the_grain', 'test_pipeline.py::test_a_month_with_two_captures_freezes_only_the_last', 'test_pipeline.py::test_a_failure_is_retried_and_logged', 'test_pipeline.py::test_a_task_that_keeps_failing_skips_its_dependents']
+              .map((t, i, a) => [`tests/${t} PASSED  [${String(Math.round((i + 1) / a.length * 100)).padStart(3)}%]`, 'okl', 120]),
+            ['============================== 9 passed in 1.82s ===============================', 'okl'],
+          ]);
+          d();
+          openTab('out/report.md');
+          tick('cmd', 'retry', 'exit');
+          flowDone(['views']);
+          chat('agent', 'One command does everything: <b>12 tasks ok in about 40 s</b>, almost all of it in the downloads. The second run captured the catalogue again (14 set records, 2,984 product records), but the fact kept 5,951 rows and September was <b>kept</b>, not rebuilt. The 9 tests pass in 1.8 s without network. The report is open in the editor.');
+        },
+      },
+      {
+        name: '05 · Automate', prompt: '05_schedule', stages: [], run: true,
+        next: '<b>Step 05 · every day without anyone.</b> A clock, one run at a time and an alert when it fails.',
+        async play() {
+          sideView('auto'); renderChecks();
+          chat('agent', 'Six of the nine conditions are already in the package: one command, settings in the environment, an idempotent load, quality gates, retries with a run log and an exit code. Three are missing and live outside Python: <b>a clock</b>, <b>one run at a time</b> and <b>someone who finds out when it fails</b>. Plan: <code>ops/run_daily.sh</code> wraps the command with a lock, one log per day and an alert; <code>ops/crontab</code> calls it at 06:00 UTC.');
+          await sleep(2600);
+          sideView('files');
+          await write('ops/run_daily.sh', real('ops/run_daily.sh'));
+          await write('ops/crontab', real('ops/crontab'));
+          await write('README.md', real('README.md'), 'M');
+          showPanel('term');
+          const d = action('Rehearse the daily run');
+          await sh('chmod +x ops/run_daily.sh && ops/run_daily.sh    # what cron will run at 06:00 UTC', await runOut(true, true));
+          await sh('cat out/runs.log', ['1794489532 2026-11-12 run 3f166bc9cd58: OK']);
+          await sh('ops/run_daily.sh && tcg-dataapp status    # a second run on the same day', [
+            'tcgplayer.price.v1       7,786 rows  1772366400 .. 1794484800',
+            'tcgplayer.product.v1     4,476 rows  1794489441 .. 1794489532',
+            'tcgplayer.set.v1            21 rows  1794489441 .. 1794489532',
+            'last run ecf5873493d4: 13 task attempts ok, 0 not ok, 1794489532 .. 1794489573',
+          ]);
+          chat('agent', 'The prices of today are the batch of noon UTC, so the second run on the same day replaced it: still <b>7,786 prices</b>. Now two rehearsals of what can go wrong at 06:00: a run that starts while another is still going, and a source that is down.');
+          await sleep(1200);
+          await sh('flock out/run.lock sleep 3 & sleep 0.5; ops/run_daily.sh; echo "exit=$?"', ['exit=0']);
+          await sh('cat out/alerts.log', ['1794489574 2026-11-12 skipped: another run is still going']);
+          tick('lock');
+          await sh('TCG_BASE_URL=https://127.0.0.1:9 TCG_RETRIES=1 TCG_RETRY_DELAY=0.1 ops/run_daily.sh; echo "exit=$?"', [async () => {
+            S.dag = { today: true, state: {}, legend: 'Rehearsal with the source down: extract_sets fails twice (TCG_RETRIES=1) and every task that depends on it is skipped. Nothing downstream of an error is published.' };
+            showPanel('dag'); renderDag(); await sleep(700);
+            S.dag.state.extract_sets = { cls: 'run', txt: 'attempt 1/2' }; renderDag(); await sleep(900);
+            S.dag.state.extract_sets = { cls: 'run', txt: 'attempt 2/2' }; renderDag(); await sleep(900);
+            S.dag.state.extract_sets = { cls: 'fail', txt: 'URLError: Connection refused' }; renderDag(); await sleep(500);
+            for (const col of dagCols(true).slice(1)) { for (const t of col) S.dag.state[t] = { cls: 'skip', txt: 'skipped' }; renderDag(); await sleep(260); }
+            await sleep(1200); showPanel('term');
+          }, ['1794489576 2026-11-12 FAILED (exit 1), see out/logs/run-2026-11-12.log', 'err'], 'exit=1']);
+          await sh("grep -E 'fail|skip' out/logs/run-2026-11-12.log | head -3", [
+            ['  fail  extract_sets  attempt 1/2: URLError: <urlopen error [Errno 111] Connection refused>', 'err'],
+            ['  fail  extract_sets  attempt 2/2: URLError: <urlopen error [Errno 111] Connection refused>', 'err'],
+            '  skip  extract_products  (a dependency failed)',
+          ]);
+          tick('alert');
+          await sh('crontab ops/crontab && crontab -l', real('ops/crontab').trim().split('\n'));
+          d();
+          tick('clock');
+          sideView('auto');
+          chat('agent', 'The nine conditions are met. From now on cron starts <code>ops/run_daily.sh</code> every day at 06:00 UTC: each day adds one batch of prices to <b>db_ingestion</b>, rebuilds the gold layer as views, keeps September frozen, writes <code>out/report.md</code> and leaves one line in <code>out/runs.log</code> or <code>out/alerts.log</code>. What cron does not give is a view of the runs, notifications and a retry of the whole flow from the failed task: Lesson 8 replaces this line with Prefect.');
+        },
+      },
+    ];
+
+    async function runOut(today, cron) {
+      const L = today ? [
+        ['extract_sets', '0.73 s', '7'], ['extract_products', '6.84 s', '1492'], ['extract_prices_2026-03-01', '4.60 s', '657'], ['extract_prices_2026-05-01', '5.06 s', '896'],
+        ['extract_prices_2026-07-01', '5.86 s', '1153'], ['extract_prices_2026-09-01', '5.83 s', '1414'], ['extract_prices_2026-11-07', '5.77 s', '1831'], ['extract_prices_today', '5.63 s', '1835'],
+        ['build_gold', '0.04 s', "['01_dimensions.sql', '02_fact.sql', '03_cube_and_mart.sql', '04_live_reports.sql']"],
+        ['check_quality', '0.08 s', "{'tcgplayer.set.v1': 14, 'tcgplayer.product.v1': 2984, 'tcgplayer.price.v1': 7786, 'fact_rows': 7786, 'fact_grain_keys': 7786, 'fact_without_set': 0, 'dates': 6, 'cube_cells': 697}"],
+        ['freeze_reports', '0.01 s', "{'mv_card_price_2026_09': 'kept', 'mv_set_value_2026_09': 'kept'}"],
+        ['export_marts', '0.10 s', "['out/marts/card_price.parquet', 'out/marts/set_value.parquet', 'out/marts/card_price_latest.parquet']"],
+        ['write_report', '0.18 s', 'out/report.md'],
+      ] : [
+        ['extract_sets', '1.09 s', '7'], ['extract_products', '7.72 s', '1492'], ['extract_prices_2026-03-01', '4.91 s', '657'], ['extract_prices_2026-05-01', '5.01 s', '896'],
+        ['extract_prices_2026-07-01', '6.42 s', '1153'], ['extract_prices_2026-09-01', '6.15 s', '1414'], ['extract_prices_2026-11-07', '5.63 s', '1831'],
+        ['build_gold', '0.04 s', "['01_dimensions.sql', '02_fact.sql', '03_cube_and_mart.sql', '04_live_reports.sql']"],
+        ['check_quality', '0.07 s', "{'tcgplayer.set.v1': 7, 'tcgplayer.product.v1': 1492, 'tcgplayer.price.v1': 5951, 'fact_rows': 5951, 'fact_grain_keys': 5951, 'fact_without_set': 0, 'dates': 5, 'cube_cells': 524}"],
+        ['freeze_reports', '0.14 s', "{'mv_card_price_2026_09': 'created (1226 rows)', 'mv_set_value_2026_09': 'created (5 rows)'}"],
+        ['export_marts', '0.09 s', "['out/marts/card_price.parquet', 'out/marts/set_value.parquet', 'out/marts/card_price_latest.parquet']"],
+        ['write_report', '0.15 s', 'out/report.md'],
+      ];
+      const out = [];
+      const header = 'tcg-dataapp 0.1.0 · warehouse/tcg.duckdb · sets 7 · dates 2026-03-01, 2026-05-01, 2026-07-01, 2026-09-01, 2026-11-07';
+      out.push(async () => {
+        if (!today) { S.batches = []; renderIng(); }
+        S.dag = { today, state: {}, legend: today
+          ? 'Run of ops/run_daily.sh: the same twelve tasks plus extract_prices_today, whose prices are the batch of noon UTC of the day. The output goes to out/logs/run-2026-11-12.log; the terminal shows the log.'
+          : 'First run on an empty warehouse: each task starts only after all of its dependencies succeeded. Almost all the time is the download of the catalogue and of the five archives.' };
+        showPanel('dag'); renderDag(); await sleep(600); showPanel('term');
+      });
+      if (cron) out.push(['(the script writes to out/logs/run-2026-11-12.log; its content follows)', 'dim', 200]);
+      out.push([header, 'dim', 300]);
+      for (const [t, sec, res] of L) {
+        out.push(async () => {
+          S.dag.state[t] = { cls: 'run', txt: 'running' }; renderDag();
+          await sleep(t.startsWith('extract') ? Math.min(1600, parseFloat(sec) * 220) : 250);
+          S.dag.state[t] = { cls: 'ok', txt: `ok · ${sec} · ${res.length > 22 ? res.slice(0, 20) + '…' : res}` }; renderDag();
+          if (t.startsWith('extract_prices')) {
+            const day = t.replace('extract_prices_', '');
+            const ts = day === 'today' ? 1794484800 : DATES.includes(day) ? D.loads[2 + DATES.indexOf(day)][2] : 0;
+            batch('tcgplayer.price.v1', ts, +res, day === 'today' ? 'New batch: the prices of today at noon UTC of 12/11/2026 (1794484800).' : '');
+          }
+          const capture = today ? 1794489532 : 1794489285;
+          if (t === 'extract_sets') batch('tcgplayer.set.v1', capture, 7, '');
+          if (t === 'extract_products') batch('tcgplayer.product.v1', capture, 1492, today ? 'New capture of the catalogue: the dimensions keep only the last version of each product.' : '');
+          if (t === 'write_report') {
+            S.files['out/report.md'] = { text: D.report_md, status: '' };
+            ['out/marts/card_price.parquet', 'out/marts/set_value.parquet', 'out/marts/card_price_latest.parquet', 'warehouse/tcg.duckdb'].forEach((p) => {
+              S.files[p] = { text: `${p} is a binary file (${p.endsWith('duckdb') ? 'the DuckDB database with db_ingestion, the views of gold, mart and report and ops.pipeline_runs' : 'Parquet, columnar, read by any engine'}).`, status: '', lang: 'txt' };
+            });
+            renderTree();
+          }
+        });
+        out.push([`  ok    ${t}   ${sec}  ${res}`, '', 60]);
+      }
+      out.push([`run ${today ? '3f166bc9cd58' : '9323aaf32f74'}: OK`, 'okl']);
+      return out;
+    }
+
+    // ---------- Controles ----------
+    function updateUi() {
+      document.querySelectorAll('[data-step]').forEach((b) => {
+        const i = +b.dataset.step;
+        b.classList.toggle('step-done', i < S.done);
+        b.disabled = S.running;
+      });
+      const nxt = STEPS[S.done];
+      $('btn-send').disabled = S.running || !nxt;
+      $('btn-send').textContent = nxt ? `Send prompt ${nxt.name.slice(0, 2)}` : 'All prompts sent';
+      $('btn-view-prompt').disabled = !nxt;
+      $('next').innerHTML = S.running ? '<b>The agent is working.</b> “Finish step” shows the end of the step at once.' : nxt ? nxt.next : '<b>The five steps are done.</b> Every panel can be browsed; “Reset” starts again from the empty folder.';
+      $('btn-skip').disabled = !S.running;
+      $('st-step').textContent = nxt ? `next: step ${nxt.name}` : 'all steps done';
+      $('st-busy').innerHTML = S.running ? '<span class="busy">● agent running</span>' : '';
+    }
+    async function playStep(i) {
+      const st = STEPS[i];
+      S.running = true; updateUi();
+      flow(st.stages, st.run);
+      const u = chat('user', `<details><summary>Prompt ${st.prompt.slice(0, 2)} · CREATE · ${esc(st.prompt.slice(3).replace(/_/g, ' '))}</summary><pre>${esc(D.prompts[st.prompt])}</pre></details>`);
+      u.scrollIntoView({ block: 'end' });
+      await sleep(600);
+      await st.play();
+      S.done = i + 1; S.running = false; S.fast = false;
+      updateUi();
+    }
+    async function runTo(target) {
+      if (S.running) return;
+      if (target < S.done) { reset(); }
+      RUNGEN = GEN;
+      try {
+        while (S.done < target) { S.fast = true; await playStep(S.done); }
+        S.fast = false;
+        await playStep(target);
+      } catch (e) { if (!(e instanceof Stop)) console.error(e); }
+    }
+    function reset() {
+      GEN++;
+      const speed = S ? S.speed : 1;
+      S = fresh(); S.speed = speed;
+      term.innerHTML = '';
+      $('chat').innerHTML = '';
+      chat('agent', 'This folder has only <code>lesson6_sql/</code>, the SQL of the lab of Lesson 6. I will build the package <code>tcg_dataapp/</code> from your prompts, one step at a time, and stop at the end of each step so you can review it.');
+      document.querySelectorAll('#flow .node').forEach((n) => n.classList.remove('on', 'done'));
+      $('flow-run').classList.remove('on');
+      renderTree(); renderTabs(); renderEditor(); renderNet(); renderIng(); renderGold(); renderTrace(); renderDag(); renderChecks(); sideView('files'); showPanel('term');
+      updateUi();
+    }
+    $('btn-send').onclick = () => runTo(S.done);
+    $('btn-view-prompt').onclick = () => { const nxt = STEPS[S.done]; if (nxt) openVirtual(`prompts/${nxt.prompt}.md`, D.prompts[nxt.prompt], 'txt', { note: `<b>Prompt ${nxt.prompt.slice(0, 2)}</b> in the CRAETE format, as it will be pasted into the agent. The same text is in <b>lab/lesson-7/prompts/${nxt.prompt}.md</b>.` }); };
+    document.querySelectorAll('[data-step]').forEach((b) => b.onclick = () => runTo(+b.dataset.step));
+    document.querySelectorAll('[data-speed]').forEach((b) => b.onclick = () => {
+      S.speed = +b.dataset.speed;
+      document.querySelectorAll('[data-speed]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    });
+    $('btn-skip').onclick = () => { if (S.running) S.fast = true; };
+    $('btn-reset').onclick = () => { if (S.running) { GEN++; S.running = false; } reset(); };
+
+    // Divisória entre editor e painel
+    (() => {
+      const main = $('ide-main');
+      let drag = false;
+      $('splitter').addEventListener('pointerdown', (e) => { drag = true; e.target.setPointerCapture(e.pointerId); });
+      $('splitter').addEventListener('pointermove', (e) => {
+        if (!drag) return;
+        const r = main.getBoundingClientRect();
+        const pct = Math.min(80, Math.max(18, (r.bottom - e.clientY) / r.height * 100));
+        main.style.setProperty('--panel-h', pct + '%');
+      });
+      $('splitter').addEventListener('pointerup', () => { drag = false; });
+    })();
+
+    reset();
+  })();
+  </script>
+<!-- semana:js:start -->
+<script src="../../../../js/semana-ano.js" defer></script>
+<!-- semana:js:end -->
+</body>
+</html>
