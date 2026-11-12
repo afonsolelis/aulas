@@ -223,6 +223,35 @@
     .notes p, .notes li { margin: 0; font-size: var(--ds-fs-meta); line-height: 1.55; color: var(--ds-texto); }
     .notes ul { margin: 0; padding-left: 18px; }
 
+
+    /* Janela do prompt: leitura confortável, uma seção do CRAETE por bloco. */
+    dialog#prompt-dlg { width: min(1000px, 94vw); max-height: 90vh; padding: 0; border: 1px solid var(--ds-texto-forte); border-radius: var(--ds-raio-2); background: var(--ds-fundo); color: var(--ds-texto-forte); }
+    dialog#prompt-dlg[open] { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr) auto; }
+    dialog#prompt-dlg::backdrop { background: rgba(46, 38, 64, 0.55); }
+    .pd-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; padding: 14px 20px 10px; border-bottom: 1px solid var(--ds-borda); }
+    .pd-head h2 { margin: 0; font-family: var(--ds-fonte-mono); font-size: 1.15rem; font-weight: 600; }
+    .pd-head span { font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); }
+    .pd-head .x { margin-left: auto; }
+    .pd-nav { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 20px; border-bottom: 1px solid var(--ds-borda); background: var(--ds-fundo-fraco); }
+    .pd-nav .grp { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+    .pd-nav .sep { width: 1px; align-self: stretch; background: var(--ds-borda-forte); margin: 0 6px; }
+    .pd-nav .lbl { font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); margin-right: 2px; }
+    .pd-body { overflow: auto; padding: 8px 20px 20px; }
+    .pd-sec { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--ds-borda); }
+    .pd-sec:last-child { border-bottom: 0; }
+    .pd-sec h3 { margin: 0; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); font-weight: 600; color: var(--ds-texto-forte); }
+    .pd-sec h3 b { display: inline-block; min-width: 26px; padding: 1px 4px; margin-right: 6px; text-align: center; background: var(--inteli-roxo); color: var(--ds-texto-inverso); border-radius: var(--ds-raio-1); font-weight: 600; }
+    .pd-sec pre { margin: 0; white-space: pre-wrap; font-family: var(--ds-fonte-mono); font-size: 0.92rem; line-height: 1.6; color: var(--ds-texto-forte); font-variant-ligatures: none; }
+    .pd-sec.facts pre { color: var(--ds-texto); }
+    .pd-sec.flash { animation: pdflash 1.2s ease-out; }
+    @keyframes pdflash { from { background: var(--ds-roxo-tinta); } to { background: transparent; } }
+    .pd-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 20px; border-top: 1px solid var(--ds-borda); background: var(--ds-fundo-fraco); }
+    .pd-foot .hint { margin-right: auto; font-size: var(--ds-fs-meta); color: var(--ds-texto-suave); }
+    .msg.user .open-prompt { display: block; width: 100%; text-align: left; border: 0; background: transparent; color: var(--inteli-branco); font-family: var(--ds-fonte-mono); font-size: 12px; cursor: pointer; padding: 0; }
+    .msg.user .open-prompt span { color: var(--inteli-verde); }
+    .msg.user .open-prompt:hover span { text-decoration: underline; }
+    @media (max-width: 700px) { .pd-sec { grid-template-columns: minmax(0, 1fr); gap: 6px; } .pd-sec pre { font-size: 0.8rem; } .pd-nav .sep { display: none; } .pd-head, .pd-nav, .pd-body, .pd-foot { padding-left: 14px; padding-right: 14px; } }
+
     @media (max-width: 1250px) {
       .ide-body { grid-template-columns: 44px 200px minmax(0, 1fr); }
       .ide-agent { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--ide-line); max-height: 380px; }
@@ -294,6 +323,7 @@
       <button class="btn-lab" data-speed="3" aria-pressed="false">3×</button>
       <button class="btn-lab" id="btn-skip">Finish step</button>
       <button class="btn-lab" id="btn-reset">Reset</button>
+      <button class="btn-lab" id="btn-prompts" style="margin-left:12px">Prompts ↗</button>
     </div>
 
     <div class="ide" id="ide">
@@ -377,6 +407,13 @@
       <p>Material created by professor Afonso Brandão for Inteli. Open reading license. Data: TCGplayer, through the public mirror tcgcsv.com.</p>
     </div>
   </footer>
+
+  <dialog id="prompt-dlg" aria-labelledby="pd-title">
+    <div class="pd-head"><h2 id="pd-title">Prompt</h2><span id="pd-file"></span><button class="btn-lab x" id="pd-close" type="button">Close ✕</button></div>
+    <div class="pd-nav"><div class="grp" id="pd-prompts"><span class="lbl">Prompt</span></div><span class="sep"></span><div class="grp" id="pd-secs"><span class="lbl">Section</span></div></div>
+    <div class="pd-body" id="pd-body"></div>
+    <div class="pd-foot"><span class="hint" id="pd-hint"></span><button class="btn-lab" id="pd-copy" type="button">Copy</button><button class="btn-lab primary" id="pd-send" type="button">Send to the agent</button></div>
+  </dialog>
 
   <script src="lab-data.js"></script>
   <script>
@@ -1177,7 +1214,7 @@ pytest
       const nxt = STEPS[S.done];
       $('btn-send').disabled = S.running || !nxt;
       $('btn-send').textContent = nxt ? `Send prompt ${nxt.name.slice(0, 2)}` : 'All prompts sent';
-      $('btn-view-prompt').disabled = !nxt;
+      $('btn-view-prompt').textContent = nxt ? `Read prompt ${nxt.name.slice(0, 2)}` : 'Read the prompts';
       $('next').innerHTML = S.running ? '<b>The agent is working.</b> “Finish step” shows the end of the step at once.' : nxt ? nxt.next : '<b>The five steps are done.</b> Every panel can be browsed; “Reset” starts again from the empty folder.';
       $('btn-skip').disabled = !S.running;
       $('st-step').textContent = nxt ? `next: step ${nxt.name}` : 'all steps done';
@@ -1187,7 +1224,7 @@ pytest
       const st = STEPS[i];
       S.running = true; updateUi();
       flow(st.stages, st.run);
-      const u = chat('user', `<details><summary>Prompt ${st.prompt.slice(0, 2)} · CREATE · ${esc(st.prompt.slice(3).replace(/_/g, ' '))}</summary><pre>${esc(D.prompts[st.prompt])}</pre></details>`);
+      const u = chat('user', `<button class="open-prompt" type="button" data-prompt="${st.prompt}">Prompt ${st.prompt.slice(0, 2)} · CREATE · ${esc(st.prompt.slice(3).replace(/_/g, ' '))} <span>open ↗</span></button>`);
       u.scrollIntoView({ block: 'end' });
       await sleep(600);
       await st.play();
@@ -1217,7 +1254,67 @@ pytest
       updateUi();
     }
     $('btn-send').onclick = () => runTo(S.done);
-    $('btn-view-prompt').onclick = () => { const nxt = STEPS[S.done]; if (nxt) openVirtual(`prompts/${nxt.prompt}.md`, D.prompts[nxt.prompt], 'txt', { note: `<b>Prompt ${nxt.prompt.slice(0, 2)}</b> in the CRAETE format, as it will be pasted into the agent. The same text is in <b>lab/lesson-7/prompts/${nxt.prompt}.md</b>.` }); };
+    $('btn-prompts').onclick = () => openPrompt(Math.min(S.done, STEPS.length - 1));
+    // ---------- Janela do prompt ----------
+    const SEC_NAMES = { C: 'Character', R: 'Request', E: 'Example', A: 'Adjustments', T: 'Type of output' };
+    function parsePrompt(text) {
+      const secs = [];
+      let cur = null, seenE = false;
+      for (const line of text.split('\n')) {
+        const m = line.match(/^\[([A-Z])\]\s*(.*)$/);
+        if (m) {
+          let name = m[2] || SEC_NAMES[m[1]] || m[1];
+          if (m[1] === 'E') { name = seenE ? 'Extras' : (m[2] || 'Example'); seenE = true; }
+          cur = { letter: m[1], name, lines: [] };
+          secs.push(cur);
+        } else if (cur) cur.lines.push(line);
+      }
+      // Os fatos medidos ficam num bloco próprio dentro do Request.
+      const out = [];
+      for (const sec of secs) {
+        const i = sec.lines.findIndex((l) => /^Facts/.test(l));
+        if (sec.letter === 'R' && i > 0) {
+          out.push({ ...sec, lines: sec.lines.slice(0, i) });
+          out.push({ letter: 'R', name: 'Facts to confirm', lines: sec.lines.slice(i + 1), facts: true });
+        } else out.push(sec);
+      }
+      return out.map((s) => ({ ...s, body: s.lines.join('\n').replace(/^\n+|\s+$/g, '') }));
+    }
+    let PD = null;
+    function openPrompt(i) {
+      PD = i;
+      const st = STEPS[i];
+      const text = D.prompts[st.prompt];
+      const secs = parsePrompt(text);
+      $('pd-title').textContent = `Prompt ${st.prompt.slice(0, 2)} · CREATE · ${st.prompt.slice(3).replace(/_/g, ' ')}`;
+      $('pd-file').textContent = `lab/lesson-7/prompts/${st.prompt}.md · ${text.trim().split('\n').length} lines`;
+      $('pd-prompts').innerHTML = '<span class="lbl">Prompt</span>' + STEPS.map((s, j) => `<button class="btn-lab" type="button" data-pd="${j}" aria-pressed="${j === i}">${s.prompt.slice(0, 2)}</button>`).join('');
+      $('pd-secs').innerHTML = '<span class="lbl">Section</span>' + secs.map((s, j) => `<button class="btn-lab" type="button" data-sec="${j}" title="${esc(s.name)}">${s.facts ? 'Facts' : '[' + s.letter + ']'}</button>`).join('');
+      $('pd-body').innerHTML = secs.map((s, j) => `<section class="pd-sec${s.facts ? ' facts' : ''}" id="pd-sec-${j}"><h3>${s.facts ? '' : `<b>${s.letter}</b>`}${esc(s.name)}</h3><pre>${esc(s.body)}</pre></section>`).join('');
+      $('pd-body').scrollTop = 0;
+      const isNext = i === S.done && !S.running;
+      $('pd-send').style.display = isNext ? '' : 'none';
+      $('pd-hint').textContent = i < S.done ? 'Already sent to the agent in this session.' : isNext ? 'This is the next prompt of the session.' : S.running && i === S.done ? 'The agent is working on this prompt.' : `Comes after prompt ${STEPS[S.done] ? STEPS[S.done].prompt.slice(0, 2) : ''}.`;
+      $('pd-copy').textContent = 'Copy';
+      if (!$('prompt-dlg').open) $('prompt-dlg').showModal();
+    }
+    $('pd-prompts').addEventListener('click', (e) => { const b = e.target.closest('[data-pd]'); if (b) openPrompt(+b.dataset.pd); });
+    $('pd-secs').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-sec]');
+      if (!b) return;
+      const sec = $('pd-sec-' + b.dataset.sec);
+      $('pd-body').scrollTo({ top: sec.offsetTop - $('pd-body').offsetTop - 4, behavior: 'smooth' });
+      sec.classList.remove('flash'); void sec.offsetWidth; sec.classList.add('flash');
+    });
+    $('pd-close').onclick = () => $('prompt-dlg').close();
+    $('prompt-dlg').addEventListener('click', (e) => { if (e.target === $('prompt-dlg')) $('prompt-dlg').close(); });
+    $('pd-copy').onclick = async () => {
+      try { await navigator.clipboard.writeText(D.prompts[STEPS[PD].prompt]); $('pd-copy').textContent = 'Copied'; }
+      catch { $('pd-copy').textContent = 'Copy failed'; }
+    };
+    $('pd-send').onclick = () => { $('prompt-dlg').close(); runTo(S.done); };
+    $('chat').addEventListener('click', (e) => { const b = e.target.closest('[data-prompt]'); if (b) openPrompt(STEPS.findIndex((s) => s.prompt === b.dataset.prompt)); });
+    $('btn-view-prompt').onclick = () => openPrompt(Math.min(S.done, STEPS.length - 1));
     document.querySelectorAll('[data-step]').forEach((b) => b.onclick = () => runTo(+b.dataset.step));
     document.querySelectorAll('[data-speed]').forEach((b) => b.onclick = () => {
       S.speed = +b.dataset.speed;
