@@ -1,0 +1,1580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 8 Lab · The pipeline as a Prefect DAG · Module 8 · Inteli</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔀</text></svg>">
+  <link href="../../../../css/inteli-styles.css" rel="stylesheet">
+  <style>
+    body.tm { min-height: 100vh; }
+    /* A margem direita deixa livre a faixa dos botões flutuantes (início e semana), fixos a 14px da borda. */
+    .lab { max-width: 1600px; min-width: 0; width: 100%; box-sizing: border-box; margin: 0 auto; padding: 20px 76px 0 24px; }
+    .lab-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 16px; border-bottom: 1px solid var(--ds-borda); }
+    .lab-top nav { display: flex; flex-wrap: wrap; gap: 6px 18px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); }
+    .lab-top nav a { text-decoration: none; color: var(--ds-texto); }
+    .lab-top nav a span { color: var(--ds-texto-fraco); }
+    .lab-top nav a:hover { color: var(--ds-texto-forte); text-decoration: underline; }
+    .lab-top img { width: 64px; display: block; }
+    .lab-head { padding: 24px 0 14px; }
+    .lab-head .meta { margin: 0 0 10px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); color: var(--ds-texto-suave); }
+    .lab-head h1 { margin: 0; font-family: var(--ds-fonte-mono); font-weight: 500; font-size: clamp(1.6rem, 1rem + 2vw, 2.4rem); letter-spacing: -0.02em; color: var(--ds-texto-forte); }
+    .lab-head p { margin: 12px 0 0; max-width: 100ch; line-height: 1.6; color: var(--ds-texto); }
+
+    /* Fluxo do DataApp: cada etapa acende o trecho que ela constrói. */
+    .flow { display: grid; grid-template-columns: repeat(11, auto); align-items: stretch; gap: 0; margin: 18px 0 6px; overflow-x: auto; }
+    .flow .node { border: 1px solid var(--ds-borda-forte); background: var(--ds-fundo); padding: 10px 12px; min-width: 120px; display: flex; flex-direction: column; gap: 4px; transition: border-color var(--ds-rapido), background var(--ds-rapido); }
+    .flow .node b { font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); font-weight: 600; color: var(--ds-texto-forte); }
+    .flow .node span { font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); line-height: 1.4; }
+    .flow .node code { font-size: var(--ds-fs-micro); }
+    .flow .node .st { font-family: var(--ds-fonte-mono); color: var(--ds-texto-fraco); }
+    .flow .arrow { display: flex; align-items: center; padding: 0 6px; font-family: var(--ds-fonte-mono); color: var(--ds-texto-fraco); }
+    .flow .node.on { border-color: var(--inteli-roxo); background: var(--ds-roxo-tinta); box-shadow: inset 3px 0 0 var(--inteli-verde); }
+    .flow .node.done .st { color: var(--ds-verde-texto); }
+    .flow-run { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; border: 1px dashed var(--ds-borda-forte); padding: 8px 12px; margin-bottom: 14px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); }
+    .flow-run b { color: var(--ds-texto-forte); font-weight: 600; }
+    .flow-run.on { border-style: solid; border-color: var(--inteli-roxo); background: var(--ds-roxo-tinta); }
+
+    .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 12px; }
+    .controls .lbl { font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); margin-right: 4px; }
+    .btn-lab { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border: 1px solid var(--ds-borda-forte); background: var(--ds-fundo); color: var(--ds-texto-forte); font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); font-weight: 500; cursor: pointer; white-space: nowrap; border-radius: var(--ds-raio-1); }
+    .btn-lab:hover { background: var(--ds-fundo-fraco); border-color: var(--inteli-cinza-400); }
+    .btn-lab.primary { background: var(--inteli-roxo); border-color: var(--inteli-roxo); color: var(--ds-texto-inverso); }
+    .btn-lab.primary:hover { background: var(--ds-roxo-hover); }
+    .btn-lab.step-done { border-color: var(--inteli-verde); }
+    .btn-lab.step-done::before { content: "✓"; color: var(--ds-verde-texto); }
+    .btn-lab:disabled { opacity: 0.5; cursor: default; }
+    .btn-lab[aria-pressed="true"] { background: var(--ds-roxo-tinta); border-color: var(--inteli-roxo); }
+    .btn-lab.primary[aria-pressed="true"] { background: var(--inteli-roxo); color: var(--ds-texto-inverso); }
+
+    /* ===== O editor simulado ===== */
+    .ide { --ide-bg: var(--ds-terminal); --ide-side: var(--inteli-roxo); --ide-line: rgba(255, 255, 255, 0.09); --ide-txt: var(--inteli-cinza-100); --ide-dim: var(--inteli-cinza-400);
+      height: clamp(640px, 82vh, 980px); display: grid; grid-template-rows: 30px minmax(0, 1fr) 24px; border: 1px solid var(--inteli-roxo); background: var(--ide-bg); color: var(--ide-txt); font-family: var(--ds-fonte-mono); font-variant-ligatures: none; font-size: 12.5px; margin-bottom: 28px; min-width: 0; }
+    .ide button { font-family: inherit; }
+    .ide-title { display: flex; align-items: center; gap: 10px; padding: 0 10px; background: var(--ide-side); border-bottom: 1px solid var(--ide-line); font-size: 12px; color: var(--ide-dim); }
+    .ide-title .dots { display: flex; gap: 6px; }
+    .ide-title .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--ide-line); display: block; }
+    .ide-title .t { flex: 1; text-align: center; }
+    .ide-title .sim { color: var(--inteli-verde); }
+    .ide-body { display: grid; grid-template-columns: 44px 230px minmax(0, 1fr) 340px; min-height: 0; }
+    .ide-act { background: var(--ide-side); border-right: 1px solid var(--ide-line); display: flex; flex-direction: column; align-items: center; padding-top: 6px; gap: 2px; }
+    .ide-act button { width: 44px; height: 42px; border: 0; background: transparent; color: var(--ide-dim); font-size: 17px; cursor: pointer; border-left: 2px solid transparent; position: relative; }
+    .ide-act button[aria-pressed="true"] { color: var(--inteli-branco); border-left-color: var(--inteli-verde); }
+    .ide-act button .badge { position: absolute; right: 6px; bottom: 6px; font-size: 9px; min-width: 14px; height: 14px; line-height: 14px; border-radius: 2px; background: var(--inteli-verde); color: var(--inteli-roxo); font-weight: 700; }
+    .ide-side { background: var(--ide-side); border-right: 1px solid var(--ide-line); display: flex; flex-direction: column; min-height: 0; }
+    .ide-side h2 { margin: 0; padding: 9px 12px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ide-dim); font-family: inherit; }
+    .tree { overflow: auto; flex: 1; padding-bottom: 12px; }
+    .tree .row { display: flex; align-items: center; gap: 5px; height: 22px; padding-right: 8px; white-space: nowrap; cursor: pointer; color: var(--ide-txt); }
+    .tree .row:hover { background: var(--ide-line); }
+    .tree .row.active { background: rgba(137, 206, 165, 0.16); }
+    .tree .row .ic { width: 14px; text-align: center; color: var(--ide-dim); font-size: 11px; flex: 0 0 auto; }
+    .tree .row .nm { overflow: hidden; text-overflow: ellipsis; }
+    .tree .row .g { margin-left: auto; font-size: 10px; font-weight: 700; }
+    .tree .row .g.U { color: var(--inteli-verde); }
+    .tree .row .g.M { color: var(--inteli-cinza-300); }
+    .tree .row.dir { color: var(--ide-dim); cursor: default; }
+    .tree .row.fresh { animation: fresh 1.2s ease-out; }
+    @keyframes fresh { from { background: rgba(137, 206, 165, 0.35); } to { background: transparent; } }
+    .tree .empty { padding: 8px 14px; color: var(--ide-dim); line-height: 1.5; }
+    .checklist { overflow: auto; flex: 1; padding: 0 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+    .checklist .ck { border: 1px solid var(--ide-line); padding: 7px 9px; display: grid; grid-template-columns: 16px 1fr; gap: 2px 6px; font-size: 11.5px; line-height: 1.4; }
+    .checklist .ck i { font-style: normal; color: var(--ide-dim); grid-row: span 2; }
+    .checklist .ck b { font-weight: 600; color: var(--inteli-branco); }
+    .checklist .ck span { color: var(--ide-dim); }
+    .checklist .ck.ok { border-color: rgba(137, 206, 165, 0.45); }
+    .checklist .ck.ok i { color: var(--inteli-verde); }
+    .checklist .ck.flash { animation: fresh 1.4s ease-out; }
+    .checklist p { margin: 0 0 4px; color: var(--ide-dim); font-size: 11.5px; line-height: 1.5; }
+
+    .ide-main { display: grid; grid-template-rows: 34px minmax(0, 1fr) 6px minmax(0, var(--panel-h, 48%)); min-width: 0; min-height: 0; }
+    .tabs { display: flex; background: var(--ide-side); overflow-x: auto; scrollbar-width: thin; }
+    .tabs .tab { display: flex; align-items: center; gap: 8px; padding: 0 10px 0 12px; border-right: 1px solid var(--ide-line); color: var(--ide-dim); cursor: pointer; white-space: nowrap; border-top: 2px solid transparent; background: transparent; }
+    .tabs .tab.active { background: var(--ide-bg); color: var(--inteli-branco); border-top-color: var(--inteli-verde); }
+    .tabs .tab .x { opacity: 0.6; font-size: 11px; }
+    .tabs .tab .x:hover { opacity: 1; }
+    .tabs .tab em { font-style: italic; }
+    .editor { overflow: auto; position: relative; min-height: 0; }
+    .editor .welcome { padding: 32px; color: var(--ide-dim); line-height: 1.7; max-width: 70ch; font-family: var(--ds-fonte); font-size: 14px; }
+    .editor .welcome b { color: var(--inteli-branco); }
+    .editor .welcome kbd { font-family: var(--ds-fonte-mono); border: 1px solid var(--ide-line); padding: 0 5px; }
+    .code { display: grid; grid-template-columns: max-content minmax(0, 1fr); padding: 8px 0 40px; line-height: 1.6; }
+    .code .ln { text-align: right; padding: 0 14px 0 10px; color: var(--ide-dim); user-select: none; opacity: 0.6; }
+    .code .tx { white-space: pre; padding-right: 24px; tab-size: 4; }
+    .code .tx.cur::after { content: ""; display: inline-block; width: 7px; height: 1.1em; vertical-align: text-bottom; background: var(--inteli-verde); animation: blink 1s steps(1) infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+    .code .tx.del { text-decoration: line-through; text-decoration-color: var(--inteli-coral); opacity: 0.55; }
+    .code .tx.keep { background: rgba(137, 206, 165, 0.10); }
+    .code .ln.del::before { content: "− "; color: var(--inteli-coral); }
+    .code .ln.keep::before { content: "+ "; color: var(--inteli-verde); }
+    .k { color: var(--inteli-verde); }
+    .s { color: var(--inteli-coral); }
+    .c { color: var(--ide-dim); font-style: italic; }
+    .n { color: var(--inteli-branco); font-weight: 600; }
+    .f { color: var(--inteli-cinza-300); text-decoration: underline; text-decoration-color: var(--ide-line); text-underline-offset: 3px; }
+    .h { color: var(--inteli-branco); font-weight: 700; }
+    .note-bar { position: sticky; top: 0; z-index: 1; padding: 8px 14px; background: var(--ide-side); border-bottom: 1px solid var(--ide-line); color: var(--ide-txt); font-family: var(--ds-fonte); font-size: 13px; line-height: 1.5; }
+    .note-bar b { color: var(--inteli-verde); font-weight: 600; }
+
+    .splitter { background: var(--ide-line); cursor: row-resize; }
+    .panel { display: grid; grid-template-rows: 30px minmax(0, 1fr); min-height: 0; background: var(--ide-bg); }
+    .ptabs { display: flex; gap: 2px; padding: 0 8px; border-bottom: 1px solid var(--ide-line); overflow-x: auto; }
+    .ptabs button { border: 0; background: transparent; color: var(--ide-dim); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; padding: 0 10px; cursor: pointer; border-bottom: 1px solid transparent; white-space: nowrap; }
+    .ptabs button[aria-selected="true"] { color: var(--inteli-branco); border-bottom-color: var(--inteli-verde); }
+    .ptabs button .cnt { margin-left: 4px; color: var(--inteli-verde); }
+    .pbody { overflow: auto; min-height: 0; }
+    .pview { display: none; min-height: 100%; }
+    .pview.on { display: block; }
+    .term { padding: 8px 14px 16px; white-space: pre-wrap; word-break: break-word; line-height: 1.5; }
+    .term .ps { color: var(--inteli-verde); }
+    .term .cmd { color: var(--inteli-branco); }
+    .term .err { color: var(--inteli-coral); }
+    .term .okl { color: var(--inteli-verde); }
+    .term .dim { color: var(--ide-dim); }
+    .term .cur::after { content: ""; display: inline-block; width: 7px; height: 1em; vertical-align: text-bottom; background: var(--ide-txt); animation: blink 1s steps(1) infinite; }
+    table.dt { border-collapse: collapse; width: 100%; font-size: 11.5px; }
+    table.dt th { position: sticky; top: 0; background: var(--ide-side); text-align: left; padding: 5px 10px; font-weight: 600; color: var(--inteli-branco); border-bottom: 1px solid var(--ide-line); white-space: nowrap; z-index: 1; }
+    table.dt td { padding: 4px 10px; border-bottom: 1px solid var(--ide-line); white-space: nowrap; max-width: 560px; overflow: hidden; text-overflow: ellipsis; vertical-align: top; }
+    table.dt td.num { text-align: right; }
+    table.dt tr.hl td { background: rgba(137, 206, 165, 0.14); }
+    table.dt tr.new td { animation: fresh 1.4s ease-out; }
+    table.dt tr.click { cursor: pointer; }
+    table.dt tr.click:hover td { background: var(--ide-line); }
+    .tag-set { color: var(--inteli-verde); }
+    .tag-product { color: var(--inteli-cinza-300); }
+    .tag-price { color: var(--inteli-coral); }
+    .pv-split { display: grid; grid-template-columns: minmax(260px, 0.9fr) minmax(0, 1.4fr); min-height: 100%; }
+    .pv-split > div { overflow: auto; border-right: 1px solid var(--ide-line); }
+    .pv-head { padding: 8px 12px; color: var(--ide-dim); line-height: 1.5; font-family: var(--ds-fonte); font-size: 12.5px; border-bottom: 1px solid var(--ide-line); }
+    .pv-head b { color: var(--inteli-branco); font-family: var(--ds-fonte-mono); font-weight: 600; }
+    .pv-head .flash { color: var(--inteli-verde); }
+    .schema { padding: 8px 12px; border-bottom: 1px solid var(--ide-line); display: flex; gap: 6px; flex-wrap: wrap; }
+    .schema span { border: 1px solid var(--ide-line); padding: 2px 7px; }
+    .schema span em { font-style: normal; color: var(--ide-dim); }
+    .gold-list button { display: flex; width: 100%; justify-content: space-between; gap: 10px; padding: 5px 12px; border: 0; background: transparent; color: var(--ide-txt); cursor: pointer; text-align: left; font-size: 12px; }
+    .gold-list button:hover { background: var(--ide-line); }
+    .gold-list button[aria-pressed="true"] { background: rgba(137, 206, 165, 0.16); }
+    .gold-list button span { color: var(--ide-dim); }
+    .gold-list button.new { animation: fresh 1.4s ease-out; }
+    .gold-list .grp { padding: 8px 12px 2px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ide-dim); }
+    .empty-p { padding: 18px; color: var(--ide-dim); font-family: var(--ds-fonte); font-size: 13px; line-height: 1.6; max-width: 80ch; }
+    .net-row td:first-child { color: var(--inteli-verde); }
+
+    /* Rastreio de uma carta: da linha de db_ingestion ao relatório. */
+    .trace { padding: 12px 14px 20px; display: flex; flex-direction: column; gap: 10px; }
+    .trace .stage { border: 1px solid var(--ide-line); }
+    .trace .stage > header { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; padding: 6px 10px; background: var(--ide-side); }
+    .trace .stage > header b { color: var(--inteli-branco); font-weight: 600; }
+    .trace .stage > header span { color: var(--ide-dim); font-family: var(--ds-fonte); font-size: 12px; }
+    .trace .stage .body { overflow-x: auto; }
+    .trace .down { text-align: center; color: var(--ide-dim); font-size: 11px; }
+    .trace .down code { color: var(--inteli-verde); }
+    .bars { display: flex; align-items: flex-end; gap: 14px; height: 150px; padding: 12px 14px 4px; }
+    .bars .bar { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; height: 100%; font-size: 11px; color: var(--ide-dim); }
+    .bars .bar i { display: block; width: 100%; max-width: 46px; background: var(--inteli-cinza-400); border-radius: 0 0 0 0; }
+    .bars .bar.frozen i { background: var(--inteli-verde); }
+    .bars .bar.last i { background: var(--inteli-cinza-100); }
+    .bars .bar b { color: var(--inteli-branco); font-weight: 600; }
+
+    /* Grafo do pipeline */
+    .dag { display: flex; gap: 22px; padding: 16px 14px 20px; align-items: center; overflow-x: auto; min-height: 100%; }
+    .dag .col { display: flex; flex-direction: column; gap: 6px; position: relative; }
+    .dag .col + .col::before { content: "▶"; position: absolute; left: -17px; top: 50%; transform: translateY(-50%); color: var(--ide-dim); font-size: 10px; }
+    .dag .t { border: 1px solid var(--ide-line); padding: 5px 8px; min-width: 150px; font-size: 11px; display: grid; gap: 1px; }
+    .dag .t small { color: var(--ide-dim); font-size: 10px; }
+    .dag .t.run { border-color: var(--inteli-cinza-100); animation: blink 0.8s steps(1) infinite; }
+    .dag .t.ok { border-color: var(--inteli-verde); }
+    .dag .t.ok small { color: var(--inteli-verde); }
+    .dag .t.fail { border-color: var(--inteli-coral); }
+    .dag .t.fail small { color: var(--inteli-coral); }
+    .dag .t.skip { border-style: dashed; opacity: 0.55; }
+    .dag-legend { padding: 0 14px 12px; color: var(--ide-dim); font-family: var(--ds-fonte); font-size: 12px; }
+
+    /* Painel do agente */
+    .ide-agent { background: var(--ide-side); border-left: 1px solid var(--ide-line); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-height: 0; }
+    .ide-agent h2 { margin: 0; padding: 9px 12px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ide-dim); font-family: inherit; border-bottom: 1px solid var(--ide-line); }
+    .chat { overflow: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 10px; }
+    .msg { font-family: var(--ds-fonte); font-size: 13px; line-height: 1.5; }
+    .msg .who { font-family: var(--ds-fonte-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ide-dim); margin-bottom: 3px; }
+    .msg.user .bubble { border: 1px solid var(--ide-line); background: var(--ide-bg); padding: 8px 10px; }
+    .msg.user details summary { cursor: pointer; font-family: var(--ds-fonte-mono); font-size: 12px; color: var(--inteli-branco); }
+    .msg.user pre { margin: 8px 0 0; white-space: pre-wrap; font-family: var(--ds-fonte-mono); font-size: 11px; line-height: 1.5; color: var(--ide-txt); max-height: 320px; overflow: auto; }
+    .msg.agent .bubble { color: var(--ide-txt); }
+    .msg.agent .bubble b { color: var(--inteli-branco); }
+    .msg.agent .bubble code { font-family: var(--ds-fonte-mono); font-size: 12px; color: var(--inteli-verde); }
+    .msg.agent ul { margin: 4px 0 0; padding-left: 18px; }
+    .act { font-family: var(--ds-fonte-mono); font-size: 11.5px; color: var(--ide-dim); display: flex; gap: 6px; align-items: baseline; }
+    .act b { color: var(--ide-txt); font-weight: 500; }
+    .act .ok { color: var(--inteli-verde); }
+    .act.running .ok { color: var(--inteli-cinza-100); animation: blink 0.8s steps(1) infinite; }
+    .compose { border-top: 1px solid var(--ide-line); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+    .compose .next { font-family: var(--ds-fonte); font-size: 12.5px; color: var(--ide-dim); line-height: 1.45; }
+    .compose .next b { color: var(--inteli-branco); }
+    .compose .row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .compose button { height: 30px; padding: 0 10px; border: 1px solid var(--inteli-verde); background: var(--inteli-verde); color: var(--inteli-roxo); font-weight: 600; cursor: pointer; font-size: 12px; border-radius: var(--ds-raio-1); }
+    .compose button.ghost { background: transparent; color: var(--ide-txt); border-color: var(--ide-line); font-weight: 500; }
+    .compose button:disabled { opacity: 0.45; cursor: default; }
+
+    .ide-status { display: flex; align-items: center; gap: 16px; padding: 0 10px; background: var(--inteli-roxo); border-top: 1px solid var(--ide-line); font-size: 11px; color: var(--ide-txt); white-space: nowrap; overflow: hidden; }
+    .ide-status .sp { flex: 1; }
+    .ide-status .busy { color: var(--inteli-verde); }
+
+    .notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 0 0 28px; }
+    .notes article { border: 1px solid var(--ds-borda-forte); padding: 14px 16px; }
+    .notes h2 { margin: 0 0 6px; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-ui); font-weight: 600; color: var(--ds-texto-forte); }
+    .notes p, .notes li { margin: 0; font-size: var(--ds-fs-meta); line-height: 1.55; color: var(--ds-texto); }
+    .notes ul { margin: 0; padding-left: 18px; }
+
+
+    /* Tela cheia: a barra de etapas e o editor ocupam a tela inteira. */
+    .ide-full { margin-left: 10px; border: 1px solid var(--ide-line); background: transparent; color: var(--ide-txt); height: 22px; padding: 0 8px; cursor: pointer; border-radius: var(--ds-raio-1); }
+    .ide-full:hover { border-color: var(--inteli-verde); color: var(--inteli-verde); }
+    .stage.full { position: fixed; inset: 0; z-index: 1000; background: var(--ds-fundo); padding: 8px 10px; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 8px; }
+    .stage:fullscreen { background: var(--ds-fundo); padding: 8px 10px; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 8px; }
+    .stage.full .controls, .stage:fullscreen .controls { margin: 0; }
+    .stage.full .ide, .stage:fullscreen .ide { height: 100%; margin: 0; font-size: 14px; }
+    .stage.full .ide-body, .stage:fullscreen .ide-body { grid-template-columns: 44px 250px minmax(0, 1fr) 380px; grid-template-rows: none; }
+    .stage.full .ide-agent, .stage:fullscreen .ide-agent { grid-column: auto; border-left: 1px solid var(--ide-line); border-top: 0; max-height: none; }
+    .stage.full .msg, .stage:fullscreen .msg { font-size: 14px; }
+    body.no-scroll { overflow: hidden; }
+
+    /* Janela do prompt: leitura confortável, uma seção do CRAETE por bloco. */
+    dialog#prompt-dlg { width: min(1000px, 94vw); max-height: 90vh; padding: 0; border: 1px solid var(--ds-texto-forte); border-radius: var(--ds-raio-2); background: var(--ds-fundo); color: var(--ds-texto-forte); }
+    dialog#prompt-dlg[open] { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr) auto; }
+    dialog#prompt-dlg::backdrop { background: rgba(46, 38, 64, 0.55); }
+    .pd-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; padding: 14px 20px 10px; border-bottom: 1px solid var(--ds-borda); }
+    .pd-head h2 { margin: 0; font-family: var(--ds-fonte-mono); font-size: 1.15rem; font-weight: 600; }
+    .pd-head span { font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); }
+    .pd-head .x { margin-left: auto; }
+    .pd-nav { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 20px; border-bottom: 1px solid var(--ds-borda); background: var(--ds-fundo-fraco); }
+    .pd-nav .grp { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+    .pd-nav .sep { width: 1px; align-self: stretch; background: var(--ds-borda-forte); margin: 0 6px; }
+    .pd-nav .lbl { font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-micro); color: var(--ds-texto-suave); margin-right: 2px; }
+    .pd-body { overflow: auto; padding: 8px 20px 20px; }
+    .pd-sec { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--ds-borda); }
+    .pd-sec:last-child { border-bottom: 0; }
+    .pd-sec h3 { margin: 0; font-family: var(--ds-fonte-mono); font-size: var(--ds-fs-meta); font-weight: 600; color: var(--ds-texto-forte); }
+    .pd-sec h3 b { display: inline-block; min-width: 26px; padding: 1px 4px; margin-right: 6px; text-align: center; background: var(--inteli-roxo); color: var(--ds-texto-inverso); border-radius: var(--ds-raio-1); font-weight: 600; }
+    .pd-sec pre { margin: 0; white-space: pre-wrap; font-family: var(--ds-fonte-mono); font-size: 0.92rem; line-height: 1.6; color: var(--ds-texto-forte); font-variant-ligatures: none; }
+    .pd-sec.facts pre { color: var(--ds-texto); }
+    .pd-sec.flash { animation: pdflash 1.2s ease-out; }
+    @keyframes pdflash { from { background: var(--ds-roxo-tinta); } to { background: transparent; } }
+    .pd-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 20px; border-top: 1px solid var(--ds-borda); background: var(--ds-fundo-fraco); }
+    .pd-foot .hint { margin-right: auto; font-size: var(--ds-fs-meta); color: var(--ds-texto-suave); }
+    .msg.user .open-prompt { display: block; width: 100%; text-align: left; border: 0; background: transparent; color: var(--inteli-branco); font-family: var(--ds-fonte-mono); font-size: 12px; cursor: pointer; padding: 0; }
+    .msg.user .open-prompt span { color: var(--inteli-verde); }
+    .msg.user .open-prompt:hover span { text-decoration: underline; }
+    @media (max-width: 700px) { .pd-sec { grid-template-columns: minmax(0, 1fr); gap: 6px; } .pd-sec pre { font-size: 0.8rem; } .pd-nav .sep { display: none; } .pd-head, .pd-nav, .pd-body, .pd-foot { padding-left: 14px; padding-right: 14px; } }
+
+    @media (max-width: 1250px) {
+      .ide-body { grid-template-columns: 44px 200px minmax(0, 1fr); }
+      .ide-agent { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--ide-line); max-height: 380px; }
+      .ide { height: auto; grid-template-rows: 30px auto 24px; }
+      .ide-body { grid-template-rows: clamp(560px, 70vh, 820px) auto; }
+      .notes { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 760px) {
+      .lab { padding: 16px 16px 0; }
+      .ide-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: 200px clamp(520px, 75vh, 760px) auto; }
+      .ide-act { display: none; }
+      .ide-side { border-right: 0; border-bottom: 1px solid var(--ide-line); }
+      .pv-split { grid-template-columns: 1fr; }
+    }
+
+    /* ===== Aula 8: o flow como grafo, no estilo da página de execução do Prefect ===== */
+    .flow .node { min-width: 150px; }
+    .run-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 7px 12px; border-bottom: 1px solid var(--ide-line); background: var(--ide-side); }
+    .run-bar .lbl { color: var(--ide-dim); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; }
+    .run-bar button { border: 1px solid var(--ide-line); background: transparent; color: var(--ide-txt); height: 24px; padding: 0 8px; cursor: pointer; font-size: 11.5px; border-radius: var(--ds-raio-1); }
+    .run-bar button:hover { border-color: var(--inteli-cinza-400); }
+    .run-bar button[aria-pressed="true"] { border-color: var(--inteli-verde); color: var(--inteli-branco); background: rgba(137, 206, 165, 0.12); }
+    .run-bar button.replay { margin-left: auto; border-color: var(--inteli-verde); color: var(--inteli-verde); }
+    .run-bar button:disabled { opacity: 0.45; cursor: default; }
+    .run-sum { display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 7px 12px; border-bottom: 1px solid var(--ide-line); font-size: 11.5px; color: var(--ide-dim); }
+    .run-sum b { color: var(--inteli-branco); font-weight: 600; }
+    .st-badge { display: inline-block; padding: 0 6px; border: 1px solid var(--ide-line); border-radius: var(--ds-raio-1); font-size: 10.5px; line-height: 17px; color: var(--ide-txt); }
+    .st-badge.Completed { border-color: var(--inteli-verde); color: var(--inteli-verde); }
+    .st-badge.Cached { border-color: var(--inteli-verde); color: var(--inteli-verde); border-style: dashed; }
+    .st-badge.Failed { border-color: var(--inteli-coral); color: var(--inteli-coral); }
+    .st-badge.NotReady { border-style: dashed; color: var(--ide-dim); }
+    .st-badge.Running, .st-badge.Retrying { border-color: var(--inteli-cinza-100); color: var(--inteli-branco); }
+    .st-badge.Scheduled { color: var(--inteli-cinza-300); }
+
+    .g-scroll { overflow: auto; padding: 14px 14px 10px; }
+    .g-wrap { position: relative; }
+    .g-wrap svg { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
+    .g-wrap svg path { fill: none; stroke: var(--ide-line); stroke-width: 1.5; }
+    .g-wrap svg path.ok { stroke: rgba(137, 206, 165, 0.55); }
+    .g-wrap svg path.bad { stroke: rgba(255, 69, 69, 0.55); stroke-dasharray: 4 3; }
+    .g-wrap svg path.live { stroke: var(--inteli-cinza-100); }
+    .gn { position: absolute; box-sizing: border-box; border: 1px solid var(--ide-line); background: var(--ide-bg); padding: 4px 8px; display: grid; gap: 1px; font-size: 11px; line-height: 1.3; cursor: pointer; border-radius: var(--ds-raio-1); }
+    .gn b { font-weight: 500; color: var(--ide-txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .gn small { font-size: 10px; color: var(--ide-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .gn:hover { border-color: var(--inteli-cinza-400); }
+    .gn.sel { outline: 1px solid var(--inteli-branco); outline-offset: 1px; }
+    .gn.Completed { border-color: var(--inteli-verde); box-shadow: inset 3px 0 0 var(--inteli-verde); }
+    .gn.Completed small { color: var(--inteli-verde); }
+    .gn.Cached { border-color: var(--inteli-verde); border-style: dashed; background: rgba(137, 206, 165, 0.08); }
+    .gn.Cached small { color: var(--inteli-verde); }
+    .gn.Failed { border-color: var(--inteli-coral); box-shadow: inset 3px 0 0 var(--inteli-coral); }
+    .gn.Failed small { color: var(--inteli-coral); }
+    .gn.NotReady { border-style: dashed; opacity: 0.6; }
+    .gn.Running, .gn.Retrying { border-color: var(--inteli-cinza-100); }
+    .gn.Running small, .gn.Retrying small { color: var(--inteli-branco); animation: blink 0.8s steps(1) infinite; }
+    .gn.Retrying, .gn.AwaitingRetry { box-shadow: inset 3px 0 0 var(--inteli-coral); }
+    .gn.AwaitingRetry { border-color: var(--inteli-coral); border-style: dashed; }
+    .gn.AwaitingRetry small { color: var(--inteli-coral); }
+    .st-badge.AwaitingRetry { border-color: var(--inteli-coral); color: var(--inteli-coral); border-style: dashed; }
+    .ide-main { --panel-h: 56%; }
+    .gn.Pending { opacity: 0.75; }
+    .g-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 0 14px 10px; font-size: 11px; color: var(--ide-dim); font-family: var(--ds-fonte); }
+    .run-split { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); border-top: 1px solid var(--ide-line); }
+    .run-split > div { min-width: 0; overflow: auto; max-height: 340px; }
+    .run-split > div + div { border-left: 1px solid var(--ide-line); }
+    .logs { padding: 4px 0 12px; font-size: 11px; line-height: 1.5; }
+    .logs div { display: grid; grid-template-columns: 52px 54px minmax(0, 1fr); gap: 8px; padding: 1px 12px; }
+    .logs div span:first-child { color: var(--ide-dim); text-align: right; }
+    .logs div .ERROR { color: var(--inteli-coral); }
+    .logs div .INFO { color: var(--ide-dim); }
+    .logs div em { font-style: normal; word-break: break-word; }
+    .logs div em b { font-weight: 500; color: var(--ide-txt); }
+    .logs div.new { animation: fresh 1.2s ease-out; }
+    .sub-h { padding: 6px 12px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ide-dim); border-bottom: 1px solid var(--ide-line); position: sticky; top: 0; background: var(--ide-bg); z-index: 2; }
+
+    /* Linha do tempo: cada task como uma barra, todas as execuções na mesma escala. */
+    .tl { padding: 8px 14px 18px; }
+    .tl .run { margin: 6px 0 14px; }
+    .tl .run > header { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; padding: 4px 0 6px; border-bottom: 1px solid var(--ide-line); margin-bottom: 4px; }
+    .tl .run > header b { color: var(--inteli-branco); font-weight: 600; }
+    .tl .run > header span { color: var(--ide-dim); font-family: var(--ds-fonte); font-size: 12px; }
+    .tl .row { display: grid; grid-template-columns: 200px minmax(0, 1fr) 56px; gap: 10px; align-items: center; height: 18px; font-size: 11px; }
+    .tl .row > span:first-child { color: var(--ide-txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tl .row > span:last-child { color: var(--ide-dim); text-align: right; }
+    .tl .track { position: relative; height: 10px; background: repeating-linear-gradient(90deg, transparent 0 calc(10% - 1px), var(--ide-line) calc(10% - 1px) 10%); }
+    .tl .bar { position: absolute; top: 0; bottom: 0; min-width: 2px; background: var(--inteli-cinza-400); border-radius: 2px; }
+    .tl .bar.Completed, .tl .bar.success { background: var(--inteli-verde); }
+    .tl .bar.Cached { background: transparent; border: 1px dashed var(--inteli-verde); }
+    .tl .bar.Failed { background: var(--inteli-coral); }
+    .tl .axis { display: grid; grid-template-columns: 200px minmax(0, 1fr) 56px; gap: 10px; font-size: 10px; color: var(--ide-dim); margin-top: 2px; }
+    .tl .axis div { display: flex; justify-content: space-between; }
+
+    /* Deployments, no estilo da página do servidor. */
+    .dep { padding: 12px 14px 20px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+    .dep .card { border: 1px solid var(--ide-line); }
+    .dep .card > header { padding: 7px 10px; background: var(--ide-side); display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+    .dep .card > header b { color: var(--inteli-branco); font-weight: 600; }
+    .dep .card > header span { color: var(--ide-dim); font-family: var(--ds-fonte); font-size: 12px; }
+    .dep dl { margin: 0; padding: 8px 10px; display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 5px 10px; font-size: 11.5px; }
+    .dep dt { color: var(--ide-dim); }
+    .dep dd { margin: 0; color: var(--ide-txt); word-break: break-word; }
+    .dep .full { grid-column: 1 / -1; }
+    .dep table.dt tr.click td { cursor: pointer; }
+
+    .term .tbl { white-space: pre; display: block; overflow-x: auto; }
+    .term .sec { color: var(--inteli-verde); border-top: 1px solid var(--ide-line); margin-top: 6px; padding-top: 4px; display: block; }
+    .tree .row .g.D { color: var(--inteli-coral); }
+    .tree .row.gone .nm { text-decoration: line-through; opacity: 0.6; }
+    @media (max-width: 760px) { .run-split, .dep { grid-template-columns: minmax(0, 1fr); } .run-split > div + div { border-left: 0; border-top: 1px solid var(--ide-line); } .tl .row, .tl .axis { grid-template-columns: 120px minmax(0, 1fr) 44px; } }
+  </style>
+
+<!-- semana:css:start -->
+<link rel="stylesheet" href="../../../../css/semana-ano.css">
+<!-- semana:css:end -->
+<!-- ds:css -->
+<link rel="stylesheet" href="../../../../css/inteli-ds.css">
+</head>
+
+<body class="tm">
+  <div class="lab">
+    <header class="lab-top">
+      <a href="../../../home-module-8-sistemas-informacao.html"><img src="https://res.cloudinary.com/dyhjjms8y/image/upload/v1769427095/9c2796bb-d4da-4f4e-846a-d38d547249ee_pwwh3l.png" alt="Inteli Logo"></a>
+      <nav aria-label="Lesson 8">
+        <a href="../../../home-module-8-sistemas-informacao.html"><span>←</span> Module 8</a>
+        <a href="../../slides/slide-lesson-8.html"><span>[1]</span> Slides</a>
+        <a href="../../materials/lesson-8-material.html"><span>[2]</span> Material</a>
+        <a href="https://github.com/afonsolelis/aulas/tree/main/pages/module-8-sistemas-informacao/lab/lesson-8/tcg_dataapp" target="_blank" rel="noopener noreferrer"><span>[3]</span> Reference package</a>
+        <a href="../lesson-7/index.html"><span>[4]</span> Lab of Lesson 7</a>
+      </nav>
+    </header>
+
+    <section class="lab-head">
+      <p class="meta">Module 8 · Information Systems · Lesson 8 · Lab</p>
+      <h1>The pipeline as a Prefect DAG</h1>
+      <p>This page reproduces, in the browser, the session in which a coding agent turns the runner of Lesson 7 into a Prefect 3 flow. The folder starts as a copy of the package <code>tcg-dataapp</code> of Lesson 7; each of the four prompts makes the agent write the files of the reference package and run them. The panels below the editor show each flow run as the server of Prefect records it: the graph of task runs with the state of each one, the logs, a time line that puts the runner of Lesson 7 and the flow on the same scale, the rows written to <code>ops.pipeline_runs</code> and, in the last step, the deployment that runs the flow every day at 06:00 UTC. Nothing runs here: the code is the code of the repository, and the runs, their timings and their logs were recorded on 12/11/2026 against tcgcsv.com.</p>
+    </section>
+
+    <section aria-label="From the runner to the orchestrator">
+      <div class="flow" id="flow">
+        <div class="node" data-stage="runner"><b>pipeline.py</b><span>the runner of Lesson 7: 12 tasks, one after the other, in about 40 s</span><span class="st">before</span></div>
+        <div class="arrow">▶</div>
+        <div class="node" data-stage="flow"><b>flows.py</b><span>tasks, one flow and futures: the order comes from the data</span><span class="st">step 01</span></div>
+        <div class="arrow">▶</div>
+        <div class="node" data-stage="options"><b>retries · cache · hooks</b><span>options chosen task by task, and the run log of Lesson 7</span><span class="st">step 02</span></div>
+        <div class="arrow">▶</div>
+        <div class="node" data-stage="tests"><b>tests/test_flows.py</b><span>five tests on a temporary server, without network</span><span class="st">step 03</span></div>
+        <div class="arrow">▶</div>
+        <div class="node" data-stage="deploy"><b>server · deployment</b><span><code>prefect server start</code>, <code>tcg-dataapp serve</code>, cron 0 6 * * *</span><span class="st">step 04</span></div>
+      </div>
+      <div class="flow-run" id="flow-run"><b>A DAG</b> each task is a node and each edge says that one task needs the output of another · <b>Prefect</b> orders the graph, runs independent tasks at the same time, retries, caches and records every state · <b>The server</b> keeps the history and starts the scheduled runs (step 04)</div>
+    </section>
+
+    <div class="stage" id="stage">
+    <div class="controls" aria-label="Steps">
+      <span class="lbl">Steps</span>
+      <button class="btn-lab" data-step="0">01 · Tasks and flow</button>
+      <button class="btn-lab" data-step="1">02 · Failures and cache</button>
+      <button class="btn-lab" data-step="2">03 · Tests</button>
+      <button class="btn-lab" data-step="3">04 · Deployment</button>
+      <span class="lbl" style="margin-left:12px">Speed</span>
+      <button class="btn-lab" data-speed="1" aria-pressed="true">1×</button>
+      <button class="btn-lab" data-speed="3" aria-pressed="false">3×</button>
+      <button class="btn-lab" id="btn-skip">Finish step</button>
+      <button class="btn-lab" id="btn-reset">Reset</button>
+      <button class="btn-lab" id="btn-prompts" style="margin-left:12px">Prompts ↗</button>
+      <button class="btn-lab primary" id="btn-full" type="button" aria-pressed="false" title="Full screen (F)">⛶ Full screen</button>
+    </div>
+
+    <div class="ide" id="ide">
+      <div class="ide-title"><span class="dots"><i></i><i></i><i></i></span><span class="t">lesson_08_dag — <span id="title-file">Welcome</span></span><span class="sim">simulation</span><button class="ide-full" id="ide-full" type="button" title="Full screen (F)">⛶</button></div>
+      <div class="ide-body">
+        <nav class="ide-act" aria-label="Views">
+          <button id="act-files" aria-pressed="true" title="Explorer">🗎</button>
+          <button id="act-auto" aria-pressed="false" title="What the orchestrator adds">⚙<span class="badge" id="auto-badge">0</span></button>
+        </nav>
+        <aside class="ide-side">
+          <div id="side-files" style="display:flex;flex-direction:column;min-height:0;flex:1">
+            <h2>Explorer · lesson_08_dag</h2>
+            <div class="tree" id="tree"></div>
+          </div>
+          <div id="side-auto" style="display:none;flex-direction:column;min-height:0;flex:1">
+            <h2>What the orchestrator adds</h2>
+            <div class="checklist" id="checklist"></div>
+          </div>
+        </aside>
+        <main class="ide-main" id="ide-main">
+          <div class="tabs" id="tabs"></div>
+          <div class="editor" id="editor"></div>
+          <div class="splitter" id="splitter" title="Drag to resize"></div>
+          <section class="panel">
+            <div class="ptabs" role="tablist" id="ptabs">
+              <button role="tab" data-pv="term" aria-selected="true">Terminal</button>
+              <button role="tab" data-pv="run" aria-selected="false">Flow run<span class="cnt" id="cnt-run"></span></button>
+              <button role="tab" data-pv="time" aria-selected="false">Time line</button>
+              <button role="tab" data-pv="log" aria-selected="false">ops.pipeline_runs<span class="cnt" id="cnt-log"></span></button>
+              <button role="tab" data-pv="dep" aria-selected="false">Deployments</button>
+            </div>
+            <div class="pbody">
+              <div class="pview on" id="pv-term"><div class="term" id="term"></div></div>
+              <div class="pview" id="pv-run"></div>
+              <div class="pview" id="pv-time"></div>
+              <div class="pview" id="pv-log"></div>
+              <div class="pview" id="pv-dep"></div>
+            </div>
+          </section>
+        </main>
+        <aside class="ide-agent" aria-label="Coding agent">
+          <h2>Agent · chat</h2>
+          <div class="chat" id="chat" aria-live="polite"></div>
+          <div class="compose">
+            <div class="next" id="next"></div>
+            <div class="row"><button id="btn-send">Send prompt 01</button><button class="ghost" id="btn-view-prompt">Read the prompt</button></div>
+          </div>
+        </aside>
+      </div>
+      <div class="ide-status"><span>⎇ main</span><span id="st-step">step —</span><span class="sp"></span><span id="st-busy"></span><span id="st-ver"></span><span>UTF-8</span></div>
+    </div>
+    </div>
+
+    <section class="notes" aria-label="Notes">
+      <article>
+        <h2>What is real and what is simulated</h2>
+        <p>The files of the editor are those of <code>lab/lesson-8/tcg_dataapp/</code>, and the folder starts with the package of <code>lab/lesson-7/</code>. Two files are first versions that later steps replace: <code>flows.py</code> of step 01, without retries, cache or hooks, and <code>cli.py</code> of step 01, without <code>serve</code>. The runs were recorded on 12/11/2026 by <code>build_lab_data.py</code> with the final code: step 01 replays the first run without the lines of the state hooks, which that version does not have yet. The agent, its messages and the pace of the typing are a staging of the session.</p>
+      </article>
+      <article>
+        <h2>How to use it in class</h2>
+        <ul>
+          <li>Send each prompt and stop at the end of the step to compare the files with the slides.</li>
+          <li>The panel <code>Flow run</code> plays each run on its recorded clock; click a task to see its state, attempts and upstream tasks, and press “Replay” to watch it again.</li>
+          <li>The panel <code>Time line</code> answers why the flow is faster than the runner: the five downloads overlap.</li>
+          <li>The icon ⚙ lists what the orchestrator adds and the file that delivers each item.</li>
+        </ul>
+      </article>
+      <article>
+        <h2>Doing it for real</h2>
+        <p>The README of <code>lab/lesson-8/</code> lists the commands. Over a copy of the package of Lesson 7, with <code>pip install -e '.[dev]' 'prefect&gt;=3.4,&lt;4'</code>, the four prompts of <code>prompts/</code> go to the coding agent in this order. The reference package passes its 14 tests without network, runs once with <code>tcg-dataapp flow</code> and serves the deployment with <code>tcg-dataapp serve</code> after <code>prefect server start</code>; the UI is at <code>http://127.0.0.1:4200</code>. Prompt 05 is the work of the second hour, over the DataApp of each group.</p>
+      </article>
+    </section>
+  </div>
+
+  <footer class="inteli-footer tm-rodape">
+    <div>
+      <ul>
+        <li><a href="../../../home-module-8-sistemas-informacao.html">Module 8</a></li>
+        <li><a href="../../../design-system.html">Design system</a></li>
+      </ul>
+      <p>Material created by professor Afonso Brandão for Inteli. Open reading license. Data: TCGplayer, through the public mirror tcgcsv.com. Orchestration: Prefect 3, open source (Apache 2.0).</p>
+    </div>
+  </footer>
+
+  <dialog id="prompt-dlg" aria-labelledby="pd-title">
+    <div class="pd-head"><h2 id="pd-title">Prompt</h2><span id="pd-file"></span><button class="btn-lab x" id="pd-close" type="button">Close ✕</button></div>
+    <div class="pd-nav"><div class="grp" id="pd-prompts"><span class="lbl">Prompt</span></div><span class="sep"></span><div class="grp" id="pd-secs"><span class="lbl">Section</span></div></div>
+    <div class="pd-body" id="pd-body"></div>
+    <div class="pd-foot"><span class="hint" id="pd-hint"></span><button class="btn-lab" id="pd-copy" type="button">Copy</button><button class="btn-lab primary" id="pd-send" type="button">Send to the agent</button></div>
+  </dialog>
+
+  <script src="lab-data.js"></script>
+  <script>
+  (() => {
+    const D = window.LAB_DATA;
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const fmt = (n) => Number(n).toLocaleString('en-US');
+    const sec = (x) => (x == null ? '—' : x < 10 ? x.toFixed(2) : x.toFixed(1)) + (x == null ? '' : ' s');
+    $('st-ver').textContent = `Python 3.12 · Prefect ${D.versions.prefect} · DuckDB ${D.versions.duckdb}`;
+
+    // ---------- Primeiras versões que as etapas seguintes substituem ----------
+    const FLOW01 = `"""The pipeline of Lesson 7 as a Prefect flow.
+
+The hand-written runner of pipeline.py ordered the tasks, retried them and
+logged them. Here each step is a Prefect task, and the dependencies are the
+futures passed from one task to the next (or wait_for). The layers below
+(etls, processors, views) are the same functions of Lesson 7.
+"""
+from __future__ import annotations
+
+from contextlib import contextmanager
+
+import duckdb
+from prefect import flow, get_run_logger, task
+from prefect.futures import wait
+from prefect.runtime import flow_run
+
+from tcg_dataapp.config import Settings
+from tcg_dataapp.etls import extract
+from tcg_dataapp.etls.landing import load_batch
+from tcg_dataapp.etls.tcgcsv import TcgcsvClient
+from tcg_dataapp.processors import gold, quality
+from tcg_dataapp.views import report
+
+
+def make_client(settings: Settings) -> TcgcsvClient:
+    """The source; the tests replace this function with a fake TCGplayer."""
+    return TcgcsvClient(settings.base_url, settings.category)
+
+
+@contextmanager
+def warehouse(settings: Settings):
+    """One connection per task: tasks run in threads, and a DuckDB connection must not be shared between them."""
+    settings.db_path.parent.mkdir(parents=True, exist_ok=True)
+    con = duckdb.connect(str(settings.db_path))
+    try:
+        yield con
+    finally:
+        con.close()
+
+
+@task(name="extract_sets")
+def extract_sets(settings: Settings, captured_at: int) -> int:
+    with warehouse(settings) as con:
+        return extract.extract_sets(con, make_client(settings), settings.sets, captured_at)
+
+
+@task(name="extract_products")
+def extract_products(settings: Settings, captured_at: int) -> int:
+    with warehouse(settings) as con:
+        return extract.extract_products(con, make_client(settings), settings.sets, captured_at)
+
+
+@task(name="fetch_prices_archive", task_run_name="fetch_prices_{day}")
+def fetch_prices_archive(base_url: str, category: int, sets: tuple, day: str) -> list[dict]:
+    """Download the archive of one past day and keep the prices of the sets; it does not write."""
+    client = make_client(Settings(base_url=base_url, category=category))
+    by_set = client.prices_archive(day, list(sets))
+    return [price for set_id in sets for price in by_set.get(set_id, [])]
+
+
+@task(name="load_prices", task_run_name="load_prices_{day}")
+def load_prices(settings: Settings, day: str, records: list[dict]) -> int:
+    with warehouse(settings) as con:
+        return load_batch(con, "tcgplayer.price.v1", extract.unix(day), records)
+
+
+@task(name="extract_prices_today")
+def extract_prices_today(settings: Settings) -> int:
+    with warehouse(settings) as con:
+        return extract.extract_prices_today(con, make_client(settings), settings.sets, extract.today())
+
+
+@task(name="build_gold")
+def build_gold(settings: Settings) -> str:
+    with warehouse(settings) as con:
+        return gold.build_gold(con)
+
+
+@task(name="check_quality")
+def check_quality(settings: Settings) -> dict:
+    with warehouse(settings) as con:
+        return quality.check_gold(con)
+
+
+@task(name="freeze_reports")
+def freeze_reports(settings: Settings) -> dict:
+    with warehouse(settings) as con:
+        return gold.freeze_month(con, settings.frozen_month)
+
+
+@task(name="export_marts")
+def export_marts(settings: Settings) -> list[str]:
+    with warehouse(settings) as con:
+        return [p.as_posix() for p in report.export_marts(con, settings.out_dir)]
+
+
+@task(name="write_report")
+def write_report(settings: Settings, run_id: str) -> str:
+    with warehouse(settings) as con:
+        return report.write_report(con, settings.out_dir, run_id).as_posix()
+
+
+@flow(name="tcg-dataapp", log_prints=True)
+def tcg_pipeline(with_today: bool = False) -> dict:
+    """Extract, load, build the gold layer, check it, freeze the month and write the reports."""
+    logger = get_run_logger()
+    settings = Settings()
+    run_id = (flow_run.id or "local").replace("-", "")[:12]
+    captured_at = extract.now_unix()
+    logger.info("db %s · sets %d · dates %s", settings.db_path, len(settings.sets), ", ".join(settings.price_dates))
+
+    # the catalogue: products after sets, so a missing set stops the run before 1,490 products are loaded
+    sets_f = extract_sets.submit(settings, captured_at)
+    products_f = extract_products.submit(settings, captured_at, wait_for=[sets_f])
+
+    # the prices: the downloads depend on nothing and start at once, in parallel; each load waits for its download
+    loads = []
+    for day in settings.price_dates:
+        raw = fetch_prices_archive.submit(settings.base_url, settings.category, settings.sets, day)
+        loads.append(load_prices.submit(settings, day, raw))
+    if with_today:
+        loads.append(extract_prices_today.submit(settings, wait_for=[products_f]))
+
+    # the model: one chain, and the two outputs of the checks in parallel
+    gold_f = build_gold.submit(settings, wait_for=[products_f, *loads])
+    quality_f = check_quality.submit(settings, wait_for=[gold_f])
+    freeze_f = freeze_reports.submit(settings, wait_for=[quality_f])
+    marts_f = export_marts.submit(settings, wait_for=[quality_f])
+    report_f = write_report.submit(settings, run_id, wait_for=[freeze_f, marts_f])
+
+    futures = {"extract_sets": sets_f, "extract_products": products_f, "build_gold": gold_f,
+               "check_quality": quality_f, "freeze_reports": freeze_f, "export_marts": marts_f,
+               "write_report": report_f}
+    futures.update({f"load_prices_{d}": f for d, f in zip(settings.price_dates, loads)})
+    if with_today:
+        futures["extract_prices_today"] = loads[-1]
+    wait(list(futures.values()))
+
+    results, failed = {}, []
+    for name, future in futures.items():
+        if future.state.is_completed():
+            results[name] = future.result()
+        else:
+            failed.append(name)
+    if failed:
+        raise RuntimeError(f"run {run_id} failed: {', '.join(sorted(failed))}")
+    logger.info("run %s: OK · %s", run_id, results["check_quality"])
+    return results
+`;
+    const FLOW_REAL = D.files['src/tcg_dataapp/flows.py'];
+    const FLOW02 = FLOW_REAL.split('\n\ndef serve(')[0] + '\n';
+    const CLI_REAL = D.files['src/tcg_dataapp/cli.py'];
+    const CLI01 = CLI_REAL
+      .replace('run | flow | serve | status | report', 'run | flow | status | report')
+      .replace(/^    serve_p.*\n/gm, '')
+      .replace(/    if args\.command in \("flow", "serve"\):\n(.*\n)\n        if args\.command == "serve":\n.*\n.*\n/, '    if args.command == "flow":\n$1\n');
+
+    // Marca as linhas novas de um arquivo em relação à versão anterior (diff por conjunto de linhas).
+    function marksAgainst(oldText, newText) {
+      const old = new Set(oldText.split('\n'));
+      const marks = {};
+      newText.split('\n').forEach((l, i) => { if (l.trim() && !old.has(l)) marks[i] = 'keep'; });
+      return marks;
+    }
+
+    // ---------- Realce de sintaxe ----------
+    const KW = {
+      py: new Set('from import as def class return if elif else for in while try except finally raise with lambda yield not and or is None True False pass continue break global nonlocal assert del async await'.split(' ')),
+      sql: new Set('select from where group by order having limit as and or not in is null create replace view table schema if exists macro join left inner on over partition qualify row_number case when then else end distinct union all with insert into values delete begin transaction commit rollback cube rollup grouping sets bigint varchar json integer double date cast try_cast filter count sum avg max min any_value desc asc using strftime epoch to_timestamp'.split(' ')),
+      sh: new Set('if then else fi exit cd echo set exec mkdir tail tee date for do done in local return'.split(' ')),
+    };
+    const RX = {
+      py: /(#[^\n]*)|("""[\s\S]*?(?:"""|$)|'''[\s\S]*?(?:'''|$)|[fr]?"(?:\\.|[^"\\\n])*"|[fr]?'(?:\\.|[^'\\\n])*')|(\b\d[\d_]*(?:\.\d+)?\b)|(\b[A-Za-z_]\w*\b)/g,
+      sql: /(--[^\n]*)|('(?:''|[^'])*')|(\b\d+(?:\.\d+)?\b)|(\b[A-Za-z_]\w*\b)/g,
+      sh: /((?:^|\s)#[^\n]*)|("(?:\\.|[^"\\])*"|'[^']*')|(\$\{?\w+\}?|\$\(|\b\d+\b)|(\b[A-Za-z_][\w-]*\b)/g,
+      toml: /(#[^\n]*)|("(?:\\.|[^"\\\n])*")|(^\s*\[[^\]\n]*\])|(^\s*[\w."-]+(?=\s*=))/gm,
+      json: /("(?:\\.|[^"\\])*"(?=\s*:))|("(?:\\.|[^"\\])*")|(-?\b\d+(?:\.\d+)?\b)|(\b(?:true|false|null)\b)/g,
+      md: /(^#{1,6} [^\n]*)|(`[^`\n]+`)|(^```[^\n]*$)|(\|)/gm,
+      cron: /(#[^\n]*)|(^[A-Z_]+=)|(^[\d*\/,-]+(?: [\d*\/,-]+){4})|()/gm,
+    };
+    function langOf(path) {
+      if (/\.py$/.test(path)) return 'py';
+      if (/\.sql$/.test(path)) return 'sql';
+      if (/\.sh$/.test(path)) return 'sh';
+      if (/\.toml$/.test(path)) return 'toml';
+      if (/\.json$/.test(path) || path.startsWith('response')) return 'json';
+      if (/\.md$/.test(path)) return 'md';
+      if (/crontab$/.test(path)) return 'cron';
+      return 'txt';
+    }
+    function tokens(text, lang) {
+      const rx = RX[lang];
+      if (!rx) return [['', text]];
+      const out = [];
+      let last = 0, m;
+      rx.lastIndex = 0;
+      while ((m = rx.exec(text))) {
+        if (m[0] === '') { rx.lastIndex++; continue; }
+        if (m.index > last) out.push(['', text.slice(last, m.index)]);
+        let cls = '';
+        if (lang === 'py' || lang === 'sql' || lang === 'sh') {
+          if (m[1]) cls = 'c'; else if (m[2]) cls = 's'; else if (m[3]) cls = 'n';
+          else if (m[4]) {
+            const w = m[4];
+            const set = KW[lang];
+            if (set.has(lang === 'sql' ? w.toLowerCase() : w)) cls = 'k';
+            else if (lang === 'py' && /^[A-Z]\w*[a-z]/.test(w)) cls = 'f';
+            else if (lang === 'py' && text[rx.lastIndex] === '(') cls = 'f';
+          }
+        } else if (lang === 'toml') { cls = m[1] ? 'c' : m[2] ? 's' : m[3] ? 'h' : 'k'; }
+        else if (lang === 'json') { cls = m[1] ? 'k' : m[2] ? 's' : m[3] ? 'n' : 'f'; }
+        else if (lang === 'md') { cls = m[1] ? 'h' : m[2] ? 's' : m[3] ? 'c' : 'c'; }
+        else if (lang === 'cron') { cls = m[1] ? 'c' : m[2] ? 'k' : 'n'; }
+        out.push([cls, m[0]]);
+        last = rx.lastIndex;
+      }
+      if (last < text.length) out.push(['', text.slice(last)]);
+      return out;
+    }
+    function highlightLines(text, lang) {
+      const lines = [''];
+      for (const [cls, t] of tokens(text, lang)) {
+        t.split('\n').forEach((piece, i) => {
+          if (i > 0) lines.push('');
+          if (piece) lines[lines.length - 1] += cls ? `<span class="${cls}">${esc(piece)}</span>` : esc(piece);
+        });
+      }
+      return lines;
+    }
+
+    // ---------- Estado ----------
+    let S;
+    const RUN_LABEL = { first: 'first run', second: 'second run', down: 'source down', deployed: 'deployment' };
+    function fresh() {
+      const files = {};
+      for (const p of D.tree) {
+        const text = D.before[p] ?? D.files[p] ?? (p.endsWith('.sql') ? `-- ${p}\n-- Unchanged from Lesson 7: the flow calls the processors, it does not change them.\n` : `# ${p}\n# Unchanged from Lesson 7: the flow calls this module, it does not change it.\n`);
+        files[p] = { text, status: '' };
+      }
+      return {
+        files, virt: {}, tabs: [], active: null,
+        runs: [], runSel: null, runT: null, taskSel: null, timeRuns: [], logRuns: [], dep: false,
+        checks: new Set(), done: 0, running: false, speed: 1, fast: false,
+      };
+    }
+
+    // ---------- Explorador ----------
+    function renderTree() { $('tree').innerHTML = treeHtml(Object.keys(S.files)); }
+    function treeHtml(paths) {
+      const root = {};
+      for (const p of paths) {
+        let node = root;
+        const parts = p.split('/');
+        parts.forEach((part, i) => {
+          if (i === parts.length - 1) node[part] = p;
+          else node = node[part + '/'] = node[part + '/'] || {};
+        });
+      }
+      const order = (o) => Object.keys(o).sort((a, b) => (b.endsWith('/') - a.endsWith('/')) || a.localeCompare(b));
+      let html = '';
+      const walk = (o, depth) => {
+        for (const k of order(o)) {
+          const pad = 8 + depth * 12;
+          if (k.endsWith('/')) {
+            html += `<div class="row dir" style="padding-left:${pad}px"><span class="ic">▾</span><span class="nm">${esc(k.slice(0, -1))}</span></div>`;
+            walk(o[k], depth + 1);
+          } else {
+            const key = o[k];
+            const f = S.files[key];
+            const g = f && f.status ? `<span class="g ${f.status}">${f.status}</span>` : '';
+            const cls = (S.active === key ? ' active' : '') + (f && f.fresh ? ' fresh' : '') + (f && f.status === 'D' ? ' gone' : '');
+            html += `<div class="row${cls}" style="padding-left:${pad}px" data-open="${esc(key)}"><span class="ic">${icon(k)}</span><span class="nm">${esc(k)}</span>${g}</div>`;
+          }
+        }
+      };
+      walk(root, 0);
+      return html;
+    }
+    function icon(name) {
+      if (/\.py$/.test(name)) return 'py';
+      if (/\.sql$/.test(name)) return '⛁';
+      if (/\.md$/.test(name)) return 'M';
+      if (/\.toml$/.test(name)) return '⚙';
+      if (/\.sh$/.test(name)) return '$';
+      if (/\.(duckdb|parquet)$/.test(name)) return '▦';
+      return '·';
+    }
+    $('tree').addEventListener('click', (e) => {
+      const row = e.target.closest('[data-open]');
+      if (row) openTab(row.dataset.open);
+    });
+
+    // ---------- Abas e editor ----------
+    function docOf(key) { return S.files[key] || S.virt[key]; }
+    function openTab(key) {
+      if (!docOf(key)) return;
+      if (!S.tabs.includes(key)) S.tabs.push(key);
+      if (S.tabs.length > 8) S.tabs = S.tabs.slice(-8);
+      S.active = key;
+      renderTabs(); renderEditor(); renderTree();
+    }
+    function openVirtual(key, text, lang, opts = {}) {
+      S.virt[key] = { text, lang, ...opts };
+      openTab(key);
+    }
+    function closeTab(key) {
+      S.tabs = S.tabs.filter((k) => k !== key);
+      if (S.active === key) S.active = S.tabs[S.tabs.length - 1] || null;
+      renderTabs(); renderEditor(); renderTree();
+    }
+    function renderTabs() {
+      $('tabs').innerHTML = S.tabs.map((k) => {
+        const virtual = !S.files[k];
+        const name = k.split('/').pop();
+        return `<div class="tab${k === S.active ? ' active' : ''}" data-tab="${esc(k)}" title="${esc(k)}">${virtual ? `<em>${esc(name)}</em>` : esc(name)}<span class="x" data-close="${esc(k)}">✕</span></div>`;
+      }).join('');
+      $('title-file').textContent = S.active || 'Welcome';
+    }
+    $('tabs').addEventListener('click', (e) => {
+      const x = e.target.closest('[data-close]');
+      if (x) { closeTab(x.dataset.close); return; }
+      const t = e.target.closest('[data-tab]');
+      if (t) { S.active = t.dataset.tab; renderTabs(); renderEditor(); renderTree(); }
+    });
+    function renderEditor(partial) {
+      const ed = $('editor');
+      const key = S.active;
+      if (!key) {
+        ed.innerHTML = `<div class="welcome"><p><b>lesson_08_dag</b> is a copy of the package <code>tcg-dataapp</code> of Lesson 7, with its three layers, the runner <code>pipeline.py</code> and nine tests. The coding agent on the right turns the runner into a Prefect flow in four steps.</p><p>Press <b>Send prompt 01</b>, or choose a step above the editor. Each file the agent writes opens here; the panels below show the terminal, each flow run as the Prefect server records it, the time line of the runs, the table <code>ops.pipeline_runs</code> and the deployment.</p></div>`;
+        return;
+      }
+      const doc = docOf(key);
+      const text = partial != null ? partial : doc.text;
+      const lang = doc.lang || langOf(key);
+      const lines = highlightLines(text, lang);
+      const marks = doc.marks || {};
+      let html = doc.note ? `<div class="note-bar">${doc.note}</div>` : '';
+      html += '<div class="code">';
+      lines.forEach((l, i) => {
+        const m = marks[i] ? ' ' + marks[i] : '';
+        const cur = partial != null && i === lines.length - 1 ? ' cur' : '';
+        html += `<div class="ln${m}">${i + 1}</div><div class="tx${m}${cur}">${l || ' '}</div>`;
+      });
+      ed.innerHTML = html + '</div>';
+      if (partial != null) ed.scrollTop = ed.scrollHeight;
+    }
+
+    // ---------- Terminal ----------
+    const term = $('term');
+    function termLine(html) {
+      const div = document.createElement('div');
+      div.innerHTML = html;
+      term.appendChild(div);
+      if ($('pv-term').classList.contains('on')) term.parentElement.parentElement.scrollTop = 1e9;
+      return div;
+    }
+    function showPanel(name) {
+      document.querySelectorAll('#ptabs button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.pv === name)));
+      document.querySelectorAll('.pview').forEach((v) => v.classList.toggle('on', v.id === 'pv-' + name));
+      $('pv-term').parentElement.scrollTop = name === 'term' ? 1e9 : 0;
+    }
+    $('ptabs').addEventListener('click', (e) => { const b = e.target.closest('[data-pv]'); if (b) showPanel(b.dataset.pv); });
+
+    // ---------- O grafo de uma execução ----------
+    const DATES = (D.runs.first.tasks.filter((t) => t.name.startsWith('fetch_prices_')).map((t) => t.name.slice(13))).sort();
+    function rowOf(name) {
+      if (name === 'extract_sets' || name === 'extract_products' || name === 'extract_prices_today') return 0;
+      const m = name.match(/^(?:fetch|load)_prices_(.+)$/);
+      if (m) return 1 + DATES.indexOf(m[1]);
+      return { build_gold: 3, check_quality: 3, freeze_reports: 2.4, export_marts: 3.6, write_report: 3 }[name] ?? 3;
+    }
+    function layout(run) {
+      const by = Object.fromEntries(run.tasks.map((t) => [t.name, t]));
+      const depth = {};
+      const d = (n) => depth[n] ?? (depth[n] = by[n] && by[n].up.length ? 1 + Math.max(...by[n].up.map(d)) : 0);
+      run.tasks.forEach((t) => d(t.name));
+      return { by, depth };
+    }
+    // Retries de cada task, lidos do log: o instante em que cada nova tentativa começa.
+    const norm = (s) => s.replace(/-[0-9a-f]{3}\b/g, '');
+    // Cada nova tentativa: o instante da falha, lido do terminal gravado, e o fim da pausa anunciada no log.
+    function retryAt(run, name, t) {
+      const ev = (RETRY_EVENTS[run.key] || {})[name] || [];
+      const waiting = ev.find((x) => x[0] <= t && t < x[1]);
+      return { started: ev.filter((x) => x[1] <= t).length, waiting: waiting ? waiting[1] - t : null };
+    }
+    function stateAt(run, task, t) {
+      if (t == null) {
+        if (task.start == null) return ['NotReady', 'never ran'];
+        return [task.state, task.state === 'Failed' ? `${task.runs} attempts · ${sec(task.end - task.start)}` : task.state === 'Cached' ? `read from the cache · ${sec(task.end - task.start)}` : `${sec(task.end - task.start)}${task.runs > 1 ? ` · ${task.runs} attempts` : ''}`];
+      }
+      if (task.start == null) return t >= notReadyAt(run, task) ? ['NotReady', 'upstream did not complete'] : ['Pending', 'waiting for upstream'];
+      if (t < task.start) return ['Pending', task.up.length ? 'waiting for upstream' : 'submitted'];
+      if (t < task.end) {
+        const r = retryAt(run, task.name, t);
+        if (r.waiting != null) return ['AwaitingRetry', `attempt ${r.started + 2} in ${sec(r.waiting)}`];
+        return r.started ? ['Retrying', `attempt ${r.started + 1} of ${task.runs}`] : ['Running', `running · ${sec(t - task.start)}`];
+      }
+      return stateAt(run, task, null);
+    }
+    function notReadyAt(run, task) {
+      const { by } = layout(run);
+      const times = task.up.map((u) => by[u]).map((u) => (u.start == null ? notReadyAt(run, u) : u.end));
+      return Math.max(0, ...times);
+    }
+    const W = 190, H = 40, GX = 34, RH = 48;
+    function graphHtml(run, t) {
+      const { by, depth } = layout(run);
+      const pos = {};
+      for (const task of run.tasks) pos[task.name] = { x: depth[task.name] * (W + GX), y: rowOf(task.name) * RH };
+      const cols = Math.max(...Object.values(depth)) + 1;
+      const width = cols * (W + GX) - GX, height = (DATES.length + 1) * RH - (RH - H);
+      let edges = '';
+      const st = {};
+      for (const task of run.tasks) st[task.name] = stateAt(run, task, t);
+      for (const task of run.tasks) {
+        for (const u of task.up) {
+          const a = pos[u], b = pos[task.name];
+          const x1 = a.x + W, y1 = a.y + H / 2, x2 = b.x, y2 = b.y + H / 2, mx = (x1 + x2) / 2;
+          const s = st[u][0];
+          const cls = s === 'Completed' || s === 'Cached' ? 'ok' : s === 'Failed' || s === 'AwaitingRetry' ? 'bad' : s === 'Running' || s === 'Retrying' ? 'live' : '';
+          edges += `<path class="${cls}" d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}"/>`;
+        }
+      }
+      const nodes = run.tasks.map((task) => {
+        const [s, txt] = st[task.name];
+        const p = pos[task.name];
+        return `<div class="gn ${s}${S.taskSel === task.name ? ' sel' : ''}" data-task="${esc(task.name)}" style="left:${p.x}px;top:${p.y}px;width:${W}px;height:${H}px" title="${esc(task.name)} · ${s}"><b>${esc(task.name)}</b><small>${s} · ${esc(txt)}</small></div>`;
+      }).join('');
+      return `<div class="g-wrap" style="width:${width}px;height:${height}px"><svg width="${width}" height="${height}">${edges}</svg>${nodes}</div>`;
+    }
+    function countStates(run, t) {
+      const c = {};
+      run.tasks.forEach((task) => { const s = stateAt(run, task, t)[0]; c[s] = (c[s] || 0) + 1; });
+      return c;
+    }
+    function renderRun() {
+      $('cnt-run').textContent = S.runs.length ? S.runs.length : '';
+      if (!S.runs.length) { $('pv-run').innerHTML = '<div class="empty-p">No flow run yet. In step 01 the agent writes flows.py and runs it with <code>tcg-dataapp flow</code>; this panel then shows the run as the Prefect server records it: one node per task run, one edge per dependency, the state of each node, and the logs.</div>'; return; }
+      const key = S.runSel || S.runs[S.runs.length - 1];
+      const run = D.runs[key];
+      const t = S.runT;
+      const live = t != null;
+      const c = countStates(run, t);
+      const flowState = live ? 'Running' : run.state;
+      const tSel = S.taskSel && run.tasks.find((x) => x.name === S.taskSel);
+      const logs = run.logs.filter((l) => !live || l[0] <= t);
+      $('pv-run').innerHTML = `<div class="run-bar"><span class="lbl">Flow runs</span>${S.runs.map((k) => `<button type="button" data-run="${k}" aria-pressed="${k === key}">${esc(D.runs[k].name)} · ${RUN_LABEL[k]}</button>`).join('')}<button type="button" class="replay" id="btn-replay"${S.running ? ' disabled' : ''}>▶ Replay</button></div>
+        <div class="run-sum"><span>flow <b>tcg-dataapp</b></span><span>run <b>${esc(run.name)}</b> <span class="st-badge ${flowState}">${flowState}</span></span><span>${live ? `clock <b>${sec(Math.max(0, t))}</b>` : `tasks from first to last <b>${sec(Math.max(...run.tasks.map((x) => x.end || 0)))}</b>`}</span><span>task runs <b>${run.tasks.length}</b> · ${Object.entries(c).map(([s, n]) => `<span class="st-badge ${s}">${s} ${n}</span>`).join(' ')}</span>${run.deployment ? `<span>deployment <b>tcg-dataapp/daily</b> · parameters <b>${esc(JSON.stringify(run.parameters))}</b></span>` : ''}</div>
+        <div class="g-scroll">${graphHtml(run, t)}</div>
+        <div class="g-legend"><span><span class="st-badge Completed">Completed</span> ran and finished</span><span><span class="st-badge Cached">Cached</span> result read from the cache, the function did not run</span><span><span class="st-badge Failed">Failed</span> every attempt failed</span><span><span class="st-badge AwaitingRetry">AwaitingRetry</span> an attempt failed, the next starts after the pause</span><span><span class="st-badge NotReady">NotReady</span> an upstream task did not complete, so it never ran</span></div>
+        <div class="run-split"><div>
+          <div class="sub-h">${tSel ? `Task run · ${esc(tSel.name)}` : 'Task runs (click a node or a row)'}</div>
+          ${tSel ? taskDetail(run, tSel, t) : `<table class="dt"><thead><tr><th>task run</th><th>state</th><th>attempts</th><th>start</th><th>duration</th></tr></thead><tbody>${run.tasks.map((x) => { const s = stateAt(run, x, t)[0]; return `<tr class="click" data-task="${esc(x.name)}"><td>${esc(x.name)}</td><td><span class="st-badge ${s}">${s}</span></td><td class="num">${x.runs}</td><td class="num">${x.start == null ? '—' : '+' + sec(x.start)}</td><td class="num">${x.start == null ? '—' : sec(x.end - x.start)}</td></tr>`; }).join('')}</tbody></table>`}
+        </div><div>
+          <div class="sub-h">Logs of the flow run · ${logs.length}${live ? '' : ' of ' + run.logs.length}</div>
+          <div class="logs">${logs.map((l, i) => `<div class="${live && i === logs.length - 1 ? 'new' : ''}"><span>${l[0] >= 0 ? '+' : ''}${l[0].toFixed(2)}</span><span class="${l[1] >= 40 ? 'ERROR' : 'INFO'}">${l[1] >= 40 ? 'ERROR' : 'INFO'}</span><em>${l[2] ? `<b>${esc(l[2])}</b> · ` : ''}${esc(l[3])}</em></div>`).join('')}</div>
+        </div></div>`;
+    }
+    function taskDetail(run, x, t) {
+      const [s, txt] = stateAt(run, x, t);
+      const down = run.tasks.filter((y) => y.up.includes(x.name)).map((y) => y.name);
+      const opt = taskOptions(x.name);
+      return `<div class="pv-head"><b>${esc(x.name)}</b> · <span class="st-badge ${s}">${s}</span> ${esc(txt)}<br>${esc(opt)}</div>
+        <table class="dt"><tbody>
+        <tr><td>attempts (run_count)</td><td>${x.runs}</td></tr>
+        <tr><td>start · end</td><td>${x.start == null ? 'never started' : `+${sec(x.start)} · +${sec(x.end)}`}</td></tr>
+        <tr><td>upstream</td><td>${x.up.length ? x.up.map(esc).join(', ') : 'none: submitted at once'}</td></tr>
+        <tr><td>downstream</td><td>${down.length ? down.map(esc).join(', ') : 'none'}</td></tr>
+        <tr><td>message</td><td style="white-space:normal">${esc(x.message || '—')}</td></tr>
+        </tbody></table><div class="pv-head"><button class="btn-lab" type="button" data-untask="1">← all task runs</button></div>`;
+    }
+    function taskOptions(name) {
+      if (S.done < 1 && !S.running) return 'Step 01: no retries, default cache, no hooks.';
+      if (/^fetch_prices_/.test(name)) return 'retries 3 (TCG_RETRIES), pauses 2, 4, 8 s · cache INPUTS + TASK_SOURCE, result persisted · it does not write, so a cached result is safe.';
+      if (/^load_prices_/.test(name)) return 'retries 3, pauses 1, 2, 4 s · NO_CACHE · writes one batch with load_batch, which replaces it, so a retry is safe.';
+      if (/^extract_/.test(name)) return 'retries 3 (TCG_RETRIES), pauses 2, 4, 8 s · NO_CACHE · writes to db_ingestion · hooks to ops.pipeline_runs.';
+      if (name === 'check_quality') return 'retries 2, except for a QualityError (retry_condition_fn) · NO_CACHE · hooks to ops.pipeline_runs.';
+      if (name === 'export_marts') return 'retries 2, pause 1 s · NO_CACHE · hooks to ops.pipeline_runs.';
+      return 'no retry: a wrong model does not become right by running again · NO_CACHE · hooks to ops.pipeline_runs.';
+    }
+    $('pv-run').addEventListener('click', (e) => {
+      const r = e.target.closest('[data-run]');
+      if (r) { S.runSel = r.dataset.run; S.taskSel = null; if (!S.running) S.runT = null; renderRun(); return; }
+      if (e.target.closest('[data-untask]')) { S.taskSel = null; renderRun(); return; }
+      const tk = e.target.closest('[data-task]');
+      if (tk) { S.taskSel = tk.dataset.task === S.taskSel ? null : tk.dataset.task; renderRun(); return; }
+      if (e.target.closest('#btn-replay')) replay(S.runSel || S.runs[S.runs.length - 1]);
+    });
+    let RP = 0;
+    async function replay(key) {
+      if (S.running) return;
+      const my = ++RP, run = D.runs[key];
+      S.runSel = key; showPanel('run');
+      const end = Math.max(...run.tasks.map((x) => x.end || 0), ...run.logs.map((l) => l[0])) + 0.2;
+      for (let t = -0.3; t <= end; t += 0.1) {
+        if (my !== RP || S.running) return;
+        S.runT = t; renderRun();
+        await new Promise((r) => setTimeout(r, 100 / S.speed));
+      }
+      S.runT = null; renderRun();
+    }
+
+    // Instantes das novas tentativas, lidos do terminal gravado de cada execução.
+    const RETRY_EVENTS = {};
+    for (const key of ['first', 'second', 'down', 'deployed']) D.runs[key].key = key;
+
+    // ---------- Terminal gravado, no relógio da execução ----------
+    const TS = /^(\d\d):(\d\d):(\d\d\.\d{3}) \| (\w+)\s*\| (.*)$/;
+    function timed(lines, run) {
+      // relógio do terminal alinhado ao do servidor pela linha "Beginning flow run"
+      const secOf = (m) => +m[1] * 3600 + +m[2] * 60 + +m[3];
+      const begin = lines.map((l) => l.match(TS)).find((m) => m && /Beginning flow run/.test(m[5]));
+      const begin0 = run.logs.find((l) => /Beginning flow run/.test(l[3]));
+      const shift = begin && begin0 ? begin0[0] - secOf(begin) : 0;
+      let last = -3;
+      return lines.map((l) => {
+        const m = l.match(TS);
+        if (m) last = secOf(m) + shift;
+        return [last, l];
+      });
+    }
+    function retryEvents(key, lines) {
+      const run = D.runs[key];
+      const ev = {};
+      for (const [t, l] of timed(lines, run)) {
+        const m = l.match(/Task run '([^']+)' - Task run failed with exception: .* - Retry \d+\/\d+ will start ([\d.]+) second/);
+        if (m) (ev[norm(m[1])] = ev[norm(m[1])] || []).push([t, t + +m[2]]);
+      }
+      RETRY_EVENTS[key] = ev;
+    }
+    const OUT = {
+      first: D.first.out, second: D.second.out, down: D.down.out,
+      deployed: D.serve.out.slice(D.serve.out.findIndex((l) => /Beginning flow run/.test(l)) - 1).filter((l) => !/Pausing all deployments|have been paused|KeyboardInterrupt|shutting down/.test(l)),
+    };
+    Object.entries(OUT).forEach(([k, lines]) => retryEvents(k, lines));
+    const lineCls = (l) => /\| ERROR /.test(l) || /^(Traceback|urllib|socket|  \.\.\.)/.test(l) ? 'err' : /Finished in state (Completed|Cached)|: OK ·|^flow run: Completed/.test(l) ? 'okl' : /[┏┃┡│└]/.test(l) ? 'tbl' : /^\d\d:/.test(l) ? 'dim' : '';
+
+    // Toca uma execução gravada: o grafo e o terminal andam no mesmo relógio.
+    async function playRun(key, opts = {}) {
+      const run = D.runs[key];
+      let lines = OUT[key];
+      if (opts.noHooks) lines = lines.filter((l) => !/Running hook 'log_state'|Hook 'log_state' finished/.test(l));
+      const stdout = lines.filter((l) => /^flow run: /.test(l));
+      lines = lines.filter((l) => !/^flow run: /.test(l));
+      const tl = timed(lines, run);
+      if (!S.runs.includes(key)) S.runs.push(key);
+      S.runSel = key; S.taskSel = null;
+      showPanel('run');
+      const end = Math.max(...run.tasks.map((x) => x.end || 0), ...tl.map((x) => x[0])) + 0.1;
+      let i = 0;
+      for (let t = Math.min(-0.5, tl[0] ? tl[0][0] : 0); t <= end; t += 0.1) {
+        while (i < tl.length && tl[i][0] <= t) { termLine(`<span class="${lineCls(tl[i][1])}">${esc(tl[i][1])}</span>`); i++; }
+        S.runT = t; renderRun();
+        await sleep(100);
+      }
+      while (i < tl.length) { termLine(`<span class="${lineCls(tl[i][1])}">${esc(tl[i][1])}</span>`); i++; }
+      stdout.forEach((l) => termLine(`<span class="${lineCls(l)}">${esc(l)}</span>`));
+      S.runT = null; renderRun();
+      await sleep(400);
+    }
+
+    // ---------- Linha do tempo ----------
+    function spanOf(key) {
+      if (key === 'runner') return Math.max(...D.runner.tasks.map((x) => x[4]));
+      return Math.max(...D.runs[key].tasks.map((x) => x.end || 0));
+    }
+    function renderTime() {
+      if (!S.timeRuns.length) { $('pv-time').innerHTML = '<div class="empty-p">After the first run of the flow, this panel draws each task as a bar on one time scale, with the runner of Lesson 7 above it: the runner downloads the five archives one after the other, while the flow starts them together.</div>'; return; }
+      const max = Math.max(...S.timeRuns.map(spanOf));
+      const pct = (x) => (x / max * 100).toFixed(2) + '%';
+      const blocks = S.timeRuns.map((key) => {
+        if (key === 'runner') {
+          const rows = D.runner.tasks.map(([n, a, s, t0, t1]) => `<div class="row"><span>${esc(n)}</span><div class="track"><i class="bar ${s}" style="left:${pct(t0)};width:${pct(Math.max(t1 - t0, 0.15))}"></i></div><span>${t1 - t0} s</span></div>`).join('');
+          return `<div class="run"><header><b>tcg-dataapp run</b><span>the runner of Lesson 7 · ${D.runner.tasks.length} tasks in sequence · ${spanOf('runner')} s (ops.pipeline_runs records whole seconds)</span></header>${rows}</div>`;
+        }
+        const run = D.runs[key];
+        const rows = run.tasks.map((x) => x.start == null
+          ? `<div class="row"><span>${esc(x.name)}</span><div class="track"></div><span>NotReady</span></div>`
+          : `<div class="row"><span>${esc(x.name)}</span><div class="track"><i class="bar ${x.state}" style="left:${pct(x.start)};width:${pct(Math.max(x.end - x.start, 0.05))}"></i></div><span>${sec(x.end - x.start)}</span></div>`).join('');
+        return `<div class="run"><header><b>${esc(run.name)}</b><span>${RUN_LABEL[key]} · ${run.tasks.length} task runs · ${sec(spanOf(key))} from the first task to the last · ${run.state}</span></header>${rows}</div>`;
+      }).join('');
+      const ticks = Array.from({ length: 6 }, (_, i) => `<span>${Math.round(max * i / 5)} s</span>`).join('');
+      $('pv-time').innerHTML = `<div class="tl"><div class="pv-head" style="padding:4px 0 8px;border:0">Every run on the same scale, 0 to ${Math.ceil(max)} s. A dashed bar is a task that ended <b>Cached</b>: its result came from the cache in a few hundredths of a second.</div>${blocks}<div class="axis"><span></span><div>${ticks}</div><span></span></div></div>`;
+    }
+
+    // ---------- ops.pipeline_runs ----------
+    const RID = (key) => D.runs[key].id.replace(/-/g, '').slice(0, 12);
+    function renderLog() {
+      const ids = S.logRuns.map(RID);
+      const rows = D.pipeline_runs.rows.filter((r) => ids.includes(r[0]));
+      $('cnt-log').textContent = rows.length ? rows.length : '';
+      if (!rows.length) { $('pv-log').innerHTML = '<div class="empty-p">The runner of Lesson 7 wrote one row per attempt of each task into ops.pipeline_runs. In step 02 the state hooks on_completion and on_failure keep that table, now fed by Prefect: one row per task run that writes to the warehouse, with run_count as the attempt.</div>'; return; }
+      const name = Object.fromEntries(S.logRuns.map((k) => [RID(k), `${D.runs[k].name} · ${RUN_LABEL[k]}`]));
+      $('pv-log').innerHTML = `<div class="pv-head"><b>ops.pipeline_runs</b> in <b>warehouse/tcg.duckdb</b> · ${rows.length} rows of ${ids.length} flow run${ids.length > 1 ? 's' : ''}. The downloads have no hooks, because they do not write; the run with the source down used its own file, <b>down/tcg.duckdb</b>, so it does not appear here.</div>
+        <table class="dt"><thead><tr><th>flow run</th>${D.pipeline_runs.cols.map((c) => `<th>${c}</th>`).join('')}</tr></thead><tbody>${rows.map((r) => `<tr><td>${esc(name[r[0]])}</td>${r.map((v, i) => `<td class="${typeof v === 'number' ? 'num' : ''}">${v === '' ? '<span class="c">—</span>' : esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+    }
+
+    // ---------- Deployments ----------
+    function renderDep() {
+      if (!S.dep) { $('pv-dep').innerHTML = '<div class="empty-p">Step 04 starts the Prefect server and serves the deployment daily: a name, a schedule and default parameters for the flow. This panel then shows the deployment, the runs that the server has already scheduled and the history of every run of the session.</div>'; return; }
+      const dep = D.scheduled.deployments[0];
+      const fmtT = (iso) => { const d = new Date(iso); return `${d.toISOString().slice(0, 16).replace('T', ' ')} UTC · ${d.toLocaleString('en-GB', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })} São Paulo`; };
+      $('pv-dep').innerHTML = `<div class="dep">
+        <div class="card"><header><b>tcg-dataapp/${esc(dep.name)}</b><span>served by the process of tcg-dataapp serve</span></header><dl>
+          <dt>schedule</dt><dd>${esc(dep.schedules.join(', '))} · every day at 06:00 UTC (the cron has no timezone)</dd>
+          <dt>parameters</dt><dd>${esc(JSON.stringify(dep.parameters))}</dd>
+          <dt>tags</dt><dd>${dep.tags.map(esc).join(', ')}</dd>
+          <dt>description</dt><dd>${esc(dep.description)}</dd>
+          <dt>work pool</dt><dd>none: serve() runs the flow in its own process, which must stay open</dd>
+        </dl></div>
+        <div class="card"><header><b>Upcoming runs</b><span>created by the server from the schedule</span></header>
+          <table class="dt"><thead><tr><th>flow run</th><th>state</th><th>expected start</th></tr></thead><tbody>${D.scheduled.runs.map((r) => `<tr><td>${esc(r.name)}</td><td><span class="st-badge Scheduled">Scheduled</span></td><td>${esc(fmtT(r.expected))}</td></tr>`).join('')}</tbody></table></div>
+        <div class="card full"><header><b>Flow runs of the session</b><span>all kept in the database of the server, including those of the temporary server of steps 01 and 02 (click to open)</span></header>
+          <table class="dt"><thead><tr><th>flow run</th><th>what</th><th>state</th><th>task runs</th><th>tasks, first to last</th></tr></thead><tbody>${['first', 'second', 'down', 'deployed'].map((k) => { const r = D.runs[k]; return `<tr class="click" data-open-run="${k}"><td>${esc(r.name)}</td><td>${RUN_LABEL[k]}${r.deployment ? ' · tcg-dataapp/daily' : ' · tcg-dataapp flow'}</td><td><span class="st-badge ${r.state}">${r.state}</span></td><td class="num">${r.tasks.length}</td><td class="num">${sec(spanOf(k))}</td></tr>`; }).join('')}</tbody></table></div>
+      </div>`;
+    }
+    $('pv-dep').addEventListener('click', (e) => {
+      const r = e.target.closest('[data-open-run]');
+      if (!r) return;
+      if (!S.runs.includes(r.dataset.openRun)) S.runs.push(r.dataset.openRun);
+      S.runSel = r.dataset.openRun; S.taskSel = null; renderRun(); showPanel('run');
+    });
+
+    // ---------- O que o orquestrador acrescenta ----------
+    const CHECKS = [
+      ['order', 'Order from the data, not from a list', 'flows.py · futures and wait_for', 0],
+      ['par', 'Independent tasks at the same time', 'flows.py · the five downloads start together', 0],
+      ['conn', 'One connection per task', 'flows.py · warehouse(settings), tasks run in threads', 0],
+      ['retry', 'Retries with a growing pause', 'flows.py · TCG_RETRIES, pauses 2, 4, 8 s', 1],
+      ['cond', 'No retry for what cannot improve', 'flows.py · retry_condition_fn on check_quality', 1],
+      ['cache', 'Cache only what never changes', 'flows.py · INPUTS + TASK_SOURCE on the downloads', 1],
+      ['stop', 'A failure stops what depends on it', 'Prefect · NotReady downstream, nothing written', 1],
+      ['log', 'The run log of Lesson 7', 'flows.py · state hooks to ops.pipeline_runs', 1],
+      ['test', 'Tests of the flow without network', 'tests/test_flows.py · prefect_test_harness', 2],
+      ['clock', 'A schedule', 'flows.py · serve(cron="0 6 * * *")', 3],
+      ['ui', 'History and a UI', 'prefect server start · http://127.0.0.1:4200', 3],
+    ];
+    function renderChecks(flash) {
+      $('auto-badge').textContent = `${S.checks.size}/${CHECKS.length}`;
+      $('checklist').innerHTML = `<p>The runner of Lesson 7 ordered, retried and logged twelve tasks by hand. The orchestrator takes over those jobs and adds ${CHECKS.length - 3} more; each item names the file that delivers it.</p>` +
+        CHECKS.map(([id, t, w, step]) => `<div class="ck${S.checks.has(id) ? ' ok' : ''}${flash && flash.includes(id) ? ' flash' : ''}"><i>${S.checks.has(id) ? '✓' : '○'}</i><b>${t}</b><span>${w} · step 0${step + 1}</span></div>`).join('');
+    }
+    function tick(...ids) { ids.forEach((i) => S.checks.add(i)); renderChecks(ids); }
+    function sideView(which) {
+      $('side-files').style.display = which === 'files' ? 'flex' : 'none';
+      $('side-auto').style.display = which === 'auto' ? 'flex' : 'none';
+      $('act-files').setAttribute('aria-pressed', String(which === 'files'));
+      $('act-auto').setAttribute('aria-pressed', String(which === 'auto'));
+    }
+    $('act-files').onclick = () => sideView('files');
+    $('act-auto').onclick = () => sideView('auto');
+
+    // ---------- Fluxo no topo ----------
+    function flow(stages, run) {
+      document.querySelectorAll('#flow .node').forEach((n) => n.classList.toggle('on', stages.includes(n.dataset.stage)));
+      $('flow-run').classList.toggle('on', !!run);
+    }
+    function flowDone(stages) { stages.forEach((s) => document.querySelector(`#flow .node[data-stage="${s}"]`).classList.add('done')); }
+
+    // ---------- Chat ----------
+    function chat(role, html) {
+      const div = document.createElement('div');
+      div.className = 'msg ' + role;
+      div.innerHTML = `<div class="who">${role === 'user' ? 'you' : 'agent'}</div><div class="bubble">${html}</div>`;
+      $('chat').appendChild(div);
+      $('chat').scrollTop = 1e9;
+      return div;
+    }
+    function action(text) {
+      const div = document.createElement('div');
+      div.className = 'act running';
+      div.innerHTML = `<span class="ok">●</span><b>${text}</b>`;
+      $('chat').appendChild(div);
+      $('chat').scrollTop = 1e9;
+      return () => { div.classList.remove('running'); div.querySelector('.ok').textContent = '✓'; };
+    }
+
+    // ---------- Motor da simulação ----------
+    class Stop extends Error {}
+    let GEN = 0, RUNGEN = -1;
+    const sleep = (ms) => new Promise((res, rej) => {
+      if (RUNGEN !== GEN) return rej(new Stop());
+      if (S.fast) return res();
+      setTimeout(() => (RUNGEN === GEN ? res() : rej(new Stop())), ms / S.speed);
+    });
+    async function write(path, text, status = 'U') {
+      const done = action(`${status === 'M' ? 'Edit' : 'Create'} ${path}`);
+      S.files[path] = { text: '', status, fresh: true };
+      openTab(path);
+      if (!S.fast) {
+        const step = Math.max(40, Math.ceil(text.length / 70));
+        for (let i = step; i < text.length; i += step) {
+          S.files[path].text = text.slice(0, i);
+          renderEditor(text.slice(0, i));
+          await sleep(16);
+        }
+      }
+      S.files[path].text = text;
+      S.files[path].fresh = false;
+      renderEditor(); renderTree();
+      done();
+    }
+    const real = (p) => D.files[p];
+    async function sh(cmd, out = [], opts = {}) {
+      const prompt = opts.repl ? '<span class="ps">&gt;&gt;&gt; </span>' : opts.cont ? '<span class="ps">... </span>' : '<span class="ps">student@lab:~/lesson_08_dag$ </span>';
+      const line = termLine(prompt + '<span class="cmd"></span>');
+      const span = line.querySelector('.cmd');
+      if (!S.fast) {
+        line.classList.add('cur');
+        for (let i = 1; i <= cmd.length; i += 3) { span.textContent = cmd.slice(0, i); await sleep(14); }
+        line.classList.remove('cur');
+      }
+      span.textContent = cmd;
+      await sleep(opts.pause ?? 250);
+      for (const o of out) {
+        if (typeof o === 'function') { await o(); continue; }
+        const [text, cls, wait] = Array.isArray(o) ? o : [o, '', 40];
+        termLine(`<span class="${cls}">${esc(text)}</span>`);
+        await sleep(wait ?? 40);
+      }
+    }
+    async function remove(path) {
+      const done = action(`Delete ${path}`);
+      S.files[path].status = 'D';
+      S.tabs = S.tabs.filter((k) => k !== path);
+      if (S.active === path) S.active = S.tabs[S.tabs.length - 1] || null;
+      renderTabs(); renderEditor(); renderTree();
+      await sleep(400);
+      done();
+    }
+    async function edit(path, text, note) {
+      const before = S.files[path] ? S.files[path].text : '';
+      await write(path, text, S.files[path] ? 'M' : 'U');
+      if (before) S.files[path].marks = marksAgainst(before, text);
+      if (note) S.files[path].note = note;
+      renderEditor();
+    }
+    const section = (label) => termLine(`<span class="sec">── ${esc(label)} ──</span>`);
+    const out = (lines) => lines.map((l) => [l, lineCls(l), 30]);
+    const quality = (key) => { const l = D.runs[key].logs.find((x) => /: OK ·/.test(x[3])); return l ? l[3].split(': OK · ')[1] : ''; };
+    const qnum = (key, k) => { const m = quality(key).match(new RegExp(`'${k}': (\\d+)`)); return m ? fmt(+m[1]) : '?'; };
+
+    // ---------- As quatro etapas ----------
+    const STEPS = [
+      {
+        name: '01 · Tasks and flow', prompt: '01_flow', stages: ['flow'], run: true,
+        next: '<b>Step 01 · tasks and flow.</b> One Prefect task over each function of the layers, and one flow that passes the futures along.',
+        async play() {
+          chat('agent', 'Plan: <code>pyproject.toml</code> goes to version 0.2.0 and gains <code>prefect&gt;=3.4,&lt;4</code>. A new module, <code>flows.py</code>, wraps each function of the three layers in a task and submits them from one flow; a task that receives a future, or lists it in <code>wait_for</code>, waits for it, and that is the whole order of the graph. <code>cli.py</code> gains the subcommand <code>flow</code>. The layers do not change, and <code>pipeline.py</code> stays for the comparison.');
+          await sleep(900);
+          await edit('pyproject.toml', D.files['pyproject.toml']);
+          await edit('src/tcg_dataapp/__init__.py', D.files['src/tcg_dataapp/__init__.py']);
+          await write('src/tcg_dataapp/flows.py', FLOW01);
+          await edit('src/tcg_dataapp/cli.py', CLI01);
+          await edit('tests/test_cli.py', D.files['tests/test_cli.py'] || D.before['tests/test_cli.py'].replace('0.1.0', '0.2.0'));
+          showPanel('term');
+          const d = action('Run in the terminal');
+          await sh("pip install -e '.[dev]'", [
+            ['Obtaining file:///home/student/lesson_08_dag', 'dim', 300], ['  Installing build dependencies ... done', 'dim', 400],
+            ['Collecting prefect<4,>=3.4', 'dim', 500], ['Building wheels for collected packages: tcg-dataapp', 'dim', 400],
+            [`Successfully installed prefect-${D.versions.prefect} tcg-dataapp-0.2.0 (and their dependencies)`, 'okl', 200],
+          ]);
+          chat('agent', `First the runner of Lesson 7, for the comparison. Its ${D.runner.tasks.length} tasks run one after the other (replayed here 4× faster).`);
+          const lines = D.runner.out;
+          await sh('tcg-dataapp run', [async () => {
+            termLine(`<span class="dim">${esc(lines[0])}</span>`);
+            let shown = 0;
+            for (const [n, , , , t1] of D.runner.tasks) {
+              await sleep(Math.max(80, (t1 - shown) * 250));
+              shown = t1;
+              const l = lines.find((x) => x.includes(' ' + n + ' '));
+              if (l) termLine(`<span>${esc(l)}</span>`);
+            }
+            termLine(`<span class="okl">${esc(lines[lines.length - 1])}</span>`);
+          }]);
+          S.timeRuns = ['runner']; renderTime();
+          chat('agent', 'Now the flow. With no server configured, Prefect starts a temporary one for the run, records every state in it and stops it at the end. The panel <b>Flow run</b> shows the graph as the server sees it.');
+          await sleep(600);
+          await sh('tcg-dataapp flow', [() => playRun('first', { noHooks: true })]);
+          d();
+          S.timeRuns = ['runner', 'first']; renderTime();
+          tick('order', 'par', 'conn');
+          flowDone(['runner', 'flow']);
+          const fr = D.runs.first;
+          const starts = fr.tasks.filter((x) => x.name.startsWith('fetch_')).map((x) => x.start);
+          chat('agent', `Done: ${fr.tasks.length} task runs <b>Completed</b>, ${sec(spanOf('first'))} from the first task to the last, against ${spanOf('runner')} s of the runner. The five downloads started within ${sec(Math.max(...starts) - Math.min(...starts))} of each other, because nothing upstream holds them; each load waited only for its own download. check_quality found ${qnum('first', 'fact_rows')} rows in the fact for ${qnum('first', 'fact_grain_keys')} keys of the grain and ${qnum('first', 'cube_cells')} cells in the cube, the numbers of Lessons 6 and 7. Review: open <b>Time line</b> and find where the 30 s went.`);
+          showPanel('time');
+        },
+      },
+      {
+        name: '02 · Failures and cache', prompt: '02_failures_and_cache', stages: ['options'], run: true,
+        next: '<b>Step 02 · failures and cache.</b> Retry what can improve, cache what never changes, and keep the run log of Lesson 7.',
+        async play() {
+          chat('agent', 'Plan: the network tasks take <code>retries</code> and a pause that doubles from the settings, applied in the flow with <code>.with_options()</code>; <code>check_quality</code> gets a retry condition that refuses a <code>QualityError</code>; the downloads get <code>cache_policy=INPUTS + TASK_SOURCE</code> with the result persisted, and every task that writes gets <code>NO_CACHE</code>; two state hooks write one row per task run to <code>ops.pipeline_runs</code>. Then three runs: a clean one, a second one, and one with the source down.');
+          await sleep(900);
+          await edit('src/tcg_dataapp/flows.py', FLOW02, 'Lines marked <b>+</b> are new in step 02: the cache policies, the state hook <b>log_state</b>, the retry condition <b>not_a_quality_error</b>, the options of each task and the retries taken from the settings with <b>.with_options()</b>.');
+          showPanel('term');
+          const d = action('Run three times');
+          section('run 1 · a clean warehouse and an empty cache');
+          await sh('rm -rf warehouse out ~/.prefect/storage && tcg-dataapp flow', [() => playRun('first')]);
+          S.logRuns = ['first']; renderLog();
+          section('run 2 · the same command again');
+          await sh('tcg-dataapp flow', [() => playRun('second')]);
+          S.logRuns = ['first', 'second']; renderLog();
+          S.timeRuns = ['runner', 'first', 'second']; renderTime();
+          section('run 3 · a source that does not answer');
+          await sh('TCG_BASE_URL=https://tcgcsv.invalid TCG_RETRIES=2 TCG_RETRY_DELAY=1 TCG_DB_PATH=down/tcg.duckdb TCG_OUT_DIR=down/out tcg-dataapp flow', [() => playRun('down')]);
+          d();
+          tick('retry', 'cond', 'cache', 'stop', 'log');
+          flowDone(['options']);
+          const sc = D.runs.second.tasks.filter((x) => x.state === 'Cached');
+          const dn = D.runs.down.tasks;
+          chat('agent', `Three behaviours, one per run. In the second run the ${sc.length} downloads ended <b>Cached</b>, each in under ${sec(Math.max(...sc.map((x) => x.end - x.start)) + 0.005)}; the loads ran again and replaced their batches, so the fact still has ${qnum('second', 'fact_rows')} rows. With the source down, the ${dn.filter((x) => x.state === 'Failed').length} network tasks failed ${dn.find((x) => x.state === 'Failed').runs} times each, with pauses of 1 and 2 s, the ${dn.filter((x) => x.state === 'NotReady').length} tasks downstream ended <b>NotReady</b> without running, and the flow ended <b>Failed</b> after ${sec(spanOf('down'))}, naming them. The retry condition of check_quality is checked by a test in step 03. Review: in <b>ops.pipeline_runs</b>, why are there no rows for the downloads?`);
+          S.runSel = 'down'; renderRun(); showPanel('run');
+        },
+      },
+      {
+        name: '03 · Tests', prompt: '03_tests', stages: ['tests'], run: false,
+        next: '<b>Step 03 · tests.</b> The flow on a temporary Prefect server, over the fake TCGplayer of Lesson 7.',
+        async play() {
+          chat('agent', 'Plan: <code>tests/test_flows.py</code> reuses the <code>FakeClient</code> of <code>conftest.py</code>, two sets and two dates. A session fixture opens <code>prefect_test_harness()</code>, a temporary server and database; another sets the environment and replaces <code>flows.make_client</code> with the fake. Five tests, one per behaviour of step 02, and the nine tests of Lesson 7 stay as they are.');
+          await sleep(900);
+          await write('tests/test_flows.py', D.files['tests/test_flows.py']);
+          showPanel('term');
+          const d = action('Run the tests');
+          await sh('pytest -q', out(D.pytest.out));
+          d();
+          tick('test');
+          flowDone(['tests']);
+          chat('agent', `${esc(D.pytest.out[D.pytest.out.length - 1])}, without network. The flow tests check that the flow builds the gold layer and logs every task, that a second run downloads each archive once, that a source failing once is retried (attempt 2, completed), that a source that keeps failing stops everything downstream and writes no report, and that a <code>QualityError</code> runs check_quality only once. Most of the time goes to starting the temporary server.`);
+        },
+      },
+      {
+        name: '04 · Deployment', prompt: '04_deployment', stages: ['deploy'], run: true,
+        next: '<b>Step 04 · deployment.</b> A server that keeps the history, a schedule and a process that starts each run.',
+        async play() {
+          chat('agent', 'Plan: <code>flows.py</code> gains <code>serve()</code>, which publishes the deployment <code>daily</code> with the cron <code>0 6 * * *</code> and <code>with_today=True</code>; <code>cli.py</code> gains <code>serve [--cron]</code>; the README explains the three terminals. The crontab and the shell script of Lesson 7 are no longer needed, because the server schedules the runs and the serving process starts them.');
+          await sleep(900);
+          await edit('src/tcg_dataapp/flows.py', FLOW_REAL, 'Line marked <b>+</b> at the end: <b>serve()</b>, the deployment of the flow on a schedule.');
+          await edit('src/tcg_dataapp/cli.py', CLI_REAL);
+          await edit('README.md', D.files['README.md']);
+          await remove('ops/crontab');
+          await remove('ops/run_daily.sh');
+          showPanel('term');
+          const d = action('Start the server, serve the deployment and trigger a run');
+          section('terminal 1');
+          await sh('prefect server start', out(D.server.out.filter((l) => !/Server stopped/.test(l))));
+          section('terminal 2');
+          await sh('prefect config set PREFECT_API_URL=http://127.0.0.1:4200/api', out(D.config_set.out.filter((l) => !/environment variable|clear it/.test(l))));
+          const so = D.serve.out;
+          await sh('tcg-dataapp serve', out(so.slice(0, so.findIndex((l) => /Beginning flow run/.test(l)) - 1)));
+          section('terminal 3');
+          await sh(D.deployment_ls.cmd, out(D.deployment_ls.out));
+          await sh("prefect deployment run 'tcg-dataapp/daily'", out(D.deployment_run.out));
+          section('terminal 2 · the serving process picks up the run');
+          await playRun('deployed');
+          section('terminal 3');
+          await sh(D.flow_run_ls.cmd, out(D.flow_run_ls.out));
+          await sh('tcg-dataapp status', out(D.status.out));
+          d();
+          S.dep = true; renderDep();
+          S.logRuns = ['first', 'second', 'deployed']; renderLog();
+          S.timeRuns = ['runner', 'first', 'second', 'deployed']; renderTime();
+          tick('clock', 'ui');
+          flowDone(['deploy']);
+          const dr = D.runs.deployed;
+          chat('agent', `The run of the deployment completed with ${dr.tasks.length} task runs, one more than before: <code>extract_prices_today</code>, because the deployment passes <code>with_today=True</code>. The five downloads ended <b>Cached</b> again, and the fact now has ${qnum('deployed', 'fact_rows')} rows. The server has already scheduled the next ${D.scheduled.runs.length} runs at 06:00 UTC, 03:00 in São Paulo; the panel <b>Deployments</b> lists them with every run of the session, and the UI at <code>http://127.0.0.1:4200</code> shows the same graph as the panel <b>Flow run</b>. Ctrl+C in terminal 2 stops the serving process, and then nothing runs at 06:00.`);
+          showPanel('dep');
+        },
+      },
+    ];
+    const PLIST = [...STEPS, { prompt: '05_your_dataapp', name: '05 · Your DataApp' }];
+
+    // ---------- Controles ----------
+    function updateUi() {
+      document.querySelectorAll('[data-step]').forEach((b) => {
+        const i = +b.dataset.step;
+        b.classList.toggle('step-done', i < S.done);
+        b.disabled = S.running;
+      });
+      const nxt = STEPS[S.done];
+      $('btn-send').disabled = S.running || !nxt;
+      $('btn-send').textContent = nxt ? `Send prompt ${nxt.name.slice(0, 2)}` : 'All prompts sent';
+      $('btn-view-prompt').textContent = nxt ? `Read prompt ${nxt.name.slice(0, 2)}` : 'Read the prompts';
+      $('next').innerHTML = S.running ? '<b>The agent is working.</b> “Finish step” shows the end of the step at once.' : nxt ? nxt.next : '<b>The four steps are done.</b> Every panel can be browsed and every run replayed; prompt 05, for the second hour, is in “Prompts”. “Reset” starts again from the package of Lesson 7.';
+      $('btn-skip').disabled = !S.running;
+      $('st-step').textContent = nxt ? `next: step ${nxt.name}` : 'all steps done';
+      $('st-busy').innerHTML = S.running ? '<span class="busy">● agent running</span>' : '';
+    }
+    async function playStep(i) {
+      const st = STEPS[i];
+      S.running = true; updateUi();
+      flow(st.stages, st.run);
+      const u = chat('user', `<button class="open-prompt" type="button" data-prompt="${st.prompt}">Prompt ${st.prompt.slice(0, 2)} · CREATE · ${esc(st.prompt.slice(3).replace(/_/g, ' '))} <span>open ↗</span></button>`);
+      u.scrollIntoView({ block: 'end' });
+      await sleep(600);
+      await st.play();
+      S.done = i + 1; S.running = false; S.fast = false;
+      updateUi(); renderRun();
+    }
+    async function runTo(target) {
+      if (S.running) return;
+      if (target < S.done) { reset(); }
+      RP++;
+      RUNGEN = GEN;
+      try {
+        while (S.done < target) { S.fast = true; await playStep(S.done); }
+        S.fast = false;
+        await playStep(target);
+      } catch (e) { if (!(e instanceof Stop)) console.error(e); }
+    }
+    function reset() {
+      GEN++; RP++;
+      const speed = S ? S.speed : 1;
+      S = fresh(); S.speed = speed;
+      term.innerHTML = '';
+      $('chat').innerHTML = '';
+      chat('agent', 'This folder is a copy of the package <code>tcg-dataapp</code> of Lesson 7: three layers, the runner <code>pipeline.py</code> and nine tests. I will turn the runner into a Prefect flow from your prompts, one step at a time, and stop at the end of each step so you can review it.');
+      document.querySelectorAll('#flow .node').forEach((n) => n.classList.remove('on', 'done'));
+      $('flow-run').classList.remove('on');
+      renderTree(); renderTabs(); renderEditor(); renderRun(); renderTime(); renderLog(); renderDep(); renderChecks(); sideView('files'); showPanel('term');
+      updateUi();
+    }
+    $('btn-send').onclick = () => runTo(S.done);
+    $('btn-prompts').onclick = () => openPrompt(Math.min(S.done, STEPS.length - 1));
+    // ---------- Janela do prompt ----------
+    const SEC_NAMES = { C: 'Character', R: 'Request', E: 'Example', A: 'Adjustments', T: 'Type of output' };
+    function parsePrompt(text) {
+      const secs = [];
+      let cur = null, seenE = false;
+      for (const line of text.split('\n')) {
+        const m = line.match(/^\[([A-Z])\]\s*(.*)$/);
+        if (m) {
+          let name = m[2] || SEC_NAMES[m[1]] || m[1];
+          if (m[1] === 'E') { name = seenE ? 'Extras' : (m[2] || 'Example'); seenE = true; }
+          cur = { letter: m[1], name, lines: [] };
+          secs.push(cur);
+        } else if (cur) cur.lines.push(line);
+      }
+      // Os fatos medidos ficam num bloco próprio dentro do Request.
+      const out = [];
+      for (const sec of secs) {
+        const i = sec.lines.findIndex((l) => /^Facts/.test(l));
+        if (sec.letter === 'R' && i > 0) {
+          out.push({ ...sec, lines: sec.lines.slice(0, i) });
+          out.push({ letter: 'R', name: 'Facts to confirm', lines: sec.lines.slice(i + 1), facts: true });
+        } else out.push(sec);
+      }
+      return out.map((s) => ({ ...s, body: s.lines.join('\n').replace(/^\n+|\s+$/g, '') }));
+    }
+    let PD = null;
+    function openPrompt(i) {
+      PD = i;
+      const st = PLIST[i];
+      const text = D.prompts[st.prompt];
+      const secs = parsePrompt(text);
+      $('pd-title').textContent = `Prompt ${st.prompt.slice(0, 2)} · CREATE · ${st.prompt.slice(3).replace(/_/g, ' ')}`;
+      $('pd-file').textContent = `lab/lesson-8/prompts/${st.prompt}.md · ${text.trim().split('\n').length} lines`;
+      $('pd-prompts').innerHTML = '<span class="lbl">Prompt</span>' + PLIST.map((s, j) => `<button class="btn-lab" type="button" data-pd="${j}" aria-pressed="${j === i}">${s.prompt.slice(0, 2)}</button>`).join('');
+      $('pd-secs').innerHTML = '<span class="lbl">Section</span>' + secs.map((s, j) => `<button class="btn-lab" type="button" data-sec="${j}" title="${esc(s.name)}">${s.facts ? 'Facts' : '[' + s.letter + ']'}</button>`).join('');
+      $('pd-body').innerHTML = secs.map((s, j) => `<section class="pd-sec${s.facts ? ' facts' : ''}" id="pd-sec-${j}"><h3>${s.facts ? '' : `<b>${s.letter}</b>`}${esc(s.name)}</h3><pre>${esc(s.body)}</pre></section>`).join('');
+      $('pd-body').scrollTop = 0;
+      const isNext = i === S.done && i < STEPS.length && !S.running;
+      $('pd-send').style.display = isNext ? '' : 'none';
+      $('pd-hint').textContent = i >= STEPS.length ? 'The prompt of the second hour, for the DataApp of each group; the simulation stops at step 04.' : i < S.done ? 'Already sent to the agent in this session.' : isNext ? 'This is the next prompt of the session.' : S.running && i === S.done ? 'The agent is working on this prompt.' : `Comes after prompt ${STEPS[S.done] ? STEPS[S.done].prompt.slice(0, 2) : ''}.`;
+      $('pd-copy').textContent = 'Copy';
+      if (!$('prompt-dlg').open) $('prompt-dlg').showModal();
+    }
+    $('pd-prompts').addEventListener('click', (e) => { const b = e.target.closest('[data-pd]'); if (b) openPrompt(+b.dataset.pd); });
+    $('pd-secs').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-sec]');
+      if (!b) return;
+      const sec = $('pd-sec-' + b.dataset.sec);
+      $('pd-body').scrollTo({ top: sec.offsetTop - $('pd-body').offsetTop - 4, behavior: 'smooth' });
+      sec.classList.remove('flash'); void sec.offsetWidth; sec.classList.add('flash');
+    });
+    $('pd-close').onclick = () => $('prompt-dlg').close();
+    $('prompt-dlg').addEventListener('click', (e) => { if (e.target === $('prompt-dlg')) $('prompt-dlg').close(); });
+    $('pd-copy').onclick = async () => {
+      try { await navigator.clipboard.writeText(D.prompts[PLIST[PD].prompt]); $('pd-copy').textContent = 'Copied'; }
+      catch { $('pd-copy').textContent = 'Copy failed'; }
+    };
+    $('pd-send').onclick = () => { $('prompt-dlg').close(); runTo(S.done); };
+    $('chat').addEventListener('click', (e) => { const b = e.target.closest('[data-prompt]'); if (b) openPrompt(PLIST.findIndex((s) => s.prompt === b.dataset.prompt)); });
+    $('btn-view-prompt').onclick = () => openPrompt(Math.min(S.done, STEPS.length - 1));
+    document.querySelectorAll('[data-step]').forEach((b) => b.onclick = () => runTo(+b.dataset.step));
+    document.querySelectorAll('[data-speed]').forEach((b) => b.onclick = () => {
+      S.speed = +b.dataset.speed;
+      document.querySelectorAll('[data-speed]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    });
+    $('btn-skip').onclick = () => { if (S.running) S.fast = true; };
+    $('btn-reset').onclick = () => { if (S.running) { GEN++; S.running = false; } reset(); };
+
+    // ---------- Tela cheia ----------
+    const stage = $('stage');
+    const isFull = () => document.fullscreenElement === stage || stage.classList.contains('full');
+    function setFullUi() {
+      const on = isFull();
+      $('btn-full').textContent = on ? '⛶ Exit full screen' : '⛶ Full screen';
+      $('btn-full').setAttribute('aria-pressed', String(on));
+      $('ide-full').title = on ? 'Exit full screen (F or Esc)' : 'Full screen (F)';
+      document.body.classList.toggle('no-scroll', stage.classList.contains('full'));
+    }
+    async function toggleFull() {
+      if (isFull()) {
+        if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
+        stage.classList.remove('full');
+      } else if (stage.requestFullscreen) {
+        try { await stage.requestFullscreen(); } catch { stage.classList.add('full'); }
+      } else stage.classList.add('full');
+      setFullUi();
+    }
+    document.addEventListener('fullscreenchange', setFullUi);
+    $('btn-full').onclick = toggleFull;
+    $('ide-full').onclick = toggleFull;
+    document.addEventListener('keydown', (e) => {
+      if (e.target.closest('input, textarea') || $('prompt-dlg').open || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === 'f' || e.key === 'F') { e.preventDefault(); toggleFull(); }
+      if (e.key === 'Escape' && stage.classList.contains('full')) { stage.classList.remove('full'); setFullUi(); }
+    });
+
+    // Divisória entre editor e painel
+    (() => {
+      const main = $('ide-main');
+      let drag = false;
+      $('splitter').addEventListener('pointerdown', (e) => { drag = true; e.target.setPointerCapture(e.pointerId); });
+      $('splitter').addEventListener('pointermove', (e) => {
+        if (!drag) return;
+        const r = main.getBoundingClientRect();
+        const pct = Math.min(80, Math.max(18, (r.bottom - e.clientY) / r.height * 100));
+        main.style.setProperty('--panel-h', pct + '%');
+      });
+      $('splitter').addEventListener('pointerup', () => { drag = false; });
+    })();
+
+    reset();
+  })();
+  </script>
+<!-- semana:js:start -->
+<script src="../../../../js/semana-ano.js" defer></script>
+<!-- semana:js:end -->
+</body>
+</html>
+

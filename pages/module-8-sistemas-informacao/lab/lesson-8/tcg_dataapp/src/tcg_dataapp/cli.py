@@ -49,7 +49,7 @@ def main(argv: list[str] | None = None) -> int:
             for tag, rows, first, last in counts(con):
                 print(f"{tag:22} {rows:7,d} rows  {first} .. {last}")
             last_run = con.execute(
-                "SELECT run_id, count(*) FILTER (WHERE status = 'success'), count(*) FILTER (WHERE status <> 'success'), "
+                "SELECT run_id, count(*) FILTER (WHERE status IN ('success', 'completed')), count(*) FILTER (WHERE status NOT IN ('success', 'completed')), "
                 "min(started_at), max(ended_at) FROM ops.pipeline_runs "
                 "WHERE run_id = (SELECT run_id FROM ops.pipeline_runs ORDER BY started_at DESC LIMIT 1) GROUP BY run_id"
             ).fetchone()
