@@ -45,6 +45,7 @@
     .btn-lab.step-done::before { content: "✓"; color: var(--ds-verde-texto); }
     .btn-lab:disabled { opacity: 0.5; cursor: default; }
     .btn-lab[aria-pressed="true"] { background: var(--ds-roxo-tinta); border-color: var(--inteli-roxo); }
+    .btn-lab.primary[aria-pressed="true"] { background: var(--inteli-roxo); color: var(--ds-texto-inverso); }
 
     /* ===== O editor simulado ===== */
     .ide { --ide-bg: var(--ds-terminal); --ide-side: var(--inteli-roxo); --ide-line: rgba(255, 255, 255, 0.09); --ide-txt: var(--inteli-cinza-100); --ide-dim: var(--inteli-cinza-400);
@@ -224,6 +225,18 @@
     .notes ul { margin: 0; padding-left: 18px; }
 
 
+    /* Tela cheia: a barra de etapas e o editor ocupam a tela inteira. */
+    .ide-full { margin-left: 10px; border: 1px solid var(--ide-line); background: transparent; color: var(--ide-txt); height: 22px; padding: 0 8px; cursor: pointer; border-radius: var(--ds-raio-1); }
+    .ide-full:hover { border-color: var(--inteli-verde); color: var(--inteli-verde); }
+    .stage.full { position: fixed; inset: 0; z-index: 1000; background: var(--ds-fundo); padding: 8px 10px; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 8px; }
+    .stage:fullscreen { background: var(--ds-fundo); padding: 8px 10px; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 8px; }
+    .stage.full .controls, .stage:fullscreen .controls { margin: 0; }
+    .stage.full .ide, .stage:fullscreen .ide { height: 100%; margin: 0; font-size: 14px; }
+    .stage.full .ide-body, .stage:fullscreen .ide-body { grid-template-columns: 44px 250px minmax(0, 1fr) 380px; grid-template-rows: none; }
+    .stage.full .ide-agent, .stage:fullscreen .ide-agent { grid-column: auto; border-left: 1px solid var(--ide-line); border-top: 0; max-height: none; }
+    .stage.full .msg, .stage:fullscreen .msg { font-size: 14px; }
+    body.no-scroll { overflow: hidden; }
+
     /* Janela do prompt: leitura confortável, uma seção do CRAETE por bloco. */
     dialog#prompt-dlg { width: min(1000px, 94vw); max-height: 90vh; padding: 0; border: 1px solid var(--ds-texto-forte); border-radius: var(--ds-raio-2); background: var(--ds-fundo); color: var(--ds-texto-forte); }
     dialog#prompt-dlg[open] { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr) auto; }
@@ -311,6 +324,7 @@
       <div class="flow-run" id="flow-run"><b>pipeline.py</b> runs the boxes above as 12 tasks with dependencies, retries and a log · <b>tcg-dataapp run</b> one command (step 04) · <b>ops/run_daily.sh + cron</b> every day at 06:00 UTC, one run at a time, an alert on failure (step 05)</div>
     </section>
 
+    <div class="stage" id="stage">
     <div class="controls" aria-label="Steps">
       <span class="lbl">Steps</span>
       <button class="btn-lab" data-step="0">01 · Package</button>
@@ -324,10 +338,11 @@
       <button class="btn-lab" id="btn-skip">Finish step</button>
       <button class="btn-lab" id="btn-reset">Reset</button>
       <button class="btn-lab" id="btn-prompts" style="margin-left:12px">Prompts ↗</button>
+      <button class="btn-lab primary" id="btn-full" type="button" aria-pressed="false" title="Full screen (F)">⛶ Full screen</button>
     </div>
 
     <div class="ide" id="ide">
-      <div class="ide-title"><span class="dots"><i></i><i></i><i></i></span><span class="t">lesson_07_dataapp — <span id="title-file">Welcome</span></span><span class="sim">simulation</span></div>
+      <div class="ide-title"><span class="dots"><i></i><i></i><i></i></span><span class="t">lesson_07_dataapp — <span id="title-file">Welcome</span></span><span class="sim">simulation</span><button class="ide-full" id="ide-full" type="button" title="Full screen (F)">⛶</button></div>
       <div class="ide-body">
         <nav class="ide-act" aria-label="Views">
           <button id="act-files" aria-pressed="true" title="Explorer">🗎</button>
@@ -376,6 +391,7 @@
         </aside>
       </div>
       <div class="ide-status"><span>⎇ main</span><span id="st-step">step —</span><span class="sp"></span><span id="st-busy"></span><span>Python 3.12 · DuckDB 2.0.0</span><span>UTF-8</span></div>
+    </div>
     </div>
 
     <section class="notes" aria-label="Notes">
@@ -1322,6 +1338,34 @@ pytest
     });
     $('btn-skip').onclick = () => { if (S.running) S.fast = true; };
     $('btn-reset').onclick = () => { if (S.running) { GEN++; S.running = false; } reset(); };
+
+    // ---------- Tela cheia ----------
+    const stage = $('stage');
+    const isFull = () => document.fullscreenElement === stage || stage.classList.contains('full');
+    function setFullUi() {
+      const on = isFull();
+      $('btn-full').textContent = on ? '⛶ Exit full screen' : '⛶ Full screen';
+      $('btn-full').setAttribute('aria-pressed', String(on));
+      $('ide-full').title = on ? 'Exit full screen (F or Esc)' : 'Full screen (F)';
+      document.body.classList.toggle('no-scroll', stage.classList.contains('full'));
+    }
+    async function toggleFull() {
+      if (isFull()) {
+        if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
+        stage.classList.remove('full');
+      } else if (stage.requestFullscreen) {
+        try { await stage.requestFullscreen(); } catch { stage.classList.add('full'); }
+      } else stage.classList.add('full');
+      setFullUi();
+    }
+    document.addEventListener('fullscreenchange', setFullUi);
+    $('btn-full').onclick = toggleFull;
+    $('ide-full').onclick = toggleFull;
+    document.addEventListener('keydown', (e) => {
+      if (e.target.closest('input, textarea') || $('prompt-dlg').open || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === 'f' || e.key === 'F') { e.preventDefault(); toggleFull(); }
+      if (e.key === 'Escape' && stage.classList.contains('full')) { stage.classList.remove('full'); setFullUi(); }
+    });
 
     // Divisória entre editor e painel
     (() => {
