@@ -4,7 +4,7 @@
 
 ## Objetivo
 
-Cada palestra na página `home-palestras.html` deve identificar claramente a empresa parceira que a originou.
+Cada palestra nas páginas `home-exec.html` (Educação Executiva e programas para empresas) e `home-palestras.html` (Diversos: palestras, bootcamps e disciplinas avulsas do Inteli) deve identificar claramente a empresa parceira que a originou. Trabalho feito para empresa ou para a Educação Executiva vai para o Exec; o restante fica em Diversos.
 
 ---
 
@@ -70,6 +70,6 @@ Todo card de palestra **deve ter** um elemento com a classe `company-tag` exibin
 
 ## Regras de validação
 
-1. Todo card em `home-palestras.html` deve conter `class="company-tag"`.
+1. Todo card em `home-exec.html` e em `home-palestras.html` deve conter `class="company-tag"`.
 2. O texto da tag deve identificar a empresa real que deu ou patrocinou a palestra.
 3. O emoji `🏢` é obrigatório antes do nome.

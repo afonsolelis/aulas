@@ -524,8 +524,15 @@ test.describe('palestras-cards.md - Cards de Palestras', () => {
     expect(html).toContain('company-tag');
   });
 
+  test('cada card do Exec deve ter tag de empresa', () => {
+    const html = read('pages/home-exec.html');
+    const cards = html.split('class="card topic-card').length - 1;
+    expect(cards).toBeGreaterThan(0);
+    expect(html.split('class="company-tag"').length - 1).toBe(cards);
+  });
+
   test('palestra da Cardiff deve identificar BNP Paribas Cardif', () => {
-    const html = read('pages/home-palestras.html');
+    const html = read('pages/home-exec.html');
     expect(html).toMatch(/BNP Paribas Cardif|Cardiff/i);
     expect(html).toContain('company-tag');
   });
