@@ -1,0 +1,80 @@
+# Data contract template · Tradeline telemetry harmonisation lab
+# Tradeline is a fictional company. The structure loosely follows common data contract
+# practice (schema, semantics, quality, ownership and evolution rules in one document).
+# Replace every <...> and delete what does not apply.
+
+contract:
+  id: tradeline.checkout.order_lifecycle
+  version: 0.1.0            # semantic versioning: major = breaking change
+  status: draft             # draft | active | deprecated
+  owner:
+    team: <producer team>
+    contact: <channel or e-mail>
+  consumers:
+    - <team that reads the gold metric>
+
+scope:
+  description: >
+    Order lifecycle events emitted by the checkout and fulfilment flows of every market,
+    harmonised into one canonical schema with a common core and market extensions.
+  markets: [BR, MX, CO, ZA, DO]
+
+schema:
+  core:                      # required in every market, same name, type and meaning
+    - name: event_id
+      type: string
+      required: true
+      unique: true
+    - name: order_id
+      type: string
+      required: true
+      description: <global order key and how it is derived from the local key>
+    - name: event_name
+      type: string
+      required: true
+      allowed_values: [order_created, payment_captured, shipped, delivered, cancelled]
+    - name: occurred_at_utc
+      type: timestamp
+      required: true
+    - name: market
+      type: string
+      required: true
+    - name: tenant_id
+      type: string
+      required: <true | false, and what happens when missing>
+    - name: service_model
+      type: string
+      allowed_values: [direct, manufacturer_non_distributing, indirect]
+    - name: net_amount_local
+      type: decimal(18,2)
+    - name: currency
+      type: string
+  extensions:                # market-specific attributes, documented and optional
+    BR:
+      - name: <attribute that records the fiscal document>
+        type: string
+        description: <why it exists and which decision depends on it>
+    <market>:
+      - name: <...>
+
+semantics:
+  completed_order: <canonical definition, referencing the Canonical Metric Spec>
+  business_date: <which time zone defines the local business date>
+
+quality:
+  - check: <uniqueness of event_id after deduplication of retries>
+    threshold: <...>
+  - check: <every delivered event has an earlier order_created>
+    threshold: <...>
+  - check: <monthly reconciliation with local reports within an explained difference>
+    threshold: <...>
+
+evolution:
+  compatible_changes: [add optional attribute, add allowed value with default handling]
+  breaking_changes: [rename or remove core attribute, change type, change meaning of an event]
+  deprecation_notice_days: <...>
+  versioning_rule: <how consumers are told and how long two versions coexist>
+
+service_levels:
+  freshness: <for example, previous local day available by 05:00 UTC>
+  late_events_window_days: <...>
