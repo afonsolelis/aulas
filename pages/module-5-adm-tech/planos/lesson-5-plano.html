@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aula 5 — Plano de Ensino — Calculadora de Valuation com Interface Web (Gradio) — Inteli</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗂️</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <link href="../../../css/inteli-styles.css" rel="stylesheet">
+  <style>
+    :root {
+      --ac: var(--adm-tech-navy);
+      --ink: var(--inteli-dark-purple);
+      --ok: var(--inteli-green);
+      --paper: var(--inteli-white);
+      --line: var(--inteli-light-gray);
+      --soft-ac: color-mix(in srgb,var(--ac) 12%,var(--paper));
+      --soft-ink: color-mix(in srgb,var(--ink) 7%,var(--paper));
+      --soft-ok: color-mix(in srgb,var(--ok) 20%,var(--paper));
+    }
+    *, *::before, *::after { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; font-family:'Inter',sans-serif; color:var(--ink); background:var(--soft-ink); }
+    a { color:color-mix(in srgb,var(--ac) 58%,var(--ink)); }
+    #progress-bar { position:fixed; inset:0 auto auto 0; width:0; height:3px; z-index:9999; background:linear-gradient(var(--ink),var(--ink)); }
+    .plano-header { color:var(--paper); background:linear-gradient(var(--ink),var(--ink)); padding:42px 24px 34px; }
+    .head-inner { width:min(1160px,100%); margin:auto; display:flex; justify-content:space-between; align-items:end; gap:28px; }
+    .head-copy { max-width:780px; }
+    .badge { display:inline-block; margin-bottom:12px; padding:5px 11px; border:1px solid color-mix(in srgb,var(--paper) 36%,transparent); border-radius:4px; background:color-mix(in srgb,var(--paper) 12%,transparent); font-size:.72rem; font-weight:700; letter-spacing:.06em; }
+    .plano-header h1 { margin:0; font-size:2.4rem; line-height:1.12; letter-spacing:-.03em; }
+    .plano-header p { margin:10px 0 0; color:color-mix(in srgb,var(--paper) 88%,var(--ac)); line-height:1.55; }
+    .head-actions { display:flex; flex-wrap:wrap; gap:7px; justify-content:flex-end; }
+    .head-actions a { padding:8px 12px; border-radius:6px; color:var(--paper); border:1px solid color-mix(in srgb,var(--paper) 45%,transparent); text-decoration:none; font-size:.76rem; font-weight:700; white-space:nowrap; }
+    .tm-material .plano-header p { color:color-mix(in srgb,var(--paper) 88%,var(--ink)); }
+    .head-actions a.primary { background:var(--paper); color:var(--ink); }
+    .plan-layout { display:grid; grid-template-columns:270px minmax(0,1fr); gap:34px; width:min(1200px,100%); margin:auto; padding:36px 24px 64px; }
+    .mat-sidebar { position:sticky; top:18px; align-self:start; max-height:calc(100vh - 36px); overflow:auto; }
+    .mat-toc { padding:18px; border:1px solid var(--line); border-radius:6px; background:var(--paper); box-shadow:var(--ds-sombra-1); }
+    .mat-toc h2 { margin:0 0 10px; font-size:.74rem; letter-spacing:.11em; text-transform:uppercase; }
+    .mat-toc a { display:block; padding:5px 8px; border-left:3px solid transparent; color:color-mix(in srgb,var(--ink) 68%,var(--paper)); text-decoration:none; font-size:.76rem; line-height:1.32; }
+    .mat-toc a:hover, .mat-toc a.active { color:var(--ink); background:var(--soft-ac); border-left-color:var(--ac); }
+    .toc-total { margin-top:10px; padding-top:10px; border-top:1px solid var(--line); color:color-mix(in srgb,var(--ink) 60%,var(--paper)); font-size:.7rem; }
+    .plan-main { min-width:0; }
+    .plan-section { margin:0 0 46px; scroll-margin-top:26px; }
+    .plan-section h2 { margin:0 0 18px; padding-bottom:10px; border-bottom:2px solid var(--line); font-size:1.62rem; }
+    .plan-section h3 { margin:24px 0 9px; font-size:1.06rem; }
+    .plan-section p, .plan-section li { font-size:.93rem; line-height:1.72; color:color-mix(in srgb,var(--ink) 82%,var(--paper)); }
+    .plan-section p { margin:0 0 13px; }
+    .plan-section ul, .plan-section ol { margin:9px 0 15px; padding-left:1.35rem; }
+    .plan-section li { margin-bottom:5px; }
+    .g2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:13px; }
+    .g3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+    .card { padding:16px 18px; border:1px solid var(--line); border-left:5px solid var(--ac); border-radius:6px; background:var(--paper); box-shadow:var(--ds-sombra-1); }
+    .card.dark { border-left-color:var(--ink); }
+    .card.grn { border-left-color:var(--ok); }
+    .card h3 { margin:0 0 7px; }
+    .card p:last-child, .card ul:last-child { margin-bottom:0; }
+    .callout { margin:17px 0; padding:15px 18px; border:1px solid color-mix(in srgb,var(--ac) 38%,var(--paper)); border-left:5px solid var(--ac); border-radius:6px; background:var(--soft-ac); }
+    .callout.dark { border-color:color-mix(in srgb,var(--ink) 23%,var(--paper)); border-left-color:var(--ink); background:var(--soft-ink); }
+    .callout.grn { border-color:color-mix(in srgb,var(--ok) 50%,var(--paper)); border-left-color:var(--ok); background:var(--soft-ok); }
+    .callout-label { margin-bottom:5px; color:var(--ink); font-size:.69rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; }
+    .callout p:last-child { margin:0; }
+    .table-wrap { margin:17px 0; overflow-x:auto; border:1px solid var(--line); border-radius:6px; background:var(--paper); }
+    table { width:100%; min-width:720px; border-collapse:collapse; font-size:.79rem; }
+    th { padding:10px 11px; background:var(--ink); color:var(--paper); text-align:left; font-weight:700; }
+    td { padding:10px 11px; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.5; }
+    tr:last-child td { border-bottom:0; }
+    tbody tr:nth-child(even) { background:var(--soft-ink); }
+    code { padding:2px 6px; border-radius:4px; background:var(--soft-ac); color:var(--ink); font:600 .86em 'JetBrains Mono',monospace; }
+    .time { white-space:nowrap; font-weight:700; color:var(--ink); }
+    .checklist { list-style:none; padding:0!important; display:grid; gap:7px; }
+    .checklist li { position:relative; margin:0; padding:9px 10px 9px 34px; border:1px solid var(--line); border-radius:6px; background:var(--paper); }
+    .checklist li::before { content:'□'; position:absolute; left:11px; top:8px; color:color-mix(in srgb,var(--ac) 56%,var(--ink)); font-weight:700; }
+    #float-nav { position:fixed; right:24px; bottom:25px; z-index:9998; display:flex; flex-direction:column; gap:7px; opacity:0; transform:translateY(12px); pointer-events:none; transition:.25s ease; }
+    #float-nav.visible { opacity:1; transform:none; pointer-events:auto; }
+    .fn-btn { padding:9px 13px; border-radius:4px; text-decoration:none; box-shadow:var(--ds-sombra-1); font-size:.74rem; font-weight:700; text-align:center; }
+    .fn-btn-slides { background:var(--paper); color:var(--ink); border:2px solid var(--ok); }
+    .fn-btn-alt { background:var(--paper); color:var(--ink); border:2px solid var(--ink); }
+    .fn-btn-back { background:var(--ink); color:var(--paper); }
+    .inteli-footer { padding:26px 20px; border-top:1px solid var(--line); background:var(--paper); text-align:center; font-size:.8rem; }
+    @media(max-width:960px) { .plan-layout { grid-template-columns:1fr; } .mat-sidebar { display:none; } .head-inner { display:block; } .head-actions { margin-top:20px; justify-content:flex-start; } }
+    @media(max-width:700px) { .g2,.g3 { grid-template-columns:1fr; } .plano-header h1 { font-size:1.9rem; } }
+    /* Layout terminal: títulos de seção do plano, que a camada .tm-material não alcança */
+    .tm-material .plan-section h2 { font-family:var(--ds-fonte-mono); font-weight:600; letter-spacing:-.02em; color:var(--ds-texto-forte); border-bottom:1px solid var(--ds-texto-forte); }
+    .tm-material .plan-section h3 { color:var(--ds-texto-forte); }
+    .tm-material .time { font-family:var(--ds-fonte-mono); font-weight:500; }
+    .tm-material .checklist li::before { color:var(--ds-texto-forte); }
+  </style>
+
+<!-- semana:css:start -->
+<link rel="stylesheet" href="../../../css/semana-ano.css">
+<!-- semana:css:end -->
+<!-- encontro:css:start -->
+<link rel="stylesheet" href="../../../css/encontro.css">
+<!-- encontro:css:end -->
+<!-- ds:css -->
+<link rel="stylesheet" href="../../../css/inteli-ds.css">
+
+</head>
+<body class="tm-material ds-curso-adm-tech">
+  <div id="progress-bar" aria-hidden="true"></div>
+  <nav id="float-nav" aria-label="Navegação rápida">
+    <a class="fn-btn fn-btn-slides" href="../slides/slide-lesson-5.html">▶ Slides</a>
+    <a class="fn-btn fn-btn-alt" href="../materials/lesson-5-material.html">📖 Material</a>
+    <a class="fn-btn fn-btn-back" href="../../home-module-5-adm-tech.html">← Módulo</a>
+  </nav>
+
+  <header class="plano-header">
+    <div class="head-inner">
+      <div class="head-copy">
+        <span class="badge">Módulo 5 · Administração + Tecnologia · Aula 5</span>
+        <h1>Plano de ensino · Calculadora de Valuation com Interface Web (Gradio)</h1>
+        <p>Encontro em que a turma transforma o notebook de cálculo financeiro em uma aplicação Gradio utilizável, passando de <code>gr.Interface</code> a <code>gr.Blocks</code>, separando dados, regras financeiras e interface, validando o arquivo enviado, apresentando métricas, tabela e gráfico e publicando o app com link compartilhável.</p>
+      </div>
+      <div class="head-actions">
+        <a class="primary" href="../slides/slide-lesson-5.html">▶ Slides</a>
+        <a href="../materials/lesson-5-material.html">📖 Material</a>
+        <a href="../../home-module-5-adm-tech.html">← Voltar ao módulo</a>
+      </div>
+    </div>
+  </header>
+<!-- encontro:meta:start -->
+<div class="container" style="max-width:1100px;margin:24px auto 0;padding:0 16px;"><section class="encontro-meta" data-encontro-ficha><h2>Sobre este encontro</h2><p class="encontro-ref">Relatórios Automatizados com Python · Prof. Afonso</p><div class="encontro-item" data-encontro="objetivo"><h3>Objetivo de aprendizagem</h3><p>Ao final do encontro, o estudante deve ser capaz de aplicar ao projeto os conceitos de Relatórios Automatizados com Python. Escopo do encontro: Crie relatórios financeiros automatizados e profissionais com Python.</p></div><div class="encontro-item" data-encontro="estrategia"><h3>Estratégia do encontro</h3><p>Exposição dialogada dos conceitos, alternada com aplicação guiada ao projeto do grupo, e fechamento com verificação do entendimento.</p></div><div class="encontro-item" data-encontro="agenda"><h3>Estrutura do encontro</h3><ol><li>Você vai sair com um app melhor que &quot;só funciona&quot;</li><li>Bloco inicial obrigatório</li><li>Quando usar `gr.Interface`</li><li>Quando o app cresce, use `gr.Blocks`</li><li>Separação em 3 camadas</li><li>Tratar diferentes formatos sem quebrar o app</li><li>Valide antes de calcular</li><li>Não devolva só um número</li></ol></div></section></div>
+<!-- encontro:meta:end -->
+
+
+  <div class="plan-layout">
+    <aside class="mat-sidebar">
+      <nav class="mat-toc" aria-label="Sumário do plano">
+        <h2>Neste plano</h2>
+        <a href="#identificacao">1. Identificação</a>
+        <a href="#objetivo">2. Objetivo de aprendizagem</a>
+        <a href="#produtos">3. Produtos do encontro</a>
+        <a href="#preparacao">4. Preparação</a>
+        <a href="#cronograma">5. Cronograma</a>
+        <a href="#conducao">6. Roteiro de condução</a>
+        <a href="#metodologia">7. Metodologia</a>
+        <a href="#verificacao">8. Verificação da aprendizagem</a>
+        <a href="#recursos">9. Recursos</a>
+        <a href="#riscos">10. Riscos e contingências</a>
+        <a href="#fechamento">11. Fechamento</a>
+        <a href="#referencias">12. Referências</a>
+        <div class="toc-total">Duração estimada do encontro: 120 minutos.</div>
+      </nav>
+    </aside>
+
+    <main class="plan-main">
+      <section class="plan-section" id="identificacao">
+        <h2>1. Identificação</h2>
+        <div class="table-wrap">
+          <table>
+            <tbody>
+              <tr><th>Componente</th><th>Registro</th></tr>
+              <tr><td>Módulo</td><td>Módulo 5 (Projeto 5), Modelagem financeira e valuation</td></tr>
+              <tr><td>Curso</td><td>Administração + Tecnologia</td></tr>
+              <tr><td>Encontro</td><td>Aula 5, Calculadora de Valuation com Interface Web (Gradio) (em <code>config/module-5-adm-tech.json</code>: Relatórios Automatizados com Python; no deck: Gradio: do Simples ao Top)</td></tr>
+              <tr><td>Data e duração</td><td>Terça-feira, 25/03/2025 · 120 minutos, estimados por analogia com as Aulas 1, 3 e 4, já que o deck não indica a duração · Sprint 4 (Semanas 7 e 8, de 17/03 a 30/03/2025)</td></tr>
+              <tr><td>Docente</td><td>Afonso Brandão</td></tr>
+              <tr><td>Descrição oficial</td><td>Crie relatórios financeiros automatizados e profissionais com Python.</td></tr>
+              <tr><td>Natureza</td><td>Exposição com código comentado sobre a evolução de um app Gradio, seguida de aplicação guiada ao notebook do grupo</td></tr>
+              <tr><td>Encontros vizinhos</td><td>12/03/2025, Aula 4, cálculos financeiros em Python, que introduziu a interface mínima · 01/04/2025, Aula 6, acompanhamento final do projeto</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="plan-section" id="objetivo">
+        <h2>2. Objetivo de aprendizagem</h2>
+        <div class="callout dark"><p>Ao final do encontro, o estudante deve ser capaz de transformar o notebook de cálculo financeiro do projeto em uma aplicação Gradio utilizável, escolhendo entre <code>gr.Interface</code> e <code>gr.Blocks</code>, separando leitura de dados, regras financeiras e interface, validando o arquivo enviado com mensagens de erro compreensíveis, apresentando métricas, tabela e gráfico e publicando o app com link compartilhável.</p></div>
+        <h3>Resultados observáveis</h3>
+        <ul>
+          <li>Indicar quando <code>gr.Interface</code> basta e quando o crescimento do app exige <code>gr.Blocks</code>, com <code>Row</code>, <code>Column</code> e eventos.</li>
+          <li>Separar o código em camada de dados, camada de domínio e camada de interface, mantendo a função de negócio independente do Gradio.</li>
+          <li>Ler arquivos CSV e XLSX, padronizar os nomes de coluna e validar as colunas <code>ano</code>, <code>receita</code>, <code>custos</code> e <code>investimento</code>.</li>
+          <li>Substituir mensagens técnicas, como <code>KeyError</code>, por mensagens que dizem ao usuário o que falta no arquivo.</li>
+          <li>Apresentar o VPL formatado em moeda, a TIR, o payback, a tabela por período e um gráfico de valor presente por ano.</li>
+          <li>Aplicar os cuidados de desempenho, segurança e publicação antes de compartilhar o app.</li>
+        </ul>
+      </section>
+
+      <section class="plan-section" id="produtos">
+        <h2>3. Produtos do encontro</h2>
+        <div class="g3">
+          <article class="card"><h3>App Gradio do grupo</h3><p>Aplicação com upload de CSV ou XLSX, validação das colunas obrigatórias e saída com VPL formatado, TIR e gráfico, construída a partir do notebook do projeto.</p></article>
+          <article class="card dark"><h3>Código organizado em camadas</h3><p>Funções separadas por responsabilidade, na estrutura de <code>io_data.py</code>, <code>service_finance.py</code> e <code>ui_gradio.py</code> do blueprint do slide 16.</p></article>
+          <article class="card grn"><h3>Link de publicação</h3><p>Link gerado pelo Colab com <code>share=True</code> ou publicação no Hugging Face Spaces.</p></article>
+        </div>
+        <div class="callout"><div class="callout-label">Continuidade</div><p>A Aula 6 é o acompanhamento final do projeto, em que o app, a planilha e o resumo executivo são revisados contra os critérios de finalização.</p></div>
+      </section>
+
+      <section class="plan-section" id="preparacao">
+        <h2>4. Preparação</h2>
+        <div class="g2">
+          <div>
+            <h3>Responsabilidade dos estudantes</h3>
+        <ul class="checklist">
+          <li>Ter o notebook da ponderada da Aula 4 acessível no Colab, com as funções de VPL, TIR e payback.</li>
+          <li>Separar um arquivo CSV ou XLSX do projeto com colunas de ano, receita, custos e investimento, sem dados sensíveis que não possam aparecer em link público.</li>
+        </ul>
+          </div>
+          <div>
+            <h3>Responsabilidade do docente</h3>
+        <ul class="checklist">
+          <li>Testar no Colab o bloco de instalação do slide 4 e o app completo em <code>gr.Blocks</code> do material.</li>
+          <li>Preparar um arquivo de teste com uma coluna faltante, para demonstrar a diferença entre a mensagem técnica e a mensagem útil.</li>
+          <li>Verificar a geração do link com <code>share=True</code> no ambiente da sala.</li>
+        </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="plan-section" id="cronograma">
+        <h2>5. Cronograma</h2>
+        <p>O deck não indica duração nem tempos por bloco. A duração de 120 minutos e toda a distribuição são estimativas; o bloco de aplicação guiada decorre da estratégia do encontro e do checklist de entrega do material, que pressupõem que cada grupo construa o próprio app.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th style="width:14%">Intervalo</th><th style="width:9%">Tempo</th><th style="width:22%">Bloco</th><th>Conteúdo</th></tr></thead>
+            <tbody>
+              <tr><td class="time">0–10 min</td><td class="time">10 min</td><td><strong>Meta e níveis de app</strong></td><td>Resultados esperados da aula e o quadro que distingue app simples, app bom e app top. Slides 1 a 3.</td></tr>
+              <tr><td class="time">10–20 min</td><td class="time">10 min</td><td><strong>Setup e Interface</strong></td><td>Bloco inicial de instalação e importação e app mínimo com <code>gr.Interface</code>. Slides 4 e 5.</td></tr>
+              <tr><td class="time">20–30 min</td><td class="time">10 min</td><td><strong>Blocks e arquitetura</strong></td><td>Motivos para usar <code>gr.Blocks</code>, estrutura padrão do layout e separação em três camadas. Slides 6 e 7.</td></tr>
+              <tr><td class="time">30–45 min</td><td class="time">15 min</td><td><strong>Upload e validação</strong></td><td>Leitura de CSV e XLSX com tratamento de formato e validação antes do cálculo. Slides 8 e 9.</td></tr>
+              <tr><td class="time">45–60 min</td><td class="time">15 min</td><td><strong>Saídas, UX e eventos</strong></td><td>Métrica principal, métricas auxiliares, tabela e gráfico; os cinco ajustes de experiência; callbacks dos botões Calcular e Limpar. Slides 10 a 12.</td></tr>
+              <tr><td class="time">60–70 min</td><td class="time">10 min</td><td><strong>Desempenho e segurança</strong></td><td>Fila com <code>demo.queue()</code>, limite de arquivo, cache e checklist antes de compartilhar. Slides 13 e 14.</td></tr>
+              <tr><td class="time">70–80 min</td><td class="time">10 min</td><td><strong>Publicação e blueprint</strong></td><td>Colab e Hugging Face Spaces e a estrutura de pastas recomendada. Slides 15 e 16.</td></tr>
+              <tr><td class="time">80–115 min</td><td class="time">35 min</td><td><strong>Aplicação guiada</strong></td><td>Evolução do notebook do grupo para o app, conforme o checklist de entrega do material.</td></tr>
+              <tr><td class="time">115–120 min</td><td class="time">5 min</td><td><strong>Recapitulação</strong></td><td>Os cinco pontos do resumo da aula. Slide 17.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="plan-section" id="conducao">
+        <h2>6. Roteiro de condução</h2>
+        <ol>
+          <li>Apresentar a meta do slide 2 e o quadro do slide 3, pedindo que cada grupo situe o app da Aula 4 entre os níveis simples, bom e top.</li>
+          <li>Executar o bloco inicial do slide 4, com as dependências na primeira célula e os imports agrupados, e o app mínimo do slide 5.</li>
+          <li>Explicar no slide 6 por que <code>gr.Blocks</code> se torna necessário quando o app passa a ter várias entradas e várias saídas.</li>
+          <li>Apresentar a separação em três camadas do slide 7 e a regra de que a função de negócio recebe e devolve dados Python sem conhecer o Gradio.</li>
+          <li>Mostrar a leitura de arquivos do slide 8 e enviar ao app o arquivo de teste com coluna faltante, comparando a mensagem técnica com a mensagem que nomeia a coluna ausente, conforme o slide 9.</li>
+          <li>Percorrer as saídas do slide 10, os ajustes de experiência do slide 11 e os callbacks do slide 12.</li>
+          <li>Tratar desempenho e segurança nos slides 13 e 14, com ênfase em não expor dados sensíveis em link público.</li>
+          <li>Comparar as opções de publicação do slide 15 e apresentar o blueprint do slide 16.</li>
+          <li>Conduzir a aplicação guiada, circulando pelos grupos e conferindo primeiro a validação das colunas e depois as saídas.</li>
+          <li>Fechar com a recapitulação do slide 17 e o checklist de entrega.</li>
+        </ol>
+      </section>
+
+      <section class="plan-section" id="metodologia">
+        <h2>7. Metodologia</h2>
+        <p>O encontro parte do app mínimo produzido na Aula 4 e o faz evoluir por etapas, cada uma motivada por um problema do nível anterior: o app simples não explica o erro nem o contexto, o app bom torna-se difícil de manter quando cresce, e o app top resolve esses dois problemas com validação, saídas explicadas e separação de camadas. Essa progressão justifica cada técnica pela falha que ela corrige.</p>
+        <p>A separação entre dados, domínio e interface é o eixo da aula, porque permite testar as regras financeiras sem abrir a interface e trocar a interface sem reescrever as regras. A aplicação guiada leva essa organização ao notebook do grupo, de modo que o app usado na entrega final do projeto reaproveita as funções já validadas na ponderada.</p>
+      </section>
+
+      <section class="plan-section" id="verificacao">
+        <h2>8. Verificação da aprendizagem</h2>
+        <h3>Entrega da aula</h3>
+        <p>A verificação segue o checklist de entrega do material: app funcional com upload de arquivo CSV ou XLSX, validação das colunas obrigatórias com mensagens de erro claras, saída com pelo menos o VPL formatado, a TIR e um gráfico, código organizado em funções separadas por responsabilidade e link de publicação gerado pelo Colab ou pelo Hugging Face Spaces.</p>
+        <h3>Verificação durante o encontro</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th style="width:30%">Momento</th><th>Evidência observada</th></tr></thead>
+            <tbody>
+              <tr><td>Quadro de níveis</td><td>O grupo classifica o próprio app e indica o próximo ajuste necessário.</td></tr>
+              <tr><td>Validação</td><td>O app recusa o arquivo de teste com uma mensagem que nomeia a coluna ausente.</td></tr>
+              <tr><td>Separação em camadas</td><td>A função que calcula VPL e TIR não importa o Gradio.</td></tr>
+              <tr><td>Saídas</td><td>O app apresenta métrica principal, métricas auxiliares, tabela e gráfico com rótulos orientados ao negócio.</td></tr>
+              <tr><td>Publicação</td><td>O grupo gera o link e descreve no app as limitações do modelo.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="plan-section" id="recursos">
+        <h2>9. Recursos</h2>
+        <ul>
+          <li>Deck de slides e material de leitura da aula, com o app completo em <code>gr.Blocks</code>.</li>
+          <li>Google Colab, com <code>gradio</code>, <code>pandas</code>, <code>numpy</code>, <code>plotly</code> e <code>openpyxl</code>.</li>
+          <li>Notebook da ponderada da Aula 4 de cada grupo.</li>
+          <li>Arquivo de dados do projeto em CSV ou XLSX e um arquivo de teste com coluna faltante.</li>
+          <li>Conta no Hugging Face, para quem optar pela publicação estável.</li>
+        </ul>
+      </section>
+
+      <section class="plan-section" id="riscos">
+        <h2>10. Riscos e contingências</h2>
+        <div class="g2">
+          <article class="card"><h3>Exposição reduzindo a aplicação guiada</h3><p>Os slides 13 a 16 podem ser apresentados em conjunto, com remissão ao material, para preservar ao menos 30 minutos de aplicação guiada.</p></article>
+          <article class="card dark"><h3>Arquivo do grupo com outros nomes de coluna</h3><p>A padronização com <code>strip</code> e <code>lower</code> não resolve nomes diferentes; o grupo renomeia as colunas no arquivo ou acrescenta um mapeamento na camada de dados.</p></article>
+          <article class="card grn"><h3>Link público com dados sensíveis</h3><p>O grupo substitui os dados do parceiro por dados de exemplo antes de compartilhar, conforme o checklist de segurança do slide 14.</p></article>
+          <article class="card"><h3>Falha na publicação</h3><p>O link do Colab é temporário e pode expirar durante a aula; o grupo executa novamente a célula de lançamento ou registra a publicação no Hugging Face Spaces como passo seguinte.</p></article>
+        </div>
+      </section>
+
+      <section class="plan-section" id="fechamento">
+        <h2>11. Fechamento</h2>
+        <p>O encontro encerra com a recapitulação do slide 17: interface clara com entradas guiadas, validação com mensagens compreensíveis, saídas com métricas, tabela e gráfico, código desacoplado e publicação com link compartilhável. Cada grupo confere o app contra o checklist de entrega e leva para a Aula 6 o que faltar.</p>
+      </section>
+
+      <section class="plan-section" id="referencias">
+        <h2>12. Referências</h2>
+        <ul>
+          <li>Documentação do Gradio: <a href="https://www.gradio.app/docs" target="_blank" rel="noopener noreferrer">gradio.app/docs</a>.</li>
+          <li>Hugging Face Spaces: <a href="https://huggingface.co/spaces" target="_blank" rel="noopener noreferrer">huggingface.co/spaces</a>.</li>
+          <li>Documentação do Plotly Express: <a href="https://plotly.com/python/plotly-express/" target="_blank" rel="noopener noreferrer">plotly.com/python/plotly-express</a>.</li>
+          <li><a href="../materials/lesson-4-material.html">Material da Aula 4</a>, com as funções financeiras e o app mínimo.</li>
+        </ul>
+      </section>
+    </main>
+  </div>
+
+  <footer class="inteli-footer">
+    <p>Plano de ensino elaborado pelo professor <strong>Afonso Brandão</strong> para o <strong>Inteli</strong>.</p>
+    <small>Licença de leitura aberta.</small>
+  </footer>
+
+  <script>
+    const progress = document.getElementById('progress-bar');
+    const floatNav = document.getElementById('float-nav');
+    const header = document.querySelector('.plano-header');
+    const tocLinks = Array.from(document.querySelectorAll('.mat-toc a'));
+    const sections = tocLinks.map((link) => document.querySelector(link.getAttribute('href'))).filter(Boolean);
+    function updateReadingState() {
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+      progress.style.width = `${scrollable > 0 ? (window.scrollY / scrollable) * 100 : 0}%`;
+      floatNav.classList.toggle('visible', window.scrollY > header.offsetHeight * 0.7);
+      let activeId = sections[0] ? sections[0].id : '';
+      sections.forEach((section) => { if (section.getBoundingClientRect().top <= 150) activeId = section.id; });
+      tocLinks.forEach((link) => link.classList.toggle('active', link.getAttribute('href') === `#${activeId}`));
+    }
+    document.addEventListener('scroll', updateReadingState, { passive:true });
+    updateReadingState();
+  </script>
+<!-- semana:js:start -->
+<script src="../../../js/semana-ano.js" defer></script>
+<!-- semana:js:end -->
+<!-- encontro:pdf:start -->
+<button type="button" class="pdf-export-btn" data-encontro-data="" data-encontro-docente="Afonso" data-encontro-seq="03" title="Exportar esta página em PDF com o nome padronizado">📄 Exportar PDF</button>
+<script src="../../../js/encontro-pdf.js" defer></script>
+<!-- encontro:pdf:end -->
+</body>
+</html>

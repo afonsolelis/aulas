@@ -181,6 +181,7 @@ Tests run against local `file://` URLs (no server needed). They validate:
 - `tests/specs-compliance.spec.ts` — validates all specs in `specs/` including home pages, routes naming, slides, and lesson cards
 - `tests/calendar-consistency.spec.ts` — validates that `config/calendar.json` dates match the `📅 dd/mm/yyyy` shown in each lesson card of the active modules' homes
 - `tests/index-json-coverage.spec.ts` — validates that every `.html` in `pages/` (plus `index.html`) has exactly one entry in `index.json` (Key Rule 7)
+- `tests/padrao-modulos.spec.ts` — every graduation module (`pages/home-module-*.html`) follows `specs/padrao-modulos.md`: each lesson has `slides/slide-lesson-N.html`, `materials/lesson-N-material.html` and `planos/lesson-N-plano.html`, linked from the home card with fixed labels, linked to each other and registered in `index.json` and `config/encontros.json`. Old addresses keep a `<meta name="redirect-legado">` stub, which tests and apply scripts ignore
 
 When adding a new module/lesson, ensure the corresponding file exists on disk before committing or tests will fail.
 

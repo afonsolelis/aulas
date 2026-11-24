@@ -36,6 +36,11 @@ function toRoot(pagePath) {
   return depth ? '../'.repeat(depth) : './';
 }
 
+/** Stub que só redireciona um endereço antigo (specs/padrao-modulos.md). */
+function redirectLegado(rel) {
+  return fs.readFileSync(path.join(ROOT, rel), 'utf8').includes('<meta name="redirect-legado"');
+}
+
 /** Todas as páginas do acervo, em caminho relativo à raiz e com barra normal. */
 function paginas() {
   const alvos = ['index.html'];
@@ -43,7 +48,7 @@ function paginas() {
     for (const ent of fs.readdirSync(path.join(ROOT, dir), { withFileTypes: true })) {
       const rel = `${dir}/${ent.name}`;
       if (ent.isDirectory()) anda(rel);
-      else if (ent.name.endsWith('.html')) alvos.push(rel);
+      else if (ent.name.endsWith('.html') && !redirectLegado(rel)) alvos.push(rel);
     }
   };
   anda('pages');

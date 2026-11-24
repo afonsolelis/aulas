@@ -324,7 +324,7 @@ export function arquivosDoPortal() {
     for (const e of fs.readdirSync(d, { withFileTypes: true })) {
       const p = path.join(d, e.name);
       if (e.isDirectory()) andar(p);
-      else if (/\.(html|css)$/.test(e.name)) lista.push(p);
+      else if (/\.(html|css)$/.test(e.name) && !fs.readFileSync(p, 'utf8').includes('<meta name="redirect-legado"')) lista.push(p);
     }
   };
   andar(path.join(RAIZ, 'pages'));

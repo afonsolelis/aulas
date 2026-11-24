@@ -21,6 +21,17 @@ export function readRepoFile(relativePath: string): string {
   return fs.readFileSync(resolveRepoPath(relativePath), 'utf8');
 }
 
+/**
+ * Página que só redireciona um endereço antigo para o novo, depois de uma
+ * reorganização de pastas (specs/padrao-modulos.md). Fica fora de todas as
+ * verificações de conteúdo, do index.json e dos scripts de aplicação.
+ */
+export const MARCA_REDIRECT_LEGADO = '<meta name="redirect-legado"';
+
+export function isRedirectLegado(fullPath: string): boolean {
+  return fs.readFileSync(fullPath, 'utf8').includes(MARCA_REDIRECT_LEGADO);
+}
+
 export function listHtmlFiles(relativeDir: string): string[] {
   const baseDir = resolveRepoPath(relativeDir);
   const htmlFiles: string[] = [];
@@ -35,7 +46,7 @@ export function listHtmlFiles(relativeDir: string): string[] {
         return;
       }
 
-      if (entry.isFile() && entry.name.endsWith('.html')) {
+      if (entry.isFile() && entry.name.endsWith('.html') && !isRedirectLegado(fullPath)) {
         htmlFiles.push(path.relative(repoRoot, fullPath).replace(/\\/g, '/'));
       }
     });

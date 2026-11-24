@@ -10,6 +10,7 @@ Arquivos:
 - `slides-footer.md`: padrão obrigatório do footer dos slides.
 - `home-pages.md`: regras das páginas `home-*`, com foco nas homes de módulo.
 - `lesson-cards.md`: padrão dos cards de aula nas homes.
+- `padrao-modulos.md`: padrão único de aula nos módulos da graduação (slides, material e plano em pastas fixas, ligados entre si e registrados), validado por `tests/padrao-modulos.spec.ts`.
 - `index-module-cards.md`: regras dos cards de módulo na `index.html`.
 - `module-2-common.md`: regras específicas do módulo 2 do ciclo comum.
 - `module2-slides.md`: padrão completo para slides do Módulo 2 (sistema próprio JS, animações Cardiff, RM-ODP, RF/RNF).
