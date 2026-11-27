@@ -28,7 +28,7 @@ users read and the pipeline that runs everything in order.
    failing skips its dependents; a month with two captures freezes the
    last one.
 
-Facts measured on 07/11/2026 (confirm before use):
+Facts measured on 27/11/2026 (confirm before use):
 - tcg-dataapp run: 12 tasks ok in about 40 s, almost all of it in the
   extraction; out/report.md and three Parquet files.
 - pytest: 9 tests pass in about 2 s, without network.

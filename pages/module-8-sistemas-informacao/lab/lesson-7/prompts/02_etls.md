@@ -21,8 +21,8 @@ In src/tcg_dataapp/etls/:
 4. tests/test_landing.py: a batch loaded twice is replaced, not
    duplicated; the timestamp is BIGINT.
 
-Facts measured on 07/11/2026 (confirm before use):
-- sets 7, products 1,490, prices 657, 896, 1,153, 1,414 and 1,831 on the
+Facts measured on 27/11/2026 (confirm before use):
+- sets 7, products 1,492, prices 657, 896, 1,153, 1,414 and 1,831 on the
   five dates; the five archives take about 3 s each.
 - The archive of a day holds every category; only 2 to 7 of the sets
   exist in it, depending on the date.

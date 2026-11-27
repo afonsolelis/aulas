@@ -54,6 +54,6 @@ extract_sets ─▶ extract_products ─┬▶ extract_prices_2026-03-01 ─┐
 - Every run captures the catalogue again; the dimensions keep the last version of each set and product (`QUALIFY row_number() ... = 1`), so the grain of the fact holds.
 - A frozen report is created once per month, from the last capture of that month, and never rebuilt.
 
-## Reference numbers (07/11/2026, DuckDB 2.0.0)
+## Reference numbers (27/11/2026, DuckDB 2.0.1)
 
-First run: 7 sets, 1,490 products, 5,951 prices in 5 captures; `gold.fact_price` 5,951 rows = 5,951 keys of the grain; 524 cells in the cube; `report.mv_card_price_2026_09` 1,226 rows, with the Pikachu ex 276/217 at US$ 1,049.08. A second run keeps the fact at 5,951 rows and the frozen report as it was. With `--with-today` on 08/11/2026: 7,782 prices in 6 captures, the same after a second run on the same day.
+First run: 7 sets, 1,492 products, 5,951 prices in 5 captures; `gold.fact_price` 5,951 rows = 5,951 keys of the grain; 524 cells in the cube; `report.mv_card_price_2026_09` 1,226 rows, with the Pikachu ex 276/217 at US$ 1,049.08. A second run keeps the fact at 5,951 rows and the frozen report as it was. With `--with-today` on 08/11/2026: 7,782 prices in 6 captures, the same after a second run on the same day.

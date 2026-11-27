@@ -18,11 +18,11 @@ In src/tcg_dataapp/processors/:
    db_ingestion is empty, when the grain of gold.fact_price is broken or
    when a price has no set, and otherwise returns the numbers it measured.
 
-Facts measured on 07/11/2026 (confirm before use):
+Facts measured on 27/11/2026 (confirm before use):
 - fact_rows 5,951 = fact_grain_keys 5,951; fact_without_set 0; dates 5;
   cube_cells 524; mv_card_price_2026_09 created with 1,226 rows.
 - After a second run, db_ingestion has the catalogue twice (14 set
-  records, 2,980 product records) and the fact still 5,951 rows.
+  records, 2,984 product records) and the fact still 5,951 rows.
 
 [E] Example
 QUALIFY row_number() OVER (PARTITION BY data_json->>'productId'
